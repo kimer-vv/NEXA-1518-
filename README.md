@@ -1,19 +1,25 @@
-# NEXA v27.4 — Manual End Event + UTC Auto End
+# NEXA v27.5 — Audit + Mobile Admin + Owner Delete Fix
 
-Fixes the two missing lifecycle controls:
+Fixes visible in the latest screenshots:
 
-- Manual **End Event** is visible when editing a Live event in Admin → Events.
-- Manual **End Event** is also available directly from View Event → Edit Event for Admin/Owner.
-- Auto End is split into:
-  - Auto End Date
-  - Auto End Time (UTC)
-- Auto End Time uses 24-hour UTC only, in 30-minute increments.
-- No AM/PM picker is used for operational event times.
-- Local AM/PM remains only in the public/member Schedule underneath the official UTC time.
+1. End Event error:
+   - Adds/recreates `audit_log` and `write_audit(text,jsonb)`.
+   - Fixes: `function public.write_audit(unknown, jsonb) does not exist`.
 
-No new SQL is required because v26 already created:
-- auto_end_at
-- end_svs_event()
-- lifecycle/history support
+2. Admin Control Center on iPhone:
+   - Modal now fits the viewport instead of being cut off on the left.
+   - Admin tabs horizontally scroll when needed.
 
-Upload/replace the web files in GitHub.
+3. Announcements separation:
+   - Important Announcement is removed from View Event → Edit Event.
+   - Announcements remain managed only in Admin → Announcements.
+
+4. Owner-only archived deletion:
+   - Admin → History shows Delete Permanently only to Owner.
+   - Only ended events can be permanently deleted.
+   - Other Admin/Scheduler users cannot use the database function.
+
+Steps:
+- Run `v27-5-supabase.sql` once in Supabase.
+- Then upload/replace the web files in GitHub.
+- Do not upload the SQL file to GitHub.

@@ -1369,6 +1369,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function loadEventHistory(){
     await supabaseClient.rpc('refresh_auto_ended_events');
+    const {data:isOwner}=await supabaseClient.rpc('is_owner');
     const q=document.getElementById('history-search').value.trim();
     let query=supabaseClient.from('svs_events').select('*').eq('status','ended').order('ended_at',{ascending:false});
     if(q) query=query.ilike('opponent_state',`%${q}%`);
@@ -1393,6 +1394,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div class="history-actions">
           <button class="btn secondary" type="button" data-history-view="${e.id}">View Archive</button>
           <button class="btn secondary" type="button" data-history-clone="${e.id}">Clone Settings</button>
+          ${isOwner===true?`<button class="btn danger" type="button" data-history-delete="${e.id}">Delete Permanently</button>`:''}
         </div>`;
       list.appendChild(card);
     }
@@ -1403,6 +1405,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('history-list').addEventListener('click',async e=>{
     const viewId=e.target.dataset.historyView;
     const cloneId=e.target.dataset.historyClone;
+    const deleteId=e.target.dataset.historyDelete;
+
+    if(deleteId){
+      const ok=confirm('Permanently delete this archived event? This cannot be undone and its archived requests/appointments will be deleted too.');
+      if(!ok) return;
+      const {error}=await supabaseClient.rpc('owner_delete_archived_event',{target_event_id:deleteId});
+      if(error) return alert(error.message);
+      await loadEventHistory();
+      return;
+    }
 
     if(viewId){
       localStorage.setItem('nexa_history_event_id',viewId);

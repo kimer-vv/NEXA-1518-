@@ -70,8 +70,7 @@
       <label>Opponent State<input id="inline-opponent" type="number" min="1" required></label>
       <label>Prep Monday — Game Date (UTC)<input id="inline-monday" type="date" required></label>
       <label>Event Notes<textarea id="inline-notes" rows="3"></textarea></label>
-      <label>Important Announcement<textarea id="inline-announcement" rows="2"></textarea></label>
-      <div class="auto-end-grid">
+            <div class="auto-end-grid">
         <label>Auto End Date
           <input id="inline-auto-end-date" type="date">
         </label>
@@ -257,7 +256,6 @@ async function enableInlineEdit(data){
     document.getElementById('inline-opponent').value=data.opponent_state;
     document.getElementById('inline-monday').value=data.prep_monday;
     document.getElementById('inline-notes').value=data.description||'';
-    document.getElementById('inline-announcement').value=data.announcement_text||'';
     document.getElementById('inline-prep-open').checked=!!data.prep_form_open;
     document.getElementById('inline-battle-open').checked=!!data.battle_form_open;
     document.getElementById('inline-schedule-published').checked=!!data.schedule_published;
@@ -290,14 +288,10 @@ async function enableInlineEdit(data){
 
   document.getElementById('inline-event-form').onsubmit=async(e)=>{
     e.preventDefault();
-    const oldAnn=data.announcement_text||null;
-    const newAnn=document.getElementById('inline-announcement').value.trim()||null;
     const payload={
       opponent_state:Number(document.getElementById('inline-opponent').value),
       prep_monday:document.getElementById('inline-monday').value,
       description:document.getElementById('inline-notes').value.trim()||null,
-      announcement_text:newAnn,
-      announcement_version:newAnn===oldAnn?Number(data.announcement_version||0):Number(data.announcement_version||0)+(newAnn?1:0),
       prep_form_open:document.getElementById('inline-prep-open').checked,
       battle_form_open:document.getElementById('inline-battle-open').checked,
       schedule_published:document.getElementById('inline-schedule-published').checked,

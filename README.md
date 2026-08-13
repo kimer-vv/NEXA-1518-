@@ -1,21 +1,11 @@
-# NEXA 1518 v10 — Discord Login
+# NEXA 1518 v12 — My Accounts Click Fix
 
-This version connects the Home "Discord Profile" button to Supabase Auth using Discord OAuth.
+This is the complete site package. It fixes the My Accounts / Claim your WOS account click target while preserving Discord login, Supabase account management, and the cosmic design.
 
-Upload all files to the root of the GitHub repository:
+Upload all 6 files to the repository root and replace the previous versions:
 - index.html
 - event.html
 - schedule.html
 - style.css
 - cosmic-background.png
 - README.md
-
-Expected flow:
-1. Tap Discord Profile.
-2. Authorize NEXA 1518 in Discord.
-3. Return to the Vercel site.
-4. The Discord display name/avatar appears in the header.
-5. Tapping the connected profile offers Sign Out.
-
-Supabase project URL and Publishable Key are browser-safe public values.
-Do not add any Secret key, service-role key, Discord Client Secret, or database password to these files.

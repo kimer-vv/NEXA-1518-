@@ -40,7 +40,7 @@
       <h2>My Accounts</h2>
       <span>Claim an account</span>
     </div>
-    <div class="glass account">
+    <div id="open-accounts" class="glass account account-button" role="button" tabindex="0">
       <div class="account-left">
         <div class="plus">+</div>
         <div>
@@ -153,7 +153,203 @@
   });
 
   renderSession();
+
+  const accountsModal = document.getElementById('accounts-modal');
+  const accountsList = document.getElementById('accounts-list');
+  const accountCount = document.getElementById('account-count');
+  const accountForm = document.getElementById('account-form');
+  const allianceSelect = document.getElementById('alliance');
+  const customAllianceWrap = document.getElementById('custom-alliance-wrap');
+  const customAlliance = document.getElementById('custom-alliance');
+  const messageEl = document.getElementById('accounts-message');
+  let allianceRows = [];
+
+  function msg(text, bad=false) {
+    messageEl.textContent = text || '';
+    messageEl.className = 'form-message' + (bad ? ' error' : '');
+  }
+
+  async function currentUser() {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    return session?.user || null;
+  }
+
+  async function loadAlliances() {
+    const { data, error } = await supabaseClient.from('alliances')
+      .select('id,tag').eq('is_active', true).order('tag');
+    if (error) throw error;
+    allianceRows = data || [];
+    allianceSelect.innerHTML = '<option value="">Select alliance</option>' +
+      allianceRows.map(a => `<option value="${a.id}">${a.tag}</option>`).join('') +
+      '<option value="not-listed">Not Listed</option>';
+  }
+
+  allianceSelect.addEventListener('change', () => {
+    const other = allianceSelect.value === 'not-listed';
+    customAllianceWrap.classList.toggle('hidden', !other);
+    customAlliance.required = other;
+    if (!other) customAlliance.value = '';
+  });
+
+  function resetAccountForm() {
+    document.getElementById('edit-account-id').value = '';
+    document.getElementById('ign').value = '';
+    document.getElementById('player-id').value = '';
+    document.getElementById('player-id').disabled = false;
+    allianceSelect.value = '';
+    customAlliance.value = '';
+    customAlliance.required = false;
+    customAllianceWrap.classList.add('hidden');
+    document.getElementById('save-account').textContent = 'Add Account';
+    document.getElementById('cancel-edit').classList.add('hidden');
+  }
+
+  async function loadAccounts() {
+    const user = await currentUser();
+    if (!user) {
+      accountsList.innerHTML = '<div class="empty-state">Sign in with Discord first.</div>';
+      accountCount.textContent = '0/5';
+      accountForm.classList.add('hidden');
+      return;
+    }
+    accountForm.classList.remove('hidden');
+    const { data, error } = await supabaseClient.from('player_accounts')
+      .select('id,in_game_name,player_id,alliance_id,custom_alliance_tag,alliances(tag)')
+      .order('created_at');
+    if (error) { msg(error.message, true); return; }
+    const rows = data || [];
+    accountCount.textContent = `${rows.length}/5`;
+    document.getElementById('save-account').disabled = rows.length >= 5 && !document.getElementById('edit-account-id').value;
+    accountsList.innerHTML = rows.length ? rows.map(a => {
+      const tag = a.alliances?.tag || a.custom_alliance_tag || 'Not Listed';
+      return `<article class="claimed-account">
+        <div><b>${a.in_game_name}</b><small>${tag} • ID ${a.player_id}</small></div>
+        <div class="account-actions">
+          <button type="button" data-edit="${a.id}">Edit</button>
+          <button type="button" data-delete="${a.id}">Delete</button>
+        </div>
+      </article>`;
+    }).join('') : '<div class="empty-state">No WOS accounts claimed yet.</div>';
+  }
+
+  const openAccountsButton = document.getElementById('open-accounts');
+  openAccountsButton?.addEventListener('click', async () => {
+    const user = await currentUser();
+    if (!user) {
+      document.getElementById('discord-login').click();
+      return;
+    }
+    accountsModal.classList.add('open');
+    accountsModal.setAttribute('aria-hidden','false');
+    msg('');
+    try { await loadAlliances(); await loadAccounts(); } catch(e) { msg(e.message, true); }
+  });
+
+  document.querySelectorAll('[data-close-accounts]').forEach(el => el.addEventListener('click', () => {
+    accountsModal.classList.remove('open');
+    accountsModal.setAttribute('aria-hidden','true');
+    resetAccountForm();
+  }));
+
+  document.getElementById('cancel-edit').addEventListener('click', () => {
+    resetAccountForm(); loadAccounts();
+  });
+
+  accountForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    msg('');
+    const user = await currentUser();
+    if (!user) return msg('Sign in with Discord first.', true);
+
+    const editId = document.getElementById('edit-account-id').value;
+    const notListed = allianceSelect.value === 'not-listed';
+    const payload = {
+      in_game_name: document.getElementById('ign').value.trim(),
+      alliance_id: notListed ? null : Number(allianceSelect.value),
+      custom_alliance_tag: notListed ? customAlliance.value.trim() : null
+    };
+    if (!editId) {
+      payload.user_id = user.id;
+      payload.player_id = document.getElementById('player-id').value.trim();
+    }
+
+    const q = editId
+      ? supabaseClient.from('player_accounts').update(payload).eq('id', editId)
+      : supabaseClient.from('player_accounts').insert(payload);
+    const { error } = await q;
+    if (error) return msg(error.message, true);
+    msg(editId ? 'Account updated.' : 'Account added.');
+    resetAccountForm();
+    await loadAccounts();
+  });
+
+  accountsList.addEventListener('click', async (e) => {
+    const editId = e.target.dataset.edit;
+    const deleteId = e.target.dataset.delete;
+    if (deleteId) {
+      if (!confirm('Remove this WOS account from NEXA?')) return;
+      const { error } = await supabaseClient.from('player_accounts').delete().eq('id', deleteId);
+      if (error) return msg(error.message, true);
+      resetAccountForm(); await loadAccounts(); return;
+    }
+    if (editId) {
+      const { data, error } = await supabaseClient.from('player_accounts')
+        .select('id,in_game_name,player_id,alliance_id,custom_alliance_tag').eq('id', editId).single();
+      if (error) return msg(error.message, true);
+      document.getElementById('edit-account-id').value = data.id;
+      document.getElementById('ign').value = data.in_game_name;
+      document.getElementById('player-id').value = data.player_id;
+      document.getElementById('player-id').disabled = true;
+      if (data.alliance_id) allianceSelect.value = String(data.alliance_id);
+      else {
+        allianceSelect.value = 'not-listed';
+        customAllianceWrap.classList.remove('hidden');
+        customAlliance.required = true;
+        customAlliance.value = data.custom_alliance_tag || '';
+      }
+      document.getElementById('save-account').textContent = 'Save Changes';
+      document.getElementById('save-account').disabled = false;
+      document.getElementById('cancel-edit').classList.remove('hidden');
+    }
+  });
+
 </script>
+
+
+<div id="accounts-modal" class="modal" aria-hidden="true">
+  <div class="modal-backdrop" data-close-accounts></div>
+  <section class="modal-card">
+    <div class="modal-head">
+      <div><small>MY ACCOUNTS</small><h2>WOS Accounts <span id="account-count">0/5</span></h2></div>
+      <button class="icon-btn" type="button" data-close-accounts>×</button>
+    </div>
+
+    <div id="accounts-message" class="form-message"></div>
+    <div id="accounts-list" class="accounts-list"></div>
+
+    <form id="account-form" class="account-form">
+      <input type="hidden" id="edit-account-id">
+      <label>In-Game Name
+        <input id="ign" maxlength="40" required placeholder="Your WOS name">
+      </label>
+      <label>Player ID
+        <input id="player-id" maxlength="30" required placeholder="Player ID">
+      </label>
+      <label>Alliance
+        <select id="alliance" required>
+          <option value="">Select alliance</option>
+        </select>
+      </label>
+      <label id="custom-alliance-wrap" class="hidden">Alliance Tag
+        <input id="custom-alliance" maxlength="12" placeholder="Enter alliance tag">
+      </label>
+      <div class="form-actions">
+        <button id="cancel-edit" class="btn secondary hidden" type="button">Cancel</button>
+        <button id="save-account" class="btn" type="submit">Add Account</button>
+      </div>
+    </form>
+  </section>
+</div>
 
 </body>
 </html>

@@ -74,7 +74,7 @@
   </div>
   <div class="form-step"><h2>3. Account Strength</h2>
    <label>Current Furnace Level *<select id="furnace_level" required><option value="fc10">FC10</option><option value="fc9">FC9</option><option value="fc8">FC8</option><option value="fc7_or_lower">≤ FC7</option></select></label>
-   <label>Current Total Power *<input id="current_power" inputmode="numeric" required placeholder="Example: 1250000000"></label>
+   <label>Current Total Power *<input id="current_power" inputmode="numeric" required placeholder="Example: 1250000000" pattern="[0-9]*" autocomplete="off"><p class="field-help power-format-help"><b>Enter your FULL power using numbers only — no commas, M, or B.</b><br>Example: <b>24500000</b>, not 24.5M. NEXA needs the complete number so the system can accurately classify your application against the current transfer power caps.</p></label>
    <fieldset><legend>Advanced Troops</legend>
     <label class="check"><input type="checkbox" id="t12_infantry"> T12 Exalted Infantry</label>
     <label class="check"><input type="checkbox" id="t12_lancer"> T12 Exalted Lancers</label>
@@ -370,7 +370,11 @@ els.withGroup.addEventListener('change',()=>{
   els.groupName.required=show;
 });
 
-els.power.addEventListener('input',updateLabyrinth);
+els.power.addEventListener('input',()=>{
+  const cleaned=els.power.value.replace(/\D/g,'');
+  if(els.power.value!==cleaned) els.power.value=cleaned;
+  updateLabyrinth();
+});
 
 els.discord.addEventListener('input',()=>{
   if(els.contactWarning)

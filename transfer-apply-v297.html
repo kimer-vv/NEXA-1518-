@@ -6,7 +6,7 @@
 <header class="topbar public-transfer-topbar"><div class="shell nav"><div class="logo public-form-logo"><span class="star">✦</span><span>NEXA<small>STATE 1518 • TRANSFERS</small></span></div></div></header>
 
 <main class="shell event-page transfer-form-page">
- <span class="badge transfer-badge">TRANSFER APPLICATION • v29.8</span>
+ <span class="badge transfer-badge">TRANSFER APPLICATION • v29.9</span>
  <h1 id="event-title">State 1518 Transfer Application</h1>
 
  <section class="glass transfer-welcome">
@@ -120,6 +120,46 @@
 <script>
 const SUPABASE_URL="https://dfxcxboxrkfmrnsgpyin.supabase.co", SUPABASE_KEY="sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-";
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+// v29.9: explicit DOM bindings for iOS Safari
+const confirms_event_structure=document.getElementById('confirms_event_structure');
+const completed_by=document.getElementById('completed_by');
+const referred=document.getElementById('referred');
+const referred_by_wrap=document.getElementById('referred_by_wrap');
+const referred_by=document.getElementById('referred_by');
+const in_game_name=document.getElementById('in_game_name');
+const player_id=document.getElementById('player_id');
+const current_state=document.getElementById('current_state');
+const current_alliance=document.getElementById('current_alliance');
+const discord_username=document.getElementById('discord_username');
+const furnace_level=document.getElementById('furnace_level');
+const current_power=document.getElementById('current_power');
+const t12_infantry=document.getElementById('t12_infantry');
+const t12_lancer=document.getElementById('t12_lancer');
+const t12_marksman=document.getElementById('t12_marksman');
+const t11_infantry=document.getElementById('t11_infantry');
+const t11_lancer=document.getElementById('t11_lancer');
+const t11_marksman=document.getElementById('t11_marksman');
+const labyrinth_wrap=document.getElementById('labyrinth_wrap');
+const labyrinth_score=document.getElementById('labyrinth_score');
+const transfer_passes=document.getElementById('transfer_passes');
+const willing_to_reduce_power=document.getElementById('willing_to_reduce_power');
+const alliance_choices=document.getElementById('alliance_choices');
+const flexible_alliance=document.getElementById('flexible_alliance');
+const utc_ranges=document.getElementById('utc_ranges');
+const discord_vc=document.getElementById('discord_vc');
+const transferring_with_group=document.getElementById('transferring_with_group');
+const group_fields=document.getElementById('group_fields');
+const group_name=document.getElementById('group_name');
+const group_leader=document.getElementById('group_leader');
+const group_size=document.getElementById('group_size');
+const group_members_submitting=document.getElementById('group_members_submitting');
+const transfer_without_full_group=document.getElementById('transfer_without_full_group');
+const coordinates=document.getElementById('coordinates');
+const additional_information=document.getElementById('additional_information');
+const state_playstyle=document.getElementById('state_playstyle');
+const confirms_information=document.getElementById('confirms_information');
+const confirms_interest_only=document.getElementById('confirms_interest_only');
+const confirms_alliance_flexibility=document.getElementById('confirms_alliance_flexibility');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmtPower=n=>{n=Number(n||0); return n>=1e9?(n/1e9).toFixed(2).replace(/\.00$/,'')+'B':n>=1e6?(n/1e6).toFixed(1).replace(/\.0$/,'')+'M':n.toLocaleString();};
 
@@ -162,7 +202,15 @@ discord_username.addEventListener('input',()=>contact_warning.classList.toggle('
 async function refreshPublicTransferForm(){
  if(!token){form_message.textContent='Invalid application link.';return;}
 
- const {data,error}=await sb.rpc('get_public_transfer_form_data',{p_event_token:token});
+ let data,error;
+ try{
+   const result=await sb.rpc('get_public_transfer_form_data',{p_event_token:token});
+   data=result.data; error=result.error;
+ }catch(err){
+   publicRecruitingCount.textContent='Could not load recruiting alliances.';
+   publicRecruitingSync.textContent=String(err?.message||err);
+   return;
+ }
  const e=data?.event;
 
  if(error||!e){

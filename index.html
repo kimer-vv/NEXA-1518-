@@ -195,6 +195,7 @@
       <button class="admin-tab active" type="button" data-admin-tab="events">Events</button>
       <button class="admin-tab" type="button" data-admin-tab="alliances">Alliances</button>
       <button class="admin-tab" type="button" data-admin-tab="permissions">Permissions</button>
+      <button class="admin-tab" type="button" data-admin-tab="announcements">Announcements</button>
     </div>
 
     <section id="admin-events" class="admin-section">
@@ -231,35 +232,6 @@
         <label>Event Notes
           <textarea id="event-description" rows="3" placeholder="Optional notes, opponent info, ministry buff notes, battle reminders..."></textarea>
         </label>
-
-        <label>Important Announcement
-          <textarea id="important-announcement" rows="2" maxlength="500" placeholder="Optional high-priority message shown on the NEXA home page..."></textarea>
-          <small>Players can acknowledge that they read it.</small>
-        </label>
-
-        <section class="glass-lite announcement-translations-admin">
-          <div class="admin-section-head">
-            <h3>Announcement Translations</h3>
-            <p>Free-text auto-translation requires a translation service. For now you can save translated versions here; NEXA will show the matching language automatically.</p>
-          </div>
-          <div class="translation-grid">
-            <label>Español<textarea id="ann-es" rows="2"></textarea></label>
-            <label>Türkçe<textarea id="ann-tr" rows="2"></textarea></label>
-            <label>한국어<textarea id="ann-ko" rows="2"></textarea></label>
-            <label>العربية<textarea id="ann-ar" rows="2"></textarea></label>
-            <label>日本語<textarea id="ann-ja" rows="2"></textarea></label>
-            <label>中文<textarea id="ann-zh" rows="2"></textarea></label>
-            <label>Русский<textarea id="ann-ru" rows="2"></textarea></label>
-          </div>
-        </section>
-
-        <section id="announcement-reads-admin" class="glass-lite hidden">
-          <div class="admin-section-head">
-            <h3>Announcement Reads</h3>
-            <p id="announcement-read-count">0 confirmed</p>
-          </div>
-          <div id="announcement-read-list" class="admin-list"></div>
-        </section>
 
         <div class="event-preview glass-lite">
           <small>AUTO-GENERATED WOS TIMELINE</small>
@@ -319,6 +291,57 @@
 
       <div id="permissions-message" class="form-message"></div>
       <div id="permissions-list" class="admin-list"></div>
+    </section>
+
+    <section id="admin-announcements" class="admin-section hidden">
+      <div class="admin-section-head">
+        <div>
+          <h3>Announcements</h3>
+          <p>Manage the highlighted NEXA announcement separately from SvS event details.</p>
+        </div>
+      </div>
+
+      <div class="announcement-admin-layout">
+        <section class="glass-lite">
+          <label>Important Announcement
+            <textarea id="ann-main" rows="3" maxlength="500" placeholder="Write the main announcement..."></textarea>
+          </label>
+
+          <div class="translation-grid">
+            <label>Español<textarea id="ann-es" rows="2"></textarea></label>
+            <label>Türkçe<textarea id="ann-tr" rows="2"></textarea></label>
+            <label>한국어<textarea id="ann-ko" rows="2"></textarea></label>
+            <label>العربية<textarea id="ann-ar" rows="2"></textarea></label>
+            <label>日本語<textarea id="ann-ja" rows="2"></textarea></label>
+            <label>中文<textarea id="ann-zh" rows="2"></textarea></label>
+            <label>Русский<textarea id="ann-ru" rows="2"></textarea></label>
+          </div>
+
+          <div class="form-actions">
+            <button id="clear-announcement" class="btn secondary" type="button">Deactivate</button>
+            <button id="save-announcement" class="btn" type="button">Save Announcement</button>
+          </div>
+          <div id="announcement-admin-message" class="form-message"></div>
+        </section>
+
+        <section class="glass-lite">
+          <div class="announcement-status-head">
+            <h3>Acknowledgements</h3>
+            <div class="announcement-status-tabs">
+              <button class="mini-tab active" data-ack-filter="all" type="button">All</button>
+              <button class="mini-tab" data-ack-filter="yes" type="button">Acknowledged</button>
+              <button class="mini-tab" data-ack-filter="no" type="button">Not Acknowledged</button>
+            </div>
+          </div>
+          <div id="announcement-summary" class="scheduler-stats"></div>
+          <div id="announcement-status-list" class="admin-list"></div>
+        </section>
+
+        <section class="glass-lite">
+          <h3>Announcement History</h3>
+          <div id="announcement-history-list" class="admin-list"></div>
+        </section>
+      </div>
     </section>
   </section>
 </div>
@@ -684,6 +707,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const adminEventsSection = document.getElementById('admin-events');
   const adminAlliancesSection = document.getElementById('admin-alliances');
   const adminPermissionsSection = document.getElementById('admin-permissions');
+  const adminAnnouncementsSection = document.getElementById('admin-announcements');
 
   async function amIAdmin() {
     const user = await currentUser();
@@ -778,7 +802,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     adminEventsSection.classList.toggle('hidden', target !== 'events');
     adminAlliancesSection.classList.toggle('hidden', target !== 'alliances');
     adminPermissionsSection.classList.toggle('hidden', target !== 'permissions');
+    adminAnnouncementsSection.classList.toggle('hidden', target !== 'announcements');
     if (target === 'permissions') await loadPermissions();
+    if (target === 'announcements') await loadAnnouncementsCenter();
   }));
 
 
@@ -833,8 +859,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('opponent-state').value = '';
     document.getElementById('prep-monday').value = '';
     document.getElementById('event-description').value = '';
-    document.getElementById('important-announcement').value = '';
-    ['es','tr','ko','ar','ja','zh','ru'].forEach(c=>document.getElementById('ann-'+c).value='');
     document.getElementById('announcement-reads-admin').classList.add('hidden');
     document.getElementById('castle-alliance').value = '';
     document.getElementById('presidency-alliance').value = '';
@@ -854,33 +878,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const id = document.getElementById('event-id').value;
     const user = await currentUser();
-    let priorAnnouncement = null;
-    let priorVersion = 0;
-    if (id) {
-      const {data:prior} = await supabaseClient.from('svs_events')
-        .select('announcement_text,announcement_version').eq('id',id).single();
-      priorAnnouncement = prior?.announcement_text || null;
-      priorVersion = Number(prior?.announcement_version || 0);
-    }
-    const nextAnnouncement = document.getElementById('important-announcement').value.trim() || null;
-
     const payload = {
       opponent_state: Number(document.getElementById('opponent-state').value),
       prep_monday: document.getElementById('prep-monday').value,
       castle_alliance_id: document.getElementById('castle-alliance').value ? Number(document.getElementById('castle-alliance').value) : null,
       presidency_alliance_id: document.getElementById('presidency-alliance').value ? Number(document.getElementById('presidency-alliance').value) : null,
       description: document.getElementById('event-description').value.trim() || null,
-      announcement_text: nextAnnouncement,
-      announcement_translations: {
-        es: document.getElementById('ann-es').value.trim(),
-        tr: document.getElementById('ann-tr').value.trim(),
-        ko: document.getElementById('ann-ko').value.trim(),
-        ar: document.getElementById('ann-ar').value.trim(),
-        ja: document.getElementById('ann-ja').value.trim(),
-        zh: document.getElementById('ann-zh').value.trim(),
-        ru: document.getElementById('ann-ru').value.trim()
-      },
-      announcement_version: (id && nextAnnouncement === priorAnnouncement) ? priorVersion : (priorVersion + (nextAnnouncement ? 1 : 0)),
       prep_form_open: document.getElementById('prep-form-open').checked,
       battle_form_open: document.getElementById('battle-form-open').checked,
       schedule_published: document.getElementById('schedule-published').checked,
@@ -917,9 +920,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('opponent-state').value = data.opponent_state;
       document.getElementById('prep-monday').value = data.prep_monday;
       document.getElementById('event-description').value = data.description || '';
-      document.getElementById('important-announcement').value = data.announcement_text || '';
-      const ats=data.announcement_translations||{};
-      ['es','tr','ko','ar','ja','zh','ru'].forEach(c=>document.getElementById('ann-'+c).value=ats[c]||'');
       await loadAnnouncementReads(data);
       await loadEventAllianceSelectors(data.castle_alliance_id, data.presidency_alliance_id);
       document.getElementById('prep-form-open').checked = !!data.prep_form_open;
@@ -1076,6 +1076,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if(tabs[0]) tabs[0].textContent=tr('events');
     if(tabs[1]) tabs[1].textContent=tr('alliances');
     if(tabs[2]) tabs[2].textContent=tr('permissions');
+    if(tabs[3]) tabs[3].textContent='Announcements';
 
     setText('#admin-events h3','svsEvents');
     setText('#admin-events .admin-section-head p','eventsHelp');
@@ -1094,7 +1095,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if(eventLabels[2]) eventLabels[2].childNodes[0].nodeValue=tr('castleAlliance')+'\n          ';
     if(eventLabels[3]) eventLabels[3].childNodes[0].nodeValue=tr('presidencyAlliance')+'\n          ';
     if(eventLabels[4]) eventLabels[4].childNodes[0].nodeValue=tr('eventNotes')+'\n          ';
-    if(eventLabels[5]) eventLabels[5].childNodes[0].nodeValue=tr('importantAnnouncement')+'\n          ';
     const previewSmall=document.querySelector('.event-preview > small');
     if(previewSmall) previewSmall.textContent=tr('timeline');
     const toggles=document.querySelectorAll('.toggle-line');
@@ -1230,6 +1230,119 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
 
+
+
+  let currentAckFilter='all';
+
+  async function getLiveEventRecord(){
+    const {data}=await supabaseClient.from('svs_events').select('*')
+      .eq('is_live',true).order('prep_monday',{ascending:false}).limit(1).maybeSingle();
+    return data||null;
+  }
+
+  async function loadAnnouncementsCenter(){
+    const event=await getLiveEventRecord();
+    if(!event) return;
+
+    document.getElementById('ann-main').value=event.announcement_text||'';
+    const ats=event.announcement_translations||{};
+    ['es','tr','ko','ar','ja','zh','ru'].forEach(c=>{
+      document.getElementById('ann-'+c).value=ats[c]||'';
+    });
+
+    await loadAnnouncementStatus(event);
+    await loadAnnouncementHistory(event);
+  }
+
+  async function loadAnnouncementStatus(event){
+    const list=document.getElementById('announcement-status-list');
+    const summary=document.getElementById('announcement-summary');
+
+    if(!event.announcement_text || !event.announcement_version){
+      summary.innerHTML='<div><b>0</b><span>Acknowledged</span></div><div><b>0</b><span>Not Acknowledged</span></div><div><b>0</b><span>Total</span></div>';
+      list.innerHTML='<div class="empty-state">No active announcement.</div>';
+      return;
+    }
+
+    const {data,error}=await supabaseClient.rpc('list_announcement_status',{
+      target_event_id:event.id,
+      target_version:event.announcement_version
+    });
+    if(error){list.innerHTML=`<div class="empty-state">${error.message}</div>`;return;}
+
+    const rows=data||[];
+    const yes=rows.filter(x=>x.acknowledged).length;
+    const no=rows.length-yes;
+    summary.innerHTML=`<div><b>${yes}</b><span>Acknowledged</span></div><div><b>${no}</b><span>Not Acknowledged</span></div><div><b>${rows.length}</b><span>Total</span></div>`;
+
+    const shown=rows.filter(x=>currentAckFilter==='all' || (currentAckFilter==='yes'?x.acknowledged:!x.acknowledged));
+    list.innerHTML=shown.length?shown.map(x=>`
+      <article class="admin-row">
+        <div>
+          <b>${x.in_game_names || x.discord_name}</b>
+          <small>${x.alliances || ''} • ${x.discord_name}</small>
+        </div>
+        <div class="${x.acknowledged?'ack-yes':'ack-no'}">
+          ${x.acknowledged?'Acknowledged':'Not Acknowledged'}
+          ${x.acknowledged_at?`<small>${new Date(x.acknowledged_at).toLocaleString()}</small>`:''}
+        </div>
+      </article>`).join(''):'<div class="empty-state">No users in this view.</div>';
+  }
+
+  async function loadAnnouncementHistory(event){
+    const list=document.getElementById('announcement-history-list');
+    const {data,error}=await supabaseClient.from('announcement_history')
+      .select('*').eq('event_id',event.id).order('announcement_version',{ascending:false});
+    if(error){list.innerHTML=`<div class="empty-state">${error.message}</div>`;return;}
+    list.innerHTML=(data||[]).length?(data||[]).map(x=>`
+      <article class="admin-row">
+        <div><b>Version ${x.announcement_version}</b><small>${x.announcement_text}</small></div>
+        <small>${new Date(x.created_at).toLocaleString()}</small>
+      </article>`).join(''):'<div class="empty-state">No announcement history yet.</div>';
+  }
+
+  document.querySelectorAll('[data-ack-filter]').forEach(btn=>btn.addEventListener('click',async()=>{
+    document.querySelectorAll('[data-ack-filter]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentAckFilter=btn.dataset.ackFilter;
+    const event=await getLiveEventRecord();
+    if(event) await loadAnnouncementStatus(event);
+  }));
+
+  document.getElementById('save-announcement').addEventListener('click',async()=>{
+    if(!(await ensureAdmin())) return;
+    const event=await getLiveEventRecord();
+    if(!event) return;
+    const translations={};
+    ['es','tr','ko','ar','ja','zh','ru'].forEach(c=>translations[c]=document.getElementById('ann-'+c).value.trim());
+    const {error}=await supabaseClient.rpc('save_event_announcement',{
+      target_event_id:event.id,
+      new_text:document.getElementById('ann-main').value.trim(),
+      new_translations:translations
+    });
+    const msg=document.getElementById('announcement-admin-message');
+    msg.textContent=error?error.message:'Announcement saved.';
+    if(!error){
+      await loadAnnouncementsCenter();
+      await syncHomeLiveEvent();
+    }
+  });
+
+  document.getElementById('clear-announcement').addEventListener('click',async()=>{
+    if(!(await ensureAdmin())) return;
+    const event=await getLiveEventRecord();
+    if(!event) return;
+    const {error}=await supabaseClient.rpc('save_event_announcement',{
+      target_event_id:event.id,
+      new_text:'',
+      new_translations:{}
+    });
+    document.getElementById('announcement-admin-message').textContent=error?error.message:'Announcement deactivated.';
+    if(!error){
+      await loadAnnouncementsCenter();
+      await syncHomeLiveEvent();
+    }
+  });
 
   async function loadAnnouncementReads(eventData) {
     const box = document.getElementById('announcement-reads-admin');

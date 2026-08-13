@@ -1,24 +1,35 @@
-# NEXA v24 — Priority + Time Demand + Health Check
+# NEXA v25 — Mega Update: Announcements Center + Preferred Time Fix
 
-Focused update to keep scheduling simple, not overloaded.
+This update includes the requested focused improvements without adding a heavy auto-scheduler.
 
-New:
-- Specific preferred time is restricted to the selected UTC time frame.
-- Only 30-minute slots inside that frame appear.
-- Each time shows:
-  - Available
-  - Preferred by X players
-  - Scheduled
-- Scheduled slots are disabled for new preferred-time selections.
-- If a player chooses a time already preferred by others, NEXA shows a warning but still allows it.
-- Admin/Scheduler keeps priority ranking.
-- Added Unscheduled Only filter.
-- Added compact Scheduled / Unscheduled counters.
-- Added Schedule Health Check.
-- Health Check looks for:
-  - duplicate slots
-  - assignments to a day the player did not request
-  - assignments outside the player’s preferred time frame
-  - scheduled vs waitlisted totals
+Preferred time:
+- Specific Preferred Time now ALWAYS populates from the selected UTC time frame immediately.
+- Uses 30-minute slots only.
+- Uses a protected Supabase RPC to show demand without exposing other players' forms.
+- Shows Available / Preferred by X players / Scheduled.
+- Scheduled slots are disabled.
+- Competition warning remains optional: player can keep a preferred time if it is only preferred, not scheduled.
 
-No new SQL is required for this version.
+Admin:
+- New standalone Admin → Announcements tab.
+- Important Announcement and translations are REMOVED from the SvS Event form to keep Events cleaner.
+- Save/deactivate announcement from Announcements.
+- Acknowledged / Not Acknowledged filters.
+- Counts for acknowledged, not acknowledged, and total NEXA users with claimed accounts.
+- Shows IGN(s), alliance(s), Discord name and acknowledgement date/time.
+- Announcement History preserves prior versions.
+- Home ticker continues to display the correct saved translation and hides after acknowledgement.
+
+Still included:
+- Priority ranking
+- Unscheduled Only
+- Schedule Health Check
+- Copy schedule tools
+- My Submissions
+- Prep Form conditional validation
+- UTC/local time behavior
+- Edit Event from View Event
+
+IMPORTANT:
+Run `v25-supabase.sql` in Supabase before uploading the web files.
+Do not upload the SQL file to GitHub.

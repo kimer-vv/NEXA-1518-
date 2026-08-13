@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>NEXA 1518</title>
 <link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div class="nebula-bg" aria-hidden="true"></div>
@@ -18,11 +19,14 @@
       <span class="star">✦</span>
       <span>NEXA<small>STATE 1518</small></span>
     </a>
-    <div class="user">
-      <span class="avatar"></span>
-      <div><b>Discord Profile</b><span>Sign in coming next</span></div>
+    <button id="discord-login" class="user user-button" type="button" aria-label="Sign in with Discord">
+        <span id="discord-avatar" class="avatar"></span>
+        <div class="user-copy">
+          <b id="discord-name">Discord Profile</b>
+          <span id="discord-status">Sign in with Discord</span>
+        </div>
+      </button>
     </div>
-  </div>
 </header>
 
 <main class="shell">
@@ -79,5 +83,77 @@
     NEXA • State 1518
   </div>
 </main>
+
+<script>
+  const SUPABASE_URL = "https://dfxcxboxrkfmrnsgpyin.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-";
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const loginButton = document.getElementById('discord-login');
+  const nameEl = document.getElementById('discord-name');
+  const statusEl = document.getElementById('discord-status');
+  const avatarEl = document.getElementById('discord-avatar');
+
+  function getAvatarUrl(user) {
+    const meta = user?.user_metadata || {};
+    return meta.avatar_url || meta.picture || null;
+  }
+
+  function getDisplayName(user) {
+    const meta = user?.user_metadata || {};
+    return meta.full_name || meta.name || meta.preferred_username || meta.user_name || user?.email || 'Discord User';
+  }
+
+  async function renderSession() {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+
+    if (!session?.user) {
+      nameEl.textContent = 'Discord Profile';
+      statusEl.textContent = 'Sign in with Discord';
+      avatarEl.style.backgroundImage = '';
+      avatarEl.classList.remove('has-image');
+      loginButton.dataset.loggedIn = 'false';
+      return;
+    }
+
+    const user = session.user;
+    nameEl.textContent = getDisplayName(user);
+    statusEl.textContent = 'Discord Connected';
+    const avatarUrl = getAvatarUrl(user);
+    if (avatarUrl) {
+      avatarEl.style.backgroundImage = `url("${avatarUrl}")`;
+      avatarEl.classList.add('has-image');
+    }
+    loginButton.dataset.loggedIn = 'true';
+  }
+
+  loginButton.addEventListener('click', async () => {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+
+    if (session?.user) {
+      const shouldSignOut = confirm('You are signed in with Discord. Sign out?');
+      if (shouldSignOut) {
+        await supabaseClient.auth.signOut();
+        await renderSession();
+      }
+      return;
+    }
+
+    await supabaseClient.auth.signInWithOAuth({
+      provider: 'discord',
+      options: {
+        redirectTo: window.location.origin + '/',
+        scopes: 'identify email'
+      }
+    });
+  });
+
+  supabaseClient.auth.onAuthStateChange(() => {
+    renderSession();
+  });
+
+  renderSession();
+</script>
+
 </body>
 </html>

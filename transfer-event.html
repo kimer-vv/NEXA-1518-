@@ -44,7 +44,7 @@ function transferScheduleSummary(raw){
 const token=new URLSearchParams(location.search).get('token');
 (async()=>{
  if(!token){document.getElementById('range').textContent='Invalid transfer link.';return;}
- const {data:e,error}=await sb.from('transfer_events').select('*').eq('public_token',token).maybeSingle();
+ const {data:e,error}=await sb.rpc('get_public_transfer_event',{p_event_token:token});
  if(error||!e){document.getElementById('range').textContent='This transfer event is unavailable or closed.';document.getElementById('apply').classList.add('hidden');return;}
  title.textContent=e.title; dest.textContent='State '+e.destination_state;
  cap.textContent=e.power_cap?fmtPower(e.power_cap):'Set by staff'; document.getElementById('special-cap').textContent=e.special_power_cap?fmtPower(e.special_power_cap):'Set by staff'; open.textContent=e.applications_open?'Open':'Closed';
@@ -56,7 +56,7 @@ const token=new URLSearchParams(location.search).get('token');
    edit_transfer_event.href='transfer-admin.html?tab=events&edit='+encodeURIComponent(e.id);
    edit_transfer_event.classList.remove('hidden');
  }
- const {data:r}=await sb.from('transfer_recruiting_alliances').select('alliance_id,schedule_notes,alliances(tag)').eq('transfer_event_id',e.id).eq('is_recruiting',true).order('sort_order');
- alliances.innerHTML=r?.length?r.map(x=>`<article class="history-card"><div><b>${esc(x.alliances?.tag||'Recruiting Alliance')}</b><small>${esc(transferScheduleSummary(x.schedule_notes))}</small></div></article>`).join(''):'<div class="empty-state">Recruiting alliances will be announced by Transfer Staff.</div>';
+ const r=e.recruiting_alliances||[];
+ alliances.innerHTML=r.length?r.map(x=>`<article class="history-card"><div><b>${esc(x.tag||'Recruiting Alliance')}</b><small>${esc(transferScheduleSummary(x.schedule_notes))}</small></div></article>`).join(''):'<div class="empty-state">Recruiting alliances will be announced by Transfer Staff.</div>';
 })();
 </script></body></html>

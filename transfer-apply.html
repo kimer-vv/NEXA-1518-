@@ -144,29 +144,39 @@ function cleanNumber(v){return Number(String(v).replace(/[^0-9]/g,''));}
 function thresholdCheck(){
  if(!eventData)return;
  const power=cleanNumber(current_power.value);
- const show=power>Number(eventData.special_invite_power_threshold||1e9);
- labyrinth_wrap.classList.toggle('hidden',!show); labyrinth_score.required=show;
- threshold_note.innerHTML=`Special Invite review threshold for this cycle: <b>${fmtPower(eventData.special_invite_power_threshold)}</b>. ${show?'Your power is above this threshold, so Labyrinth Score is required.':'Labyrinth Score is only requested above this threshold.'}`;
+ const specialCap=Number(eventData.special_power_cap||0);
+ const show=!!specialCap && power>specialCap;
+ labyrinth_wrap.classList.toggle('hidden',!show);
+ labyrinth_score.required=show;
+ if(!specialCap){
+   threshold_note.innerHTML='Special Invite Power Cap: <b>N/A</b> for this cycle.';
+ }else{
+   threshold_note.innerHTML=`Special Invite Power Cap: <b>${fmtPower(specialCap)}</b>. ${show?'Your power is above this cap, so Labyrinth Score is required.':'Labyrinth Score is only requested above this cap.'}`;
+ }
 }
 current_power.addEventListener('input',thresholdCheck);
 discord_username.addEventListener('input',()=>contact_warning.classList.toggle('hidden',!!discord_username.value.trim()));
 (async()=>{
  if(!token){form_message.textContent='Invalid application link.';return;}
- const {data:e,error}=await sb.from('transfer_events').select('*').eq('public_token',token).maybeSingle();
+ const {data:e,error}=await sb.rpc('get_public_transfer_event',{p_event_token:token});
  if(error||!e){transfer_form.classList.add('hidden');form_message.textContent='This transfer application is unavailable or closed.';return;}
- if(e.status!=='open' || e.applications_open!==true){
-   transfer_form.classList.add('hidden');
-   document.getElementById('transfer-form-event-summary').classList.add('hidden');
-   form_message.innerHTML='<div class="closed-transfer-card"><b>Applications for this Transfer Cycle are currently closed.</b><br>Please contact State 1518 Transfer Staff if you have questions.</div>';
-   return;
- }
- eventData=e; event_title.textContent=e.title;
+
+ eventData=e;
+ event_title.textContent=e.title;
  form_destination.textContent='State '+e.destination_state;
  form_ordinary_cap.textContent=e.power_cap?fmtPower(e.power_cap):'Set by staff';
- form_special_cap.textContent=e.special_power_cap?fmtPower(e.special_power_cap):'Set by staff';
+ form_special_cap.textContent=e.special_power_cap?fmtPower(e.special_power_cap):'N/A';
+
+ if(e.status==='archived'){
+   document.querySelector('.transfer-placement-note')?.insertAdjacentHTML('beforeend','<div class="future-interest-note"><b>Future Transfer Interest:</b> This transfer cycle has ended, but State 1518 is still accepting applications for a future transfer cycle.</div>');
+ }
+
  thresholdCheck();
- const {data:r}=await sb.from('transfer_recruiting_alliances').select('alliance_id,schedule_notes,alliances(tag)').eq('transfer_event_id',e.id).eq('is_recruiting',true).order('sort_order');
- alliance_choices.innerHTML=r?.length?r.map(x=>`<label class="alliance-choice recruiting-alliance-card"><input type="checkbox" value="${x.alliance_id}"><span><b>${esc(x.alliances?.tag||'Alliance')}</b><small>${esc(transferScheduleSummary(x.schedule_notes))}</small></span></label>`).join(''):'<div class="muted">No alliances are currently marked Recruiting. You may select “I’m flexible.”</div>';
+
+ const r=e.recruiting_alliances||[];
+ alliance_choices.innerHTML=r.length
+   ?r.map(x=>`<label class="alliance-choice recruiting-alliance-card"><input type="checkbox" value="${x.alliance_id}"><span><b>${esc(x.tag||'Alliance')}</b><small>${esc(transferScheduleSummary(x.schedule_notes))}</small></span></label>`).join('')
+   :'<div class="muted">No alliances are currently marked Recruiting. You may select “I’m flexible.”</div>';
 })();
 transfer_form.addEventListener('submit',async ev=>{
  ev.preventDefault(); form_message.textContent='Submitting…';
@@ -189,6 +199,7 @@ transfer_form.addEventListener('submit',async ev=>{
  if(error){form_message.textContent=error.message;return;}
  transfer_form.classList.add('hidden');success_card.classList.remove('hidden');application_id.textContent=data.application_id;
  if(data.duplicate) success_card.insertAdjacentHTML('beforeend','<div class="warning-box">A submission with this Player ID already exists in this transfer cycle. Transfer Staff will review both.</div>');
+ if(data.future_interest) success_card.insertAdjacentHTML('beforeend','<div class="info-box">Your application was added to the future-transfer interest list because the active transfer cycle has already ended.</div>');
 });
 copy_id.addEventListener('click',async()=>{await navigator.clipboard.writeText(application_id.textContent);copy_id.textContent='Copied ✓';});
 

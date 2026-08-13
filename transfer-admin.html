@@ -6,7 +6,7 @@
 <header class="topbar"><div class="shell nav"><a class="logo" href="index.html"><span class="star">✦</span><span>NEXA<small>STATE 1518</small></span></a></div></header>
 
 <main class="shell event-page transfer-admin-page">
- <div class="transfer-admin-head"><div><span class="badge">PRIVATE</span><h1>NEXA Transfers</h1><p class="muted">Transfer Control Center <span class="build-tag">v28.9</span></p></div><a class="btn secondary" href="index.html?admin=modules">← Modules</a></div>
+ <div class="transfer-admin-head"><div><span class="badge">PRIVATE</span><h1>NEXA Transfers</h1><p class="muted">Transfer Control Center <span class="build-tag">v29</span></p></div><a class="btn secondary" href="index.html?admin=modules">← Modules</a></div>
  <div class="transfer-tabs">
   <button class="transfer-tab active" data-tab="applications">Applications</button>
   <button class="transfer-tab" data-tab="form">Transfer Form</button>
@@ -71,7 +71,7 @@
         <span>Current Total Power</span>
         <span>T12 Exalted Infantry / Lancers / Marksmen</span>
         <span>T11 Helios Infantry / Lancers / Marksmen</span>
-        <span>Labyrinth Score <small>Only above Special Invite threshold</small></span>
+        <span>Labyrinth Score <small>Only when Power is above the Special Invite Power Cap</small></span>
         <span>Enough Transfer Passes/Tickets?</span>
         <span>Willing to dismiss/kill troops if power reduction is needed?</span>
       </div>
@@ -275,7 +275,10 @@ const te_title=document.getElementById('te_title');
 const te_destination=document.getElementById('te_destination');
 const te_power_cap=document.getElementById('te_power_cap');
 const te_special_power_cap=document.getElementById('te_special_power_cap');
-const te_threshold=document.getElementById('te_threshold');
+const te_leadership_status=document.getElementById('te_leadership_status');
+const te_special_invites=document.getElementById('te_special_invites');
+const te_keep_form_open=document.getElementById('te_keep_form_open');
+const special_invite_help=document.getElementById('special-invite-help');
 const te_start_date=document.getElementById('te_start_date');
 const te_start_time=document.getElementById('te_start_time');
 const te_end_date=document.getElementById('te_end_date');
@@ -327,7 +330,10 @@ function fillTransferEventForm(x){
   if(!x)return;
   te_id.value=x.id;te_title.value=x.title;te_destination.value=x.destination_state;
   te_power_cap.value=x.power_cap||'';te_special_power_cap.value=x.special_power_cap||'';
-  te_threshold.value=x.special_invite_power_threshold||1000000000;
+  te_leadership_status.value=x.leadership_status||'not_leading';
+  te_special_invites.value=String(x.special_invites_available||0);
+  te_keep_form_open.checked=!!x.keep_form_open_after_end;
+  syncSpecialInviteFields();
   if(x.starts_at){const iso=new Date(x.starts_at).toISOString();te_start_date.value=iso.slice(0,10);te_start_time.value=iso.slice(11,16);}else{te_start_date.value='';te_start_time.value='';}
   if(x.ends_at){const iso=new Date(x.ends_at).toISOString();te_end_date.value=iso.slice(0,10);te_end_time.value=iso.slice(11,16);}else{te_end_date.value='';te_end_time.value='';}
   te_notes.value=x.public_notes||'';te_status.value=x.status;te_apps_open.checked=x.applications_open;
@@ -339,7 +345,7 @@ async function loadEvents(){
  const active=events.filter(e=>e.status!=='archived');
  const opts=active.map(e=>`<option value="${e.id}">${esc(e.title)}</option>`).join('');
  application_event_filter.innerHTML=opts;recruit_event_filter.innerHTML=opts;form_event_filter.innerHTML=opts;
- events_list.innerHTML=events.length?events.map(e=>`<article class="history-card"><div><b>${esc(e.title)}</b><small>State ${e.destination_state} • ${esc(e.status)} • Ordinary Cap ${e.power_cap?fmtPower(e.power_cap):'—'} • Special Cap ${e.special_power_cap?fmtPower(e.special_power_cap):'—'}</small><div class="history-summary">Applications ${e.applications_open?'OPEN':'CLOSED'} • Threshold ${fmtPower(e.special_invite_power_threshold)} • <a href="transfer-event.html?token=${e.public_token}" target="_blank">View Event</a> • <a href="transfer-apply.html?token=${e.public_token}" target="_blank">Direct Form Link</a></div></div><div class="history-actions"><button class="btn secondary" data-edit-event="${e.id}">Edit</button>${e.status!=='archived'?`<button class="btn danger" data-end-event="${e.id}">End Event</button>`:''}</div></article>`).join(''):'<div class="empty-state">No transfer cycles yet.</div>';
+ events_list.innerHTML=events.length?events.map(e=>`<article class="history-card"><div><b>${esc(e.title)}</b><small>State ${e.destination_state} • ${esc(e.status)} • Ordinary Cap ${e.power_cap?fmtPower(e.power_cap):'—'} • Special Cap ${e.special_power_cap?fmtPower(e.special_power_cap):'—'}</small><div class="history-summary">Applications ${e.applications_open?'OPEN':'CLOSED'} • ${e.leadership_status==='leading_3m_plus'?'Leading 3+ months':e.leadership_status==='leading_under_3m'?'Leading under 3 months':'Not Leading'} • ${e.special_invites_available||0} Special Invite(s) • <a href="transfer-event.html?token=${e.public_token}" target="_blank">View Event</a> • <a href="transfer-apply.html?token=${e.public_token}" target="_blank">Direct Form Link</a></div></div><div class="history-actions"><button class="btn secondary" data-edit-event="${e.id}">Edit</button>${e.status!=='archived'?`<button class="btn danger" data-end-event="${e.id}">End Event</button>`:''}</div></article>`).join(''):'<div class="empty-state">No transfer cycles yet.</div>';
  refreshTransferFormPanel(); await loadApplications(); await loadRecruiting();
 }
 
@@ -357,7 +363,7 @@ function refreshTransferFormPanel(){
   transfer_form_status.textContent=(e.status==='open'&&e.applications_open)?'OPEN':'CLOSED';
   transfer_form_destination.textContent='State '+e.destination_state;
   transfer_form_ordinary_cap.textContent=e.power_cap?fmtPower(e.power_cap):'—';
-  transfer_form_special_cap.textContent=e.special_power_cap?fmtPower(e.special_power_cap):'—';
+  transfer_form_special_cap.textContent=e.special_power_cap?fmtPower(e.special_power_cap):'N/A';
   transfer_form_link.textContent=url.href;
   open_transfer_form.href=url.href;
 }
@@ -382,12 +388,23 @@ copy_transfer_form_link.onclick=async()=>{
 
 async function loadApplications(){
  const id=application_event_filter.value;if(!id){applications=[];applications_list.innerHTML='<div class="empty-state">Create or open a Transfer Event first.</div>';return;}
- const {data,error}=await sb.rpc('list_transfer_applications',{p_transfer_event_id:id});if(error){applications_list.innerHTML=`<div class="empty-state">${esc(error.message)}</div>`;return;}applications=data||[];renderApps();
+ const {data,error}=await sb.rpc('list_transfer_applications',{p_transfer_event_id:id});
+ if(error){applications_list.innerHTML=`<div class="empty-state">${esc(error.message)}</div>`;return;}
+ const base=data||[];
+ const ids=base.map(x=>x.id);
+ let flags=[];
+ if(ids.length){
+   const res=await sb.from('transfer_applications').select('id,submitted_after_event_end').in('id',ids);
+   flags=res.data||[];
+ }
+ const flagMap=Object.fromEntries(flags.map(x=>[x.id,x.submitted_after_event_end]));
+ applications=base.map(x=>({...x,submitted_after_event_end:!!flagMap[x.id]}));
+ renderApps();
 }
 function renderApps(){
  const q=app_search.value.toLowerCase().trim(),s=status_filter.value;
  const rows=applications.filter(a=>(!s||a.transfer_status===s)&&(!q||[a.in_game_name,a.player_id,a.current_state,a.current_alliance].join(' ').toLowerCase().includes(q)));
- applications_list.innerHTML=rows.length?rows.map(a=>`<article class="candidate-card" data-open-app="${a.id}"><div class="candidate-main"><div><b>${esc(a.in_game_name)}</b><small>State ${a.current_state} • ${esc(a.current_alliance||'No alliance')} • ID ${esc(a.player_id)}</small></div><span class="priority-pill">${priorityLabel(a.priority_score)} • ${a.priority_score}</span></div><div class="candidate-stats"><span>${esc(a.furnace_level.toUpperCase())}</span><span>${fmtPower(a.current_power)}</span>${a.potential_special_invite?'<span>Potential Special</span>':''}</div><div>${dotStatus(a.transfer_status)}</div></article>`).join(''):'<div class="empty-state">No matching applications.</div>';
+ applications_list.innerHTML=rows.length?rows.map(a=>`<article class="candidate-card" data-open-app="${a.id}"><div class="candidate-main"><div><b>${esc(a.in_game_name)}</b><small>State ${a.current_state} • ${esc(a.current_alliance||'No alliance')} • ID ${esc(a.player_id)}</small></div><span class="priority-pill">${priorityLabel(a.priority_score)} • ${a.priority_score}</span></div><div class="candidate-stats"><span>${esc(a.furnace_level.toUpperCase())}</span><span>${fmtPower(a.current_power)}</span>${a.potential_special_invite?'<span>Potential Special</span>':''}</div><div>${dotStatus(a.transfer_status)} ${a.submitted_after_event_end?'<span class="future-interest-badge">Future Interest</span>':''}</div></article>`).join(''):'<div class="empty-state">No matching applications.</div>';
 }
 app_search.oninput=renderApps;status_filter.onchange=renderApps;application_event_filter.onchange=loadApplications;
 applications_list.onclick=async e=>{const card=e.target.closest('[data-open-app]');if(!card)return;const {data,error}=await sb.from('transfer_applications').select('*').eq('id',card.dataset.openApp).single();if(error)return alert(error.message);currentApp=data;openApplication(data);};
@@ -424,6 +441,24 @@ async function saveApplication(){
 function closeApp(){application_modal.classList.remove('open');application_modal.setAttribute('aria-hidden','true');}
 document.querySelectorAll('[data-close-app]').forEach(x=>x.onclick=closeApp);
 
+
+function syncSpecialInviteFields(){
+  const under3=te_leadership_status.value==='leading_under_3m';
+  if(under3){
+    te_special_power_cap.value='';
+    te_special_power_cap.disabled=true;
+    te_special_invites.value='0';
+    te_special_invites.disabled=true;
+    special_invite_help.innerHTML='<b>Leading under 3 months:</b> Special Invites are not available yet. Special Invite Power Cap is N/A and Special Invites Available is set to 0.';
+  }else{
+    te_special_power_cap.disabled=false;
+    te_special_invites.disabled=false;
+    special_invite_help.innerHTML='Ordinary Power Cap controls normal transfers. Special Invite Power Cap controls the special-invite range. Labyrinth Score is requested only when an applicant is above the Special Invite Power Cap.';
+  }
+}
+te_leadership_status.addEventListener('change',syncSpecialInviteFields);
+syncSpecialInviteFields();
+
 transfer_event_form.onsubmit=async ev=>{
   ev.preventDefault();
   const combineUtc=(d,t)=>d&&t?new Date(`${d}T${t}:00Z`).toISOString():null;
@@ -431,7 +466,9 @@ transfer_event_form.onsubmit=async ev=>{
     title:te_title.value.trim(),destination_state:Number(te_destination.value||1518),
     power_cap:te_power_cap.value?Number(te_power_cap.value.replace(/\D/g,'')):null,
     special_power_cap:te_special_power_cap.value?Number(te_special_power_cap.value.replace(/\D/g,'')):null,
-    special_invite_power_threshold:Number(te_threshold.value.replace(/\D/g,'')),
+    leadership_status:te_leadership_status.value,
+    special_invites_available:Number(te_special_invites.value||0),
+    keep_form_open_after_end:te_keep_form_open.checked,
     starts_at:combineUtc(te_start_date.value,te_start_time.value),
     ends_at:combineUtc(te_end_date.value,te_end_time.value),
     public_notes:te_notes.value,status:te_status.value,applications_open:te_apps_open.checked,updated_at:new Date().toISOString()
@@ -441,7 +478,7 @@ transfer_event_form.onsubmit=async ev=>{
   resetEventForm();await loadEvents();
 };
 function resetEventForm(){
-  transfer_event_form.reset();te_id.value='';te_destination.value='1518';te_threshold.value='1000000000';
+  transfer_event_form.reset();te_id.value='';te_destination.value='1518';te_leadership_status.value='not_leading';te_special_invites.value='0';te_keep_form_open.checked=false;
   te_start_time.innerHTML=TRANSFER_UTC_OPTIONS;te_end_time.innerHTML=TRANSFER_UTC_OPTIONS;
   te_cancel.classList.add('hidden');te_end_event.classList.add('hidden');
 }

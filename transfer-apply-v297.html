@@ -10,7 +10,7 @@
 </div>
 
 <main class="shell event-page transfer-form-page">
- <span class="badge transfer-badge">TRANSFER APPLICATION • v31.3.2</span>
+ <span class="badge transfer-badge">TRANSFER APPLICATION • v31.4.2</span>
  <h1 id="event-title">State 1518 Transfer Application</h1>
 
  <section class="glass transfer-welcome">
@@ -333,8 +333,11 @@ async function loadTransferForm(){
     els.internalNav.classList.remove('hidden');
 
     try{
-      const {data:canManage}=await sb.rpc('can_manage_transfers');
-      if(canManage===true){
+      const [{data:canManage},{data:isAdmin}]=await Promise.all([
+        sb.rpc('can_manage_transfers'),
+        sb.rpc('is_admin')
+      ]);
+      if(canManage===true || isAdmin===true){
         els.manageTransfers.href='transfer-admin.html?tab=applications&event='+encodeURIComponent(eventData.id);
         els.manageTransfers.classList.remove('hidden');
       }

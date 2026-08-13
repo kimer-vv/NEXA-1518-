@@ -1,19 +1,7 @@
 <!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>NEXA • Transfers</title><link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
-document.addEventListener('DOMContentLoaded',async()=>{
-  try{
-    const manage=document.getElementById('manage-transfers');
-    if(!manage) return;
-    const {data:ok}=await sb.rpc('can_manage_transfers');
-    if(ok===true && eventData?.id){
-      manage.href='transfer-admin.html?tab=applications&event='+encodeURIComponent(eventData.id);
-      manage.classList.remove('hidden');
-    }
-  }catch(_){}
-});
-</script></head>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
 <body><div class="nebula-bg" aria-hidden="true"></div><div class="starfield" aria-hidden="true"></div>
 <header class="topbar"><div class="shell nav"><a class="logo" href="index.html"><span class="star">✦</span><span>NEXA<small>STATE 1518</small></span></a></div></header>
 <div class="shell event-top-nav">
@@ -33,8 +21,6 @@ document.addEventListener('DOMContentLoaded',async()=>{
     <p id="notes" class="muted"></p>
     <div class="form-actions">
       <a id="manage-transfers-main" class="btn hidden" href="#">Manage Transfers</a>
-      <a id="edit-transfer-event" class="btn secondary hidden" href="#">Edit Event</a>
-      <a id="manage-transfers" class="btn hidden" href="#">Manage Transfers</a>
     </div>
   </section>
   <section class="section"><div class="head"><h2>Recruiting Alliances</h2></div><div id="alliances" class="admin-list"></div></section>
@@ -102,21 +88,12 @@ const token=new URLSearchParams(location.search).get('token');
    sb.rpc('is_admin')
  ]);
 
- if(canManage===true){
-   edit_transfer_event.href='transfer-admin.html?tab=events&edit='+encodeURIComponent(e.id);
-   edit_transfer_event.classList.remove('hidden');
+ const hasTransferAdminAccess = canManage===true || isAdmin===true;
 
-   const manageTransfers=document.getElementById('manage-transfers');
-   if(manageTransfers){
-     manageTransfers.href='transfer-admin.html?tab=applications&event='+encodeURIComponent(e.id);
-     manageTransfers.classList.remove('hidden');
-   }
-
+ if(hasTransferAdminAccess){
    const manageTransfersMain=document.getElementById('manage-transfers-main');
-   if(manageTransfersMain){
-     manageTransfersMain.href='transfer-admin.html?tab=applications&event='+encodeURIComponent(e.id);
-     manageTransfersMain.classList.remove('hidden');
-   }
+   manageTransfersMain.href='transfer-admin.html?tab=applications&event='+encodeURIComponent(e.id);
+   manageTransfersMain.classList.remove('hidden');
  }
 
  if(isAdmin===true){

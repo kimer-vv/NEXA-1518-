@@ -22,9 +22,11 @@ resolveHomeManageToken();
 <header class="topbar"><div class="shell nav"><a class="logo" href="index.html"><span class="star">✦</span><span>NEXA<small>STATE 1518</small></span></a></div></header>
 
 <main class="shell event-page transfer-admin-page">
- <div class="transfer-admin-head"><div><span class="badge">PRIVATE</span><h1>NEXA Transfers</h1><p class="muted">Transfer Control Center <span class="build-tag">v32.1</span></p><div id="transfer-diagnostic" class="diagnostic-chip">Loading transfer data…</div></div><a class="btn secondary" href="index.html?admin=modules&v=292">← Modules</a></div>
+ <div class="transfer-admin-head"><div><span class="badge">PRIVATE</span><h1>NEXA Transfers</h1><p class="muted">Transfer Control Center <span class="build-tag">v32.2</span></p><div id="transfer-diagnostic" class="diagnostic-chip">Loading transfer data…</div></div><a class="btn secondary" href="index.html?admin=modules&v=292">← Modules</a></div>
  <div class="transfer-tabs">
   <button class="transfer-tab active" data-tab="applications">Applications</button>
+  <button class="transfer-tab" data-tab="roster">Transfer Roster</button>
+  <button class="transfer-tab" data-tab="waiting">Waiting List</button>
   <button class="transfer-tab" data-tab="form">Transfer Form</button>
   <button class="transfer-tab" data-tab="events">Transfer Events</button>
   <button class="transfer-tab" data-tab="alliances">Recruiting Alliances</button>
@@ -39,12 +41,47 @@ resolveHomeManageToken();
   <div class="form-actions compact-actions">
     <button id="go-transfer-form" class="btn secondary" type="button">View Transfer Form</button>
   </div>
-  <div class="filter-row"><input id="app-search" placeholder="Search IGN, Player ID or State"><select id="status-filter"><option value="">All statuses</option><option value="not_reviewed">Not Reviewed</option><option value="needs_review">Needs Review</option><option value="ordinary">Ordinary</option><option value="special_invite">Special Invite</option><option value="open_transfer">Open Transfer</option><option value="not_approved">Not Approved</option><option value="transferred">Transferred</option></select></div>
+  <div class="filter-row"><input id="app-search" placeholder="Search IGN, Player ID or State"><select id="status-filter"><option value="">All statuses</option><option value="not_reviewed">Not Reviewed</option><option value="needs_review">Needs Review</option><option value="ordinary">Ordinary</option><option value="special_invite">Special Invite</option><option value="open_transfer">Open Transfer</option><option value="not_approved">Not Approved</option><option value="transferred">Transferred</option><option value="next_transfer">Next Transfer</option></select></div>
   <div id="applications-list" class="admin-list"></div>
  </section>
 
  
- <section id="tab-form" class="transfer-panel hidden">
+ 
+<section id="tab-roster" class="transfer-panel hidden">
+  <div class="panel-head">
+    <div>
+      <h2>Transfer Roster</h2>
+      <p class="muted">Players coming in this Transfer Cycle. Only Ordinary, Special Invite, and Open Transfer are included.</p>
+    </div>
+    <button id="copy-transfer-roster" class="btn" type="button">Copy List</button>
+  </div>
+
+  <div id="transfer-roster-summary" class="roster-summary"></div>
+
+  <div class="glass roster-copy-card">
+    <div class="panel-head">
+      <div>
+        <h3>Copy Preview</h3>
+        <p class="muted">Ready to paste into Discord or your transfer chat.</p>
+      </div>
+    </div>
+    <pre id="transfer-roster-copy-preview" class="copy-preview">Select this tab to load the current roster.</pre>
+  </div>
+</section>
+
+<section id="tab-waiting" class="transfer-panel hidden">
+  <div class="panel-head">
+    <div>
+      <h2>Waiting List — Next Transfer</h2>
+      <p class="muted">These applications stay here even when the current Transfer Cycle ends.</p>
+    </div>
+    <button id="copy-waiting-list" class="btn secondary" type="button">Copy Waiting List</button>
+  </div>
+
+  <div id="waiting-list-results" class="waiting-list-results"></div>
+</section>
+
+<section id="tab-form" class="transfer-panel hidden">
   <div class="panel-head">
     <div>
       <h2>Transfer Form</h2>
@@ -286,30 +323,7 @@ resolveHomeManageToken();
   <div id="transfer-history-list" class="admin-list"></div>
  </section>
 
-<section id="panel-roster" class="admin-panel hidden">
-  <div class="section-head">
-    <div>
-      <span class="eyebrow">THIS TRANSFER</span>
-      <h2>Transfer Roster</h2>
-      <p class="muted">Only players currently classified as Ordinary, Special Invite, or Open Transfer.</p>
-    </div>
-    <button id="copy-transfer-roster" class="btn" type="button">Copy List</button>
-  </div>
-  <div id="transfer-roster-summary" class="roster-summary"></div>
-  <pre id="transfer-roster-copy-preview" class="copy-preview"></pre>
-</section>
 
-<section id="panel-waiting" class="admin-panel hidden">
-  <div class="section-head">
-    <div>
-      <span class="eyebrow">NEXT TRANSFER</span>
-      <h2>Waiting List</h2>
-      <p class="muted">Players saved here remain available after the current Transfer Cycle ends.</p>
-    </div>
-    <button id="copy-waiting-list" class="btn secondary" type="button">Copy Waiting List</button>
-  </div>
-  <div id="waiting-list-results" class="waiting-list-results"></div>
-</section>
 
 </main>
 <div id="application-modal" class="modal" aria-hidden="true"><div class="modal-backdrop" data-close-app></div><section class="modal-card transfer-application-modal"><div class="modal-head"><div><small>TRANSFER APPLICATION</small><h2 id="modal-app-title">Candidate</h2></div><button class="icon-btn" data-close-app>×</button></div><div id="modal-app-body"></div></section></div>
@@ -413,7 +427,7 @@ function fillTransferEventForm(x){
 }
 
 async function loadEvents(){
- const {data,error}=await sb.from('transfer_events').select('*').order('created_at',{ascending:false}); if(error)return alert(error.message);events=data||[]; if(transfer_diagnostic) transfer_diagnostic.textContent=`v32.1 • ${events.length} transfer event(s) loaded`;
+ const {data,error}=await sb.from('transfer_events').select('*').order('created_at',{ascending:false}); if(error)return alert(error.message);events=data||[]; if(transfer_diagnostic) transfer_diagnostic.textContent=`v32.2 • ${events.length} transfer event(s) loaded`;
  const active=events.filter(e=>e.status!=='archived');
  const opts=active.map(e=>`<option value="${e.id}">${esc(e.title)}</option>`).join('');
  application_event_filter.innerHTML=opts;
@@ -717,7 +731,7 @@ async function loadRecruiting(){
  recruit_alliance.innerHTML='<option value="">Select existing alliance</option>'+allianceOptions.map(a=>`<option value="${a.id}">${esc(a.tag)}</option>`).join('');
  const helper=document.getElementById('existing-alliance-count');
  if(helper) helper.textContent=`${allianceOptions.length} alliance${allianceOptions.length===1?'':'s'} available`;
- if(!allErr && transfer_diagnostic) transfer_diagnostic.textContent=`v32.1 • ${events.length} event(s) • ${allianceOptions.length} alliance(s) loaded`;
+ if(!allErr && transfer_diagnostic) transfer_diagnostic.textContent=`v32.2 • ${events.length} event(s) • ${allianceOptions.length} alliance(s) loaded`;
  recruit_list.innerHTML=rows?.length?rows.map(r=>`<article class="history-card"><div><b>${esc(r.alliances?.tag||'Alliance')}</b><small>${esc(scheduleSummary(r.schedule_notes))}</small></div><div class="history-actions">
   <button class="btn ${r.is_recruiting?'':'secondary'}" data-toggle-recruit="${r.id}" data-active="${r.is_recruiting}">${r.is_recruiting?'Recruiting':'Not Recruiting'}</button>
   <button class="btn secondary" data-edit-recruit="${r.id}">Edit Schedule</button>
@@ -894,7 +908,7 @@ window.addEventListener('error',ev=>{
 
 </script>
 <script>
-/* v32.1 iOS Applications layout safety */
+/* v32.2 iOS Applications layout safety */
 (function(){
   function compactTransferApplications(){
     const selectors=[
@@ -919,7 +933,7 @@ window.addEventListener('error',ev=>{
 </script>
 
 <script>
-/* NEXA v32.1 — Transfer Roster + persistent Waiting List */
+/* NEXA v32.2 — Transfer Roster + persistent Waiting List */
 (function(){
   const rosterPanel=document.getElementById('panel-roster');
   const waitingPanel=document.getElementById('panel-waiting');
@@ -1063,7 +1077,7 @@ window.addEventListener('error',ev=>{
 
 
 <script>
-/* NEXA v32.1.1 — robust Transfer Roster / Waiting List tab activation */
+/* NEXA v32.2.1 — robust Transfer Roster / Waiting List tab activation */
 (function(){
   function activateExtraTab(name){
     document.querySelectorAll('.admin-panel').forEach(p=>p.classList.add('hidden'));
@@ -1090,6 +1104,192 @@ window.addEventListener('error',ev=>{
   if(q.get('tab')==='roster' || q.get('tab')==='waiting'){
     window.addEventListener('load',()=>setTimeout(()=>activateExtraTab(q.get('tab')),50));
   }
+})();
+</script>
+
+
+<script>
+/* NEXA v32.2 — Transfer Roster + Waiting List */
+(function(){
+  const rosterPreview=document.getElementById('transfer-roster-copy-preview');
+  const rosterSummary=document.getElementById('transfer-roster-summary');
+  const waitingResults=document.getElementById('waiting-list-results');
+  const copyRoster=document.getElementById('copy-transfer-roster');
+  const copyWaiting=document.getElementById('copy-waiting-list');
+
+  const rosterLabels={
+    ordinary:'ORDINARY',
+    special_invite:'SPECIAL INVITE',
+    open_transfer:'OPEN TRANSFER'
+  };
+
+  const esc2=s=>String(s??'').replace(/[&<>"']/g,c=>({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+
+  function currentEventId(){
+    const q=new URLSearchParams(location.search);
+    return q.get('event') || application_event_filter?.value || '';
+  }
+
+  function prettyPower(v){
+    const n=Number(v||0);
+    if(n>=1e9) return (n/1e9).toFixed(2).replace(/\.00$/,'')+'B';
+    if(n>=1e6) return (n/1e6).toFixed(1).replace(/\.0$/,'')+'M';
+    return n.toLocaleString();
+  }
+
+  async function loadTransferRoster(){
+    const eventId=currentEventId();
+
+    if(!eventId){
+      rosterSummary.innerHTML='';
+      rosterPreview.textContent='Select a Transfer Event first.';
+      return;
+    }
+
+    const {data,error}=await sb
+      .from('transfer_applications')
+      .select('*')
+      .eq('transfer_event_id',eventId)
+      .in('transfer_status',['ordinary','special_invite','open_transfer'])
+      .order('manual_priority',{ascending:false})
+      .order('current_power',{ascending:false});
+
+    if(error){
+      rosterPreview.textContent=error.message;
+      rosterSummary.innerHTML='';
+      return;
+    }
+
+    const groups={
+      ordinary:[],
+      special_invite:[],
+      open_transfer:[]
+    };
+
+    (data||[]).forEach(a=>{
+      if(groups[a.transfer_status]) groups[a.transfer_status].push(a);
+    });
+
+    rosterSummary.innerHTML=['ordinary','special_invite','open_transfer']
+      .map(status=>`
+        <div class="roster-column">
+          <div class="roster-column-head">
+            <b>${rosterLabels[status]}</b>
+            <span>${groups[status].length}</span>
+          </div>
+          ${groups[status].length
+            ?groups[status].map(a=>`
+              <a class="roster-person" href="transfer-application.html?id=${encodeURIComponent(a.id)}&event=${encodeURIComponent(eventId)}">
+                <span>${esc2(a.in_game_name||'Unknown')}</span>
+                <small>${prettyPower(a.current_power)}${a.manual_priority?' • Priority':''}</small>
+              </a>
+            `).join('')
+            :'<p class="muted">No players yet.</p>'}
+        </div>
+      `).join('');
+
+    const lines=['STATE 1518 — TRANSFER ROSTER',''];
+
+    ['ordinary','special_invite','open_transfer'].forEach(status=>{
+      lines.push(`${rosterLabels[status]} (${groups[status].length})`);
+
+      if(!groups[status].length){
+        lines.push('—');
+      }else{
+        groups[status].forEach((a,i)=>{
+          lines.push(
+            `${i+1}. ${a.in_game_name||'Unknown'} — ${prettyPower(a.current_power)}${a.manual_priority?' ★':''}`
+          );
+        });
+      }
+
+      lines.push('');
+    });
+
+    rosterPreview.textContent=lines.join('\n').trim();
+  }
+
+  async function loadWaitingList(){
+    waitingResults.innerHTML='<div class="empty-state">Loading waiting list…</div>';
+
+    const {data,error}=await sb.rpc('get_transfer_waiting_list');
+
+    if(error){
+      waitingResults.innerHTML=`<div class="empty-state">${esc2(error.message)}</div>`;
+      return;
+    }
+
+    waitingResults.innerHTML=(data||[]).length
+      ?data.map(a=>`
+        <a class="waiting-person-card" href="transfer-application.html?id=${encodeURIComponent(a.id)}&event=${encodeURIComponent(a.transfer_event_id||'')}">
+          <div>
+            <b>${esc2(a.in_game_name||'Unknown')}</b>
+            <small>State ${esc2(a.current_state||'—')} • ${esc2(a.current_alliance||'—')}</small>
+          </div>
+          <div class="waiting-person-meta">
+            <span>${prettyPower(a.current_power)}</span>
+            ${a.manual_priority?'<span class="badge">PRIORITY</span>':''}
+          </div>
+        </a>
+      `).join('')
+      :'<div class="empty-state">No players are currently waiting for the next Transfer.</div>';
+  }
+
+  copyRoster?.addEventListener('click',async()=>{
+    await loadTransferRoster();
+
+    const text=rosterPreview.textContent;
+
+    try{
+      await navigator.clipboard.writeText(text);
+      copyRoster.textContent='Copied ✓';
+      setTimeout(()=>copyRoster.textContent='Copy List',1400);
+    }catch{
+      alert(text);
+    }
+  });
+
+  copyWaiting?.addEventListener('click',async()=>{
+    const {data,error}=await sb.rpc('get_transfer_waiting_list');
+    if(error) return alert(error.message);
+
+    const lines=[
+      'STATE 1518 — NEXT TRANSFER WAITING LIST',
+      '',
+      ...(data||[]).map(
+        (a,i)=>`${i+1}. ${a.in_game_name||'Unknown'} — ${prettyPower(a.current_power)}${a.manual_priority?' ★':''}`
+      )
+    ];
+
+    try{
+      await navigator.clipboard.writeText(lines.join('\n'));
+      copyWaiting.textContent='Copied ✓';
+      setTimeout(()=>copyWaiting.textContent='Copy Waiting List',1400);
+    }catch{
+      alert(lines.join('\n'));
+    }
+  });
+
+  const originalTab=window.tab;
+
+  if(typeof originalTab==='function'){
+    window.tab=function(name){
+      originalTab(name);
+      if(name==='roster') loadTransferRoster();
+      if(name==='waiting') loadWaitingList();
+    };
+  }
+
+  document.querySelectorAll('.transfer-tab[data-tab="roster"]')
+    .forEach(b=>b.addEventListener('click',()=>setTimeout(loadTransferRoster,0)));
+
+  document.querySelectorAll('.transfer-tab[data-tab="waiting"]')
+    .forEach(b=>b.addEventListener('click',()=>setTimeout(loadWaitingList,0)));
+
+  window.loadTransferRoster=loadTransferRoster;
+  window.loadTransferWaitingList=loadWaitingList;
 })();
 </script>
 

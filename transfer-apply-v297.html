@@ -4,9 +4,13 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
 <body><div class="nebula-bg" aria-hidden="true"></div><div class="starfield" aria-hidden="true"></div>
 <header class="topbar public-transfer-topbar"><div class="shell nav"><div class="logo public-form-logo"><span class="star">✦</span><span>NEXA<small>STATE 1518 • TRANSFERS</small></span></div></div></header>
+<div id="internal-form-nav" class="shell internal-form-nav hidden">
+  <a id="back-to-transfer-event" class="btn secondary" href="#">← Back to Transfer Event</a>
+  <a id="manage-transfers-from-form" class="btn hidden" href="#">Manage Transfers</a>
+</div>
 
 <main class="shell event-page transfer-form-page">
- <span class="badge transfer-badge">TRANSFER APPLICATION • v31</span>
+ <span class="badge transfer-badge">TRANSFER APPLICATION • v31.1</span>
  <h1 id="event-title">State 1518 Transfer Application</h1>
 
  <section class="glass transfer-welcome">
@@ -39,7 +43,7 @@
 
    <label class="check event-understanding">
      <input id="confirms_event_structure" type="checkbox" required>
-     I understand and am comfortable with State 1518’s coordinated approach to major events.
+     I understand and I am comfortable with State 1518’s coordinated approach to major events.
    </label>
  </section>
 
@@ -124,7 +128,9 @@ const SUPABASE_KEY="sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-";
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
 const $=id=>document.getElementById(id);
-const token=new URLSearchParams(window.location.search).get('token');
+const params=new URLSearchParams(window.location.search);
+const token=params.get('token');
+const fromNexa=params.get('from')==='nexa';
 
 const els={
   eventTitle:$('event-title'),
@@ -186,7 +192,10 @@ const els={
   confirmsInterest:$('confirms_interest_only'),
   confirmsFlex:$('confirms_alliance_flexibility'),
 
-  contactWarning:$('contact-warning')
+  contactWarning:$('contact-warning'),
+  internalNav:$('internal-form-nav'),
+  backToEvent:$('back-to-transfer-event'),
+  manageTransfers:$('manage-transfers-from-form')
 };
 
 let eventData=null;
@@ -319,6 +328,18 @@ async function loadTransferForm(){
   }
 
   eventData=data.event;
+  if(fromNexa){
+    els.internalNav.classList.remove('hidden');
+    els.backToEvent.href='transfer-event.html?token='+encodeURIComponent(token);
+
+    try{
+      const {data:canManage}=await sb.rpc('can_manage_transfers');
+      if(canManage===true){
+        els.manageTransfers.href='transfer-admin.html?tab=applications&event='+encodeURIComponent(eventData.id);
+        els.manageTransfers.classList.remove('hidden');
+      }
+    }catch(_){}
+  }
 
   if(eventData.applications_open!==true){
     els.form.classList.add('hidden');

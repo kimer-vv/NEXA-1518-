@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#070912" />
+  <title>NEXA 1518</title>
+  <style>
+    :root{
+      --bg:#070912;
+      --panel:rgba(15,19,35,.82);
+      --panel-2:rgba(20,24,43,.86);
+      --line:rgba(255,255,255,.09);
+      --text:#f6f7fb;
+      --muted:#a9afc3;
+      --accent:#8b7cff;
+      --accent2:#55d7ff;
+      --gold:#e7c983;
+      --danger:#ff768e;
+      --ok:#61e6a8;
+      --shadow:0 24px 70px rgba(0,0,0,.35);
+    }
+
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      min-height:100vh;
+      color:var(--text);
+      font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 16% 10%, rgba(87,78,255,.20), transparent 30%),
+        radial-gradient(circle at 82% 16%, rgba(46,199,255,.13), transparent 26%),
+        radial-gradient(circle at 54% 90%, rgba(186,88,255,.12), transparent 30%),
+        linear-gradient(180deg,#060811 0%,#0a0d18 48%,#060810 100%);
+      overflow-x:hidden;
+    }
+
+    body:before, body:after{
+      content:"";
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      z-index:-1;
+    }
+
+    body:before{
+      background-image:
+        radial-gradient(circle, rgba(255,255,255,.8) 0 1px, transparent 1.2px),
+        radial-gradient(circle, rgba(137,202,255,.65) 0 1px, transparent 1.2px),
+        radial-gradient(circle, rgba(255,255,255,.45) 0 1px, transparent 1.2px);
+      background-size:120px 120px, 180px 180px, 240px 240px;
+      background-position:10px 20px, 70px 110px, 120px 40px;
+      opacity:.38;
+    }
+
+    body:after{
+      background:
+        linear-gradient(115deg, transparent 0 42%, rgba(139,124,255,.08) 48%, transparent 55%),
+        linear-gradient(250deg, transparent 0 48%, rgba(85,215,255,.06) 53%, transparent 60%);
+      filter:blur(20px);
+    }
+
+    a{color:inherit;text-decoration:none}
+    button{font:inherit}
+
+    .shell{width:min(1120px, calc(100% - 28px)); margin:0 auto;}
+    .nav{
+      position:sticky;
+      top:0;
+      z-index:20;
+      backdrop-filter:blur(16px);
+      background:rgba(6,8,17,.66);
+      border-bottom:1px solid rgba(255,255,255,.06);
+    }
+    .nav-inner{
+      height:68px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:11px;
+      font-weight:800;
+      letter-spacing:.16em;
+    }
+    .brand-mark{
+      width:34px;height:34px;border-radius:12px;
+      display:grid;place-items:center;
+      background:linear-gradient(145deg, rgba(139,124,255,.35), rgba(85,215,255,.2));
+      border:1px solid rgba(255,255,255,.13);
+      box-shadow:0 0 28px rgba(139,124,255,.22);
+      font-size:18px;
+    }
+    .brand small{
+      display:block;
+      font-size:9px;
+      margin-top:2px;
+      color:var(--muted);
+      letter-spacing:.22em;
+      font-weight:700;
+    }
+    .nav-links{display:flex;gap:8px}
+    .nav-links a{
+      padding:9px 12px;
+      border-radius:12px;
+      color:var(--muted);
+      font-size:14px;
+    }
+    .nav-links a:hover{background:rgba(255,255,255,.05); color:white}
+
+    .hero{
+      padding:72px 0 42px;
+      text-align:center;
+    }
+    .eyebrow{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:7px 11px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.035);
+      border-radius:999px;
+      color:#c6cbe0;
+      font-size:12px;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+    }
+    .dot{
+      width:7px;height:7px;border-radius:50%;
+      background:var(--ok);
+      box-shadow:0 0 12px rgba(97,230,168,.8);
+    }
+    h1{
+      margin:20px 0 10px;
+      font-size:clamp(48px, 12vw, 92px);
+      line-height:.9;
+      letter-spacing:.04em;
+      background:linear-gradient(180deg,#fff 0%,#d8d9ff 52%,#8d86ff 100%);
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+      text-shadow:0 18px 80px rgba(109,96,255,.22);
+    }
+    .hero-sub{
+      margin:0 auto;
+      max-width:680px;
+      color:var(--muted);
+      font-size:16px;
+      line-height:1.65;
+    }
+
+    .section-title{
+      display:flex;
+      align-items:end;
+      justify-content:space-between;
+      margin:22px 0 14px;
+      gap:20px;
+    }
+    .section-title h2{margin:0;font-size:22px}
+    .section-title p{margin:0;color:var(--muted);font-size:13px}
+
+    .event-card{
+      border:1px solid var(--line);
+      background:linear-gradient(180deg, rgba(19,23,42,.90), rgba(12,15,28,.94));
+      border-radius:24px;
+      padding:24px;
+      box-shadow:var(--shadow);
+      position:relative;
+      overflow:hidden;
+    }
+    .event-card:before{
+      content:"";
+      position:absolute;
+      width:260px;height:260px;border-radius:50%;
+      right:-100px; top:-100px;
+      background:radial-gradient(circle, rgba(139,124,255,.20), transparent 66%);
+    }
+    .event-top{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:16px;
+      position:relative;
+    }
+    .event-name{font-size:23px;font-weight:800;margin:0 0 6px}
+    .event-meta{color:var(--muted);font-size:13px}
+    .status{
+      padding:7px 10px;
+      border-radius:999px;
+      border:1px solid rgba(231,201,131,.24);
+      color:var(--gold);
+      background:rgba(231,201,131,.07);
+      font-size:11px;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      white-space:nowrap;
+    }
+
+    .timeline{
+      display:grid;
+      grid-template-columns:repeat(4, 1fr);
+      gap:10px;
+      margin:22px 0;
+      position:relative;
+    }
+    .day{
+      padding:15px;
+      border-radius:16px;
+      background:rgba(255,255,255,.035);
+      border:1px solid rgba(255,255,255,.07);
+      min-height:94px;
+    }
+    .day b{display:block;font-size:13px;margin-bottom:5px}
+    .day span{color:var(--muted);font-size:12px;line-height:1.45}
+
+    .actions{
+      display:grid;
+      grid-template-columns:repeat(3, 1fr);
+      gap:10px;
+      position:relative;
+    }
+    .btn{
+      border:none;
+      border-radius:15px;
+      padding:14px 16px;
+      text-align:center;
+      cursor:pointer;
+      transition:.2s ease;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.045);
+      color:#fff;
+      font-weight:750;
+      font-size:13px;
+    }
+    .btn:hover{transform:translateY(-1px); background:rgba(255,255,255,.075)}
+    .btn.primary{
+      background:linear-gradient(135deg, rgba(139,124,255,.92), rgba(85,215,255,.78));
+      color:#06111b;
+      border-color:transparent;
+    }
+    .btn.disabled{
+      opacity:.42;
+      cursor:not-allowed;
+      filter:saturate(.4);
+    }
+
+    .schedule{
+      margin:18px 0 72px;
+      border:1px solid var(--line);
+      border-radius:22px;
+      overflow:hidden;
+      background:rgba(12,15,28,.84);
+      box-shadow:var(--shadow);
+    }
+    .schedule-head, .schedule-row{
+      display:grid;
+      grid-template-columns:1.05fr 1.45fr 1.45fr 1fr;
+      gap:10px;
+      align-items:center;
+      padding:14px 16px;
+    }
+    .schedule-head{
+      background:rgba(255,255,255,.045);
+      color:#bfc5d9;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      font-size:10px;
+      font-weight:800;
+    }
+    .schedule-row{
+      border-top:1px solid rgba(255,255,255,.06);
+      font-size:13px;
+    }
+    .schedule-row span:nth-child(1){font-variant-numeric:tabular-nums; color:#d8dcf0}
+    .schedule-row .player{font-weight:700}
+    .pill{
+      display:inline-block;
+      width:max-content;
+      padding:5px 8px;
+      border-radius:999px;
+      background:rgba(139,124,255,.10);
+      border:1px solid rgba(139,124,255,.20);
+      color:#c7c1ff;
+      font-size:11px;
+      font-weight:700;
+    }
+
+    .footer{
+      padding:0 0 38px;
+      color:#747b93;
+      font-size:12px;
+      text-align:center;
+    }
+
+    @media(max-width:760px){
+      .nav-links{display:none}
+      .hero{padding-top:54px}
+      .event-card{padding:18px}
+      .timeline{grid-template-columns:1fr 1fr}
+      .actions{grid-template-columns:1fr}
+      .schedule{overflow-x:auto}
+      .schedule-head,.schedule-row{min-width:620px}
+      .event-top{flex-direction:column}
+    }
+  </style>
+</head>
+<body>
+  <header class="nav">
+    <div class="shell nav-inner">
+      <a class="brand" href="#">
+        <div class="brand-mark">✦</div>
+        <div>NEXA<small>STATE 1518</small></div>
+      </a>
+      <nav class="nav-links">
+        <a href="#events">Events</a>
+        <a href="#schedule">Schedule</a>
+        <a href="#about">About</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="hero">
+      <div class="eyebrow"><span class="dot"></span> State 1518 Command Hub</div>
+      <h1>NEXA</h1>
+      <p class="hero-sub">
+        One place for State 1518 event sign-ups, prep requests, battle forms, rosters and published schedules.
+      </p>
+    </section>
+
+    <section id="events">
+      <div class="section-title">
+        <div>
+          <h2>Current Event</h2>
+          <p>SvS coordination for State 1518</p>
+        </div>
+      </div>
+
+      <article class="event-card">
+        <div class="event-top">
+          <div>
+            <h3 class="event-name">SvS vs XXXX</h3>
+            <div class="event-meta">Prep Phase • Dates will be updated by leadership</div>
+          </div>
+          <div class="status">Coming Soon</div>
+        </div>
+
+        <div class="timeline">
+          <div class="day"><b>Construction Day</b><span>Day 1<br>UTC schedule</span></div>
+          <div class="day"><b>Research Day</b><span>Day 2<br>UTC schedule</span></div>
+          <div class="day"><b>Training Day</b><span>Day 4<br>UTC schedule</span></div>
+          <div class="day"><b>Castle Battle & PvP</b><span>Battle Phase<br>UTC schedule</span></div>
+        </div>
+
+        <div class="actions">
+          <button class="btn disabled" disabled>Fill Out Prep Form</button>
+          <button class="btn disabled" disabled>Fill Out Battle Form</button>
+          <a class="btn primary" href="#schedule">View Schedule</a>
+        </div>
+      </article>
+    </section>
+
+    <section id="schedule">
+      <div class="section-title">
+        <div>
+          <h2>Published Schedule</h2>
+          <p>Example preview — admins will publish the final assignments.</p>
+        </div>
+      </div>
+
+      <div class="schedule">
+        <div class="schedule-head">
+          <span>Time (UTC)</span><span>Ministry</span><span>Player</span><span>Alliance</span>
+        </div>
+        <div class="schedule-row">
+          <span>12:00</span><span>Training</span><span class="player">Example Player</span><span><span class="pill">ABS</span></span>
+        </div>
+        <div class="schedule-row">
+          <span>12:30</span><span>Training</span><span class="player">Example Player</span><span><span class="pill">WiZ</span></span>
+        </div>
+        <div class="schedule-row">
+          <span>13:00</span><span>Training</span><span class="player">Example Player</span><span><span class="pill">LGC</span></span>
+        </div>
+      </div>
+    </section>
+
+    <section id="about" class="footer">
+      NEXA • State 1518 • Community-built coordination hub
+    </section>
+  </main>
+</body>
+</html>

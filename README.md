@@ -1,10 +1,11 @@
-# NEXA v27.2 — Guest Entry Fix
+# NEXA v27.3 — Private Schedule UI Fix
 
-This corrects the stale redirect that was still present in prep-form.html.
+Fixes:
+- Public and Guest users no longer see the View Schedule button on View Event.
+- schedule.html is hidden by default and only renders after Supabase confirms can_view_private_schedule() = true.
+- Direct schedule URL still shows only the Private Schedule access message for unauthorized users.
+- Verified logged-in members with a claimed WOS account in an active alliance can see the schedule.
+- Scheduler/Admin/Owner keep access.
 
-Expected behavior when not logged in:
-Home → View Event → Fill Out Prep Form
-→ Continue with Discord
-→ Continue as Guest
-
-No SQL changes are required.
+No new SQL is required.
+Upload/replace the web files in GitHub.

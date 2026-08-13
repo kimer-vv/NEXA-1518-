@@ -109,6 +109,18 @@ async function getProfilePrefs() {
   const { data } = await sb.from('user_profiles').select('time_zone,language').eq('user_id',session.user.id).maybeSingle();
   return {tz:data?.time_zone || detectedTZ, lang:NEXA_I18N.resolve(data?.language || 'auto')};
 }
+
+async function syncScheduleButtonAccess(){
+  const btn=document.getElementById('view-schedule-btn');
+  if(!btn) return;
+  const {data,error}=await sb.rpc('can_view_private_schedule');
+  if(!error && data===true){
+    btn.classList.remove('hidden');
+  } else {
+    btn.classList.add('hidden');
+  }
+}
+
 async function loadEvent() {
   await sb.rpc('refresh_auto_ended_events');
   const id = localStorage.getItem('nexa_live_event_id');
@@ -214,6 +226,7 @@ async function enableInlineEdit(data){
   };
 }
 
+syncScheduleButtonAccess();
 loadEvent();
 </script>
 </body>

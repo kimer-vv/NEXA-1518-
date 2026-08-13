@@ -6,7 +6,7 @@
 <header class="topbar"><div class="shell nav"><a class="logo" href="index.html"><span class="star">✦</span><span>NEXA<small>STATE 1518</small></span></a></div></header>
 
 <main class="shell event-page transfer-admin-page">
- <div class="transfer-admin-head"><div><span class="badge">PRIVATE</span><h1>NEXA Transfers</h1><p class="muted">Transfer Control Center</p></div><a class="btn secondary" href="index.html?admin=modules">← Modules</a></div>
+ <div class="transfer-admin-head"><div><span class="badge">PRIVATE</span><h1>NEXA Transfers</h1><p class="muted">Transfer Control Center <span class="build-tag">v28.7</span></p></div><a class="btn secondary" href="index.html?admin=modules">← Modules</a></div>
  <div class="transfer-tabs">
   <button class="transfer-tab active" data-tab="applications">Applications</button>
   <button class="transfer-tab" data-tab="events">Transfer Events</button>
@@ -183,6 +183,66 @@
 <script>
 const SUPABASE_URL="https://dfxcxboxrkfmrnsgpyin.supabase.co", SUPABASE_KEY="sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-";
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+/* Explicit element references — do not rely on browser-generated globals. */
+const access_message=document.getElementById('access-message');
+
+const application_event_filter=document.getElementById('application-event-filter');
+const app_search=document.getElementById('app-search');
+const status_filter=document.getElementById('status-filter');
+const applications_list=document.getElementById('applications-list');
+
+const form_event_filter=document.getElementById('form-event-filter');
+const transfer_form_status=document.getElementById('transfer-form-status');
+const transfer_form_destination=document.getElementById('transfer-form-destination');
+const transfer_form_ordinary_cap=document.getElementById('transfer-form-ordinary-cap');
+const transfer_form_special_cap=document.getElementById('transfer-form-special-cap');
+const open_transfer_form=document.getElementById('open-transfer-form');
+const copy_transfer_form_link=document.getElementById('copy-transfer-form-link');
+const transfer_form_link=document.getElementById('transfer-form-link');
+const transfer_form_message=document.getElementById('transfer-form-message');
+
+const transfer_event_form=document.getElementById('transfer-event-form');
+const te_id=document.getElementById('te_id');
+const te_title=document.getElementById('te_title');
+const te_destination=document.getElementById('te_destination');
+const te_power_cap=document.getElementById('te_power_cap');
+const te_special_power_cap=document.getElementById('te_special_power_cap');
+const te_threshold=document.getElementById('te_threshold');
+const te_start_date=document.getElementById('te_start_date');
+const te_start_time=document.getElementById('te_start_time');
+const te_end_date=document.getElementById('te_end_date');
+const te_end_time=document.getElementById('te_end_time');
+const te_notes=document.getElementById('te_notes');
+const te_status=document.getElementById('te_status');
+const te_apps_open=document.getElementById('te_apps_open');
+const te_cancel=document.getElementById('te_cancel');
+const te_end_event=document.getElementById('te_end_event');
+const events_list=document.getElementById('events-list');
+
+const recruit_event_filter=document.getElementById('recruit-event-filter');
+const recruit_form=document.getElementById('recruit-form');
+const recruit_alliance=document.getElementById('recruit-alliance');
+const recruit_new_tag=document.getElementById('recruit-new-tag');
+const bear_count=document.getElementById('bear-count');
+const foundry_count=document.getElementById('foundry-count');
+const canyon_count=document.getElementById('canyon-count');
+const other_count=document.getElementById('other-count');
+const recruit_extra_note=document.getElementById('recruit-extra-note');
+const recruit_is_recruiting=document.getElementById('recruit-is-recruiting');
+const recruit_save_message=document.getElementById('recruit-save-message');
+const recruit_list=document.getElementById('recruit-list');
+
+const transfer_perm_search_form=document.getElementById('transfer-perm-search-form');
+const transfer_perm_search=document.getElementById('transfer-perm-search');
+const transfer_perm_list=document.getElementById('transfer-perm-list');
+
+const history_search_transfer=document.getElementById('history-search-transfer');
+const transfer_history_list=document.getElementById('transfer-history-list');
+
+const application_modal=document.getElementById('application-modal');
+const modal_app_title=document.getElementById('modal-app-title');
+const modal_app_body=document.getElementById('modal-app-body');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmtPower=n=>{n=Number(n||0); return n>=1e9?(n/1e9).toFixed(2).replace(/\.00$/,'')+'B':n>=1e6?(n/1e6).toFixed(1).replace(/\.0$/,'')+'M':n.toLocaleString();};
 
@@ -271,9 +331,22 @@ function openApplication(a){
  <label class="check"><input id="modal-priority" type="checkbox" ${a.manual_priority?'checked':''}> Manual Priority</label>
  <div class="form-actions"><button id="save-application" class="btn">Save Review</button></div>`;
  application_modal.classList.add('open');application_modal.setAttribute('aria-hidden','false');
- save_application.onclick=saveApplication;
+ document.getElementById('save-application').onclick=saveApplication;
 }
-async function saveApplication(){const {error}=await sb.from('transfer_applications').update({transfer_status:modal_status.value,staff_notes:modal_notes.value,manual_priority:modal_priority.checked,updated_at:new Date().toISOString()}).eq('id',currentApp.id);if(error)return alert(error.message);closeApp();await loadApplications();}
+async function saveApplication(){
+ const modalStatus=document.getElementById('modal-status');
+ const modalNotes=document.getElementById('modal-notes');
+ const modalPriority=document.getElementById('modal-priority');
+ const {error}=await sb.from('transfer_applications').update({
+   transfer_status:modalStatus.value,
+   staff_notes:modalNotes.value,
+   manual_priority:modalPriority.checked,
+   updated_at:new Date().toISOString()
+ }).eq('id',currentApp.id);
+ if(error)return alert(error.message);
+ closeApp();
+ await loadApplications();
+}
 function closeApp(){application_modal.classList.remove('open');application_modal.setAttribute('aria-hidden','true');}
 document.querySelectorAll('[data-close-app]').forEach(x=>x.onclick=closeApp);
 
@@ -495,6 +568,11 @@ async function loadHistory(){
 }
 history_search_transfer.oninput=loadHistory;
 transfer_history_list.onclick=async e=>{const id=e.target.dataset.historyCycle,del=e.target.dataset.deleteTransferHistory;if(id){tab('applications');application_event_filter.innerHTML+=`<option value="${id}">Archived Cycle</option>`;application_event_filter.value=id;loadApplications();}if(del){if(!confirm('Permanently delete this archived Transfer Event and all applications?'))return;const {error}=await sb.rpc('owner_delete_transfer_event',{p_transfer_event_id:del});if(error)return alert(error.message);await loadHistory();}};
+
+window.addEventListener('error',ev=>{
+  const box=document.getElementById('access-message');
+  if(box) box.textContent='Transfer panel error: '+(ev.message||'Unknown error');
+});
 
 (async()=>{
   if(!(await guard()))return;

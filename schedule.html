@@ -84,6 +84,12 @@ let userTZ = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 let currentLang = 'en';
 let activeOffset = 0;
 
+const copyCurrentDayBtn = document.getElementById('copy-current-day');
+const copyFullScheduleBtn = document.getElementById('copy-full-schedule');
+const copyAllianceSelect = document.getElementById('copy-alliance-select');
+const copyAllianceScheduleBtn = document.getElementById('copy-alliance-schedule');
+const copyMessage = document.getElementById('copy-message');
+
 async function loadTZ() {
   const { data: { session } } = await sb.auth.getSession();
   if (!session?.user) return;
@@ -164,8 +170,8 @@ function lineFor(a){
   return `${t} UTC — ${p.in_game_name||'Player'}${tag?` [${tag}]`:''}`;
 }
 async function copyText(txt){
-  try{await navigator.clipboard.writeText(txt);copy_message.textContent='Copied ✓';}
-  catch(e){copy_message.textContent='Copy failed. Select and copy manually.';}
+  try{await navigator.clipboard.writeText(txt);copyMessage.textContent='Copied ✓';}
+  catch(e){copyMessage.textContent='Copy failed. Select and copy manually.';}
 }
 async function buildDayText(offset, allianceFilter=''){
   const apps=await getAppointmentsForDay(offset);
@@ -177,17 +183,17 @@ async function refreshAllianceOptions(){
   const all=[];
   for(const off of [0,1,3]) all.push(...await getAppointmentsForDay(off));
   const tags=[...new Set(all.map(a=>a.player_accounts?.alliances?.tag||a.player_accounts?.custom_alliance_tag||'').filter(Boolean))].sort();
-  copy_alliance_select.innerHTML='<option value="">Select alliance</option>'+tags.map(t=>`<option value="${t}">${t}</option>`).join('');
+  copyAllianceSelect.innerHTML='<option value="">Select alliance</option>'+tags.map(t=>`<option value="${t}">${t}</option>`).join('');
 }
-copy_current_day?.addEventListener('click',async()=>copyText(await buildDayText(activeOffset)));
-copy_full_schedule?.addEventListener('click',async()=>{
+copyCurrentDayBtn?.addEventListener('click',async()=>copyText(await buildDayText(activeOffset)));
+copyFullScheduleBtn?.addEventListener('click',async()=>{
   const parts=[];
   for(const off of [0,1,3]) parts.push(await buildDayText(off));
   copyText(parts.join('\n\n'));
 });
-copy_alliance_schedule?.addEventListener('click',async()=>{
-  const tag=copy_alliance_select.value;
-  if(!tag){copy_message.textContent='Select an alliance first.';return;}
+copyAllianceScheduleBtn?.addEventListener('click',async()=>{
+  const tag=copyAllianceSelect.value;
+  if(!tag){copyMessage.textContent='Select an alliance first.';return;}
   const parts=[];
   for(const off of [0,1,3]) parts.push(await buildDayText(off,tag));
   copyText(`${tag} — SvS Ministry Schedule\n\n${parts.join('\n\n')}`);
@@ -240,7 +246,16 @@ document.querySelectorAll('.tab').forEach(btn => btn.addEventListener('click', a
   await renderSlots();
 }));
 
-loadEvent();
+loadEvent().catch(err=>{
+  console.error(err);
+  const blocked=document.getElementById('schedule-access-blocked');
+  const privateContent=document.getElementById('schedule-private-content');
+  if(privateContent) privateContent.classList.add('hidden');
+  if(blocked){
+    blocked.classList.remove('hidden');
+    blocked.innerHTML='<h2>Schedule could not load</h2><p>Please refresh the page. If this continues, contact NEXA staff.</p><a class="btn" href="event.html">Back to Event</a>';
+  }
+});
 </script>
 </body>
 </html>

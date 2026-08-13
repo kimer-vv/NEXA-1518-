@@ -1,18 +1,19 @@
-# NEXA v28.3 — SvS Schedule Restored
+# NEXA v28.4 — Schedule Blank Page Fix
 
-Fixes:
-- View Schedule no longer renders blank for authorized verified users.
-- Restores the 3 Prep Day tabs:
-  - Monday / Construction / VP
-  - Tuesday / Research / VP
-  - Thursday / Training / MOE
-- Restores all 48 half-hour UTC slots for each day.
-- UTC remains official; local AM/PM is shown underneath for each user.
-- Adds the visual day icons again for the three schedule days.
-- Restores Schedule Options:
-  - Copy This Day
-  - Copy Full Schedule
-  - Copy Alliance Schedule
-- Public/Guest schedule protection remains active.
+Exact bug fixed:
+- The Schedule page referenced HTML element IDs containing hyphens as JavaScript underscore variables.
+- That caused a ReferenceError before the access check/render could run, leaving both the private schedule and access message hidden — a completely blank page.
 
-No new SQL is required.
+Restored/kept:
+- Monday Construction / VP
+- Tuesday Research / VP
+- Thursday Training / MOE
+- 48 half-hour UTC slots per day
+- UTC official time + each user's local AM/PM
+- Copy This Day
+- Copy Full Schedule
+- Copy Alliance Schedule
+- Private schedule access protection
+- Existing Prep Form preferred-time warnings and Scheduled/Preferred-by-X behavior are untouched
+
+No SQL is required.

@@ -1,0 +1,108 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NEXA • Transfers</title><link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
+<body><div class="nebula-bg" aria-hidden="true"></div><div class="starfield" aria-hidden="true"></div>
+<header class="topbar"><div class="shell nav"><a class="logo" href="index.html"><span class="star">✦</span><span>NEXA<small>STATE 1518</small></span></a></div></header>
+
+<main class="shell event-page">
+  <span class="badge transfer-badge">TRANSFERS</span>
+  <h1 id="title">Transfer Event</h1>
+  <p id="range" class="muted">Loading…</p>
+  <section class="glass transfer-public-card">
+    <div class="transfer-stat-grid">
+      <div><small>DESTINATION</small><b id="dest">—</b></div>
+      <div><small>ORDINARY CAP</small><b id="cap">—</b></div><div><small>SPECIAL CAP</small><b id="special-cap">—</b></div>
+      <div><small>APPLICATIONS</small><b id="open">—</b></div>
+    </div>
+    <p id="notes" class="muted"></p>
+    <div class="form-actions">
+      <a id="apply" class="btn" href="#">Apply for Transfer →</a>
+      <a id="edit-transfer-event" class="btn secondary hidden" href="#">Edit Event</a>
+    </div>
+  </section>
+  <section class="section"><div class="head"><h2>Recruiting Alliances</h2></div><div id="alliances" class="admin-list"></div></section>
+
+  <section id="owner-admin-tools" class="section hidden">
+    <div class="head">
+      <div>
+        <span class="badge admin-tools-badge">OWNER / ADMIN</span>
+        <h2>Transfer Management</h2>
+        <p class="muted">These controls are only visible to authorized Owner/Admin accounts.</p>
+      </div>
+    </div>
+
+    <div class="glass transfer-owner-tools">
+      <div class="transfer-owner-tabs">
+        <a id="admin-applications-link" class="btn secondary" href="#">Applications</a>
+        <a id="admin-form-link" class="btn secondary" href="#">Transfer Form</a>
+        <a id="admin-events-link" class="btn secondary" href="#">Transfer Events</a>
+        <a id="admin-recruiting-link" class="btn secondary" href="#">Recruiting Alliances</a>
+        <a id="admin-permissions-link" class="btn secondary" href="#">Permissions</a>
+        <a id="admin-history-link" class="btn secondary" href="#">History</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+<script>
+const SUPABASE_URL="https://dfxcxboxrkfmrnsgpyin.supabase.co", SUPABASE_KEY="sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-";
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtPower=n=>{n=Number(n||0); return n>=1e9?(n/1e9).toFixed(2).replace(/\.00$/,'')+'B':n>=1e6?(n/1e6).toFixed(1).replace(/\.0$/,'')+'M':n.toLocaleString();};
+
+function transferScheduleSummary(raw){
+  if(!raw) return 'Schedule not listed';
+  try{
+    const x=JSON.parse(raw),parts=[];
+    if(x.bear?.length) parts.push(`Bear: ${x.bear.map(t=>t+' UTC').join(' / ')}`);
+    if(x.foundry?.length) parts.push(`Foundry: ${x.foundry.map(t=>t+' UTC').join(' / ')}`);
+    if(x.canyon?.length) parts.push(`Canyon: ${x.canyon.map(t=>t+' UTC').join(' / ')}`); if(x.other?.length) parts.push(...x.other.map(o=>`${o.name}: ${o.time} UTC`));
+    if(x.note) parts.push(x.note);
+    return parts.join(' • ') || 'Schedule not listed';
+  }catch(e){ return raw; }
+}
+
+const ownerAdminTools=document.getElementById('owner-admin-tools');
+const adminApplicationsLink=document.getElementById('admin-applications-link');
+const adminFormLink=document.getElementById('admin-form-link');
+const adminEventsLink=document.getElementById('admin-events-link');
+const adminRecruitingLink=document.getElementById('admin-recruiting-link');
+const adminPermissionsLink=document.getElementById('admin-permissions-link');
+const adminHistoryLink=document.getElementById('admin-history-link');
+
+const token=new URLSearchParams(location.search).get('token');
+(async()=>{
+ if(!token){document.getElementById('range').textContent='Invalid transfer link.';return;}
+ const {data:e,error}=await sb.rpc('get_public_transfer_event',{p_event_token:token});
+ if(error||!e){document.getElementById('range').textContent='This transfer event is unavailable or closed.';document.getElementById('apply').classList.add('hidden');return;}
+ title.textContent=e.title; dest.textContent='State '+e.destination_state;
+ cap.textContent=e.power_cap?fmtPower(e.power_cap):'Set by staff'; document.getElementById('special-cap').textContent=e.special_power_cap?fmtPower(e.special_power_cap):'Set by staff'; open.textContent=e.applications_open?'Open':'Closed';
+ range.textContent=(e.source_state_min||e.source_state_max)?`Eligible range: State ${e.source_state_min||'—'}–${e.source_state_max||'—'}`:'State 1518 Transfer Cycle';
+ notes.textContent=e.public_notes||'Submit an interest application for this transfer cycle.';
+ apply.href='transfer-apply-v295.html?token='+encodeURIComponent(token);
+ const [{data:canManage},{data:isAdmin}] = await Promise.all([
+   sb.rpc('can_manage_transfers'),
+   sb.rpc('is_admin')
+ ]);
+
+ if(canManage===true){
+   edit_transfer_event.href='transfer-admin-v295.html?tab=events&edit='+encodeURIComponent(e.id);
+   edit_transfer_event.classList.remove('hidden');
+ }
+
+ if(isAdmin===true){
+   const base='transfer-admin-v295.html';
+   adminApplicationsLink.href=base+'?tab=applications&event='+encodeURIComponent(e.id);
+   adminFormLink.href=base+'?tab=form&event='+encodeURIComponent(e.id);
+   adminEventsLink.href=base+'?tab=events&edit='+encodeURIComponent(e.id);
+   adminRecruitingLink.href=base+'?tab=recruiting&event='+encodeURIComponent(e.id);
+   adminPermissionsLink.href=base+'?tab=permissions';
+   adminHistoryLink.href=base+'?tab=history';
+   ownerAdminTools.classList.remove('hidden');
+ }
+ const {data:r}=await sb.rpc('get_public_recruiting_alliances',{p_event_token:token});
+ const recruiting=r||[];
+ alliances.innerHTML=recruiting.length?recruiting.map(x=>`<article class="history-card"><div><b>${esc(x.tag||'Recruiting Alliance')}</b><small>${esc(transferScheduleSummary(x.schedule_notes))}</small></div></article>`).join(''):'<div class="empty-state">Recruiting alliances will be announced by Transfer Staff.</div>';
+})();
+</script></body></html>

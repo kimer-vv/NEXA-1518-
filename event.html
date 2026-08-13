@@ -71,13 +71,75 @@
       <label>Prep Monday — Game Date (UTC)<input id="inline-monday" type="date" required></label>
       <label>Event Notes<textarea id="inline-notes" rows="3"></textarea></label>
       <label>Important Announcement<textarea id="inline-announcement" rows="2"></textarea></label>
+      <div class="auto-end-grid">
+        <label>Auto End Date
+          <input id="inline-auto-end-date" type="date">
+        </label>
+        <label>Auto End Time (UTC)
+          <select id="inline-auto-end-time">
+            <option value="">Select UTC time</option>
+<option value="00:00">00:00 UTC</option>
+<option value="00:30">00:30 UTC</option>
+<option value="01:00">01:00 UTC</option>
+<option value="01:30">01:30 UTC</option>
+<option value="02:00">02:00 UTC</option>
+<option value="02:30">02:30 UTC</option>
+<option value="03:00">03:00 UTC</option>
+<option value="03:30">03:30 UTC</option>
+<option value="04:00">04:00 UTC</option>
+<option value="04:30">04:30 UTC</option>
+<option value="05:00">05:00 UTC</option>
+<option value="05:30">05:30 UTC</option>
+<option value="06:00">06:00 UTC</option>
+<option value="06:30">06:30 UTC</option>
+<option value="07:00">07:00 UTC</option>
+<option value="07:30">07:30 UTC</option>
+<option value="08:00">08:00 UTC</option>
+<option value="08:30">08:30 UTC</option>
+<option value="09:00">09:00 UTC</option>
+<option value="09:30">09:30 UTC</option>
+<option value="10:00">10:00 UTC</option>
+<option value="10:30">10:30 UTC</option>
+<option value="11:00">11:00 UTC</option>
+<option value="11:30">11:30 UTC</option>
+<option value="12:00">12:00 UTC</option>
+<option value="12:30">12:30 UTC</option>
+<option value="13:00">13:00 UTC</option>
+<option value="13:30">13:30 UTC</option>
+<option value="14:00">14:00 UTC</option>
+<option value="14:30">14:30 UTC</option>
+<option value="15:00">15:00 UTC</option>
+<option value="15:30">15:30 UTC</option>
+<option value="16:00">16:00 UTC</option>
+<option value="16:30">16:30 UTC</option>
+<option value="17:00">17:00 UTC</option>
+<option value="17:30">17:30 UTC</option>
+<option value="18:00">18:00 UTC</option>
+<option value="18:30">18:30 UTC</option>
+<option value="19:00">19:00 UTC</option>
+<option value="19:30">19:30 UTC</option>
+<option value="20:00">20:00 UTC</option>
+<option value="20:30">20:30 UTC</option>
+<option value="21:00">21:00 UTC</option>
+<option value="21:30">21:30 UTC</option>
+<option value="22:00">22:00 UTC</option>
+<option value="22:30">22:30 UTC</option>
+<option value="23:00">23:00 UTC</option>
+<option value="23:30">23:30 UTC</option>
+          </select>
+          <small>All Auto End times are UTC.</small>
+        </label>
+      </div>
       <div class="toggle-grid">
         <label class="toggle-line"><input id="inline-prep-open" type="checkbox"> Prep Form Open</label>
         <label class="toggle-line"><input id="inline-battle-open" type="checkbox"> Battle Form Open</label>
         <label class="toggle-line"><input id="inline-schedule-published" type="checkbox"> Schedule Published</label>
         <label class="toggle-line"><input id="inline-live" type="checkbox"> Live Event</label>
       </div>
-      <div class="form-actions"><button class="btn" type="submit">Save Changes</button></div>
+      <div class="form-actions">
+        <button id="inline-end-event" class="btn danger hidden" type="button">End Event</button>
+        <button class="btn" type="submit">Save Changes</button>
+      </div>
       <div id="inline-event-message" class="form-message"></div>
     </form>
   </section>
@@ -200,11 +262,32 @@ async function enableInlineEdit(data){
     document.getElementById('inline-battle-open').checked=!!data.battle_form_open;
     document.getElementById('inline-schedule-published').checked=!!data.schedule_published;
     document.getElementById('inline-live').checked=!!data.is_live;
+    if(data.auto_end_at){
+      const autoIso=new Date(data.auto_end_at).toISOString();
+      document.getElementById('inline-auto-end-date').value=autoIso.slice(0,10);
+      document.getElementById('inline-auto-end-time').value=autoIso.slice(11,16);
+    }else{
+      document.getElementById('inline-auto-end-date').value='';
+      document.getElementById('inline-auto-end-time').value='';
+    }
+    document.getElementById('inline-end-event').classList.toggle('hidden', data.status!=='live');
     document.getElementById('event-edit-modal').classList.add('open');
   });
   document.querySelectorAll('[data-close-event-edit]').forEach(x=>x.addEventListener('click',()=>{
     document.getElementById('event-edit-modal').classList.remove('open');
   }));
+  
+  const inlineEnd=document.getElementById('inline-end-event');
+  if(inlineEnd){
+    inlineEnd.onclick=async()=>{
+      const ok=confirm('End this SvS event? Current requests and appointments will move to History. Nothing will be permanently deleted.');
+      if(!ok) return;
+      const {error}=await sb.rpc('end_svs_event',{target_event_id:data.id});
+      document.getElementById('inline-event-message').textContent=error?error.message:'Event ended.';
+      if(!error) setTimeout(()=>location.href='index.html',350);
+    };
+  }
+
   document.getElementById('inline-event-form').onsubmit=async(e)=>{
     e.preventDefault();
     const oldAnn=data.announcement_text||null;
@@ -218,7 +301,15 @@ async function enableInlineEdit(data){
       prep_form_open:document.getElementById('inline-prep-open').checked,
       battle_form_open:document.getElementById('inline-battle-open').checked,
       schedule_published:document.getElementById('inline-schedule-published').checked,
-      is_live:document.getElementById('inline-live').checked
+      is_live:document.getElementById('inline-live').checked,
+      status:document.getElementById('inline-live').checked?'live':'upcoming',
+      auto_end_at:(
+        document.getElementById('inline-auto-end-date').value &&
+        document.getElementById('inline-auto-end-time').value
+      ) ? new Date(
+        document.getElementById('inline-auto-end-date').value+'T'+
+        document.getElementById('inline-auto-end-time').value+':00Z'
+      ).toISOString() : null
     };
     const {error}=await sb.from('svs_events').update(payload).eq('id',data.id);
     document.getElementById('inline-event-message').textContent=error?error.message:'Event updated.';

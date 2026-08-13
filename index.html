@@ -246,10 +246,65 @@
           <label class="toggle-line"><input id="event-is-live" type="checkbox"> Live Event</label>
         </div>
 
-        <label>Auto End (UTC)
-          <input id="event-auto-end" type="datetime-local">
-          <small>Optional. When this UTC date/time is reached, NEXA treats the event as ended.</small>
-        </label>
+        <div class="auto-end-grid">
+          <label>Auto End Date
+            <input id="event-auto-end-date" type="date">
+          </label>
+          <label>Auto End Time (UTC)
+            <select id="event-auto-end-time">
+              <option value="">Select UTC time</option>
+<option value="00:00">00:00 UTC</option>
+<option value="00:30">00:30 UTC</option>
+<option value="01:00">01:00 UTC</option>
+<option value="01:30">01:30 UTC</option>
+<option value="02:00">02:00 UTC</option>
+<option value="02:30">02:30 UTC</option>
+<option value="03:00">03:00 UTC</option>
+<option value="03:30">03:30 UTC</option>
+<option value="04:00">04:00 UTC</option>
+<option value="04:30">04:30 UTC</option>
+<option value="05:00">05:00 UTC</option>
+<option value="05:30">05:30 UTC</option>
+<option value="06:00">06:00 UTC</option>
+<option value="06:30">06:30 UTC</option>
+<option value="07:00">07:00 UTC</option>
+<option value="07:30">07:30 UTC</option>
+<option value="08:00">08:00 UTC</option>
+<option value="08:30">08:30 UTC</option>
+<option value="09:00">09:00 UTC</option>
+<option value="09:30">09:30 UTC</option>
+<option value="10:00">10:00 UTC</option>
+<option value="10:30">10:30 UTC</option>
+<option value="11:00">11:00 UTC</option>
+<option value="11:30">11:30 UTC</option>
+<option value="12:00">12:00 UTC</option>
+<option value="12:30">12:30 UTC</option>
+<option value="13:00">13:00 UTC</option>
+<option value="13:30">13:30 UTC</option>
+<option value="14:00">14:00 UTC</option>
+<option value="14:30">14:30 UTC</option>
+<option value="15:00">15:00 UTC</option>
+<option value="15:30">15:30 UTC</option>
+<option value="16:00">16:00 UTC</option>
+<option value="16:30">16:30 UTC</option>
+<option value="17:00">17:00 UTC</option>
+<option value="17:30">17:30 UTC</option>
+<option value="18:00">18:00 UTC</option>
+<option value="18:30">18:30 UTC</option>
+<option value="19:00">19:00 UTC</option>
+<option value="19:30">19:30 UTC</option>
+<option value="20:00">20:00 UTC</option>
+<option value="20:30">20:30 UTC</option>
+<option value="21:00">21:00 UTC</option>
+<option value="21:30">21:30 UTC</option>
+<option value="22:00">22:00 UTC</option>
+<option value="22:30">22:30 UTC</option>
+<option value="23:00">23:00 UTC</option>
+<option value="23:30">23:30 UTC</option>
+            </select>
+            <small>All Auto End times are UTC.</small>
+          </label>
+        </div>
 
         <div id="event-lifecycle-actions" class="form-actions hidden">
           <button id="activate-event" class="btn secondary" type="button">Make Live</button>
@@ -896,7 +951,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('battle-form-open').checked = false;
     document.getElementById('schedule-published').checked = false;
     document.getElementById('event-is-live').checked = false;
-    document.getElementById('event-auto-end').value = '';
+    document.getElementById('event-auto-end-date').value = '';
+    document.getElementById('event-auto-end-time').value = '';
     document.getElementById('event-lifecycle-actions').classList.add('hidden');
     document.getElementById('cancel-event-edit').classList.add('hidden');
     renderEventPreview();
@@ -921,8 +977,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       schedule_published: document.getElementById('schedule-published').checked,
       is_live: document.getElementById('event-is-live').checked,
       status: document.getElementById('event-is-live').checked ? 'live' : 'upcoming',
-      auto_end_at: document.getElementById('event-auto-end').value
-        ? new Date(document.getElementById('event-auto-end').value + 'Z').toISOString()
+      auto_end_at: (
+        document.getElementById('event-auto-end-date').value &&
+        document.getElementById('event-auto-end-time').value
+      )
+        ? new Date(
+            document.getElementById('event-auto-end-date').value +
+            'T' +
+            document.getElementById('event-auto-end-time').value +
+            ':00Z'
+          ).toISOString()
         : null
     };
     if (!id) payload.created_by = user.id;
@@ -953,6 +1017,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const { data, error } = await supabaseClient.from('svs_events').select('*').eq('id', editId).single();
       if (error) return alert(error.message);
       document.getElementById('event-id').value = data.id;
+      document.getElementById('event-lifecycle-actions').classList.remove('hidden');
       document.getElementById('opponent-state').value = data.opponent_state;
       document.getElementById('prep-monday').value = data.prep_monday;
       document.getElementById('event-description').value = data.description || '';
@@ -962,10 +1027,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('battle-form-open').checked = !!data.battle_form_open;
       document.getElementById('schedule-published').checked = !!data.schedule_published;
       document.getElementById('event-is-live').checked = !!data.is_live;
-      document.getElementById('event-auto-end').value = data.auto_end_at ? new Date(data.auto_end_at).toISOString().slice(0,16) : '';
+      if (data.auto_end_at) {
+        const autoIso = new Date(data.auto_end_at).toISOString();
+        document.getElementById('event-auto-end-date').value = autoIso.slice(0,10);
+        document.getElementById('event-auto-end-time').value = autoIso.slice(11,16);
+      } else {
+        document.getElementById('event-auto-end-date').value = '';
+        document.getElementById('event-auto-end-time').value = '';
+      }
       document.getElementById('event-lifecycle-actions').classList.remove('hidden');
       document.getElementById('activate-event').classList.toggle('hidden', data.status === 'live');
-      document.getElementById('end-event').classList.toggle('hidden', data.status === 'ended');
+      document.getElementById('end-event').classList.toggle('hidden', data.status !== 'live');
       document.getElementById('cancel-event-edit').classList.remove('hidden');
       renderEventPreview();
     }

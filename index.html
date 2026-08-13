@@ -196,7 +196,8 @@
       <button class="admin-tab" type="button" data-admin-tab="alliances">Alliances</button>
       <button class="admin-tab" type="button" data-admin-tab="permissions">Permissions</button>
       <button class="admin-tab" type="button" data-admin-tab="announcements">Announcements</button>
-      <button class="admin-tab" type="button" data-admin-tab="history">History</button>
+      
+      
     </div>
 
     <section id="admin-events" class="admin-section">
@@ -319,7 +320,14 @@
 
       <div id="admin-events-message" class="form-message"></div>
       <div id="events-admin-list" class="admin-list"></div>
-    </section>
+    
+      <div class="events-history-entry">
+        <button id="open-history-from-events" class="btn secondary" type="button">
+          View Event History
+        </button>
+        <small>View ended SvS events, archived schedules, requests, and summaries.</small>
+      </div>
+</section>
 
     <section id="admin-alliances" class="admin-section hidden">
       <div class="admin-section-head">
@@ -390,6 +398,21 @@
           <div id="announcement-admin-message" class="form-message"></div>
         </section>
 
+    <section id="admin-history" class="admin-section hidden">
+      <div class="admin-section-head">
+        <div>
+          <h3>Event History</h3>
+          <p>Ended SvS events stay archived here. Active screens only show the current event.</p>
+        </div>
+      </div>
+
+      <div class="history-tools">
+        <input id="history-search" placeholder="Search opponent state...">
+      </div>
+
+      <div id="history-list" class="admin-list"></div>
+    </section>
+
         <section class="glass-lite">
           <div class="announcement-status-head">
             <h3>Acknowledgements</h3>
@@ -410,20 +433,7 @@
       </div>
     </section>
 
-    <section id="admin-history" class="admin-section hidden">
-      <div class="admin-section-head">
-        <div>
-          <h3>Event History</h3>
-          <p>Ended SvS events stay archived here. Active screens only show the current event.</p>
-        </div>
-      </div>
-
-      <div class="history-tools">
-        <input id="history-search" placeholder="Search opponent state...">
-      </div>
-
-      <div id="history-list" class="admin-list"></div>
-    </section>
+    
   </section>
 </div>
 
@@ -882,11 +892,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.querySelectorAll('[data-admin-tab]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     const target = btn.dataset.adminTab;
-    adminEventsSection.classList.toggle('hidden', target !== 'events');
-    adminAlliancesSection.classList.toggle('hidden', target !== 'alliances');
-    adminPermissionsSection.classList.toggle('hidden', target !== 'permissions');
-    adminAnnouncementsSection.classList.toggle('hidden', target !== 'announcements');
-    adminHistorySection.classList.toggle('hidden', target !== 'history');
+    showAdminSection(target);
     if (target === 'permissions') await loadPermissions();
     if (target === 'announcements') await loadAnnouncementsCenter();
     if (target === 'history') await loadEventHistory();

@@ -1,25 +1,10 @@
-# NEXA v27.5 — Audit + Mobile Admin + Owner Delete Fix
+# NEXA v27.7 — History Under Events
 
-Fixes visible in the latest screenshots:
+UI adjustment:
+- History is no longer a top-row Admin tab.
+- A clear `View Event History` button now appears inside the Events section, directly below the Events area.
+- Clicking it opens the standalone History section.
+- This makes History easier to discover for users who can access Events without crowding the main admin tab row.
+- Owner-only Delete Permanently remains unchanged.
 
-1. End Event error:
-   - Adds/recreates `audit_log` and `write_audit(text,jsonb)`.
-   - Fixes: `function public.write_audit(unknown, jsonb) does not exist`.
-
-2. Admin Control Center on iPhone:
-   - Modal now fits the viewport instead of being cut off on the left.
-   - Admin tabs horizontally scroll when needed.
-
-3. Announcements separation:
-   - Important Announcement is removed from View Event → Edit Event.
-   - Announcements remain managed only in Admin → Announcements.
-
-4. Owner-only archived deletion:
-   - Admin → History shows Delete Permanently only to Owner.
-   - Only ended events can be permanently deleted.
-   - Other Admin/Scheduler users cannot use the database function.
-
-Steps:
-- Run `v27-5-supabase.sql` once in Supabase.
-- Then upload/replace the web files in GitHub.
-- Do not upload the SQL file to GitHub.
+No SQL changes are required.

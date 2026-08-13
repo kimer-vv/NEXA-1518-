@@ -1,6 +1,6 @@
 
 (function(){
-  const SUPPORTED=['en','es','tr','ko','ar','pt','ru','uk','fr','it','zh'];
+  const SUPPORTED=['en','es','tr','ko','ar','pt','ru','uk','fr','it','zh','ja'];
   function norm(v){
     v=String(v||'').toLowerCase().replace('_','-');
     for(const c of SUPPORTED) if(v===c||v.startsWith(c+'-')) return c;

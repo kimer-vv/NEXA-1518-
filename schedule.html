@@ -33,10 +33,19 @@
     <div class="muted">Official WOS time in UTC • your local time shown in AM/PM</div>
   </div>
 
-  <div class="tabs">
-    <button class="tab active" data-day="0"><b>MON</b><small>Construction</small></button>
-    <button class="tab" data-day="1"><b>TUE</b><small>Research</small></button>
-    <button class="tab" data-day="3"><b>THU</b><small>Training</small></button>
+  <div class="tabs schedule-day-tabs">
+    <button class="tab active" data-day="0">
+      <span class="day-icon" aria-hidden="true">🏗️</span>
+      <b>MON</b><small>Construction</small><em>VP</em>
+    </button>
+    <button class="tab" data-day="1">
+      <span class="day-icon" aria-hidden="true">🔬</span>
+      <b>TUE</b><small>Research</small><em>VP</em>
+    </button>
+    <button class="tab" data-day="3">
+      <span class="day-icon" aria-hidden="true">🎓</span>
+      <b>THU</b><small>Training</small><em>MOE</em>
+    </button>
   </div>
 
   <section class="glass">
@@ -46,6 +55,24 @@
     </div>
     <div id="schedule-slots" class="slots"></div>
   </section>
+
+
+  <section class="glass schedule-tools">
+    <div class="schedule-tools-head">
+      <div>
+        <h3>Schedule Options</h3>
+        <p class="muted">Copy the full schedule, the current day, or one alliance.</p>
+      </div>
+    </div>
+    <div class="schedule-tool-actions">
+      <button id="copy-current-day" class="btn secondary" type="button">Copy This Day</button>
+      <button id="copy-full-schedule" class="btn secondary" type="button">Copy Full Schedule</button>
+      <select id="copy-alliance-select"><option value="">Select alliance</option></select>
+      <button id="copy-alliance-schedule" class="btn secondary" type="button">Copy Alliance Schedule</button>
+    </div>
+    <div id="copy-message" class="form-message"></div>
+  </section>
+
   <div class="bottom-note">Published appointments • State 1518</div>
 </div>
 </main>
@@ -119,7 +146,67 @@ async function renderSlots() {
   document.getElementById('schedule-slots').innerHTML = out;
 }
 
+
+async function getAppointmentsForDay(offset){
+  const dayType=offset===0?'construction':offset===1?'research':'training';
+  const {data}=await sb.from('ministry_appointments')
+    .select('*,player_accounts(in_game_name,player_id,custom_alliance_tag,alliances(tag))')
+    .eq('event_id',eventData.id)
+    .eq('day_type',dayType)
+    .order('appointment_time');
+  return data||[];
+}
+function dayName(offset){return offset===0?'Monday • Construction • VP (Vice President)':offset===1?'Tuesday • Research • VP (Vice President)':'Thursday • Training • MOE (Minister of Education)';}
+function lineFor(a){
+  const t=new Date(a.appointment_time).toISOString().slice(11,16);
+  const p=a.player_accounts||{};
+  const tag=p.alliances?.tag||p.custom_alliance_tag||'';
+  return `${t} UTC — ${p.in_game_name||'Player'}${tag?` [${tag}]`:''}`;
+}
+async function copyText(txt){
+  try{await navigator.clipboard.writeText(txt);copy_message.textContent='Copied ✓';}
+  catch(e){copy_message.textContent='Copy failed. Select and copy manually.';}
+}
+async function buildDayText(offset, allianceFilter=''){
+  const apps=await getAppointmentsForDay(offset);
+  const rows=allianceFilter?apps.filter(a=>((a.player_accounts?.alliances?.tag||a.player_accounts?.custom_alliance_tag||'')===allianceFilter)):apps;
+  return `${dayName(offset)}\n${rows.length?rows.map(lineFor).join('\n'):'No appointments assigned.'}`;
+}
+async function refreshAllianceOptions(){
+  if(!eventData)return;
+  const all=[];
+  for(const off of [0,1,3]) all.push(...await getAppointmentsForDay(off));
+  const tags=[...new Set(all.map(a=>a.player_accounts?.alliances?.tag||a.player_accounts?.custom_alliance_tag||'').filter(Boolean))].sort();
+  copy_alliance_select.innerHTML='<option value="">Select alliance</option>'+tags.map(t=>`<option value="${t}">${t}</option>`).join('');
+}
+copy_current_day?.addEventListener('click',async()=>copyText(await buildDayText(activeOffset)));
+copy_full_schedule?.addEventListener('click',async()=>{
+  const parts=[];
+  for(const off of [0,1,3]) parts.push(await buildDayText(off));
+  copyText(parts.join('\n\n'));
+});
+copy_alliance_schedule?.addEventListener('click',async()=>{
+  const tag=copy_alliance_select.value;
+  if(!tag){copy_message.textContent='Select an alliance first.';return;}
+  const parts=[];
+  for(const off of [0,1,3]) parts.push(await buildDayText(off,tag));
+  copyText(`${tag} — SvS Ministry Schedule\n\n${parts.join('\n\n')}`);
+});
+
 async function loadEvent() {
+  const blocked=document.getElementById('schedule-access-blocked');
+  const privateContent=document.getElementById('schedule-private-content');
+
+  const {data:allowed,error:accessError}=await sb.rpc('can_view_private_schedule');
+  if(accessError || allowed!==true){
+    privateContent.classList.add('hidden');
+    blocked.classList.remove('hidden');
+    return;
+  }
+
+  blocked.classList.add('hidden');
+  privateContent.classList.remove('hidden');
+
   await loadTZ();
   await sb.rpc('refresh_auto_ended_events');
   const id = localStorage.getItem('nexa_live_event_id');
@@ -143,6 +230,7 @@ async function loadEvent() {
   if(tabs[1]){ tabs[1].querySelector('b').textContent=t('tuesday'); tabs[1].querySelector('small').textContent=t('research'); }
   if(tabs[2]){ tabs[2].querySelector('b').textContent=t('thursday'); tabs[2].querySelector('small').textContent=t('training'); }
   await renderSlots();
+  await refreshAllianceOptions();
 }
 
 document.querySelectorAll('.tab').forEach(btn => btn.addEventListener('click', async () => {

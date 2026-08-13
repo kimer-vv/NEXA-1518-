@@ -32,8 +32,37 @@
     <div id="prep-closed" class="empty-state hidden"></div>
     <div id="prep-message" class="form-message"></div>
 
+    <section id="access-choice" class="guest-choice hidden">
+      <h3>How would you like to continue?</h3>
+      <p class="muted">Discord gives you full access to My Submissions and later edits. Guest submissions are saved, but cannot be edited later automatically.</p>
+      <div class="guest-choice-actions">
+        <button id="continue-discord" class="btn" type="button">Continue with Discord</button>
+        <button id="continue-guest" class="btn secondary" type="button">Continue as Guest</button>
+      </div>
+    </section>
+
+    <section id="guest-warning" class="guest-warning hidden">
+      <b>Guest Submission</b>
+      <p>Your response will be saved, but you will not have My Submissions or automatic editing later. If you need to change something, submit again or contact a Scheduler/Admin.</p>
+    </section>
+
+    <div id="guest-identity" class="account-form hidden">
+      <label>In-Game Name
+        <input id="guest-ign" type="text" maxlength="80">
+      </label>
+      <label>Player ID
+        <input id="guest-player-id" type="text" maxlength="80">
+      </label>
+      <label>Alliance
+        <select id="guest-alliance"></select>
+      </label>
+      <label id="guest-custom-alliance-wrap" class="hidden">Alliance Tag
+        <input id="guest-custom-alliance" type="text" maxlength="30">
+      </label>
+    </div>
+
     <form id="prep-form" class="account-form hidden">
-      <label>WOS Account
+      <label id="account-selector-label">WOS Account
         <select id="prep-account" required></select>
       </label>
 
@@ -321,6 +350,12 @@ async function load(){
     $('prep-closed').classList.remove('hidden'); return;
   }
 
+  if(!u){
+    $('access-choice').classList.remove('hidden');
+    await loadGuestAlliances();
+    return;
+  }
+
   const {data:accounts,error}=await sb.from('player_accounts')
     .select('id,in_game_name,player_id,alliance_id,custom_alliance_tag,alliances(tag)')
     .order('created_at');
@@ -365,6 +400,31 @@ function fillExisting(x){
   ['construction-requested','research-requested','training-requested','upgrading-t12'].forEach(id=>$(id).dispatchEvent(new Event('change')));
 }
 
+
+let guestMode=false;
+
+async function loadGuestAlliances(){
+  const {data,error}=await sb.from('alliances').select('id,tag').eq('is_active',true).order('tag');
+  const sel=$('guest-alliance');
+  if(error){ sel.innerHTML='<option value="">Not Listed</option>'; return; }
+  sel.innerHTML='<option value="">Not Listed</option>'+(data||[]).map(a=>`<option value="${a.id}">${a.tag}</option>`).join('');
+}
+$('guest-alliance').addEventListener('change',()=>{
+  $('guest-custom-alliance-wrap').classList.toggle('hidden',!!$('guest-alliance').value);
+});
+$('continue-discord').addEventListener('click',()=>{
+  location.href='index.html';
+});
+$('continue-guest').addEventListener('click',()=>{
+  guestMode=true;
+  $('access-choice').classList.add('hidden');
+  $('guest-warning').classList.remove('hidden');
+  $('guest-identity').classList.remove('hidden');
+  $('account-selector-label').classList.add('hidden');
+  $('prep-account').required=false;
+  $('prep-form').classList.remove('hidden');
+});
+
 $('prep-account').addEventListener('change', async()=>{
   if(!liveEvent) return;
   const {data}=await sb.from('prep_requests').select('*')
@@ -375,12 +435,11 @@ $('prep-account').addEventListener('change', async()=>{
 $('prep-form').addEventListener('submit', async e=>{
   e.preventDefault();
   const u=await user();
-  if(!u || !liveEvent) return;
+  if(!liveEvent) return;
 
   const payload={
     event_id:liveEvent.id,
-    user_id:u.id,
-    player_account_id:$('prep-account').value,
+    ...(guestMode ? {} : {user_id:u.id,player_account_id:$('prep-account').value}),
 
     construction_requested:$('construction-requested').checked,
     construction_speedup_minutes:$('construction-requested').checked?n('construction-speedups'):0,
@@ -425,8 +484,58 @@ $('prep-form').addEventListener('submit', async e=>{
     return;
   }
 
-  const {error}=await sb.from('prep_requests').upsert(payload,{onConflict:'event_id,player_account_id'});
-  $('prep-message').textContent=error ? error.message : NEXA_I18N.t(NEXA_I18N.device(),'prepSuccess');
+  let error=null;
+
+  if(guestMode){
+    const ign=$('guest-ign').value.trim();
+    const pid=$('guest-player-id').value.trim();
+    if(!ign || !pid){
+      $('prep-message').textContent='In-Game Name and Player ID are required for Guest submissions.';
+      return;
+    }
+
+    const args={
+      target_event_id:liveEvent.id,
+      guest_in_game_name:ign,
+      guest_player_id:pid,
+      guest_alliance_id:$('guest-alliance').value ? Number($('guest-alliance').value) : null,
+      guest_custom_alliance_tag:$('guest-alliance').value ? null : ($('guest-custom-alliance').value.trim()||null),
+
+      construction_requested:payload.construction_requested,
+      construction_speedup_minutes:payload.construction_speedup_minutes,
+      construction_fire_crystals:payload.construction_fire_crystals,
+      construction_refined_fire_crystals:payload.construction_refined_fire_crystals,
+      construction_time_frame:payload.construction_time_frame,
+      construction_specific_time:payload.construction_specific_time,
+
+      research_requested:payload.research_requested,
+      research_speedup_minutes:payload.research_speedup_minutes,
+      research_fire_crystal_shards:payload.research_fire_crystal_shards,
+      research_time_frame:payload.research_time_frame,
+      research_specific_time:payload.research_specific_time,
+
+      training_requested:payload.training_requested,
+      training_selection:payload.training_selection,
+      training_speedup_minutes:payload.training_speedup_minutes,
+      training_time_frame:payload.training_time_frame,
+      training_specific_time:payload.training_specific_time,
+
+      upgrading_t12:payload.upgrading_t12,
+      t12_refined_fire_crystals:payload.t12_refined_fire_crystals,
+      t12_fire_crystal_shards:payload.t12_fire_crystal_shards,
+      scheduler_note:payload.scheduler_note
+    };
+    ({error}=await sb.rpc('submit_guest_prep_request',args));
+  } else {
+    ({error}=await sb.from('prep_requests').upsert(payload,{onConflict:'event_id,player_account_id'}));
+  }
+
+  $('prep-message').textContent=error ? error.message : (guestMode ? 'Guest Prep Form submitted successfully.' : NEXA_I18N.t(NEXA_I18N.device(),'prepSuccess'));
+
+  if(!error && guestMode){
+    $('prep-form').reset();
+    ['construction-requested','research-requested','training-requested','upgrading-t12'].forEach(id=>$(id).dispatchEvent(new Event('change')));
+  }
 });
 load();
 </script>

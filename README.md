@@ -1,14 +1,24 @@
-# NEXA v23.1 — Prep Submit Fix
+# NEXA v24 — Priority + Time Demand + Health Check
 
-This patch focuses only on unblocking Prep Form testing.
+Focused update to keep scheduling simple, not overloaded.
 
-Changes:
-- Unselected Day 1 / Day 2 / Day 4 / T12 sections are truly disabled and cannot block Submit.
-- Specific preferred time uses explicit 24-hour UTC choices instead of the phone AM/PM time picker.
-- Estimated Construction/Research points are hidden from players.
-- Point calculations remain an Admin/Scheduler concern.
-- Only selected sections are validated.
-- Specific preferred time remains optional.
-- Inactive sections save neutral values instead of stale hidden values.
+New:
+- Specific preferred time is restricted to the selected UTC time frame.
+- Only 30-minute slots inside that frame appear.
+- Each time shows:
+  - Available
+  - Preferred by X players
+  - Scheduled
+- Scheduled slots are disabled for new preferred-time selections.
+- If a player chooses a time already preferred by others, NEXA shows a warning but still allows it.
+- Admin/Scheduler keeps priority ranking.
+- Added Unscheduled Only filter.
+- Added compact Scheduled / Unscheduled counters.
+- Added Schedule Health Check.
+- Health Check looks for:
+  - duplicate slots
+  - assignments to a day the player did not request
+  - assignments outside the player’s preferred time frame
+  - scheduled vs waitlisted totals
 
-Before testing, run `v23-1-supabase.sql` once in Supabase.
+No new SQL is required for this version.

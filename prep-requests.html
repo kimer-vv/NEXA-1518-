@@ -45,7 +45,20 @@
     </div>
   </section>
 
-  <div class="tabs request-tabs">
+  <section class="glass scheduler-compact-tools">
+      <div class="scheduler-stats">
+        <div><b id="stat-total">0</b><span>Requests</span></div>
+        <div><b id="stat-scheduled">0</b><span>Scheduled</span></div>
+        <div><b id="stat-unscheduled">0</b><span>Unscheduled</span></div>
+      </div>
+      <div class="scheduler-actions">
+        <label class="toggle-line"><input id="unscheduled-only" type="checkbox"> Unscheduled only</label>
+        <button id="health-check" class="btn secondary" type="button">Schedule Health Check</button>
+      </div>
+      <div id="health-result" class="health-result hidden"></div>
+    </section>
+
+    <div class="tabs request-tabs">
     <button class="tab active" data-request-day="construction"><b>MON</b><small>Construction</small></button>
     <button class="tab" data-request-day="research"><b>TUE</b><small>Research</small></button>
     <button class="tab" data-request-day="training"><b>THU</b><small>Training</small></button>
@@ -122,7 +135,15 @@ function resourceLines(r){
 }
 function render(){
   const list=document.getElementById('requests-list');
-  const rows=sortRows(requests.filter(rowRequested));
+  const dayRequests=requests.filter(rowRequested);
+  const scheduledCount=dayRequests.filter(x=>!!existingAppt(x)).length;
+  document.getElementById('stat-total').textContent=dayRequests.length;
+  document.getElementById('stat-scheduled').textContent=scheduledCount;
+  document.getElementById('stat-unscheduled').textContent=dayRequests.length-scheduledCount;
+  let rows=sortRows(requests.filter(rowRequested));
+  if(document.getElementById('unscheduled-only')?.checked){
+    rows=rows.filter(x=>!existingAppt(x));
+  }
   if(!rows.length){ list.innerHTML='<div class="empty-state">No requests for this day.</div>'; return; }
 
   const slots=availableSlots(activeDay);
@@ -283,6 +304,55 @@ document.getElementById('export-requests-csv').addEventListener('click',()=>{
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a'); a.href=url; a.download='nexa-prep-requests.csv'; a.click();
   URL.revokeObjectURL(url);
+});
+
+
+document.getElementById('unscheduled-only').addEventListener('change',render);
+
+document.getElementById('health-check').addEventListener('click',()=>{
+  const result=document.getElementById('health-result');
+  const issues=[];
+
+  // duplicate exact slots
+  const seen=new Map();
+  appointments.forEach(a=>{
+    const key=`${a.day_type}|${new Date(a.appointment_time).toISOString().slice(11,16)}`;
+    if(seen.has(key)) issues.push(`Duplicate slot: ${key.replace('|',' • ')}`);
+    else seen.set(key,a.id);
+  });
+
+  // appointments for requests that did not request that day / outside preferred frame
+  appointments.forEach(a=>{
+    const req=requests.find(r=>r.id===a.prep_request_id);
+    if(!req) return;
+    const requested=req[`${a.day_type}_requested`];
+    if(!requested) issues.push(`${req.player_accounts?.in_game_name||'Player'} is scheduled for ${a.day_type} but did not request it.`);
+
+    const frame=req[`${a.day_type}_time_frame`];
+    if(frame){
+      const m=frame.match(/(\d{2}):(\d{2})[–-](\d{2}):(\d{2})/);
+      if(m){
+        const start=Number(m[1])*60+Number(m[2]);
+        const end=Number(m[3])*60+Number(m[4]);
+        const d=new Date(a.appointment_time);
+        const mins=d.getUTCHours()*60+d.getUTCMinutes();
+        if(mins<start || mins>=end){
+          issues.push(`${req.player_accounts?.in_game_name||'Player'} is outside preferred frame (${frame}).`);
+        }
+      }
+    }
+  });
+
+  const totalReq=requests.filter(rowRequested).length;
+  const scheduled=requests.filter(rowRequested).filter(x=>!!existingAppt(x)).length;
+  const unscheduled=totalReq-scheduled;
+
+  result.classList.remove('hidden');
+  if(!issues.length){
+    result.innerHTML=`<b>Everything looks good ✓</b><span>${scheduled} scheduled • ${unscheduled} unscheduled/waitlisted for this day.</span>`;
+  } else {
+    result.innerHTML=`<b>${issues.length} issue${issues.length===1?'':'s'} found</b><span>${issues.join('<br>')}</span>`;
+  }
 });
 
 load();

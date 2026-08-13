@@ -25,7 +25,7 @@ create index if not exists transfer_applications_waiting_list_idx
   on public.transfer_applications (transfer_status, waiting_list_since desc)
   where transfer_status = 'next_transfer';
 
-create or replace function public.move_transfer_application_to_waiting_list(p_application_id bigint)
+create or replace function public.move_transfer_application_to_waiting_list(p_application_id uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -70,5 +70,5 @@ as $$
   order by a.manual_priority desc, a.waiting_list_since asc nulls last, a.created_at asc;
 $$;
 
-grant execute on function public.move_transfer_application_to_waiting_list(bigint) to authenticated;
+grant execute on function public.move_transfer_application_to_waiting_list(uuid) to authenticated;
 grant execute on function public.get_transfer_waiting_list() to authenticated;

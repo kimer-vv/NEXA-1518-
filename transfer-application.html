@@ -85,6 +85,7 @@
           <option value="open_transfer">Open Transfer</option>
           <option value="not_approved">Not Approved</option>
           <option value="transferred">Transferred</option>
+          <option value="next_transfer">Waiting List — Next Transfer</option>
         </select>
       </label>
 
@@ -141,7 +142,8 @@ const statusMeta={
   special_invite:['gold','Special Invite'],
   open_transfer:['white','Open Transfer'],
   not_approved:['dark','Not Approved'],
-  transferred:['green','Transferred']
+  transferred:['green','Transferred'],
+  next_transfer:['purple','Next Transfer']
 };
 
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({
@@ -259,6 +261,17 @@ async function loadApplication(){
 
 document.getElementById('save-review').onclick=async()=>{
   reviewMessage.textContent='Saving…';
+
+  if(reviewStatus.value==='next_transfer'){
+    const {error:waitError}=await sb.rpc('move_transfer_application_to_waiting_list',{
+      p_application_id:Number(applicationId)
+    });
+    if(waitError){
+      reviewMessage.textContent=waitError.message;
+      return;
+    }
+  }
+
   const {error}=await sb
     .from('transfer_applications')
     .update({
@@ -275,7 +288,9 @@ document.getElementById('save-review').onclick=async()=>{
   }
 
   reviewStatusBadge.innerHTML=statusBadge(reviewStatus.value);
-  reviewMessage.textContent='Saved ✓';
+  reviewMessage.textContent=reviewStatus.value==='next_transfer'
+    ? 'Saved to Next Transfer Waiting List ✓'
+    : 'Saved ✓';
 };
 
 loadApplication();

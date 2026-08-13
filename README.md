@@ -1,17 +1,14 @@
-# NEXA 1518 v23 — Prep Preview + Edit Event + Announcement Fix
+# NEXA v23.1 — Prep Submit Fix
 
-New:
-- Prep Form interface localized for English, Spanish, Turkish, Korean, Arabic, Japanese, Chinese, and Russian.
-- Important Announcement acknowledgement now disappears after the player confirms “I’ve read this”.
-- Already-acknowledged announcements remain hidden for that player.
-- Admin/Owner can edit the live SvS directly from View Event without going back to the Admin panel.
-- Dynamic announcement text can display a saved translation matching the user’s NEXA language.
-- Admin has translation fields for the Important Announcement.
+This patch focuses only on unblocking Prep Form testing.
 
-Important limitation:
-Automatic translation of arbitrary new announcement text cannot be done safely/reliably from this static Vercel site without connecting a translation API/service. v23 therefore supports per-language announcement translations and automatically displays the correct saved version. The fixed NEXA interface and Prep Form questions are translated automatically.
+Changes:
+- Unselected Day 1 / Day 2 / Day 4 / T12 sections are truly disabled and cannot block Submit.
+- Specific preferred time uses explicit 24-hour UTC choices instead of the phone AM/PM time picker.
+- Estimated Construction/Research points are hidden from players.
+- Point calculations remain an Admin/Scheduler concern.
+- Only selected sections are validated.
+- Specific preferred time remains optional.
+- Inactive sections save neutral values instead of stale hidden values.
 
-Steps:
-1. Run `v23-supabase.sql` in Supabase SQL Editor.
-2. Upload all web files to the GitHub repository root.
-3. Open the live event, then Fill Out Prep Form to test a real submission.
+Before testing, run `v23-1-supabase.sql` once in Supabase.

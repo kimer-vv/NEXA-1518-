@@ -1,12 +1,12 @@
-# NEXA 1518 v7 — Cosmic Aurora
-Dark cosmic-aurora redesign based on the approved visual direction.
+# NEXA 1518 v8 — Cosmic Energy
+Refined dark cosmic background with more defined violet/blue energy streams and stronger readability.
 
-Upload all 6 files to the ROOT of the GitHub repository:
+Upload all files to the repository root:
 - index.html
 - event.html
 - schedule.html
 - style.css
-- cosmic-aurora.jpg
+- cosmic-energy.jpg
 - README.md
 
-Important: cosmic-aurora.jpg must be uploaded.
+Important: upload cosmic-energy.jpg.

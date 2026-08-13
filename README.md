@@ -1,21 +1,30 @@
-# NEXA v28.5 — Transfer Cycle Complete
+# NEXA v28.6 — Transfer Form + Recruiting Save + Permissions
 
-Run `v28-5-supabase.sql` once before uploading the web files.
+Fixes/finishes three areas:
 
-Includes:
-- Ordinary Power Cap
-- Special Invite Power Cap
-- editable Labyrinth/Special Invite threshold
-- Start Date + Start Time UTC
-- End Date + End Time UTC
-- manual End Event
-- Transfer History + Owner-only permanent delete
-- Recruiting alliance schedules with individual UTC times:
-  - 0–4 Bear Traps
-  - 0–2 Foundry
-  - 0–2 Canyon
-  - 0–4 custom Other Events, each with event name + UTC time
-- Recruiting / Not Recruiting toggle
-- Existing or new alliance tag
-- Full public/direct Transfer Form remains connected directly to Applications
-- Owner/Admin full access; separate SvS Staff and Transfer Staff access
+Transfer Form
+- New Transfer Control Center tab: Transfer Form.
+- Select a Transfer Event, preview/open the full public form, or copy the direct shareable form link.
+- Responses submit directly into Applications.
+- Full question set remains connected.
+- Public form clearly shows Destination, Ordinary Cap, Special Cap, and Recruiting Alliance schedules.
+
+Recruiting Alliances
+- Reliable Supabase save function.
+- Choose existing alliance OR enter a new Alliance Tag.
+- Save Recruiting on/off state.
+- 4 Bear Trap time fields appear when 4 is selected.
+- Foundry/Canyon/Other Event time fields appear dynamically.
+- Saved alliance appears in the Recruiting Alliances list.
+- Recruiting can be toggled directly from the list.
+- Edit Schedule reloads the saved UTC times back into the editor.
+
+Permissions
+- Reliable Transfer permissions directory.
+- Search by Discord name, IGN, or Player ID.
+- Owner/Admin visibly show full SvS + Transfers access.
+- Other users get separate SvS Staff and Transfer Staff checkboxes.
+
+IMPORTANT:
+Run `v28-6-supabase.sql` once before uploading the web files.
+Do not upload the SQL file to GitHub.

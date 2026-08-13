@@ -9,6 +9,13 @@
  <span class="badge transfer-badge">TRANSFER INTEREST</span>
  <h1 id="event-title">Transfer Application</h1>
  <p class="muted">Submitting this form does not guarantee acceptance or alliance placement.</p>
+ <section id="transfer-form-event-summary" class="glass transfer-form-summary">
+   <div class="transfer-stat-grid">
+     <div><small>DESTINATION</small><b id="form-destination">—</b></div>
+     <div><small>ORDINARY CAP</small><b id="form-ordinary-cap">—</b></div>
+     <div><small>SPECIAL CAP</small><b id="form-special-cap">—</b></div>
+   </div>
+ </section>
  <form id="transfer-form" class="glass transfer-form">
   <div class="form-step"><h2>1. Applicant & Referral</h2>
    <label>Who is completing this form? *<select id="completed_by" required><option value="self">Myself</option><option value="state_player">State 1518 player referring someone</option><option value="group_leader">Group leader completing this for a player</option></select></label>
@@ -108,7 +115,11 @@ discord_username.addEventListener('input',()=>contact_warning.classList.toggle('
  if(!token){form_message.textContent='Invalid application link.';return;}
  const {data:e,error}=await sb.from('transfer_events').select('*').eq('public_token',token).maybeSingle();
  if(error||!e){transfer_form.classList.add('hidden');form_message.textContent='This transfer application is unavailable or closed.';return;}
- eventData=e; event_title.textContent=e.title; thresholdCheck();
+ eventData=e; event_title.textContent=e.title;
+ form_destination.textContent='State '+e.destination_state;
+ form_ordinary_cap.textContent=e.power_cap?fmtPower(e.power_cap):'Set by staff';
+ form_special_cap.textContent=e.special_power_cap?fmtPower(e.special_power_cap):'Set by staff';
+ thresholdCheck();
  const {data:r}=await sb.from('transfer_recruiting_alliances').select('alliance_id,schedule_notes,alliances(tag)').eq('transfer_event_id',e.id).eq('is_recruiting',true).order('sort_order');
  alliance_choices.innerHTML=r?.length?r.map(x=>`<label class="alliance-choice"><input type="checkbox" value="${x.alliance_id}"><span><b>${esc(x.alliances?.tag||'Alliance')}</b><small>${esc(transferScheduleSummary(x.schedule_notes))}</small></span></label>`).join(''):'<div class="muted">No specific alliance preference is required for this cycle.</div>';
 })();

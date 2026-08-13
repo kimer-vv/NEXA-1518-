@@ -23,6 +23,33 @@
   <div id="applications-list" class="admin-list"></div>
  </section>
 
+ 
+ <section id="tab-form" class="transfer-panel hidden">
+  <div class="panel-head">
+    <div>
+      <h2>Transfer Form</h2>
+      <p class="muted">This is the public/shareable application form. Submitted responses go directly into Applications.</p>
+    </div>
+    <select id="form-event-filter"></select>
+  </div>
+
+  <section class="glass transfer-form-manager">
+    <div class="application-detail-grid">
+      <div><small>FORM STATUS</small><b id="transfer-form-status">—</b></div>
+      <div><small>DESTINATION</small><b id="transfer-form-destination">—</b></div>
+      <div><small>ORDINARY CAP</small><b id="transfer-form-ordinary-cap">—</b></div>
+      <div><small>SPECIAL CAP</small><b id="transfer-form-special-cap">—</b></div>
+    </div>
+    <p class="muted">The form includes the full applicant questions we created: referral, IGN, Player ID, State, Alliance, optional Discord, Furnace Level, Power, T12/T11, conditional Labyrinth Score, Transfer Passes, troop reduction willingness, recruiting alliance preferences and schedules, UTC availability, VC, group transfer, coordinates, notes, state-first acknowledgment, and Application ID.</p>
+    <div class="form-actions">
+      <a id="open-transfer-form" class="btn" href="#" target="_blank">Open / Preview Form</a>
+      <button id="copy-transfer-form-link" class="btn secondary" type="button">Copy Direct Form Link</button>
+    </div>
+    <div id="transfer-form-link" class="copy-link-box"></div>
+    <div id="transfer-form-message" class="form-message"></div>
+  </section>
+ </section>
+
  <section id="tab-events" class="transfer-panel hidden">
   <h2>Transfer Events</h2>
   
@@ -130,7 +157,12 @@
       </label>
     </section>
 
-    <button class="btn" type="submit">Add / Update Recruiting Alliance</button>
+    <label class="check recruiting-save-check">
+      <input id="recruit-is-recruiting" type="checkbox" checked>
+      Recruiting — show this alliance on the public Transfer Form
+    </label>
+    <button class="btn" type="submit">Save Recruiting Alliance</button>
+    <div id="recruit-save-message" class="form-message"></div>
   </form>
   <div id="recruit-list" class="admin-list"></div>
  </section>
@@ -155,7 +187,7 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const fmtPower=n=>{n=Number(n||0); return n>=1e9?(n/1e9).toFixed(2).replace(/\.00$/,'')+'B':n>=1e6?(n/1e6).toFixed(1).replace(/\.0$/,'')+'M':n.toLocaleString();};
 
 const TRANSFER_UTC_OPTIONS=(()=>{let out='<option value="">Select UTC time</option>';for(let h=0;h<24;h++)for(const m of [0,30]){const v=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');out+=`<option value="${v}">${v} UTC</option>`;}return out;})();
-let events=[],applications=[],currentApp=null,isAdmin=false;
+let events=[],applications=[],recruitingRows=[],currentApp=null,isAdmin=false;
 const statusMeta={not_reviewed:['red','Not Reviewed'],needs_review:['orange','Needs Review'],ordinary:['blue','Ordinary'],special_invite:['gold','Special Invite'],open_transfer:['white','Open Transfer'],not_approved:['dark','Not Approved'],transferred:['green','Transferred']};
 function dotStatus(s){const m=statusMeta[s]||statusMeta.not_reviewed;return `<span class="dot-status ${m[0]}"><i></i>${m[1]}</span>`}
 function priorityLabel(score){return score>=90?'CRITICAL':score>=75?'VERY HIGH':score>=55?'HIGH':score>=35?'STANDARD':'LOW'}
@@ -179,10 +211,41 @@ async function loadEvents(){
  const {data,error}=await sb.from('transfer_events').select('*').order('created_at',{ascending:false}); if(error)return alert(error.message);events=data||[];
  const active=events.filter(e=>e.status!=='archived');
  const opts=active.map(e=>`<option value="${e.id}">${esc(e.title)}</option>`).join('');
- application_event_filter.innerHTML=opts;recruit_event_filter.innerHTML=opts;
+ application_event_filter.innerHTML=opts;recruit_event_filter.innerHTML=opts;form_event_filter.innerHTML=opts;
  events_list.innerHTML=events.length?events.map(e=>`<article class="history-card"><div><b>${esc(e.title)}</b><small>State ${e.destination_state} • ${esc(e.status)} • Ordinary Cap ${e.power_cap?fmtPower(e.power_cap):'—'} • Special Cap ${e.special_power_cap?fmtPower(e.special_power_cap):'—'}</small><div class="history-summary">Applications ${e.applications_open?'OPEN':'CLOSED'} • Threshold ${fmtPower(e.special_invite_power_threshold)} • <a href="transfer-event.html?token=${e.public_token}" target="_blank">View Event</a> • <a href="transfer-apply.html?token=${e.public_token}" target="_blank">Direct Form Link</a></div></div><div class="history-actions"><button class="btn secondary" data-edit-event="${e.id}">Edit</button>${e.status!=='archived'?`<button class="btn danger" data-end-event="${e.id}">End Event</button>`:''}</div></article>`).join(''):'<div class="empty-state">No transfer cycles yet.</div>';
- await loadApplications(); await loadRecruiting();
+ refreshTransferFormPanel(); await loadApplications(); await loadRecruiting();
 }
+
+function refreshTransferFormPanel(){
+  const id=form_event_filter.value;
+  const e=events.find(x=>x.id===id);
+  if(!e){
+    transfer_form_status.textContent='No cycle selected';
+    transfer_form_link.textContent='';
+    open_transfer_form.href='#';
+    return;
+  }
+  const url=new URL('transfer-apply.html',location.href);
+  url.searchParams.set('token',e.public_token);
+  transfer_form_status.textContent=(e.status==='open'&&e.applications_open)?'OPEN':'CLOSED';
+  transfer_form_destination.textContent='State '+e.destination_state;
+  transfer_form_ordinary_cap.textContent=e.power_cap?fmtPower(e.power_cap):'—';
+  transfer_form_special_cap.textContent=e.special_power_cap?fmtPower(e.special_power_cap):'—';
+  transfer_form_link.textContent=url.href;
+  open_transfer_form.href=url.href;
+}
+form_event_filter.onchange=refreshTransferFormPanel;
+copy_transfer_form_link.onclick=async()=>{
+  const txt=transfer_form_link.textContent.trim();
+  if(!txt){transfer_form_message.textContent='Select a Transfer Event first.';return;}
+  try{
+    await navigator.clipboard.writeText(txt);
+    transfer_form_message.textContent='Direct form link copied ✓';
+  }catch(e){
+    transfer_form_message.textContent='Copy failed. Press and hold the link to copy it.';
+  }
+};
+
 async function loadApplications(){
  const id=application_event_filter.value;if(!id){applications=[];applications_list.innerHTML='<div class="empty-state">Create or open a Transfer Event first.</div>';return;}
  const {data,error}=await sb.rpc('list_transfer_applications',{p_transfer_event_id:id});if(error){applications_list.innerHTML=`<div class="empty-state">${esc(error.message)}</div>`;return;}applications=data||[];renderApps();
@@ -304,48 +367,121 @@ renderScheduleTimes('canyon',canyon_count.value);renderScheduleTimes('other',oth
 async function loadRecruiting(){
  const eventId=recruit_event_filter.value;if(!eventId){recruit_list.innerHTML='<div class="empty-state">Select a Transfer Event.</div>';return;}
  const [{data:all},{data:rows}]=await Promise.all([sb.from('alliances').select('id,tag').eq('is_active',true).order('tag'),sb.from('transfer_recruiting_alliances').select('id,alliance_id,is_recruiting,schedule_notes,sort_order,alliances(tag)').eq('transfer_event_id',eventId).order('sort_order')]);
- recruit_alliance.innerHTML='<option value="">Select existing alliance</option>'+(all||[]).map(a=>`<option value="${a.id}">${esc(a.tag)}</option>`).join('');
- recruit_list.innerHTML=rows?.length?rows.map(r=>`<article class="history-card"><div><b>${esc(r.alliances?.tag||'Alliance')}</b><small>${esc(scheduleSummary(r.schedule_notes))}</small></div><div class="history-actions"><button class="btn ${r.is_recruiting?'':'secondary'}" data-toggle-recruit="${r.id}" data-active="${r.is_recruiting}">${r.is_recruiting?'Recruiting':'Not Recruiting'}</button><button class="btn danger" data-remove-recruit="${r.id}">Remove</button></div></article>`).join(''):'<div class="empty-state">No alliances configured for this cycle.</div>';
+ recruitingRows=rows||[]; recruit_alliance.innerHTML='<option value="">Select existing alliance</option>'+(all||[]).map(a=>`<option value="${a.id}">${esc(a.tag)}</option>`).join('');
+ recruit_list.innerHTML=rows?.length?rows.map(r=>`<article class="history-card"><div><b>${esc(r.alliances?.tag||'Alliance')}</b><small>${esc(scheduleSummary(r.schedule_notes))}</small></div><div class="history-actions">
+  <button class="btn ${r.is_recruiting?'':'secondary'}" data-toggle-recruit="${r.id}" data-active="${r.is_recruiting}">${r.is_recruiting?'Recruiting':'Not Recruiting'}</button>
+  <button class="btn secondary" data-edit-recruit="${r.id}">Edit Schedule</button>
+  <button class="btn danger" data-remove-recruit="${r.id}">Remove</button>
+</div></article>`).join(''):'<div class="empty-state">No alliances configured for this cycle.</div>';
 }
 recruit_event_filter.onchange=loadRecruiting;
 recruit_form.onsubmit=async ev=>{
- ev.preventDefault();
- let allianceId=recruit_alliance.value?Number(recruit_alliance.value):null;
- const newTag=recruit_new_tag.value.trim().toUpperCase();
+  ev.preventDefault();
+  recruit_save_message.textContent='Saving…';
 
- if(newTag){
-   const {data:existing,error:findErr}=await sb.from('alliances').select('id,tag').ilike('tag',newTag).maybeSingle();
-   if(findErr) return alert(findErr.message);
-   if(existing?.id) allianceId=existing.id;
-   else {
-     const {data:created,error:createErr}=await sb.from('alliances').insert({tag:newTag,is_active:true}).select('id').single();
-     if(createErr) return alert(createErr.message);
-     allianceId=created.id;
-   }
- }
- if(!allianceId) return alert('Choose an existing alliance or enter a new Alliance Tag.');
+  const allianceId=recruit_alliance.value?Number(recruit_alliance.value):null;
+  const newTag=recruit_new_tag.value.trim().toUpperCase();
+  if(!allianceId && !newTag){
+    recruit_save_message.textContent='Choose an existing alliance or enter a new Alliance Tag.';
+    return;
+  }
 
- const schedule=scheduleDataFromForm();
- const row={
-   transfer_event_id:recruit_event_filter.value,
-   alliance_id:allianceId,
-   is_recruiting:true,
-   schedule_notes:JSON.stringify(schedule)
- };
- const {error}=await sb.from('transfer_recruiting_alliances').upsert(row,{onConflict:'transfer_event_id,alliance_id'});
- if(error)return alert(error.message);
+  const schedule=scheduleDataFromForm();
 
- recruit_new_tag.value='';
- recruit_extra_note.value='';
- await loadRecruiting();
+  const {error}=await sb.rpc('save_transfer_recruiting_alliance',{
+    p_transfer_event_id:recruit_event_filter.value,
+    p_alliance_id:allianceId,
+    p_new_tag:newTag||null,
+    p_is_recruiting:recruit_is_recruiting.checked,
+    p_schedule_notes:JSON.stringify(schedule)
+  });
+
+  if(error){
+    recruit_save_message.textContent=error.message;
+    return;
+  }
+
+  recruit_save_message.textContent='Recruiting alliance saved ✓';
+  recruit_new_tag.value='';
+  recruit_extra_note.value='';
+  recruit_is_recruiting.checked=true;
+  await loadRecruiting();
 };
-recruit_list.onclick=async e=>{const t=e.target.dataset.toggleRecruit,r=e.target.dataset.removeRecruit;if(t){const {error}=await sb.from('transfer_recruiting_alliances').update({is_recruiting:e.target.dataset.active!=='true'}).eq('id',t);if(error)return alert(error.message);await loadRecruiting();}if(r){if(!confirm('Remove this alliance from this Transfer Cycle?'))return;const {error}=await sb.from('transfer_recruiting_alliances').delete().eq('id',r);if(error)return alert(error.message);await loadRecruiting();}};
+
+function setScheduleFormValues(raw){
+  const x=parseScheduleNotes(raw);
+  bear_count.value=String(Math.min(4,x.bear?.length||0));
+  foundry_count.value=String(Math.min(2,x.foundry?.length||0));
+  canyon_count.value=String(Math.min(2,x.canyon?.length||0));
+  other_count.value=String(Math.min(4,x.other?.length||0));
+
+  renderScheduleTimes('bear',bear_count.value);
+  renderScheduleTimes('foundry',foundry_count.value);
+  renderScheduleTimes('canyon',canyon_count.value);
+  renderScheduleTimes('other',other_count.value);
+
+  (x.bear||[]).slice(0,4).forEach((v,i)=>{const el=document.getElementById(`bear-time-${i+1}`);if(el)el.value=v;});
+  (x.foundry||[]).slice(0,2).forEach((v,i)=>{const el=document.getElementById(`foundry-time-${i+1}`);if(el)el.value=v;});
+  (x.canyon||[]).slice(0,2).forEach((v,i)=>{const el=document.getElementById(`canyon-time-${i+1}`);if(el)el.value=v;});
+  (x.other||[]).slice(0,4).forEach((v,i)=>{
+    const name=document.getElementById(`other-name-${i+1}`),time=document.getElementById(`other-time-${i+1}`);
+    if(name)name.value=v.name||'';
+    if(time)time.value=v.time||'';
+  });
+  recruit_extra_note.value=x.note||'';
+}
+
+recruit_list.onclick=async e=>{
+  const t=e.target.dataset.toggleRecruit,r=e.target.dataset.removeRecruit,edit=e.target.dataset.editRecruit;
+
+  if(t){
+    const {error}=await sb.from('transfer_recruiting_alliances').update({is_recruiting:e.target.dataset.active!=='true'}).eq('id',t);
+    if(error)return alert(error.message);
+    await loadRecruiting();
+  }
+
+  if(edit){
+    const row=recruitingRows.find(x=>String(x.id)===String(edit));
+    if(!row)return;
+    recruit_alliance.value=String(row.alliance_id);
+    recruit_new_tag.value='';
+    recruit_is_recruiting.checked=!!row.is_recruiting;
+    setScheduleFormValues(row.schedule_notes);
+    recruit_form.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+
+  if(r){
+    if(!confirm('Remove this alliance from this Transfer Cycle?'))return;
+    const {error}=await sb.from('transfer_recruiting_alliances').delete().eq('id',r);
+    if(error)return alert(error.message);
+    await loadRecruiting();
+  }
+};
 
 async function loadPermissions(search=''){
  if(!isAdmin){transfer_perm_list.innerHTML='<div class="empty-state">Only Admin/Owner can change module permissions.</div>';return;}
- const {data,error}=await sb.rpc('list_permission_users',{search_text:search||null});if(error){transfer_perm_list.innerHTML=`<div class="empty-state">${esc(error.message)}</div>`;return;}
+ const {data,error}=await sb.rpc('list_transfer_permission_users',{search_text:search||null});if(error){transfer_perm_list.innerHTML=`<div class="empty-state">${esc(error.message)}</div>`;return;}
  const rows=data||[];const ids=rows.map(x=>x.user_id);const {data:access}=ids.length?await sb.from('staff_module_access').select('*').in('user_id',ids):{data:[]};const map=Object.fromEntries((access||[]).map(x=>[x.user_id,x]));
- transfer_perm_list.innerHTML=rows.length?rows.map(u=>{const a=map[u.user_id]||{};const role=u.role||'player';return `<article class="permission-row"><div class="permission-person"><b>${esc(u.discord_name||'Discord User')}</b><small>${esc((u.accounts||[]).map(x=>`${x.in_game_name} • ${x.alliance} • ${x.player_id}`).join(' | ')||'No claimed account')}</small></div><div class="module-access-controls"><label class="check"><input type="checkbox" data-module-user="${u.user_id}" data-module="svs_access" ${a.svs_access?'checked':''} ${role==='owner'?'disabled':''}> SvS Staff</label><label class="check"><input type="checkbox" data-module-user="${u.user_id}" data-module="transfer_access" ${a.transfer_access?'checked':''} ${role==='owner'?'disabled':''}> Transfer Staff</label>${role==='owner'?'<span class="owner-badge">Owner • Both</span>':''}</div></article>`}).join(''):'<div class="empty-state">No users found.</div>';
+ transfer_perm_list.innerHTML=rows.length?rows.map(u=>{
+  const a=map[u.user_id]||{};
+  const role=u.role||'player';
+  const accounts=(u.accounts||[]).map(x=>`${x.in_game_name} • ${x.alliance} • ${x.player_id}`).join(' | ');
+  const fullAccess=(role==='owner'||role==='admin');
+
+  return `<article class="permission-row">
+    <div class="permission-person">
+      <b>${esc(u.discord_name||'Discord User')}</b>
+      <small>${esc(accounts||'No claimed account')}</small>
+    </div>
+    <div class="module-access-controls">
+      ${fullAccess
+        ? `<span class="owner-badge">${role==='owner'?'Owner':'Admin'} • SvS + Transfers</span>`
+        : `<label class="check"><input type="checkbox" data-module-user="${u.user_id}" data-module="svs_access" ${a.svs_access?'checked':''}> SvS Staff</label>
+           <label class="check"><input type="checkbox" data-module-user="${u.user_id}" data-module="transfer_access" ${a.transfer_access?'checked':''}> Transfer Staff</label>`
+      }
+    </div>
+  </article>`;
+}).join(''):'<div class="empty-state">No users found.</div>';
 }
 transfer_perm_search_form.onsubmit=async e=>{e.preventDefault();await loadPermissions(transfer_perm_search.value.trim());};
 transfer_perm_list.onchange=async e=>{const uid=e.target.dataset.moduleUser,field=e.target.dataset.module;if(!uid||!field)return;const existing={user_id:uid,[field]:e.target.checked,updated_at:new Date().toISOString()};const {data:cur}=await sb.from('staff_module_access').select('*').eq('user_id',uid).maybeSingle();const row={user_id:uid,svs_access:cur?.svs_access||false,transfer_access:cur?.transfer_access||false,updated_at:new Date().toISOString()};row[field]=e.target.checked;const {error}=await sb.from('staff_module_access').upsert(row,{onConflict:'user_id'});if(error){alert(error.message);await loadPermissions(transfer_perm_search.value.trim());}};

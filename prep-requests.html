@@ -1,0 +1,185 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NEXA • Prep Requests</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lang.js"></script>
+</head>
+<body>
+<div class="nebula-bg" aria-hidden="true"></div>
+<div class="starfield" aria-hidden="true"></div>
+<header class="topbar">
+  <div class="shell nav">
+    <a class="logo" href="index.html"><span class="star">✦</span><span>NEXA<small>STATE 1518</small></span></a>
+    <a class="back" href="index.html">← Home</a>
+  </div>
+</header>
+
+<main class="shell event-page">
+  <div style="margin-top:10px">
+    <span class="badge">ADMIN</span>
+    <h1>Prep Requests</h1>
+    <div id="requests-meta" class="muted">Loading…</div>
+  </div>
+
+  <div class="tabs request-tabs">
+    <button class="tab active" data-request-day="construction"><b>MON</b><small>Construction</small></button>
+    <button class="tab" data-request-day="research"><b>TUE</b><small>Research</small></button>
+    <button class="tab" data-request-day="training"><b>THU</b><small>Training</small></button>
+  </div>
+
+  <div id="requests-message" class="form-message"></div>
+  <section id="requests-list" class="admin-list"></section>
+</main>
+
+<script>
+const sb = window.supabase.createClient("https://dfxcxboxrkfmrnsgpyin.supabase.co", "sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-");
+let liveEvent=null;
+let activeDay='construction';
+let requests=[];
+let appointments=[];
+
+const troopRank={new_t8:8,new_t9:9,new_t10:10,new_t11:11,new_t12:12,t8_to_t9:9,t9_to_t10:10,t10_to_t11:11,t11_to_t12:12};
+
+async function ensureAdmin(){
+  const {data}=await sb.rpc('is_admin');
+  if(data!==true){ location.href='index.html'; return false; }
+  return true;
+}
+function eventDate(offset){
+  const d=new Date(liveEvent.prep_monday+'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate()+offset); return d;
+}
+function dayOffset(day){ return day==='construction'?0:day==='research'?1:3; }
+function ministry(day){ return day==='training'?'MOE (Minister of Education)':'VP (Vice President)'; }
+function utcStampForSlot(day,hm){
+  const d=eventDate(dayOffset(day));
+  const [h,m]=hm.split(':').map(Number);
+  d.setUTCHours(h,m,0,0); return d.toISOString();
+}
+function availableSlots(day){
+  const used=new Map(appointments.filter(a=>a.day_type===day).map(a=>[new Date(a.appointment_time).toISOString().slice(11,16),a]));
+  const out=[];
+  for(let i=0;i<48;i++){
+    const h=String(Math.floor(i/2)).padStart(2,'0');
+    const m=i%2?'30':'00';
+    const hm=`${h}:${m}`;
+    out.push({hm,used:used.get(hm)});
+  }
+  return out;
+}
+function trainingScore(r){
+  return (troopRank[r.training_selection]||0)*1e9 + Number(r.training_speedup_minutes||0);
+}
+function sortRows(rows){
+  if(activeDay==='construction') return rows.sort((a,b)=>Number(b.estimated_construction_points)-Number(a.estimated_construction_points));
+  if(activeDay==='research') return rows.sort((a,b)=>Number(b.estimated_research_points)-Number(a.estimated_research_points));
+  return rows.sort((a,b)=>trainingScore(b)-trainingScore(a));
+}
+function fmt(n){ return Number(n||0).toLocaleString(); }
+function rowRequested(r){
+  return activeDay==='construction'?r.construction_requested:activeDay==='research'?r.research_requested:r.training_requested;
+}
+function prefFrame(r){ return r[activeDay+'_time_frame']||'—'; }
+function prefTime(r){ return (r[activeDay+'_specific_time']||'').slice(0,5)||'—'; }
+function existingAppt(r){
+  return appointments.find(a=>a.prep_request_id===r.id && a.day_type===activeDay);
+}
+
+function resourceLines(r){
+  if(activeDay==='construction') return `
+    <small>Speedups: ${fmt(r.construction_speedup_minutes)} min • FC: ${fmt(r.construction_fire_crystals)} • Refined FC: ${fmt(r.construction_refined_fire_crystals)}</small>
+    <strong>Estimated Points: ${fmt(r.estimated_construction_points)}</strong>`;
+  if(activeDay==='research') return `
+    <small>Speedups: ${fmt(r.research_speedup_minutes)} min • Shards: ${fmt(r.research_fire_crystal_shards)}</small>
+    <strong>Estimated Points: ${fmt(r.estimated_research_points)}</strong>`;
+  return `
+    <small>Troops: ${r.training_selection||'—'} • Speedups: ${fmt(r.training_speedup_minutes)} min</small>
+    <strong>Training Priority: ${troopRank[r.training_selection]||0} / ${fmt(r.training_speedup_minutes)} min</strong>`;
+}
+function render(){
+  const list=document.getElementById('requests-list');
+  const rows=sortRows(requests.filter(rowRequested));
+  if(!rows.length){ list.innerHTML='<div class="empty-state">No requests for this day.</div>'; return; }
+
+  const slots=availableSlots(activeDay);
+  list.innerHTML=rows.map((r,i)=>{
+    const a=r.player_accounts||{};
+    const alliance=a.alliances?.tag||a.custom_alliance_tag||'Not Listed';
+    const existing=existingAppt(r);
+
+    const options=slots.map(s=>`<option value="${s.hm}" ${s.used?'disabled':''} ${existing && new Date(existing.appointment_time).toISOString().slice(11,16)===s.hm?'selected':''}>
+      ${s.hm} UTC${s.used?' — '+(s.used.player_accounts?.in_game_name||'Occupied'):''}
+    </option>`).join('');
+
+    return `<article class="request-card">
+      <div class="request-rank">#${i+1}</div>
+      <div class="request-main">
+        <div class="request-title"><b>${a.in_game_name||'Player'}</b><span>${alliance} • ID ${a.player_id||'—'}</span></div>
+        ${resourceLines(r)}
+        <div class="request-pref">Preferred: <b>${prefFrame(r)}</b> • Specific: <b>${prefTime(r)} UTC</b></div>
+        ${r.upgrading_t12?`<div class="t12-note">T12 • Refined FC ${fmt(r.t12_refined_fire_crystals)} • Shards ${fmt(r.t12_fire_crystal_shards)}</div>`:''}
+      </div>
+      <div class="assign-box">
+        <label>${ministry(activeDay)}
+          <select data-slot-request="${r.id}">
+            <option value="">Assign time</option>
+            ${options}
+          </select>
+        </label>
+        <button class="btn" data-assign-request="${r.id}" type="button">${existing?'Update Appointment':'Assign Appointment'}</button>
+        ${existing?`<small>Scheduled: ${new Date(existing.appointment_time).toISOString().slice(11,16)} UTC</small>`:''}
+      </div>
+    </article>`;
+  }).join('');
+}
+async function load(){
+  if(!(await ensureAdmin())) return;
+  const {data:event}=await sb.from('svs_events').select('*').eq('is_live',true).order('prep_monday',{ascending:false}).limit(1).maybeSingle();
+  liveEvent=event;
+  if(!event){ document.getElementById('requests-message').textContent='No live SvS event.'; return; }
+  document.getElementById('requests-meta').textContent=`SvS against ${event.opponent_state} • Prep Monday ${event.prep_monday} UTC`;
+
+  const {data:req,error}=await sb.from('prep_requests')
+    .select('*,player_accounts(id,in_game_name,player_id,custom_alliance_tag,alliances(tag))')
+    .eq('event_id',event.id);
+  if(error){document.getElementById('requests-message').textContent=error.message;return;}
+  requests=req||[];
+
+  const {data:apps,error:appErr}=await sb.from('ministry_appointments')
+    .select('*,player_accounts(in_game_name,player_id)')
+    .eq('event_id',event.id);
+  if(appErr){document.getElementById('requests-message').textContent=appErr.message;return;}
+  appointments=apps||[];
+  render();
+}
+document.querySelectorAll('[data-request-day]').forEach(btn=>btn.addEventListener('click',()=>{
+  document.querySelectorAll('[data-request-day]').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); activeDay=btn.dataset.requestDay; render();
+}));
+document.getElementById('requests-list').addEventListener('click',async e=>{
+  const id=e.target.dataset.assignRequest; if(!id)return;
+  const sel=document.querySelector(`[data-slot-request="${id}"]`);
+  const hm=sel.value; if(!hm){alert('Select a UTC time first.');return;}
+
+  const existing=appointments.find(a=>a.prep_request_id===id && a.day_type===activeDay);
+  let error;
+  if(existing){
+    ({error}=await sb.from('ministry_appointments').update({appointment_time:utcStampForSlot(activeDay,hm)}).eq('id',existing.id));
+  } else {
+    ({error}=await sb.rpc('assign_ministry_appointment',{
+      target_request_id:id,
+      target_day_type:activeDay,
+      target_appointment_time:utcStampForSlot(activeDay,hm)
+    }));
+  }
+  document.getElementById('requests-message').textContent=error?error.message:'Appointment saved.';
+  if(!error) await load();
+});
+load();
+</script>
+</body>
+</html>

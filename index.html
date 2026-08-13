@@ -180,6 +180,7 @@
       <button class="icon-btn" type="button" data-close-admin>×</button>
     </div>
 
+    <div class="admin-quick-links"><a class="btn" href="prep-requests.html">Prep Requests</a></div>
     <div class="admin-tabs">
       <button class="admin-tab active" type="button" data-admin-tab="events">Events</button>
       <button class="admin-tab" type="button" data-admin-tab="alliances">Alliances</button>
@@ -203,6 +204,18 @@
 
         <label>Prep Monday — Game Date (UTC)
           <input id="prep-monday" type="date" required>
+        </label>
+
+        <label>Castle Alliance
+          <select id="castle-alliance">
+            <option value="">Not assigned yet</option>
+          </select>
+        </label>
+
+        <label>Presidency Alliance
+          <select id="presidency-alliance">
+            <option value="">Not assigned yet</option>
+          </select>
         </label>
 
         <label>Event Notes
@@ -709,6 +722,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     adminModal.setAttribute('aria-hidden','false');
     await loadAdminEvents();
     await loadAdminAlliances();
+    await loadEventAllianceSelectors();
     await loadPermissions();
     renderEventPreview();
   });
@@ -727,6 +741,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     adminPermissionsSection.classList.toggle('hidden', target !== 'permissions');
     if (target === 'permissions') await loadPermissions();
   }));
+
+
+  async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidency=null) {
+    const { data, error } = await supabaseClient
+      .from('alliances')
+      .select('id,tag')
+      .eq('is_active', true)
+      .order('tag');
+
+    if (error) return;
+
+    const options = '<option value="">Not assigned yet</option>' +
+      (data || []).map(a => `<option value="${a.id}">${a.tag}</option>`).join('');
+
+    const castle = document.getElementById('castle-alliance');
+    const presidency = document.getElementById('presidency-alliance');
+    castle.innerHTML = options;
+    presidency.innerHTML = options;
+
+    castle.value = selectedCastle ? String(selectedCastle) : '';
+    presidency.value = selectedPresidency ? String(selectedPresidency) : '';
+  }
 
   async function loadAdminEvents() {
     const list = document.getElementById('events-admin-list');
@@ -758,6 +794,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('opponent-state').value = '';
     document.getElementById('prep-monday').value = '';
     document.getElementById('event-description').value = '';
+    document.getElementById('castle-alliance').value = '';
+    document.getElementById('presidency-alliance').value = '';
     document.getElementById('prep-form-open').checked = false;
     document.getElementById('battle-form-open').checked = false;
     document.getElementById('schedule-published').checked = false;
@@ -777,6 +815,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const payload = {
       opponent_state: Number(document.getElementById('opponent-state').value),
       prep_monday: document.getElementById('prep-monday').value,
+      castle_alliance_id: document.getElementById('castle-alliance').value ? Number(document.getElementById('castle-alliance').value) : null,
+      presidency_alliance_id: document.getElementById('presidency-alliance').value ? Number(document.getElementById('presidency-alliance').value) : null,
       description: document.getElementById('event-description').value.trim() || null,
       prep_form_open: document.getElementById('prep-form-open').checked,
       battle_form_open: document.getElementById('battle-form-open').checked,
@@ -814,6 +854,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('opponent-state').value = data.opponent_state;
       document.getElementById('prep-monday').value = data.prep_monday;
       document.getElementById('event-description').value = data.description || '';
+      await loadEventAllianceSelectors(data.castle_alliance_id, data.presidency_alliance_id);
       document.getElementById('prep-form-open').checked = !!data.prep_form_open;
       document.getElementById('battle-form-open').checked = !!data.battle_form_open;
       document.getElementById('schedule-published').checked = !!data.schedule_published;

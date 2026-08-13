@@ -31,7 +31,7 @@
     <div id="event-days" class="days-list"></div>
 
     <div class="actions">
-      <a id="prep-form-btn" class="btn disabled" href="#">Fill Out Prep Form</a>
+      <a id="prep-form-btn" class="btn disabled" href="prep-form.html">Fill Out Prep Form</a>
       <a id="schedule-btn" class="btn gold" href="schedule.html">View Schedule</a>
       <a id="battle-form-btn" class="btn battle disabled" href="#">Fill Out Battle Form</a>
     </div>
@@ -40,6 +40,20 @@
   <section class="glass about">
     <h3>About this event</h3>
     <p id="event-description">No additional notes have been published.</p>
+  </section>
+
+  <section id="state-assignments" class="glass about hidden">
+    <h3>State Assignments</h3>
+    <div class="assignment-grid">
+      <div id="castle-assignment" class="assignment-item hidden">
+        <span>🏰 Castle</span>
+        <b></b>
+      </div>
+      <div id="presidency-assignment" class="assignment-item hidden">
+        <span>👑 Presidency</span>
+        <b></b>
+      </div>
+    </div>
   </section>
 </main>
 
@@ -71,7 +85,7 @@ async function getProfilePrefs() {
 }
 async function loadEvent() {
   const id = localStorage.getItem('nexa_live_event_id');
-  let query = sb.from('svs_events').select('*');
+  let query = sb.from('svs_events').select('*,castle_alliance:alliances!svs_events_castle_alliance_id_fkey(tag),presidency_alliance:alliances!svs_events_presidency_alliance_id_fkey(tag)');
   query = id ? query.eq('id', id) : query.eq('is_live', true).order('prep_monday', {ascending:false}).limit(1);
   const { data, error } = id ? await query.maybeSingle() : await query.maybeSingle();
   if (error || !data) {
@@ -113,6 +127,22 @@ async function loadEvent() {
   document.getElementById('prep-form-btn').textContent=t('fillPrep');
   document.getElementById('battle-form-btn').textContent=t('fillBattle');
   document.getElementById('schedule-btn').textContent=t('viewSchedule');
+  const castleTag = data.castle_alliance?.tag || null;
+  const presidencyTag = data.presidency_alliance?.tag || null;
+  const assignmentBox = document.getElementById('state-assignments');
+  const castleBox = document.getElementById('castle-assignment');
+  const presidencyBox = document.getElementById('presidency-assignment');
+
+  if (castleTag || presidencyTag) assignmentBox.classList.remove('hidden');
+  if (castleTag) {
+    castleBox.classList.remove('hidden');
+    castleBox.querySelector('b').textContent = castleTag;
+  }
+  if (presidencyTag) {
+    presidencyBox.classList.remove('hidden');
+    presidencyBox.querySelector('b').textContent = presidencyTag;
+  }
+
   localStorage.setItem('nexa_live_event_id', data.id);
 }
 loadEvent();

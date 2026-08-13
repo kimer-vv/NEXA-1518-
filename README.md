@@ -1,19 +1,20 @@
-# NEXA 1518 v19 — Permissions + Languages + VP/MOE
+# NEXA 1518 v21 — Castle + Presidency
 
-Included:
-- Automatic language detection + saved language preference.
-- Supported initially: English, Spanish, Turkish, Korean, Arabic, Japanese, Chinese, Russian.
-- Arabic automatically switches the interface to RTL.
-- English fallback for unsupported device languages.
-- Admin Panel now includes Permissions.
-- Search users by IGN or Player ID.
-- Assign Player / Scheduler / Admin using protected Supabase RPC functions.
-- Owner stays protected.
-- Admin button is visible to everyone, but unauthorized users receive an access-required message.
-- Ministry Schedule titles:
-  Monday Construction → VP (Vice President)
-  Tuesday Research → VP (Vice President)
-  Thursday Training → MOE (Minister of Education)
-- WOS/UTC stays 24-hour; local times stay 12-hour AM/PM.
+Includes everything from v20 plus:
+- Admin → Events: Castle Alliance dropdown
+- Admin → Events: Presidency Alliance dropdown
+- Both fields are optional
+- Dropdowns use active alliance tags from Supabase
+- View Event shows a compact State Assignments section when either assignment exists
+- No Attack/Defense field
 
-Upload ALL included files to the root of the GitHub repository.
+New Supabase step:
+Run `v21-supabase.sql` once before using the new fields.
+
+Also retained:
+- Prep Form
+- Admin Prep Requests
+- Direct UTC appointment assignment
+- Schedule sync
+- Permissions / Owner protection
+- Languages and timezone support

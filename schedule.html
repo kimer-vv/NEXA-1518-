@@ -80,21 +80,33 @@ function dateTitle(d, offset) {
   return `${label} / ${office}`;
 }
 
-function renderSlots() {
+async function renderSlots() {
   if (!eventData) return;
   const base = eventDayDate(activeOffset);
   document.getElementById('schedule-day-title').textContent = dateTitle(base,activeOffset);
 
+  const dayType = activeOffset===0 ? 'construction' : activeOffset===1 ? 'research' : 'training';
+  const {data:apps,error} = await sb.from('ministry_appointments')
+    .select('*,player_accounts(in_game_name,player_id,custom_alliance_tag,alliances(tag))')
+    .eq('event_id',eventData.id)
+    .eq('day_type',dayType);
+  if(error){ console.error(error); }
+
+  const byTime = new Map((apps||[]).map(a=>[new Date(a.appointment_time).toISOString().slice(11,16),a]));
   let out = '';
   for (let i=0;i<48;i++) {
     const d = new Date(base.getTime()+i*30*60000);
     const hh = String(d.getUTCHours()).padStart(2,'0');
     const mm = String(d.getUTCMinutes()).padStart(2,'0');
-    out += `<div class="slot open">
-      <div class="utc">${hh}:${mm} UTC</div>
+    const hm = `${hh}:${mm}`;
+    const a = byTime.get(hm);
+    const p = a?.player_accounts;
+    const alliance = p?.alliances?.tag || p?.custom_alliance_tag || '';
+    out += `<div class="slot ${a?'':'open'}">
+      <div class="utc">${hm} UTC</div>
       <div class="local">${NEXA_I18N.t(currentLang,'yourTime')}: ${localSlotLabel(d)}</div>
-      <div class="name">${NEXA_I18N.t(currentLang,'openUnassigned')}</div>
-      <div class="id">—</div>
+      <div class="name">${a ? (p?.in_game_name || 'Player') : NEXA_I18N.t(currentLang,'openUnassigned')}</div>
+      <div class="id">${a ? `${alliance}${alliance?' • ':''}ID ${p?.player_id || '—'}` : '—'}</div>
     </div>`;
   }
   document.getElementById('schedule-slots').innerHTML = out;
@@ -122,14 +134,14 @@ async function loadEvent() {
   if(tabs[0]){ tabs[0].querySelector('b').textContent=t('monday'); tabs[0].querySelector('small').textContent=t('construction'); }
   if(tabs[1]){ tabs[1].querySelector('b').textContent=t('tuesday'); tabs[1].querySelector('small').textContent=t('research'); }
   if(tabs[2]){ tabs[2].querySelector('b').textContent=t('thursday'); tabs[2].querySelector('small').textContent=t('training'); }
-  renderSlots();
+  await renderSlots();
 }
 
-document.querySelectorAll('.tab').forEach(btn => btn.addEventListener('click', () => {
+document.querySelectorAll('.tab').forEach(btn => btn.addEventListener('click', async () => {
   document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   activeOffset = Number(btn.dataset.day);
-  renderSlots();
+  await renderSlots();
 }));
 
 loadEvent();

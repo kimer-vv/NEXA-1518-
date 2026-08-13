@@ -1,0 +1,330 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NEXA • Prep Form</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lang.js"></script>
+</head>
+<body>
+<div class="nebula-bg" aria-hidden="true"></div>
+<div class="starfield" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="shell nav">
+    <a class="logo" href="index.html"><span class="star">✦</span><span>NEXA<small>STATE 1518</small></span></a>
+    <a class="back" href="event.html">← Event</a>
+  </div>
+</header>
+
+<main class="shell event-page">
+  <a class="back" href="event.html">← Back to SvS event</a>
+
+  <section class="glass prep-form-card">
+    <div class="form-hero">
+      <span class="badge">SVS PREP</span>
+      <h1 id="prep-title">Prep Form</h1>
+      <p id="prep-event-meta" class="muted">Loading live event…</p>
+    </div>
+
+    <div id="prep-closed" class="empty-state hidden"></div>
+    <div id="prep-message" class="form-message"></div>
+
+    <form id="prep-form" class="account-form hidden">
+      <label>WOS Account
+        <select id="prep-account" required></select>
+      </label>
+
+      <section class="prep-section">
+        <div class="prep-section-head">
+          <div>
+            <span class="badge">DAY 1</span>
+            <h3>Construction — VP (Vice President)</h3>
+          </div>
+          <label class="toggle-line"><input id="construction-requested" type="checkbox"> Request VP</label>
+        </div>
+
+        <div id="construction-fields" class="conditional-fields hidden">
+          <label>How many minutes of Construction Speedups are you planning to use?
+            <input id="construction-speedups" type="number" min="0" inputmode="numeric" value="0">
+            <small>Please enter the total shown in minutes.</small>
+          </label>
+          <label>How many Fire Crystals are you planning to use?
+            <input id="construction-fc" type="number" min="0" inputmode="numeric" value="0">
+          </label>
+          <label>How many Refined Fire Crystals are you planning to use?
+            <input id="construction-rfc" type="number" min="0" inputmode="numeric" value="0">
+          </label>
+          <label>Preferred UTC time frame
+            <select id="construction-frame">
+              <option value="">Select</option>
+              <option>00:00–04:00 UTC</option>
+              <option>04:00–08:00 UTC</option>
+              <option>08:00–12:00 UTC</option>
+              <option>12:00–16:00 UTC</option>
+              <option>16:00–20:00 UTC</option>
+              <option>20:00–23:30 UTC</option>
+            </select>
+          </label>
+          <label>Specific preferred time in UTC (optional)
+            <input id="construction-time" type="time" step="1800">
+          </label>
+          <div id="construction-estimate" class="score-preview"></div>
+        </div>
+      </section>
+
+      <section class="prep-section">
+        <div class="prep-section-head">
+          <div>
+            <span class="badge">DAY 2</span>
+            <h3>Research — VP (Vice President)</h3>
+          </div>
+          <label class="toggle-line"><input id="research-requested" type="checkbox"> Request VP</label>
+        </div>
+
+        <div id="research-fields" class="conditional-fields hidden">
+          <label>How many minutes of Research Speedups are you planning to use?
+            <input id="research-speedups" type="number" min="0" inputmode="numeric" value="0">
+            <small>Please enter the total shown in minutes.</small>
+          </label>
+          <label>How many Fire Crystal Shards are you planning to use?
+            <input id="research-shards" type="number" min="0" inputmode="numeric" value="0">
+          </label>
+          <label>Preferred UTC time frame
+            <select id="research-frame">
+              <option value="">Select</option>
+              <option>00:00–04:00 UTC</option>
+              <option>04:00–08:00 UTC</option>
+              <option>08:00–12:00 UTC</option>
+              <option>12:00–16:00 UTC</option>
+              <option>16:00–20:00 UTC</option>
+              <option>20:00–23:30 UTC</option>
+            </select>
+          </label>
+          <label>Specific preferred time in UTC (optional)
+            <input id="research-time" type="time" step="1800">
+          </label>
+          <div id="research-estimate" class="score-preview"></div>
+        </div>
+      </section>
+
+      <section class="prep-section">
+        <div class="prep-section-head">
+          <div>
+            <span class="badge">DAY 4</span>
+            <h3>Training — MOE (Minister of Education)</h3>
+          </div>
+          <label class="toggle-line"><input id="training-requested" type="checkbox"> Request MOE</label>
+        </div>
+
+        <div id="training-fields" class="conditional-fields hidden">
+          <label>What troops are you training/promoting?
+            <select id="training-selection">
+              <option value="">Select</option>
+              <option value="new_t8">New T8</option>
+              <option value="new_t9">New T9</option>
+              <option value="new_t10">New T10</option>
+              <option value="new_t11">New T11</option>
+              <option value="new_t12">New T12</option>
+              <option value="t8_to_t9">T8 → T9</option>
+              <option value="t9_to_t10">T9 → T10</option>
+              <option value="t10_to_t11">T10 → T11</option>
+              <option value="t11_to_t12">T11 → T12</option>
+            </select>
+          </label>
+          <label>How many minutes of Training Speedups are you planning to use?
+            <input id="training-speedups" type="number" min="0" inputmode="numeric" value="0">
+            <small>Please enter the total shown in minutes.</small>
+          </label>
+          <label>Preferred UTC time frame
+            <select id="training-frame">
+              <option value="">Select</option>
+              <option>00:00–04:00 UTC</option>
+              <option>04:00–08:00 UTC</option>
+              <option>08:00–12:00 UTC</option>
+              <option>12:00–16:00 UTC</option>
+              <option>16:00–20:00 UTC</option>
+              <option>20:00–23:30 UTC</option>
+            </select>
+          </label>
+          <label>Specific preferred time in UTC (optional)
+            <input id="training-time" type="time" step="1800">
+          </label>
+        </div>
+      </section>
+
+      <section class="prep-section">
+        <div class="prep-section-head">
+          <div>
+            <span class="badge">T12</span>
+            <h3>T12 Upgrade Information</h3>
+          </div>
+          <label class="toggle-line"><input id="upgrading-t12" type="checkbox"> Upgrading to T12</label>
+        </div>
+
+        <div id="t12-fields" class="conditional-fields hidden">
+          <label>How many Refined Fire Crystals are you planning to use?
+            <input id="t12-rfc" type="number" min="0" inputmode="numeric" value="0">
+          </label>
+          <label>How many Fire Crystal Shards are you planning to use?
+            <input id="t12-shards" type="number" min="0" inputmode="numeric" value="0">
+          </label>
+        </div>
+      </section>
+
+      <div class="form-actions">
+        <button class="btn" type="submit">Submit Prep Form</button>
+      </div>
+    </form>
+  </section>
+</main>
+
+<script>
+const sb = window.supabase.createClient("https://dfxcxboxrkfmrnsgpyin.supabase.co", "sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-");
+let liveEvent=null;
+
+const $=id=>document.getElementById(id);
+function toggle(checkId, fieldsId){
+  const c=$(checkId), f=$(fieldsId);
+  const run=()=>f.classList.toggle('hidden',!c.checked);
+  c.addEventListener('change',run); run();
+}
+toggle('construction-requested','construction-fields');
+toggle('research-requested','research-fields');
+toggle('training-requested','training-fields');
+toggle('upgrading-t12','t12-fields');
+
+function n(id){ return Number($(id).value || 0); }
+function updateScores(){
+  $('construction-estimate').textContent='Estimated Construction Points: '+(
+    n('construction-speedups')*30+n('construction-fc')*2000+n('construction-rfc')*30000
+  ).toLocaleString();
+  $('research-estimate').textContent='Estimated Research Points: '+(
+    n('research-speedups')*30+n('research-shards')*1000
+  ).toLocaleString();
+}
+['construction-speedups','construction-fc','construction-rfc','research-speedups','research-shards']
+.forEach(id=>$(id).addEventListener('input',updateScores));
+updateScores();
+
+async function user(){
+  const {data:{session}}=await sb.auth.getSession();
+  return session?.user || null;
+}
+async function load(){
+  const u=await user();
+  if(!u){ location.href='index.html'; return; }
+
+  const {data:event}=await sb.from('svs_events').select('*').eq('is_live',true)
+    .order('prep_monday',{ascending:false}).limit(1).maybeSingle();
+  liveEvent=event;
+  if(!event){
+    $('prep-closed').textContent='No live SvS event.';
+    $('prep-closed').classList.remove('hidden'); return;
+  }
+  $('prep-event-meta').textContent=`SvS against ${event.opponent_state} • Prep Monday ${event.prep_monday} UTC`;
+
+  if(!event.prep_form_open){
+    $('prep-closed').textContent='This Prep Form is currently closed.';
+    $('prep-closed').classList.remove('hidden'); return;
+  }
+
+  const {data:accounts,error}=await sb.from('player_accounts')
+    .select('id,in_game_name,player_id,alliance_id,custom_alliance_tag,alliances(tag)')
+    .order('created_at');
+  if(error){ $('prep-message').textContent=error.message; return; }
+  if(!accounts?.length){
+    $('prep-closed').textContent='Claim a WOS account before submitting the Prep Form.';
+    $('prep-closed').classList.remove('hidden'); return;
+  }
+
+  $('prep-account').innerHTML=accounts.map(a=>`<option value="${a.id}">${a.in_game_name} • ${a.alliances?.tag||a.custom_alliance_tag||'Not Listed'} • ID ${a.player_id}</option>`).join('');
+  $('prep-form').classList.remove('hidden');
+
+  const {data:existing}=await sb.from('prep_requests').select('*')
+    .eq('event_id',event.id).eq('player_account_id',$('prep-account').value).maybeSingle();
+  if(existing) fillExisting(existing);
+}
+function fillExisting(x){
+  $('construction-requested').checked=!!x.construction_requested;
+  $('construction-speedups').value=x.construction_speedup_minutes||0;
+  $('construction-fc').value=x.construction_fire_crystals||0;
+  $('construction-rfc').value=x.construction_refined_fire_crystals||0;
+  $('construction-frame').value=x.construction_time_frame||'';
+  $('construction-time').value=x.construction_specific_time?.slice(0,5)||'';
+
+  $('research-requested').checked=!!x.research_requested;
+  $('research-speedups').value=x.research_speedup_minutes||0;
+  $('research-shards').value=x.research_fire_crystal_shards||0;
+  $('research-frame').value=x.research_time_frame||'';
+  $('research-time').value=x.research_specific_time?.slice(0,5)||'';
+
+  $('training-requested').checked=!!x.training_requested;
+  $('training-selection').value=x.training_selection||'';
+  $('training-speedups').value=x.training_speedup_minutes||0;
+  $('training-frame').value=x.training_time_frame||'';
+  $('training-time').value=x.training_specific_time?.slice(0,5)||'';
+
+  $('upgrading-t12').checked=!!x.upgrading_t12;
+  $('t12-rfc').value=x.t12_refined_fire_crystals||0;
+  $('t12-shards').value=x.t12_fire_crystal_shards||0;
+
+  ['construction-requested','research-requested','training-requested','upgrading-t12'].forEach(id=>$(id).dispatchEvent(new Event('change')));
+  updateScores();
+}
+
+$('prep-account').addEventListener('change', async()=>{
+  if(!liveEvent) return;
+  const {data}=await sb.from('prep_requests').select('*')
+    .eq('event_id',liveEvent.id).eq('player_account_id',$('prep-account').value).maybeSingle();
+  if(data) fillExisting(data);
+});
+
+$('prep-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const u=await user();
+  if(!u || !liveEvent) return;
+
+  const payload={
+    event_id:liveEvent.id,
+    user_id:u.id,
+    player_account_id:$('prep-account').value,
+
+    construction_requested:$('construction-requested').checked,
+    construction_speedup_minutes:n('construction-speedups'),
+    construction_fire_crystals:n('construction-fc'),
+    construction_refined_fire_crystals:n('construction-rfc'),
+    construction_time_frame:$('construction-frame').value||null,
+    construction_specific_time:$('construction-time').value||null,
+
+    research_requested:$('research-requested').checked,
+    research_speedup_minutes:n('research-speedups'),
+    research_fire_crystal_shards:n('research-shards'),
+    research_time_frame:$('research-frame').value||null,
+    research_specific_time:$('research-time').value||null,
+
+    training_requested:$('training-requested').checked,
+    training_selection:$('training-selection').value||null,
+    training_speedup_minutes:n('training-speedups'),
+    training_time_frame:$('training-frame').value||null,
+    training_specific_time:$('training-time').value||null,
+
+    upgrading_t12:$('upgrading-t12').checked,
+    t12_refined_fire_crystals:n('t12-rfc'),
+    t12_fire_crystal_shards:n('t12-shards')
+  };
+
+  if(!payload.construction_requested && !payload.research_requested && !payload.training_requested && !payload.upgrading_t12){
+    $('prep-message').textContent='Select at least one Prep Day request or T12 information.';
+    return;
+  }
+
+  const {error}=await sb.from('prep_requests').upsert(payload,{onConflict:'event_id,player_account_id'});
+  $('prep-message').textContent=error ? error.message : 'Prep Form submitted successfully.';
+});
+load();
+</script>
+</body>
+</html>

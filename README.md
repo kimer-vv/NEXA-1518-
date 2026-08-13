@@ -1,25 +1,21 @@
-# NEXA v28.1 — Transfer Navigation + Alliance Schedule Builder
+# NEXA v28.2 — Admin Tabs + Transfer View Event
 
-Fixes and improvements:
-- Home always shows a Transfers section.
-  - If no cycle is open, it shows “No live Transfer event.”
-- Admin opens to the Module Chooser only.
-  - SvS information does NOT appear until SvS is selected.
-  - Transfers opens the Transfer Control Center.
-- SvS now has a ← Modules button so staff can return and choose Transfers.
-- Transfer Control Center has ← Modules and returns directly to the Admin module chooser.
+Fixes:
+- Restores SvS Control Center tab navigation.
+  - Events
+  - Alliances
+  - Permissions
+  - Announcements
+  now open correctly again.
+- Opening SvS always starts on Events.
+- History remains its own separate page below the SvS tab row.
 
-Recruiting Alliances:
-- Choose an existing alliance OR type a new Alliance Tag.
-- If the tag does not exist, NEXA creates it in the normal Alliances table.
-- Each recruiting alliance can configure:
-  - 0–4 Bear Trap times
-  - 0–2 Foundry times
-  - 0–2 Canyon times
-  - optional extra schedule note
-- All schedule times use UTC 24-hour selectors.
-- Recruiting / Not Recruiting toggle remains available.
-- Only Recruiting alliances appear in the public Transfer Form.
-- Alliance schedule is shown automatically under each recruiting alliance.
+Transfers:
+- Public Transfer card now says `View Event`, matching SvS.
+- Transfer Event page includes `Edit Event` for Transfer Staff/Admin/Owner only.
+- If there is no live Transfer Cycle, authorized Transfer Staff see `Create Transfer Event` directly on Home.
+- `Create Transfer Event` opens the Transfer Events editor directly.
+- `Edit Event` from the public Transfer Event opens that exact cycle in the Transfer editor.
 
-No new SQL is required for this update.
+No new SQL is required.
+Upload/replace the web files in GitHub.

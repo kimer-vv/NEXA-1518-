@@ -898,6 +898,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('open-svs-admin')?.addEventListener('click',async()=>{
     document.getElementById('admin-module-chooser')?.classList.add('hidden');
     document.getElementById('svs-admin-content')?.classList.remove('hidden');
+    document.querySelectorAll('[data-admin-tab]').forEach(b=>b.classList.toggle('active',b.dataset.adminTab==='events'));
+    showAdminSection('events');
     await loadAdminEvents();
     await loadAdminAlliances();
     await loadEventAllianceSelectors();
@@ -925,6 +927,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     adminModal.classList.remove('open');
     adminModal.setAttribute('aria-hidden','true');
   }));
+
+  
+  function showAdminSection(target){
+    const sections={
+      events:document.getElementById('admin-events'),
+      alliances:document.getElementById('admin-alliances'),
+      permissions:document.getElementById('admin-permissions'),
+      announcements:document.getElementById('admin-announcements')
+    };
+    Object.entries(sections).forEach(([key,section])=>{
+      if(section) section.classList.toggle('hidden',key!==target);
+    });
+  }
 
   document.querySelectorAll('[data-admin-tab]').forEach(btn => btn.addEventListener('click', async () => {
     document.querySelectorAll('[data-admin-tab]').forEach(b => b.classList.remove('active'));
@@ -1676,7 +1691,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div class="event-row"><div><span class="badge transfer-badge">Transfers</span>
         <h3>No live Transfer event</h3>
         <div class="muted">There is no open transfer cycle right now.</div></div></div>
+        <div id="home-transfer-staff-actions" class="event-actions hidden">
+          <a class="btn" href="transfer-admin.html?tab=events&create=1">Create Transfer Event</a>
+        </div>
       </article>`;
+      const {data:canTransfers}=await supabaseClient.rpc('can_manage_transfers');
+      document.getElementById('home-transfer-staff-actions')?.classList.toggle('hidden',canTransfers!==true);
       return;
     }
     list.innerHTML=data.map(e=>{
@@ -1687,7 +1707,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div class="event-row"><div><span class="badge transfer-badge">Open</span>
         <h3>${e.title}</h3><div class="muted">${range}</div></div></div>
         <div class="event-actions">
-          <a class="btn secondary" href="transfer-event.html?token=${e.public_token}">View Transfer</a>
+          <a class="btn secondary" href="transfer-event.html?token=${e.public_token}">View Event</a>
           <a class="btn" href="transfer-apply.html?token=${e.public_token}">Apply →</a>
         </div></article>`;
     }).join('');

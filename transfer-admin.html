@@ -121,6 +121,24 @@ function priorityLabel(score){return score>=90?'CRITICAL':score>=75?'VERY HIGH':
 function tab(name){document.querySelectorAll('.transfer-panel').forEach(x=>x.classList.add('hidden'));document.getElementById('tab-'+name).classList.remove('hidden');document.querySelectorAll('.transfer-tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===name));if(name==='history')loadHistory();}
 document.querySelectorAll('.transfer-tab').forEach(b=>b.onclick=()=>tab(b.dataset.tab));
 async function guard(){const {data}=await sb.rpc('can_manage_transfers');if(data!==true){access_message.textContent='Transfer Staff access required.';document.querySelectorAll('.transfer-panel,.transfer-tabs').forEach(x=>x.classList.add('hidden'));return false;}const a=await sb.rpc('is_admin');isAdmin=a.data===true;return true;}
+
+function fillTransferEventForm(x){
+  if(!x) return;
+  te_id.value=x.id;
+  te_title.value=x.title;
+  te_destination.value=x.destination_state;
+  te_source_min.value=x.source_state_min||'';
+  te_source_max.value=x.source_state_max||'';
+  te_power_cap.value=x.power_cap||'';
+  te_threshold.value=x.special_invite_power_threshold;
+  te_starts.value=x.starts_at?x.starts_at.slice(0,16):'';
+  te_ends.value=x.ends_at?x.ends_at.slice(0,16):'';
+  te_notes.value=x.public_notes||'';
+  te_status.value=x.status;
+  te_apps_open.checked=x.applications_open;
+  te_cancel.classList.remove('hidden');
+}
+
 async function loadEvents(){
  const {data,error}=await sb.from('transfer_events').select('*').order('created_at',{ascending:false}); if(error)return alert(error.message);events=data||[];
  const active=events.filter(e=>e.status!=='archived');
@@ -163,7 +181,7 @@ document.querySelectorAll('[data-close-app]').forEach(x=>x.onclick=closeApp);
 transfer_event_form.onsubmit=async ev=>{ev.preventDefault();const row={title:te_title.value,destination_state:Number(te_destination.value||1518),source_state_min:te_source_min.value?Number(te_source_min.value):null,source_state_max:te_source_max.value?Number(te_source_max.value):null,power_cap:te_power_cap.value?Number(te_power_cap.value.replace(/\D/g,'')):null,special_invite_power_threshold:Number(te_threshold.value.replace(/\D/g,'')),starts_at:te_starts.value?new Date(te_starts.value).toISOString():null,ends_at:te_ends.value?new Date(te_ends.value).toISOString():null,public_notes:te_notes.value,status:te_status.value,applications_open:te_apps_open.checked,updated_at:new Date().toISOString()};let res=te_id.value?await sb.from('transfer_events').update(row).eq('id',te_id.value):await sb.from('transfer_events').insert({...row,created_at:new Date().toISOString()});if(res.error)return alert(res.error.message);resetEventForm();await loadEvents();};
 function resetEventForm(){transfer_event_form.reset();te_id.value='';te_destination.value='1518';te_threshold.value='1000000000';te_cancel.classList.add('hidden');}
 te_cancel.onclick=resetEventForm;
-events_list.onclick=async e=>{const edit=e.target.dataset.editEvent,archive=e.target.dataset.archiveEvent;if(edit){const x=events.find(v=>v.id===edit);te_id.value=x.id;te_title.value=x.title;te_destination.value=x.destination_state;te_source_min.value=x.source_state_min||'';te_source_max.value=x.source_state_max||'';te_power_cap.value=x.power_cap||'';te_threshold.value=x.special_invite_power_threshold;te_starts.value=x.starts_at?x.starts_at.slice(0,16):'';te_ends.value=x.ends_at?x.ends_at.slice(0,16):'';te_notes.value=x.public_notes||'';te_status.value=x.status;te_apps_open.checked=x.applications_open;te_cancel.classList.remove('hidden');scrollTo({top:0,behavior:'smooth'});}if(archive){if(!confirm('Archive this monthly Transfer Cycle? Applications will close and remain in Transfer History.'))return;const {error}=await sb.rpc('archive_transfer_event',{p_transfer_event_id:archive});if(error)return alert(error.message);await loadEvents();}};
+events_list.onclick=async e=>{const edit=e.target.dataset.editEvent,archive=e.target.dataset.archiveEvent;if(edit){const x=events.find(v=>v.id===edit);fillTransferEventForm(x);scrollTo({top:0,behavior:'smooth'});}if(archive){if(!confirm('Archive this monthly Transfer Cycle? Applications will close and remain in Transfer History.'))return;const {error}=await sb.rpc('archive_transfer_event',{p_transfer_event_id:archive});if(error)return alert(error.message);await loadEvents();}};
 
 
 const UTC_TIME_OPTIONS = (()=> {
@@ -273,6 +291,30 @@ async function loadHistory(){
 history_search_transfer.oninput=loadHistory;
 transfer_history_list.onclick=e=>{const id=e.target.dataset.historyCycle;if(id){tab('applications');application_event_filter.innerHTML+=`<option value="${id}">Archived Cycle</option>`;application_event_filter.value=id;loadApplications();}};
 
-(async()=>{if(!(await guard()))return;await loadEvents();await loadPermissions();})();
+(async()=>{
+  if(!(await guard()))return;
+  await loadEvents();
+  await loadPermissions();
+
+  const qs=new URLSearchParams(location.search);
+  const requestedTab=qs.get('tab');
+  if(requestedTab && document.getElementById('tab-'+requestedTab)) tab(requestedTab);
+
+  if(qs.get('create')==='1'){
+    tab('events');
+    resetEventForm();
+    setTimeout(()=>te_title.focus(),50);
+  }
+
+  const editId=qs.get('edit');
+  if(editId){
+    tab('events');
+    const x=events.find(v=>v.id===editId);
+    if(x){
+      fillTransferEventForm(x);
+      setTimeout(()=>transfer_event_form.scrollIntoView({behavior:'smooth',block:'start'}),50);
+    }
+  }
+})();
 
 </script></body></html>

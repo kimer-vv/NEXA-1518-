@@ -26,6 +26,7 @@
           <span id="discord-status">Sign in with Discord</span>
         </div>
       </button>
+      <button id="admin-panel-button" class="admin-pill hidden" type="button">Admin</button>
     </div>
 </header>
 
@@ -289,8 +290,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  supabaseClient.auth.onAuthStateChange(() => {
-    renderSession();
+  supabaseClient.auth.onAuthStateChange(async () => {
+    await renderSession();
+    if (typeof refreshAdminVisibility === 'function') {
+      await refreshAdminVisibility();
+    }
   });
 
   renderSession();
@@ -578,25 +582,26 @@ document.addEventListener('DOMContentLoaded', async () => {
   const adminEventsSection = document.getElementById('admin-events');
   const adminAlliancesSection = document.getElementById('admin-alliances');
 
-  async function getMyRole() {
+  async function amIAdmin() {
     const user = await currentUser();
-    if (!user) return 'player';
-    const { data } = await supabaseClient
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .maybeSingle();
-    return data?.role || 'player';
+    if (!user) return false;
+
+    const { data, error } = await supabaseClient.rpc('is_admin');
+    if (error) {
+      console.error('Admin role check failed:', error);
+      return false;
+    }
+    return data === true;
   }
 
   async function refreshAdminVisibility() {
-    const role = await getMyRole();
-    adminButton.classList.toggle('hidden', role !== 'admin');
+    const isAdmin = await amIAdmin();
+    adminButton.classList.toggle('hidden', !isAdmin);
   }
 
   async function ensureAdmin() {
-    const role = await getMyRole();
-    if (role !== 'admin') {
+    const isAdmin = await amIAdmin();
+    if (!isAdmin) {
       alert('Admin access required.');
       return false;
     }
@@ -620,7 +625,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         month: 'short',
         day: 'numeric',
         hour: 'numeric',
-        minute: '2-digit'
+        minute: '2-digit',
+        hour12: true
       }).format(d);
     } catch {
       return '';

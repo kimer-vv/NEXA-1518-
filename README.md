@@ -1,26 +1,8 @@
-# NEXA 1518 v15 — Admin Panel
+# NEXA 1518 v17 — Admin Role Fix
 
-Adds a real Admin Panel visible only to users whose Supabase role is `admin`.
+Fixes Admin visibility by checking Supabase's protected `is_admin()` helper directly.
+The Admin button remains hidden for non-admin users.
 
-Admin → Events:
-- Opponent State
-- Prep Monday (official WOS/UTC date)
-- Automatically previews:
-  Monday Construction
-  Tuesday Research
-  Thursday Training
-  Saturday Castle Battle & PvP
-- Shows the admin's local-time equivalent underneath
-- Prep Form open/closed
-- Battle Form open/closed
-- Schedule published
-- Live event
-- Edit/delete existing SvS events
+Also changes local-time previews to 12-hour AM/PM format while WOS/UTC stays 24-hour.
 
-Admin → Alliances:
-- Add official alliance tags
-- Rename tags
-- Activate/deactivate tags
-- Active tags immediately feed the player Alliance dropdown
-
-Upload all included files to the GitHub repository root and replace the older versions.
+Upload all files to the GitHub repository root and replace the previous version.

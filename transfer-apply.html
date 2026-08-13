@@ -1,7 +1,7 @@
 <!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>NEXA • Transfer Application</title><link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="lang.js"></script><script src="transfer-i18n-full-data.js"></script><script src="transfer-i18n-full.js"></script></head>
 <body><div class="nebula-bg" aria-hidden="true"></div><div class="starfield" aria-hidden="true"></div>
 <header class="topbar public-transfer-topbar"><div class="shell nav"><div class="logo public-form-logo"><span class="star">✦</span><span>NEXA<small>STATE 1518 • TRANSFERS</small></span></div></div></header>
 <div id="internal-form-nav" class="shell internal-form-nav hidden">
@@ -10,7 +10,7 @@
 </div>
 
 <main class="shell event-page transfer-form-page">
- <span class="badge transfer-badge">TRANSFER APPLICATION • v31.4.2</span>
+ <span class="badge transfer-badge">TRANSFER APPLICATION • v32.4</span>
  <h1 id="event-title">State 1518 Transfer Application</h1>
 
  <section class="glass transfer-welcome">
@@ -217,7 +217,7 @@ function cleanNumber(value){
 }
 
 function scheduleSummary(raw){
-  if(!raw) return 'Schedule not listed';
+  if(!raw) return NEXA_TF('rtSchedule');
   try{
     const x=typeof raw==='string' ? JSON.parse(raw) : raw;
     const lines=[];
@@ -238,7 +238,7 @@ function scheduleSummary(raw){
     }
 
     if(x.note) lines.push(x.note);
-    return lines.join(' • ') || 'Schedule not listed';
+    return lines.join(' • ') || NEXA_TF('rtSchedule');
   }catch{
     return String(raw);
   }
@@ -258,15 +258,15 @@ function renderRecruitingAlliances(rows){
   const recruiting=Array.isArray(rows) ? rows : [];
 
   els.recruitingCount.textContent=
-    `${recruiting.length} recruiting alliance${recruiting.length===1?'':'s'} available for this cycle.`;
+    NEXA_TF('rtCount',{n:recruiting.length});
 
   els.recruitingSync.textContent=eventData
-    ? `Live from ${eventData.title}`
+    ? NEXA_TF('rtLive',{title:eventData.title})
     : '';
 
   if(!recruiting.length){
     els.allianceChoices.innerHTML=
-      '<div class="muted">No alliances are currently marked Recruiting for this Transfer Cycle. You may select “I’m flexible.”</div>';
+      `<div class="muted">${NEXA_TF('rtNone')}</div>`;
     return;
   }
 
@@ -292,24 +292,24 @@ function updateLabyrinth(){
   els.labyrinth.required=requiresLabyrinth;
 
   if(!specialCap){
-    els.thresholdNote.innerHTML='Special Invite Power Cap: <b>N/A</b> for this cycle.';
+    els.thresholdNote.innerHTML=NEXA_TF('rtSpecialNA').replace('N/A','<b>N/A</b>');
   }else if(requiresLabyrinth){
     els.thresholdNote.innerHTML=
-      `Special Invite Power Cap: <b>${fmtPower(specialCap)}</b>. Your power is above this cap, so Labyrinth Score is required.`;
+      NEXA_TF('rtSpecialReq',{cap:`<b>${fmtPower(specialCap)}</b>`});
   }else{
     els.thresholdNote.innerHTML=
-      `Special Invite Power Cap: <b>${fmtPower(specialCap)}</b>. Labyrinth Score is only requested above this cap.`;
+      NEXA_TF('rtSpecialOpt',{cap:`<b>${fmtPower(specialCap)}</b>`});
   }
 }
 
 async function loadTransferForm(){
   if(!token){
     els.form.classList.add('hidden');
-    els.formMessage.textContent='Invalid Transfer Application link.';
+    els.formMessage.textContent=NEXA_TF('rtInvalid');
     return;
   }
 
-  els.recruitingCount.textContent='Loading recruiting alliances…';
+  els.recruitingCount.textContent=NEXA_TF('rtLoading');
   els.recruitingSync.textContent='';
 
   const {data,error}=await sb.rpc('get_public_transfer_form_data',{
@@ -318,13 +318,13 @@ async function loadTransferForm(){
 
   if(error){
     els.form.classList.add('hidden');
-    els.formMessage.textContent='Could not load this Transfer Application: '+error.message;
+    els.formMessage.textContent=NEXA_TF('rtLoadError',{error:error.message});
     return;
   }
 
   if(!data || !data.event){
     els.form.classList.add('hidden');
-    els.formMessage.textContent='This Transfer Application is unavailable.';
+    els.formMessage.textContent=NEXA_TF('rtUnavailable');
     return;
   }
 
@@ -347,13 +347,13 @@ async function loadTransferForm(){
   if(eventData.applications_open!==true){
     els.form.classList.add('hidden');
     els.formMessage.innerHTML=
-      '<div class="closed-transfer-card"><b>Applications are currently closed.</b></div>';
+      `<div class="closed-transfer-card"><b>${NEXA_TF('rtClosed')}</b></div>`;
     return;
   }
 
   els.eventTitle.textContent=eventData.title || 'State 1518 Transfer Application';
-  els.destination.textContent='State '+eventData.destination_state;
-  els.ordinaryCap.textContent=eventData.power_cap ? fmtPower(eventData.power_cap) : 'Set by staff';
+  els.destination.textContent=NEXA_TF('rtState',{state:eventData.destination_state});
+  els.ordinaryCap.textContent=eventData.power_cap ? fmtPower(eventData.power_cap) : NEXA_TF('rtSet');
   els.specialCap.textContent=eventData.special_power_cap ? fmtPower(eventData.special_power_cap) : 'N/A';
 
   renderRecruitingAlliances(data.recruiting_alliances);
@@ -383,7 +383,7 @@ els.discord.addEventListener('input',()=>{
 
 els.form.addEventListener('submit',async ev=>{
   ev.preventDefault();
-  els.formMessage.textContent='Submitting…';
+  els.formMessage.textContent=NEXA_TF('rtSubmitting');
 
   const allianceIds=[
     ...els.allianceChoices.querySelectorAll('input[type="checkbox"]:checked')
@@ -391,7 +391,7 @@ els.form.addEventListener('submit',async ev=>{
 
   if(!els.flexible.checked && allianceIds.length===0){
     els.formMessage.textContent=
-      'Choose at least one recruiting alliance or select “I’m flexible.”';
+      NEXA_TF('rtChoose');
     return;
   }
 
@@ -482,9 +482,9 @@ els.form.addEventListener('submit',async ev=>{
 els.copyId.addEventListener('click',async()=>{
   try{
     await navigator.clipboard.writeText(els.applicationId.textContent);
-    els.copyId.textContent='Copied ✓';
+    els.copyId.textContent=NEXA_TF('rtCopied');
   }catch{
-    els.copyId.textContent='Press & hold ID to copy';
+    els.copyId.textContent=NEXA_TF('rtCopyFallback');
   }
 });
 

@@ -1,0 +1,151 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NEXA • History</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="nebula-bg" aria-hidden="true"></div>
+<div class="starfield" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="shell nav">
+    <a class="logo" href="index.html"><span class="star">✦</span><span>NEXA<small>STATE 1518</small></span></a>
+    <a class="back" href="index.html">← Admin</a>
+  </div>
+</header>
+
+<main class="shell event-page">
+  <span class="badge">ADMIN</span>
+  <h1>Event History</h1>
+  <p class="muted">Search ended SvS events by opponent state. Archived schedules and requests stay here and do not mix with the active event.</p>
+
+  <section class="glass history-page-tools">
+    <label>Search by State
+      <input id="history-search" type="search" inputmode="numeric" placeholder="Example: 1547">
+    </label>
+  </section>
+
+  <div id="history-message" class="form-message"></div>
+  <section id="history-list" class="admin-list" style="margin-top:14px"></section>
+</main>
+
+<script>
+const sb=window.supabase.createClient("https://dfxcxboxrkfmrnsgpyin.supabase.co","sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-");
+let isOwner=false;
+let allEvents=[];
+
+async function ensureAdmin(){
+  const {data}=await sb.rpc('is_admin');
+  if(data!==true){ location.href='index.html'; return false; }
+  return true;
+}
+
+async function load(){
+  if(!(await ensureAdmin())) return;
+  await sb.rpc('refresh_auto_ended_events');
+
+  const ownerRes=await sb.rpc('is_owner');
+  isOwner=ownerRes.data===true;
+
+  const {data,error}=await sb.from('svs_events')
+    .select('*')
+    .eq('status','ended')
+    .order('ended_at',{ascending:false});
+
+  if(error){
+    document.getElementById('history-message').textContent=error.message;
+    return;
+  }
+
+  allEvents=data||[];
+  render();
+}
+
+async function render(){
+  const q=document.getElementById('history-search').value.trim().toLowerCase();
+  const list=document.getElementById('history-list');
+  const rows=allEvents.filter(e=>!q || String(e.opponent_state).toLowerCase().includes(q));
+
+  if(!rows.length){
+    list.innerHTML='<div class="empty-state">No ended events found.</div>';
+    return;
+  }
+
+  const cards=[];
+  for(const e of rows){
+    const {data:summary}=await sb.rpc('event_summary',{target_event_id:e.id});
+    cards.push(`
+      <article class="history-card">
+        <div>
+          <b>SvS vs ${e.opponent_state}</b>
+          <small>Prep Monday ${e.prep_monday} • Ended ${e.ended_at?new Date(e.ended_at).toLocaleString():'—'}</small>
+          <div class="history-summary">
+            ${summary?.prep_requests||0} requests •
+            ${summary?.appointments||0} appointments •
+            ${summary?.waitlisted||0} waitlisted
+          </div>
+        </div>
+
+        <div class="history-actions">
+          <button class="btn secondary" type="button" data-view="${e.id}">View Archive</button>
+          <button class="btn secondary" type="button" data-clone="${e.id}">Clone Settings</button>
+          ${isOwner?`<button class="btn danger" type="button" data-delete="${e.id}">Delete Permanently</button>`:''}
+        </div>
+      </article>
+    `);
+  }
+
+  list.innerHTML=cards.join('');
+}
+
+document.getElementById('history-search').addEventListener('input',render);
+
+document.getElementById('history-list').addEventListener('click',async e=>{
+  const viewId=e.target.dataset.view;
+  const cloneId=e.target.dataset.clone;
+  const deleteId=e.target.dataset.delete;
+
+  if(viewId){
+    localStorage.setItem('nexa_history_event_id',viewId);
+    location.href='history-event.html';
+    return;
+  }
+
+  if(cloneId){
+    const opponent=prompt('Opponent State for the new SvS:');
+    if(!opponent) return;
+    const monday=prompt('Prep Monday (YYYY-MM-DD):');
+    if(!monday) return;
+
+    const {error}=await sb.rpc('clone_svs_event',{
+      source_event_id:cloneId,
+      new_opponent_state:Number(opponent),
+      new_prep_monday:monday
+    });
+
+    if(error) return alert(error.message);
+    alert('New upcoming event created.');
+    location.href='index.html';
+    return;
+  }
+
+  if(deleteId){
+    const ok=confirm('Permanently delete this archived event? This cannot be undone and its archived requests/appointments will be deleted too.');
+    if(!ok) return;
+
+    const {error}=await sb.rpc('owner_delete_archived_event',{target_event_id:deleteId});
+    if(error) return alert(error.message);
+
+    allEvents=allEvents.filter(x=>x.id!==deleteId);
+    render();
+  }
+});
+
+load();
+</script>
+</body>
+</html>

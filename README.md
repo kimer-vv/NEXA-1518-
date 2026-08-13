@@ -1,10 +1,16 @@
-# NEXA v27.7 — History Under Events
+# NEXA v27.8 — History Layout Restored
 
-UI adjustment:
-- History is no longer a top-row Admin tab.
-- A clear `View Event History` button now appears inside the Events section, directly below the Events area.
-- Clicking it opens the standalone History section.
-- This makes History easier to discover for users who can access Events without crowding the main admin tab row.
-- Owner-only Delete Permanently remains unchanged.
+This matches the requested History flow:
+
+- History is visible directly BELOW the main Admin tab row, so there is no need to swipe sideways to find it.
+- History remains a separate destination/page.
+- Clicking History opens a dedicated Event History page.
+- Search ended events by opponent state.
+- Each archived event shows:
+  - View Archive
+  - Clone Settings
+  - Delete Permanently (Owner only)
+- View Archive opens the detailed archived event with saved schedule and Prep Requests.
+- History no longer appears mixed underneath the Events content.
 
 No SQL changes are required.

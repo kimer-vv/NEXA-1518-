@@ -200,6 +200,10 @@
       
     </div>
 
+    <div class="admin-subtabs">
+      <a class="admin-history-tab" href="history.html">History</a>
+    </div>
+
     <section id="admin-events" class="admin-section">
       <div class="admin-section-head">
         <div>
@@ -320,13 +324,6 @@
 
       <div id="admin-events-message" class="form-message"></div>
       <div id="events-admin-list" class="admin-list"></div>
-    
-      <div class="events-history-entry">
-        <button id="open-history-from-events" class="btn secondary" type="button">
-          View Event History
-        </button>
-        <small>View ended SvS events, archived schedules, requests, and summaries.</small>
-      </div>
 </section>
 
     <section id="admin-alliances" class="admin-section hidden">
@@ -397,21 +394,6 @@
           </div>
           <div id="announcement-admin-message" class="form-message"></div>
         </section>
-
-    <section id="admin-history" class="admin-section hidden">
-      <div class="admin-section-head">
-        <div>
-          <h3>Event History</h3>
-          <p>Ended SvS events stay archived here. Active screens only show the current event.</p>
-        </div>
-      </div>
-
-      <div class="history-tools">
-        <input id="history-search" placeholder="Search opponent state...">
-      </div>
-
-      <div id="history-list" class="admin-list"></div>
-    </section>
 
         <section class="glass-lite">
           <div class="announcement-status-head">
@@ -800,7 +782,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const adminAlliancesSection = document.getElementById('admin-alliances');
   const adminPermissionsSection = document.getElementById('admin-permissions');
   const adminAnnouncementsSection = document.getElementById('admin-announcements');
-  const adminHistorySection = document.getElementById('admin-history');
 
   async function amIAdmin() {
     const user = await currentUser();
@@ -1372,78 +1353,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     await syncHomeLiveEvent();
     resetEventForm();
   });
-
-  async function loadEventHistory(){
-    await supabaseClient.rpc('refresh_auto_ended_events');
-    const {data:isOwner}=await supabaseClient.rpc('is_owner');
-    const q=document.getElementById('history-search').value.trim();
-    let query=supabaseClient.from('svs_events').select('*').eq('status','ended').order('ended_at',{ascending:false});
-    if(q) query=query.ilike('opponent_state',`%${q}%`);
-    const {data,error}=await query;
-    const list=document.getElementById('history-list');
-    if(error){list.innerHTML=`<div class="empty-state">${error.message}</div>`;return;}
-    const rows=data||[];
-    if(!rows.length){list.innerHTML='<div class="empty-state">No ended events yet.</div>';return;}
-    list.innerHTML='';
-    for(const e of rows){
-      const {data:summary}=await supabaseClient.rpc('event_summary',{target_event_id:e.id});
-      const card=document.createElement('article');
-      card.className='history-card';
-      card.innerHTML=`
-        <div>
-          <b>SvS vs ${e.opponent_state}</b>
-          <small>Prep Monday ${e.prep_monday} • Ended ${e.ended_at?new Date(e.ended_at).toLocaleString():'—'}</small>
-          <div class="history-summary">
-            ${summary?.prep_requests||0} requests • ${summary?.appointments||0} appointments • ${summary?.waitlisted||0} waitlisted
-          </div>
-        </div>
-        <div class="history-actions">
-          <button class="btn secondary" type="button" data-history-view="${e.id}">View Archive</button>
-          <button class="btn secondary" type="button" data-history-clone="${e.id}">Clone Settings</button>
-          ${isOwner===true?`<button class="btn danger" type="button" data-history-delete="${e.id}">Delete Permanently</button>`:''}
-        </div>`;
-      list.appendChild(card);
-    }
-  }
-
-  document.getElementById('history-search').addEventListener('input',loadEventHistory);
-
-  document.getElementById('history-list').addEventListener('click',async e=>{
-    const viewId=e.target.dataset.historyView;
-    const cloneId=e.target.dataset.historyClone;
-    const deleteId=e.target.dataset.historyDelete;
-
-    if(deleteId){
-      const ok=confirm('Permanently delete this archived event? This cannot be undone and its archived requests/appointments will be deleted too.');
-      if(!ok) return;
-      const {error}=await supabaseClient.rpc('owner_delete_archived_event',{target_event_id:deleteId});
-      if(error) return alert(error.message);
-      await loadEventHistory();
-      return;
-    }
-
-    if(viewId){
-      localStorage.setItem('nexa_history_event_id',viewId);
-      location.href='history-event.html';
-      return;
-    }
-
-    if(cloneId){
-      const opponent=prompt('Opponent State for the new SvS:');
-      if(!opponent) return;
-      const monday=prompt('Prep Monday (YYYY-MM-DD):');
-      if(!monday) return;
-      const {data,error}=await supabaseClient.rpc('clone_svs_event',{
-        source_event_id:cloneId,
-        new_opponent_state:Number(opponent),
-        new_prep_monday:monday
-      });
-      if(error) return alert(error.message);
-      alert('New upcoming event created.');
-      await loadAdminEvents();
-    }
-  });
-
   let currentAckFilter='all';
 
   async function getLiveEventRecord(){

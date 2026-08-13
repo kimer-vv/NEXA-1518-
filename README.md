@@ -1,10 +1,12 @@
-# NEXA 1518 v4 — Visual Correction
+# NEXA 1518 v5 — Nebula Background
 
-Changes:
-- Stronger supernova / nebula visual treatment
-- Brighter magenta + violet + electric-blue cosmic core
-- More depth and glow while keeping text readable
-- Removed the temporary “Future events” strip from Home
-- Kept the clean Home → Event → Schedule architecture
+This version replaces the flat CSS glow with an actual procedural nebula background built with SVG turbulence.
 
-Upload all included files to the root of the GitHub repo and replace the older versions.
+Upload ALL files to the root of the GitHub repository and replace the previous versions:
+- index.html
+- event.html
+- schedule.html
+- style.css
+- README.md
+
+No extra image file is required; the nebula is embedded directly in each page.

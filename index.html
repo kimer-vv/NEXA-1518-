@@ -90,7 +90,7 @@
     </div>
   </section>
 
-  <section id="home-transfers-section" class="section hidden">
+  <section id="home-transfers-section" class="section">
     <div class="head">
       <h2>Transfers</h2>
       <span>State 1518</span>
@@ -206,7 +206,8 @@
         <span class="module-kicker">MODULE</span><b>Transfers</b><small>Transfer cycles, applications, recruiting alliances & staff notes</small>
       </button>
     </div>
-    <div id="svs-admin-content">
+    <div id="svs-admin-content" class="hidden">
+      <div class="module-back-row"><button id="back-to-modules" class="btn secondary" type="button">← Modules</button></div>
     <div class="admin-quick-links"><a class="btn" href="prep-requests.html">Prep Requests</a></div>
     <div class="admin-tabs">
       <button class="admin-tab active" type="button" data-admin-tab="events">Events</button>
@@ -891,31 +892,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     const chooser=document.getElementById('admin-module-chooser');
     if(chooser) chooser.classList.remove('hidden');
 
-    if(access.svs && !access.transfers){
-      chooser?.classList.add('hidden');
-      svsContent?.classList.remove('hidden');
-    } else if(!access.svs && access.transfers){
-      location.href='transfer-admin.html';
-    }
+
   }
 
-  document.getElementById('open-svs-admin')?.addEventListener('click',()=>{
+  document.getElementById('open-svs-admin')?.addEventListener('click',async()=>{
     document.getElementById('admin-module-chooser')?.classList.add('hidden');
     document.getElementById('svs-admin-content')?.classList.remove('hidden');
+    await loadAdminEvents();
+    await loadAdminAlliances();
+    await loadEventAllianceSelectors();
+    if(await amIAdmin()) await loadPermissions();
+    renderEventPreview();
+  });
+
+  document.getElementById('back-to-modules')?.addEventListener('click',async()=>{
+    document.getElementById('svs-admin-content')?.classList.add('hidden');
+    await configureAdminModules();
   });
   document.getElementById('open-transfer-admin')?.addEventListener('click',()=>{
     location.href='transfer-admin.html';
   });
 
   adminButton.addEventListener('click', async () => {
-    if (!(await ensureAdmin())) return;
+    const access=await getModuleAccess();
+    if(!access.svs && !access.transfers) return;
     adminModal.classList.add('open');
     adminModal.setAttribute('aria-hidden','false');
-    await loadAdminEvents();
-    await loadAdminAlliances();
-    await loadEventAllianceSelectors();
-    await loadPermissions();
-    renderEventPreview();
+    await configureAdminModules();
   });
 
   document.querySelectorAll('[data-close-admin]').forEach(el => el.addEventListener('click', () => {
@@ -1667,8 +1670,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       .select('id,title,destination_state,source_state_min,source_state_max,public_token,starts_at,ends_at')
       .eq('status','open').eq('applications_open',true)
       .order('starts_at',{ascending:true});
-    if(error || !data?.length){ section.classList.add('hidden'); return; }
     section.classList.remove('hidden');
+    if(error || !data?.length){
+      list.innerHTML=`<article class="event transfer-home-card">
+        <div class="event-row"><div><span class="badge transfer-badge">Transfers</span>
+        <h3>No live Transfer event</h3>
+        <div class="muted">There is no open transfer cycle right now.</div></div></div>
+      </article>`;
+      return;
+    }
     list.innerHTML=data.map(e=>{
       const range=(e.source_state_min||e.source_state_max)
         ? `States ${e.source_state_min||'—'}–${e.source_state_max||'—'} → ${e.destination_state}`
@@ -1684,6 +1694,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   await loadHomeTransfers();
+
+  if(new URLSearchParams(location.search).get('admin')==='modules'){
+    const access=await getModuleAccess();
+    if(access.svs || access.transfers){
+      adminModal.classList.add('open');
+      adminModal.setAttribute('aria-hidden','false');
+      await configureAdminModules();
+    }
+    history.replaceState({},'',location.pathname);
+  }
+
 
 });
 </script>

@@ -6,7 +6,7 @@
 <header class="topbar"><div class="shell nav"><a class="logo" href="index.html"><span class="star">✦</span><span>NEXA<small>STATE 1518</small></span></a></div></header>
 
 <main class="shell event-page transfer-admin-page">
- <div class="transfer-admin-head"><div><span class="badge">PRIVATE</span><h1>NEXA Transfers</h1><p class="muted">Transfer Control Center</p></div><a class="btn secondary" href="index.html">← Home</a></div>
+ <div class="transfer-admin-head"><div><span class="badge">PRIVATE</span><h1>NEXA Transfers</h1><p class="muted">Transfer Control Center</p></div><a class="btn secondary" href="index.html?admin=modules">← Modules</a></div>
  <div class="transfer-tabs">
   <button class="transfer-tab active" data-tab="applications">Applications</button>
   <button class="transfer-tab" data-tab="events">Transfer Events</button>
@@ -41,7 +41,57 @@
 
  <section id="tab-alliances" class="transfer-panel hidden">
   <div class="panel-head"><div><h2>Recruiting Alliances</h2><p class="muted">Only enabled alliances appear on that cycle’s public Transfer Form.</p></div><select id="recruit-event-filter"></select></div>
-  <form id="recruit-form" class="glass transfer-admin-form"><label>Alliance<select id="recruit-alliance"></select></label><label>Schedule shown on Transfer Form<input id="recruit-schedule" placeholder="Bear 14:00/19:00 UTC • Foundry 14:00/19:00 UTC"></label><button class="btn" type="submit">Add / Update Recruiting Alliance</button></form>
+  <form id="recruit-form" class="glass transfer-admin-form">
+    <label>Existing Alliance
+      <select id="recruit-alliance"></select>
+      <small>Choose an alliance already registered in NEXA.</small>
+    </label>
+    <div class="or-divider"><span>OR</span></div>
+    <label>New Alliance Tag
+      <input id="recruit-new-tag" maxlength="12" placeholder="Example: ABS">
+      <small>If this tag does not exist yet, NEXA will create it.</small>
+    </label>
+
+    <section class="schedule-builder">
+      <h3>Alliance Event Schedule</h3>
+      <p class="muted">All times below use UTC 24-hour format.</p>
+
+      <label>How many Bear Traps?
+        <select id="bear-count">
+          <option value="0">None</option>
+          <option value="1">1 Bear Trap</option>
+          <option value="2" selected>2 Bear Traps</option>
+          <option value="3">3 Bear Traps</option>
+          <option value="4">4 Bear Traps</option>
+        </select>
+      </label>
+      <div id="bear-time-fields" class="schedule-time-grid"></div>
+
+      <label>Foundry times
+        <select id="foundry-count">
+          <option value="0">None</option>
+          <option value="1">1 time</option>
+          <option value="2" selected>2 times</option>
+        </select>
+      </label>
+      <div id="foundry-time-fields" class="schedule-time-grid"></div>
+
+      <label>Canyon times
+        <select id="canyon-count">
+          <option value="0">None</option>
+          <option value="1">1 time</option>
+          <option value="2" selected>2 times</option>
+        </select>
+      </label>
+      <div id="canyon-time-fields" class="schedule-time-grid"></div>
+
+      <label>Other Schedule Note <span class="optional">Optional</span>
+        <input id="recruit-extra-note" placeholder="Example: Bear 4 only during transfer week">
+      </label>
+    </section>
+
+    <button class="btn" type="submit">Add / Update Recruiting Alliance</button>
+  </form>
   <div id="recruit-list" class="admin-list"></div>
  </section>
 
@@ -115,14 +165,94 @@ function resetEventForm(){transfer_event_form.reset();te_id.value='';te_destinat
 te_cancel.onclick=resetEventForm;
 events_list.onclick=async e=>{const edit=e.target.dataset.editEvent,archive=e.target.dataset.archiveEvent;if(edit){const x=events.find(v=>v.id===edit);te_id.value=x.id;te_title.value=x.title;te_destination.value=x.destination_state;te_source_min.value=x.source_state_min||'';te_source_max.value=x.source_state_max||'';te_power_cap.value=x.power_cap||'';te_threshold.value=x.special_invite_power_threshold;te_starts.value=x.starts_at?x.starts_at.slice(0,16):'';te_ends.value=x.ends_at?x.ends_at.slice(0,16):'';te_notes.value=x.public_notes||'';te_status.value=x.status;te_apps_open.checked=x.applications_open;te_cancel.classList.remove('hidden');scrollTo({top:0,behavior:'smooth'});}if(archive){if(!confirm('Archive this monthly Transfer Cycle? Applications will close and remain in Transfer History.'))return;const {error}=await sb.rpc('archive_transfer_event',{p_transfer_event_id:archive});if(error)return alert(error.message);await loadEvents();}};
 
+
+const UTC_TIME_OPTIONS = (()=> {
+  let out='<option value="">Select UTC time</option>';
+  for(let h=0;h<24;h++) for(const m of [0,30]){
+    const v=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+    out+=`<option value="${v}">${v} UTC</option>`;
+  }
+  return out;
+})();
+function renderScheduleTimes(prefix,count){
+  const box=document.getElementById(prefix+'-time-fields');
+  const n=Number(count||0);
+  box.innerHTML=Array.from({length:n},(_,i)=>`
+    <label>${prefix==='bear'?'Bear Trap':prefix[0].toUpperCase()+prefix.slice(1)} ${i+1}
+      <select id="${prefix}-time-${i+1}">${UTC_TIME_OPTIONS}</select>
+    </label>`).join('');
+}
+function scheduleDataFromForm(){
+  const grab=(prefix,count)=>Array.from({length:Number(count||0)},(_,i)=>document.getElementById(`${prefix}-time-${i+1}`)?.value).filter(Boolean);
+  return {
+    bear:grab('bear',bear_count.value),
+    foundry:grab('foundry',foundry_count.value),
+    canyon:grab('canyon',canyon_count.value),
+    note:recruit_extra_note.value.trim()
+  };
+}
+function parseScheduleNotes(raw){
+  if(!raw) return {bear:[],foundry:[],canyon:[],note:''};
+  try{
+    const obj=JSON.parse(raw);
+    if(obj && typeof obj==='object') return {bear:obj.bear||[],foundry:obj.foundry||[],canyon:obj.canyon||[],note:obj.note||''};
+  }catch(e){}
+  return {bear:[],foundry:[],canyon:[],note:raw};
+}
+function scheduleSummary(raw){
+  const s=parseScheduleNotes(raw),parts=[];
+  if(s.bear.length) parts.push(`Bear: ${s.bear.map(x=>x+' UTC').join(' / ')}`);
+  if(s.foundry.length) parts.push(`Foundry: ${s.foundry.map(x=>x+' UTC').join(' / ')}`);
+  if(s.canyon.length) parts.push(`Canyon: ${s.canyon.map(x=>x+' UTC').join(' / ')}`);
+  if(s.note) parts.push(s.note);
+  return parts.join(' • ') || 'No schedule listed';
+}
+['bear','foundry','canyon'].forEach(prefix=>{
+  const sel=document.getElementById(prefix+'-count');
+  sel?.addEventListener('change',()=>renderScheduleTimes(prefix,sel.value));
+});
+renderScheduleTimes('bear',bear_count.value);
+renderScheduleTimes('foundry',foundry_count.value);
+renderScheduleTimes('canyon',canyon_count.value);
+
 async function loadRecruiting(){
  const eventId=recruit_event_filter.value;if(!eventId){recruit_list.innerHTML='<div class="empty-state">Select a Transfer Event.</div>';return;}
  const [{data:all},{data:rows}]=await Promise.all([sb.from('alliances').select('id,tag').eq('is_active',true).order('tag'),sb.from('transfer_recruiting_alliances').select('id,alliance_id,is_recruiting,schedule_notes,sort_order,alliances(tag)').eq('transfer_event_id',eventId).order('sort_order')]);
- recruit_alliance.innerHTML=(all||[]).map(a=>`<option value="${a.id}">${esc(a.tag)}</option>`).join('');
- recruit_list.innerHTML=rows?.length?rows.map(r=>`<article class="history-card"><div><b>${esc(r.alliances?.tag||'Alliance')}</b><small>${esc(r.schedule_notes||'No schedule')}</small></div><div class="history-actions"><button class="btn ${r.is_recruiting?'':'secondary'}" data-toggle-recruit="${r.id}" data-active="${r.is_recruiting}">${r.is_recruiting?'Recruiting':'Not Recruiting'}</button><button class="btn danger" data-remove-recruit="${r.id}">Remove</button></div></article>`).join(''):'<div class="empty-state">No alliances configured for this cycle.</div>';
+ recruit_alliance.innerHTML='<option value="">Select existing alliance</option>'+(all||[]).map(a=>`<option value="${a.id}">${esc(a.tag)}</option>`).join('');
+ recruit_list.innerHTML=rows?.length?rows.map(r=>`<article class="history-card"><div><b>${esc(r.alliances?.tag||'Alliance')}</b><small>${esc(scheduleSummary(r.schedule_notes))}</small></div><div class="history-actions"><button class="btn ${r.is_recruiting?'':'secondary'}" data-toggle-recruit="${r.id}" data-active="${r.is_recruiting}">${r.is_recruiting?'Recruiting':'Not Recruiting'}</button><button class="btn danger" data-remove-recruit="${r.id}">Remove</button></div></article>`).join(''):'<div class="empty-state">No alliances configured for this cycle.</div>';
 }
 recruit_event_filter.onchange=loadRecruiting;
-recruit_form.onsubmit=async ev=>{ev.preventDefault();const row={transfer_event_id:recruit_event_filter.value,alliance_id:Number(recruit_alliance.value),is_recruiting:true,schedule_notes:recruit_schedule.value};const {error}=await sb.from('transfer_recruiting_alliances').upsert(row,{onConflict:'transfer_event_id,alliance_id'});if(error)return alert(error.message);recruit_schedule.value='';await loadRecruiting();};
+recruit_form.onsubmit=async ev=>{
+ ev.preventDefault();
+ let allianceId=recruit_alliance.value?Number(recruit_alliance.value):null;
+ const newTag=recruit_new_tag.value.trim().toUpperCase();
+
+ if(newTag){
+   const {data:existing,error:findErr}=await sb.from('alliances').select('id,tag').ilike('tag',newTag).maybeSingle();
+   if(findErr) return alert(findErr.message);
+   if(existing?.id) allianceId=existing.id;
+   else {
+     const {data:created,error:createErr}=await sb.from('alliances').insert({tag:newTag,is_active:true}).select('id').single();
+     if(createErr) return alert(createErr.message);
+     allianceId=created.id;
+   }
+ }
+ if(!allianceId) return alert('Choose an existing alliance or enter a new Alliance Tag.');
+
+ const schedule=scheduleDataFromForm();
+ const row={
+   transfer_event_id:recruit_event_filter.value,
+   alliance_id:allianceId,
+   is_recruiting:true,
+   schedule_notes:JSON.stringify(schedule)
+ };
+ const {error}=await sb.from('transfer_recruiting_alliances').upsert(row,{onConflict:'transfer_event_id,alliance_id'});
+ if(error)return alert(error.message);
+
+ recruit_new_tag.value='';
+ recruit_extra_note.value='';
+ await loadRecruiting();
+};
 recruit_list.onclick=async e=>{const t=e.target.dataset.toggleRecruit,r=e.target.dataset.removeRecruit;if(t){const {error}=await sb.from('transfer_recruiting_alliances').update({is_recruiting:e.target.dataset.active!=='true'}).eq('id',t);if(error)return alert(error.message);await loadRecruiting();}if(r){if(!confirm('Remove this alliance from this Transfer Cycle?'))return;const {error}=await sb.from('transfer_recruiting_alliances').delete().eq('id',r);if(error)return alert(error.message);await loadRecruiting();}};
 
 async function loadPermissions(search=''){

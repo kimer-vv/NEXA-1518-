@@ -26,6 +26,18 @@ const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmtPower=n=>{n=Number(n||0); return n>=1e9?(n/1e9).toFixed(2).replace(/\.00$/,'')+'B':n>=1e6?(n/1e6).toFixed(1).replace(/\.0$/,'')+'M':n.toLocaleString();};
 
+function transferScheduleSummary(raw){
+  if(!raw) return 'Schedule not listed';
+  try{
+    const x=JSON.parse(raw),parts=[];
+    if(x.bear?.length) parts.push(`Bear: ${x.bear.map(t=>t+' UTC').join(' / ')}`);
+    if(x.foundry?.length) parts.push(`Foundry: ${x.foundry.map(t=>t+' UTC').join(' / ')}`);
+    if(x.canyon?.length) parts.push(`Canyon: ${x.canyon.map(t=>t+' UTC').join(' / ')}`);
+    if(x.note) parts.push(x.note);
+    return parts.join(' • ') || 'Schedule not listed';
+  }catch(e){ return raw; }
+}
+
 const token=new URLSearchParams(location.search).get('token');
 (async()=>{
  if(!token){document.getElementById('range').textContent='Invalid transfer link.';return;}
@@ -37,6 +49,6 @@ const token=new URLSearchParams(location.search).get('token');
  notes.textContent=e.public_notes||'Submit an interest application for this transfer cycle.';
  apply.href='transfer-apply.html?token='+encodeURIComponent(token);
  const {data:r}=await sb.from('transfer_recruiting_alliances').select('alliance_id,schedule_notes,alliances(tag)').eq('transfer_event_id',e.id).eq('is_recruiting',true).order('sort_order');
- alliances.innerHTML=r?.length?r.map(x=>`<article class="history-card"><div><b>${esc(x.alliances?.tag||'Recruiting Alliance')}</b><small>${esc(x.schedule_notes||'Schedule available from Transfer Staff')}</small></div></article>`).join(''):'<div class="empty-state">Recruiting alliances will be announced by Transfer Staff.</div>';
+ alliances.innerHTML=r?.length?r.map(x=>`<article class="history-card"><div><b>${esc(x.alliances?.tag||'Recruiting Alliance')}</b><small>${esc(transferScheduleSummary(x.schedule_notes))}</small></div></article>`).join(''):'<div class="empty-state">Recruiting alliances will be announced by Transfer Staff.</div>';
 })();
 </script></body></html>

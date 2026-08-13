@@ -1,27 +1,25 @@
-# NEXA v28 — Transfers v1
+# NEXA v28.1 — Transfer Navigation + Alliance Schedule Builder
 
-Built on the current v27.8 SvS version.
+Fixes and improvements:
+- Home always shows a Transfers section.
+  - If no cycle is open, it shows “No live Transfer event.”
+- Admin opens to the Module Chooser only.
+  - SvS information does NOT appear until SvS is selected.
+  - Transfers opens the Transfer Control Center.
+- SvS now has a ← Modules button so staff can return and choose Transfers.
+- Transfer Control Center has ← Modules and returns directly to the Admin module chooser.
 
-Included:
-- Transfers card on Home below Live & Upcoming Events when a public Transfer Cycle is open.
-- Direct public Transfer Event and direct shareable Transfer Application link.
-- Guest/public applications; no email or Discord required.
-- Application ID after submit.
-- Conditional Labyrinth Score based on the editable Special Invite Power Threshold.
-- FC10 / FC9 / FC8 / ≤FC7, T12/T11, Power, Transfer Passes, willingness to reduce power.
-- Recruiting alliances are selected per monthly cycle and show their schedules.
-- Group transfer questions and state-first acknowledgment.
-- Private Transfer Control Center.
-- Transfer Applications ranked by internal priority score.
-- Manual status dots: Not Reviewed, Needs Review, Ordinary, Special Invite, Open Transfer, Not Approved, Transferred.
-- Private Staff Notes and Manual Priority.
-- Separate SvS Staff / Transfer Staff module permissions.
-- Monthly Transfer History.
-- Existing Public/Guest SvS behavior is left intact.
+Recruiting Alliances:
+- Choose an existing alliance OR type a new Alliance Tag.
+- If the tag does not exist, NEXA creates it in the normal Alliances table.
+- Each recruiting alliance can configure:
+  - 0–4 Bear Trap times
+  - 0–2 Foundry times
+  - 0–2 Canyon times
+  - optional extra schedule note
+- All schedule times use UTC 24-hour selectors.
+- Recruiting / Not Recruiting toggle remains available.
+- Only Recruiting alliances appear in the public Transfer Form.
+- Alliance schedule is shown automatically under each recruiting alliance.
 
-Supabase:
-The Transfers v1 SQL must already have been run successfully before deploying this ZIP.
-No additional SQL is included in this ZIP.
-
-Deploy:
-Upload/replace the web files in GitHub, commit to main, and wait for Vercel.
+No new SQL is required for this update.

@@ -1,16 +1,27 @@
-# NEXA v27.8 — History Layout Restored
+# NEXA v28 — Transfers v1
 
-This matches the requested History flow:
+Built on the current v27.8 SvS version.
 
-- History is visible directly BELOW the main Admin tab row, so there is no need to swipe sideways to find it.
-- History remains a separate destination/page.
-- Clicking History opens a dedicated Event History page.
-- Search ended events by opponent state.
-- Each archived event shows:
-  - View Archive
-  - Clone Settings
-  - Delete Permanently (Owner only)
-- View Archive opens the detailed archived event with saved schedule and Prep Requests.
-- History no longer appears mixed underneath the Events content.
+Included:
+- Transfers card on Home below Live & Upcoming Events when a public Transfer Cycle is open.
+- Direct public Transfer Event and direct shareable Transfer Application link.
+- Guest/public applications; no email or Discord required.
+- Application ID after submit.
+- Conditional Labyrinth Score based on the editable Special Invite Power Threshold.
+- FC10 / FC9 / FC8 / ≤FC7, T12/T11, Power, Transfer Passes, willingness to reduce power.
+- Recruiting alliances are selected per monthly cycle and show their schedules.
+- Group transfer questions and state-first acknowledgment.
+- Private Transfer Control Center.
+- Transfer Applications ranked by internal priority score.
+- Manual status dots: Not Reviewed, Needs Review, Ordinary, Special Invite, Open Transfer, Not Approved, Transferred.
+- Private Staff Notes and Manual Priority.
+- Separate SvS Staff / Transfer Staff module permissions.
+- Monthly Transfer History.
+- Existing Public/Guest SvS behavior is left intact.
 
-No SQL changes are required.
+Supabase:
+The Transfers v1 SQL must already have been run successfully before deploying this ZIP.
+No additional SQL is included in this ZIP.
+
+Deploy:
+Upload/replace the web files in GitHub, commit to main, and wait for Vercel.

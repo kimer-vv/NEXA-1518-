@@ -1,0 +1,148 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NEXA • Transfer Control Center</title><link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
+<body><div class="nebula-bg" aria-hidden="true"></div><div class="starfield" aria-hidden="true"></div>
+<header class="topbar"><div class="shell nav"><a class="logo" href="index.html"><span class="star">✦</span><span>NEXA<small>STATE 1518</small></span></a></div></header>
+
+<main class="shell event-page transfer-admin-page">
+ <div class="transfer-admin-head"><div><span class="badge">PRIVATE</span><h1>NEXA Transfers</h1><p class="muted">Transfer Control Center</p></div><a class="btn secondary" href="index.html">← Home</a></div>
+ <div class="transfer-tabs">
+  <button class="transfer-tab active" data-tab="applications">Applications</button>
+  <button class="transfer-tab" data-tab="events">Transfer Events</button>
+  <button class="transfer-tab" data-tab="alliances">Recruiting Alliances</button>
+  <button class="transfer-tab" data-tab="permissions">Permissions</button>
+  <button class="transfer-tab" data-tab="history">History</button>
+ </div>
+ <div id="access-message" class="form-message"></div>
+
+ <section id="tab-applications" class="transfer-panel">
+  <div class="panel-head"><div><h2>Transfer Applications</h2><p class="muted">Priority is calculated from Furnace, T12/T11, power flexibility and state fit.</p></div>
+   <select id="application-event-filter"></select></div>
+  <div class="filter-row"><input id="app-search" placeholder="Search IGN, Player ID or State"><select id="status-filter"><option value="">All statuses</option><option value="not_reviewed">Not Reviewed</option><option value="needs_review">Needs Review</option><option value="ordinary">Ordinary</option><option value="special_invite">Special Invite</option><option value="open_transfer">Open Transfer</option><option value="not_approved">Not Approved</option><option value="transferred">Transferred</option></select></div>
+  <div id="applications-list" class="admin-list"></div>
+ </section>
+
+ <section id="tab-events" class="transfer-panel hidden">
+  <h2>Transfer Events</h2>
+  <form id="transfer-event-form" class="glass transfer-admin-form">
+   <input id="te_id" type="hidden">
+   <label>Cycle Title *<input id="te_title" required placeholder="August Transfer Cycle"></label>
+   <div class="two-col"><label>Destination State<input id="te_destination" value="1518" inputmode="numeric"></label><label>Power Cap<input id="te_power_cap" inputmode="numeric" placeholder="Optional"></label></div>
+   <div class="two-col"><label>Source State Min<input id="te_source_min" inputmode="numeric"></label><label>Source State Max<input id="te_source_max" inputmode="numeric"></label></div>
+   <label>Special Invite Power Threshold *<input id="te_threshold" value="1000000000" inputmode="numeric" required></label>
+   <div class="two-col"><label>Starts At<input id="te_starts" type="datetime-local"></label><label>Ends At<input id="te_ends" type="datetime-local"></label></div>
+   <label>Public Notes<textarea id="te_notes" rows="3"></textarea></label>
+   <div class="two-col"><label>Status<select id="te_status"><option value="upcoming">Upcoming</option><option value="open">Open</option><option value="closed">Closed</option><option value="archived">Archived</option></select></label><label class="check top-check"><input id="te_apps_open" type="checkbox"> Applications Open</label></div>
+   <div class="form-actions"><button id="te_cancel" class="btn secondary hidden" type="button">Cancel</button><button class="btn" type="submit">Save Transfer Event</button></div>
+  </form>
+  <div id="events-list" class="admin-list"></div>
+ </section>
+
+ <section id="tab-alliances" class="transfer-panel hidden">
+  <div class="panel-head"><div><h2>Recruiting Alliances</h2><p class="muted">Only enabled alliances appear on that cycle’s public Transfer Form.</p></div><select id="recruit-event-filter"></select></div>
+  <form id="recruit-form" class="glass transfer-admin-form"><label>Alliance<select id="recruit-alliance"></select></label><label>Schedule shown on Transfer Form<input id="recruit-schedule" placeholder="Bear 14:00/19:00 UTC • Foundry 14:00/19:00 UTC"></label><button class="btn" type="submit">Add / Update Recruiting Alliance</button></form>
+  <div id="recruit-list" class="admin-list"></div>
+ </section>
+
+ <section id="tab-permissions" class="transfer-panel hidden">
+  <h2>Module Permissions</h2><p class="muted">Public/Guest access is unchanged. These controls only decide which staff module a person can manage.</p>
+  <form id="transfer-perm-search-form" class="filter-row"><input id="transfer-perm-search" placeholder="Search IGN or Player ID"><button class="btn" type="submit">Search</button></form>
+  <div id="transfer-perm-list" class="admin-list"></div>
+ </section>
+
+ <section id="tab-history" class="transfer-panel hidden">
+  <h2>Transfer History</h2><input id="history-search-transfer" placeholder="Search cycle, State, IGN or Player ID">
+  <div id="transfer-history-list" class="admin-list"></div>
+ </section>
+</main>
+<div id="application-modal" class="modal" aria-hidden="true"><div class="modal-backdrop" data-close-app></div><section class="modal-card transfer-application-modal"><div class="modal-head"><div><small>TRANSFER APPLICATION</small><h2 id="modal-app-title">Candidate</h2></div><button class="icon-btn" data-close-app>×</button></div><div id="modal-app-body"></div></section></div>
+
+<script>
+const SUPABASE_URL="https://dfxcxboxrkfmrnsgpyin.supabase.co", SUPABASE_KEY="sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-";
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtPower=n=>{n=Number(n||0); return n>=1e9?(n/1e9).toFixed(2).replace(/\.00$/,'')+'B':n>=1e6?(n/1e6).toFixed(1).replace(/\.0$/,'')+'M':n.toLocaleString();};
+
+let events=[],applications=[],currentApp=null,isAdmin=false;
+const statusMeta={not_reviewed:['red','Not Reviewed'],needs_review:['orange','Needs Review'],ordinary:['blue','Ordinary'],special_invite:['gold','Special Invite'],open_transfer:['white','Open Transfer'],not_approved:['dark','Not Approved'],transferred:['green','Transferred']};
+function dotStatus(s){const m=statusMeta[s]||statusMeta.not_reviewed;return `<span class="dot-status ${m[0]}"><i></i>${m[1]}</span>`}
+function priorityLabel(score){return score>=90?'CRITICAL':score>=75?'VERY HIGH':score>=55?'HIGH':score>=35?'STANDARD':'LOW'}
+function tab(name){document.querySelectorAll('.transfer-panel').forEach(x=>x.classList.add('hidden'));document.getElementById('tab-'+name).classList.remove('hidden');document.querySelectorAll('.transfer-tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===name));if(name==='history')loadHistory();}
+document.querySelectorAll('.transfer-tab').forEach(b=>b.onclick=()=>tab(b.dataset.tab));
+async function guard(){const {data}=await sb.rpc('can_manage_transfers');if(data!==true){access_message.textContent='Transfer Staff access required.';document.querySelectorAll('.transfer-panel,.transfer-tabs').forEach(x=>x.classList.add('hidden'));return false;}const a=await sb.rpc('is_admin');isAdmin=a.data===true;return true;}
+async function loadEvents(){
+ const {data,error}=await sb.from('transfer_events').select('*').order('created_at',{ascending:false}); if(error)return alert(error.message);events=data||[];
+ const active=events.filter(e=>e.status!=='archived');
+ const opts=active.map(e=>`<option value="${e.id}">${esc(e.title)}</option>`).join('');
+ application_event_filter.innerHTML=opts;recruit_event_filter.innerHTML=opts;
+ events_list.innerHTML=events.length?events.map(e=>`<article class="history-card"><div><b>${esc(e.title)}</b><small>State ${e.destination_state} • ${esc(e.status)} • Cap ${e.power_cap?fmtPower(e.power_cap):'—'} • Special threshold ${fmtPower(e.special_invite_power_threshold)}</small><div class="history-summary">Applications ${e.applications_open?'OPEN':'CLOSED'} • <a href="transfer-apply.html?token=${e.public_token}" target="_blank">Direct Form Link</a></div></div><div class="history-actions"><button class="btn secondary" data-edit-event="${e.id}">Edit</button>${e.status!=='archived'?`<button class="btn secondary" data-archive-event="${e.id}">Archive Cycle</button>`:''}</div></article>`).join(''):'<div class="empty-state">No transfer cycles yet.</div>';
+ await loadApplications(); await loadRecruiting();
+}
+async function loadApplications(){
+ const id=application_event_filter.value;if(!id){applications=[];applications_list.innerHTML='<div class="empty-state">Create or open a Transfer Event first.</div>';return;}
+ const {data,error}=await sb.rpc('list_transfer_applications',{p_transfer_event_id:id});if(error){applications_list.innerHTML=`<div class="empty-state">${esc(error.message)}</div>`;return;}applications=data||[];renderApps();
+}
+function renderApps(){
+ const q=app_search.value.toLowerCase().trim(),s=status_filter.value;
+ const rows=applications.filter(a=>(!s||a.transfer_status===s)&&(!q||[a.in_game_name,a.player_id,a.current_state,a.current_alliance].join(' ').toLowerCase().includes(q)));
+ applications_list.innerHTML=rows.length?rows.map(a=>`<article class="candidate-card" data-open-app="${a.id}"><div class="candidate-main"><div><b>${esc(a.in_game_name)}</b><small>State ${a.current_state} • ${esc(a.current_alliance||'No alliance')} • ID ${esc(a.player_id)}</small></div><span class="priority-pill">${priorityLabel(a.priority_score)} • ${a.priority_score}</span></div><div class="candidate-stats"><span>${esc(a.furnace_level.toUpperCase())}</span><span>${fmtPower(a.current_power)}</span>${a.potential_special_invite?'<span>Potential Special</span>':''}</div><div>${dotStatus(a.transfer_status)}</div></article>`).join(''):'<div class="empty-state">No matching applications.</div>';
+}
+app_search.oninput=renderApps;status_filter.onchange=renderApps;application_event_filter.onchange=loadApplications;
+applications_list.onclick=async e=>{const card=e.target.closest('[data-open-app]');if(!card)return;const {data,error}=await sb.from('transfer_applications').select('*').eq('id',card.dataset.openApp).single();if(error)return alert(error.message);currentApp=data;openApplication(data);};
+function openApplication(a){
+ modal_app_title.textContent=a.in_game_name;
+ const troops=[a.t12_infantry&&'T12 Infantry',a.t12_lancer&&'T12 Lancer',a.t12_marksman&&'T12 Marksman',a.t11_infantry&&'T11 Infantry',a.t11_lancer&&'T11 Lancer',a.t11_marksman&&'T11 Marksman'].filter(Boolean).join(', ')||'No T11/T12 selected';
+ modal_app_body.innerHTML=`<div class="application-detail-grid">
+ <div><small>APPLICATION ID</small><b>${esc(a.application_id)}</b></div><div><small>PLAYER ID</small><b>${esc(a.player_id)}</b></div><div><small>STATE</small><b>${a.current_state}</b></div><div><small>ALLIANCE</small><b>${esc(a.current_alliance||'—')}</b></div>
+ <div><small>FURNACE</small><b>${esc(a.furnace_level.toUpperCase())}</b></div><div><small>POWER</small><b>${fmtPower(a.current_power)}</b></div><div><small>LABYRINTH</small><b>${a.labyrinth_score??'—'}</b></div><div><small>PASSES</small><b>${esc(a.transfer_passes)}</b></div></div>
+ <div class="detail-block"><small>ADVANCED TROOPS</small><p>${esc(troops)}</p></div>
+ <div class="detail-block"><small>GROUP</small><p>${a.transferring_with_group?`${esc(a.group_name||'Group')} • Leader ${esc(a.group_leader||'—')} • ${esc(a.group_size||'—')}`:'Individual applicant'}</p></div>
+ <div class="detail-block"><small>ADDITIONAL INFORMATION</small><p>${esc(a.additional_information||'—')}</p></div>
+ <label>Transfer Status<select id="modal-status">${Object.entries(statusMeta).map(([k,v])=>`<option value="${k}" ${a.transfer_status===k?'selected':''}>${v[1]}</option>`).join('')}</select></label>
+ <label>Staff Notes<textarea id="modal-notes" rows="5" placeholder="Private Transfer Staff notes…">${esc(a.staff_notes||'')}</textarea></label>
+ <label class="check"><input id="modal-priority" type="checkbox" ${a.manual_priority?'checked':''}> Manual Priority</label>
+ <div class="form-actions"><button id="save-application" class="btn">Save Review</button></div>`;
+ application_modal.classList.add('open');application_modal.setAttribute('aria-hidden','false');
+ save_application.onclick=saveApplication;
+}
+async function saveApplication(){const {error}=await sb.from('transfer_applications').update({transfer_status:modal_status.value,staff_notes:modal_notes.value,manual_priority:modal_priority.checked,updated_at:new Date().toISOString()}).eq('id',currentApp.id);if(error)return alert(error.message);closeApp();await loadApplications();}
+function closeApp(){application_modal.classList.remove('open');application_modal.setAttribute('aria-hidden','true');}
+document.querySelectorAll('[data-close-app]').forEach(x=>x.onclick=closeApp);
+
+transfer_event_form.onsubmit=async ev=>{ev.preventDefault();const row={title:te_title.value,destination_state:Number(te_destination.value||1518),source_state_min:te_source_min.value?Number(te_source_min.value):null,source_state_max:te_source_max.value?Number(te_source_max.value):null,power_cap:te_power_cap.value?Number(te_power_cap.value.replace(/\D/g,'')):null,special_invite_power_threshold:Number(te_threshold.value.replace(/\D/g,'')),starts_at:te_starts.value?new Date(te_starts.value).toISOString():null,ends_at:te_ends.value?new Date(te_ends.value).toISOString():null,public_notes:te_notes.value,status:te_status.value,applications_open:te_apps_open.checked,updated_at:new Date().toISOString()};let res=te_id.value?await sb.from('transfer_events').update(row).eq('id',te_id.value):await sb.from('transfer_events').insert({...row,created_at:new Date().toISOString()});if(res.error)return alert(res.error.message);resetEventForm();await loadEvents();};
+function resetEventForm(){transfer_event_form.reset();te_id.value='';te_destination.value='1518';te_threshold.value='1000000000';te_cancel.classList.add('hidden');}
+te_cancel.onclick=resetEventForm;
+events_list.onclick=async e=>{const edit=e.target.dataset.editEvent,archive=e.target.dataset.archiveEvent;if(edit){const x=events.find(v=>v.id===edit);te_id.value=x.id;te_title.value=x.title;te_destination.value=x.destination_state;te_source_min.value=x.source_state_min||'';te_source_max.value=x.source_state_max||'';te_power_cap.value=x.power_cap||'';te_threshold.value=x.special_invite_power_threshold;te_starts.value=x.starts_at?x.starts_at.slice(0,16):'';te_ends.value=x.ends_at?x.ends_at.slice(0,16):'';te_notes.value=x.public_notes||'';te_status.value=x.status;te_apps_open.checked=x.applications_open;te_cancel.classList.remove('hidden');scrollTo({top:0,behavior:'smooth'});}if(archive){if(!confirm('Archive this monthly Transfer Cycle? Applications will close and remain in Transfer History.'))return;const {error}=await sb.rpc('archive_transfer_event',{p_transfer_event_id:archive});if(error)return alert(error.message);await loadEvents();}};
+
+async function loadRecruiting(){
+ const eventId=recruit_event_filter.value;if(!eventId){recruit_list.innerHTML='<div class="empty-state">Select a Transfer Event.</div>';return;}
+ const [{data:all},{data:rows}]=await Promise.all([sb.from('alliances').select('id,tag').eq('is_active',true).order('tag'),sb.from('transfer_recruiting_alliances').select('id,alliance_id,is_recruiting,schedule_notes,sort_order,alliances(tag)').eq('transfer_event_id',eventId).order('sort_order')]);
+ recruit_alliance.innerHTML=(all||[]).map(a=>`<option value="${a.id}">${esc(a.tag)}</option>`).join('');
+ recruit_list.innerHTML=rows?.length?rows.map(r=>`<article class="history-card"><div><b>${esc(r.alliances?.tag||'Alliance')}</b><small>${esc(r.schedule_notes||'No schedule')}</small></div><div class="history-actions"><button class="btn ${r.is_recruiting?'':'secondary'}" data-toggle-recruit="${r.id}" data-active="${r.is_recruiting}">${r.is_recruiting?'Recruiting':'Not Recruiting'}</button><button class="btn danger" data-remove-recruit="${r.id}">Remove</button></div></article>`).join(''):'<div class="empty-state">No alliances configured for this cycle.</div>';
+}
+recruit_event_filter.onchange=loadRecruiting;
+recruit_form.onsubmit=async ev=>{ev.preventDefault();const row={transfer_event_id:recruit_event_filter.value,alliance_id:Number(recruit_alliance.value),is_recruiting:true,schedule_notes:recruit_schedule.value};const {error}=await sb.from('transfer_recruiting_alliances').upsert(row,{onConflict:'transfer_event_id,alliance_id'});if(error)return alert(error.message);recruit_schedule.value='';await loadRecruiting();};
+recruit_list.onclick=async e=>{const t=e.target.dataset.toggleRecruit,r=e.target.dataset.removeRecruit;if(t){const {error}=await sb.from('transfer_recruiting_alliances').update({is_recruiting:e.target.dataset.active!=='true'}).eq('id',t);if(error)return alert(error.message);await loadRecruiting();}if(r){if(!confirm('Remove this alliance from this Transfer Cycle?'))return;const {error}=await sb.from('transfer_recruiting_alliances').delete().eq('id',r);if(error)return alert(error.message);await loadRecruiting();}};
+
+async function loadPermissions(search=''){
+ if(!isAdmin){transfer_perm_list.innerHTML='<div class="empty-state">Only Admin/Owner can change module permissions.</div>';return;}
+ const {data,error}=await sb.rpc('list_permission_users',{search_text:search||null});if(error){transfer_perm_list.innerHTML=`<div class="empty-state">${esc(error.message)}</div>`;return;}
+ const rows=data||[];const ids=rows.map(x=>x.user_id);const {data:access}=ids.length?await sb.from('staff_module_access').select('*').in('user_id',ids):{data:[]};const map=Object.fromEntries((access||[]).map(x=>[x.user_id,x]));
+ transfer_perm_list.innerHTML=rows.length?rows.map(u=>{const a=map[u.user_id]||{};const role=u.role||'player';return `<article class="permission-row"><div class="permission-person"><b>${esc(u.discord_name||'Discord User')}</b><small>${esc((u.accounts||[]).map(x=>`${x.in_game_name} • ${x.alliance} • ${x.player_id}`).join(' | ')||'No claimed account')}</small></div><div class="module-access-controls"><label class="check"><input type="checkbox" data-module-user="${u.user_id}" data-module="svs_access" ${a.svs_access?'checked':''} ${role==='owner'?'disabled':''}> SvS Staff</label><label class="check"><input type="checkbox" data-module-user="${u.user_id}" data-module="transfer_access" ${a.transfer_access?'checked':''} ${role==='owner'?'disabled':''}> Transfer Staff</label>${role==='owner'?'<span class="owner-badge">Owner • Both</span>':''}</div></article>`}).join(''):'<div class="empty-state">No users found.</div>';
+}
+transfer_perm_search_form.onsubmit=async e=>{e.preventDefault();await loadPermissions(transfer_perm_search.value.trim());};
+transfer_perm_list.onchange=async e=>{const uid=e.target.dataset.moduleUser,field=e.target.dataset.module;if(!uid||!field)return;const existing={user_id:uid,[field]:e.target.checked,updated_at:new Date().toISOString()};const {data:cur}=await sb.from('staff_module_access').select('*').eq('user_id',uid).maybeSingle();const row={user_id:uid,svs_access:cur?.svs_access||false,transfer_access:cur?.transfer_access||false,updated_at:new Date().toISOString()};row[field]=e.target.checked;const {error}=await sb.from('staff_module_access').upsert(row,{onConflict:'user_id'});if(error){alert(error.message);await loadPermissions(transfer_perm_search.value.trim());}};
+
+async function loadHistory(){
+ const {data}=await sb.from('transfer_events').select('*').eq('status','archived').order('created_at',{ascending:false});
+ const q=history_search_transfer.value.toLowerCase().trim();
+ const rows=(data||[]).filter(e=>!q||[e.title,e.destination_state,e.source_state_min,e.source_state_max].join(' ').toLowerCase().includes(q));
+ transfer_history_list.innerHTML=rows.length?rows.map(e=>`<article class="history-card"><div><b>${esc(e.title)}</b><small>State ${e.destination_state} • Archived cycle</small></div><div class="history-actions"><button class="btn secondary" data-history-cycle="${e.id}">View Applications</button></div></article>`).join(''):'<div class="empty-state">No archived Transfer Cycles.</div>';
+}
+history_search_transfer.oninput=loadHistory;
+transfer_history_list.onclick=e=>{const id=e.target.dataset.historyCycle;if(id){tab('applications');application_event_filter.innerHTML+=`<option value="${id}">Archived Cycle</option>`;application_event_filter.value=id;loadApplications();}};
+
+(async()=>{if(!(await guard()))return;await loadEvents();await loadPermissions();})();
+
+</script></body></html>

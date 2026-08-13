@@ -1,0 +1,42 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NEXA • Transfers</title><link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
+<body><div class="nebula-bg" aria-hidden="true"></div><div class="starfield" aria-hidden="true"></div>
+<header class="topbar"><div class="shell nav"><a class="logo" href="index.html"><span class="star">✦</span><span>NEXA<small>STATE 1518</small></span></a></div></header>
+
+<main class="shell event-page">
+  <span class="badge transfer-badge">TRANSFERS</span>
+  <h1 id="title">Transfer Event</h1>
+  <p id="range" class="muted">Loading…</p>
+  <section class="glass transfer-public-card">
+    <div class="transfer-stat-grid">
+      <div><small>DESTINATION</small><b id="dest">—</b></div>
+      <div><small>POWER CAP</small><b id="cap">—</b></div>
+      <div><small>APPLICATIONS</small><b id="open">—</b></div>
+    </div>
+    <p id="notes" class="muted"></p>
+    <div class="form-actions"><a id="apply" class="btn" href="#">Apply for Transfer →</a></div>
+  </section>
+  <section class="section"><div class="head"><h2>Recruiting Alliances</h2></div><div id="alliances" class="admin-list"></div></section>
+</main>
+<script>
+const SUPABASE_URL="https://dfxcxboxrkfmrnsgpyin.supabase.co", SUPABASE_KEY="sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-";
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtPower=n=>{n=Number(n||0); return n>=1e9?(n/1e9).toFixed(2).replace(/\.00$/,'')+'B':n>=1e6?(n/1e6).toFixed(1).replace(/\.0$/,'')+'M':n.toLocaleString();};
+
+const token=new URLSearchParams(location.search).get('token');
+(async()=>{
+ if(!token){document.getElementById('range').textContent='Invalid transfer link.';return;}
+ const {data:e,error}=await sb.from('transfer_events').select('*').eq('public_token',token).maybeSingle();
+ if(error||!e){document.getElementById('range').textContent='This transfer event is unavailable or closed.';document.getElementById('apply').classList.add('hidden');return;}
+ title.textContent=e.title; dest.textContent='State '+e.destination_state;
+ cap.textContent=e.power_cap?fmtPower(e.power_cap):'Set by staff'; open.textContent=e.applications_open?'Open':'Closed';
+ range.textContent=(e.source_state_min||e.source_state_max)?`Eligible range: State ${e.source_state_min||'—'}–${e.source_state_max||'—'}`:'State 1518 Transfer Cycle';
+ notes.textContent=e.public_notes||'Submit an interest application for this transfer cycle.';
+ apply.href='transfer-apply.html?token='+encodeURIComponent(token);
+ const {data:r}=await sb.from('transfer_recruiting_alliances').select('alliance_id,schedule_notes,alliances(tag)').eq('transfer_event_id',e.id).eq('is_recruiting',true).order('sort_order');
+ alliances.innerHTML=r?.length?r.map(x=>`<article class="history-card"><div><b>${esc(x.alliances?.tag||'Recruiting Alliance')}</b><small>${esc(x.schedule_notes||'Schedule available from Transfer Staff')}</small></div></article>`).join(''):'<div class="empty-state">Recruiting alliances will be announced by Transfer Staff.</div>';
+})();
+</script></body></html>

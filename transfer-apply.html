@@ -1,0 +1,127 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NEXA • Transfer Application</title><link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
+<body><div class="nebula-bg" aria-hidden="true"></div><div class="starfield" aria-hidden="true"></div>
+<header class="topbar"><div class="shell nav"><a class="logo" href="index.html"><span class="star">✦</span><span>NEXA<small>STATE 1518</small></span></a></div></header>
+
+<main class="shell event-page transfer-form-page">
+ <span class="badge transfer-badge">TRANSFER INTEREST</span>
+ <h1 id="event-title">Transfer Application</h1>
+ <p class="muted">Submitting this form does not guarantee acceptance or alliance placement.</p>
+ <form id="transfer-form" class="glass transfer-form">
+  <div class="form-step"><h2>1. Applicant & Referral</h2>
+   <label>Who is completing this form? *<select id="completed_by" required><option value="self">Myself</option><option value="state_player">State 1518 player referring someone</option><option value="group_leader">Group leader completing this for a player</option></select></label>
+   <label>Were you referred by someone in State 1518? *<select id="referred"><option value="false">No</option><option value="true">Yes</option></select></label>
+   <label id="referred_by_wrap" class="hidden">Who referred you?<input id="referred_by" placeholder="Game name"></label>
+  </div>
+  <div class="form-step"><h2>2. Player Information</h2>
+   <label>In-game name *<input id="in_game_name" required></label>
+   <label>Player ID *<input id="player_id" required></label>
+   <label>Current State *<input id="current_state" inputmode="numeric" required></label>
+   <label>Current Alliance<input id="current_alliance"></label>
+   <label>Discord username <span class="optional">Optional</span><input id="discord_username" placeholder="Optional contact method"></label>
+  </div>
+  <div class="form-step"><h2>3. Account Strength</h2>
+   <label>Current Furnace Level *<select id="furnace_level" required><option value="fc10">FC10</option><option value="fc9">FC9</option><option value="fc8">FC8</option><option value="fc7_or_lower">≤ FC7</option></select></label>
+   <label>Current Total Power *<input id="current_power" inputmode="numeric" required placeholder="Example: 1250000000"></label>
+   <fieldset><legend>Advanced Troops</legend>
+    <label class="check"><input type="checkbox" id="t12_infantry"> T12 Exalted Infantry</label>
+    <label class="check"><input type="checkbox" id="t12_lancer"> T12 Exalted Lancers</label>
+    <label class="check"><input type="checkbox" id="t12_marksman"> T12 Exalted Marksmen</label>
+    <label class="check"><input type="checkbox" id="t11_infantry"> T11 Helios Infantry</label>
+    <label class="check"><input type="checkbox" id="t11_lancer"> T11 Helios Lancers</label>
+    <label class="check"><input type="checkbox" id="t11_marksman"> T11 Helios Marksmen</label>
+   </fieldset>
+   <div id="threshold-note" class="info-box"></div>
+   <label id="labyrinth_wrap" class="hidden">Labyrinth Score *<input id="labyrinth_score" inputmode="numeric"></label>
+   <label>Do you have enough Transfer Passes/Tickets? *<select id="transfer_passes"><option value="yes">Yes</option><option value="no">No</option><option value="not_sure">Not sure</option></select></label>
+   <label>If power reduction is required, are you willing to dismiss/kill troops? *<select id="willing_to_reduce_power"><option value="yes">Yes</option><option value="need_amount">I need to know how much</option><option value="not_sure">Not sure</option><option value="no">No</option></select></label>
+  </div>
+  <div class="form-step"><h2>4. Placement & Availability</h2>
+   <div><b>Which recruiting alliances are you open to joining?</b><div id="alliance_choices" class="choice-stack"></div></div>
+   <label class="check"><input type="checkbox" id="flexible_alliance"> Any recruiting alliance / I'm flexible</label>
+   <fieldset><legend>UTC time ranges that work for major events</legend>
+    <div id="utc_ranges" class="choice-grid"></div>
+   </fieldset>
+   <label>Can you join Discord Voice Chat during major battles/events?<select id="discord_vc"><option value="yes">Yes</option><option value="sometimes">Sometimes</option><option value="no">No</option></select></label>
+  </div>
+  <div class="form-step"><h2>5. Group Transfer</h2>
+   <label>Are you planning to transfer with a group? *<select id="transferring_with_group"><option value="false">No</option><option value="true">Yes</option></select></label>
+   <div id="group_fields" class="hidden">
+    <label>Group name *<input id="group_name"></label><label>Group leader *<input id="group_leader"></label>
+    <label>Approximate group size<select id="group_size"><option value="2-5">2–5</option><option value="6-10">6–10</option><option value="11-20">11–20</option><option value="21-30">21–30</option><option value="31+">31+</option></select></label>
+    <label>Are other members submitting individual applications?<select id="group_members_submitting"><option>Yes</option><option>No</option><option>Some of them</option></select></label>
+    <label>Would you still transfer if the entire group cannot be accepted?<select id="transfer_without_full_group"><option>Yes</option><option>No</option><option>It depends</option></select></label>
+   </div>
+  </div>
+  <div class="form-step"><h2>6. Additional Information</h2>
+   <label>Current State X:Y coordinates <span class="optional">Optional</span><input id="coordinates" placeholder="X:532 Y:814"></label>
+   <label>Anything else Transfer Staff should know? <span class="optional">Optional</span><textarea id="additional_information" rows="4"></textarea></label>
+   <label>Which best describes you? *<select id="state_playstyle"><option value="state_first">I am comfortable with a state-first, coordinated playstyle.</option><option value="need_more_information">I would like more information before deciding.</option><option value="individual_first">I generally prefer an individual-first playstyle.</option></select></label>
+  </div>
+  <div class="form-step"><h2>7. Final Confirmation</h2>
+   <label class="check"><input id="confirms_information" type="checkbox" required> The information I provided is accurate.</label>
+   <label class="check"><input id="confirms_interest_only" type="checkbox" required> I understand this is an interest application and does not guarantee acceptance.</label>
+   <label class="check"><input id="confirms_alliance_flexibility" type="checkbox" required> I understand alliance placement depends on state needs and availability.</label>
+   <div id="contact-warning" class="warning-box hidden"><b>No contact information provided.</b><br>Your application can still be submitted. Save your Application ID so staff can locate it later.</div>
+  </div>
+  <div id="form-message" class="form-message"></div>
+  <button class="btn" type="submit">Submit Transfer Interest</button>
+ </form>
+ <section id="success-card" class="glass success-card hidden"><span class="badge">RECEIVED</span><h2>Application Submitted ✓</h2><p>Your Application ID:</p><div id="application-id" class="application-id"></div><button id="copy-id" class="btn secondary" type="button">Copy Application ID</button><p class="muted">Save this ID, especially if you did not provide contact information.</p></section>
+</main>
+<script>
+const SUPABASE_URL="https://dfxcxboxrkfmrnsgpyin.supabase.co", SUPABASE_KEY="sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-";
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtPower=n=>{n=Number(n||0); return n>=1e9?(n/1e9).toFixed(2).replace(/\.00$/,'')+'B':n>=1e6?(n/1e6).toFixed(1).replace(/\.0$/,'')+'M':n.toLocaleString();};
+
+const token=new URLSearchParams(location.search).get('token'); let eventData=null;
+const ranges=['00:00–04:00','04:00–08:00','08:00–12:00','12:00–16:00','16:00–20:00','20:00–24:00'];
+utc_ranges.innerHTML=ranges.map(x=>`<label class="check"><input type="checkbox" value="${x}"> ${x} UTC</label>`).join('');
+referred.addEventListener('change',()=>referred_by_wrap.classList.toggle('hidden',referred.value!=='true'));
+transferring_with_group.addEventListener('change',()=>group_fields.classList.toggle('hidden',transferring_with_group.value!=='true'));
+function cleanNumber(v){return Number(String(v).replace(/[^0-9]/g,''));}
+function thresholdCheck(){
+ if(!eventData)return;
+ const power=cleanNumber(current_power.value);
+ const show=power>Number(eventData.special_invite_power_threshold||1e9);
+ labyrinth_wrap.classList.toggle('hidden',!show); labyrinth_score.required=show;
+ threshold_note.innerHTML=`Special Invite review threshold for this cycle: <b>${fmtPower(eventData.special_invite_power_threshold)}</b>. ${show?'Your power is above this threshold, so Labyrinth Score is required.':'Labyrinth Score is only requested above this threshold.'}`;
+}
+current_power.addEventListener('input',thresholdCheck);
+discord_username.addEventListener('input',()=>contact_warning.classList.toggle('hidden',!!discord_username.value.trim()));
+(async()=>{
+ if(!token){form_message.textContent='Invalid application link.';return;}
+ const {data:e,error}=await sb.from('transfer_events').select('*').eq('public_token',token).maybeSingle();
+ if(error||!e){transfer_form.classList.add('hidden');form_message.textContent='This transfer application is unavailable or closed.';return;}
+ eventData=e; event_title.textContent=e.title; thresholdCheck();
+ const {data:r}=await sb.from('transfer_recruiting_alliances').select('alliance_id,schedule_notes,alliances(tag)').eq('transfer_event_id',e.id).eq('is_recruiting',true).order('sort_order');
+ alliance_choices.innerHTML=r?.length?r.map(x=>`<label class="alliance-choice"><input type="checkbox" value="${x.alliance_id}"><span><b>${esc(x.alliances?.tag||'Alliance')}</b><small>${esc(x.schedule_notes||'Schedule not listed')}</small></span></label>`).join(''):'<div class="muted">No specific alliance preference is required for this cycle.</div>';
+})();
+transfer_form.addEventListener('submit',async ev=>{
+ ev.preventDefault(); form_message.textContent='Submitting…';
+ const ids=[...alliance_choices.querySelectorAll('input:checked')].map(x=>x.value);
+ const times=[...utc_ranges.querySelectorAll('input:checked')].map(x=>x.value);
+ if(!flexible_alliance.checked && ids.length===0){form_message.textContent='Choose at least one recruiting alliance or select “I’m flexible.”';return;}
+ const payload={
+  completed_by:completed_by.value,referred:referred.value==='true',referred_by:referred_by.value,
+  in_game_name:in_game_name.value,player_id:player_id.value,current_state:current_state.value,current_alliance:current_alliance.value,discord_username:discord_username.value,
+  furnace_level:furnace_level.value,current_power:String(cleanNumber(current_power.value)),
+  t12_infantry:t12_infantry.checked,t12_lancer:t12_lancer.checked,t12_marksman:t12_marksman.checked,t11_infantry:t11_infantry.checked,t11_lancer:t11_lancer.checked,t11_marksman:t11_marksman.checked,
+  willing_to_reduce_power:willing_to_reduce_power.value,labyrinth_score:labyrinth_score.value,transfer_passes:transfer_passes.value,
+  preferred_alliance_ids:ids,flexible_alliance:flexible_alliance.checked,preferred_utc_ranges:times,discord_vc:discord_vc.value,
+  transferring_with_group:transferring_with_group.value==='true',group_name:group_name.value,group_leader:group_leader.value,group_size:group_size.value,
+  group_members_submitting:[group_members_submitting.value],transfer_without_full_group:[transfer_without_full_group.value],
+  coordinates:coordinates.value,additional_information:[additional_information.value],state_playstyle:state_playstyle.value,
+  confirms_information:confirms_information.checked,confirms_interest_only:confirms_interest_only.checked,confirms_alliance_flexibility:confirms_alliance_flexibility.checked
+ };
+ const {data,error}=await sb.rpc('submit_transfer_application',{p_event_token:token,p_payload:payload});
+ if(error){form_message.textContent=error.message;return;}
+ transfer_form.classList.add('hidden');success_card.classList.remove('hidden');application_id.textContent=data.application_id;
+ if(data.duplicate) success_card.insertAdjacentHTML('beforeend','<div class="warning-box">A submission with this Player ID already exists in this transfer cycle. Transfer Staff will review both.</div>');
+});
+copy_id.addEventListener('click',async()=>{await navigator.clipboard.writeText(application_id.textContent);copy_id.textContent='Copied ✓';});
+
+</script></body></html>

@@ -90,6 +90,14 @@
     </div>
   </section>
 
+  <section id="home-transfers-section" class="section hidden">
+    <div class="head">
+      <h2>Transfers</h2>
+      <span>State 1518</span>
+    </div>
+    <div id="home-transfer-events" class="glass events"></div>
+  </section>
+
   <div class="footer">
     One State. One Vision. One Victory.<br>
     NEXA • State 1518
@@ -190,6 +198,15 @@
       <button class="icon-btn" type="button" data-close-admin>×</button>
     </div>
 
+    <div id="admin-module-chooser" class="module-chooser">
+      <button id="open-svs-admin" class="module-card" type="button">
+        <span class="module-kicker">MODULE</span><b>SvS</b><small>Events, Prep Requests, Schedule, Announcements & History</small>
+      </button>
+      <button id="open-transfer-admin" class="module-card" type="button">
+        <span class="module-kicker">MODULE</span><b>Transfers</b><small>Transfer cycles, applications, recruiting alliances & staff notes</small>
+      </button>
+    </div>
+    <div id="svs-admin-content">
     <div class="admin-quick-links"><a class="btn" href="prep-requests.html">Prep Requests</a></div>
     <div class="admin-tabs">
       <button class="admin-tab active" type="button" data-admin-tab="events">Events</button>
@@ -416,7 +433,8 @@
     </section>
 
     
-  </section>
+      </div>
+</section>
 </div>
 
 
@@ -852,6 +870,42 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   document.getElementById('prep-monday').addEventListener('change', renderEventPreview);
+
+  
+  async function getModuleAccess(){
+    const [{data:svs},{data:transfers}] = await Promise.all([
+      supabaseClient.rpc('can_manage_svs'),
+      supabaseClient.rpc('can_manage_transfers')
+    ]);
+    return {svs:svs===true, transfers:transfers===true};
+  }
+
+  async function configureAdminModules(){
+    const access=await getModuleAccess();
+    const svsBtn=document.getElementById('open-svs-admin');
+    const transferBtn=document.getElementById('open-transfer-admin');
+    if(svsBtn) svsBtn.classList.toggle('hidden',!access.svs);
+    if(transferBtn) transferBtn.classList.toggle('hidden',!access.transfers);
+    const svsContent=document.getElementById('svs-admin-content');
+    if(svsContent) svsContent.classList.add('hidden');
+    const chooser=document.getElementById('admin-module-chooser');
+    if(chooser) chooser.classList.remove('hidden');
+
+    if(access.svs && !access.transfers){
+      chooser?.classList.add('hidden');
+      svsContent?.classList.remove('hidden');
+    } else if(!access.svs && access.transfers){
+      location.href='transfer-admin.html';
+    }
+  }
+
+  document.getElementById('open-svs-admin')?.addEventListener('click',()=>{
+    document.getElementById('admin-module-chooser')?.classList.add('hidden');
+    document.getElementById('svs-admin-content')?.classList.remove('hidden');
+  });
+  document.getElementById('open-transfer-admin')?.addEventListener('click',()=>{
+    location.href='transfer-admin.html';
+  });
 
   adminButton.addEventListener('click', async () => {
     if (!(await ensureAdmin())) return;
@@ -1603,6 +1657,33 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   await syncHomeLiveEvent();
+
+
+  async function loadHomeTransfers(){
+    const section=document.getElementById('home-transfers-section');
+    const list=document.getElementById('home-transfer-events');
+    if(!section || !list) return;
+    const {data,error}=await supabaseClient.from('transfer_events')
+      .select('id,title,destination_state,source_state_min,source_state_max,public_token,starts_at,ends_at')
+      .eq('status','open').eq('applications_open',true)
+      .order('starts_at',{ascending:true});
+    if(error || !data?.length){ section.classList.add('hidden'); return; }
+    section.classList.remove('hidden');
+    list.innerHTML=data.map(e=>{
+      const range=(e.source_state_min||e.source_state_max)
+        ? `States ${e.source_state_min||'—'}–${e.source_state_max||'—'} → ${e.destination_state}`
+        : `Transfer to State ${e.destination_state}`;
+      return `<article class="event transfer-home-card">
+        <div class="event-row"><div><span class="badge transfer-badge">Open</span>
+        <h3>${e.title}</h3><div class="muted">${range}</div></div></div>
+        <div class="event-actions">
+          <a class="btn secondary" href="transfer-event.html?token=${e.public_token}">View Transfer</a>
+          <a class="btn" href="transfer-apply.html?token=${e.public_token}">Apply →</a>
+        </div></article>`;
+    }).join('');
+  }
+
+  await loadHomeTransfers();
 
 });
 </script>

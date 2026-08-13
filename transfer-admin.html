@@ -6,9 +6,10 @@
 <header class="topbar"><div class="shell nav"><a class="logo" href="index.html"><span class="star">✦</span><span>NEXA<small>STATE 1518</small></span></a></div></header>
 
 <main class="shell event-page transfer-admin-page">
- <div class="transfer-admin-head"><div><span class="badge">PRIVATE</span><h1>NEXA Transfers</h1><p class="muted">Transfer Control Center <span class="build-tag">v28.7</span></p></div><a class="btn secondary" href="index.html?admin=modules">← Modules</a></div>
+ <div class="transfer-admin-head"><div><span class="badge">PRIVATE</span><h1>NEXA Transfers</h1><p class="muted">Transfer Control Center <span class="build-tag">v28.8</span></p></div><a class="btn secondary" href="index.html?admin=modules">← Modules</a></div>
  <div class="transfer-tabs">
   <button class="transfer-tab active" data-tab="applications">Applications</button>
+  <button class="transfer-tab" data-tab="form">Transfer Form</button>
   <button class="transfer-tab" data-tab="events">Transfer Events</button>
   <button class="transfer-tab" data-tab="alliances">Recruiting Alliances</button>
   <button class="transfer-tab" data-tab="permissions">Permissions</button>
@@ -19,6 +20,9 @@
  <section id="tab-applications" class="transfer-panel">
   <div class="panel-head"><div><h2>Transfer Applications</h2><p class="muted">Priority is calculated from Furnace, T12/T11, power flexibility and state fit.</p></div>
    <select id="application-event-filter"></select></div>
+  <div class="form-actions compact-actions">
+    <button id="go-transfer-form" class="btn secondary" type="button">View Transfer Form</button>
+  </div>
   <div class="filter-row"><input id="app-search" placeholder="Search IGN, Player ID or State"><select id="status-filter"><option value="">All statuses</option><option value="not_reviewed">Not Reviewed</option><option value="needs_review">Needs Review</option><option value="ordinary">Ordinary</option><option value="special_invite">Special Invite</option><option value="open_transfer">Open Transfer</option><option value="not_approved">Not Approved</option><option value="transferred">Transferred</option></select></div>
   <div id="applications-list" class="admin-list"></div>
  </section>
@@ -40,7 +44,70 @@
       <div><small>ORDINARY CAP</small><b id="transfer-form-ordinary-cap">—</b></div>
       <div><small>SPECIAL CAP</small><b id="transfer-form-special-cap">—</b></div>
     </div>
-    <p class="muted">The form includes the full applicant questions we created: referral, IGN, Player ID, State, Alliance, optional Discord, Furnace Level, Power, T12/T11, conditional Labyrinth Score, Transfer Passes, troop reduction willingness, recruiting alliance preferences and schedules, UTC availability, VC, group transfer, coordinates, notes, state-first acknowledgment, and Application ID.</p>
+    <p class="muted">This is the exact public application that applicants will complete. Every submission goes directly into Applications.</p>
+
+    <div class="form-question-preview">
+      <h3>Transfer Application Questions</h3>
+
+      <div class="preview-group">
+        <b>1. Applicant & Referral</b>
+        <span>Who is completing this form?</span>
+        <span>Were you referred by someone in State 1518?</span>
+        <span>Who referred you? <small>Conditional</small></span>
+      </div>
+
+      <div class="preview-group">
+        <b>2. Player Information</b>
+        <span>In-game name</span>
+        <span>Player ID</span>
+        <span>Current State</span>
+        <span>Current Alliance</span>
+        <span>Discord username <small>Optional</small></span>
+      </div>
+
+      <div class="preview-group">
+        <b>3. Account Strength</b>
+        <span>Furnace Level — FC10 / FC9 / FC8 / ≤ FC7</span>
+        <span>Current Total Power</span>
+        <span>T12 Exalted Infantry / Lancers / Marksmen</span>
+        <span>T11 Helios Infantry / Lancers / Marksmen</span>
+        <span>Labyrinth Score <small>Only above Special Invite threshold</small></span>
+        <span>Enough Transfer Passes/Tickets?</span>
+        <span>Willing to dismiss/kill troops if power reduction is needed?</span>
+      </div>
+
+      <div class="preview-group">
+        <b>4. Placement & Availability</b>
+        <span>Which Recruiting Alliances are you open to joining?</span>
+        <span>Each Recruiting Alliance shows its Bear / Foundry / Canyon / other event UTC schedules.</span>
+        <span>Any recruiting alliance / flexible?</span>
+        <span>Preferred UTC event ranges</span>
+        <span>Can you join Discord VC during major events?</span>
+      </div>
+
+      <div class="preview-group">
+        <b>5. Group Transfer</b>
+        <span>Are you transferring with a group?</span>
+        <span>Group name / leader / approximate size <small>Conditional</small></span>
+        <span>Are other group members submitting applications?</span>
+        <span>Would you transfer if the entire group cannot be accepted?</span>
+      </div>
+
+      <div class="preview-group">
+        <b>6. Additional Information</b>
+        <span>Current State X:Y coordinates <small>Optional</small></span>
+        <span>Anything else Transfer Staff should know? <small>Optional</small></span>
+        <span>State-first / coordinated playstyle acknowledgment</span>
+      </div>
+
+      <div class="preview-group">
+        <b>7. Final Confirmation</b>
+        <span>Information is accurate</span>
+        <span>Application does not guarantee acceptance</span>
+        <span>Alliance placement depends on state needs and availability</span>
+        <span>Applicant receives a NEXA Transfer Application ID after Submit</span>
+      </div>
+    </div>
     <div class="form-actions">
       <a id="open-transfer-form" class="btn" href="#" target="_blank">Open / Preview Form</a>
       <button id="copy-transfer-form-link" class="btn secondary" type="button">Copy Direct Form Link</button>
@@ -295,6 +362,13 @@ function refreshTransferFormPanel(){
   open_transfer_form.href=url.href;
 }
 form_event_filter.onchange=refreshTransferFormPanel;
+document.getElementById('go-transfer-form')?.addEventListener('click',()=>{
+  tab('form');
+  if(application_event_filter.value){
+    form_event_filter.value=application_event_filter.value;
+    refreshTransferFormPanel();
+  }
+});
 copy_transfer_form_link.onclick=async()=>{
   const txt=transfer_form_link.textContent.trim();
   if(!txt){transfer_form_message.textContent='Select a Transfer Event first.';return;}

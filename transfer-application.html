@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#05050d">
+<title>NEXA • Transfer Application Review</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="shell nav">
+    <a class="logo" href="index.html">
+      <span class="star">✦</span>
+      <span>NEXA<small>STATE 1518 • TRANSFERS</small></span>
+    </a>
+  </div>
+</header>
+
+<main class="shell fullscreen-app-review">
+  <div class="review-topbar">
+    <button id="back-applications" class="btn secondary" type="button">← Back to Applications</button>
+    <span class="badge">APPLICATION REVIEW</span>
+  </div>
+
+  <section id="loading-card" class="glass review-shell">
+    <p class="muted">Loading application…</p>
+  </section>
+
+  <section id="review-card" class="glass review-shell hidden">
+    <div class="review-heading">
+      <div>
+        <span class="badge transfer-badge">TRANSFER APPLICATION</span>
+        <h1 id="review-name">Application</h1>
+        <p id="review-subtitle" class="muted"></p>
+      </div>
+      <div id="review-status-badge"></div>
+    </div>
+
+    <div id="review-grid" class="application-detail-grid review-grid"></div>
+
+    <div class="review-section">
+      <small>ADVANCED TROOPS</small>
+      <p id="review-troops"></p>
+    </div>
+
+    <div class="review-section">
+      <small>REFERRED BY</small>
+      <p id="review-referral"></p>
+    </div>
+
+    <div class="review-section">
+      <small>PREFERRED ALLIANCES</small>
+      <p id="review-alliances"></p>
+    </div>
+
+    <div class="review-section">
+      <small>UTC AVAILABILITY</small>
+      <p id="review-times"></p>
+    </div>
+
+    <div class="review-section">
+      <small>GROUP TRANSFER</small>
+      <p id="review-group"></p>
+    </div>
+
+    <div class="review-section">
+      <small>ADDITIONAL INFORMATION</small>
+      <p id="review-additional"></p>
+    </div>
+
+    <div class="review-section">
+      <small>COORDINATES</small>
+      <p id="review-coordinates"></p>
+    </div>
+
+    <div class="review-edit-panel">
+      <label>Transfer Status
+        <select id="review-status">
+          <option value="not_reviewed">Not Reviewed</option>
+          <option value="needs_review">Needs Review</option>
+          <option value="ordinary">Ordinary</option>
+          <option value="special_invite">Special Invite</option>
+          <option value="open_transfer">Open Transfer</option>
+          <option value="not_approved">Not Approved</option>
+          <option value="transferred">Transferred</option>
+        </select>
+      </label>
+
+      <label>Staff Notes
+        <textarea id="review-notes" rows="7" placeholder="Private Transfer Staff notes…"></textarea>
+      </label>
+
+      <label class="check review-priority-check">
+        <input id="review-priority" type="checkbox">
+        Manual Priority
+      </label>
+
+      <div class="form-actions sticky-review-actions">
+        <button id="save-review" class="btn" type="button">Save Review</button>
+        <button id="back-bottom" class="btn secondary" type="button">Back to Applications</button>
+      </div>
+
+      <p id="review-message" class="muted"></p>
+    </div>
+  </section>
+</main>
+
+<script>
+const SUPABASE_URL="https://dfxcxboxrkfmrnsgpyin.supabase.co";
+const SUPABASE_KEY="sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-";
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+const qs=new URLSearchParams(location.search);
+const applicationId=qs.get('id');
+const eventId=qs.get('event')||'';
+
+const loadingCard=document.getElementById('loading-card');
+const reviewCard=document.getElementById('review-card');
+const reviewName=document.getElementById('review-name');
+const reviewSubtitle=document.getElementById('review-subtitle');
+const reviewStatusBadge=document.getElementById('review-status-badge');
+const reviewGrid=document.getElementById('review-grid');
+const reviewTroops=document.getElementById('review-troops');
+const reviewReferral=document.getElementById('review-referral');
+const reviewAlliances=document.getElementById('review-alliances');
+const reviewTimes=document.getElementById('review-times');
+const reviewGroup=document.getElementById('review-group');
+const reviewAdditional=document.getElementById('review-additional');
+const reviewCoordinates=document.getElementById('review-coordinates');
+const reviewStatus=document.getElementById('review-status');
+const reviewNotes=document.getElementById('review-notes');
+const reviewPriority=document.getElementById('review-priority');
+const reviewMessage=document.getElementById('review-message');
+
+const statusMeta={
+  not_reviewed:['red','Not Reviewed'],
+  needs_review:['orange','Needs Review'],
+  ordinary:['blue','Ordinary'],
+  special_invite:['gold','Special Invite'],
+  open_transfer:['white','Open Transfer'],
+  not_approved:['dark','Not Approved'],
+  transferred:['green','Transferred']
+};
+
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({
+  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+}[c]));
+
+const fmtPower=n=>{
+  n=Number(n||0);
+  return n>=1e9?(n/1e9).toFixed(2).replace(/\.00$/,'')+'B':
+         n>=1e6?(n/1e6).toFixed(1).replace(/\.0$/,'')+'M':
+         n.toLocaleString();
+};
+
+function statusBadge(s){
+  const m=statusMeta[s]||statusMeta.not_reviewed;
+  return `<span class="dot-status ${m[0]}"><i></i>${m[1]}</span>`;
+}
+
+function backToApplications(){
+  const suffix=eventId?`?tab=applications&event=${encodeURIComponent(eventId)}`:'?tab=applications';
+  location.href='transfer-admin.html'+suffix;
+}
+document.getElementById('back-applications').onclick=backToApplications;
+document.getElementById('back-bottom').onclick=backToApplications;
+
+async function loadApplication(){
+  if(!applicationId){
+    loadingCard.innerHTML='<p class="muted">Application ID is missing.</p>';
+    return;
+  }
+
+  const {data:canManage}=await sb.rpc('can_manage_transfers');
+  const {data:isAdmin}=await sb.rpc('is_admin');
+  if(canManage!==true && isAdmin!==true){
+    loadingCard.innerHTML='<p class="muted">Transfer Staff access required.</p>';
+    return;
+  }
+
+  const {data:a,error}=await sb
+    .from('transfer_applications')
+    .select('*')
+    .eq('id',applicationId)
+    .single();
+
+  if(error){
+    loadingCard.innerHTML=`<p class="muted">${esc(error.message)}</p>`;
+    return;
+  }
+
+  const allianceIds=Array.isArray(a.preferred_alliance_ids)?a.preferred_alliance_ids:[];
+  let allianceNames=[];
+  if(allianceIds.length){
+    const {data:alliances}=await sb.from('alliances').select('id,tag').in('id',allianceIds);
+    allianceNames=(alliances||[]).map(x=>x.tag);
+  }
+
+  reviewName.textContent=a.in_game_name||'Application';
+  reviewSubtitle.textContent=`Application ${a.application_id||''} • Player ID ${a.player_id||'—'}`;
+  reviewStatusBadge.innerHTML=statusBadge(a.transfer_status);
+
+  reviewGrid.innerHTML=`
+    <div><small>APPLICATION ID</small><b>${esc(a.application_id||'—')}</b></div>
+    <div><small>PLAYER ID</small><b>${esc(a.player_id||'—')}</b></div>
+    <div><small>STATE</small><b>${esc(a.current_state??'—')}</b></div>
+    <div><small>ALLIANCE</small><b>${esc(a.current_alliance||'—')}</b></div>
+    <div><small>FURNACE</small><b>${esc((a.furnace_level||'—').toUpperCase())}</b></div>
+    <div><small>POWER</small><b>${fmtPower(a.current_power)}</b></div>
+    <div><small>LABYRINTH</small><b>${esc(a.labyrinth_score??'—')}</b></div>
+    <div><small>PASSES</small><b>${esc(a.transfer_passes||'—')}</b></div>
+    <div><small>DISCORD</small><b>${esc(a.discord_username||'Not provided')}</b></div>
+    <div><small>VOICE CHAT</small><b>${esc(a.discord_vc||'—')}</b></div>
+    <div><small>POWER REDUCTION</small><b>${esc(a.willing_to_reduce_power||'—')}</b></div>
+    <div><small>FUTURE INTEREST</small><b>${a.submitted_after_event_end?'Yes':'No'}</b></div>
+  `;
+
+  const troops=[
+    a.t12_infantry&&'T12 Infantry',
+    a.t12_lancer&&'T12 Lancers',
+    a.t12_marksman&&'T12 Marksmen',
+    a.t11_infantry&&'T11 Infantry',
+    a.t11_lancer&&'T11 Lancers',
+    a.t11_marksman&&'T11 Marksmen'
+  ].filter(Boolean);
+
+  reviewTroops.textContent=troops.length?troops.join(', '):'No T11/T12 troops selected.';
+  reviewReferral.textContent=a.referred ? (a.referred_by||'Referred — name not provided') : 'No referral';
+  reviewAlliances.textContent=[
+    allianceNames.length?allianceNames.join(', '):'No specific alliance selected',
+    a.flexible_alliance?'Flexible / any recruiting alliance':null
+  ].filter(Boolean).join(' • ');
+  reviewTimes.textContent=Array.isArray(a.preferred_utc_ranges)&&a.preferred_utc_ranges.length
+    ?a.preferred_utc_ranges.join(', ')+' UTC'
+    :'No UTC ranges selected';
+
+  reviewGroup.textContent=a.transferring_with_group
+    ?[
+       a.group_name&&`Group: ${a.group_name}`,
+       a.group_leader&&`Leader: ${a.group_leader}`,
+       a.group_size&&`Size: ${a.group_size}`,
+       a.group_members_submitting&&`Other applications: ${a.group_members_submitting}`,
+       a.transfer_without_full_group&&`Transfer without full group: ${a.transfer_without_full_group}`
+     ].filter(Boolean).join(' • ')
+    :'Individual applicant';
+
+  reviewAdditional.textContent=a.additional_information||'—';
+  reviewCoordinates.textContent=a.coordinates||'—';
+
+  reviewStatus.value=a.transfer_status||'not_reviewed';
+  reviewNotes.value=a.staff_notes||'';
+  reviewPriority.checked=!!a.manual_priority;
+
+  loadingCard.classList.add('hidden');
+  reviewCard.classList.remove('hidden');
+}
+
+document.getElementById('save-review').onclick=async()=>{
+  reviewMessage.textContent='Saving…';
+  const {error}=await sb
+    .from('transfer_applications')
+    .update({
+      transfer_status:reviewStatus.value,
+      staff_notes:reviewNotes.value,
+      manual_priority:reviewPriority.checked,
+      updated_at:new Date().toISOString()
+    })
+    .eq('id',applicationId);
+
+  if(error){
+    reviewMessage.textContent=error.message;
+    return;
+  }
+
+  reviewStatusBadge.innerHTML=statusBadge(reviewStatus.value);
+  reviewMessage.textContent='Saved ✓';
+};
+
+loadApplication();
+</script>
+</body>
+</html>

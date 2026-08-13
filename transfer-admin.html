@@ -22,7 +22,7 @@ resolveHomeManageToken();
 <header class="topbar"><div class="shell nav"><a class="logo" href="index.html"><span class="star">✦</span><span>NEXA<small>STATE 1518</small></span></a></div></header>
 
 <main class="shell event-page transfer-admin-page">
- <div class="transfer-admin-head"><div><span class="badge">PRIVATE</span><h1>NEXA Transfers</h1><p class="muted">Transfer Control Center <span class="build-tag">v31.4</span></p><div id="transfer-diagnostic" class="diagnostic-chip">Loading transfer data…</div></div><a class="btn secondary" href="index.html?admin=modules&v=292">← Modules</a></div>
+ <div class="transfer-admin-head"><div><span class="badge">PRIVATE</span><h1>NEXA Transfers</h1><p class="muted">Transfer Control Center <span class="build-tag">v31.7</span></p><div id="transfer-diagnostic" class="diagnostic-chip">Loading transfer data…</div></div><a class="btn secondary" href="index.html?admin=modules&v=292">← Modules</a></div>
  <div class="transfer-tabs">
   <button class="transfer-tab active" data-tab="applications">Applications</button>
   <button class="transfer-tab" data-tab="form">Transfer Form</button>
@@ -387,7 +387,7 @@ function fillTransferEventForm(x){
 }
 
 async function loadEvents(){
- const {data,error}=await sb.from('transfer_events').select('*').order('created_at',{ascending:false}); if(error)return alert(error.message);events=data||[]; if(transfer_diagnostic) transfer_diagnostic.textContent=`v31.4 • ${events.length} transfer event(s) loaded`;
+ const {data,error}=await sb.from('transfer_events').select('*').order('created_at',{ascending:false}); if(error)return alert(error.message);events=data||[]; if(transfer_diagnostic) transfer_diagnostic.textContent=`v31.7 • ${events.length} transfer event(s) loaded`;
  const active=events.filter(e=>e.status!=='archived');
  const opts=active.map(e=>`<option value="${e.id}">${esc(e.title)}</option>`).join('');
  application_event_filter.innerHTML=opts;
@@ -461,7 +461,13 @@ function renderApps(){
  applications_list.innerHTML=rows.length?rows.map(a=>`<article class="candidate-card" data-open-app="${a.id}"><div class="candidate-main"><div><b>${esc(a.in_game_name)}</b><small>State ${a.current_state} • ${esc(a.current_alliance||'No alliance')} • ID ${esc(a.player_id)}</small></div><span class="priority-pill">${priorityLabel(a.priority_score)} • ${a.priority_score}</span></div><div class="candidate-stats"><span>${esc(a.furnace_level.toUpperCase())}</span><span>${fmtPower(a.current_power)}</span>${a.potential_special_invite?'<span>Potential Special</span>':''}</div><div>${dotStatus(a.transfer_status)} ${a.submitted_after_event_end?'<span class="future-interest-badge">Future Interest</span>':''}</div></article>`).join(''):'<div class="empty-state">No matching applications.</div>';
 }
 app_search.oninput=renderApps;status_filter.onchange=renderApps;application_event_filter.onchange=loadApplications;
-applications_list.onclick=async e=>{const card=e.target.closest('[data-open-app]');if(!card)return;const {data,error}=await sb.from('transfer_applications').select('*').eq('id',card.dataset.openApp).single();if(error)return alert(error.message);currentApp=data;openApplication(data);};
+applications_list.onclick=e=>{
+  const card=e.target.closest('[data-open-app]');
+  if(!card)return;
+  const appId=card.dataset.openApp;
+  const eventId=application_event_filter.value||'';
+  location.href=`transfer-application.html?id=${encodeURIComponent(appId)}&event=${encodeURIComponent(eventId)}`;
+};
 function openApplication(a){
  modal_app_title.textContent=a.in_game_name;
  const troops=[a.t12_infantry&&'T12 Infantry',a.t12_lancer&&'T12 Lancer',a.t12_marksman&&'T12 Marksman',a.t11_infantry&&'T11 Infantry',a.t11_lancer&&'T11 Lancer',a.t11_marksman&&'T11 Marksman'].filter(Boolean).join(', ')||'No T11/T12 selected';
@@ -685,7 +691,7 @@ async function loadRecruiting(){
  recruit_alliance.innerHTML='<option value="">Select existing alliance</option>'+allianceOptions.map(a=>`<option value="${a.id}">${esc(a.tag)}</option>`).join('');
  const helper=document.getElementById('existing-alliance-count');
  if(helper) helper.textContent=`${allianceOptions.length} alliance${allianceOptions.length===1?'':'s'} available`;
- if(!allErr && transfer_diagnostic) transfer_diagnostic.textContent=`v31.4 • ${events.length} event(s) • ${allianceOptions.length} alliance(s) loaded`;
+ if(!allErr && transfer_diagnostic) transfer_diagnostic.textContent=`v31.7 • ${events.length} event(s) • ${allianceOptions.length} alliance(s) loaded`;
  recruit_list.innerHTML=rows?.length?rows.map(r=>`<article class="history-card"><div><b>${esc(r.alliances?.tag||'Alliance')}</b><small>${esc(scheduleSummary(r.schedule_notes))}</small></div><div class="history-actions">
   <button class="btn ${r.is_recruiting?'':'secondary'}" data-toggle-recruit="${r.id}" data-active="${r.is_recruiting}">${r.is_recruiting?'Recruiting':'Not Recruiting'}</button>
   <button class="btn secondary" data-edit-recruit="${r.id}">Edit Schedule</button>
@@ -860,4 +866,29 @@ window.addEventListener('error',ev=>{
   }
 })();
 
-</script></body></html>
+</script>
+<script>
+/* v31.7 iOS Applications layout safety */
+(function(){
+  function compactTransferApplications(){
+    const selectors=[
+      '#panel-applications','#applications-panel','.applications-panel',
+      '.transfer-applications','.transfer-applications-list',
+      '#transfer-applications-list','#applications-list','.application-list',
+      '.application-card','.transfer-application-card',
+      '.application-grid','.application-stats','.application-details-grid',
+      '.applicant-grid','.transfer-app-grid'
+    ];
+    document.querySelectorAll(selectors.join(',')).forEach(el=>{
+      el.style.minHeight='0';
+      el.style.height='auto';
+    });
+  }
+  document.addEventListener('DOMContentLoaded',compactTransferApplications);
+  window.addEventListener('load',compactTransferApplications);
+  window.addEventListener('pageshow',compactTransferApplications);
+  setTimeout(compactTransferApplications,300);
+  setTimeout(compactTransferApplications,1000);
+})();
+</script>
+</body></html>

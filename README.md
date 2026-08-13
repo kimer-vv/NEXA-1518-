@@ -1,20 +1,19 @@
-# NEXA v29 — Transfer Cycle Logic Fix
+# NEXA v29.1 — Transfer Admin Repair
 
-IMPORTANT: Run `v29-supabase.sql` once in Supabase BEFORE uploading the web files.
+IMPORTANT:
+1. Run `v29-1-supabase.sql` in Supabase first.
+2. Wait for Success.
+3. Then upload the web files to GitHub.
+4. Do NOT upload the SQL file to GitHub.
 
-Fixes:
-- Recruiting Alliances now load through a public security-definer RPC.
-  - If Transfer Staff marks an alliance Recruiting, it appears automatically in the public Transfer Form.
-  - Bear / Foundry / Canyon / Other Event schedules appear with it.
-- Manual End Event is rebuilt.
-- End Event can happen before the scheduled End Date.
-- New option: keep the Transfer Application open after End Event for future-transfer interest / waitlist applications.
-- Applications submitted after the cycle ends are internally marked Future Interest.
-- Removes the separate Special Invite Question Threshold.
-- Labyrinth Score is now conditional on the editable Special Invite Power Cap.
-- Transfer Event adds:
-  - State Leadership Status: Not Leading / Leading under 3 months / Leading 3+ months
-  - Special Invites Available: 0–3
-- Leading under 3 months automatically makes Special Invite Power Cap N/A and Special Invites Available 0.
-- Not Leading and Leading 3+ months can both configure a Special Invite Power Cap and 0–3 available invites.
-- Existing isolated public Transfer Form remains intact.
+This version repairs:
+- Existing Alliances dropdown in Recruiting Alliances using a protected RPC.
+- Recruiting list + saved schedules.
+- End Event button (v29 still had an old Archive handler in the frontend).
+- Permissions directory so Owner/Admin is included and users can be searched by name, IGN or Player ID.
+- Generic Special Invite Status:
+  - Not Leading
+  - Leading — No Special Invites
+  - Leading — Special Invites Available
+- Special Invite count 0–3.
+- Public Transfer Form continues to load only alliances marked Recruiting.

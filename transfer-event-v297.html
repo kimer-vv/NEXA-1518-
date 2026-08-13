@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
     </div>
     <p id="notes" class="muted"></p>
     <div class="form-actions">
-      <a id="apply" class="btn" href="#">Apply for Transfer →</a>
+      <a id="manage-transfers-main" class="btn hidden" href="#">Manage Transfers</a>
       <a id="edit-transfer-event" class="btn secondary hidden" href="#">Edit Event</a>
       <a id="manage-transfers" class="btn hidden" href="#">Manage Transfers</a>
     </div>
@@ -92,12 +92,11 @@ const token=new URLSearchParams(location.search).get('token');
  if(!token){document.getElementById('range').textContent='Invalid transfer link.';return;}
  const {data:formData,error}=await sb.rpc('get_public_transfer_form_data',{p_event_token:token});
  const e=formData?.event;
- if(error||!e){document.getElementById('range').textContent='This transfer event is unavailable or closed.';document.getElementById('apply').classList.add('hidden');return;}
+ if(error||!e){document.getElementById('range').textContent='This transfer event is unavailable or closed.';return;}
  title.textContent=e.title; dest.textContent='State '+e.destination_state;
  cap.textContent=e.power_cap?fmtPower(e.power_cap):'Set by staff'; document.getElementById('special-cap').textContent=e.special_power_cap?fmtPower(e.special_power_cap):'Set by staff'; open.textContent=e.applications_open?'Open':'Closed';
  range.textContent=(e.source_state_min||e.source_state_max)?`Eligible range: State ${e.source_state_min||'—'}–${e.source_state_max||'—'}`:'State 1518 Transfer Cycle';
  notes.textContent=e.public_notes||'Submit an interest application for this transfer cycle.';
- apply.href='transfer-apply.html?token='+encodeURIComponent(token)+'&from=nexa&return=event';
  const [{data:canManage},{data:isAdmin}] = await Promise.all([
    sb.rpc('can_manage_transfers'),
    sb.rpc('is_admin')
@@ -106,9 +105,18 @@ const token=new URLSearchParams(location.search).get('token');
  if(canManage===true){
    edit_transfer_event.href='transfer-admin.html?tab=events&edit='+encodeURIComponent(e.id);
    edit_transfer_event.classList.remove('hidden');
+
    const manageTransfers=document.getElementById('manage-transfers');
-   manageTransfers.href='transfer-admin.html?tab=applications&event='+encodeURIComponent(e.id);
-   manageTransfers.classList.remove('hidden');
+   if(manageTransfers){
+     manageTransfers.href='transfer-admin.html?tab=applications&event='+encodeURIComponent(e.id);
+     manageTransfers.classList.remove('hidden');
+   }
+
+   const manageTransfersMain=document.getElementById('manage-transfers-main');
+   if(manageTransfersMain){
+     manageTransfersMain.href='transfer-admin.html?tab=applications&event='+encodeURIComponent(e.id);
+     manageTransfersMain.classList.remove('hidden');
+   }
  }
 
  if(isAdmin===true){

@@ -6,7 +6,7 @@
 <header class="topbar"><div class="shell nav"><a class="logo" href="index.html"><span class="star">✦</span><span>NEXA<small>STATE 1518</small></span></a></div></header>
 
 <main class="shell event-page transfer-admin-page">
- <div class="transfer-admin-head"><div><span class="badge">PRIVATE</span><h1>NEXA Transfers</h1><p class="muted">Transfer Control Center <span class="build-tag">v29.7</span></p><div id="transfer-diagnostic" class="diagnostic-chip">Loading transfer data…</div></div><a class="btn secondary" href="index.html?admin=modules&v=292">← Modules</a></div>
+ <div class="transfer-admin-head"><div><span class="badge">PRIVATE</span><h1>NEXA Transfers</h1><p class="muted">Transfer Control Center <span class="build-tag">v29.8</span></p><div id="transfer-diagnostic" class="diagnostic-chip">Loading transfer data…</div></div><a class="btn secondary" href="index.html?admin=modules&v=292">← Modules</a></div>
  <div class="transfer-tabs">
   <button class="transfer-tab active" data-tab="applications">Applications</button>
   <button class="transfer-tab" data-tab="form">Transfer Form</button>
@@ -371,7 +371,7 @@ function fillTransferEventForm(x){
 }
 
 async function loadEvents(){
- const {data,error}=await sb.from('transfer_events').select('*').order('created_at',{ascending:false}); if(error)return alert(error.message);events=data||[]; if(transfer_diagnostic) transfer_diagnostic.textContent=`v29.7 • ${events.length} transfer event(s) loaded`;
+ const {data,error}=await sb.from('transfer_events').select('*').order('created_at',{ascending:false}); if(error)return alert(error.message);events=data||[]; if(transfer_diagnostic) transfer_diagnostic.textContent=`v29.8 • ${events.length} transfer event(s) loaded`;
  const active=events.filter(e=>e.status!=='archived');
  const opts=active.map(e=>`<option value="${e.id}">${esc(e.title)}</option>`).join('');
  application_event_filter.innerHTML=opts;
@@ -383,7 +383,7 @@ async function loadEvents(){
    recruit_event_filter.value=preferred.id;
    form_event_filter.value=preferred.id;
  }
- events_list.innerHTML=events.length?events.map(e=>`<article class="history-card"><div><b>${esc(e.title)}</b><small>State ${e.destination_state} • ${esc(e.status)} • Ordinary Cap ${e.power_cap?fmtPower(e.power_cap):'—'} • Special Cap ${e.special_power_cap?fmtPower(e.special_power_cap):'—'}</small><div class="history-summary">Applications ${e.applications_open?'OPEN':'CLOSED'} • ${e.leadership_status==='leading_with_specials'?'Leading • Specials':e.leadership_status==='leading_no_specials'?'Leading • No Specials':'Not Leading'} • ${e.special_invites_available||0} Special Invite(s) • <a href="transfer-event-v297.html?token=${e.public_token}" target="_blank">View Event</a> • <a href="transfer-apply-v297.html?token=${e.public_token}" target="_blank">Direct Form Link</a></div></div><div class="history-actions"><button class="btn secondary" data-edit-event="${e.id}">Edit</button>${e.status!=='archived'?`<button class="btn danger" data-end-event="${e.id}">End Event</button>`:''}</div></article>`).join(''):'<div class="empty-state">No transfer cycles yet.</div>';
+ events_list.innerHTML=events.length?events.map(e=>`<article class="history-card"><div><b>${esc(e.title)}</b><small>State ${e.destination_state} • ${esc(e.status)} • Ordinary Cap ${e.power_cap?fmtPower(e.power_cap):'—'} • Special Cap ${e.special_power_cap?fmtPower(e.special_power_cap):'—'}</small><div class="history-summary">Applications ${e.applications_open?'OPEN':'CLOSED'} • ${e.leadership_status==='leading_with_specials'?'Leading • Specials':e.leadership_status==='leading_no_specials'?'Leading • No Specials':'Not Leading'} • ${e.special_invites_available||0} Special Invite(s) • <a href="transfer-event.html?token=${e.public_token}" target="_blank">View Event</a> • <a href="transfer-apply.html?token=${e.public_token}" target="_blank">Direct Form Link</a></div></div><div class="history-actions"><button class="btn secondary" data-edit-event="${e.id}">Edit</button>${e.status!=='archived'?`<button class="btn danger" data-end-event="${e.id}">End Event</button>`:''}</div></article>`).join(''):'<div class="empty-state">No transfer cycles yet.</div>';
  refreshTransferFormPanel(); await loadApplications(); await loadRecruiting();
 }
 
@@ -396,7 +396,7 @@ function refreshTransferFormPanel(){
     open_transfer_form.href='#';
     return;
   }
-  const url=new URL('transfer-apply-v297.html',location.href);
+  const url=new URL('transfer-apply.html',location.href);
   url.searchParams.set('token',e.public_token);
   transfer_form_status.textContent=(e.status==='open'&&e.applications_open)?'OPEN':'CLOSED';
   transfer_form_destination.textContent='State '+e.destination_state;
@@ -659,7 +659,7 @@ async function loadRecruiting(){
  recruit_alliance.innerHTML='<option value="">Select existing alliance</option>'+allianceOptions.map(a=>`<option value="${a.id}">${esc(a.tag)}</option>`).join('');
  const helper=document.getElementById('existing-alliance-count');
  if(helper) helper.textContent=`${allianceOptions.length} alliance${allianceOptions.length===1?'':'s'} available`;
- if(!allErr && transfer_diagnostic) transfer_diagnostic.textContent=`v29.7 • ${events.length} event(s) • ${allianceOptions.length} alliance(s) loaded`;
+ if(!allErr && transfer_diagnostic) transfer_diagnostic.textContent=`v29.8 • ${events.length} event(s) • ${allianceOptions.length} alliance(s) loaded`;
  recruit_list.innerHTML=rows?.length?rows.map(r=>`<article class="history-card"><div><b>${esc(r.alliances?.tag||'Alliance')}</b><small>${esc(scheduleSummary(r.schedule_notes))}</small></div><div class="history-actions">
   <button class="btn ${r.is_recruiting?'':'secondary'}" data-toggle-recruit="${r.id}" data-active="${r.is_recruiting}">${r.is_recruiting?'Recruiting':'Not Recruiting'}</button>
   <button class="btn secondary" data-edit-recruit="${r.id}">Edit Schedule</button>

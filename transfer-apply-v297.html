@@ -6,7 +6,7 @@
 <header class="topbar public-transfer-topbar"><div class="shell nav"><div class="logo public-form-logo"><span class="star">✦</span><span>NEXA<small>STATE 1518 • TRANSFERS</small></span></div></div></header>
 
 <main class="shell event-page transfer-form-page">
- <span class="badge transfer-badge">TRANSFER APPLICATION • v29.7</span>
+ <span class="badge transfer-badge">TRANSFER APPLICATION • v29.8</span>
  <h1 id="event-title">State 1518 Transfer Application</h1>
 
  <section class="glass transfer-welcome">
@@ -85,7 +85,7 @@
    <label>If needed to meet the ordinary power cap, would you be willing to reduce troop power? *<select id="willing_to_reduce_power"><option value="yes">Yes</option><option value="review_first">I’d prefer Transfer Staff to review my account first</option><option value="no">No</option></select></label>
   </div>
   <div class="form-step"><h2>4. Placement & Availability</h2>
-   <div><b>Which recruiting alliance(s) are you open to joining? *</b><p class="field-help">Select all that apply. Only alliances currently recruiting are shown. All event schedules are UTC.</p><div id="public-recruiting-count" class="field-help"></div><div id="alliance_choices" class="choice-stack"></div></div>
+   <div><div class="recruit-question-head"><b>Which recruiting alliance(s) are you open to joining? *</b><button id="refresh-recruiting-now" class="btn mini secondary" type="button">Refresh alliances</button></div><p class="field-help">Select all that apply. Only alliances currently recruiting are shown. All event schedules are UTC.</p><div id="public-recruiting-count" class="field-help"></div><div id="public-recruiting-sync" class="field-help"></div><div id="alliance_choices" class="choice-stack"></div></div>
    <label class="check"><input type="checkbox" id="flexible_alliance"> Any recruiting alliance / I'm flexible</label>
    <fieldset><legend>UTC time ranges that work for major events</legend>
     <div id="utc_ranges" class="choice-grid"></div>
@@ -136,6 +136,9 @@ function transferScheduleSummary(raw){
 }
 
 const token=new URLSearchParams(location.search).get('token'); let eventData=null;
+const publicRecruitingCount=document.getElementById('public-recruiting-count');
+const publicRecruitingSync=document.getElementById('public-recruiting-sync');
+const allianceChoices=document.getElementById('alliance_choices');
 const ranges=['00:00–04:00','04:00–08:00','08:00–12:00','12:00–16:00','16:00–20:00','20:00–24:00'];
 utc_ranges.innerHTML=ranges.map(x=>`<label class="check"><input type="checkbox" value="${x}"> ${x} UTC</label>`).join('');
 referred.addEventListener('change',()=>referred_by_wrap.classList.toggle('hidden',referred.value!=='true'));
@@ -182,17 +185,19 @@ async function refreshPublicTransferForm(){
  thresholdCheck();
 
  const recruiting=data?.recruiting_alliances||[];
- document.getElementById('public-recruiting-count').textContent=`${recruiting.length} recruiting alliance${recruiting.length===1?'':'s'} available for this cycle.`;
- alliance_choices.innerHTML=recruiting.length
+ publicRecruitingSync.textContent=`Synced with Transfer Cycle ${e.title} • ${e.id.slice(0,8)}`;
+ publicRecruitingCount.textContent=`${recruiting.length} recruiting alliance${recruiting.length===1?'':'s'} available for this cycle.`;
+ allianceChoices.innerHTML=recruiting.length
    ?recruiting.map(x=>`<label class="alliance-choice recruiting-alliance-card"><input type="checkbox" value="${x.alliance_id}"><span><b>${esc(x.tag||'Alliance')}</b><small>${esc(transferScheduleSummary(x.schedule_notes))}</small></span></label>`).join('')
    :'<div class="muted">No alliances are currently marked Recruiting for this Transfer Cycle. You may select “I’m flexible.”</div>';
 }
 refreshPublicTransferForm();
 window.addEventListener('pageshow',refreshPublicTransferForm);
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshPublicTransferForm();});;
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshPublicTransferForm();});
+document.getElementById('refresh-recruiting-now')?.addEventListener('click',refreshPublicTransferForm);
 transfer_form.addEventListener('submit',async ev=>{
  ev.preventDefault(); form_message.textContent='Submitting…';
- const ids=[...alliance_choices.querySelectorAll('input:checked')].map(x=>x.value);
+ const ids=[...allianceChoices.querySelectorAll('input:checked')].map(x=>x.value);
  const times=[...utc_ranges.querySelectorAll('input:checked')].map(x=>x.value);
  if(!flexible_alliance.checked && ids.length===0){form_message.textContent='Choose at least one recruiting alliance or select “I’m flexible.”';return;}
  const payload={

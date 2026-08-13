@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NEXA • My Submissions</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lang.js"></script>
+</head>
+<body>
+<div class="nebula-bg" aria-hidden="true"></div><div class="starfield" aria-hidden="true"></div>
+<header class="topbar"><div class="shell nav">
+<a class="logo" href="index.html"><span class="star">✦</span><span>NEXA<small>STATE 1518</small></span></a>
+<a class="back" href="index.html">← Home</a>
+</div></header>
+<main class="shell event-page">
+  <span class="badge">MY NEXA</span>
+  <h1>My Submissions</h1>
+  <div class="muted">Your current SvS Prep requests and assigned appointments.</div>
+  <div id="my-submissions-list" class="admin-list" style="margin-top:16px"></div>
+</main>
+<script>
+const sb=window.supabase.createClient("https://dfxcxboxrkfmrnsgpyin.supabase.co","sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-");
+async function load(){
+ const {data:{session}}=await sb.auth.getSession();
+ if(!session?.user){location.href='index.html';return;}
+ const {data:req,error}=await sb.from('prep_requests')
+ .select('*,svs_events(opponent_state,prep_monday,prep_form_open),player_accounts(in_game_name,player_id,custom_alliance_tag,alliances(tag)),ministry_appointments(day_type,ministry_position,appointment_time)')
+ .order('created_at',{ascending:false});
+ const list=document.getElementById('my-submissions-list');
+ if(error){list.innerHTML=`<div class="empty-state">${error.message}</div>`;return;}
+ if(!req?.length){list.innerHTML='<div class="empty-state">No submissions yet.</div>';return;}
+ list.innerHTML=req.map(r=>{
+   const a=r.player_accounts||{};
+   const tag=a.alliances?.tag||a.custom_alliance_tag||'Not Listed';
+   const apps=r.ministry_appointments||[];
+   const appt=apps.length?apps.map(x=>`${x.day_type.toUpperCase()} • ${new Date(x.appointment_time).toISOString().slice(11,16)} UTC`).join('<br>'):'No appointment assigned yet';
+   const canEdit=!!r.svs_events?.prep_form_open;
+   return `<article class="submission-card">
+    <div><b>${a.in_game_name||'Player'} • ${tag}</b><small>SvS vs ${r.svs_events?.opponent_state||'—'} • ${r.status}</small></div>
+    <div class="submission-appt">${appt}</div>
+    ${canEdit?'<a class="btn" href="prep-form.html">Edit Submission</a>':''}
+   </article>`;
+ }).join('');
+}
+load();
+</script>
+</body></html>

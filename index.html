@@ -222,6 +222,19 @@
           <textarea id="event-description" rows="3" placeholder="Optional notes, opponent info, ministry buff notes, battle reminders..."></textarea>
         </label>
 
+        <label>Important Announcement
+          <textarea id="important-announcement" rows="2" maxlength="500" placeholder="Optional high-priority message shown on the NEXA home page..."></textarea>
+          <small>Players can acknowledge that they read it.</small>
+        </label>
+
+        <section id="announcement-reads-admin" class="glass-lite hidden">
+          <div class="admin-section-head">
+            <h3>Announcement Reads</h3>
+            <p id="announcement-read-count">0 confirmed</p>
+          </div>
+          <div id="announcement-read-list" class="admin-list"></div>
+        </section>
+
         <div class="event-preview glass-lite">
           <small>AUTO-GENERATED WOS TIMELINE</small>
           <div id="event-preview-lines" class="preview-lines">Choose Prep Monday to preview dates.</div>
@@ -794,6 +807,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('opponent-state').value = '';
     document.getElementById('prep-monday').value = '';
     document.getElementById('event-description').value = '';
+    document.getElementById('important-announcement').value = '';
+    document.getElementById('announcement-reads-admin').classList.add('hidden');
     document.getElementById('castle-alliance').value = '';
     document.getElementById('presidency-alliance').value = '';
     document.getElementById('prep-form-open').checked = false;
@@ -812,12 +827,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const id = document.getElementById('event-id').value;
     const user = await currentUser();
+    let priorAnnouncement = null;
+    let priorVersion = 0;
+    if (id) {
+      const {data:prior} = await supabaseClient.from('svs_events')
+        .select('announcement_text,announcement_version').eq('id',id).single();
+      priorAnnouncement = prior?.announcement_text || null;
+      priorVersion = Number(prior?.announcement_version || 0);
+    }
+    const nextAnnouncement = document.getElementById('important-announcement').value.trim() || null;
+
     const payload = {
       opponent_state: Number(document.getElementById('opponent-state').value),
       prep_monday: document.getElementById('prep-monday').value,
       castle_alliance_id: document.getElementById('castle-alliance').value ? Number(document.getElementById('castle-alliance').value) : null,
       presidency_alliance_id: document.getElementById('presidency-alliance').value ? Number(document.getElementById('presidency-alliance').value) : null,
       description: document.getElementById('event-description').value.trim() || null,
+      announcement_text: nextAnnouncement,
+      announcement_version: (id && nextAnnouncement === priorAnnouncement) ? priorVersion : (priorVersion + (nextAnnouncement ? 1 : 0)),
       prep_form_open: document.getElementById('prep-form-open').checked,
       battle_form_open: document.getElementById('battle-form-open').checked,
       schedule_published: document.getElementById('schedule-published').checked,
@@ -854,6 +881,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('opponent-state').value = data.opponent_state;
       document.getElementById('prep-monday').value = data.prep_monday;
       document.getElementById('event-description').value = data.description || '';
+      document.getElementById('important-announcement').value = data.announcement_text || '';
+      await loadAnnouncementReads(data);
       await loadEventAllianceSelectors(data.castle_alliance_id, data.presidency_alliance_id);
       document.getElementById('prep-form-open').checked = !!data.prep_form_open;
       document.getElementById('battle-form-open').checked = !!data.battle_form_open;
@@ -1024,7 +1053,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const eventLabels = document.querySelectorAll('#event-form > label');
     if(eventLabels[0]) eventLabels[0].childNodes[0].nodeValue=tr('opponentState')+'\n          ';
     if(eventLabels[1]) eventLabels[1].childNodes[0].nodeValue=tr('prepMonday')+'\n          ';
-    if(eventLabels[2]) eventLabels[2].childNodes[0].nodeValue=tr('eventNotes')+'\n          ';
+    if(eventLabels[2]) eventLabels[2].childNodes[0].nodeValue=tr('castleAlliance')+'\n          ';
+    if(eventLabels[3]) eventLabels[3].childNodes[0].nodeValue=tr('presidencyAlliance')+'\n          ';
+    if(eventLabels[4]) eventLabels[4].childNodes[0].nodeValue=tr('eventNotes')+'\n          ';
+    if(eventLabels[5]) eventLabels[5].childNodes[0].nodeValue=tr('importantAnnouncement')+'\n          ';
     const previewSmall=document.querySelector('.event-preview > small');
     if(previewSmall) previewSmall.textContent=tr('timeline');
     const toggles=document.querySelectorAll('.toggle-line');
@@ -1160,6 +1192,82 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
 
+
+  async function loadAnnouncementReads(eventData) {
+    const box = document.getElementById('announcement-reads-admin');
+    const list = document.getElementById('announcement-read-list');
+    const count = document.getElementById('announcement-read-count');
+
+    if (!eventData?.announcement_text || !eventData?.announcement_version) {
+      box.classList.add('hidden');
+      return;
+    }
+
+    const {data,error} = await supabaseClient.rpc('list_announcement_acknowledgements',{
+      target_event_id:eventData.id,
+      target_version:eventData.announcement_version
+    });
+    if(error){ console.error(error); return; }
+
+    box.classList.remove('hidden');
+    count.textContent = `${(data||[]).length} confirmed`;
+    list.innerHTML = (data||[]).length ? (data||[]).map(x=>`
+      <article class="admin-row">
+        <div><b>${x.in_game_names || x.discord_name}</b><small>${x.discord_name}</small></div>
+        <small>${new Date(x.acknowledged_at).toLocaleString()}</small>
+      </article>
+    `).join('') : '<div class="empty-state">No confirmations yet.</div>';
+  }
+
+  async function syncAnnouncement(eventData) {
+    const wrap = document.getElementById('global-announcement');
+    const msgEl = document.getElementById('announcement-message');
+    const ackBtn = document.getElementById('announcement-ack');
+
+    if (!eventData?.announcement_text) {
+      wrap.classList.add('hidden');
+      return;
+    }
+
+    wrap.classList.remove('hidden');
+    msgEl.textContent = eventData.announcement_text;
+    ackBtn.textContent = tr('iveRead');
+    ackBtn.disabled = false;
+    wrap.classList.remove('acknowledged');
+
+    const user = await currentUser();
+    if (!user) return;
+
+    const {data:existing} = await supabaseClient
+      .from('announcement_acknowledgements')
+      .select('id')
+      .eq('event_id',eventData.id)
+      .eq('announcement_version',eventData.announcement_version)
+      .eq('user_id',user.id)
+      .maybeSingle();
+
+    if(existing){
+      ackBtn.textContent = tr('readConfirmed');
+      ackBtn.disabled = true;
+      wrap.classList.add('acknowledged');
+    }
+
+    ackBtn.onclick = async()=>{
+      const u=await currentUser();
+      if(!u){ document.getElementById('discord-login').click(); return; }
+      const {error}=await supabaseClient.from('announcement_acknowledgements').insert({
+        event_id:eventData.id,
+        announcement_version:eventData.announcement_version,
+        user_id:u.id
+      });
+      if(!error){
+        ackBtn.textContent=tr('readConfirmed');
+        ackBtn.disabled=true;
+        wrap.classList.add('acknowledged');
+      }
+    };
+  }
+
   function utcDateFromPrep(prepMonday, offsetDays=0) {
     const d = new Date(prepMonday + 'T00:00:00Z');
     d.setUTCDate(d.getUTCDate() + offsetDays);
@@ -1200,6 +1308,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
     if (!data) {
+      await syncAnnouncement(null);
       titleEl.textContent = tr('noLive');
       metaEl.textContent = tr('noLiveText');
       countEl.textContent = '—';
@@ -1214,6 +1323,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     metaEl.textContent = `${shortUTCDate(start)} – ${shortUTCDate(battle)} • WOS Game Time (UTC)`;
     countEl.textContent = countdownLabel(end);
 
+    await syncAnnouncement(data);
     localStorage.setItem('nexa_live_event_id', data.id);
   }
 

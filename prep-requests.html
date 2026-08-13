@@ -25,6 +25,26 @@
     <div id="requests-meta" class="muted">Loading…</div>
   </div>
 
+  <section class="glass schedule-tools">
+    <div class="admin-section-head">
+      <h3>Schedule Tools</h3>
+      <p>Filter by alliance/day, copy a ready-to-paste schedule, or export requests.</p>
+    </div>
+    <div class="schedule-tool-grid">
+      <select id="copy-alliance-filter"><option value="">All Alliances</option></select>
+      <select id="copy-day-filter">
+        <option value="">All Days</option>
+        <option value="construction">Monday — Construction / VP</option>
+        <option value="research">Tuesday — Research / VP</option>
+        <option value="training">Thursday — Training / MOE</option>
+      </select>
+      <button id="copy-alliance-schedule" class="btn" type="button">Copy Alliance Schedule</button>
+      <button id="copy-day-schedule" class="btn" type="button">Copy This Day</button>
+      <button id="copy-full-schedule" class="btn" type="button">Copy Full Schedule</button>
+      <button id="export-requests-csv" class="btn secondary" type="button">Export CSV</button>
+    </div>
+  </section>
+
   <div class="tabs request-tabs">
     <button class="tab active" data-request-day="construction"><b>MON</b><small>Construction</small></button>
     <button class="tab" data-request-day="research"><b>TUE</b><small>Research</small></button>
@@ -45,7 +65,7 @@ let appointments=[];
 const troopRank={new_t8:8,new_t9:9,new_t10:10,new_t11:11,new_t12:12,t8_to_t9:9,t9_to_t10:10,t10_to_t11:11,t11_to_t12:12};
 
 async function ensureAdmin(){
-  const {data}=await sb.rpc('is_admin');
+  const {data}=await sb.rpc('is_scheduler_or_admin');
   if(data!==true){ location.href='index.html'; return false; }
   return true;
 }
@@ -121,7 +141,7 @@ function render(){
         <div class="request-title"><b>${a.in_game_name||'Player'}</b><span>${alliance} • ID ${a.player_id||'—'}</span></div>
         ${resourceLines(r)}
         <div class="request-pref">Preferred: <b>${prefFrame(r)}</b> • Specific: <b>${prefTime(r)} UTC</b></div>
-        ${r.upgrading_t12?`<div class="t12-note">T12 • Refined FC ${fmt(r.t12_refined_fire_crystals)} • Shards ${fmt(r.t12_fire_crystal_shards)}</div>`:''}
+        ${r.upgrading_t12?`<div class="t12-note">T12 • Refined FC ${fmt(r.t12_refined_fire_crystals)} • Shards ${fmt(r.t12_fire_crystal_shards)}</div>`:''}${r.scheduler_note?`<div class="scheduler-note"><b>Note:</b> ${r.scheduler_note}</div>`:''}
       </div>
       <div class="assign-box">
         <label>${ministry(activeDay)}
@@ -154,6 +174,8 @@ async function load(){
     .eq('event_id',event.id);
   if(appErr){document.getElementById('requests-message').textContent=appErr.message;return;}
   appointments=apps||[];
+  const allianceTags=[...new Set(requests.map(r=>r.player_accounts?.alliances?.tag||r.player_accounts?.custom_alliance_tag).filter(Boolean))].sort();
+  document.getElementById('copy-alliance-filter').innerHTML='<option value="">All Alliances</option>'+allianceTags.map(x=>`<option value="${x}">${x}</option>`).join('');
   render();
 }
 document.querySelectorAll('[data-request-day]').forEach(btn=>btn.addEventListener('click',()=>{
@@ -177,8 +199,92 @@ document.getElementById('requests-list').addEventListener('click',async e=>{
     }));
   }
   document.getElementById('requests-message').textContent=error?error.message:'Appointment saved.';
-  if(!error) await load();
+  if(!error){
+    await sb.rpc('write_audit',{
+      action_name:'ministry_appointment_saved',
+      action_details:{request_id:id,day:activeDay,time:hm}
+    });
+    await load();
+  }
 });
+
+function appointmentRows(filterAlliance='',filterDay=''){
+  return appointments
+    .filter(a=>!filterDay || a.day_type===filterDay)
+    .filter(a=>{
+      const r=requests.find(x=>x.id===a.prep_request_id);
+      const tag=r?.player_accounts?.alliances?.tag||r?.player_accounts?.custom_alliance_tag||'Not Listed';
+      return !filterAlliance || tag===filterAlliance;
+    })
+    .map(a=>{
+      const r=requests.find(x=>x.id===a.prep_request_id);
+      const p=r?.player_accounts||{};
+      return {
+        day:a.day_type,
+        time:new Date(a.appointment_time).toISOString().slice(11,16),
+        name:p.in_game_name||'Player',
+        alliance:p.alliances?.tag||p.custom_alliance_tag||'Not Listed'
+      };
+    })
+    .sort((a,b)=>{
+      const order={construction:0,research:1,training:2};
+      return order[a.day]-order[b.day] || a.time.localeCompare(b.time);
+    });
+}
+function scheduleText(rows,title='SvS Ministry Schedule'){
+  const labels={
+    construction:'Monday • Construction • VP (Vice President)',
+    research:'Tuesday • Research • VP (Vice President)',
+    training:'Thursday • Training • MOE (Minister of Education)'
+  };
+  let out=`${title}\n`;
+  for(const day of ['construction','research','training']){
+    const d=rows.filter(x=>x.day===day);
+    if(!d.length) continue;
+    out+=`\n${labels[day]}\n`;
+    d.forEach(x=>out+=`${x.time} UTC — ${x.name}\n`);
+  }
+  return out.trim();
+}
+async function copyText(text){
+  await navigator.clipboard.writeText(text);
+  document.getElementById('requests-message').textContent='Schedule copied.';
+}
+document.getElementById('copy-alliance-schedule').addEventListener('click',async()=>{
+  const a=document.getElementById('copy-alliance-filter').value;
+  const rows=appointmentRows(a,'');
+  await copyText(scheduleText(rows,a?`${a} — SvS Ministry Schedule`:'SvS Ministry Schedule'));
+});
+document.getElementById('copy-day-schedule').addEventListener('click',async()=>{
+  const a=document.getElementById('copy-alliance-filter').value;
+  const d=document.getElementById('copy-day-filter').value || activeDay;
+  const rows=appointmentRows(a,d);
+  await copyText(scheduleText(rows,a?`${a} — SvS Ministry Schedule`:'SvS Ministry Schedule'));
+});
+document.getElementById('copy-full-schedule').addEventListener('click',async()=>{
+  await copyText(scheduleText(appointmentRows('','')));
+});
+document.getElementById('export-requests-csv').addEventListener('click',()=>{
+  const head=['IGN','Player ID','Alliance','Construction Points','Research Points','Training Selection','Training Speedup Minutes','Construction Window','Research Window','Training Window','Scheduler Note','Status'];
+  const rows=requests.map(r=>{
+    const p=r.player_accounts||{};
+    const tag=p.alliances?.tag||p.custom_alliance_tag||'Not Listed';
+    return [
+      p.in_game_name||'',p.player_id||'',tag,
+      r.estimated_construction_points||0,r.estimated_research_points||0,
+      r.training_selection||'',r.training_speedup_minutes||0,
+      r.construction_time_frame||'',r.research_time_frame||'',r.training_time_frame||'',
+      r.scheduler_note||'',r.status||''
+    ];
+  });
+  const esc=v=>`"${String(v??'').replaceAll('"','""')}"`;
+  const csv=[head,...rows].map(row=>row.map(esc).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='nexa-prep-requests.csv'; a.click();
+  URL.revokeObjectURL(url);
+});
+
 load();
 </script>
 </body>

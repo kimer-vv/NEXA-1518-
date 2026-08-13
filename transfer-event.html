@@ -12,7 +12,7 @@
   <section class="glass transfer-public-card">
     <div class="transfer-stat-grid">
       <div><small>DESTINATION</small><b id="dest">—</b></div>
-      <div><small>POWER CAP</small><b id="cap">—</b></div>
+      <div><small>ORDINARY CAP</small><b id="cap">—</b></div><div><small>SPECIAL CAP</small><b id="special-cap">—</b></div>
       <div><small>APPLICATIONS</small><b id="open">—</b></div>
     </div>
     <p id="notes" class="muted"></p>
@@ -35,7 +35,7 @@ function transferScheduleSummary(raw){
     const x=JSON.parse(raw),parts=[];
     if(x.bear?.length) parts.push(`Bear: ${x.bear.map(t=>t+' UTC').join(' / ')}`);
     if(x.foundry?.length) parts.push(`Foundry: ${x.foundry.map(t=>t+' UTC').join(' / ')}`);
-    if(x.canyon?.length) parts.push(`Canyon: ${x.canyon.map(t=>t+' UTC').join(' / ')}`);
+    if(x.canyon?.length) parts.push(`Canyon: ${x.canyon.map(t=>t+' UTC').join(' / ')}`); if(x.other?.length) parts.push(...x.other.map(o=>`${o.name}: ${o.time} UTC`));
     if(x.note) parts.push(x.note);
     return parts.join(' • ') || 'Schedule not listed';
   }catch(e){ return raw; }
@@ -47,7 +47,7 @@ const token=new URLSearchParams(location.search).get('token');
  const {data:e,error}=await sb.from('transfer_events').select('*').eq('public_token',token).maybeSingle();
  if(error||!e){document.getElementById('range').textContent='This transfer event is unavailable or closed.';document.getElementById('apply').classList.add('hidden');return;}
  title.textContent=e.title; dest.textContent='State '+e.destination_state;
- cap.textContent=e.power_cap?fmtPower(e.power_cap):'Set by staff'; open.textContent=e.applications_open?'Open':'Closed';
+ cap.textContent=e.power_cap?fmtPower(e.power_cap):'Set by staff'; document.getElementById('special-cap').textContent=e.special_power_cap?fmtPower(e.special_power_cap):'Set by staff'; open.textContent=e.applications_open?'Open':'Closed';
  range.textContent=(e.source_state_min||e.source_state_max)?`Eligible range: State ${e.source_state_min||'—'}–${e.source_state_max||'—'}`:'State 1518 Transfer Cycle';
  notes.textContent=e.public_notes||'Submit an interest application for this transfer cycle.';
  apply.href='transfer-apply.html?token='+encodeURIComponent(token);

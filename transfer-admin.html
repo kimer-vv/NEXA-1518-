@@ -25,17 +25,49 @@
 
  <section id="tab-events" class="transfer-panel hidden">
   <h2>Transfer Events</h2>
-  <form id="transfer-event-form" class="glass transfer-admin-form">
-   <input id="te_id" type="hidden">
-   <label>Cycle Title *<input id="te_title" required placeholder="August Transfer Cycle"></label>
-   <div class="two-col"><label>Destination State<input id="te_destination" value="1518" inputmode="numeric"></label><label>Power Cap<input id="te_power_cap" inputmode="numeric" placeholder="Optional"></label></div>
-   <div class="two-col"><label>Source State Min<input id="te_source_min" inputmode="numeric"></label><label>Source State Max<input id="te_source_max" inputmode="numeric"></label></div>
-   <label>Special Invite Power Threshold *<input id="te_threshold" value="1000000000" inputmode="numeric" required></label>
-   <div class="two-col"><label>Starts At<input id="te_starts" type="datetime-local"></label><label>Ends At<input id="te_ends" type="datetime-local"></label></div>
-   <label>Public Notes<textarea id="te_notes" rows="3"></textarea></label>
-   <div class="two-col"><label>Status<select id="te_status"><option value="upcoming">Upcoming</option><option value="open">Open</option><option value="closed">Closed</option><option value="archived">Archived</option></select></label><label class="check top-check"><input id="te_apps_open" type="checkbox"> Applications Open</label></div>
-   <div class="form-actions"><button id="te_cancel" class="btn secondary hidden" type="button">Cancel</button><button class="btn" type="submit">Save Transfer Event</button></div>
-  </form>
+  
+<form id="transfer-event-form" class="glass transfer-admin-form">
+  <input id="te_id" type="hidden">
+  <label>Cycle / Group Name *<input id="te_title" required placeholder="August Transfer Cycle"></label>
+  <label>Destination State<input id="te_destination" value="1518" inputmode="numeric"></label>
+
+  <div class="two-col">
+    <label>Ordinary Power Cap<input id="te_power_cap" inputmode="numeric" placeholder="850000000"></label>
+    <label>Special Invite Power Cap<input id="te_special_power_cap" inputmode="numeric" placeholder="1500000000"></label>
+  </div>
+
+  <label>Special Invite Question Threshold
+    <input id="te_threshold" value="1000000000" inputmode="numeric" required>
+    <small>Applicants above this power are asked for Labyrinth Score.</small>
+  </label>
+
+  <div class="two-col">
+    <label>Start Date<input id="te_start_date" type="date"></label>
+    <label>Start Time (UTC)<select id="te_start_time"></select></label>
+  </div>
+  <div class="two-col">
+    <label>End Date<input id="te_end_date" type="date"></label>
+    <label>End Time (UTC)<select id="te_end_time"></select></label>
+  </div>
+
+  <label>Public Notes<textarea id="te_notes" rows="3"></textarea></label>
+
+  <div class="two-col">
+    <label>Status<select id="te_status">
+      <option value="upcoming">Upcoming</option>
+      <option value="open">Open</option>
+      <option value="closed">Closed</option>
+      <option value="archived">Archived</option>
+    </select></label>
+    <label class="check top-check"><input id="te_apps_open" type="checkbox"> Applications Open</label>
+  </div>
+
+  <div class="form-actions">
+    <button id="te_cancel" class="btn secondary hidden" type="button">Cancel</button>
+    <button id="te_end_event" class="btn danger hidden" type="button">End Event</button>
+    <button class="btn" type="submit">Save Transfer Event</button>
+  </div>
+</form>
   <div id="events-list" class="admin-list"></div>
  </section>
 
@@ -85,6 +117,14 @@
       </label>
       <div id="canyon-time-fields" class="schedule-time-grid"></div>
 
+      <label>Other Event Times
+        <select id="other-count">
+          <option value="0">None</option><option value="1">1 other event</option>
+          <option value="2">2 other events</option><option value="3">3 other events</option>
+          <option value="4">4 other events</option>
+        </select>
+      </label>
+      <div id="other-time-fields" class="schedule-time-grid"></div>
       <label>Other Schedule Note <span class="optional">Optional</span>
         <input id="recruit-extra-note" placeholder="Example: Bear 4 only during transfer week">
       </label>
@@ -96,7 +136,7 @@
  </section>
 
  <section id="tab-permissions" class="transfer-panel hidden">
-  <h2>Module Permissions</h2><p class="muted">Public/Guest access is unchanged. These controls only decide which staff module a person can manage.</p>
+  <h2>Module Permissions</h2><p class="muted">Public/Guest access is unchanged. Owner/Admin automatically have full access. Use these controls for staff who should manage only SvS, only Transfers, both, or neither.</p>
   <form id="transfer-perm-search-form" class="filter-row"><input id="transfer-perm-search" placeholder="Search IGN or Player ID"><button class="btn" type="submit">Search</button></form>
   <div id="transfer-perm-list" class="admin-list"></div>
  </section>
@@ -114,29 +154,25 @@ const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmtPower=n=>{n=Number(n||0); return n>=1e9?(n/1e9).toFixed(2).replace(/\.00$/,'')+'B':n>=1e6?(n/1e6).toFixed(1).replace(/\.0$/,'')+'M':n.toLocaleString();};
 
+const TRANSFER_UTC_OPTIONS=(()=>{let out='<option value="">Select UTC time</option>';for(let h=0;h<24;h++)for(const m of [0,30]){const v=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');out+=`<option value="${v}">${v} UTC</option>`;}return out;})();
 let events=[],applications=[],currentApp=null,isAdmin=false;
 const statusMeta={not_reviewed:['red','Not Reviewed'],needs_review:['orange','Needs Review'],ordinary:['blue','Ordinary'],special_invite:['gold','Special Invite'],open_transfer:['white','Open Transfer'],not_approved:['dark','Not Approved'],transferred:['green','Transferred']};
 function dotStatus(s){const m=statusMeta[s]||statusMeta.not_reviewed;return `<span class="dot-status ${m[0]}"><i></i>${m[1]}</span>`}
 function priorityLabel(score){return score>=90?'CRITICAL':score>=75?'VERY HIGH':score>=55?'HIGH':score>=35?'STANDARD':'LOW'}
+te_start_time.innerHTML=TRANSFER_UTC_OPTIONS;te_end_time.innerHTML=TRANSFER_UTC_OPTIONS;
 function tab(name){document.querySelectorAll('.transfer-panel').forEach(x=>x.classList.add('hidden'));document.getElementById('tab-'+name).classList.remove('hidden');document.querySelectorAll('.transfer-tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===name));if(name==='history')loadHistory();}
 document.querySelectorAll('.transfer-tab').forEach(b=>b.onclick=()=>tab(b.dataset.tab));
 async function guard(){const {data}=await sb.rpc('can_manage_transfers');if(data!==true){access_message.textContent='Transfer Staff access required.';document.querySelectorAll('.transfer-panel,.transfer-tabs').forEach(x=>x.classList.add('hidden'));return false;}const a=await sb.rpc('is_admin');isAdmin=a.data===true;return true;}
 
 function fillTransferEventForm(x){
-  if(!x) return;
-  te_id.value=x.id;
-  te_title.value=x.title;
-  te_destination.value=x.destination_state;
-  te_source_min.value=x.source_state_min||'';
-  te_source_max.value=x.source_state_max||'';
-  te_power_cap.value=x.power_cap||'';
-  te_threshold.value=x.special_invite_power_threshold;
-  te_starts.value=x.starts_at?x.starts_at.slice(0,16):'';
-  te_ends.value=x.ends_at?x.ends_at.slice(0,16):'';
-  te_notes.value=x.public_notes||'';
-  te_status.value=x.status;
-  te_apps_open.checked=x.applications_open;
-  te_cancel.classList.remove('hidden');
+  if(!x)return;
+  te_id.value=x.id;te_title.value=x.title;te_destination.value=x.destination_state;
+  te_power_cap.value=x.power_cap||'';te_special_power_cap.value=x.special_power_cap||'';
+  te_threshold.value=x.special_invite_power_threshold||1000000000;
+  if(x.starts_at){const iso=new Date(x.starts_at).toISOString();te_start_date.value=iso.slice(0,10);te_start_time.value=iso.slice(11,16);}else{te_start_date.value='';te_start_time.value='';}
+  if(x.ends_at){const iso=new Date(x.ends_at).toISOString();te_end_date.value=iso.slice(0,10);te_end_time.value=iso.slice(11,16);}else{te_end_date.value='';te_end_time.value='';}
+  te_notes.value=x.public_notes||'';te_status.value=x.status;te_apps_open.checked=x.applications_open;
+  te_cancel.classList.remove('hidden');te_end_event.classList.toggle('hidden',x.status==='archived');
 }
 
 async function loadEvents(){
@@ -144,7 +180,7 @@ async function loadEvents(){
  const active=events.filter(e=>e.status!=='archived');
  const opts=active.map(e=>`<option value="${e.id}">${esc(e.title)}</option>`).join('');
  application_event_filter.innerHTML=opts;recruit_event_filter.innerHTML=opts;
- events_list.innerHTML=events.length?events.map(e=>`<article class="history-card"><div><b>${esc(e.title)}</b><small>State ${e.destination_state} • ${esc(e.status)} • Cap ${e.power_cap?fmtPower(e.power_cap):'—'} • Special threshold ${fmtPower(e.special_invite_power_threshold)}</small><div class="history-summary">Applications ${e.applications_open?'OPEN':'CLOSED'} • <a href="transfer-apply.html?token=${e.public_token}" target="_blank">Direct Form Link</a></div></div><div class="history-actions"><button class="btn secondary" data-edit-event="${e.id}">Edit</button>${e.status!=='archived'?`<button class="btn secondary" data-archive-event="${e.id}">Archive Cycle</button>`:''}</div></article>`).join(''):'<div class="empty-state">No transfer cycles yet.</div>';
+ events_list.innerHTML=events.length?events.map(e=>`<article class="history-card"><div><b>${esc(e.title)}</b><small>State ${e.destination_state} • ${esc(e.status)} • Ordinary Cap ${e.power_cap?fmtPower(e.power_cap):'—'} • Special Cap ${e.special_power_cap?fmtPower(e.special_power_cap):'—'}</small><div class="history-summary">Applications ${e.applications_open?'OPEN':'CLOSED'} • Threshold ${fmtPower(e.special_invite_power_threshold)} • <a href="transfer-event.html?token=${e.public_token}" target="_blank">View Event</a> • <a href="transfer-apply.html?token=${e.public_token}" target="_blank">Direct Form Link</a></div></div><div class="history-actions"><button class="btn secondary" data-edit-event="${e.id}">Edit</button>${e.status!=='archived'?`<button class="btn danger" data-end-event="${e.id}">End Event</button>`:''}</div></article>`).join(''):'<div class="empty-state">No transfer cycles yet.</div>';
  await loadApplications(); await loadRecruiting();
 }
 async function loadApplications(){
@@ -178,8 +214,27 @@ async function saveApplication(){const {error}=await sb.from('transfer_applicati
 function closeApp(){application_modal.classList.remove('open');application_modal.setAttribute('aria-hidden','true');}
 document.querySelectorAll('[data-close-app]').forEach(x=>x.onclick=closeApp);
 
-transfer_event_form.onsubmit=async ev=>{ev.preventDefault();const row={title:te_title.value,destination_state:Number(te_destination.value||1518),source_state_min:te_source_min.value?Number(te_source_min.value):null,source_state_max:te_source_max.value?Number(te_source_max.value):null,power_cap:te_power_cap.value?Number(te_power_cap.value.replace(/\D/g,'')):null,special_invite_power_threshold:Number(te_threshold.value.replace(/\D/g,'')),starts_at:te_starts.value?new Date(te_starts.value).toISOString():null,ends_at:te_ends.value?new Date(te_ends.value).toISOString():null,public_notes:te_notes.value,status:te_status.value,applications_open:te_apps_open.checked,updated_at:new Date().toISOString()};let res=te_id.value?await sb.from('transfer_events').update(row).eq('id',te_id.value):await sb.from('transfer_events').insert({...row,created_at:new Date().toISOString()});if(res.error)return alert(res.error.message);resetEventForm();await loadEvents();};
-function resetEventForm(){transfer_event_form.reset();te_id.value='';te_destination.value='1518';te_threshold.value='1000000000';te_cancel.classList.add('hidden');}
+transfer_event_form.onsubmit=async ev=>{
+  ev.preventDefault();
+  const combineUtc=(d,t)=>d&&t?new Date(`${d}T${t}:00Z`).toISOString():null;
+  const row={
+    title:te_title.value.trim(),destination_state:Number(te_destination.value||1518),
+    power_cap:te_power_cap.value?Number(te_power_cap.value.replace(/\D/g,'')):null,
+    special_power_cap:te_special_power_cap.value?Number(te_special_power_cap.value.replace(/\D/g,'')):null,
+    special_invite_power_threshold:Number(te_threshold.value.replace(/\D/g,'')),
+    starts_at:combineUtc(te_start_date.value,te_start_time.value),
+    ends_at:combineUtc(te_end_date.value,te_end_time.value),
+    public_notes:te_notes.value,status:te_status.value,applications_open:te_apps_open.checked,updated_at:new Date().toISOString()
+  };
+  let res=te_id.value?await sb.from('transfer_events').update(row).eq('id',te_id.value):await sb.from('transfer_events').insert({...row,created_at:new Date().toISOString()});
+  if(res.error)return alert(res.error.message);
+  resetEventForm();await loadEvents();
+};
+function resetEventForm(){
+  transfer_event_form.reset();te_id.value='';te_destination.value='1518';te_threshold.value='1000000000';
+  te_start_time.innerHTML=TRANSFER_UTC_OPTIONS;te_end_time.innerHTML=TRANSFER_UTC_OPTIONS;
+  te_cancel.classList.add('hidden');te_end_event.classList.add('hidden');
+}
 te_cancel.onclick=resetEventForm;
 events_list.onclick=async e=>{const edit=e.target.dataset.editEvent,archive=e.target.dataset.archiveEvent;if(edit){const x=events.find(v=>v.id===edit);fillTransferEventForm(x);scrollTo({top:0,behavior:'smooth'});}if(archive){if(!confirm('Archive this monthly Transfer Cycle? Applications will close and remain in Transfer History.'))return;const {error}=await sb.rpc('archive_transfer_event',{p_transfer_event_id:archive});if(error)return alert(error.message);await loadEvents();}};
 
@@ -195,6 +250,14 @@ const UTC_TIME_OPTIONS = (()=> {
 function renderScheduleTimes(prefix,count){
   const box=document.getElementById(prefix+'-time-fields');
   const n=Number(count||0);
+  if(prefix==='other'){
+    box.innerHTML=Array.from({length:n},(_,i)=>`
+      <div class="other-event-row">
+        <label>Event ${i+1} Name<input id="other-name-${i+1}" placeholder="Example: Crazy Joe"></label>
+        <label>Event ${i+1} Time<select id="other-time-${i+1}">${UTC_TIME_OPTIONS}</select></label>
+      </div>`).join('');
+    return;
+  }
   box.innerHTML=Array.from({length:n},(_,i)=>`
     <label>${prefix==='bear'?'Bear Trap':prefix[0].toUpperCase()+prefix.slice(1)} ${i+1}
       <select id="${prefix}-time-${i+1}">${UTC_TIME_OPTIONS}</select>
@@ -202,10 +265,15 @@ function renderScheduleTimes(prefix,count){
 }
 function scheduleDataFromForm(){
   const grab=(prefix,count)=>Array.from({length:Number(count||0)},(_,i)=>document.getElementById(`${prefix}-time-${i+1}`)?.value).filter(Boolean);
+  const other=Array.from({length:Number(other_count.value||0)},(_,i)=>({
+    name:document.getElementById(`other-name-${i+1}`)?.value.trim()||'Other Event',
+    time:document.getElementById(`other-time-${i+1}`)?.value||''
+  })).filter(x=>x.time);
   return {
     bear:grab('bear',bear_count.value),
     foundry:grab('foundry',foundry_count.value),
     canyon:grab('canyon',canyon_count.value),
+    other,
     note:recruit_extra_note.value.trim()
   };
 }
@@ -213,25 +281,25 @@ function parseScheduleNotes(raw){
   if(!raw) return {bear:[],foundry:[],canyon:[],note:''};
   try{
     const obj=JSON.parse(raw);
-    if(obj && typeof obj==='object') return {bear:obj.bear||[],foundry:obj.foundry||[],canyon:obj.canyon||[],note:obj.note||''};
+    if(obj && typeof obj==='object') return {bear:obj.bear||[],foundry:obj.foundry||[],canyon:obj.canyon||[],other:obj.other||[],note:obj.note||''};
   }catch(e){}
-  return {bear:[],foundry:[],canyon:[],note:raw};
+  return {bear:[],foundry:[],canyon:[],other:[],note:raw};
 }
 function scheduleSummary(raw){
   const s=parseScheduleNotes(raw),parts=[];
   if(s.bear.length) parts.push(`Bear: ${s.bear.map(x=>x+' UTC').join(' / ')}`);
   if(s.foundry.length) parts.push(`Foundry: ${s.foundry.map(x=>x+' UTC').join(' / ')}`);
-  if(s.canyon.length) parts.push(`Canyon: ${s.canyon.map(x=>x+' UTC').join(' / ')}`);
+  if(s.canyon.length) parts.push(`Canyon: ${s.canyon.map(x=>x+' UTC').join(' / ')}`); if(s.other?.length) parts.push(...s.other.map(x=>`${x.name}: ${x.time} UTC`));
   if(s.note) parts.push(s.note);
   return parts.join(' • ') || 'No schedule listed';
 }
-['bear','foundry','canyon'].forEach(prefix=>{
+['bear','foundry','canyon','other'].forEach(prefix=>{
   const sel=document.getElementById(prefix+'-count');
   sel?.addEventListener('change',()=>renderScheduleTimes(prefix,sel.value));
 });
 renderScheduleTimes('bear',bear_count.value);
 renderScheduleTimes('foundry',foundry_count.value);
-renderScheduleTimes('canyon',canyon_count.value);
+renderScheduleTimes('canyon',canyon_count.value);renderScheduleTimes('other',other_count.value);
 
 async function loadRecruiting(){
  const eventId=recruit_event_filter.value;if(!eventId){recruit_list.innerHTML='<div class="empty-state">Select a Transfer Event.</div>';return;}
@@ -283,13 +351,14 @@ transfer_perm_search_form.onsubmit=async e=>{e.preventDefault();await loadPermis
 transfer_perm_list.onchange=async e=>{const uid=e.target.dataset.moduleUser,field=e.target.dataset.module;if(!uid||!field)return;const existing={user_id:uid,[field]:e.target.checked,updated_at:new Date().toISOString()};const {data:cur}=await sb.from('staff_module_access').select('*').eq('user_id',uid).maybeSingle();const row={user_id:uid,svs_access:cur?.svs_access||false,transfer_access:cur?.transfer_access||false,updated_at:new Date().toISOString()};row[field]=e.target.checked;const {error}=await sb.from('staff_module_access').upsert(row,{onConflict:'user_id'});if(error){alert(error.message);await loadPermissions(transfer_perm_search.value.trim());}};
 
 async function loadHistory(){
+ const {data:isOwner}=await sb.rpc('is_owner');
  const {data}=await sb.from('transfer_events').select('*').eq('status','archived').order('created_at',{ascending:false});
  const q=history_search_transfer.value.toLowerCase().trim();
  const rows=(data||[]).filter(e=>!q||[e.title,e.destination_state,e.source_state_min,e.source_state_max].join(' ').toLowerCase().includes(q));
- transfer_history_list.innerHTML=rows.length?rows.map(e=>`<article class="history-card"><div><b>${esc(e.title)}</b><small>State ${e.destination_state} • Archived cycle</small></div><div class="history-actions"><button class="btn secondary" data-history-cycle="${e.id}">View Applications</button></div></article>`).join(''):'<div class="empty-state">No archived Transfer Cycles.</div>';
+ transfer_history_list.innerHTML=rows.length?rows.map(e=>`<article class="history-card"><div><b>${esc(e.title)}</b><small>State ${e.destination_state} • Archived cycle${e.ended_at?' • Ended '+new Date(e.ended_at).toLocaleString():''}</small></div><div class="history-actions"><button class="btn secondary" data-history-cycle="${e.id}">View Applications</button>${isOwner===true?`<button class="btn danger" data-delete-transfer-history="${e.id}">Delete Permanently</button>`:''}</div></article>`).join(''):'<div class="empty-state">No archived Transfer Cycles.</div>';
 }
 history_search_transfer.oninput=loadHistory;
-transfer_history_list.onclick=e=>{const id=e.target.dataset.historyCycle;if(id){tab('applications');application_event_filter.innerHTML+=`<option value="${id}">Archived Cycle</option>`;application_event_filter.value=id;loadApplications();}};
+transfer_history_list.onclick=async e=>{const id=e.target.dataset.historyCycle,del=e.target.dataset.deleteTransferHistory;if(id){tab('applications');application_event_filter.innerHTML+=`<option value="${id}">Archived Cycle</option>`;application_event_filter.value=id;loadApplications();}if(del){if(!confirm('Permanently delete this archived Transfer Event and all applications?'))return;const {error}=await sb.rpc('owner_delete_transfer_event',{p_transfer_event_id:del});if(error)return alert(error.message);await loadHistory();}};
 
 (async()=>{
   if(!(await guard()))return;

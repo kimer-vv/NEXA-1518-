@@ -1,12 +1,15 @@
-# NEXA 1518 v5 — Nebula Background
+# NEXA 1518 v6 — Real Nebula Background
 
-This version replaces the flat CSS glow with an actual procedural nebula background built with SVG turbulence.
+This version replaces the procedural SVG/CSS nebula with an actual astronomy image background.
 
-Upload ALL files to the root of the GitHub repository and replace the previous versions:
+Files to upload to the ROOT of the GitHub repository:
 - index.html
 - event.html
 - schedule.html
 - style.css
+- nebula-background.jpg
 - README.md
 
-No extra image file is required; the nebula is embedded directly in each page.
+Important: `nebula-background.jpg` MUST be uploaded too, otherwise the real nebula will not appear.
+
+Background source: NASA/Hubble image of NGC 6302 (Butterfly Nebula), color-graded for the NEXA interface.

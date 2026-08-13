@@ -1,12 +1,19 @@
-# NEXA 1518 v18 — Live Event Sync + Local AM/PM
+# NEXA 1518 v19 — Permissions + Languages + VP/MOE
 
-Fixes:
-- Home now reads the current live SvS directly from Supabase instead of showing `XXXX`.
-- View Event reads opponent state, dates, notes, and open/closed settings from the saved Admin event.
-- WOS official date/time remains UTC.
-- Local time is displayed in 12-hour AM/PM format using the user's saved time zone.
-- View Schedule now contains ONLY Monday Construction, Tuesday Research, and Thursday Training.
-- Saturday Battle remains on the Event timeline but is removed from Ministry Schedule.
-- Schedule local-time labels are dynamically converted from UTC to the user's time zone.
+Included:
+- Automatic language detection + saved language preference.
+- Supported initially: English, Spanish, Turkish, Korean, Arabic, Japanese, Chinese, Russian.
+- Arabic automatically switches the interface to RTL.
+- English fallback for unsupported device languages.
+- Admin Panel now includes Permissions.
+- Search users by IGN or Player ID.
+- Assign Player / Scheduler / Admin using protected Supabase RPC functions.
+- Owner stays protected.
+- Admin button is visible to everyone, but unauthorized users receive an access-required message.
+- Ministry Schedule titles:
+  Monday Construction → VP (Vice President)
+  Tuesday Research → VP (Vice President)
+  Thursday Training → MOE (Minister of Education)
+- WOS/UTC stays 24-hour; local times stay 12-hour AM/PM.
 
-Upload all included files to the GitHub repository root and replace the previous version.
+Upload ALL included files to the root of the GitHub repository.

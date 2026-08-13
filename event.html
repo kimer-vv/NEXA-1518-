@@ -6,6 +6,7 @@
 <title>NEXA • SvS</title>
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lang.js"></script>
 </head>
 <body>
 <div class="nebula-bg" aria-hidden="true"></div>
@@ -61,12 +62,12 @@ function localDateTime(d, tz) {
     hour:'numeric', minute:'2-digit', hour12:true
   }).format(d);
 }
-async function getSavedTimeZone() {
+async function getProfilePrefs() {
   const { data: { session } } = await sb.auth.getSession();
-  const detected = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-  if (!session?.user) return detected;
-  const { data } = await sb.from('user_profiles').select('time_zone').eq('user_id',session.user.id).maybeSingle();
-  return data?.time_zone || detected;
+  const detectedTZ = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  if (!session?.user) return {tz:detectedTZ,lang:NEXA_I18N.device()};
+  const { data } = await sb.from('user_profiles').select('time_zone,language').eq('user_id',session.user.id).maybeSingle();
+  return {tz:data?.time_zone || detectedTZ, lang:NEXA_I18N.resolve(data?.language || 'auto')};
 }
 async function loadEvent() {
   const id = localStorage.getItem('nexa_live_event_id');
@@ -78,24 +79,28 @@ async function loadEvent() {
     return;
   }
 
-  const tz = await getSavedTimeZone();
+  const prefs = await getProfilePrefs();
+  const tz = prefs.tz;
+  currentLang = prefs.lang;
+  NEXA_I18N.setDir(currentLang);
+  const t=(k)=>NEXA_I18N.t(currentLang,k);
   const days = [
-    ['MON','Construction Day',0],
-    ['TUE','Research Day',1],
-    ['THU','Training Day',3],
-    ['SAT','Castle Battle & PvP',5]
+    [t('monday'),t('construction'),0],
+    [t('tuesday'),t('research'),1],
+    [t('thursday'),t('training'),3],
+    [t('saturday'),t('battle'),5]
   ];
 
-  document.getElementById('event-title').textContent = `SvS against ${data.opponent_state}`;
+  document.getElementById('event-title').textContent = currentLang==='es' ? `SvS contra ${data.opponent_state}` : `SvS against ${data.opponent_state}`;
   document.getElementById('event-meta').textContent =
-    `${utcDateLabel(addDays(data.prep_monday,0))} 00:00 UTC • Your time: ${localDateTime(addDays(data.prep_monday,0),tz)}`;
+    `${utcDateLabel(addDays(data.prep_monday,0))} 00:00 UTC • ${t('yourTime')}: ${localDateTime(addDays(data.prep_monday,0),tz)}`;
 
   document.getElementById('event-days').innerHTML = days.map(([day,label,off]) => {
     const d = addDays(data.prep_monday,off);
-    return `<div>${day} — <b>${label}</b><small class="event-local-line">${utcDateLabel(d)} • 00:00 UTC • Your time: ${localDateTime(d,tz)}</small></div>`;
+    return `<div>${day} — <b>${label}</b><small class="event-local-line">${utcDateLabel(d)} • 00:00 UTC • ${t('yourTime')}: ${localDateTime(d,tz)}</small></div>`;
   }).join('');
 
-  document.getElementById('event-description').textContent = data.description || 'No additional notes have been published.';
+  document.getElementById('event-description').textContent = data.description || t('noNotes');
 
   const prep = document.getElementById('prep-form-btn');
   const battle = document.getElementById('battle-form-btn');
@@ -103,6 +108,11 @@ async function loadEvent() {
   battle.classList.toggle('disabled', !data.battle_form_open);
   document.getElementById('schedule-btn').classList.toggle('disabled', !data.schedule_published);
 
+  document.querySelector('.back').textContent='← '+t('backEvents');
+  document.querySelector('.about h3').textContent=t('aboutEvent');
+  document.getElementById('prep-form-btn').textContent=t('fillPrep');
+  document.getElementById('battle-form-btn').textContent=t('fillBattle');
+  document.getElementById('schedule-btn').textContent=t('viewSchedule');
   localStorage.setItem('nexa_live_event_id', data.id);
 }
 loadEvent();

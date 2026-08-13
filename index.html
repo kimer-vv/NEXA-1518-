@@ -6,6 +6,7 @@
 <title>NEXA 1518</title>
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lang.js"></script>
 </head>
 <body>
 <div class="nebula-bg" aria-hidden="true"></div>
@@ -26,7 +27,7 @@
           <span id="discord-status">Sign in with Discord</span>
         </div>
       </button>
-      <button id="admin-panel-button" class="admin-pill hidden" type="button">Admin</button>
+      <button id="admin-panel-button" class="admin-pill" type="button">Admin</button>
     </div>
 </header>
 
@@ -102,6 +103,35 @@
       </div>
       <button id="change-timezone" class="tz-button" type="button">Change</button>
     </div>
+
+    <div class="timezone-card language-card">
+      <div>
+        <small id="language-label">LANGUAGE</small>
+        <b id="language-display">Auto</b>
+        <span id="language-detected"></span>
+      </div>
+      <button id="change-language" class="tz-button" type="button">Change</button>
+    </div>
+    <div id="language-editor" class="timezone-editor hidden">
+      <label id="language-select-label">Language
+        <select id="language-select">
+          <option value="auto">Auto (device)</option>
+          <option value="en">English</option>
+          <option value="es">Español</option>
+          <option value="tr">Türkçe</option>
+          <option value="ko">한국어</option>
+          <option value="ar">العربية</option>
+          <option value="ja">日本語</option>
+          <option value="zh">中文</option>
+          <option value="ru">Русский</option>
+        </select>
+      </label>
+      <div class="form-actions">
+        <button id="cancel-language" class="btn secondary" type="button">Cancel</button>
+        <button id="save-language" class="btn" type="button">Save Language</button>
+      </div>
+    </div>
+
     <div id="timezone-editor" class="timezone-editor hidden">
       <label>Time Zone
         <select id="timezone-select"></select>
@@ -153,6 +183,7 @@
     <div class="admin-tabs">
       <button class="admin-tab active" type="button" data-admin-tab="events">Events</button>
       <button class="admin-tab" type="button" data-admin-tab="alliances">Alliances</button>
+      <button class="admin-tab" type="button" data-admin-tab="permissions">Permissions</button>
     </div>
 
     <section id="admin-events" class="admin-section">
@@ -219,6 +250,23 @@
 
       <div id="admin-alliances-message" class="form-message"></div>
       <div id="alliances-admin-list" class="admin-list"></div>
+    </section>
+
+    <section id="admin-permissions" class="admin-section hidden">
+      <div class="admin-section-head">
+        <div>
+          <h3 id="permissions-title">Permissions</h3>
+          <p id="permissions-help">Search by IGN or Player ID and assign access. Owner is protected.</p>
+        </div>
+      </div>
+
+      <form id="permissions-search-form" class="alliance-inline-form">
+        <input id="permissions-search" placeholder="Search IGN or Player ID">
+        <button class="btn" type="submit">Search</button>
+      </form>
+
+      <div id="permissions-message" class="form-message"></div>
+      <div id="permissions-list" class="admin-list"></div>
     </section>
   </section>
 </div>
@@ -292,8 +340,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   supabaseClient.auth.onAuthStateChange(async () => {
     await renderSession();
+    if (typeof loadLanguageProfile === 'function') await loadLanguageProfile();
     if (typeof refreshAdminVisibility === 'function') {
       await refreshAdminVisibility();
+  await loadLanguageProfile();
     }
   });
 
@@ -324,9 +374,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       .select('id,tag').eq('is_active', true).order('tag');
     if (error) throw error;
     allianceRows = data || [];
-    allianceSelect.innerHTML = '<option value="">Select alliance</option>' +
+    allianceSelect.innerHTML = '<option value="">'+tr('selectAlliance')+'</option>' +
       allianceRows.map(a => `<option value="${a.id}">${a.tag}</option>`).join('') +
-      '<option value="not-listed">Not Listed</option>';
+      '<option value="not-listed">'+tr('notListed')+'</option>';
   }
 
   allianceSelect.addEventListener('change', () => {
@@ -345,14 +395,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     customAlliance.value = '';
     customAlliance.required = false;
     customAllianceWrap.classList.add('hidden');
-    document.getElementById('save-account').textContent = 'Add Account';
+    document.getElementById('save-account').textContent = tr('addAccount');
     document.getElementById('cancel-edit').classList.add('hidden');
   }
 
   async function loadAccounts() {
     const user = await currentUser();
     if (!user) {
-      accountsList.innerHTML = '<div class="empty-state">Sign in with Discord first.</div>';
+      accountsList.innerHTML = '<div class="empty-state">'+tr('signInDiscord')+'</div>';
       accountCount.textContent = '0/5';
       accountForm.classList.add('hidden');
       return;
@@ -374,7 +424,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           <button type="button" data-delete="${a.id}">Delete</button>
         </div>
       </article>`;
-    }).join('') : '<div class="empty-state">No WOS accounts claimed yet.</div>';
+    }).join('') : '<div class="empty-state">'+tr('noAccounts')+'</div>';
   }
 
   const openAccountsButton = document.getElementById('open-accounts');
@@ -423,7 +473,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       : supabaseClient.from('player_accounts').insert(payload);
     const { error } = await q;
     if (error) return msg(error.message, true);
-    msg(editId ? 'Account updated.' : 'Account added.');
+    msg(editId ? tr('accountUpdated') : tr('accountAdded'));
     resetAccountForm();
     await loadAccounts();
   });
@@ -432,7 +482,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const editId = e.target.dataset.edit;
     const deleteId = e.target.dataset.delete;
     if (deleteId) {
-      if (!confirm('Remove this WOS account from NEXA?')) return;
+      if (!confirm(tr('removeAccount'))) return;
       const { error } = await supabaseClient.from('player_accounts').delete().eq('id', deleteId);
       if (error) return msg(error.message, true);
       resetAccountForm(); await loadAccounts(); return;
@@ -452,7 +502,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         customAlliance.required = true;
         customAlliance.value = data.custom_alliance_tag || '';
       }
-      document.getElementById('save-account').textContent = 'Save Changes';
+      document.getElementById('save-account').textContent = tr('saveChanges');
       document.getElementById('save-account').disabled = false;
       document.getElementById('cancel-edit').classList.remove('hidden');
     }
@@ -573,7 +623,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     timezoneDisplay.textContent = zone;
     timezoneOffset.textContent = utcOffsetLabel(zone);
     timezoneEditor.classList.add('hidden');
-    msg('Time zone updated.');
+    msg(tr('timezoneUpdated'));
   });
 
 
@@ -581,6 +631,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const adminModal = document.getElementById('admin-modal');
   const adminEventsSection = document.getElementById('admin-events');
   const adminAlliancesSection = document.getElementById('admin-alliances');
+  const adminPermissionsSection = document.getElementById('admin-permissions');
 
   async function amIAdmin() {
     const user = await currentUser();
@@ -595,14 +646,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   async function refreshAdminVisibility() {
-    const isAdmin = await amIAdmin();
-    adminButton.classList.toggle('hidden', !isAdmin);
+    adminButton.classList.remove('hidden');
   }
 
   async function ensureAdmin() {
     const isAdmin = await amIAdmin();
     if (!isAdmin) {
-      alert('Admin access required.');
+      alert(tr('adminAccess'));
       return false;
     }
     return true;
@@ -637,17 +687,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     const monday = document.getElementById('prep-monday').value;
     const box = document.getElementById('event-preview-lines');
     if (!monday) {
-      box.textContent = 'Choose Prep Monday to preview dates.';
+      box.textContent = tr('chooseMonday');
       return;
     }
     const lines = [
-      ['MON', 'Construction Day', fmtDateUTC(monday,0)],
-      ['TUE', 'Research Day', fmtDateUTC(monday,1)],
-      ['THU', 'Training Day', fmtDateUTC(monday,3)],
-      ['SAT', 'Castle Battle & PvP', fmtDateUTC(monday,5)]
+      [tr('monday'), tr('construction'), fmtDateUTC(monday,0)],
+      [tr('tuesday'), tr('research'), fmtDateUTC(monday,1)],
+      [tr('thursday'), tr('training'), fmtDateUTC(monday,3)],
+      [tr('saturday'), tr('battle'), fmtDateUTC(monday,5)]
     ];
     box.innerHTML = lines.map(([day,label,date]) =>
-      `<div><b>${day}</b> ${date} — ${label}<small>Your time: ${localLabelFromUTCDate(date)}</small></div>`
+      `<div><b>${day}</b> ${date} — ${label}<small>${tr('yourTime')}: ${localLabelFromUTCDate(date)}</small></div>`
     ).join('');
   }
 
@@ -659,6 +709,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     adminModal.setAttribute('aria-hidden','false');
     await loadAdminEvents();
     await loadAdminAlliances();
+    await loadPermissions();
     renderEventPreview();
   });
 
@@ -667,12 +718,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     adminModal.setAttribute('aria-hidden','true');
   }));
 
-  document.querySelectorAll('[data-admin-tab]').forEach(btn => btn.addEventListener('click', () => {
+  document.querySelectorAll('[data-admin-tab]').forEach(btn => btn.addEventListener('click', async () => {
     document.querySelectorAll('[data-admin-tab]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     const target = btn.dataset.adminTab;
     adminEventsSection.classList.toggle('hidden', target !== 'events');
     adminAlliancesSection.classList.toggle('hidden', target !== 'alliances');
+    adminPermissionsSection.classList.toggle('hidden', target !== 'permissions');
+    if (target === 'permissions') await loadPermissions();
   }));
 
   async function loadAdminEvents() {
@@ -749,7 +802,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const editId = e.target.dataset.eventEdit;
     const deleteId = e.target.dataset.eventDelete;
     if (deleteId) {
-      if (!confirm('Delete this SvS event?')) return;
+      if (!confirm(tr('deleteEvent'))) return;
       const { error } = await supabaseClient.from('svs_events').delete().eq('id', deleteId);
       if (error) return alert(error.message);
       await loadAdminEvents(); return;
@@ -785,12 +838,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       <article class="admin-row">
         <div>
           <b>${a.tag}</b>
-          <small>${a.is_active ? 'Active' : 'Inactive'}</small>
+          <small>${a.is_active ? tr('active') : tr('inactive')}</small>
         </div>
         <div class="account-actions">
           <button type="button" data-alliance-edit="${a.id}">Edit</button>
           <button type="button" data-alliance-toggle="${a.id}" data-active="${a.is_active}">
-            ${a.is_active ? 'Deactivate' : 'Activate'}
+            ${a.is_active ? tr('deactivate') : tr('activate')}
           </button>
         </div>
       </article>
@@ -849,6 +902,223 @@ document.addEventListener('DOMContentLoaded', async () => {
   await refreshAdminVisibility();
 
 
+
+  let currentLanguage = 'en';
+  let languagePreference = 'auto';
+
+  function tr(key) { return NEXA_I18N.t(currentLanguage, key); }
+
+  function setText(selector, key) {
+    const el = document.querySelector(selector);
+    if (el) el.textContent = tr(key);
+  }
+
+  function applyIndexLanguage() {
+    NEXA_I18N.setDir(currentLanguage);
+
+    setText('.hero p','stateHub');
+    setText('.section .head h2','myAccounts');
+    const heads = document.querySelectorAll('.section .head h2');
+    if (heads[1]) heads[1].textContent = tr('liveUpcoming');
+
+    const headSpans = document.querySelectorAll('.section .head span');
+    if (headSpans[0]) headSpans[0].textContent = tr('claimAccount');
+    if (headSpans[1]) headSpans[1].textContent = tr('tapOpen');
+
+    const claimB = document.querySelector('#open-accounts b');
+    const claimSmall = document.querySelector('#open-accounts small');
+    const claimOpen = document.querySelector('#open-accounts .link');
+    if (claimB) claimB.textContent = tr('claimAccount');
+    if (claimSmall) claimSmall.textContent = tr('accountSubtitle');
+    if (claimOpen) claimOpen.textContent = tr('open');
+
+    setText('.badge','live');
+    const view = document.querySelector('.event-actions .btn');
+    if (view) view.textContent = tr('viewEvent') + ' →';
+    const footer = document.querySelector('.footer');
+    if (footer) footer.innerHTML = tr('motto') + '<br>NEXA • State 1518';
+
+    setText('#language-label','yourLanguage');
+    setText('#change-language','change');
+    setText('#language-select-label','yourLanguage');
+    setText('#cancel-language','cancel');
+    setText('#save-language','saveLanguage');
+
+    const modalSmall = document.querySelector('#accounts-modal .modal-head small');
+    if (modalSmall) modalSmall.textContent = tr('myAccounts').toUpperCase();
+    const modalH = document.querySelector('#accounts-modal .modal-head h2');
+    if (modalH) modalH.childNodes[0].nodeValue = tr('wosAccounts') + ' ';
+
+    const tzSmall = document.querySelector('.timezone-card small');
+    if (tzSmall) tzSmall.textContent = tr('yourTimeZone').toUpperCase();
+    setText('#change-timezone','change');
+
+    const formLabels = document.querySelectorAll('#account-form label');
+    if (formLabels[0]) formLabels[0].childNodes[0].nodeValue = tr('inGameName') + '\n        ';
+    if (formLabels[1]) formLabels[1].childNodes[0].nodeValue = tr('playerId') + '\n        ';
+    if (formLabels[2]) formLabels[2].childNodes[0].nodeValue = tr('alliance') + '\n        ';
+    if (formLabels[3]) formLabels[3].childNodes[0].nodeValue = tr('allianceTag') + '\n        ';
+    setText('#cancel-edit','cancel');
+
+    setText('#admin-panel-button','admin');
+    setText('#admin-modal .modal-head small','adminPanel');
+    setText('#admin-modal .modal-head h2','controlCenter');
+
+    const tabs = document.querySelectorAll('[data-admin-tab]');
+    if(tabs[0]) tabs[0].textContent=tr('events');
+    if(tabs[1]) tabs[1].textContent=tr('alliances');
+    if(tabs[2]) tabs[2].textContent=tr('permissions');
+
+    setText('#admin-events h3','svsEvents');
+    setText('#admin-events .admin-section-head p','eventsHelp');
+    setText('#admin-alliances h3','allianceTags');
+    setText('#admin-alliances .admin-section-head p','allianceHelp');
+    setText('#permissions-title','permissions');
+    setText('#permissions-help','permissionsHelp');
+
+    document.getElementById('permissions-search').placeholder = tr('searchUser');
+    const psBtn = document.querySelector('#permissions-search-form .btn');
+    if(psBtn) psBtn.textContent=tr('search');
+
+    const eventLabels = document.querySelectorAll('#event-form > label');
+    if(eventLabels[0]) eventLabels[0].childNodes[0].nodeValue=tr('opponentState')+'\n          ';
+    if(eventLabels[1]) eventLabels[1].childNodes[0].nodeValue=tr('prepMonday')+'\n          ';
+    if(eventLabels[2]) eventLabels[2].childNodes[0].nodeValue=tr('eventNotes')+'\n          ';
+    const previewSmall=document.querySelector('.event-preview > small');
+    if(previewSmall) previewSmall.textContent=tr('timeline');
+    const toggles=document.querySelectorAll('.toggle-line');
+    const toggleKeys=['prepFormOpen','battleFormOpen','schedulePublished','liveEvent'];
+    toggles.forEach((x,i)=>{ if(toggleKeys[i]) x.lastChild.textContent=' '+tr(toggleKeys[i]); });
+    const saveEvent=document.querySelector('#event-form button[type="submit"]');
+    if(saveEvent) saveEvent.textContent=tr('saveEvent');
+    setText('#cancel-event-edit','cancel');
+    document.getElementById('alliance-admin-tag').placeholder=tr('allianceTag');
+    const saveTag=document.querySelector('#alliance-admin-form button[type="submit"]');
+    if(saveTag) saveTag.textContent=tr('saveTag');
+    setText('#cancel-alliance-edit','cancel');
+
+    const discordLogged = loginButton.dataset.loggedIn === 'true';
+    if(!discordLogged){
+      nameEl.textContent=tr('discordProfile');
+      statusEl.textContent=tr('signInDiscord');
+    } else {
+      statusEl.textContent=tr('discordConnected');
+    }
+
+    renderEventPreview();
+    loadAccounts();
+    loadAdminEvents();
+    loadAdminAlliances();
+    loadPermissions();
+    syncHomeLiveEvent();
+  }
+
+  function languageName(code) {
+    const names = {
+      auto: tr('languageAuto'), en:'English', es:'Español', tr:'Türkçe',
+      ko:'한국어', ar:'العربية', ja:'日本語', zh:'中文', ru:'Русский'
+    };
+    return names[code] || code;
+  }
+
+  async function loadLanguageProfile() {
+    const user = await currentUser();
+    const detected = NEXA_I18N.device();
+
+    if(!user){
+      languagePreference='auto';
+      currentLanguage=detected;
+    } else {
+      const {data,error}=await supabaseClient.from('user_profiles')
+        .select('language').eq('user_id',user.id).maybeSingle();
+      if(error) console.error(error);
+      languagePreference=data?.language || 'auto';
+      currentLanguage=NEXA_I18N.resolve(languagePreference);
+    }
+
+    document.getElementById('language-display').textContent=languageName(languagePreference);
+    document.getElementById('language-detected').textContent =
+      languagePreference==='auto' ? `${languageName(currentLanguage)} • ${navigator.language || ''}` : languageName(currentLanguage);
+    document.getElementById('language-select').value=languagePreference;
+    applyIndexLanguage();
+  }
+
+  document.getElementById('change-language').addEventListener('click', ()=>{
+    document.getElementById('language-editor').classList.remove('hidden');
+  });
+  document.getElementById('cancel-language').addEventListener('click', ()=>{
+    document.getElementById('language-editor').classList.add('hidden');
+  });
+  document.getElementById('save-language').addEventListener('click', async ()=>{
+    const user=await currentUser();
+    if(!user){ document.getElementById('discord-login').click(); return; }
+    const pref=document.getElementById('language-select').value;
+    const {error}=await supabaseClient.from('user_profiles')
+      .upsert({user_id:user.id,language:pref},{onConflict:'user_id'});
+    if(error) return msg(error.message,true);
+    languagePreference=pref;
+    currentLanguage=NEXA_I18N.resolve(pref);
+    document.getElementById('language-editor').classList.add('hidden');
+    msg(tr('languageUpdated'));
+    await loadLanguageProfile();
+  });
+
+  async function loadPermissions(search='') {
+    const list=document.getElementById('permissions-list');
+    if(!list) return;
+    const ok=await amIAdmin();
+    if(!ok){ list.innerHTML=`<div class="empty-state">${tr('adminAccess')}</div>`; return; }
+
+    const {data,error}=await supabaseClient.rpc('list_permission_users',{search_text:search || null});
+    if(error){ document.getElementById('permissions-message').textContent=error.message; return; }
+    const rows=data||[];
+    list.innerHTML=rows.length ? rows.map(u=>{
+      const accounts=(u.accounts||[]).map(a=>`${a.in_game_name} • ${a.alliance} • ID ${a.player_id}`).join('<br>');
+      const role=u.role||'player';
+      const isOwner=role==='owner';
+      return `<article class="permission-row">
+        <div class="permission-person">
+          <b>${u.discord_name || 'Discord User'}</b>
+          <small>${accounts || tr('noAccounts')}</small>
+        </div>
+        <div class="permission-role">
+          ${isOwner
+            ? `<span class="owner-badge">Owner</span>`
+            : `<select data-role-user="${u.user_id}">
+                <option value="player" ${role==='player'?'selected':''}>Player</option>
+                <option value="scheduler" ${role==='scheduler'?'selected':''}>Scheduler</option>
+                <option value="admin" ${role==='admin'?'selected':''}>Admin</option>
+              </select>`}
+        </div>
+      </article>`;
+    }).join('') : `<div class="empty-state">${tr('noUsers')}</div>`;
+  }
+
+  document.getElementById('permissions-search-form').addEventListener('submit', async e=>{
+    e.preventDefault();
+    await loadPermissions(document.getElementById('permissions-search').value.trim());
+  });
+
+  document.getElementById('permissions-list').addEventListener('change', async e=>{
+    const target=e.target.dataset.roleUser;
+    if(!target) return;
+    const newRole=e.target.value;
+    const {error}=await supabaseClient.rpc('set_user_role',{
+      target_user_id:target,
+      new_role:newRole
+    });
+    const m=document.getElementById('permissions-message');
+    if(error){
+      m.textContent=error.message;
+      m.classList.add('error');
+      await loadPermissions(document.getElementById('permissions-search').value.trim());
+      return;
+    }
+    m.textContent=tr('roleUpdated');
+    m.classList.remove('error');
+  });
+
+
   function utcDateFromPrep(prepMonday, offsetDays=0) {
     const d = new Date(prepMonday + 'T00:00:00Z');
     d.setUTCDate(d.getUTCDate() + offsetDays);
@@ -863,7 +1133,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function countdownLabel(endDate) {
     const ms = endDate.getTime() - Date.now();
-    if (ms <= 0) return 'Ended';
+    if (ms <= 0) return tr('ended');
     const totalHours = Math.floor(ms / 3600000);
     const days = Math.floor(totalHours / 24);
     const hours = totalHours % 24;
@@ -889,8 +1159,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
     if (!data) {
-      titleEl.textContent = 'No live SvS event';
-      metaEl.textContent = 'Leadership has not published a live event yet.';
+      titleEl.textContent = tr('noLive');
+      metaEl.textContent = tr('noLiveText');
       countEl.textContent = '—';
       return;
     }
@@ -899,7 +1169,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const battle = utcDateFromPrep(data.prep_monday, 5);
     const end = new Date(battle.getTime() + 24 * 3600000);
 
-    titleEl.textContent = `SvS against ${data.opponent_state}`;
+    titleEl.textContent = currentLanguage==='es' ? `SvS contra ${data.opponent_state}` : `SvS against ${data.opponent_state}`;
     metaEl.textContent = `${shortUTCDate(start)} – ${shortUTCDate(battle)} • WOS Game Time (UTC)`;
     countEl.textContent = countdownLabel(end);
 

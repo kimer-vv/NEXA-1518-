@@ -237,6 +237,22 @@
           <small>Players can acknowledge that they read it.</small>
         </label>
 
+        <section class="glass-lite announcement-translations-admin">
+          <div class="admin-section-head">
+            <h3>Announcement Translations</h3>
+            <p>Free-text auto-translation requires a translation service. For now you can save translated versions here; NEXA will show the matching language automatically.</p>
+          </div>
+          <div class="translation-grid">
+            <label>Español<textarea id="ann-es" rows="2"></textarea></label>
+            <label>Türkçe<textarea id="ann-tr" rows="2"></textarea></label>
+            <label>한국어<textarea id="ann-ko" rows="2"></textarea></label>
+            <label>العربية<textarea id="ann-ar" rows="2"></textarea></label>
+            <label>日本語<textarea id="ann-ja" rows="2"></textarea></label>
+            <label>中文<textarea id="ann-zh" rows="2"></textarea></label>
+            <label>Русский<textarea id="ann-ru" rows="2"></textarea></label>
+          </div>
+        </section>
+
         <section id="announcement-reads-admin" class="glass-lite hidden">
           <div class="admin-section-head">
             <h3>Announcement Reads</h3>
@@ -818,6 +834,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('prep-monday').value = '';
     document.getElementById('event-description').value = '';
     document.getElementById('important-announcement').value = '';
+    ['es','tr','ko','ar','ja','zh','ru'].forEach(c=>document.getElementById('ann-'+c).value='');
     document.getElementById('announcement-reads-admin').classList.add('hidden');
     document.getElementById('castle-alliance').value = '';
     document.getElementById('presidency-alliance').value = '';
@@ -854,6 +871,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       presidency_alliance_id: document.getElementById('presidency-alliance').value ? Number(document.getElementById('presidency-alliance').value) : null,
       description: document.getElementById('event-description').value.trim() || null,
       announcement_text: nextAnnouncement,
+      announcement_translations: {
+        es: document.getElementById('ann-es').value.trim(),
+        tr: document.getElementById('ann-tr').value.trim(),
+        ko: document.getElementById('ann-ko').value.trim(),
+        ar: document.getElementById('ann-ar').value.trim(),
+        ja: document.getElementById('ann-ja').value.trim(),
+        zh: document.getElementById('ann-zh').value.trim(),
+        ru: document.getElementById('ann-ru').value.trim()
+      },
       announcement_version: (id && nextAnnouncement === priorAnnouncement) ? priorVersion : (priorVersion + (nextAnnouncement ? 1 : 0)),
       prep_form_open: document.getElementById('prep-form-open').checked,
       battle_form_open: document.getElementById('battle-form-open').checked,
@@ -892,6 +918,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('prep-monday').value = data.prep_monday;
       document.getElementById('event-description').value = data.description || '';
       document.getElementById('important-announcement').value = data.announcement_text || '';
+      const ats=data.announcement_translations||{};
+      ['es','tr','ko','ar','ja','zh','ru'].forEach(c=>document.getElementById('ann-'+c).value=ats[c]||'');
       await loadAnnouncementReads(data);
       await loadEventAllianceSelectors(data.castle_alliance_id, data.presidency_alliance_id);
       document.getElementById('prep-form-open').checked = !!data.prep_form_open;
@@ -1240,7 +1268,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     wrap.classList.remove('hidden');
-    msgEl.textContent = eventData.announcement_text;
+    msgEl.textContent = eventData.announcement_translations?.[currentLanguage] || eventData.announcement_text;
     ackBtn.textContent = tr('iveRead');
     ackBtn.disabled = false;
     wrap.classList.remove('acknowledged');
@@ -1260,6 +1288,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       ackBtn.textContent = tr('readConfirmed');
       ackBtn.disabled = true;
       wrap.classList.add('acknowledged');
+      wrap.classList.add('hidden');
+      return;
     }
 
     ackBtn.onclick = async()=>{
@@ -1274,6 +1304,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         ackBtn.textContent=tr('readConfirmed');
         ackBtn.disabled=true;
         wrap.classList.add('acknowledged');
+        setTimeout(()=>wrap.classList.add('hidden'),250);
       }
     };
   }

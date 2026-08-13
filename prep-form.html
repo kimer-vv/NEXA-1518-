@@ -231,7 +231,7 @@ async function load(){
   $('prep-event-meta').textContent=`SvS against ${event.opponent_state} • Prep Monday ${event.prep_monday} UTC`;
 
   if(!event.prep_form_open){
-    $('prep-closed').textContent='This Prep Form is currently closed.';
+    $('prep-closed').textContent=NEXA_I18N.t(NEXA_I18N.device(),'prepClosed');
     $('prep-closed').classList.remove('hidden'); return;
   }
 
@@ -240,7 +240,7 @@ async function load(){
     .order('created_at');
   if(error){ $('prep-message').textContent=error.message; return; }
   if(!accounts?.length){
-    $('prep-closed').textContent='Claim a WOS account before submitting the Prep Form.';
+    $('prep-closed').textContent=NEXA_I18N.t(NEXA_I18N.device(),'claimFirst');
     $('prep-closed').classList.remove('hidden'); return;
   }
 
@@ -323,14 +323,73 @@ $('prep-form').addEventListener('submit', async e=>{
   };
 
   if(!payload.construction_requested && !payload.research_requested && !payload.training_requested && !payload.upgrading_t12){
-    $('prep-message').textContent='Select at least one Prep Day request or T12 information.';
+    $('prep-message').textContent=NEXA_I18N.t(NEXA_I18N.device(),'selectSomething');
     return;
   }
 
   const {error}=await sb.from('prep_requests').upsert(payload,{onConflict:'event_id,player_account_id'});
-  $('prep-message').textContent=error ? error.message : 'Prep Form submitted successfully.';
+  $('prep-message').textContent=error ? error.message : NEXA_I18N.t(NEXA_I18N.device(),'prepSuccess');
 });
 load();
+</script>
+
+<script>
+(async function(){
+  const sb2 = sb;
+  let lang='en';
+  const {data:{session}} = await sb2.auth.getSession();
+  if(session?.user){
+    const {data}=await sb2.from('user_profiles').select('language').eq('user_id',session.user.id).maybeSingle();
+    lang=NEXA_I18N.resolve(data?.language||'auto');
+  } else lang=NEXA_I18N.device();
+  NEXA_I18N.setDir(lang);
+  const t=k=>NEXA_I18N.t(lang,k);
+
+  document.getElementById('prep-title').textContent=t('prepForm');
+  const form=document.getElementById('prep-form');
+  if(!form) return;
+  const labels=form.querySelectorAll(':scope > label');
+  if(labels[0]) labels[0].childNodes[0].nodeValue=t('wosAccount')+'\n        ';
+
+  const sections=document.querySelectorAll('.prep-section');
+  if(sections[0]){
+    sections[0].querySelector('.toggle-line').lastChild.textContent=' '+t('requestVP');
+    const fs=sections[0].querySelectorAll('.conditional-fields label');
+    fs[0].childNodes[0].nodeValue=t('constructionQuestion')+'\n            ';
+    fs[0].querySelector('small').textContent=t('minutesHint');
+    fs[1].childNodes[0].nodeValue=t('fireCrystalsQuestion')+'\n            ';
+    fs[2].childNodes[0].nodeValue=t('refinedQuestion')+'\n            ';
+    fs[3].childNodes[0].nodeValue=t('timeFrame')+'\n            ';
+    fs[4].childNodes[0].nodeValue=t('specificTime')+'\n            ';
+  }
+  if(sections[1]){
+    sections[1].querySelector('.toggle-line').lastChild.textContent=' '+t('requestVP');
+    const fs=sections[1].querySelectorAll('.conditional-fields label');
+    fs[0].childNodes[0].nodeValue=t('researchQuestion')+'\n            ';
+    fs[0].querySelector('small').textContent=t('minutesHint');
+    fs[1].childNodes[0].nodeValue=t('shardsQuestion')+'\n            ';
+    fs[2].childNodes[0].nodeValue=t('timeFrame')+'\n            ';
+    fs[3].childNodes[0].nodeValue=t('specificTime')+'\n            ';
+  }
+  if(sections[2]){
+    sections[2].querySelector('.toggle-line').lastChild.textContent=' '+t('requestMOE');
+    const fs=sections[2].querySelectorAll('.conditional-fields label');
+    fs[0].childNodes[0].nodeValue=t('troopsQuestion')+'\n            ';
+    fs[1].childNodes[0].nodeValue=t('trainingQuestion')+'\n            ';
+    fs[1].querySelector('small').textContent=t('minutesHint');
+    fs[2].childNodes[0].nodeValue=t('timeFrame')+'\n            ';
+    fs[3].childNodes[0].nodeValue=t('specificTime')+'\n            ';
+  }
+  if(sections[3]){
+    sections[3].querySelector('h3').textContent=t('t12Info');
+    sections[3].querySelector('.toggle-line').lastChild.textContent=' '+t('upgradingT12');
+    const fs=sections[3].querySelectorAll('.conditional-fields label');
+    fs[0].childNodes[0].nodeValue=t('refinedQuestion')+'\n            ';
+    fs[1].childNodes[0].nodeValue=t('shardsQuestion')+'\n            ';
+  }
+  const submit=form.querySelector('button[type="submit"]');
+  if(submit) submit.textContent=t('submitPrep');
+})();
 </script>
 </body>
 </html>

@@ -25,6 +25,7 @@
     <span class="badge">SVS</span>
     <h1 id="event-title">Loading SvS…</h1>
     <div id="event-meta" class="muted">WOS Game Time (UTC)</div>
+    <button id="edit-event-inline" class="btn secondary hidden" type="button" style="margin-top:10px">Edit Event</button>
   </div>
 
   <section class="glass calendar">
@@ -56,6 +57,31 @@
     </div>
   </section>
 </main>
+
+
+<div id="event-edit-modal" class="modal" aria-hidden="true">
+  <div class="modal-backdrop" data-close-event-edit></div>
+  <section class="modal-card">
+    <div class="modal-head">
+      <div><small>ADMIN</small><h2>Edit Event</h2></div>
+      <button class="icon-btn" type="button" data-close-event-edit>×</button>
+    </div>
+    <form id="inline-event-form" class="account-form">
+      <label>Opponent State<input id="inline-opponent" type="number" min="1" required></label>
+      <label>Prep Monday — Game Date (UTC)<input id="inline-monday" type="date" required></label>
+      <label>Event Notes<textarea id="inline-notes" rows="3"></textarea></label>
+      <label>Important Announcement<textarea id="inline-announcement" rows="2"></textarea></label>
+      <div class="toggle-grid">
+        <label class="toggle-line"><input id="inline-prep-open" type="checkbox"> Prep Form Open</label>
+        <label class="toggle-line"><input id="inline-battle-open" type="checkbox"> Battle Form Open</label>
+        <label class="toggle-line"><input id="inline-schedule-published" type="checkbox"> Schedule Published</label>
+        <label class="toggle-line"><input id="inline-live" type="checkbox"> Live Event</label>
+      </div>
+      <div class="form-actions"><button class="btn" type="submit">Save Changes</button></div>
+      <div id="inline-event-message" class="form-message"></div>
+    </form>
+  </section>
+</div>
 
 <script>
 const sb = window.supabase.createClient("https://dfxcxboxrkfmrnsgpyin.supabase.co", "sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-");
@@ -143,8 +169,50 @@ async function loadEvent() {
     presidencyBox.querySelector('b').textContent = presidencyTag;
   }
 
+  await enableInlineEdit(data);
   localStorage.setItem('nexa_live_event_id', data.id);
 }
+
+async function enableInlineEdit(data){
+  const {data:isAdmin}=await sb.rpc('is_admin');
+  if(isAdmin!==true) return;
+  const btn=document.getElementById('edit-event-inline');
+  btn.classList.remove('hidden');
+  btn.addEventListener('click',()=>{
+    document.getElementById('inline-opponent').value=data.opponent_state;
+    document.getElementById('inline-monday').value=data.prep_monday;
+    document.getElementById('inline-notes').value=data.description||'';
+    document.getElementById('inline-announcement').value=data.announcement_text||'';
+    document.getElementById('inline-prep-open').checked=!!data.prep_form_open;
+    document.getElementById('inline-battle-open').checked=!!data.battle_form_open;
+    document.getElementById('inline-schedule-published').checked=!!data.schedule_published;
+    document.getElementById('inline-live').checked=!!data.is_live;
+    document.getElementById('event-edit-modal').classList.add('open');
+  });
+  document.querySelectorAll('[data-close-event-edit]').forEach(x=>x.addEventListener('click',()=>{
+    document.getElementById('event-edit-modal').classList.remove('open');
+  }));
+  document.getElementById('inline-event-form').onsubmit=async(e)=>{
+    e.preventDefault();
+    const oldAnn=data.announcement_text||null;
+    const newAnn=document.getElementById('inline-announcement').value.trim()||null;
+    const payload={
+      opponent_state:Number(document.getElementById('inline-opponent').value),
+      prep_monday:document.getElementById('inline-monday').value,
+      description:document.getElementById('inline-notes').value.trim()||null,
+      announcement_text:newAnn,
+      announcement_version:newAnn===oldAnn?Number(data.announcement_version||0):Number(data.announcement_version||0)+(newAnn?1:0),
+      prep_form_open:document.getElementById('inline-prep-open').checked,
+      battle_form_open:document.getElementById('inline-battle-open').checked,
+      schedule_published:document.getElementById('inline-schedule-published').checked,
+      is_live:document.getElementById('inline-live').checked
+    };
+    const {error}=await sb.from('svs_events').update(payload).eq('id',data.id);
+    document.getElementById('inline-event-message').textContent=error?error.message:'Event updated.';
+    if(!error) setTimeout(()=>location.reload(),350);
+  };
+}
+
 loadEvent();
 </script>
 </body>

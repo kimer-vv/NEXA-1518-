@@ -196,6 +196,7 @@
       <button class="admin-tab" type="button" data-admin-tab="alliances">Alliances</button>
       <button class="admin-tab" type="button" data-admin-tab="permissions">Permissions</button>
       <button class="admin-tab" type="button" data-admin-tab="announcements">Announcements</button>
+      <button class="admin-tab" type="button" data-admin-tab="history">History</button>
     </div>
 
     <section id="admin-events" class="admin-section">
@@ -243,6 +244,16 @@
           <label class="toggle-line"><input id="battle-form-open" type="checkbox"> Battle Form Open</label>
           <label class="toggle-line"><input id="schedule-published" type="checkbox"> Schedule Published</label>
           <label class="toggle-line"><input id="event-is-live" type="checkbox"> Live Event</label>
+        </div>
+
+        <label>Auto End (UTC)
+          <input id="event-auto-end" type="datetime-local">
+          <small>Optional. When this UTC date/time is reached, NEXA treats the event as ended.</small>
+        </label>
+
+        <div id="event-lifecycle-actions" class="form-actions hidden">
+          <button id="activate-event" class="btn secondary" type="button">Make Live</button>
+          <button id="end-event" class="btn danger" type="button">End Event</button>
         </div>
 
         <div class="form-actions">
@@ -342,6 +353,21 @@
           <div id="announcement-history-list" class="admin-list"></div>
         </section>
       </div>
+    </section>
+
+    <section id="admin-history" class="admin-section hidden">
+      <div class="admin-section-head">
+        <div>
+          <h3>Event History</h3>
+          <p>Ended SvS events stay archived here. Active screens only show the current event.</p>
+        </div>
+      </div>
+
+      <div class="history-tools">
+        <input id="history-search" placeholder="Search opponent state...">
+      </div>
+
+      <div id="history-list" class="admin-list"></div>
     </section>
   </section>
 </div>
@@ -445,6 +471,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   async function loadAlliances() {
+    await supabaseClient.rpc('refresh_auto_ended_events');
     const { data, error } = await supabaseClient.from('alliances')
       .select('id,tag').eq('is_active', true).order('tag');
     if (error) throw error;
@@ -708,6 +735,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const adminAlliancesSection = document.getElementById('admin-alliances');
   const adminPermissionsSection = document.getElementById('admin-permissions');
   const adminAnnouncementsSection = document.getElementById('admin-announcements');
+  const adminHistorySection = document.getElementById('admin-history');
 
   async function amIAdmin() {
     const user = await currentUser();
@@ -803,8 +831,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     adminAlliancesSection.classList.toggle('hidden', target !== 'alliances');
     adminPermissionsSection.classList.toggle('hidden', target !== 'permissions');
     adminAnnouncementsSection.classList.toggle('hidden', target !== 'announcements');
+    adminHistorySection.classList.toggle('hidden', target !== 'history');
     if (target === 'permissions') await loadPermissions();
     if (target === 'announcements') await loadAnnouncementsCenter();
+    if (target === 'history') await loadEventHistory();
   }));
 
 
@@ -844,7 +874,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       <article class="admin-row">
         <div>
           <b>SvS vs ${e.opponent_state}</b>
-          <small>Prep Monday ${e.prep_monday} UTC • ${e.is_live ? 'LIVE' : 'Not live'}</small>
+          <small>Prep Monday ${e.prep_monday} UTC • ${(e.status|| (e.is_live?'live':'upcoming')).toUpperCase()}</small>
         </div>
         <div class="account-actions">
           <button type="button" data-event-edit="${e.id}">Edit</button>
@@ -866,6 +896,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('battle-form-open').checked = false;
     document.getElementById('schedule-published').checked = false;
     document.getElementById('event-is-live').checked = false;
+    document.getElementById('event-auto-end').value = '';
+    document.getElementById('event-lifecycle-actions').classList.add('hidden');
     document.getElementById('cancel-event-edit').classList.add('hidden');
     renderEventPreview();
   }
@@ -887,7 +919,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       prep_form_open: document.getElementById('prep-form-open').checked,
       battle_form_open: document.getElementById('battle-form-open').checked,
       schedule_published: document.getElementById('schedule-published').checked,
-      is_live: document.getElementById('event-is-live').checked
+      is_live: document.getElementById('event-is-live').checked,
+      status: document.getElementById('event-is-live').checked ? 'live' : 'upcoming',
+      auto_end_at: document.getElementById('event-auto-end').value
+        ? new Date(document.getElementById('event-auto-end').value + 'Z').toISOString()
+        : null
     };
     if (!id) payload.created_by = user.id;
 
@@ -926,6 +962,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('battle-form-open').checked = !!data.battle_form_open;
       document.getElementById('schedule-published').checked = !!data.schedule_published;
       document.getElementById('event-is-live').checked = !!data.is_live;
+      document.getElementById('event-auto-end').value = data.auto_end_at ? new Date(data.auto_end_at).toISOString().slice(0,16) : '';
+      document.getElementById('event-lifecycle-actions').classList.remove('hidden');
+      document.getElementById('activate-event').classList.toggle('hidden', data.status === 'live');
+      document.getElementById('end-event').classList.toggle('hidden', data.status === 'ended');
       document.getElementById('cancel-event-edit').classList.remove('hidden');
       renderEventPreview();
     }
@@ -1232,6 +1272,88 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
 
+
+  document.getElementById('activate-event').addEventListener('click', async()=>{
+    const id=document.getElementById('event-id').value;
+    if(!id) return;
+    const {error}=await supabaseClient.rpc('activate_svs_event',{target_event_id:id});
+    if(error) return alert(error.message);
+    await loadAdminEvents();
+    await syncHomeLiveEvent();
+    resetEventForm();
+  });
+
+  document.getElementById('end-event').addEventListener('click', async()=>{
+    const id=document.getElementById('event-id').value;
+    if(!id) return;
+    const ok=confirm('End this SvS event? Current requests and appointments will move to History. Nothing will be permanently deleted.');
+    if(!ok) return;
+    const {error}=await supabaseClient.rpc('end_svs_event',{target_event_id:id});
+    if(error) return alert(error.message);
+    await loadAdminEvents();
+    await syncHomeLiveEvent();
+    resetEventForm();
+  });
+
+  async function loadEventHistory(){
+    await supabaseClient.rpc('refresh_auto_ended_events');
+    const q=document.getElementById('history-search').value.trim();
+    let query=supabaseClient.from('svs_events').select('*').eq('status','ended').order('ended_at',{ascending:false});
+    if(q) query=query.ilike('opponent_state',`%${q}%`);
+    const {data,error}=await query;
+    const list=document.getElementById('history-list');
+    if(error){list.innerHTML=`<div class="empty-state">${error.message}</div>`;return;}
+    const rows=data||[];
+    if(!rows.length){list.innerHTML='<div class="empty-state">No ended events yet.</div>';return;}
+    list.innerHTML='';
+    for(const e of rows){
+      const {data:summary}=await supabaseClient.rpc('event_summary',{target_event_id:e.id});
+      const card=document.createElement('article');
+      card.className='history-card';
+      card.innerHTML=`
+        <div>
+          <b>SvS vs ${e.opponent_state}</b>
+          <small>Prep Monday ${e.prep_monday} • Ended ${e.ended_at?new Date(e.ended_at).toLocaleString():'—'}</small>
+          <div class="history-summary">
+            ${summary?.prep_requests||0} requests • ${summary?.appointments||0} appointments • ${summary?.waitlisted||0} waitlisted
+          </div>
+        </div>
+        <div class="history-actions">
+          <button class="btn secondary" type="button" data-history-view="${e.id}">View Archive</button>
+          <button class="btn secondary" type="button" data-history-clone="${e.id}">Clone Settings</button>
+        </div>`;
+      list.appendChild(card);
+    }
+  }
+
+  document.getElementById('history-search').addEventListener('input',loadEventHistory);
+
+  document.getElementById('history-list').addEventListener('click',async e=>{
+    const viewId=e.target.dataset.historyView;
+    const cloneId=e.target.dataset.historyClone;
+
+    if(viewId){
+      localStorage.setItem('nexa_history_event_id',viewId);
+      location.href='history-event.html';
+      return;
+    }
+
+    if(cloneId){
+      const opponent=prompt('Opponent State for the new SvS:');
+      if(!opponent) return;
+      const monday=prompt('Prep Monday (YYYY-MM-DD):');
+      if(!monday) return;
+      const {data,error}=await supabaseClient.rpc('clone_svs_event',{
+        source_event_id:cloneId,
+        new_opponent_state:Number(opponent),
+        new_prep_monday:monday
+      });
+      if(error) return alert(error.message);
+      alert('New upcoming event created.');
+      await loadAdminEvents();
+    }
+  });
+
   let currentAckFilter='all';
 
   async function getLiveEventRecord(){
@@ -1452,7 +1574,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const { data, error } = await supabaseClient
       .from('svs_events')
       .select('*')
-      .eq('is_live', true)
+      .eq('status', 'live')
       .order('prep_monday', { ascending:false })
       .limit(1)
       .maybeSingle();

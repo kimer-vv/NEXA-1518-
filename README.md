@@ -1,35 +1,22 @@
-# NEXA v25 — Mega Update: Announcements Center + Preferred Time Fix
+# NEXA v26 — Event Lifecycle + History (Final SvS Core)
 
-This update includes the requested focused improvements without adding a heavy auto-scheduler.
-
-Preferred time:
-- Specific Preferred Time now ALWAYS populates from the selected UTC time frame immediately.
-- Uses 30-minute slots only.
-- Uses a protected Supabase RPC to show demand without exposing other players' forms.
-- Shows Available / Preferred by X players / Scheduled.
-- Scheduled slots are disabled.
-- Competition warning remains optional: player can keep a preferred time if it is only preferred, not scheduled.
-
-Admin:
-- New standalone Admin → Announcements tab.
-- Important Announcement and translations are REMOVED from the SvS Event form to keep Events cleaner.
-- Save/deactivate announcement from Announcements.
-- Acknowledged / Not Acknowledged filters.
-- Counts for acknowledged, not acknowledged, and total NEXA users with claimed accounts.
-- Shows IGN(s), alliance(s), Discord name and acknowledgement date/time.
-- Announcement History preserves prior versions.
-- Home ticker continues to display the correct saved translation and hides after acknowledgement.
-
-Still included:
-- Priority ranking
-- Unscheduled Only
-- Schedule Health Check
-- Copy schedule tools
-- My Submissions
-- Prep Form conditional validation
-- UTC/local time behavior
-- Edit Event from View Event
+Adds:
+- Manual End Event.
+- Optional Auto End UTC date/time.
+- Event statuses: Upcoming / Live / Ended.
+- Forms automatically close when an event ends.
+- Active Prep Requests and Schedule only use the Live event.
+- Ended events stay archived instead of being deleted.
+- Admin → History tab.
+- Archived event summary.
+- Archived final schedule.
+- Archived Prep Requests.
+- Waitlist status for unscheduled players.
+- Clone Settings from an archived event to create a fresh upcoming SvS.
+- Only one Live event at a time.
+- Existing requests/appointments are never mixed into the next SvS.
+- All prior v25 functionality remains.
 
 IMPORTANT:
-Run `v25-supabase.sql` in Supabase before uploading the web files.
-Do not upload the SQL file to GitHub.
+Run `v26-supabase.sql` in Supabase first.
+Do NOT upload the SQL file to GitHub.

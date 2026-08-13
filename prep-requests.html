@@ -172,6 +172,7 @@ function render(){
           </select>
         </label>
         <button class="btn" data-assign-request="${r.id}" type="button">${existing?'Update Appointment':'Assign Appointment'}</button>
+        ${!existing?`<button class="btn secondary" data-waitlist-request="${r.id}" type="button">Waitlist</button>`:''}
         ${existing?`<small>Scheduled: ${new Date(existing.appointment_time).toISOString().slice(11,16)} UTC</small>`:''}
       </div>
     </article>`;
@@ -179,7 +180,8 @@ function render(){
 }
 async function load(){
   if(!(await ensureAdmin())) return;
-  const {data:event}=await sb.from('svs_events').select('*').eq('is_live',true).order('prep_monday',{ascending:false}).limit(1).maybeSingle();
+  await sb.rpc('refresh_auto_ended_events');
+  const {data:event}=await sb.from('svs_events').select('*').eq('status','live').order('prep_monday',{ascending:false}).limit(1).maybeSingle();
   liveEvent=event;
   if(!event){ document.getElementById('requests-message').textContent='No live SvS event.'; return; }
   document.getElementById('requests-meta').textContent=`SvS against ${event.opponent_state} • Prep Monday ${event.prep_monday} UTC`;
@@ -204,6 +206,13 @@ document.querySelectorAll('[data-request-day]').forEach(btn=>btn.addEventListene
   btn.classList.add('active'); activeDay=btn.dataset.requestDay; render();
 }));
 document.getElementById('requests-list').addEventListener('click',async e=>{
+  const waitId=e.target.dataset.waitlistRequest;
+  if(waitId){
+    const {error}=await sb.from('prep_requests').update({status:'waitlisted'}).eq('id',waitId);
+    document.getElementById('requests-message').textContent=error?error.message:'Moved to waitlist.';
+    if(!error) await load();
+    return;
+  }
   const id=e.target.dataset.assignRequest; if(!id)return;
   const sel=document.querySelector(`[data-slot-request="${id}"]`);
   const hm=sel.value; if(!hm){alert('Select a UTC time first.');return;}

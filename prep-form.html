@@ -305,7 +305,8 @@ async function load(){
   const u=await user();
   if(!u){ location.href='index.html'; return; }
 
-  const {data:event}=await sb.from('svs_events').select('*').eq('is_live',true)
+  await sb.rpc('refresh_auto_ended_events');
+  const {data:event}=await sb.from('svs_events').select('*').eq('status','live')
     .order('prep_monday',{ascending:false}).limit(1).maybeSingle();
   liveEvent=event;
   ['construction','research','training'].forEach(d=>refreshPreferredOptions(d));

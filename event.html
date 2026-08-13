@@ -110,9 +110,10 @@ async function getProfilePrefs() {
   return {tz:data?.time_zone || detectedTZ, lang:NEXA_I18N.resolve(data?.language || 'auto')};
 }
 async function loadEvent() {
+  await sb.rpc('refresh_auto_ended_events');
   const id = localStorage.getItem('nexa_live_event_id');
   let query = sb.from('svs_events').select('*,castle_alliance:alliances!svs_events_castle_alliance_id_fkey(tag),presidency_alliance:alliances!svs_events_presidency_alliance_id_fkey(tag)');
-  query = id ? query.eq('id', id) : query.eq('is_live', true).order('prep_monday', {ascending:false}).limit(1);
+  query = id ? query.eq('id', id) : query.eq('status','live').order('prep_monday', {ascending:false}).limit(1);
   const { data, error } = id ? await query.maybeSingle() : await query.maybeSingle();
   if (error || !data) {
     document.getElementById('event-title').textContent = 'No live SvS event';

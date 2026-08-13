@@ -1,8 +1,12 @@
-# NEXA 1518 v17 — Admin Role Fix
+# NEXA 1518 v18 — Live Event Sync + Local AM/PM
 
-Fixes Admin visibility by checking Supabase's protected `is_admin()` helper directly.
-The Admin button remains hidden for non-admin users.
+Fixes:
+- Home now reads the current live SvS directly from Supabase instead of showing `XXXX`.
+- View Event reads opponent state, dates, notes, and open/closed settings from the saved Admin event.
+- WOS official date/time remains UTC.
+- Local time is displayed in 12-hour AM/PM format using the user's saved time zone.
+- View Schedule now contains ONLY Monday Construction, Tuesday Research, and Thursday Training.
+- Saturday Battle remains on the Event timeline but is removed from Ministry Schedule.
+- Schedule local-time labels are dynamically converted from UTC to the user's time zone.
 
-Also changes local-time previews to 12-hour AM/PM format while WOS/UTC stays 24-hour.
-
-Upload all files to the GitHub repository root and replace the previous version.
+Upload all included files to the GitHub repository root and replace the previous version.

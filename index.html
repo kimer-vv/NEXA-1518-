@@ -64,12 +64,12 @@
         <div class="event-row">
           <div>
             <span class="badge">Live</span>
-            <h3>SvS against XXXX</h3>
-            <div class="muted">Prep & Battle Phase</div>
+            <h3 id="home-event-title">SvS against XXXX</h3>
+            <div id="home-event-meta" class="muted">Prep & Battle Phase</div>
           </div>
           <div class="count">
             <small>Ends in</small>
-            <b>2d 18h</b>
+            <b id="home-event-countdown">—</b>
           </div>
         </div>
         <div class="event-actions">
@@ -847,6 +847,66 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   await refreshAdminVisibility();
+
+
+  function utcDateFromPrep(prepMonday, offsetDays=0) {
+    const d = new Date(prepMonday + 'T00:00:00Z');
+    d.setUTCDate(d.getUTCDate() + offsetDays);
+    return d;
+  }
+
+  function shortUTCDate(d) {
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone:'UTC', month:'short', day:'numeric', year:'numeric'
+    }).format(d);
+  }
+
+  function countdownLabel(endDate) {
+    const ms = endDate.getTime() - Date.now();
+    if (ms <= 0) return 'Ended';
+    const totalHours = Math.floor(ms / 3600000);
+    const days = Math.floor(totalHours / 24);
+    const hours = totalHours % 24;
+    return `${days}d ${hours}h`;
+  }
+
+  async function syncHomeLiveEvent() {
+    const titleEl = document.getElementById('home-event-title');
+    const metaEl = document.getElementById('home-event-meta');
+    const countEl = document.getElementById('home-event-countdown');
+    if (!titleEl || !metaEl || !countEl) return;
+
+    const { data, error } = await supabaseClient
+      .from('svs_events')
+      .select('*')
+      .eq('is_live', true)
+      .order('prep_monday', { ascending:false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Live event sync failed:', error);
+      return;
+    }
+    if (!data) {
+      titleEl.textContent = 'No live SvS event';
+      metaEl.textContent = 'Leadership has not published a live event yet.';
+      countEl.textContent = '—';
+      return;
+    }
+
+    const start = utcDateFromPrep(data.prep_monday, 0);
+    const battle = utcDateFromPrep(data.prep_monday, 5);
+    const end = new Date(battle.getTime() + 24 * 3600000);
+
+    titleEl.textContent = `SvS against ${data.opponent_state}`;
+    metaEl.textContent = `${shortUTCDate(start)} – ${shortUTCDate(battle)} • WOS Game Time (UTC)`;
+    countEl.textContent = countdownLabel(end);
+
+    localStorage.setItem('nexa_live_event_id', data.id);
+  }
+
+  await syncHomeLiveEvent();
 
 });
 </script>

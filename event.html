@@ -1,17 +1,111 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NEXA • SvS</title><link rel="stylesheet" href="style.css"></head><body>
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NEXA • SvS</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
 <div class="nebula-bg" aria-hidden="true"></div>
 <div class="starfield" aria-hidden="true"></div>
 
-<header class="topbar"><div class="shell nav"><a class="logo" href="index.html"><span class="star">✦</span><span>NEXA<small>STATE 1518</small></span></a><div class="user"><span class="avatar"></span><div><b>Discord Profile</b><span>Connected later</span></div></div></div></header>
+<header class="topbar">
+  <div class="shell nav">
+    <a class="logo" href="index.html"><span class="star">✦</span><span>NEXA<small>STATE 1518</small></span></a>
+    <a class="back" href="index.html">← Home</a>
+  </div>
+</header>
+
 <main class="shell event-page">
-<a class="back" href="index.html">← Back to events</a><div style="margin-top:18px"><span class="badge">SVS</span><h1>SvS against XXXX</h1><div class="muted">2026-08-10 00:00 UTC · Local time automatically later<br>Ends 2026-08-15 22:00 UTC</div></div>
-<section class="glass calendar"><div class="days-list">
-<div>10/08/2026 MON — <b>Construction Day</b></div>
-<div>11/08/2026 TUE — <b>Research Day</b></div>
-<div>13/08/2026 THU — <b>Training Day</b></div>
-<div>15/08/2026 SAT — <b>Castle Battle & PvP!</b></div>
-</div>
-<div class="actions"><a class="btn disabled" href="#">Fill Out Prep Form</a><a class="btn gold" href="schedule.html">View Schedule</a><a class="btn battle disabled" href="#">Fill Out Battle Form</a></div>
-</section>
-<section class="glass about"><h3>About this event</h3><p>This space will hold leadership's SvS notes, opponent state information, ministry buff windows, battle instructions and any special reminders.</p></section>
-</main></body></html>
+  <a class="back" href="index.html">← Back to events</a>
+  <div style="margin-top:18px">
+    <span class="badge">SVS</span>
+    <h1 id="event-title">Loading SvS…</h1>
+    <div id="event-meta" class="muted">WOS Game Time (UTC)</div>
+  </div>
+
+  <section class="glass calendar">
+    <div id="event-days" class="days-list"></div>
+
+    <div class="actions">
+      <a id="prep-form-btn" class="btn disabled" href="#">Fill Out Prep Form</a>
+      <a id="schedule-btn" class="btn gold" href="schedule.html">View Schedule</a>
+      <a id="battle-form-btn" class="btn battle disabled" href="#">Fill Out Battle Form</a>
+    </div>
+  </section>
+
+  <section class="glass about">
+    <h3>About this event</h3>
+    <p id="event-description">No additional notes have been published.</p>
+  </section>
+</main>
+
+<script>
+const sb = window.supabase.createClient("https://dfxcxboxrkfmrnsgpyin.supabase.co", "sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-");
+
+function addDays(dateStr, n) {
+  const d = new Date(dateStr + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + n);
+  return d;
+}
+function utcDateLabel(d) {
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone:'UTC', weekday:'short', month:'short', day:'numeric', year:'numeric'
+  }).format(d);
+}
+function localDateTime(d, tz) {
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone:tz, weekday:'short', month:'short', day:'numeric',
+    hour:'numeric', minute:'2-digit', hour12:true
+  }).format(d);
+}
+async function getSavedTimeZone() {
+  const { data: { session } } = await sb.auth.getSession();
+  const detected = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  if (!session?.user) return detected;
+  const { data } = await sb.from('user_profiles').select('time_zone').eq('user_id',session.user.id).maybeSingle();
+  return data?.time_zone || detected;
+}
+async function loadEvent() {
+  const id = localStorage.getItem('nexa_live_event_id');
+  let query = sb.from('svs_events').select('*');
+  query = id ? query.eq('id', id) : query.eq('is_live', true).order('prep_monday', {ascending:false}).limit(1);
+  const { data, error } = id ? await query.maybeSingle() : await query.maybeSingle();
+  if (error || !data) {
+    document.getElementById('event-title').textContent = 'No live SvS event';
+    return;
+  }
+
+  const tz = await getSavedTimeZone();
+  const days = [
+    ['MON','Construction Day',0],
+    ['TUE','Research Day',1],
+    ['THU','Training Day',3],
+    ['SAT','Castle Battle & PvP',5]
+  ];
+
+  document.getElementById('event-title').textContent = `SvS against ${data.opponent_state}`;
+  document.getElementById('event-meta').textContent =
+    `${utcDateLabel(addDays(data.prep_monday,0))} 00:00 UTC • Your time: ${localDateTime(addDays(data.prep_monday,0),tz)}`;
+
+  document.getElementById('event-days').innerHTML = days.map(([day,label,off]) => {
+    const d = addDays(data.prep_monday,off);
+    return `<div>${day} — <b>${label}</b><small class="event-local-line">${utcDateLabel(d)} • 00:00 UTC • Your time: ${localDateTime(d,tz)}</small></div>`;
+  }).join('');
+
+  document.getElementById('event-description').textContent = data.description || 'No additional notes have been published.';
+
+  const prep = document.getElementById('prep-form-btn');
+  const battle = document.getElementById('battle-form-btn');
+  prep.classList.toggle('disabled', !data.prep_form_open);
+  battle.classList.toggle('disabled', !data.battle_form_open);
+  document.getElementById('schedule-btn').classList.toggle('disabled', !data.schedule_published);
+
+  localStorage.setItem('nexa_live_event_id', data.id);
+}
+loadEvent();
+</script>
+</body>
+</html>

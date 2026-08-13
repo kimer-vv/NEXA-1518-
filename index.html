@@ -93,6 +93,24 @@
     </div>
 
     <div id="accounts-message" class="form-message"></div>
+    <div class="timezone-card">
+      <div>
+        <small>YOUR TIME ZONE</small>
+        <b id="timezone-display">Detecting…</b>
+        <span id="timezone-offset"></span>
+      </div>
+      <button id="change-timezone" class="tz-button" type="button">Change</button>
+    </div>
+    <div id="timezone-editor" class="timezone-editor hidden">
+      <label>Time Zone
+        <select id="timezone-select"></select>
+      </label>
+      <div class="form-actions">
+        <button id="cancel-timezone" class="btn secondary" type="button">Cancel</button>
+        <button id="save-timezone" class="btn" type="button">Save Time Zone</button>
+      </div>
+    </div>
+
     <div id="accounts-list" class="accounts-list"></div>
 
     <form id="account-form" class="account-form">
@@ -279,7 +297,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     accountsModal.classList.add('open');
     accountsModal.setAttribute('aria-hidden','false');
     msg('');
-    try { await loadAlliances(); await loadAccounts(); } catch(e) { msg(e.message, true); }
+    try { await loadAlliances(); await loadAccounts(); await loadTimeZoneProfile(); } catch(e) { msg(e.message, true); }
   });
 
   document.querySelectorAll('[data-close-accounts]').forEach(el => el.addEventListener('click', () => {
@@ -350,6 +368,123 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+
+
+  const timezoneDisplay = document.getElementById('timezone-display');
+  const timezoneOffset = document.getElementById('timezone-offset');
+  const timezoneEditor = document.getElementById('timezone-editor');
+  const timezoneSelect = document.getElementById('timezone-select');
+
+  function browserTimeZone() {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  }
+
+  function utcOffsetLabel(timeZone) {
+    try {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        timeZoneName: 'shortOffset',
+        hour: '2-digit'
+      }).formatToParts(new Date());
+      const zone = parts.find(p => p.type === 'timeZoneName')?.value || '';
+      return zone.replace('GMT', 'UTC');
+    } catch {
+      return '';
+    }
+  }
+
+  function timeZoneOptions(current) {
+    const common = [
+      'UTC',
+      'America/Puerto_Rico',
+      'America/New_York',
+      'America/Chicago',
+      'America/Denver',
+      'America/Los_Angeles',
+      'America/Toronto',
+      'America/Mexico_City',
+      'America/Sao_Paulo',
+      'Europe/London',
+      'Europe/Paris',
+      'Europe/Berlin',
+      'Europe/Istanbul',
+      'Asia/Dubai',
+      'Asia/Kolkata',
+      'Asia/Bangkok',
+      'Asia/Manila',
+      'Asia/Seoul',
+      'Asia/Tokyo',
+      'Australia/Sydney'
+    ];
+    const set = [...new Set([current, browserTimeZone(), ...common].filter(Boolean))];
+    timezoneSelect.innerHTML = set.map(z => `<option value="${z}">${z}</option>`).join('');
+  }
+
+  async function loadTimeZoneProfile() {
+    const user = await currentUser();
+    if (!user) {
+      timezoneDisplay.textContent = 'Sign in with Discord';
+      timezoneOffset.textContent = '';
+      return;
+    }
+
+    const detected = browserTimeZone();
+    const { data, error } = await supabaseClient
+      .from('user_profiles')
+      .select('time_zone')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (error) {
+      msg(error.message, true);
+      return;
+    }
+
+    let zone = data?.time_zone;
+    if (!zone) {
+      const { error: insertError } = await supabaseClient
+        .from('user_profiles')
+        .insert({ user_id: user.id, time_zone: detected });
+      if (insertError) {
+        msg(insertError.message, true);
+        return;
+      }
+      zone = detected;
+    }
+
+    timezoneDisplay.textContent = zone;
+    timezoneOffset.textContent = utcOffsetLabel(zone);
+    timeZoneOptions(zone);
+    timezoneSelect.value = zone;
+  }
+
+  document.getElementById('change-timezone').addEventListener('click', async () => {
+    const user = await currentUser();
+    if (!user) {
+      document.getElementById('discord-login').click();
+      return;
+    }
+    timezoneEditor.classList.remove('hidden');
+    await loadTimeZoneProfile();
+  });
+
+  document.getElementById('cancel-timezone').addEventListener('click', () => {
+    timezoneEditor.classList.add('hidden');
+  });
+
+  document.getElementById('save-timezone').addEventListener('click', async () => {
+    const user = await currentUser();
+    if (!user) return;
+    const zone = timezoneSelect.value;
+    const { error } = await supabaseClient
+      .from('user_profiles')
+      .upsert({ user_id: user.id, time_zone: zone }, { onConflict: 'user_id' });
+    if (error) return msg(error.message, true);
+    timezoneDisplay.textContent = zone;
+    timezoneOffset.textContent = utcOffsetLabel(zone);
+    timezoneEditor.classList.add('hidden');
+    msg('Time zone updated.');
+  });
 
 });
 </script>

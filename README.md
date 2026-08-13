@@ -1,14 +1,12 @@
-# NEXA 1518 v13 — My Accounts Working Fix
+# NEXA 1518 v14 — Auto Time Zone
 
-This version fixes the actual issue preventing My Accounts from opening:
-the modal was being referenced by JavaScript before it existed in the page DOM.
+Adds automatic local time-zone detection and profile storage.
 
-Upload all 6 files to the ROOT of the GitHub repository:
-- index.html
-- event.html
-- schedule.html
-- style.css
-- cosmic-background.png
-- README.md
+What it does:
+- Detects the browser/device IANA time zone automatically.
+- Saves it in Supabase `user_profiles` the first time.
+- Shows the saved time zone and current UTC offset inside My Accounts.
+- Lets the user change the time zone manually later.
+- Keeps UTC as the official game/schedule time; local conversion will use this profile in the Schedule module.
 
-GitHub may show only the files that actually changed in the commit. That is normal.
+Upload all files to the root of the GitHub repository and replace the previous versions.

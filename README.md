@@ -1,12 +1,11 @@
-# NEXA 1518
+# NEXA 1518 v3
 
-Starter site for the State 1518 event and scheduling hub.
+Updated prototype based on the agreed NEXA structure.
 
-## First version
-- Cosmic NEXA visual identity
-- Current SvS event card
-- Prep / Battle form placeholders
-- Published schedule preview
-- Mobile responsive layout
+Pages:
+- `index.html` — clean Home / account / live events
+- `event.html` — dedicated SvS event page
+- `schedule.html` — dedicated ministry schedule with MON/TUE/THU/SAT tabs and 30-minute cards
+- `style.css` — stronger supernova/cosmic visual system
 
-This first version is static. Supabase will be connected later for real forms, admin scheduling, logins, and published schedules.
+The schedule currently contains preview data only. Supabase will later provide real Discord auth, WOS accounts, forms, admin assignments, timezone-aware local times, and published schedules.

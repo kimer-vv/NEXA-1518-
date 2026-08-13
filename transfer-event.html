@@ -1,9 +1,24 @@
 <!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>NEXA • Transfers</title><link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+document.addEventListener('DOMContentLoaded',async()=>{
+  try{
+    const manage=document.getElementById('manage-transfers');
+    if(!manage) return;
+    const {data:ok}=await sb.rpc('can_manage_transfers');
+    if(ok===true && eventData?.id){
+      manage.href='transfer-admin.html?tab=applications&event='+encodeURIComponent(eventData.id);
+      manage.classList.remove('hidden');
+    }
+  }catch(_){}
+});
+</script></head>
 <body><div class="nebula-bg" aria-hidden="true"></div><div class="starfield" aria-hidden="true"></div>
 <header class="topbar"><div class="shell nav"><a class="logo" href="index.html"><span class="star">✦</span><span>NEXA<small>STATE 1518</small></span></a></div></header>
+<div class="shell event-top-nav">
+  <a class="btn secondary" href="index.html">← Back to Home</a>
+</div>
 
 <main class="shell event-page">
   <span class="badge transfer-badge">TRANSFERS</span>
@@ -82,7 +97,7 @@ const token=new URLSearchParams(location.search).get('token');
  cap.textContent=e.power_cap?fmtPower(e.power_cap):'Set by staff'; document.getElementById('special-cap').textContent=e.special_power_cap?fmtPower(e.special_power_cap):'Set by staff'; open.textContent=e.applications_open?'Open':'Closed';
  range.textContent=(e.source_state_min||e.source_state_max)?`Eligible range: State ${e.source_state_min||'—'}–${e.source_state_max||'—'}`:'State 1518 Transfer Cycle';
  notes.textContent=e.public_notes||'Submit an interest application for this transfer cycle.';
- apply.href='transfer-apply.html?token='+encodeURIComponent(token)+'&from=nexa';
+ apply.href='transfer-apply.html?token='+encodeURIComponent(token)+'&from=nexa&return=event';
  const [{data:canManage},{data:isAdmin}] = await Promise.all([
    sb.rpc('can_manage_transfers'),
    sb.rpc('is_admin')

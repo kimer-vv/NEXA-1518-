@@ -1,12 +1,16 @@
-# NEXA 1518 v8 — Cosmic Energy
-Refined dark cosmic background with more defined violet/blue energy streams and stronger readability.
+# NEXA 1518 v9 — Clean Cosmic Background
 
-Upload all files to the repository root:
+This is the complete current structure with the clean cosmic background image (no embedded NEXA text/UI).
+
+Upload ALL files to the ROOT of the GitHub repository:
 - index.html
 - event.html
 - schedule.html
 - style.css
-- cosmic-energy.jpg
+- cosmic-background.png
 - README.md
 
-Important: upload cosmic-energy.jpg.
+Important:
+- `cosmic-background.png` is the new background image.
+- Replace the older background image file if one is still in the repo.
+- Vercel should redeploy automatically after committing to `main`.

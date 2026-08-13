@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="lang.js"></script>
+<script src="prep-i18n-full.js"></script>
 </head>
 <body>
 <div class="nebula-bg" aria-hidden="true"></div>
@@ -256,7 +257,7 @@ async function refreshPreferredOptions(day){
   const frame=parseFrame(frameEl.value);
   const previous=timeEl.value;
 
-  timeEl.innerHTML='<option value="">Optional — select UTC time</option>';
+  timeEl.innerHTML=`<option value="">${NEXA_PREP_T('optionalUtc')}</option>`;
   warnEl.classList.add('hidden');
   warnEl.textContent='';
 
@@ -268,7 +269,7 @@ async function refreshPreferredOptions(day){
     const t=hm(m);
     const opt=document.createElement('option');
     opt.value=t;
-    opt.textContent=`${t} UTC — Available`;
+    opt.textContent=`${t} UTC — ${NEXA_PREP_T('available')}`;
     timeEl.appendChild(opt);
     optionMap[t]=opt;
   }
@@ -285,10 +286,10 @@ async function refreshPreferredOptions(day){
       const opt=optionMap[row.preferred_time];
       if(!opt) return;
       if(row.scheduled){
-        opt.textContent=`${row.preferred_time} UTC — Scheduled`;
+        opt.textContent=`${row.preferred_time} UTC — ${NEXA_PREP_T('scheduled')}`;
         opt.disabled=true;
       } else if(Number(row.preferred_count)>0){
-        opt.textContent=`${row.preferred_time} UTC — Preferred by ${row.preferred_count} player${Number(row.preferred_count)===1?'':'s'}`;
+        opt.textContent=`${row.preferred_time} UTC — ${NEXA_PREP_T('preferredBy',{n:row.preferred_count})}`;
       }
     });
   }
@@ -314,11 +315,11 @@ function bindDemand(day){
     const row=(data||[]).find(x=>x.preferred_time===val);
     const count=Number(row?.preferred_count||0);
     if(row?.scheduled){
-      note.textContent=`⚠ ${val} UTC is already scheduled. Please choose another time.`;
+      note.textContent=NEXA_PREP_T('alreadyScheduled',{time:val});
       note.classList.remove('hidden');
       $(day+'-time').value='';
     } else if(count>0){
-      note.textContent=`⚠ ${val} UTC is already preferred by ${count} other player${count===1?'':'s'}. You can keep it or choose another time.`;
+      note.textContent=NEXA_PREP_T('alreadyPreferred',{time:val,n:count});
       note.classList.remove('hidden');
     }
   });
@@ -338,10 +339,10 @@ async function load(){
   liveEvent=event;
   ['construction','research','training'].forEach(d=>refreshPreferredOptions(d));
   if(!event){
-    $('prep-closed').textContent='No live SvS event.';
+    $('prep-closed').textContent=NEXA_PREP_T('noLive');
     $('prep-closed').classList.remove('hidden'); return;
   }
-  $('prep-event-meta').textContent=`SvS against ${event.opponent_state} • Prep Monday ${event.prep_monday} UTC`;
+  $('prep-event-meta').textContent=NEXA_PREP_T('eventMeta',{state:event.opponent_state,date:event.prep_monday});
 
   if(!event.prep_form_open){
     $('prep-closed').textContent=NEXA_I18N.t(NEXA_I18N.device(),'prepClosed');
@@ -363,7 +364,7 @@ async function load(){
     $('prep-closed').classList.remove('hidden'); return;
   }
 
-  $('prep-account').innerHTML=accounts.map(a=>`<option value="${a.id}">${a.in_game_name} • ${a.alliances?.tag||a.custom_alliance_tag||'Not Listed'} • ID ${a.player_id}</option>`).join('');
+  $('prep-account').innerHTML=accounts.map(a=>`<option value="${a.id}">${a.in_game_name} • ${a.alliances?.tag||a.custom_alliance_tag||NEXA_PREP_T('notListed')} • ID ${a.player_id}</option>`).join('');
   $('prep-form').classList.remove('hidden');
 
   const {data:existing}=await sb.from('prep_requests').select('*')
@@ -404,8 +405,8 @@ let guestMode=false;
 async function loadGuestAlliances(){
   const {data,error}=await sb.from('alliances').select('id,tag').eq('is_active',true).order('tag');
   const sel=$('guest-alliance');
-  if(error){ sel.innerHTML='<option value="">Not Listed</option>'; return; }
-  sel.innerHTML='<option value="">Not Listed</option>'+(data||[]).map(a=>`<option value="${a.id}">${a.tag}</option>`).join('');
+  if(error){ sel.innerHTML=`<option value="">${NEXA_PREP_T('notListed')}</option>`; return; }
+  sel.innerHTML=`<option value="">${NEXA_PREP_T('notListed')}</option>`+(data||[]).map(a=>`<option value="${a.id}">${a.tag}</option>`).join('');
 }
 $('guest-alliance').addEventListener('change',()=>{
   $('guest-custom-alliance-wrap').classList.toggle('hidden',!!$('guest-alliance').value);
@@ -470,15 +471,15 @@ $('prep-form').addEventListener('submit', async e=>{
   }
 
   if(payload.construction_requested && !payload.construction_time_frame){
-    $('prep-message').textContent='Please select a UTC time frame for Construction.';
+    $('prep-message').textContent=NEXA_PREP_T('needConstructionFrame');
     return;
   }
   if(payload.research_requested && !payload.research_time_frame){
-    $('prep-message').textContent='Please select a UTC time frame for Research.';
+    $('prep-message').textContent=NEXA_PREP_T('needResearchFrame');
     return;
   }
   if(payload.training_requested && (!payload.training_selection || !payload.training_time_frame)){
-    $('prep-message').textContent='Please select your troop type and UTC time frame for Training.';
+    $('prep-message').textContent=NEXA_PREP_T('needTraining');
     return;
   }
 
@@ -488,7 +489,7 @@ $('prep-form').addEventListener('submit', async e=>{
     const ign=$('guest-ign').value.trim();
     const pid=$('guest-player-id').value.trim();
     if(!ign || !pid){
-      $('prep-message').textContent='In-Game Name and Player ID are required for Guest submissions.';
+      $('prep-message').textContent=NEXA_PREP_T('guestRequired');
       return;
     }
 
@@ -528,7 +529,7 @@ $('prep-form').addEventListener('submit', async e=>{
     ({error}=await sb.from('prep_requests').upsert(payload,{onConflict:'event_id,player_account_id'}));
   }
 
-  $('prep-message').textContent=error ? error.message : (guestMode ? 'Guest Prep Form submitted successfully.' : NEXA_I18N.t(NEXA_I18N.device(),'prepSuccess'));
+  $('prep-message').textContent=error ? error.message : (guestMode ? NEXA_PREP_T('guestSuccess') : NEXA_PREP_T('prepSuccess'));
 
   if(!error && guestMode){
     $('prep-form').reset();

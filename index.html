@@ -137,6 +137,92 @@
   </section>
 </div>
 
+
+<div id="admin-modal" class="modal" aria-hidden="true">
+  <div class="modal-backdrop" data-close-admin></div>
+  <section class="modal-card admin-modal-card">
+    <div class="modal-head">
+      <div>
+        <small>ADMIN PANEL</small>
+        <h2>NEXA Control Center</h2>
+      </div>
+      <button class="icon-btn" type="button" data-close-admin>×</button>
+    </div>
+
+    <div class="admin-tabs">
+      <button class="admin-tab active" type="button" data-admin-tab="events">Events</button>
+      <button class="admin-tab" type="button" data-admin-tab="alliances">Alliances</button>
+    </div>
+
+    <section id="admin-events" class="admin-section">
+      <div class="admin-section-head">
+        <div>
+          <h3>SvS Events</h3>
+          <p>Create and manage the current SvS using official WOS Game Time (UTC).</p>
+        </div>
+      </div>
+
+      <form id="event-form" class="account-form">
+        <input id="event-id" type="hidden">
+
+        <label>Opponent State
+          <input id="opponent-state" inputmode="numeric" min="1" required placeholder="e.g. 1833">
+        </label>
+
+        <label>Prep Monday — Game Date (UTC)
+          <input id="prep-monday" type="date" required>
+        </label>
+
+        <label>Event Notes
+          <textarea id="event-description" rows="3" placeholder="Optional notes, opponent info, ministry buff notes, battle reminders..."></textarea>
+        </label>
+
+        <div class="event-preview glass-lite">
+          <small>AUTO-GENERATED WOS TIMELINE</small>
+          <div id="event-preview-lines" class="preview-lines">Choose Prep Monday to preview dates.</div>
+        </div>
+
+        <div class="toggle-grid">
+          <label class="toggle-line"><input id="prep-form-open" type="checkbox"> Prep Form Open</label>
+          <label class="toggle-line"><input id="battle-form-open" type="checkbox"> Battle Form Open</label>
+          <label class="toggle-line"><input id="schedule-published" type="checkbox"> Schedule Published</label>
+          <label class="toggle-line"><input id="event-is-live" type="checkbox"> Live Event</label>
+        </div>
+
+        <div class="form-actions">
+          <button id="cancel-event-edit" class="btn secondary hidden" type="button">Cancel</button>
+          <button class="btn" type="submit">Save Event</button>
+        </div>
+      </form>
+
+      <div id="admin-events-message" class="form-message"></div>
+      <div id="events-admin-list" class="admin-list"></div>
+    </section>
+
+    <section id="admin-alliances" class="admin-section hidden">
+      <div class="admin-section-head">
+        <div>
+          <h3>Alliance Tags</h3>
+          <p>Add, rename, or deactivate official alliance tags.</p>
+        </div>
+      </div>
+
+      <form id="alliance-admin-form" class="alliance-inline-form">
+        <input id="alliance-admin-id" type="hidden">
+        <input id="alliance-admin-tag" maxlength="12" required placeholder="Alliance tag">
+        <div class="form-actions">
+          <button id="cancel-alliance-edit" class="btn secondary hidden" type="button">Cancel</button>
+          <button class="btn" type="submit">Save Tag</button>
+        </div>
+      </form>
+
+      <div id="admin-alliances-message" class="form-message"></div>
+      <div id="alliances-admin-list" class="admin-list"></div>
+    </section>
+  </section>
+</div>
+
+
 <script>
 document.addEventListener('DOMContentLoaded', async () => {
 
@@ -485,6 +571,276 @@ document.addEventListener('DOMContentLoaded', async () => {
     timezoneEditor.classList.add('hidden');
     msg('Time zone updated.');
   });
+
+
+  const adminButton = document.getElementById('admin-panel-button');
+  const adminModal = document.getElementById('admin-modal');
+  const adminEventsSection = document.getElementById('admin-events');
+  const adminAlliancesSection = document.getElementById('admin-alliances');
+
+  async function getMyRole() {
+    const user = await currentUser();
+    if (!user) return 'player';
+    const { data } = await supabaseClient
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    return data?.role || 'player';
+  }
+
+  async function refreshAdminVisibility() {
+    const role = await getMyRole();
+    adminButton.classList.toggle('hidden', role !== 'admin');
+  }
+
+  async function ensureAdmin() {
+    const role = await getMyRole();
+    if (role !== 'admin') {
+      alert('Admin access required.');
+      return false;
+    }
+    return true;
+  }
+
+  function fmtDateUTC(dateStr, offsetDays=0) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr + 'T00:00:00Z');
+    d.setUTCDate(d.getUTCDate() + offsetDays);
+    return d.toISOString().slice(0,10);
+  }
+
+  function localLabelFromUTCDate(dateStr) {
+    try {
+      const tz = timezoneDisplay?.textContent || browserTimeZone();
+      const d = new Date(dateStr + 'T00:00:00Z');
+      return new Intl.DateTimeFormat('en-US', {
+        timeZone: tz,
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+      }).format(d);
+    } catch {
+      return '';
+    }
+  }
+
+  function renderEventPreview() {
+    const monday = document.getElementById('prep-monday').value;
+    const box = document.getElementById('event-preview-lines');
+    if (!monday) {
+      box.textContent = 'Choose Prep Monday to preview dates.';
+      return;
+    }
+    const lines = [
+      ['MON', 'Construction Day', fmtDateUTC(monday,0)],
+      ['TUE', 'Research Day', fmtDateUTC(monday,1)],
+      ['THU', 'Training Day', fmtDateUTC(monday,3)],
+      ['SAT', 'Castle Battle & PvP', fmtDateUTC(monday,5)]
+    ];
+    box.innerHTML = lines.map(([day,label,date]) =>
+      `<div><b>${day}</b> ${date} — ${label}<small>Your time: ${localLabelFromUTCDate(date)}</small></div>`
+    ).join('');
+  }
+
+  document.getElementById('prep-monday').addEventListener('change', renderEventPreview);
+
+  adminButton.addEventListener('click', async () => {
+    if (!(await ensureAdmin())) return;
+    adminModal.classList.add('open');
+    adminModal.setAttribute('aria-hidden','false');
+    await loadAdminEvents();
+    await loadAdminAlliances();
+    renderEventPreview();
+  });
+
+  document.querySelectorAll('[data-close-admin]').forEach(el => el.addEventListener('click', () => {
+    adminModal.classList.remove('open');
+    adminModal.setAttribute('aria-hidden','true');
+  }));
+
+  document.querySelectorAll('[data-admin-tab]').forEach(btn => btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-admin-tab]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const target = btn.dataset.adminTab;
+    adminEventsSection.classList.toggle('hidden', target !== 'events');
+    adminAlliancesSection.classList.toggle('hidden', target !== 'alliances');
+  }));
+
+  async function loadAdminEvents() {
+    const list = document.getElementById('events-admin-list');
+    const { data, error } = await supabaseClient
+      .from('svs_events')
+      .select('*')
+      .order('prep_monday', { ascending:false });
+    if (error) {
+      document.getElementById('admin-events-message').textContent = error.message;
+      return;
+    }
+    const rows = data || [];
+    list.innerHTML = rows.length ? rows.map(e => `
+      <article class="admin-row">
+        <div>
+          <b>SvS vs ${e.opponent_state}</b>
+          <small>Prep Monday ${e.prep_monday} UTC • ${e.is_live ? 'LIVE' : 'Not live'}</small>
+        </div>
+        <div class="account-actions">
+          <button type="button" data-event-edit="${e.id}">Edit</button>
+          <button type="button" data-event-delete="${e.id}">Delete</button>
+        </div>
+      </article>
+    `).join('') : '<div class="empty-state">No SvS events created yet.</div>';
+  }
+
+  function resetEventForm() {
+    document.getElementById('event-id').value = '';
+    document.getElementById('opponent-state').value = '';
+    document.getElementById('prep-monday').value = '';
+    document.getElementById('event-description').value = '';
+    document.getElementById('prep-form-open').checked = false;
+    document.getElementById('battle-form-open').checked = false;
+    document.getElementById('schedule-published').checked = false;
+    document.getElementById('event-is-live').checked = false;
+    document.getElementById('cancel-event-edit').classList.add('hidden');
+    renderEventPreview();
+  }
+
+  document.getElementById('cancel-event-edit').addEventListener('click', resetEventForm);
+
+  document.getElementById('event-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!(await ensureAdmin())) return;
+
+    const id = document.getElementById('event-id').value;
+    const user = await currentUser();
+    const payload = {
+      opponent_state: Number(document.getElementById('opponent-state').value),
+      prep_monday: document.getElementById('prep-monday').value,
+      description: document.getElementById('event-description').value.trim() || null,
+      prep_form_open: document.getElementById('prep-form-open').checked,
+      battle_form_open: document.getElementById('battle-form-open').checked,
+      schedule_published: document.getElementById('schedule-published').checked,
+      is_live: document.getElementById('event-is-live').checked
+    };
+    if (!id) payload.created_by = user.id;
+
+    const q = id
+      ? supabaseClient.from('svs_events').update(payload).eq('id', id)
+      : supabaseClient.from('svs_events').insert(payload);
+    const { error } = await q;
+    const msg = document.getElementById('admin-events-message');
+    if (error) { msg.textContent = error.message; msg.classList.add('error'); return; }
+    msg.textContent = id ? 'Event updated.' : 'Event created.';
+    msg.classList.remove('error');
+    resetEventForm();
+    await loadAdminEvents();
+  });
+
+  document.getElementById('events-admin-list').addEventListener('click', async (e) => {
+    if (!(await ensureAdmin())) return;
+    const editId = e.target.dataset.eventEdit;
+    const deleteId = e.target.dataset.eventDelete;
+    if (deleteId) {
+      if (!confirm('Delete this SvS event?')) return;
+      const { error } = await supabaseClient.from('svs_events').delete().eq('id', deleteId);
+      if (error) return alert(error.message);
+      await loadAdminEvents(); return;
+    }
+    if (editId) {
+      const { data, error } = await supabaseClient.from('svs_events').select('*').eq('id', editId).single();
+      if (error) return alert(error.message);
+      document.getElementById('event-id').value = data.id;
+      document.getElementById('opponent-state').value = data.opponent_state;
+      document.getElementById('prep-monday').value = data.prep_monday;
+      document.getElementById('event-description').value = data.description || '';
+      document.getElementById('prep-form-open').checked = !!data.prep_form_open;
+      document.getElementById('battle-form-open').checked = !!data.battle_form_open;
+      document.getElementById('schedule-published').checked = !!data.schedule_published;
+      document.getElementById('event-is-live').checked = !!data.is_live;
+      document.getElementById('cancel-event-edit').classList.remove('hidden');
+      renderEventPreview();
+    }
+  });
+
+  async function loadAdminAlliances() {
+    const list = document.getElementById('alliances-admin-list');
+    const { data, error } = await supabaseClient
+      .from('alliances')
+      .select('id,tag,is_active')
+      .order('tag');
+    if (error) {
+      document.getElementById('admin-alliances-message').textContent = error.message;
+      return;
+    }
+    const rows = data || [];
+    list.innerHTML = rows.length ? rows.map(a => `
+      <article class="admin-row">
+        <div>
+          <b>${a.tag}</b>
+          <small>${a.is_active ? 'Active' : 'Inactive'}</small>
+        </div>
+        <div class="account-actions">
+          <button type="button" data-alliance-edit="${a.id}">Edit</button>
+          <button type="button" data-alliance-toggle="${a.id}" data-active="${a.is_active}">
+            ${a.is_active ? 'Deactivate' : 'Activate'}
+          </button>
+        </div>
+      </article>
+    `).join('') : '<div class="empty-state">No alliances found.</div>';
+  }
+
+  function resetAllianceAdminForm() {
+    document.getElementById('alliance-admin-id').value = '';
+    document.getElementById('alliance-admin-tag').value = '';
+    document.getElementById('cancel-alliance-edit').classList.add('hidden');
+  }
+
+  document.getElementById('cancel-alliance-edit').addEventListener('click', resetAllianceAdminForm);
+
+  document.getElementById('alliance-admin-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!(await ensureAdmin())) return;
+
+    const id = document.getElementById('alliance-admin-id').value;
+    const tag = document.getElementById('alliance-admin-tag').value.trim();
+    const q = id
+      ? supabaseClient.from('alliances').update({ tag }).eq('id', id)
+      : supabaseClient.from('alliances').insert({ tag, is_active:true });
+    const { error } = await q;
+    const msg = document.getElementById('admin-alliances-message');
+    if (error) { msg.textContent = error.message; msg.classList.add('error'); return; }
+    msg.textContent = id ? 'Alliance tag updated.' : 'Alliance tag added.';
+    msg.classList.remove('error');
+    resetAllianceAdminForm();
+    await loadAdminAlliances();
+    await loadAlliances();
+  });
+
+  document.getElementById('alliances-admin-list').addEventListener('click', async (e) => {
+    if (!(await ensureAdmin())) return;
+    const editId = e.target.dataset.allianceEdit;
+    const toggleId = e.target.dataset.allianceToggle;
+
+    if (editId) {
+      const { data, error } = await supabaseClient.from('alliances').select('id,tag').eq('id', editId).single();
+      if (error) return alert(error.message);
+      document.getElementById('alliance-admin-id').value = data.id;
+      document.getElementById('alliance-admin-tag').value = data.tag;
+      document.getElementById('cancel-alliance-edit').classList.remove('hidden');
+    }
+
+    if (toggleId) {
+      const active = e.target.dataset.active === 'true';
+      const { error } = await supabaseClient.from('alliances').update({ is_active: !active }).eq('id', toggleId);
+      if (error) return alert(error.message);
+      await loadAdminAlliances();
+      await loadAlliances();
+    }
+  });
+
+  await refreshAdminVisibility();
 
 });
 </script>

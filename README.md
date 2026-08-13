@@ -1,12 +1,26 @@
-# NEXA 1518 v14 — Auto Time Zone
+# NEXA 1518 v15 — Admin Panel
 
-Adds automatic local time-zone detection and profile storage.
+Adds a real Admin Panel visible only to users whose Supabase role is `admin`.
 
-What it does:
-- Detects the browser/device IANA time zone automatically.
-- Saves it in Supabase `user_profiles` the first time.
-- Shows the saved time zone and current UTC offset inside My Accounts.
-- Lets the user change the time zone manually later.
-- Keeps UTC as the official game/schedule time; local conversion will use this profile in the Schedule module.
+Admin → Events:
+- Opponent State
+- Prep Monday (official WOS/UTC date)
+- Automatically previews:
+  Monday Construction
+  Tuesday Research
+  Thursday Training
+  Saturday Castle Battle & PvP
+- Shows the admin's local-time equivalent underneath
+- Prep Form open/closed
+- Battle Form open/closed
+- Schedule published
+- Live event
+- Edit/delete existing SvS events
 
-Upload all files to the root of the GitHub repository and replace the previous versions.
+Admin → Alliances:
+- Add official alliance tags
+- Rename tags
+- Activate/deactivate tags
+- Active tags immediately feed the player Alliance dropdown
+
+Upload all included files to the GitHub repository root and replace the older versions.

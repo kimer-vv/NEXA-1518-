@@ -1,11 +1,10 @@
-# NEXA 1518 v3
+# NEXA 1518 v4 — Visual Correction
 
-Updated prototype based on the agreed NEXA structure.
+Changes:
+- Stronger supernova / nebula visual treatment
+- Brighter magenta + violet + electric-blue cosmic core
+- More depth and glow while keeping text readable
+- Removed the temporary “Future events” strip from Home
+- Kept the clean Home → Event → Schedule architecture
 
-Pages:
-- `index.html` — clean Home / account / live events
-- `event.html` — dedicated SvS event page
-- `schedule.html` — dedicated ministry schedule with MON/TUE/THU/SAT tabs and 30-minute cards
-- `style.css` — stronger supernova/cosmic visual system
-
-The schedule currently contains preview data only. Supabase will later provide real Discord auth, WOS accounts, forms, admin assignments, timezone-aware local times, and published schedules.
+Upload all included files to the root of the GitHub repo and replace the older versions.

@@ -6,7 +6,7 @@
 <header class="topbar public-transfer-topbar"><div class="shell nav"><div class="logo public-form-logo"><span class="star">✦</span><span>NEXA<small>STATE 1518 • TRANSFERS</small></span></div></div></header>
 
 <main class="shell event-page transfer-form-page">
- <span class="badge transfer-badge">TRANSFER APPLICATION • v30</span>
+ <span class="badge transfer-badge">TRANSFER APPLICATION • v31</span>
  <h1 id="event-title">State 1518 Transfer Application</h1>
 
  <section class="glass transfer-welcome">
@@ -85,7 +85,7 @@
    <label>If needed to meet the ordinary power cap, would you be willing to reduce troop power? *<select id="willing_to_reduce_power"><option value="yes">Yes</option><option value="review_first">I’d prefer Transfer Staff to review my account first</option><option value="no">No</option></select></label>
   </div>
   <div class="form-step"><h2>4. Placement & Availability</h2>
-   <div><div class="recruit-question-head"><b>Which recruiting alliance(s) are you open to joining? *</b><button id="refresh-recruiting-now" class="btn mini secondary" type="button">Refresh alliances</button></div><p class="field-help">Select all that apply. Only alliances currently recruiting are shown. All event schedules are UTC.</p><div id="public-recruiting-count" class="field-help"></div><div id="public-recruiting-sync" class="field-help"></div><div id="alliance_choices" class="choice-stack"></div></div>
+   <div><div class="recruit-question-head"><b>Which recruiting alliance(s) are you open to joining? *</b></div><p class="field-help">Select all that apply. Only alliances currently recruiting are shown. All event schedules are UTC.</p><div id="public-recruiting-count" class="field-help"></div><div id="public-recruiting-sync" class="field-help"></div><div id="alliance_choices" class="choice-stack"></div></div>
    <label class="check"><input type="checkbox" id="flexible_alliance"> Any recruiting alliance / I'm flexible</label>
    <fieldset><legend>UTC time ranges that work for major events</legend>
     <div id="utc_ranges" class="choice-grid"></div>
@@ -117,155 +117,349 @@
  </form>
  <section id="success-card" class="glass success-card hidden"><span class="badge">RECEIVED</span><h2>Application Received 💜</h2><p>Thank you for your interest in State 1518. Your Application ID:</p><div id="application-id" class="application-id"></div><button id="copy-id" class="btn secondary" type="button">Copy Application ID</button><p class="muted">Save this ID for reference. You can use it to identify your application without providing an email address.</p></section>
 </main>
-<script>
-const SUPABASE_URL="https://dfxcxboxrkfmrnsgpyin.supabase.co", SUPABASE_KEY="sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-";
-const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-// v30: explicit DOM bindings for iOS Safari
-const confirms_event_structure=document.getElementById('confirms_event_structure');
-const completed_by=document.getElementById('completed_by');
-const referred=document.getElementById('referred');
-const referred_by_wrap=document.getElementById('referred_by_wrap');
-const referred_by=document.getElementById('referred_by');
-const in_game_name=document.getElementById('in_game_name');
-const player_id=document.getElementById('player_id');
-const current_state=document.getElementById('current_state');
-const current_alliance=document.getElementById('current_alliance');
-const discord_username=document.getElementById('discord_username');
-const furnace_level=document.getElementById('furnace_level');
-const current_power=document.getElementById('current_power');
-const t12_infantry=document.getElementById('t12_infantry');
-const t12_lancer=document.getElementById('t12_lancer');
-const t12_marksman=document.getElementById('t12_marksman');
-const t11_infantry=document.getElementById('t11_infantry');
-const t11_lancer=document.getElementById('t11_lancer');
-const t11_marksman=document.getElementById('t11_marksman');
-const labyrinth_wrap=document.getElementById('labyrinth_wrap');
-const labyrinth_score=document.getElementById('labyrinth_score');
-const transfer_passes=document.getElementById('transfer_passes');
-const willing_to_reduce_power=document.getElementById('willing_to_reduce_power');
-const alliance_choices=document.getElementById('alliance_choices');
-const flexible_alliance=document.getElementById('flexible_alliance');
-const utc_ranges=document.getElementById('utc_ranges');
-const discord_vc=document.getElementById('discord_vc');
-const transferring_with_group=document.getElementById('transferring_with_group');
-const group_fields=document.getElementById('group_fields');
-const group_name=document.getElementById('group_name');
-const group_leader=document.getElementById('group_leader');
-const group_size=document.getElementById('group_size');
-const group_members_submitting=document.getElementById('group_members_submitting');
-const transfer_without_full_group=document.getElementById('transfer_without_full_group');
-const coordinates=document.getElementById('coordinates');
-const additional_information=document.getElementById('additional_information');
-const state_playstyle=document.getElementById('state_playstyle');
-const confirms_information=document.getElementById('confirms_information');
-const confirms_interest_only=document.getElementById('confirms_interest_only');
-const confirms_alliance_flexibility=document.getElementById('confirms_alliance_flexibility');
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const fmtPower=n=>{n=Number(n||0); return n>=1e9?(n/1e9).toFixed(2).replace(/\.00$/,'')+'B':n>=1e6?(n/1e6).toFixed(1).replace(/\.0$/,'')+'M':n.toLocaleString();};
 
-function transferScheduleSummary(raw){
+<script>
+const SUPABASE_URL="https://dfxcxboxrkfmrnsgpyin.supabase.co";
+const SUPABASE_KEY="sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-";
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+const $=id=>document.getElementById(id);
+const token=new URLSearchParams(window.location.search).get('token');
+
+const els={
+  eventTitle:$('event-title'),
+  destination:$('form-destination'),
+  ordinaryCap:$('form-ordinary-cap'),
+  specialCap:$('form-special-cap'),
+  form:$('transfer-form'),
+  formMessage:$('form-message'),
+  success:$('success-card'),
+  applicationId:$('application-id'),
+  copyId:$('copy-id'),
+
+  confirmsEvent:$('confirms_event_structure'),
+  completedBy:$('completed_by'),
+  referred:$('referred'),
+  referredWrap:$('referred_by_wrap'),
+  referredBy:$('referred_by'),
+
+  ign:$('in_game_name'),
+  playerId:$('player_id'),
+  currentState:$('current_state'),
+  currentAlliance:$('current_alliance'),
+  discord:$('discord_username'),
+
+  furnace:$('furnace_level'),
+  power:$('current_power'),
+  t12i:$('t12_infantry'),
+  t12l:$('t12_lancer'),
+  t12m:$('t12_marksman'),
+  t11i:$('t11_infantry'),
+  t11l:$('t11_lancer'),
+  t11m:$('t11_marksman'),
+  thresholdNote:$('threshold-note'),
+  labyrinthWrap:$('labyrinth_wrap'),
+  labyrinth:$('labyrinth_score'),
+  passes:$('transfer_passes'),
+  reducePower:$('willing_to_reduce_power'),
+
+  allianceChoices:$('alliance_choices'),
+  flexible:$('flexible_alliance'),
+  recruitingCount:$('public-recruiting-count'),
+  recruitingSync:$('public-recruiting-sync'),
+  utcRanges:$('utc_ranges'),
+  discordVc:$('discord_vc'),
+
+  withGroup:$('transferring_with_group'),
+  groupFields:$('group_fields'),
+  groupName:$('group_name'),
+  groupLeader:$('group_leader'),
+  groupSize:$('group_size'),
+  groupSubmitting:$('group_members_submitting'),
+  transferWithoutGroup:$('transfer_without_full_group'),
+
+  coordinates:$('coordinates'),
+  additional:$('additional_information'),
+  playstyle:$('state_playstyle'),
+
+  confirmsInfo:$('confirms_information'),
+  confirmsInterest:$('confirms_interest_only'),
+  confirmsFlex:$('confirms_alliance_flexibility'),
+
+  contactWarning:$('contact-warning')
+};
+
+let eventData=null;
+
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({
+  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+}[c]));
+
+function fmtPower(value){
+  const n=Number(value||0);
+  if(n>=1e9) return (n/1e9).toFixed(2).replace(/\.00$/,'')+'B';
+  if(n>=1e6) return (n/1e6).toFixed(1).replace(/\.0$/,'')+'M';
+  return n.toLocaleString();
+}
+
+function cleanNumber(value){
+  return Number(String(value||'').replace(/[^0-9]/g,''));
+}
+
+function scheduleSummary(raw){
   if(!raw) return 'Schedule not listed';
   try{
-    const x=JSON.parse(raw),parts=[];
-    if(x.bear?.length) parts.push(`Bear: ${x.bear.map(t=>t+' UTC').join(' / ')}`);
-    if(x.foundry?.length) parts.push(`Foundry: ${x.foundry.map(t=>t+' UTC').join(' / ')}`);
-    if(x.canyon?.length) parts.push(`Canyon: ${x.canyon.map(t=>t+' UTC').join(' / ')}`); if(x.other?.length) parts.push(...x.other.map(o=>`${o.name}: ${o.time} UTC`));
-    if(x.note) parts.push(x.note);
-    return parts.join(' • ') || 'Schedule not listed';
-  }catch(e){ return raw; }
+    const x=typeof raw==='string' ? JSON.parse(raw) : raw;
+    const lines=[];
+
+    if(Array.isArray(x.bear) && x.bear.length)
+      lines.push(`Bear Trap: ${x.bear.map(t=>t+' UTC').join(' / ')}`);
+
+    if(Array.isArray(x.foundry) && x.foundry.length)
+      lines.push(`Foundry: ${x.foundry.map(t=>t+' UTC').join(' / ')}`);
+
+    if(Array.isArray(x.canyon) && x.canyon.length)
+      lines.push(`Canyon: ${x.canyon.map(t=>t+' UTC').join(' / ')}`);
+
+    if(Array.isArray(x.other)){
+      x.other.forEach(o=>{
+        if(o?.name && o?.time) lines.push(`${o.name}: ${o.time} UTC`);
+      });
+    }
+
+    if(x.note) lines.push(x.note);
+    return lines.join(' • ') || 'Schedule not listed';
+  }catch{
+    return String(raw);
+  }
 }
 
-const token=new URLSearchParams(location.search).get('token'); let eventData=null;
-const publicRecruitingCount=document.getElementById('public-recruiting-count');
-const publicRecruitingSync=document.getElementById('public-recruiting-sync');
-const allianceChoices=document.getElementById('alliance_choices');
-const ranges=['00:00–04:00','04:00–08:00','08:00–12:00','12:00–16:00','16:00–20:00','20:00–24:00'];
-utc_ranges.innerHTML=ranges.map(x=>`<label class="check"><input type="checkbox" value="${x}"> ${x} UTC</label>`).join('');
-referred.addEventListener('change',()=>referred_by_wrap.classList.toggle('hidden',referred.value!=='true'));
-transferring_with_group.addEventListener('change',()=>group_fields.classList.toggle('hidden',transferring_with_group.value!=='true'));
-function cleanNumber(v){return Number(String(v).replace(/[^0-9]/g,''));}
-function thresholdCheck(){
- if(!eventData)return;
- const power=cleanNumber(current_power.value);
- const specialCap=Number(eventData.special_power_cap||0);
- const show=!!specialCap && power>specialCap;
- labyrinth_wrap.classList.toggle('hidden',!show);
- labyrinth_score.required=show;
- if(!specialCap){
-   threshold_note.innerHTML='Special Invite Power Cap: <b>N/A</b> for this cycle.';
- }else{
-   threshold_note.innerHTML=`Special Invite Power Cap: <b>${fmtPower(specialCap)}</b>. ${show?'Your power is above this cap, so Labyrinth Score is required.':'Labyrinth Score is only requested above this cap.'}`;
- }
+function renderUtcRanges(){
+  const ranges=[
+    '00:00–04:00','04:00–08:00','08:00–12:00',
+    '12:00–16:00','16:00–20:00','20:00–24:00'
+  ];
+  els.utcRanges.innerHTML=ranges.map(r=>
+    `<label class="check"><input type="checkbox" value="${r}"> ${r} UTC</label>`
+  ).join('');
 }
-current_power.addEventListener('input',thresholdCheck);
-discord_username.addEventListener('input',()=>contact_warning.classList.toggle('hidden',!!discord_username.value.trim()));
-async function refreshPublicTransferForm(){
- if(!token){form_message.textContent='Invalid application link.';return;}
 
- let data,error;
- try{
-   const result=await sb.rpc('get_public_transfer_form_data',{p_event_token:token});
-   data=result.data; error=result.error;
- }catch(err){
-   publicRecruitingCount.textContent='Could not load recruiting alliances.';
-   publicRecruitingSync.textContent=String(err?.message||err);
-   return;
- }
- const e=data?.event;
+function renderRecruitingAlliances(rows){
+  const recruiting=Array.isArray(rows) ? rows : [];
 
- if(error||!e){
-   transfer_form.classList.add('hidden');
-   form_message.textContent='This transfer application is unavailable.';
-   return;
- }
+  els.recruitingCount.textContent=
+    `${recruiting.length} recruiting alliance${recruiting.length===1?'':'s'} available for this cycle.`;
 
- if(e.applications_open!==true){
-   transfer_form.classList.add('hidden');
-   form_message.innerHTML='<div class="closed-transfer-card"><b>Applications are currently closed.</b></div>';
-   return;
- }
+  els.recruitingSync.textContent=eventData
+    ? `Live from ${eventData.title}`
+    : '';
 
- eventData=e;
- event_title.textContent=e.title;
- form_destination.textContent='State '+e.destination_state;
- form_ordinary_cap.textContent=e.power_cap?fmtPower(e.power_cap):'Set by staff';
- form_special_cap.textContent=e.special_power_cap?fmtPower(e.special_power_cap):'N/A';
- thresholdCheck();
+  if(!recruiting.length){
+    els.allianceChoices.innerHTML=
+      '<div class="muted">No alliances are currently marked Recruiting for this Transfer Cycle. You may select “I’m flexible.”</div>';
+    return;
+  }
 
- const recruiting=data?.recruiting_alliances||[];
- publicRecruitingSync.textContent=`Synced with Transfer Cycle ${e.title} • ${e.id.slice(0,8)}`;
- publicRecruitingCount.textContent=`${recruiting.length} recruiting alliance${recruiting.length===1?'':'s'} available for this cycle.`;
- allianceChoices.innerHTML=recruiting.length
-   ?recruiting.map(x=>`<label class="alliance-choice recruiting-alliance-card"><input type="checkbox" value="${x.alliance_id}"><span><b>${esc(x.tag||'Alliance')}</b><small>${esc(transferScheduleSummary(x.schedule_notes))}</small></span></label>`).join('')
-   :'<div class="muted">No alliances are currently marked Recruiting for this Transfer Cycle. You may select “I’m flexible.”</div>';
+  els.allianceChoices.innerHTML=recruiting.map(row=>`
+    <label class="alliance-choice recruiting-alliance-card">
+      <input type="checkbox" value="${row.alliance_id}">
+      <span>
+        <b>${esc(row.tag||'Alliance')}</b>
+        <small>${esc(scheduleSummary(row.schedule_notes))}</small>
+      </span>
+    </label>
+  `).join('');
 }
-refreshPublicTransferForm();
-window.addEventListener('pageshow',refreshPublicTransferForm);
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshPublicTransferForm();});
-document.getElementById('refresh-recruiting-now')?.addEventListener('click',refreshPublicTransferForm);
-transfer_form.addEventListener('submit',async ev=>{
- ev.preventDefault(); form_message.textContent='Submitting…';
- const ids=[...allianceChoices.querySelectorAll('input:checked')].map(x=>x.value);
- const times=[...utc_ranges.querySelectorAll('input:checked')].map(x=>x.value);
- if(!flexible_alliance.checked && ids.length===0){form_message.textContent='Choose at least one recruiting alliance or select “I’m flexible.”';return;}
- const payload={
-  completed_by:completed_by.value,referred:referred.value==='true',referred_by:referred_by.value,
-  in_game_name:in_game_name.value,player_id:player_id.value,current_state:current_state.value,current_alliance:current_alliance.value,discord_username:discord_username.value,
-  furnace_level:furnace_level.value,current_power:String(cleanNumber(current_power.value)),
-  t12_infantry:t12_infantry.checked,t12_lancer:t12_lancer.checked,t12_marksman:t12_marksman.checked,t11_infantry:t11_infantry.checked,t11_lancer:t11_lancer.checked,t11_marksman:t11_marksman.checked,
-  willing_to_reduce_power:willing_to_reduce_power.value,labyrinth_score:labyrinth_score.value,transfer_passes:transfer_passes.value,
-  preferred_alliance_ids:ids,flexible_alliance:flexible_alliance.checked,preferred_utc_ranges:times,discord_vc:discord_vc.value,
-  transferring_with_group:transferring_with_group.value==='true',group_name:group_name.value,group_leader:group_leader.value,group_size:group_size.value,
-  group_members_submitting:[group_members_submitting.value],transfer_without_full_group:[transfer_without_full_group.value],
-  coordinates:coordinates.value,additional_information:[additional_information.value,`Major event structure acknowledged: ${confirms_event_structure.checked?'Yes':'No'}`],state_playstyle:state_playstyle.value,
-  confirms_information:confirms_information.checked,confirms_interest_only:confirms_interest_only.checked,confirms_alliance_flexibility:confirms_alliance_flexibility.checked
- };
- const {data,error}=await sb.rpc('submit_transfer_application',{p_event_token:token,p_payload:payload});
- if(error){form_message.textContent=error.message;return;}
- transfer_form.classList.add('hidden');success_card.classList.remove('hidden');application_id.textContent=data.application_id;
- if(data.duplicate) success_card.insertAdjacentHTML('beforeend','<div class="warning-box">A submission with this Player ID already exists in this transfer cycle. Transfer Staff will review both.</div>');
- if(data.future_interest) success_card.insertAdjacentHTML('beforeend','<div class="info-box">Your application was added to the future-transfer interest list because the active transfer cycle has already ended.</div>');
+
+function updateLabyrinth(){
+  if(!eventData) return;
+
+  const power=cleanNumber(els.power.value);
+  const specialCap=Number(eventData.special_power_cap||0);
+  const requiresLabyrinth=specialCap>0 && power>specialCap;
+
+  els.labyrinthWrap.classList.toggle('hidden',!requiresLabyrinth);
+  els.labyrinth.required=requiresLabyrinth;
+
+  if(!specialCap){
+    els.thresholdNote.innerHTML='Special Invite Power Cap: <b>N/A</b> for this cycle.';
+  }else if(requiresLabyrinth){
+    els.thresholdNote.innerHTML=
+      `Special Invite Power Cap: <b>${fmtPower(specialCap)}</b>. Your power is above this cap, so Labyrinth Score is required.`;
+  }else{
+    els.thresholdNote.innerHTML=
+      `Special Invite Power Cap: <b>${fmtPower(specialCap)}</b>. Labyrinth Score is only requested above this cap.`;
+  }
+}
+
+async function loadTransferForm(){
+  if(!token){
+    els.form.classList.add('hidden');
+    els.formMessage.textContent='Invalid Transfer Application link.';
+    return;
+  }
+
+  els.recruitingCount.textContent='Loading recruiting alliances…';
+  els.recruitingSync.textContent='';
+
+  const {data,error}=await sb.rpc('get_public_transfer_form_data',{
+    p_event_token:token
+  });
+
+  if(error){
+    els.form.classList.add('hidden');
+    els.formMessage.textContent='Could not load this Transfer Application: '+error.message;
+    return;
+  }
+
+  if(!data || !data.event){
+    els.form.classList.add('hidden');
+    els.formMessage.textContent='This Transfer Application is unavailable.';
+    return;
+  }
+
+  eventData=data.event;
+
+  if(eventData.applications_open!==true){
+    els.form.classList.add('hidden');
+    els.formMessage.innerHTML=
+      '<div class="closed-transfer-card"><b>Applications are currently closed.</b></div>';
+    return;
+  }
+
+  els.eventTitle.textContent=eventData.title || 'State 1518 Transfer Application';
+  els.destination.textContent='State '+eventData.destination_state;
+  els.ordinaryCap.textContent=eventData.power_cap ? fmtPower(eventData.power_cap) : 'Set by staff';
+  els.specialCap.textContent=eventData.special_power_cap ? fmtPower(eventData.special_power_cap) : 'N/A';
+
+  renderRecruitingAlliances(data.recruiting_alliances);
+  updateLabyrinth();
+}
+
+els.referred.addEventListener('change',()=>{
+  els.referredWrap.classList.toggle('hidden',els.referred.value!=='true');
 });
-copy_id.addEventListener('click',async()=>{await navigator.clipboard.writeText(application_id.textContent);copy_id.textContent='Copied ✓';});
 
+els.withGroup.addEventListener('change',()=>{
+  const show=els.withGroup.value==='true';
+  els.groupFields.classList.toggle('hidden',!show);
+  els.groupName.required=show;
+});
+
+els.power.addEventListener('input',updateLabyrinth);
+
+els.discord.addEventListener('input',()=>{
+  if(els.contactWarning)
+    els.contactWarning.classList.toggle('hidden',!!els.discord.value.trim());
+});
+
+els.form.addEventListener('submit',async ev=>{
+  ev.preventDefault();
+  els.formMessage.textContent='Submitting…';
+
+  const allianceIds=[
+    ...els.allianceChoices.querySelectorAll('input[type="checkbox"]:checked')
+  ].map(x=>x.value);
+
+  if(!els.flexible.checked && allianceIds.length===0){
+    els.formMessage.textContent=
+      'Choose at least one recruiting alliance or select “I’m flexible.”';
+    return;
+  }
+
+  const utcRanges=[
+    ...els.utcRanges.querySelectorAll('input[type="checkbox"]:checked')
+  ].map(x=>x.value);
+
+  const payload={
+    completed_by:els.completedBy.value,
+    referred:els.referred.value==='true',
+    referred_by:els.referredBy.value,
+
+    in_game_name:els.ign.value.trim(),
+    player_id:els.playerId.value.trim(),
+    current_state:els.currentState.value.trim(),
+    current_alliance:els.currentAlliance.value.trim(),
+    discord_username:els.discord.value.trim(),
+
+    furnace_level:els.furnace.value,
+    current_power:String(cleanNumber(els.power.value)),
+
+    t12_infantry:els.t12i.checked,
+    t12_lancer:els.t12l.checked,
+    t12_marksman:els.t12m.checked,
+    t11_infantry:els.t11i.checked,
+    t11_lancer:els.t11l.checked,
+    t11_marksman:els.t11m.checked,
+
+    willing_to_reduce_power:els.reducePower.value,
+    labyrinth_score:els.labyrinth.value.trim(),
+    transfer_passes:els.passes.value,
+
+    preferred_alliance_ids:allianceIds,
+    flexible_alliance:els.flexible.checked,
+    preferred_utc_ranges:utcRanges,
+    discord_vc:els.discordVc.value,
+
+    transferring_with_group:els.withGroup.value==='true',
+    group_name:els.groupName.value.trim(),
+    group_leader:els.groupLeader.value.trim(),
+    group_size:els.groupSize.value,
+    group_members_submitting:[els.groupSubmitting.value],
+    transfer_without_full_group:[els.transferWithoutGroup.value],
+
+    coordinates:els.coordinates.value.trim(),
+    additional_information:[
+      els.additional.value.trim(),
+      `Major event structure acknowledged: ${els.confirmsEvent.checked?'Yes':'No'}`
+    ],
+    state_playstyle:els.playstyle.value,
+
+    confirms_information:els.confirmsInfo.checked,
+    confirms_interest_only:els.confirmsInterest.checked,
+    confirms_alliance_flexibility:els.confirmsFlex.checked
+  };
+
+  const {data,error}=await sb.rpc('submit_transfer_application',{
+    p_event_token:token,
+    p_payload:payload
+  });
+
+  if(error){
+    els.formMessage.textContent=error.message;
+    return;
+  }
+
+  els.form.classList.add('hidden');
+  els.success.classList.remove('hidden');
+  els.applicationId.textContent=data.application_id;
+
+  if(data.duplicate){
+    els.success.insertAdjacentHTML(
+      'beforeend',
+      '<div class="warning-box">A submission with this Player ID already exists in this Transfer Cycle. Transfer Staff will review it.</div>'
+    );
+  }
+
+  if(data.future_interest){
+    els.success.insertAdjacentHTML(
+      'beforeend',
+      '<div class="info-box">Your application was added to the future-transfer interest list.</div>'
+    );
+  }
+
+  els.success.scrollIntoView({behavior:'smooth',block:'start'});
+});
+
+els.copyId.addEventListener('click',async()=>{
+  try{
+    await navigator.clipboard.writeText(els.applicationId.textContent);
+    els.copyId.textContent='Copied ✓';
+  }catch{
+    els.copyId.textContent='Press & hold ID to copy';
+  }
+});
+
+renderUtcRanges();
+loadTransferForm();
 </script></body></html>

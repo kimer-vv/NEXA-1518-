@@ -25,8 +25,9 @@
 
   <section id="edit-card" class="glass hidden" style="margin-top:14px">
     <h2 id="identity-title">Application</h2>
-    <p class="muted">In-Game Name, Player ID, Current State and Application ID are locked. Contact staff if an identity field is incorrect.</p>
+    <p class="muted">Application ID is system-generated and cannot be changed. You may correct your Player ID if needed.</p>
     <form id="edit-form" class="account-form">
+      <label>Player ID<input id="self-player-id"></label>
       <label>Discord / Contact<input id="discord"></label>
       <label>Current Alliance<input id="alliance"></label>
       <label>Coordinates<input id="coordinates" placeholder="X:123 Y:456"></label>
@@ -69,6 +70,7 @@ const ui={
   identityTitle:document.getElementById('identity-title'),
   editForm:document.getElementById('edit-form'),
   editMessage:document.getElementById('edit-message'),
+  playerId:document.getElementById('self-player-id'),
   discord:document.getElementById('discord'),
   alliance:document.getElementById('alliance'),
   coordinates:document.getElementById('coordinates'),
@@ -160,6 +162,7 @@ async function openApplication(){
   }
 
   ui.identityTitle.textContent=`${row.in_game_name||'Application'} • ${row.application_id||currentAppId}`;
+  ui.playerId.value=row.player_id||'';
   ui.discord.value=row.discord_username||'';
   ui.alliance.value=row.current_alliance||'';
   ui.coordinates.value=row.coordinates||'';
@@ -205,6 +208,7 @@ ui.editForm.addEventListener('submit',async e=>{
   }
 
   const payload={
+    player_id:ui.playerId.value.trim(),
     discord_username:ui.discord.value.trim(),
     current_alliance:ui.alliance.value.trim(),
     coordinates:ui.coordinates.value.trim(),
@@ -239,4 +243,19 @@ const savedToken=sessionStorage.getItem('nexa_transfer_edit_token')||'';
 if(savedId) ui.appId.value=savedId;
 if(savedToken) ui.token.value=savedToken;
 </script>
+
+<script>
+(function(){
+  const lang=(navigator.language||'en').toLowerCase();
+  if(!lang.startsWith('es'))return;
+  const labels=[...document.querySelectorAll('label')];
+  document.querySelector('#unlock-card h1').textContent='Editar mi solicitud';
+  document.querySelector('#unlock-card .muted').textContent='Ingresa el Application ID y el Edit Token privado que recibiste al enviar tu solicitud.';
+  document.querySelector('#unlock-form button').textContent='Abrir mi solicitud';
+  const back=document.querySelector('.back');if(back)back.textContent='← Volver';
+  const note=document.querySelector('#edit-card .muted');if(note)note.textContent='El Application ID lo genera el sistema y no se puede cambiar. Puedes corregir tu Player ID si es necesario.';
+  const save=document.querySelector('#edit-form button[type="submit"]');if(save)save.textContent='Guardar cambios';
+})();
+</script>
+
 </body></html>

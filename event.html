@@ -27,8 +27,8 @@
     <h1 id="event-title">Loading SvS…</h1>
     <div id="event-meta" class="muted">WOS Game Time (UTC)</div>
     <div id="svs-staff-actions" class="form-actions hidden" style="margin-top:14px">
-      <a id="manage-svs-inline" class="btn secondary" href="index.html?admin=events&module=svs">Manage SvS</a>
-      <a id="create-event-inline" class="btn secondary hidden" href="index.html?admin=events&module=svs&create=1">Create Event</a>
+      <a id="manage-svs-inline" class="btn secondary" href="index.html#admin-svs">Manage SvS</a>
+      <a id="create-event-inline" class="btn secondary hidden" href="index.html#admin-svs-create">Create Event</a>
       <a id="edit-event-inline" class="btn secondary hidden" href="#">Edit Event</a>
       <button id="svs-guide-btn" class="btn secondary" type="button">SvS Guide</button>
     </div>
@@ -271,7 +271,7 @@ async function enableInlineEdit(data){
   document.getElementById('create-event-inline')?.classList.add('hidden');
   const edit=document.getElementById('edit-event-inline');
   if(edit){
-    edit.href='index.html?admin=events&module=svs&edit='+encodeURIComponent(data.id); edit.dataset.eventId=data.id;
+    edit.href='index.html#admin-svs-edit='+encodeURIComponent(data.id); edit.dataset.eventId=data.id;
     edit.classList.remove('hidden');
   }
 }
@@ -296,34 +296,6 @@ loadEvent();
     <div class="detail-block"><b>Verified State Access</b><p>Verified members can see private schedule/assignments and internal announcements. External users only see public/basic event content and forms.</p></div>
   </section>
 </div>
-
-<script>
-(function(){
-  function goAdmin(intent){
-    try{sessionStorage.setItem('nexa_svs_admin_intent',JSON.stringify(intent));}catch(_){}
-    location.href='index.html';
-  }
-
-  document.getElementById('manage-svs-inline')?.addEventListener('click',e=>{
-    e.preventDefault();
-    goAdmin({mode:'manage'});
-  });
-
-  document.getElementById('create-event-inline')?.addEventListener('click',e=>{
-    e.preventDefault();
-    goAdmin({mode:'create'});
-  });
-
-  document.getElementById('edit-event-inline')?.addEventListener('click',e=>{
-    e.preventDefault();
-    const id=new URL(e.currentTarget.href,location.href).searchParams.get('edit')
-      || e.currentTarget.dataset.eventId
-      || localStorage.getItem('nexa_live_event_id')
-      || '';
-    goAdmin({mode:'edit',eventId:id});
-  });
-})();
-</script>
 
 </body>
 </html>

@@ -1887,86 +1887,85 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   }
 </script>
 
+
 <script>
-/* NEXA v33.9 — reliable SvS Admin navigation from View Event */
+/* NEXA v33.10 — deterministic SvS Control Center deep-link */
 (function(){
-  let attempts=0;
+  async function openSvsControlCenterFromHash(){
+    const h=location.hash||'';
+    if(!h.startsWith('#admin-svs')) return;
 
-  async function consumeSvsIntent(){
-    let intent=null;
-    try{intent=JSON.parse(sessionStorage.getItem('nexa_svs_admin_intent')||'null');}catch(_){}
-    if(!intent)return;
+    // Let auth + page initialization settle.
+    await new Promise(r=>setTimeout(r,650));
 
-    attempts++;
-    const adminBtn=document.getElementById('admin-panel-button');
-    const svsBtn=document.getElementById('open-svs-admin');
     const modal=document.getElementById('admin-modal');
-
-    if(!adminBtn || !svsBtn || !modal){
-      if(attempts<20)setTimeout(consumeSvsIntent,250);
+    const chooser=document.getElementById('admin-module-chooser');
+    const svsContent=document.getElementById('svs-admin-content');
+    if(!modal||!chooser||!svsContent){
+      setTimeout(openSvsControlCenterFromHash,400);
       return;
     }
 
-    // Wait until authentication/permissions are actually ready.
-    let can=false;
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden','false');
+    chooser.classList.add('hidden');
+    svsContent.classList.remove('hidden');
+
     try{
-      const {data}=await supabaseClient.rpc('can_manage_svs');
-      can=data===true;
-    }catch(_){}
+      if(typeof showAdminSection==='function') showAdminSection('events');
+      document.querySelectorAll('[data-admin-tab]').forEach(b=>{
+        b.classList.toggle('active',b.dataset.adminTab==='events');
+      });
+      if(typeof loadAdminEvents==='function') await loadAdminEvents();
+      if(typeof loadAdminAlliances==='function') await loadAdminAlliances();
+      if(typeof loadEventAllianceSelectors==='function') await loadEventAllianceSelectors();
+      if(typeof renderEventPreview==='function') renderEventPreview();
+    }catch(e){ console.error('SvS admin deep-link load:',e); }
 
-    if(!can){
-      if(attempts<20)setTimeout(consumeSvsIntent,300);
-      return;
+    if(h==='#admin-svs-create'){
+      try{
+        if(typeof resetEventForm==='function') resetEventForm();
+        if(typeof loadEventAllianceSelectors==='function') await loadEventAllianceSelectors();
+        document.getElementById('event-form')?.scrollIntoView({behavior:'auto',block:'start'});
+      }catch(e){ console.error(e); }
     }
 
-    adminBtn.click();
-    setTimeout(async()=>{
-      svsBtn.click();
-
-      setTimeout(async()=>{
-        if(intent.mode==='create'){
-          if(typeof resetEventForm==='function') resetEventForm();
-          if(typeof loadEventAllianceSelectors==='function') await loadEventAllianceSelectors();
+    if(h.startsWith('#admin-svs-edit=')){
+      const eventId=decodeURIComponent(h.slice('#admin-svs-edit='.length));
+      try{
+        const {data:row,error}=await supabaseClient
+          .from('svs_events').select('*').eq('id',eventId).maybeSingle();
+        if(error) throw error;
+        if(row){
+          document.getElementById('event-id').value=row.id;
+          document.getElementById('opponent-state').value=row.opponent_state||'';
+          document.getElementById('prep-monday').value=row.prep_monday||'';
+          document.getElementById('event-description').value=row.description||'';
+          if(typeof loadEventAllianceSelectors==='function'){
+            await loadEventAllianceSelectors(row.castle_alliance_id,row.presidency_alliance_id);
+          }
+          document.getElementById('prep-form-open').checked=!!row.prep_form_open;
+          document.getElementById('battle-form-open').checked=!!row.battle_form_open;
+          document.getElementById('schedule-published').checked=!!row.schedule_published;
+          document.getElementById('event-is-live').checked=!!row.is_live;
+          if(row.auto_end_at){
+            const iso=new Date(row.auto_end_at).toISOString();
+            document.getElementById('event-auto-end-date').value=iso.slice(0,10);
+            document.getElementById('event-auto-end-time').value=iso.slice(11,16);
+          }else{
+            document.getElementById('event-auto-end-date').value='';
+            document.getElementById('event-auto-end-time').value='';
+          }
+          document.getElementById('event-lifecycle-actions')?.classList.remove('hidden');
+          document.getElementById('cancel-event-edit')?.classList.remove('hidden');
+          if(typeof renderEventPreview==='function') renderEventPreview();
           document.getElementById('event-form')?.scrollIntoView({behavior:'auto',block:'start'});
         }
-
-        if(intent.mode==='edit' && intent.eventId){
-          const {data:row}=await supabaseClient
-            .from('svs_events').select('*').eq('id',intent.eventId).maybeSingle();
-
-          if(row){
-            document.getElementById('event-id').value=row.id;
-            document.getElementById('opponent-state').value=row.opponent_state||'';
-            document.getElementById('prep-monday').value=row.prep_monday||'';
-            document.getElementById('event-description').value=row.description||'';
-            if(typeof loadEventAllianceSelectors==='function'){
-              await loadEventAllianceSelectors(row.castle_alliance_id,row.presidency_alliance_id);
-            }
-            document.getElementById('prep-form-open').checked=!!row.prep_form_open;
-            document.getElementById('battle-form-open').checked=!!row.battle_form_open;
-            document.getElementById('schedule-published').checked=!!row.schedule_published;
-            document.getElementById('event-is-live').checked=!!row.is_live;
-
-            if(row.auto_end_at){
-              const iso=new Date(row.auto_end_at).toISOString();
-              document.getElementById('event-auto-end-date').value=iso.slice(0,10);
-              document.getElementById('event-auto-end-time').value=iso.slice(11,16);
-            }
-
-            document.getElementById('event-lifecycle-actions')?.classList.remove('hidden');
-            document.getElementById('cancel-event-edit')?.classList.remove('hidden');
-            if(typeof renderEventPreview==='function')renderEventPreview();
-            document.getElementById('event-form')?.scrollIntoView({behavior:'auto',block:'start'});
-          }
-        }
-
-        try{sessionStorage.removeItem('nexa_svs_admin_intent');}catch(_){}
-      },250);
-    },180);
+      }catch(e){ console.error('Edit event deep-link:',e); }
+    }
   }
 
-  window.addEventListener('load',()=>setTimeout(consumeSvsIntent,150),{once:true});
-  setTimeout(consumeSvsIntent,500);
+  window.addEventListener('load',openSvsControlCenterFromHash,{once:true});
 })();
 </script>
 

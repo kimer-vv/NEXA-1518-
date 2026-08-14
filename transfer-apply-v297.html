@@ -13,9 +13,10 @@
   border:1px solid rgba(241,196,79,.34);
   border-radius:16px;
   background:linear-gradient(135deg,rgba(241,196,79,.12),rgba(157,95,255,.08));
-  color:#f2cf70;
+  color:#f6f4ff;
   font-weight:800;
 }
+.philosophy-star{color:#f2cf70;font-weight:900}
 .application-received .public-transfer-topbar,
 .application-received #internal-form-nav,
 .application-received .transfer-badge,
@@ -108,7 +109,7 @@
  <section class="glass transfer-welcome">
    <h2>Welcome to State 1518 💜</h2>
    <p>We’re building an <b>active, competitive, and team-oriented state</b>. We value players who contribute, communicate, prepare for important events, and understand that some competitions require a <b>state-first approach</b>.</p>
-   <p class="strong-account-callout"><b>Strong accounts matter — but the player behind the account matters just as much.</b></p>
+   <p class="strong-account-callout"><span class="philosophy-star">✦</span> <b>Our Philosophy: Strong accounts matter, but character, teamwork, and the player behind the account matter just as much.</b> <span class="philosophy-star">✦</span></p>
 
    <details class="event-expectations">
      <summary>🏆 How does State 1518 run major events?</summary>
@@ -167,7 +168,7 @@
   <div class="form-step"><h2>3. Account Strength</h2>
    <label>Current Furnace Level *<select id="furnace_level" required><option value="fc10">FC10</option><option value="fc9">FC9</option><option value="fc8">FC8</option><option value="fc7_or_lower">≤ FC7</option></select></label>
    <label>Current Total Power *<input id="current_power" inputmode="numeric" required placeholder="Example: 1250000000" pattern="[0-9]*" autocomplete="off"><div id="power-preview" class="info-box hidden"></div><p class="field-help power-format-help"><b>Enter your FULL power using numbers only — no commas, M, or B.</b><br>Example: <b>24500000</b>, not 24.5M. NEXA needs the complete number so the system can accurately classify your application against the current transfer power caps.</p></label>
-   <fieldset><legend>Advanced Troops</legend>
+   <fieldset id="advanced-troops-fieldset"><legend>Advanced Troops</legend>
     <label class="check"><input type="checkbox" id="t12_infantry"> T12 Exalted Infantry</label>
     <label class="check"><input type="checkbox" id="t12_lancer"> T12 Exalted Lancers</label>
     <label class="check"><input type="checkbox" id="t12_marksman"> T12 Exalted Marksmen</label>
@@ -177,7 +178,7 @@
     <label class="check"><input type="checkbox" id="no_advanced_troops"> I do not currently have T11 or T12 troops</label>
    </fieldset>
    <div id="threshold-note" class="info-box"></div>
-   <label>Which best describes your account? *
+   <label id="account-progression-label">Which best describes your account? *
      <select id="account_progression" required>
        <option value="actively_progressing">Still actively progressing</option>
        <option value="highly_developed">Highly developed / Near max / Maxed</option>
@@ -211,8 +212,8 @@
     <label>Would you still transfer if the entire group cannot be accepted?<select id="transfer_without_full_group"><option>Yes</option><option>No</option><option>It depends</option></select></label>
    </div>
   </div>
-  <div class="form-step"><h2>6. Additional Information</h2>
-   <fieldset><legend>Current State Coordinates <span class="optional">Optional</span></legend>
+  <div class="form-step" id="additional-info-step"><h2>6. Additional Information</h2>
+   <fieldset id="coordinates-fieldset"><legend>Current State Coordinates <span class="optional">Optional</span></legend>
         <div class="coordinate-pair">
           <label>X <input id="coordinate_x" inputmode="numeric" placeholder="532"></label>
           <label>Y <input id="coordinate_y" inputmode="numeric" placeholder="814"></label>
@@ -371,13 +372,13 @@ function scheduleSummary(raw){
     const lines=[];
 
     if(Array.isArray(x.bear) && x.bear.length)
-      lines.push(`Bear Trap: ${x.bear.map(t=>t+' UTC').join(' / ')}`);
+      lines.push(`${window.NEXA_TRANSFER_ES_SCHEDULE?'Trampa del Oso':'Bear Trap'}: ${x.bear.map(t=>t+' UTC').join(' / ')}`);
 
     if(Array.isArray(x.foundry) && x.foundry.length)
-      lines.push(`Foundry: ${x.foundry.map(t=>t+' UTC').join(' / ')}`);
+      lines.push(`${window.NEXA_TRANSFER_ES_SCHEDULE?'Batalla de Fundición':'Foundry'}: ${x.foundry.map(t=>t+' UTC').join(' / ')}`);
 
     if(Array.isArray(x.canyon) && x.canyon.length)
-      lines.push(`Canyon: ${x.canyon.map(t=>t+' UTC').join(' / ')}`);
+      lines.push(`${window.NEXA_TRANSFER_ES_SCHEDULE?'Cañón':'Canyon'}: ${x.canyon.map(t=>t+' UTC').join(' / ')}`);
 
     if(Array.isArray(x.other)){
       x.other.forEach(o=>{
@@ -685,4 +686,70 @@ els.copyEditToken?.addEventListener('click',async()=>{
 });
 renderUtcRanges();
 loadTransferForm();
-</script></body></html>
+</script>
+<script>
+(function(){
+  const lang=(window.NEXA_I18N?.device?.() || navigator.language || 'en').toLowerCase();
+  if(!lang.startsWith('es')) return;
+
+  const txt=(sel,value)=>{const el=document.querySelector(sel);if(el)el.textContent=value;};
+  const html=(sel,value)=>{const el=document.querySelector(sel);if(el)el.innerHTML=value;};
+
+  txt('#edit-my-application-top','Editar mi solicitud');
+  txt('#manage-transfers-from-form','Administrar transferencias');
+  txt('#back-to-home','← Volver al inicio');
+
+  const philosophy=document.querySelector('.strong-account-callout b');
+  if(philosophy) philosophy.textContent='Nuestra filosofía: Las cuentas fuertes importan, pero el carácter, el trabajo en equipo y la persona detrás de la cuenta importan igual.';
+
+  const troopLegend=document.querySelector('#advanced-troops-fieldset legend');
+  if(troopLegend) troopLegend.textContent='Tropas avanzadas';
+  const troopLabels=document.querySelectorAll('#advanced-troops-fieldset label');
+  const troopText=[
+    'T12 Infantería Exaltada','T12 Lanceros Exaltados','T12 Tiradores Exaltados',
+    'T11 Infantería Helios','T11 Lanceros Helios','T11 Tiradores Helios',
+    'Actualmente no tengo tropas T11 ni T12'
+  ];
+  troopLabels.forEach((label,i)=>{
+    const input=label.querySelector('input');
+    if(input && troopText[i]){
+      [...label.childNodes].filter(n=>n.nodeType===3).forEach(n=>n.remove());
+      label.append(' '+troopText[i]);
+    }
+  });
+
+  const apl=document.getElementById('account-progression-label');
+  if(apl){
+    [...apl.childNodes].filter(n=>n.nodeType===3).forEach(n=>{if(n.textContent.trim())n.textContent='¿Cuál opción describe mejor tu cuenta? * ';});
+  }
+  const prog=document.getElementById('account_progression');
+  if(prog){
+    prog.options[0].text='Todavía progresando activamente';
+    prog.options[1].text='Muy desarrollada / Casi al máximo / Al máximo';
+    prog.options[2].text='No estoy seguro/a';
+  }
+
+  const leader=document.getElementById('leader_labyrinth_wrap');
+  if(leader){
+    [...leader.childNodes].filter(n=>n.nodeType===3).forEach(n=>{if(n.textContent.trim())n.textContent='¿Un líder de State 1518 te pidió tu puntuación de Labyrinth? ';});
+  }
+
+  const coord=document.querySelector('#coordinates-fieldset legend');
+  if(coord) coord.innerHTML='Coordenadas de tu estado actual <span class="optional">Opcional</span>';
+  const coordHelp=document.querySelector('#coordinates-fieldset small');
+  if(coordHelp) coordHelp.textContent='Escribe solo los números. NEXA les dará automáticamente el formato X/Y.';
+
+  const addHead=document.querySelector('#additional-info-step h2');
+  if(addHead) addHead.textContent='6. Información adicional';
+
+  // Translate event schedule names shown under recruiting alliances.
+  window.NEXA_TRANSFER_ES_SCHEDULE=true;
+
+  const successEdit=document.getElementById('success-edit-application');
+  if(successEdit) successEdit.textContent='Editar mi solicitud';
+  const successBack=document.getElementById('success-back-transfers');
+  if(successBack) successBack.textContent='Volver a Transferencias';
+})();
+</script>
+
+</body></html>

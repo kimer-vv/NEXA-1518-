@@ -54,15 +54,16 @@
 const SUPABASE_URL="https://dfxcxboxrkfmrnsgpyin.supabase.co", SUPABASE_KEY="sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-";
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const TRANSFER_ES=(navigator.language||'en').toLowerCase().startsWith('es');
 const fmtPower=n=>{n=Number(n||0); return n>=1e9?(n/1e9).toFixed(2).replace(/\.00$/,'')+'B':n>=1e6?(n/1e6).toFixed(1).replace(/\.0$/,'')+'M':n.toLocaleString();};
 
 function transferScheduleSummary(raw){
-  if(!raw) return 'Schedule not listed';
+  if(!raw) return TRANSFER_ES?'Horario no indicado':'Schedule not listed';
   try{
     const x=JSON.parse(raw),parts=[];
-    if(x.bear?.length) parts.push(`Bear: ${x.bear.map(t=>t+' UTC').join(' / ')}`);
-    if(x.foundry?.length) parts.push(`Foundry: ${x.foundry.map(t=>t+' UTC').join(' / ')}`);
-    if(x.canyon?.length) parts.push(`Canyon: ${x.canyon.map(t=>t+' UTC').join(' / ')}`); if(x.other?.length) parts.push(...x.other.map(o=>`${o.name}: ${o.time} UTC`));
+    if(x.bear?.length) parts.push(`${TRANSFER_ES?'Trampa del Oso':'Bear'}: ${x.bear.map(t=>t+' UTC').join(' / ')}`);
+    if(x.foundry?.length) parts.push(`${TRANSFER_ES?'Batalla de Fundición':'Foundry'}: ${x.foundry.map(t=>t+' UTC').join(' / ')}`);
+    if(x.canyon?.length) parts.push(`${TRANSFER_ES?'Cañón':'Canyon'}: ${x.canyon.map(t=>t+' UTC').join(' / ')}`); if(x.other?.length) parts.push(...x.other.map(o=>`${o.name}: ${o.time} UTC`));
     if(x.note) parts.push(x.note);
     return parts.join(' • ') || 'Schedule not listed';
   }catch(e){ return raw; }
@@ -82,10 +83,10 @@ const token=new URLSearchParams(location.search).get('token');
  const {data:formData,error}=await sb.rpc('get_public_transfer_form_data',{p_event_token:token});
  const e=formData?.event;
  if(error||!e){document.getElementById('range').textContent='This transfer event is unavailable or closed.';return;}
- title.textContent=e.title; dest.textContent='State '+e.destination_state;
- cap.textContent=e.power_cap?fmtPower(e.power_cap):'Set by staff'; document.getElementById('special-cap').textContent=e.special_power_cap?fmtPower(e.special_power_cap):'Set by staff'; open.textContent=e.applications_open?'Open':'Closed';
- range.textContent=(e.source_state_min||e.source_state_max)?`Eligible range: State ${e.source_state_min||'—'}–${e.source_state_max||'—'}`:'State 1518 Transfer Cycle';
- notes.textContent=e.public_notes||'Submit an interest application for this transfer cycle.';
+ title.textContent=e.title; dest.textContent=(TRANSFER_ES?'Estado ':'State ')+e.destination_state;
+ cap.textContent=e.power_cap?fmtPower(e.power_cap):(TRANSFER_ES?'Definido por staff':'Set by staff'); document.getElementById('special-cap').textContent=e.special_power_cap?fmtPower(e.special_power_cap):(TRANSFER_ES?'Definido por staff':'Set by staff'); open.textContent=e.applications_open?(TRANSFER_ES?'Abiertas':'Open'):(TRANSFER_ES?'Cerradas':'Closed');
+ range.textContent=(e.source_state_min||e.source_state_max)?`${TRANSFER_ES?'Rango elegible: Estado':'Eligible range: State'} ${e.source_state_min||'—'}–${e.source_state_max||'—'}`:(TRANSFER_ES?'Ciclo de Transferencia de State 1518':'State 1518 Transfer Cycle');
+ notes.textContent=e.public_notes||(TRANSFER_ES?'Envía una solicitud de interés para este ciclo de transferencia.':'Submit an interest application for this transfer cycle.');
  const [{data:canManage},{data:isAdmin}] = await Promise.all([
    sb.rpc('can_manage_transfers'),
    sb.rpc('is_admin')
@@ -113,4 +114,30 @@ const token=new URLSearchParams(location.search).get('token');
  const recruiting=formData?.recruiting_alliances||[];
  alliances.innerHTML=recruiting.length?recruiting.map(x=>`<article class="history-card"><div><b>${esc(x.tag||'Recruiting Alliance')}</b><small>${esc(transferScheduleSummary(x.schedule_notes))}</small></div></article>`).join(''):'<div class="empty-state">Recruiting alliances will be announced by Transfer Staff.</div>';
 })();
-</script></body></html>
+</script>
+<script>
+(function(){
+  if(!(navigator.language||'en').toLowerCase().startsWith('es'))return;
+  const set=(sel,t)=>{const e=document.querySelector(sel);if(e)e.textContent=t};
+  set('.event-top-nav a','← Volver al inicio');
+  set('#title','Evento de Transferencia');
+  const stats=document.querySelectorAll('.transfer-stat-grid small');
+  ['DESTINO','LÍMITE ORDINARIO','LÍMITE ESPECIAL','SOLICITUDES'].forEach((t,i)=>{if(stats[i])stats[i].textContent=t;});
+  set('#manage-transfers-main','Administrar Transferencias');
+  set('#edit-transfer-main','Editar mi solicitud');
+  set('#apply-transfer-main','Solicitar transferencia');
+  const heads=document.querySelectorAll('.section .head h2');
+  if(heads[0])heads[0].textContent='Alianzas reclutando';
+  if(heads[1])heads[1].textContent='Administración de Transferencias';
+  set('#owner-admin-tools .muted','Estos controles solo son visibles para cuentas Owner/Admin autorizadas.');
+  set('#admin-applications-link','Solicitudes');
+  set('#admin-roster-link','Roster de Transferencia');
+  set('#admin-form-link','Formulario de Transferencia');
+  set('#admin-events-link','Eventos de Transferencia');
+  set('#admin-recruiting-link','Alianzas reclutando');
+  set('#admin-permissions-link','Permisos');
+  set('#admin-history-link','Historial');
+})();
+</script>
+
+</body></html>

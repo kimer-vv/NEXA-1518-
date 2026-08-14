@@ -120,8 +120,11 @@
   <div class="modal-backdrop" data-close-staff-edit></div>
   <section class="modal-card">
     <div class="modal-head"><div><small>STAFF EDIT</small><h2>Edit Applicant Details</h2></div><button class="icon-btn" data-close-staff-edit type="button">×</button></div>
-    <p class="muted">Identity fields (Application ID, Player ID, In-Game Name, Current State) are locked.</p>
+    <p class="muted">Application ID and Edit Token are system-controlled. Applicant-entered information can be corrected by authorized staff.</p>
     <div class="account-form">
+      <label>In-Game Name<input id="staff-edit-name"></label>
+      <label>Player ID<input id="staff-edit-player-id"></label>
+      <label>Current State<input id="staff-edit-state" inputmode="numeric"></label>
       <label>Discord / Contact<input id="staff-edit-discord"></label>
       <label>Current Alliance<input id="staff-edit-alliance"></label>
       <label>Coordinates<input id="staff-edit-coordinates" placeholder="X:123 Y:456"><small class="muted">Format: X:123 Y:456</small></label>
@@ -428,6 +431,9 @@ document.getElementById('save-review').onclick=async()=>{
 };
 const staffEdit={
   modal:document.getElementById('staff-edit-modal'),
+  name:document.getElementById('staff-edit-name'),
+  playerId:document.getElementById('staff-edit-player-id'),
+  state:document.getElementById('staff-edit-state'),
   discord:document.getElementById('staff-edit-discord'),
   alliance:document.getElementById('staff-edit-alliance'),
   coordinates:document.getElementById('staff-edit-coordinates'),
@@ -443,6 +449,9 @@ const staffEdit={
 };
 function openStaffEdit(){
   const a=currentApplication;if(!a||!staffEdit.modal)return;
+  staffEdit.name.value=a.in_game_name||'';
+  staffEdit.playerId.value=a.player_id||'';
+  staffEdit.state.value=a.current_state||'';
   staffEdit.discord.value=a.discord_username||'';
   staffEdit.alliance.value=a.current_alliance||'';
   staffEdit.coordinates.value=a.coordinates||'';
@@ -462,6 +471,9 @@ document.getElementById('edit-applicant-details')?.addEventListener('click',open
 document.querySelectorAll('[data-close-staff-edit]').forEach(x=>x.addEventListener('click',closeStaffEdit));
 document.getElementById('save-staff-edit')?.addEventListener('click',async()=>{
   const payload={
+    in_game_name:staffEdit.name.value.trim()||null,
+    player_id:staffEdit.playerId.value.trim()||null,
+    current_state:staffEdit.state.value.trim()||null,
     discord_username:staffEdit.discord.value.trim()||null,
     current_alliance:staffEdit.alliance.value.trim()||null,
     coordinates:staffEdit.coordinates.value.trim()||null,
@@ -477,7 +489,7 @@ document.getElementById('save-staff-edit')?.addEventListener('click',async()=>{
   };
   const {error}=await sb.from('transfer_applications').update(payload).eq('id',currentApplication.id);
   if(error){staffEdit.message.textContent=error.message;return;}
-  await sb.rpc('log_transfer_action',{p_event_id:eventId||null,p_application_id:currentApplication.id,p_action:'staff_application_edit',p_details:{fields:['contact','alliance','coordinates','power','furnace','labyrinth','passes','progression','troops']}});
+  await sb.rpc('log_transfer_action',{p_event_id:eventId||null,p_application_id:currentApplication.id,p_action:'staff_application_edit',p_details:{fields:['identity','contact','alliance','coordinates','power','furnace','labyrinth','passes','progression','troops']}});
   closeStaffEdit();await loadApplication();
 });
 

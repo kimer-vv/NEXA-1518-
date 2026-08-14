@@ -178,8 +178,8 @@ document.querySelectorAll('[data-close-transfer-guide]').forEach(x=>x.addEventLi
   <label>Destination State<input id="te_destination" value="1518" inputmode="numeric"></label>
 
   <div class="two-col">
-    <label>Ordinary Power Cap<input id="te_power_cap" inputmode="numeric" placeholder="850000000"></label>
-    <label>Special Invite Power Cap<input id="te_special_power_cap" inputmode="numeric" placeholder="1500000000"></label>
+    <label>Ordinary Power Cap<input id="te_power_cap" inputmode="numeric" placeholder="850000000"><div id="te-power-preview" class="field-help"></div></label>
+    <label>Special Invite Power Cap<input id="te_special_power_cap" inputmode="numeric" placeholder="1500000000"><div id="te-special-power-preview" class="field-help"></div></label>
   </div>
 
   <div class="two-col">
@@ -1043,8 +1043,8 @@ window.addEventListener('error',ev=>{
           <button class="btn secondary" type="button" data-wait-details>View Details</button>
           <button class="btn secondary" type="button" data-wait-action="ordinary">Ordinary Invite</button>
           <button class="btn secondary" type="button" data-wait-action="special_invite">Special Invite</button>
-          <button class="btn secondary" type="button" data-wait-action="return">Return to Applications</button>
-          <button class="btn danger" type="button" data-wait-action="remove">Remove from Waiting List</button>
+          <button class="btn secondary" type="button" data-wait-action="return">Move Back to Applications</button>
+          <button class="btn danger" type="button" data-wait-action="remove">Delete Permanently</button>
         </div>
       </article>`).join(''):'<div class="empty-state">No players are currently waiting for the next Transfer.</div>';
     window._waitingRows=data||[];
@@ -1064,8 +1064,8 @@ window.addEventListener('error',ev=>{
     const action=b.dataset.waitAction;
 
     if(action==='remove'){
-      if(!confirm('Remove this player from Waiting List?'))return;
-      const {error}=await sb.rpc('remove_transfer_waiting_entry',{p_waiting_id:wid});
+      if(!confirm('Delete this application permanently?\n\nThis will NOT move it back to Applications. The applicant will need to reapply if they want to be considered again.'))return;
+      const {error}=await sb.rpc('delete_transfer_waiting_application_permanently',{p_waiting_id:wid});
       if(error)return alert(error.message);
       await loadWaitingList();return;
     }
@@ -1503,8 +1503,8 @@ async function refreshTransferCapacitySummary(){
             <button class="btn secondary" data-wait-act="details" type="button">View Details</button>
             <button class="btn secondary" data-wait-act="ordinary" type="button">Ordinary Invite</button>
             <button class="btn secondary" data-wait-act="special_invite" type="button">Special Invite</button>
-            <button class="btn secondary" data-wait-act="return" type="button">Return to Applications</button>
-            <button class="btn danger" data-wait-act="remove" type="button">Remove from Waiting List</button>
+            <button class="btn secondary" data-wait-act="return" type="button">Move Back to Applications</button>
+            <button class="btn danger" data-wait-act="remove" type="button">Delete Permanently</button>
           </div>
         </article>`).join('')
       :'<div class="empty-state">No players are currently waiting for the next Transfer.</div>';
@@ -1531,8 +1531,8 @@ async function refreshTransferCapacitySummary(){
     }
 
     if(action==='remove'){
-      if(!confirm('Remove this player from Waiting List?'))return;
-      const {error}=await sb.rpc('remove_transfer_waiting_entry',{p_waiting_id:wid});
+      if(!confirm('Delete this application permanently?\n\nThis will NOT move it back to Applications. The applicant will need to reapply if they want to be considered again.'))return;
+      const {error}=await sb.rpc('delete_transfer_waiting_application_permanently',{p_waiting_id:wid});
       if(error)return alert(error.message);
       await renderWaiting();
       return;
@@ -1571,6 +1571,33 @@ async function refreshTransferCapacitySummary(){
 
   const q=new URLSearchParams(location.search);
   if(q.get('tab')==='waiting') setTimeout(renderWaiting,180);
+})();
+</script>
+
+
+<script>
+(function(){
+  const fmt=n=>{
+    n=Number(String(n||'').replace(/\D/g,''));
+    if(!n)return '';
+    if(n>=1e9)return (n/1e9).toFixed(2).replace(/\.00$/,'').replace(/(\.\d)0$/,'$1')+'B';
+    if(n>=1e6)return (n/1e6).toFixed(1).replace(/\.0$/,'')+'M';
+    return n.toLocaleString();
+  };
+  const bind=(inputId,previewId)=>{
+    const input=document.getElementById(inputId),out=document.getElementById(previewId);
+    if(!input||!out)return;
+    const draw=()=>{
+      const clean=input.value.replace(/\D/g,'');
+      if(input.value!==clean)input.value=clean;
+      out.innerHTML=clean?`Readable preview: <b>≈ ${fmt(clean)}</b>`:'';
+    };
+    input.addEventListener('input',draw);
+    input.addEventListener('change',draw);
+    setTimeout(draw,100);
+  };
+  bind('te_power_cap','te-power-preview');
+  bind('te_special_power_cap','te-special-power-preview');
 })();
 </script>
 

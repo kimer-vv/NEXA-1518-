@@ -5,17 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>NEXA • Ministry Schedule</title>
 <link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
-document.getElementById('schedule-guide-btn')?.addEventListener('click',()=>{
-  const m=document.getElementById('schedule-guide-modal');m.classList.add('open');m.setAttribute('aria-hidden','false');
-});
-document.querySelectorAll('[data-close-schedule-guide]').forEach(x=>x.addEventListener('click',()=>{
-  const m=document.getElementById('schedule-guide-modal');m.classList.remove('open');m.setAttribute('aria-hidden','true');
-}));
-</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="lang.js"></script>
 <script src="ui-i18n-final.js"></script>
-<script src="help-guides.js" defer></script>
 </head>
 <body>
 <div class="nebula-bg" aria-hidden="true"></div>
@@ -191,6 +183,7 @@ function snap(a,timeOverride=undefined){
     name:apptName(a),
     event_id:a.event_id,
     prep_request_id:a.prep_request_id,
+    player_account_id:a.player_account_id,
     day_type:a.day_type,
     ministry_position:a.ministry_position
   };
@@ -292,9 +285,26 @@ async function moveAppointment(source,targetTime,target){
 
 document.getElementById('schedule-slots').addEventListener('click',async e=>{
   if(!canManageSchedule) return;
+
+  const uns=e.target.closest('[data-unschedule-id]');
+  if(uns){
+    e.stopPropagation();
+    const target=currentDayAppointments.find(a=>String(a.id)===String(uns.dataset.unscheduleId));
+    if(!target)return;
+    const old=snap(target);
+    if(!confirm(`Unschedule ${apptName(target)} from ${hmFor(target)} UTC?\n\nTheir Prep Request will remain available.`))return;
+    const {error}=await sb.from('ministry_appointments').delete().eq('id',target.id);
+    if(error)return alert(error.message);
+    await auditMove('ministry_appointment_unscheduled',{appointment_id:target.id,from:hmFor(target)});
+    await recordScheduleChange('unschedule',[old],[snap(target,null)]);
+    moveSource=null;
+    await renderSlots(); await loadRecentChanges();
+    return;
+  }
+
   const slot=e.target.closest('[data-slot-time]'); if(!slot)return;
   const hm=slot.dataset.slotTime;
-  const target=currentDayAppointments.find(a=>a.id===slot.dataset.appointmentId)||null;
+  const target=currentDayAppointments.find(a=>String(a.id)===String(slot.dataset.appointmentId))||null;
   if(!moveSource){
     if(!target){ alert('Select an occupied appointment first.'); return; }
     moveSource=target; await renderSlots(); return;
@@ -422,6 +432,16 @@ document.getElementById('recent-changes-list')?.addEventListener('click',async e
   const undo=e.target.closest('[data-undo-change]');
   if(undo){if(!confirm('Undo this schedule change?'))return;const {error}=await sb.rpc('undo_ministry_schedule_change',{p_change_id:Number(undo.dataset.undoChange)});if(error)return alert(error.message);await renderSlots();await loadRecentChanges();}
 });
+
+document.getElementById('schedule-guide-btn')?.addEventListener('click',()=>{
+  const m=document.getElementById('schedule-guide-modal');
+  if(m){m.classList.add('open');m.setAttribute('aria-hidden','false');}
+});
+document.querySelectorAll('[data-close-schedule-guide]').forEach(x=>x.addEventListener('click',()=>{
+  const m=document.getElementById('schedule-guide-modal');
+  if(m){m.classList.remove('open');m.setAttribute('aria-hidden','true');}
+}));
+
 </script>
 
 <div id="move-choice-modal" class="modal" aria-hidden="true">

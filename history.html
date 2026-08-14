@@ -14,7 +14,7 @@
 <header class="topbar">
   <div class="shell nav">
     <a class="logo" href="index.html"><span class="star">✦</span><span>NEXA<small>STATE 1518</small></span></a>
-    <a class="back" href="index.html">← Admin</a>
+    <a class="back" href="svs-admin.html">← SvS Control Panel</a>
   </div>
 </header>
 
@@ -39,8 +39,8 @@ let isOwner=false;
 let allEvents=[];
 
 async function ensureAdmin(){
-  const {data}=await sb.rpc('is_admin');
-  if(data!==true){ location.href='index.html'; return false; }
+  const {data}=await sb.rpc('current_nexa_role');
+  if(!['owner','admin','scheduler'].includes(String(data||'').toLowerCase())){ location.href='index.html'; return false; }
   return true;
 }
 
@@ -48,8 +48,8 @@ async function load(){
   if(!(await ensureAdmin())) return;
   await sb.rpc('refresh_auto_ended_events');
 
-  const ownerRes=await sb.rpc('is_owner');
-  isOwner=ownerRes.data===true;
+  const ownerRes=await sb.rpc('current_nexa_role');
+  isOwner=String(ownerRes.data||'').toLowerCase()==='owner';
 
   const {data,error}=await sb.from('svs_events')
     .select('*')
@@ -77,7 +77,8 @@ async function render(){
 
   const cards=[];
   for(const e of rows){
-    const {data:summary}=await sb.rpc('event_summary',{target_event_id:e.id});
+    const {data:archive}=await sb.from('svs_event_archives').select('summary').eq('event_id',e.id).maybeSingle();
+    const summary=archive?.summary||{};
     cards.push(`
       <article class="history-card">
         <div>
@@ -129,7 +130,7 @@ document.getElementById('history-list').addEventListener('click',async e=>{
 
     if(error) return alert(error.message);
     alert('New upcoming event created.');
-    location.href='index.html';
+    location.href='svs-admin.html';
     return;
   }
 
@@ -137,7 +138,7 @@ document.getElementById('history-list').addEventListener('click',async e=>{
     const ok=confirm('Permanently delete this archived event? This cannot be undone and its archived requests/appointments will be deleted too.');
     if(!ok) return;
 
-    const {error}=await sb.rpc('owner_delete_archived_event',{target_event_id:deleteId});
+    const {error}=await sb.rpc('owner_delete_svs_archive_v2',{target_event_id:deleteId});
     if(error) return alert(error.message);
 
     allEvents=allEvents.filter(x=>x.id!==deleteId);

@@ -8,14 +8,13 @@ document.getElementById('transfer-guide-btn')?.addEventListener('click',()=>{
 document.querySelectorAll('[data-close-transfer-guide]').forEach(x=>x.addEventListener('click',()=>{
   const m=document.getElementById('transfer-guide-modal');m.classList.remove('open');m.setAttribute('aria-hidden','true');
 }));
-</script><script src="help-guides.js" defer></script>
-</head>
+</script></head>
 <body><div class="nebula-bg" aria-hidden="true"></div><div class="starfield" aria-hidden="true"></div>
 <header class="topbar"><div class="shell nav"><a class="logo" href="index.html"><span class="star">✦</span><span>NEXA<small>STATE 1518</small></span></a></div></header>
 
 <main class="shell event-page transfer-admin-page">
- <div class="transfer-admin-head"><div><span class="badge">PRIVATE</span><h1>NEXA Transfers</h1><p class="muted">Transfer Control Center <span class="build-tag">v33.4</span></p><div id="transfer-diagnostic" class="diagnostic-chip">Loading transfer data…</div></div><a class="btn secondary" href="index.html?admin=modules&v=292">← Modules</a></div>
- <div class="form-actions" style="margin:10px 0"><button id="transfer-guide-btn" class="btn secondary" type="button">? Transfer Guide</button></div>
+ <div class="transfer-admin-head"><div><span class="badge">PRIVATE</span><h1>NEXA Transfers</h1><p class="muted">Transfer Control Center <span class="build-tag">v33.5</span></p><div id="transfer-diagnostic" class="diagnostic-chip">Loading transfer data…</div></div><a class="btn secondary" href="index.html?admin=modules&v=292">← Modules</a></div>
+ <div class="form-actions" style="margin:10px 0"><button id="transfer-guide-btn" class="btn secondary" type="button">Transfer Guide</button></div>
  <div class="transfer-tabs">
   <button class="transfer-tab active" data-tab="applications">Applications</button>
   <button class="transfer-tab" data-tab="roster">Transfer Roster</button>
@@ -495,7 +494,7 @@ async function loadApplications(){
  const ids=base.map(x=>x.id);
  let flags=[];
  if(ids.length){
-   const res=await sb.from('transfer_applications').select('id,submitted_after_event_end,assigned_alliance_tag,application_id,discord_username').in('id',ids);
+   const res=await sb.from('transfer_applications').select('id,submitted_after_event_end,assigned_alliance_tag,application_id,discord_username,staff_notes').in('id',ids);
    flags=res.data||[];
  }
  const flagMap=Object.fromEntries(flags.map(x=>[x.id,x]));
@@ -505,13 +504,14 @@ async function loadApplications(){
 function renderApps(){
  const q=app_search.value.toLowerCase().trim(),s=status_filter.value;
  const rows=applications.filter(a=>(!s||a.transfer_status===s)&&(!q||[a.application_id,a.in_game_name,a.player_id,a.discord_username,a.current_state,a.current_alliance].join(' ').toLowerCase().includes(q)));
- applications_list.innerHTML=rows.length?rows.map(a=>`<article class="candidate-card" data-open-app="${a.id}"><div class="candidate-main"><div><b>${esc(a.in_game_name)}</b><small>State ${a.current_state} • ${esc(a.current_alliance||'No alliance')} • ID ${esc(a.player_id)}</small></div><span class="priority-pill">${priorityLabel(a.priority_score)} • ${a.priority_score}</span></div><div class="candidate-stats"><span>${esc(a.furnace_level.toUpperCase())}</span><span>${fmtPower(a.current_power)}</span>${a.assigned_alliance_tag?`<span>Assigned: ${esc(a.assigned_alliance_tag)}</span>`:'<span>Interested alliance(s) in application</span>'}</div><div>${dotStatus(a.transfer_status)} ${a.submitted_after_event_end?'<span class="future-interest-badge">Future Interest</span>':''}</div></article>`).join(''):'<div class="empty-state">No matching applications.</div>';
+ applications_list.innerHTML=rows.length?rows.map(a=>`<article class="candidate-card" data-open-app="${a.id}"><div class="candidate-main"><div><b>${esc(a.in_game_name)}</b><small>State ${a.current_state} • ${esc(a.current_alliance||'No alliance')} • ID ${esc(a.player_id)}</small></div><span class="priority-pill">${priorityLabel(a.priority_score)} • ${a.priority_score}</span></div><div class="candidate-stats"><span>${esc(a.furnace_level.toUpperCase())}</span><span>${fmtPower(a.current_power)}</span>${a.assigned_alliance_tag?`<span>Assigned: ${esc(a.assigned_alliance_tag)}</span>`:'<span>Interested alliance(s) in application</span>'}</div>${a.staff_notes?`<div class="scheduler-note"><b>Note:</b> ${esc(a.staff_notes.length>120?a.staff_notes.slice(0,120)+'…':a.staff_notes)}</div>`:''}<div>${dotStatus(a.transfer_status)} ${a.submitted_after_event_end?'<span class="future-interest-badge">Future Interest</span>':''}</div></article>`).join(''):'<div class="empty-state">No matching applications.</div>';
 }
 app_search.oninput=renderApps;status_filter.onchange=renderApps;application_event_filter.onchange=loadApplications;
 applications_list.onclick=e=>{
   const card=e.target.closest('[data-open-app]');
   if(!card)return;
   const appId=card.dataset.openApp;
+  if(!appId || appId==='undefined' || appId==='null'){alert('This application link is missing its internal ID. Refresh Applications and try again.');return;}
   const eventId=application_event_filter.value||'';
   location.href=`transfer-application.html?id=${encodeURIComponent(appId)}&event=${encodeURIComponent(eventId)}`;
 };
@@ -1410,4 +1410,54 @@ async function refreshTransferCapacitySummary(){
     <div class="detail-block"><b>Manual Priority</b><p>Staff override for applicants leadership wants reviewed first regardless of estimated score.</p></div>
   </section>
 </div>
+
+<script>
+/* NEXA v33.5 final Transfer UI bindings */
+(function(){
+  const sbFinal=window.supabase.createClient("https://dfxcxboxrkfmrnsgpyin.supabase.co","sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-");
+  const escFinal=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  function currentEvent(){
+    const q=new URLSearchParams(location.search);
+    return q.get('event') || document.getElementById('application-event-filter')?.value || '';
+  }
+  async function renderFinalAllianceDistribution(){
+    const box=document.getElementById('alliance-distribution');
+    const eventId=currentEvent();
+    if(!box)return;
+    if(!eventId){box.innerHTML='<div class="empty-state">Select a Transfer Event first.</div>';return;}
+    const {data,error}=await sbFinal.from('transfer_applications')
+      .select('id,in_game_name,transfer_status,assigned_alliance_tag,current_power')
+      .eq('transfer_event_id',eventId)
+      .in('transfer_status',['ordinary','special_invite','open_transfer']);
+    if(error){box.innerHTML=`<div class="empty-state">${escFinal(error.message)}</div>`;return;}
+    const groups={};
+    (data||[]).forEach(a=>{const tag=(a.assigned_alliance_tag||'').trim()||'Unassigned';(groups[tag]||=[]).push(a);});
+    const tags=Object.keys(groups).sort((a,b)=>a==='Unassigned'?1:b==='Unassigned'?-1:a.localeCompare(b));
+    box.innerHTML=tags.length?tags.map(tag=>`
+      <article class="history-card"><div><b>${escFinal(tag)} — ${groups[tag].length}</b>
+      <small>${groups[tag].map(x=>`${escFinal(x.in_game_name)} (${x.transfer_status==='special_invite'?'Special':x.transfer_status==='open_transfer'?'Open':'Ordinary'})`).join(' • ')}</small></div></article>
+    `).join(''):'<div class="empty-state">No roster players in this cycle yet.</div>';
+    window.NEXA_FINAL_ALLIANCE_GROUPS=groups;
+  }
+
+  document.addEventListener('click',e=>{
+    const roster=e.target.closest('[data-tab="roster"]');
+    if(roster)setTimeout(renderFinalAllianceDistribution,120);
+  },true);
+
+  document.getElementById('application-event-filter')?.addEventListener('change',()=>setTimeout(renderFinalAllianceDistribution,100));
+  document.getElementById('copy-roster-by-alliance')?.addEventListener('click',async()=>{
+    await renderFinalAllianceDistribution();
+    const g=window.NEXA_FINAL_ALLIANCE_GROUPS||{};
+    const tags=Object.keys(g).sort((a,b)=>a==='Unassigned'?1:b==='Unassigned'?-1:a.localeCompare(b));
+    const text=tags.map(tag=>`${tag} (${g[tag].length})\n${g[tag].map(x=>`• ${x.in_game_name} — ${x.transfer_status==='special_invite'?'Special Invite':x.transfer_status==='open_transfer'?'Open Transfer':'Ordinary'}`).join('\n')}`).join('\n\n');
+    try{await navigator.clipboard.writeText(text);alert('Alliance roster copied ✓');}catch{alert(text||'No assigned alliances yet.');}
+  },true);
+
+  const guide=document.getElementById('transfer-guide-btn'),modal=document.getElementById('transfer-guide-modal');
+  if(guide&&modal)guide.onclick=()=>{modal.classList.add('open');modal.setAttribute('aria-hidden','false');};
+  document.querySelectorAll('[data-close-transfer-guide]').forEach(x=>x.onclick=()=>{modal?.classList.remove('open');modal?.setAttribute('aria-hidden','true');});
+})();
+</script>
+
 </body></html>

@@ -8,7 +8,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="lang.js"></script>
 <script src="ui-i18n-final.js"></script>
-<script src="help-guides.js" defer></script>
 </head>
 <body>
 <div class="nebula-bg" aria-hidden="true"></div>
@@ -100,7 +99,7 @@
     <div id="home-transfer-events" class="glass events"></div>
   </section>
 
-  <div class="shell" style="margin-top:10px"><div class="build-proof">NEXA BUILD v33.4</div></div>
+  <div class="shell" style="margin-top:10px"><div class="build-proof">NEXA BUILD v33.5</div></div>
   <div class="footer">
     Your state. One hub. Everything connected.<br>
     NEXA • State 1518
@@ -985,6 +984,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const { data, error } = await supabaseClient
       .from('svs_events')
       .select('*')
+      .neq('status','ended')
       .order('prep_monday', { ascending:false });
     if (error) {
       document.getElementById('admin-events-message').textContent = error.message;
@@ -1445,7 +1445,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('end-event').addEventListener('click', async()=>{
     const id=document.getElementById('event-id').value;
     if(!id) return;
-    const ok=confirm('End this SvS event? Current requests and appointments will move to History. Nothing will be permanently deleted.');
+    const ok=confirm('End this SvS event? The final schedule and requests will be archived in History, then cleared from the active SvS cycle.');
     if(!ok) return;
     const {error}=await supabaseClient.rpc('end_svs_event',{target_event_id:id});
     if(error) return alert(error.message);

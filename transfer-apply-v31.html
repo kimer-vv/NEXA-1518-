@@ -134,7 +134,11 @@
   <div id="form-message" class="form-message"></div>
   <button class="btn" type="submit">Submit Application</button>
  </form>
- <section id="success-card" class="glass success-card hidden"><span class="badge">RECEIVED</span><h2>Application Received 💜</h2><p>Thank you for your interest in State 1518. Your Application ID:</p><div id="application-id" class="application-id"></div><button id="copy-id" class="btn secondary" type="button">Copy Application ID</button><p class="muted">Save this ID for reference. You can use it to identify your application without providing an email address.</p></section>
+ <section id="success-card" class="glass success-card hidden"><span class="badge">RECEIVED</span><h2>Application Received 💜</h2><p>Thank you for your interest in State 1518. Your Application ID:</p><div id="application-id" class="application-id"></div>
+        <button id="copy-id" class="btn secondary" type="button">Copy Application ID</button>
+        <p><b>Private Edit Token:</b></p><div id="edit-token" class="application-id"></div>
+        <button id="copy-edit-token" class="btn secondary" type="button">Copy Edit Token</button>
+        <p class="muted"><b>Save both the Application ID and Edit Token.</b> You need both if you want to edit your application later. NEXA will not show the private token to staff.</p></section>
 </main>
 
 <script>
@@ -158,6 +162,8 @@ const els={
   success:$('success-card'),
   applicationId:$('application-id'),
   copyId:$('copy-id'),
+  editToken:$('edit-token'),
+  copyEditToken:$('copy-edit-token'),
 
   confirmsEvent:$('confirms_event_structure'),
   completedBy:$('completed_by'),
@@ -493,7 +499,7 @@ els.form.addEventListener('submit',async ev=>{
     confirms_alliance_flexibility:els.confirmsFlex.checked
   };
 
-  const {data,error}=await sb.rpc('submit_transfer_application',{
+  const {data,error}=await sb.rpc('submit_transfer_application_v2',{
     p_event_token:token,
     p_payload:payload
   });
@@ -506,6 +512,7 @@ els.form.addEventListener('submit',async ev=>{
   els.form.classList.add('hidden');
   els.success.classList.remove('hidden');
   els.applicationId.textContent=data.application_id;
+  els.editToken.textContent=data.edit_token||'Unavailable';
 
   if(data.duplicate){
     els.success.insertAdjacentHTML(
@@ -533,6 +540,14 @@ els.copyId.addEventListener('click',async()=>{
   }
 });
 
+
+els.copyEditToken?.addEventListener('click',async()=>{
+  try{
+    await navigator.clipboard.writeText(els.editToken.textContent);
+    els.copyEditToken.textContent='Copied ✓';
+    setTimeout(()=>els.copyEditToken.textContent='Copy Edit Token',1200);
+  }catch{ alert(els.editToken.textContent); }
+});
 renderUtcRanges();
 loadTransferForm();
 </script></body></html>

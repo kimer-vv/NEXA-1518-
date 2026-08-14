@@ -106,6 +106,7 @@
       </label>
 
       <div class="form-actions sticky-review-actions">
+        <button id="edit-applicant-details" class="btn secondary" type="button">Edit Applicant Details</button>
         <button id="save-review" class="btn" type="button">Save Review</button>
         <button id="back-bottom" class="btn secondary" type="button">Back to Applications</button>
       </div>
@@ -114,6 +115,42 @@
     </div>
   </section>
 </main>
+
+<div id="staff-edit-modal" class="modal" aria-hidden="true">
+  <div class="modal-backdrop" data-close-staff-edit></div>
+  <section class="modal-card">
+    <div class="modal-head"><div><small>STAFF EDIT</small><h2>Edit Applicant Details</h2></div><button class="icon-btn" data-close-staff-edit type="button">×</button></div>
+    <p class="muted">Identity fields (Application ID, Player ID, In-Game Name, Current State) are locked.</p>
+    <div class="account-form">
+      <label>Discord / Contact<input id="staff-edit-discord"></label>
+      <label>Current Alliance<input id="staff-edit-alliance"></label>
+      <label>Coordinates<input id="staff-edit-coordinates" placeholder="X:123 Y:456"></label>
+      <label>Total Power<input id="staff-edit-power" inputmode="numeric"></label>
+      <label>Furnace Level<input id="staff-edit-furnace"></label>
+      <label>Labyrinth Score<input id="staff-edit-labyrinth" inputmode="numeric"></label>
+      <label>Transfer Passes<input id="staff-edit-passes"></label>
+      <label>Account Progression
+        <select id="staff-edit-progression">
+          <option value="actively_progressing">Still actively progressing</option>
+          <option value="highly_developed">Highly developed / Near max / Maxed</option>
+          <option value="not_sure">Not sure</option>
+        </select>
+      </label>
+      <fieldset><legend>Advanced Troops</legend>
+        <label class="check"><input type="checkbox" id="staff-t12i"> T12 Exalted Infantry</label>
+        <label class="check"><input type="checkbox" id="staff-t12l"> T12 Exalted Lancers</label>
+        <label class="check"><input type="checkbox" id="staff-t12m"> T12 Exalted Marksmen</label>
+        <label class="check"><input type="checkbox" id="staff-t11i"> T11 Helios Infantry</label>
+        <label class="check"><input type="checkbox" id="staff-t11l"> T11 Helios Lancers</label>
+        <label class="check"><input type="checkbox" id="staff-t11m"> T11 Helios Marksmen</label>
+        <label class="check"><input type="checkbox" id="staff-noadv"> I do not currently have T11 or T12 troops</label>
+      </fieldset>
+      <div class="form-actions"><button id="save-staff-edit" class="btn" type="button">Save Applicant Details</button><button class="btn secondary" data-close-staff-edit type="button">Cancel</button></div>
+      <p id="staff-edit-message" class="muted"></p>
+    </div>
+  </section>
+</div>
+
 <div id="app-swap-modal" class="modal" aria-hidden="true">
   <div class="modal-backdrop" data-close-app-swap></div>
   <section class="modal-card">
@@ -131,6 +168,7 @@ const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
 const qs=new URLSearchParams(location.search);
 const applicationId=qs.get('id');
+let currentApplication=null;
 const eventId=qs.get('event')||'';
 
 const loadingCard=document.getElementById('loading-card');
@@ -229,8 +267,8 @@ function chooseApplicantSwap(label,candidates){
 }
 
 async function loadApplication(){
-  if(!applicationId){
-    loadingCard.innerHTML='<p class="muted">Application ID is missing.</p>';
+  if(!applicationId || applicationId==='undefined' || applicationId==='null'){
+    loadingCard.innerHTML='<p class="muted">Application link is missing its internal ID. Return to Applications and open it again.</p>';
     return;
   }
 
@@ -251,6 +289,7 @@ async function loadApplication(){
     return;
   }
 
+  currentApplication=a;
   const allianceIds=Array.isArray(a.preferred_alliance_ids)?a.preferred_alliance_ids:[];
   let allianceNames=[];
   if(allianceIds.length){
@@ -307,7 +346,9 @@ async function loadApplication(){
     :'Individual applicant';
 
   reviewAdditional.textContent=a.additional_information||'—';
-  reviewCoordinates.textContent=a.coordinates||'—';
+  const coordText=a.coordinates?`State ${a.current_state} • ${a.coordinates}`:'—';
+  reviewCoordinates.innerHTML=a.coordinates?`${esc(coordText)} <button class="btn secondary" id="copy-coordinates" type="button">Copy</button>`:'—';
+  document.getElementById('copy-coordinates')?.addEventListener('click',e=>copyValue(coordText,e.currentTarget));
   const pScore=powerScore(a.current_power),tScore=troopScore(a),totalImpact=pScore+tScore;
   reviewImpact.innerHTML=`<b>${impactLabel(totalImpact)} — ${totalImpact}/60</b><br><small>Power ${pScore}/30 • Troop Progression ${tScore}/30</small>`;
   const {data:allianceRows}=await sb.from('alliances').select('tag').order('tag');
@@ -381,6 +422,45 @@ document.getElementById('save-review').onclick=async()=>{
   reviewStatusBadge.innerHTML=statusBadge(finalStatus);
   reviewMessage.textContent=finalStatus==='next_transfer'?'Saved to Next Transfer Waiting List ✓':'Saved ✓';
 };
+function openStaffEdit(){
+  const a=currentApplication;if(!a)return;
+  staff_edit_discord.value=a.discord_username||'';
+  staff_edit_alliance.value=a.current_alliance||'';
+  staff_edit_coordinates.value=a.coordinates||'';
+  staff_edit_power.value=a.current_power||'';
+  staff_edit_furnace.value=a.furnace_level||'';
+  staff_edit_labyrinth.value=a.labyrinth_score??'';
+  staff_edit_passes.value=a.transfer_passes||'';
+  staff_edit_progression.value=a.account_progression||'actively_progressing';
+  staff_t12i.checked=!!a.t12_infantry;staff_t12l.checked=!!a.t12_lancer;staff_t12m.checked=!!a.t12_marksman;
+  staff_t11i.checked=!!a.t11_infantry;staff_t11l.checked=!!a.t11_lancer;staff_t11m.checked=!!a.t11_marksman;
+  staff_noadv.checked=!!a.no_t11_t12;
+  staff_edit_modal.classList.add('open');staff_edit_modal.setAttribute('aria-hidden','false');
+}
+function closeStaffEdit(){staff_edit_modal.classList.remove('open');staff_edit_modal.setAttribute('aria-hidden','true');}
+document.getElementById('edit-applicant-details').onclick=openStaffEdit;
+document.querySelectorAll('[data-close-staff-edit]').forEach(x=>x.onclick=closeStaffEdit);
+document.getElementById('save-staff-edit').onclick=async()=>{
+  const payload={
+    discord_username:staff_edit_discord.value.trim()||null,
+    current_alliance:staff_edit_alliance.value.trim()||null,
+    coordinates:staff_edit_coordinates.value.trim()||null,
+    current_power:Number(String(staff_edit_power.value).replace(/\D/g,''))||0,
+    furnace_level:staff_edit_furnace.value.trim()||null,
+    labyrinth_score:staff_edit_labyrinth.value?Number(staff_edit_labyrinth.value):null,
+    transfer_passes:staff_edit_passes.value.trim()||null,
+    account_progression:staff_edit_progression.value,
+    t12_infantry:staff_t12i.checked,t12_lancer:staff_t12l.checked,t12_marksman:staff_t12m.checked,
+    t11_infantry:staff_t11i.checked,t11_lancer:staff_t11l.checked,t11_marksman:staff_t11m.checked,
+    no_t11_t12:staff_noadv.checked,
+    updated_at:new Date().toISOString()
+  };
+  const {error}=await sb.from('transfer_applications').update(payload).eq('id',applicationId);
+  if(error){staff_edit_message.textContent=error.message;return;}
+  await sb.rpc('log_transfer_action',{p_event_id:eventId||null,p_application_id:applicationId,p_action:'staff_application_edit',p_details:{fields:['contact','alliance','coordinates','power','furnace','labyrinth','passes','progression','troops']}});
+  closeStaffEdit();await loadApplication();
+};
+
 loadApplication();
 </script>
 </body>

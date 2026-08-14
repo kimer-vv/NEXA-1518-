@@ -1,73 +1,33 @@
 <!doctype html>
-<html>
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>NEXA • Event History</title>
-<link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-</head>
-<body>
-<div class="nebula-bg" aria-hidden="true"></div><div class="starfield" aria-hidden="true"></div>
-<header class="topbar"><div class="shell nav">
-<a class="logo" href="index.html"><span class="star">✦</span><span>NEXA<small>STATE 1518</small></span></a>
-<a class="back" href="index.html">← Admin</a>
-</div></header>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NEXA • SvS Archive</title><link rel="stylesheet" href="style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
+<body><div class="nebula-bg" aria-hidden="true"></div><div class="starfield" aria-hidden="true"></div>
+<header class="topbar"><div class="shell nav"><a class="logo" href="index.html"><span class="star">✦</span><span>NEXA<small>STATE 1518</small></span></a><a class="back" href="history.html">← History</a></div></header>
 <main class="shell event-page">
-  <span class="badge">HISTORY</span>
-  <h1 id="history-title">Archived SvS</h1>
-  <div id="history-meta" class="muted">Loading…</div>
-
-  <section class="glass" style="margin-top:16px">
-    <h3>Event Summary</h3>
-    <div id="archive-summary" class="scheduler-stats"></div>
-  </section>
-
-  <section class="glass" style="margin-top:12px">
-    <h3>Final Schedule</h3>
-    <div id="archive-schedule" class="admin-list"></div>
-  </section>
-
-  <section class="glass" style="margin-top:12px">
-    <h3>Prep Requests</h3>
-    <div id="archive-requests" class="admin-list"></div>
-  </section>
+<span class="badge">HISTORY</span><h1 id="history-title">Archived SvS</h1><div id="history-meta" class="muted">Loading…</div>
+<section class="glass" style="margin-top:16px"><h3>Event Summary</h3><div id="archive-summary" class="scheduler-stats"></div></section>
+<section class="glass" style="margin-top:12px"><h3>Final Schedule</h3><div id="archive-schedule" class="admin-list"></div></section>
+<section class="glass" style="margin-top:12px"><h3>Prep Requests</h3><div id="archive-requests" class="admin-list"></div></section>
 </main>
 <script>
 const sb=window.supabase.createClient("https://dfxcxboxrkfmrnsgpyin.supabase.co","sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-");
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function load(){
-  const {data:isAdmin}=await sb.rpc('is_admin');
-  if(isAdmin!==true){location.href='index.html';return;}
-  const id=localStorage.getItem('nexa_history_event_id');
-  if(!id){location.href='index.html';return;}
-  const {data:event}=await sb.from('svs_events').select('*').eq('id',id).single();
-  document.getElementById('history-title').textContent=`SvS vs ${event.opponent_state}`;
-  document.getElementById('history-meta').textContent=`Prep Monday ${event.prep_monday} • Ended ${event.ended_at?new Date(event.ended_at).toLocaleString():'—'}`;
-
-  const {data:summary}=await sb.rpc('event_summary',{target_event_id:id});
-  document.getElementById('archive-summary').innerHTML=`
-    <div><b>${summary?.prep_requests||0}</b><span>Requests</span></div>
-    <div><b>${summary?.appointments||0}</b><span>Appointments</span></div>
-    <div><b>${summary?.waitlisted||0}</b><span>Waitlisted</span></div>`;
-
-  const {data:apps}=await sb.from('ministry_appointments')
-    .select('*,player_accounts(in_game_name,player_id,custom_alliance_tag,alliances(tag))')
-    .eq('event_id',id).order('appointment_time');
-  document.getElementById('archive-schedule').innerHTML=(apps||[]).length?(apps||[]).map(a=>`
-    <article class="admin-row">
-      <div><b>${new Date(a.appointment_time).toISOString().slice(11,16)} UTC — ${a.player_accounts?.in_game_name||'Player'}</b>
-      <small>${a.day_type} • ${a.ministry_position} • ${a.player_accounts?.alliances?.tag||a.player_accounts?.custom_alliance_tag||''}</small></div>
-    </article>`).join(''):'<div class="empty-state">No appointments.</div>';
-
-  const {data:reqs}=await sb.from('prep_requests')
-    .select('*,player_accounts(in_game_name,player_id,custom_alliance_tag,alliances(tag))')
-    .eq('event_id',id).order('created_at');
-  document.getElementById('archive-requests').innerHTML=(reqs||[]).length?(reqs||[]).map(r=>`
-    <article class="admin-row">
-      <div><b>${r.player_accounts?.in_game_name||'Player'}</b>
-      <small>${r.player_accounts?.alliances?.tag||r.player_accounts?.custom_alliance_tag||''} • ${r.status}</small></div>
-      <small>Construction ${Number(r.estimated_construction_points||0).toLocaleString()} • Research ${Number(r.estimated_research_points||0).toLocaleString()}</small>
-    </article>`).join(''):'<div class="empty-state">No requests.</div>';
+ const {data:role}=await sb.rpc('current_nexa_role');
+ if(!['owner','admin','scheduler'].includes(String(role||'').toLowerCase())){location.href='index.html';return;}
+ const id=localStorage.getItem('nexa_history_event_id');if(!id){location.href='history.html';return;}
+ const {data,eventError}=await sb.from('svs_events').select('*').eq('id',id).maybeSingle();
+ const {data:arc,error}=await sb.from('svs_event_archives').select('*').eq('event_id',id).maybeSingle();
+ if(error||!arc){history_meta.textContent=error?.message||'Archive snapshot not found.';return;}
+ const e=eventError?null:data;
+ history_title.textContent=`SvS vs ${e?.opponent_state||arc.event_data?.opponent_state||'—'}`;
+ history_meta.textContent=`Prep Monday ${e?.prep_monday||arc.event_data?.prep_monday||'—'} • Ended ${new Date(arc.archived_at).toLocaleString()}`;
+ const sum=arc.summary||{};
+ archive_summary.innerHTML=`<div><b>${sum.prep_requests||0}</b><span>Requests</span></div><div><b>${sum.appointments||0}</b><span>Appointments</span></div><div><b>${sum.waitlisted||0}</b><span>Waitlisted</span></div>`;
+ const apps=Array.isArray(arc.appointments)?arc.appointments:[];
+ archive_schedule.innerHTML=apps.length?apps.map(a=>`<article class="admin-row"><div><b>${a.time||'—'} UTC — ${esc(a.in_game_name||'Player')}</b><small>${esc(a.day_type||'')} • ${esc(a.ministry_position||'')} • ${esc(a.alliance||'')}</small></div></article>`).join(''):'<div class="empty-state">No appointments.</div>';
+ const reqs=Array.isArray(arc.prep_requests)?arc.prep_requests:[];
+ archive_requests.innerHTML=reqs.length?reqs.map(r=>`<article class="admin-row"><div><b>${esc(r.in_game_name||'Player')}</b><small>${esc(r.alliance||'')} • ID ${esc(r.player_id||'—')} • ${r.construction_requested?'Construction ':''}${r.research_requested?'Research ':''}${r.training_requested?'Training':''}</small></div></article>`).join(''):'<div class="empty-state">No Prep Requests.</div>';
 }
 load();
-</script>
-</body></html>
+</script></body></html>

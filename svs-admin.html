@@ -1,0 +1,149 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NEXA • SvS Control Panel</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="nebula-bg" aria-hidden="true"></div><div class="starfield" aria-hidden="true"></div>
+<header class="topbar"><div class="shell nav">
+<a class="logo" href="index.html"><span class="star">✦</span><span>NEXA<small>STATE 1518</small></span></a>
+<a class="back" href="event.html">← SvS Event</a>
+</div></header>
+<main class="shell event-page">
+  <span class="badge">OWNER / ADMIN / SCHEDULER</span>
+  <h1>SvS Control Panel</h1>
+  <p class="muted">Create, edit, end, and manage the active SvS cycle.</p>
+
+  <div class="form-actions" style="margin:14px 0">
+    <a class="btn secondary" href="prep-requests.html">Prep Requests</a>
+    <a class="btn secondary" href="schedule.html">Ministry Schedule</a>
+    <a class="btn secondary" href="history.html">History</a>
+    <button id="svs-guide" class="btn secondary" type="button">SvS Guide</button>
+  </div>
+
+  <section class="glass">
+    <div class="panel-head"><div><h2 id="editor-title">Create Event</h2><p id="editor-help" class="muted">No active event selected.</p></div></div>
+    <form id="event-form" class="account-form">
+      <input id="event-id" type="hidden">
+      <label>Opponent State<input id="opponent-state" inputmode="numeric" required></label>
+      <label>Prep Monday — Game Date (UTC)<input id="prep-monday" type="date" required></label>
+      <label>Castle Alliance<select id="castle-alliance"><option value="">Not assigned yet</option></select></label>
+      <label>Presidency Alliance<select id="presidency-alliance"><option value="">Not assigned yet</option></select></label>
+      <label>Event Notes<textarea id="event-description" rows="3"></textarea></label>
+      <div class="toggle-grid">
+        <label class="toggle-line"><input id="prep-form-open" type="checkbox"> Prep Form Open</label>
+        <label class="toggle-line"><input id="battle-form-open" type="checkbox"> Battle Form Open</label>
+        <label class="toggle-line"><input id="schedule-published" type="checkbox"> Schedule Published</label>
+        <label class="toggle-line"><input id="event-is-live" type="checkbox"> Live Event</label>
+      </div>
+      <div class="auto-end-grid">
+        <label>Auto End Date<input id="event-auto-end-date" type="date"></label>
+        <label>Auto End Time (UTC)<input id="event-auto-end-time" type="time"></label>
+      </div>
+      <div class="form-actions">
+        <button id="reset-event" class="btn secondary" type="button">Clear / New Event</button>
+        <button id="end-event" class="btn danger hidden" type="button">End Event</button>
+        <button class="btn" type="submit">Save Event</button>
+      </div>
+      <div id="event-message" class="form-message"></div>
+    </form>
+  </section>
+
+  <section class="glass" style="margin-top:14px">
+    <div class="panel-head"><div><h2>Active / Upcoming Events</h2><p class="muted">Ended events are kept only in History.</p></div></div>
+    <div id="events-list" class="admin-list"></div>
+  </section>
+
+  <section class="glass" style="margin-top:14px">
+    <div class="panel-head"><div><h2>Direct Prep Form Link</h2><p class="muted">Share this link when you want players to go straight to the SvS Prep Form.</p></div></div>
+    <div class="form-actions"><a id="prep-direct-link" class="btn secondary" href="prep-form.html?direct=1" target="_blank">Open Prep Form</a><button id="copy-prep-link" class="btn secondary" type="button">Copy Link</button></div>
+  </section>
+</main>
+
+<div id="guide-modal" class="modal" aria-hidden="true">
+  <div class="modal-backdrop" data-close-guide></div>
+  <section class="modal-card">
+    <div class="modal-head"><div><small>NEXA HELP</small><h2>SvS Guide</h2></div><button class="icon-btn" data-close-guide type="button">×</button></div>
+    <div class="detail-block"><b>Create / Edit</b><p>Create starts a new cycle. Edit changes the active/upcoming event without creating a duplicate.</p></div>
+    <div class="detail-block"><b>End Event</b><p>Creates the History archive, clears active Prep Requests and Ministry appointments, removes the event from the active list, and cannot be made Live again.</p></div>
+    <div class="detail-block"><b>Prep Requests</b><p>Review submitted resources, preferred times and estimated value.</p></div>
+    <div class="detail-block"><b>Ministry Schedule</b><p>Move, swap or unschedule appointments. Change Log and 30-minute Undo are available to staff.</p></div>
+    <div class="detail-block"><b>History</b><p>Ended cycles stay archived. Only Owner can permanently delete an archive.</p></div>
+  </section>
+</div>
+
+<script>
+const sb=window.supabase.createClient("https://dfxcxboxrkfmrnsgpyin.supabase.co","sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-");
+let events=[];
+
+async function guard(){
+  const {data:role}=await sb.rpc('current_nexa_role');
+  if(!['owner','admin','scheduler'].includes(String(role||'').toLowerCase())){location.href='index.html';return false;}
+  return true;
+}
+async function loadAlliances(castle=null,pres=null){
+  const {data}=await sb.from('alliances').select('id,tag').order('tag');
+  const opts='<option value="">Not assigned yet</option>'+(data||[]).map(a=>`<option value="${a.id}">${a.tag}</option>`).join('');
+  castle_alliance.innerHTML=opts;presidency_alliance.innerHTML=opts;
+  castle_alliance.value=castle?String(castle):'';presidency_alliance.value=pres?String(pres):'';
+}
+function resetForm(){
+  event_id.value='';opponent_state.value='';prep_monday.value='';event_description.value='';
+  prep_form_open.checked=false;battle_form_open.checked=false;schedule_published.checked=false;event_is_live.checked=false;
+  event_auto_end_date.value='';event_auto_end_time.value='';end_event.classList.add('hidden');
+  editor_title.textContent='Create Event';editor_help.textContent='Create a new SvS cycle.';
+  loadAlliances();
+}
+async function loadEvents(){
+  const {data,error}=await sb.from('svs_events').select('*').neq('status','ended').order('prep_monday',{ascending:false});
+  if(error){event_message.textContent=error.message;return;}
+  events=data||[];
+  events_list.innerHTML=events.length?events.map(e=>`<article class="admin-row"><div><b>SvS vs ${e.opponent_state}</b><small>${e.prep_monday} • ${(e.status||'upcoming').toUpperCase()}</small></div><div class="account-actions"><button data-edit="${e.id}" type="button">Edit</button></div></article>`).join(''):'<div class="empty-state">No active/upcoming SvS events.</div>';
+}
+async function editEvent(id){
+  const {data:e,error}=await sb.from('svs_events').select('*').eq('id',id).maybeSingle();
+  if(error||!e){event_message.textContent=error?.message||'Event not found.';return;}
+  event_id.value=e.id;opponent_state.value=e.opponent_state||'';prep_monday.value=e.prep_monday||'';event_description.value=e.description||'';
+  prep_form_open.checked=!!e.prep_form_open;battle_form_open.checked=!!e.battle_form_open;schedule_published.checked=!!e.schedule_published;event_is_live.checked=!!e.is_live;
+  if(e.auto_end_at){const iso=new Date(e.auto_end_at).toISOString();event_auto_end_date.value=iso.slice(0,10);event_auto_end_time.value=iso.slice(11,16);}
+  await loadAlliances(e.castle_alliance_id,e.presidency_alliance_id);
+  editor_title.textContent='Edit Event';editor_help.textContent=`Editing SvS vs ${e.opponent_state}`;
+  end_event.classList.toggle('hidden',e.status!=='live');
+  event_form.scrollIntoView({behavior:'smooth',block:'start'});
+}
+events_list.onclick=e=>{const id=e.target.dataset.edit;if(id)editEvent(id);};
+reset_event.onclick=resetForm;
+event_form.onsubmit=async e=>{
+  e.preventDefault();
+  const id=event_id.value;
+  const payload={
+    opponent_state:Number(opponent_state.value),prep_monday:prep_monday.value,
+    castle_alliance_id:castle_alliance.value?Number(castle_alliance.value):null,
+    presidency_alliance_id:presidency_alliance.value?Number(presidency_alliance.value):null,
+    description:event_description.value.trim()||null,prep_form_open:prep_form_open.checked,
+    battle_form_open:battle_form_open.checked,schedule_published:schedule_published.checked,
+    is_live:event_is_live.checked,status:event_is_live.checked?'live':'upcoming',
+    auto_end_at:(event_auto_end_date.value&&event_auto_end_time.value)?new Date(event_auto_end_date.value+'T'+event_auto_end_time.value+':00Z').toISOString():null
+  };
+  let error;
+  if(id)({error}=await sb.from('svs_events').update(payload).eq('id',id));
+  else {const {data:{user}}=await sb.auth.getUser();payload.created_by=user?.id||null;({error}=await sb.from('svs_events').insert(payload));}
+  event_message.textContent=error?error.message:'Saved ✓';
+  if(!error){await loadEvents();resetForm();}
+};
+end_event.onclick=async()=>{
+  const id=event_id.value;if(!id)return;
+  if(!confirm('End this SvS event? NEXA will archive the final schedule/requests and clear the active cycle.'))return;
+  const {error}=await sb.rpc('end_svs_event_v2',{target_event_id:id});
+  if(error){event_message.textContent=error.message;return;}
+  event_message.textContent='Event ended and moved to History ✓';localStorage.removeItem('nexa_live_event_id');await loadEvents();resetForm();
+};
+svs_guide.onclick=()=>{guide_modal.classList.add('open');guide_modal.setAttribute('aria-hidden','false');};
+document.querySelectorAll('[data-close-guide]').forEach(x=>x.onclick=()=>{guide_modal.classList.remove('open');guide_modal.setAttribute('aria-hidden','true');});
+copy_prep_link.onclick=async()=>{const u=new URL('prep-form.html?direct=1',location.href).href;try{await navigator.clipboard.writeText(u);copy_prep_link.textContent='Copied ✓';setTimeout(()=>copy_prep_link.textContent='Copy Link',1200);}catch{alert(u);}};
+(async()=>{if(!(await guard()))return;await loadAlliances();await loadEvents();const q=new URLSearchParams(location.search);if(q.get('edit'))await editEvent(q.get('edit'));if(q.get('create')==='1')resetForm();})();
+</script>
+</body></html>

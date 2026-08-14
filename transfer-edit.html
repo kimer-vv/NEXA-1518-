@@ -1,0 +1,98 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NEXA • Edit Transfer Application</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="nebula-bg" aria-hidden="true"></div><div class="starfield" aria-hidden="true"></div>
+<header class="topbar"><div class="shell nav"><a class="logo" href="index.html"><span class="star">✦</span><span>NEXA<small>STATE 1518 • TRANSFERS</small></span></a></div></header>
+<main class="shell event-page">
+  <a class="back" href="javascript:history.back()">← Back</a>
+  <section class="glass" style="margin-top:16px">
+    <span class="badge">PRIVATE APPLICATION EDIT</span>
+    <h1>Edit My Application</h1>
+    <p class="muted">Enter the Application ID and private Edit Token you received when you submitted.</p>
+    <form id="unlock-form" class="account-form">
+      <label>Application ID<input id="app-id" required autocomplete="off"></label>
+      <label>Edit Token<input id="edit-token-input" required autocomplete="off"></label>
+      <button class="btn" type="submit">Open My Application</button>
+      <p id="unlock-message" class="form-message"></p>
+    </form>
+  </section>
+
+  <section id="edit-card" class="glass hidden" style="margin-top:14px">
+    <h2 id="identity-title">Application</h2>
+    <p class="muted">In-Game Name, Player ID, Current State and Application ID are locked. Contact staff if an identity field is incorrect.</p>
+    <form id="edit-form" class="account-form">
+      <label>Discord / Contact<input id="discord"></label>
+      <label>Current Alliance<input id="alliance"></label>
+      <label>Coordinates<input id="coordinates" placeholder="X:123 Y:456"></label>
+      <label>Total Power<input id="power" inputmode="numeric"><div id="power-preview" class="info-box"></div></label>
+      <label>Furnace Level<input id="furnace"></label>
+      <label>Transfer Passes<input id="passes"></label>
+      <label>Account Progression<select id="progression"><option value="actively_progressing">Still actively progressing</option><option value="highly_developed">Highly developed / Near max / Maxed</option><option value="not_sure">Not sure</option></select></label>
+      <label id="leader-q">Did a State 1518 leader ask you to provide your Labyrinth Score?<select id="leader-request"><option value="no">No</option><option value="yes">Yes</option></select></label>
+      <label id="lab-wrap" class="hidden">Labyrinth Score<input id="labyrinth" inputmode="numeric"></label>
+      <fieldset><legend>Advanced Troops</legend>
+        <label class="check"><input id="t12i" type="checkbox"> T12 Exalted Infantry</label>
+        <label class="check"><input id="t12l" type="checkbox"> T12 Exalted Lancers</label>
+        <label class="check"><input id="t12m" type="checkbox"> T12 Exalted Marksmen</label>
+        <label class="check"><input id="t11i" type="checkbox"> T11 Helios Infantry</label>
+        <label class="check"><input id="t11l" type="checkbox"> T11 Helios Lancers</label>
+        <label class="check"><input id="t11m" type="checkbox"> T11 Helios Marksmen</label>
+        <label class="check"><input id="noadv" type="checkbox"> I do not currently have T11 or T12 troops</label>
+      </fieldset>
+      <button class="btn" type="submit">Save My Changes</button>
+      <p id="edit-message" class="form-message"></p>
+    </form>
+  </section>
+</main>
+<script>
+const sb=window.supabase.createClient("https://dfxcxboxrkfmrnsgpyin.supabase.co","sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-");
+const eventToken=new URLSearchParams(location.search).get('token')||'';
+let appId='',editToken='';
+
+function syncLab(){
+  const auto=progression.value==='highly_developed';
+  leader_q.classList.toggle('hidden',auto);
+  const needed=auto||leader_request.value==='yes';
+  lab_wrap.classList.toggle('hidden',!needed);labyrinth.required=needed;
+}
+progression.onchange=syncLab;leader_request.onchange=syncLab;
+power.oninput=()=>{power.value=power.value.replace(/\D/g,'');const n=Number(power.value||0);power_preview.innerHTML=n?`Readable preview: <b>${n>=1e9?(n/1e9).toFixed(2)+'B':n>=1e6?(n/1e6).toFixed(1)+'M':n}</b>`:'';};
+const advanced=[t12i,t12l,t12m,t11i,t11l,t11m];
+noadv.onchange=()=>{if(noadv.checked)advanced.forEach(x=>{x.checked=false;x.disabled=true});else advanced.forEach(x=>x.disabled=false);};
+advanced.forEach(x=>x.onchange=()=>{if(x.checked){noadv.checked=false;advanced.forEach(y=>y.disabled=false);}});
+
+unlock_form.onsubmit=async e=>{
+  e.preventDefault();unlock_message.textContent='Checking…';
+  appId=document.getElementById('app-id').value.trim();editToken=edit_token_input.value.trim();
+  const {data,error}=await sb.rpc('get_transfer_application_for_edit',{p_event_token:eventToken,p_application_id:appId,p_edit_token:editToken});
+  if(error||!data){unlock_message.textContent=error?.message||'Application not found or token invalid.';return;}
+  identity_title.textContent=`${data.in_game_name} • ${data.application_id}`;
+  discord.value=data.discord_username||'';alliance.value=data.current_alliance||'';coordinates.value=data.coordinates||'';
+  power.value=data.current_power||'';furnace.value=data.furnace_level||'';passes.value=data.transfer_passes||'';
+  progression.value=data.account_progression||'actively_progressing';leader_request.value=data.leader_requested_labyrinth?'yes':'no';labyrinth.value=data.labyrinth_score??'';
+  t12i.checked=!!data.t12_infantry;t12l.checked=!!data.t12_lancer;t12m.checked=!!data.t12_marksman;
+  t11i.checked=!!data.t11_infantry;t11l.checked=!!data.t11_lancer;t11m.checked=!!data.t11_marksman;noadv.checked=!!data.no_t11_t12;
+  if(noadv.checked)advanced.forEach(x=>x.disabled=true);
+  syncLab();power.dispatchEvent(new Event('input'));edit_card.classList.remove('hidden');unlock_form.classList.add('hidden');
+};
+edit_form.onsubmit=async e=>{
+  e.preventDefault();edit_message.textContent='Saving…';
+  if((progression.value==='highly_developed'||leader_request.value==='yes')&&!labyrinth.value){edit_message.textContent='Labyrinth Score is required for this application.';return;}
+  const payload={
+    discord_username:discord.value.trim(),current_alliance:alliance.value.trim(),coordinates:coordinates.value.trim(),
+    current_power:power.value,furnace_level:furnace.value.trim(),transfer_passes:passes.value.trim(),
+    account_progression:progression.value,leader_requested_labyrinth:leader_request.value==='yes',labyrinth_score:labyrinth.value||null,
+    t12_infantry:t12i.checked,t12_lancer:t12l.checked,t12_marksman:t12m.checked,t11_infantry:t11i.checked,t11_lancer:t11l.checked,t11_marksman:t11m.checked,
+    no_t11_t12:noadv.checked
+  };
+  const {error}=await sb.rpc('update_transfer_application_by_token',{p_event_token:eventToken,p_application_id:appId,p_edit_token:editToken,p_payload:payload});
+  edit_message.textContent=error?error.message:'Application updated ✓';
+};
+</script>
+</body></html>

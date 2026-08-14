@@ -26,6 +26,7 @@
     <span class="badge">SVS</span>
     <h1 id="event-title">Loading SvS…</h1>
     <div id="event-meta" class="muted">WOS Game Time (UTC)</div>
+    <a id="manage-svs-inline" class="btn secondary hidden" href="index.html?admin=events" style="margin-top:10px">Manage SvS</a>
     <button id="edit-event-inline" class="btn secondary hidden" type="button" style="margin-top:10px">Edit Event</button>
   </div>
 
@@ -195,6 +196,7 @@ async function loadEvent() {
   }
 
   const prefs = await getProfilePrefs();
+  const {data:isVerified}=await sb.rpc('is_verified_state_member');
   const tz = prefs.tz;
   currentLang = prefs.lang;
   NEXA_I18N.setDir(currentLang);
@@ -221,7 +223,8 @@ async function loadEvent() {
   const battle = document.getElementById('battle-form-btn');
   prep.classList.toggle('disabled', !data.prep_form_open);
   battle.classList.toggle('disabled', !data.battle_form_open);
-  document.getElementById('schedule-btn').classList.toggle('disabled', !data.schedule_published);
+  document.getElementById('schedule-btn').classList.toggle('disabled', !data.schedule_published || isVerified!==true);
+  if(isVerified!==true) document.getElementById('schedule-btn').classList.add('hidden');
 
   document.querySelector('.back').textContent='← '+t('backEvents');
   document.querySelector('.about h3').textContent=t('aboutEvent');
@@ -234,7 +237,7 @@ async function loadEvent() {
   const castleBox = document.getElementById('castle-assignment');
   const presidencyBox = document.getElementById('presidency-assignment');
 
-  if (castleTag || presidencyTag) assignmentBox.classList.remove('hidden');
+  if (isVerified===true && (castleTag || presidencyTag)) assignmentBox.classList.remove('hidden');
   if (castleTag) {
     castleBox.classList.remove('hidden');
     castleBox.querySelector('b').textContent = castleTag;
@@ -253,6 +256,7 @@ async function enableInlineEdit(data){
   if(isAdmin!==true) return;
   const btn=document.getElementById('edit-event-inline');
   btn.classList.remove('hidden');
+  document.getElementById('manage-svs-inline')?.classList.remove('hidden');
   btn.addEventListener('click',()=>{
     document.getElementById('inline-opponent').value=data.opponent_state;
     document.getElementById('inline-monday').value=data.prep_monday;

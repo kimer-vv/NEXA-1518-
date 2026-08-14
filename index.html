@@ -5,7 +5,19 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>NEXA 1518</title>
 <link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+  const adminQuery=new URLSearchParams(location.search).get('admin');
+  if(adminQuery==='events'){
+    setTimeout(async()=>{
+      if(await ensureAdmin()){
+        adminModal.classList.add('open');
+        document.body.classList.add('modal-open');
+        document.querySelector('[data-admin-tab="events"]')?.click();
+      }
+    },350);
+  }
+
+</script>
 <script src="lang.js"></script>
 <script src="ui-i18n-final.js"></script>
 </head>
@@ -1362,10 +1374,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     const {data,error}=await supabaseClient.rpc('list_permission_users',{search_text:search || null});
     if(error){ document.getElementById('permissions-message').textContent=error.message; return; }
     const rows=data||[];
+    let verification={};
+    if(rows.length){
+      const {data:vrows}=await supabaseClient.rpc('get_state_verification',{target_user_ids:rows.map(x=>x.user_id)});
+      (vrows||[]).forEach(v=>verification[v.user_id]=!!v.state_verified);
+    }
+    const {data:myRole}=await supabaseClient.rpc('current_nexa_role');
+    const canEditRoles=myRole==='owner';
+    const {data:canVerify}=await supabaseClient.rpc('can_verify_state_members');
     list.innerHTML=rows.length ? rows.map(u=>{
       const accounts=(u.accounts||[]).map(a=>`${a.in_game_name} • ${a.alliance} • ID ${a.player_id}`).join('<br>');
       const role=u.role||'player';
       const isOwner=role==='owner';
+      const verified=isOwner||verification[u.user_id]===true;
       return `<article class="permission-row">
         <div class="permission-person">
           <b>${u.discord_name || 'Discord User'}</b>
@@ -1374,11 +1395,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div class="permission-role">
           ${isOwner
             ? `<span class="owner-badge">Owner</span>`
-            : `<select data-role-user="${u.user_id}">
+            : canEditRoles ? `<select data-role-user="${u.user_id}">
                 <option value="player" ${role==='player'?'selected':''}>Player</option>
                 <option value="scheduler" ${role==='scheduler'?'selected':''}>Scheduler</option>
                 <option value="admin" ${role==='admin'?'selected':''}>Admin</option>
-              </select>`}
+              </select>` : `<span class="owner-badge">${role}</span>`}
+          ${canVerify && !isOwner ? `<button class="btn secondary" type="button" data-verify-user="${u.user_id}" data-verified="${verified?'1':'0'}">${verified?'Remove Verification':'Verify Member'}</button>` : ''}
+          <small>${verified?'✓ Verified State Member':'External / Unverified'}</small>
         </div>
       </article>`;
     }).join('') : `<div class="empty-state">${tr('noUsers')}</div>`;
@@ -1386,6 +1409,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('permissions-search-form').addEventListener('submit', async e=>{
     e.preventDefault();
+    await loadPermissions(document.getElementById('permissions-search').value.trim());
+  });
+
+  document.getElementById('permissions-list').addEventListener('click',async e=>{
+    const b=e.target.closest('[data-verify-user]'); if(!b)return;
+    const makeVerified=b.dataset.verified!=='1';
+    const {error}=await supabaseClient.rpc('set_state_member_verification',{target_user_id:b.dataset.verifyUser,new_verified:makeVerified});
+    if(error)return alert(error.message);
     await loadPermissions(document.getElementById('permissions-search').value.trim());
   });
 
@@ -1573,6 +1604,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function syncAnnouncement(eventData) {
     const wrap = document.getElementById('global-announcement');
+    const {data:verifiedForAnnouncement}=await supabaseClient.rpc('is_verified_state_member');
+    if(verifiedForAnnouncement!==true){ wrap.classList.add('hidden'); return; }
     const msgEl = document.getElementById('announcement-message');
     const ackBtn = document.getElementById('announcement-ack');
 

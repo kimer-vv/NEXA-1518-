@@ -17,6 +17,15 @@ async function resolveHomeManageToken(){
   }catch(_){}
 }
 resolveHomeManageToken();
+
+async function refreshTransferCapacitySummary(){
+  const box=document.getElementById('transfer-capacity-summary'); if(!box)return;
+  const active=(events||[]).find(x=>x.status==='open')||(events||[])[0]; if(!active){box.textContent='No Transfer event selected.';return;}
+  const {data,error}=await sb.rpc('transfer_capacity_summary',{p_event_id:active.id});
+  if(error||!data?.length){box.textContent=error?.message||'Capacity unavailable';return;}
+  const c=data[0]; box.textContent=`Ordinary ${c.ordinary_used}/${c.ordinary_capacity} • Special ${c.special_used}/${c.special_capacity} • Open ${c.open_used} • Waiting ${c.waiting_used}`;
+}
+
 </script></head>
 <body><div class="nebula-bg" aria-hidden="true"></div><div class="starfield" aria-hidden="true"></div>
 <header class="topbar"><div class="shell nav"><a class="logo" href="index.html"><span class="star">✦</span><span>NEXA<small>STATE 1518</small></span></a></div></header>
@@ -188,7 +197,7 @@ resolveHomeManageToken();
       <select id="te_leadership_status">
         <option value="not_leading">Not Leading</option>
         <option value="leading_no_specials">Leading — No Special Invites</option>
-        <option value="leading_with_specials">Leading — Special Invites Available</option>
+        <option value="leading_with_specials">Leading + Prestige Benefits</option>
       </select>
     </label>
     <label>Special Invites Available
@@ -199,6 +208,11 @@ resolveHomeManageToken();
     </label>
   </div>
   <div id="special-invite-help" class="info-box"></div>
+  <label>Ordinary Invite Capacity
+    <input id="te_ordinary_capacity" type="number" min="0" step="1" value="35">
+    <small>Auto: Not Leading = 35 • Leading = 10 • Prestige can be entered manually until confirmed.</small>
+  </label>
+  <div id="transfer-capacity-summary" class="info-box">Ordinary 0/— • Special 0/— • Open 0 • Waiting 0</div>
 
   <label class="check top-check">
     <input id="te_keep_form_open" type="checkbox">
@@ -359,6 +373,7 @@ const te_power_cap=document.getElementById('te_power_cap');
 const te_special_power_cap=document.getElementById('te_special_power_cap');
 const te_leadership_status=document.getElementById('te_leadership_status');
 const te_special_invites=document.getElementById('te_special_invites');
+const te_ordinary_capacity=document.getElementById('te_ordinary_capacity');
 const te_keep_form_open=document.getElementById('te_keep_form_open');
 const special_invite_help=document.getElementById('special-invite-help');
 const te_start_date=document.getElementById('te_start_date');
@@ -418,6 +433,7 @@ function fillTransferEventForm(x){
   te_power_cap.value=x.power_cap||'';te_special_power_cap.value=x.special_power_cap||'';
   te_leadership_status.value=x.leadership_status||'not_leading';
   te_special_invites.value=String(x.special_invites_available||0);
+  te_ordinary_capacity.value=String(x.ordinary_capacity ?? (x.leadership_status==='not_leading'?35:10));
   te_keep_form_open.checked=!!x.keep_form_open_after_end;
   syncSpecialInviteFields();
   if(x.starts_at){const iso=new Date(x.starts_at).toISOString();te_start_date.value=iso.slice(0,10);te_start_time.value=iso.slice(11,16);}else{te_start_date.value='';te_start_time.value='';}
@@ -427,7 +443,7 @@ function fillTransferEventForm(x){
 }
 
 async function loadEvents(){
- const {data,error}=await sb.from('transfer_events').select('*').order('created_at',{ascending:false}); if(error)return alert(error.message);events=data||[]; if(transfer_diagnostic) transfer_diagnostic.textContent=`v32.2 • ${events.length} transfer event(s) loaded`;
+ const {data,error}=await sb.from('transfer_events').select('*').order('created_at',{ascending:false}); if(error)return alert(error.message);events=data||[]; refreshTransferCapacitySummary(); if(transfer_diagnostic) transfer_diagnostic.textContent=`v32.2 • ${events.length} transfer event(s) loaded`;
  const active=events.filter(e=>e.status!=='archived');
  const opts=active.map(e=>`<option value="${e.id}">${esc(e.title)}</option>`).join('');
  application_event_filter.innerHTML=opts;
@@ -557,7 +573,12 @@ function syncSpecialInviteFields(){
     special_invite_help.innerHTML='Set the Ordinary Power Cap and, when Special Invites are available, the Special Invite Power Cap. Labyrinth Score is requested only when an applicant is above the Special Invite Power Cap.';
   }
 }
-te_leadership_status.addEventListener('change',syncSpecialInviteFields);
+te_leadership_status.addEventListener('change',()=>{
+  syncSpecialInviteFields();
+  if(te_leadership_status.value==='not_leading') te_ordinary_capacity.value='35';
+  else if(te_leadership_status.value==='leading_no_specials') te_ordinary_capacity.value='10';
+  // Prestige stays manually configurable until its official Ordinary capacity is confirmed.
+});
 syncSpecialInviteFields();
 
 transfer_event_form.onsubmit=async ev=>{
@@ -569,6 +590,7 @@ transfer_event_form.onsubmit=async ev=>{
     special_power_cap:te_special_power_cap.value?Number(te_special_power_cap.value.replace(/\D/g,'')):null,
     leadership_status:te_leadership_status.value,
     special_invites_available:Number(te_special_invites.value||0),
+    ordinary_capacity:Number(te_ordinary_capacity.value||0),
     keep_form_open_after_end:te_keep_form_open.checked,
     starts_at:combineUtc(te_start_date.value,te_start_time.value),
     ends_at:combineUtc(te_end_date.value,te_end_time.value),
@@ -579,7 +601,7 @@ transfer_event_form.onsubmit=async ev=>{
   resetEventForm();await loadEvents();
 };
 function resetEventForm(){
-  transfer_event_form.reset();te_id.value='';te_destination.value='1518';te_leadership_status.value='not_leading';te_special_invites.value='0';te_keep_form_open.checked=false;
+  transfer_event_form.reset();te_id.value='';te_destination.value='1518';te_leadership_status.value='not_leading';te_special_invites.value='0';te_ordinary_capacity.value='35';te_keep_form_open.checked=false;
   te_start_time.innerHTML=TRANSFER_UTC_OPTIONS;te_end_time.innerHTML=TRANSFER_UTC_OPTIONS;
   te_cancel.classList.add('hidden');te_end_event.classList.add('hidden');
 }

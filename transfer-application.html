@@ -262,6 +262,34 @@ async function loadApplication(){
 document.getElementById('save-review').onclick=async()=>{
   reviewMessage.textContent='Saving…';
 
+  if(['ordinary','special_invite'].includes(reviewStatus.value) && eventId){
+    const {data:capRows}=await sb.rpc('transfer_capacity_summary',{p_event_id:eventId});
+    const cap=capRows?.[0];
+    const used=reviewStatus.value==='ordinary'?Number(cap?.ordinary_used||0):Number(cap?.special_used||0);
+    const max=reviewStatus.value==='ordinary'?Number(cap?.ordinary_capacity||0):Number(cap?.special_capacity||0);
+    const {data:selfRow}=await sb.from('transfer_applications').select('transfer_status').eq('id',applicationId).single();
+    const already=selfRow?.transfer_status===reviewStatus.value;
+    if(!already && max>=0 && used>=max){
+      const label=reviewStatus.value==='ordinary'?'Ordinary':'Special Invite';
+      const choice=prompt(`${label} is full — ${used}/${max}.\n\nType SWAP to replace someone, WAITING to send this applicant to Waiting List, or CANCEL.`,'SWAP');
+      if(!choice || choice.trim().toUpperCase()==='CANCEL'){reviewMessage.textContent='No changes made.';return;}
+      if(choice.trim().toUpperCase()==='WAITING'){reviewStatus.value='next_transfer';}
+      else if(choice.trim().toUpperCase()==='SWAP'){
+        const {data:candidates,error:ce}=await sb.from('transfer_applications').select('id,in_game_name,player_id').eq('transfer_event_id',eventId).eq('transfer_status',reviewStatus.value).order('in_game_name');
+        if(ce){reviewMessage.textContent=ce.message;return;}
+        const menu=(candidates||[]).map((x,i)=>`${i+1}. ${x.in_game_name} • ID ${x.player_id}`).join('\n');
+        const pick=prompt(`Choose who to replace:\n\n${menu}\n\nEnter the number.`);
+        const idx=Number(pick)-1, displaced=(candidates||[])[idx];
+        if(!displaced){reviewMessage.textContent='Swap cancelled.';return;}
+        if(!confirm(`Replace ${displaced.in_game_name} with ${reviewName.textContent}?`)){reviewMessage.textContent='Swap cancelled.';return;}
+        const toWait=confirm(`Add ${displaced.in_game_name} to the Waiting List for next Transfer?\n\nOK = Waiting List\nCancel = return to unclassified applicant`);
+        const {error:de}=await sb.from('transfer_applications').update({transfer_status:toWait?'next_transfer':'not_reviewed',updated_at:new Date().toISOString()}).eq('id',displaced.id);
+        if(de){reviewMessage.textContent=de.message;return;}
+        if(toWait) await sb.rpc('move_transfer_application_to_waiting_list',{p_application_id:displaced.id});
+      } else {reviewMessage.textContent='Use SWAP, WAITING, or CANCEL.';return;}
+    }
+  }
+
   if(reviewStatus.value==='next_transfer'){
     const {error:waitError}=await sb.rpc('move_transfer_application_to_waiting_list',{
       p_application_id:applicationId

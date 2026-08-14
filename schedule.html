@@ -5,20 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>NEXA • Ministry Schedule</title>
 <link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
-document.getElementById('recent-changes-btn')?.addEventListener('click',async()=>{
-  const panel=document.getElementById('recent-changes-panel'); panel.classList.toggle('hidden');
-  if(!panel.classList.contains('hidden')) await loadRecentChanges();
-});
-document.getElementById('recent-changes-list')?.addEventListener('click',async e=>{
-  const box=document.getElementById('recent-changes-list');
-  const copy=e.target.closest('[data-copy-change]');
-  if(copy){const c=(box._changes||[]).find(x=>String(x.id)===copy.dataset.copyChange);if(c){await navigator.clipboard.writeText(changeCopyText(c));copy.textContent='Copied ✓';setTimeout(()=>copy.textContent='Copy Change',1200);}return;}
-  const undo=e.target.closest('[data-undo-change]');
-  if(undo){if(!confirm('Undo this schedule change?'))return;const {error}=await sb.rpc('undo_ministry_schedule_change',{p_change_id:Number(undo.dataset.undoChange)});if(error)return alert(error.message);await renderSlots();await loadRecentChanges();}
-});
-
-</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="lang.js"></script>
 <script src="ui-i18n-final.js"></script>
 </head>
@@ -382,6 +369,19 @@ loadEvent().catch(err=>{
     blocked.innerHTML='<h2>Schedule could not load</h2><p>Please refresh the page. If this continues, contact NEXA staff.</p><a class="btn" href="event.html">Back to Event</a>';
   }
 });
+
+document.getElementById('recent-changes-btn')?.addEventListener('click',async()=>{
+  const panel=document.getElementById('recent-changes-panel'); panel.classList.toggle('hidden');
+  if(!panel.classList.contains('hidden')) await loadRecentChanges();
+});
+document.getElementById('recent-changes-list')?.addEventListener('click',async e=>{
+  const box=document.getElementById('recent-changes-list');
+  const copy=e.target.closest('[data-copy-change]');
+  if(copy){const c=(box._changes||[]).find(x=>String(x.id)===copy.dataset.copyChange);if(c){await navigator.clipboard.writeText(changeCopyText(c));copy.textContent='Copied ✓';setTimeout(()=>copy.textContent='Copy Change',1200);}return;}
+  const undo=e.target.closest('[data-undo-change]');
+  if(undo){if(!confirm('Undo this schedule change?'))return;const {error}=await sb.rpc('undo_ministry_schedule_change',{p_change_id:Number(undo.dataset.undoChange)});if(error)return alert(error.message);await renderSlots();await loadRecentChanges();}
+});
 </script>
+<div style="position:fixed;right:8px;bottom:6px;font-size:10px;opacity:.35;z-index:9999">NEXA v33.2</div>
 </body>
 </html>

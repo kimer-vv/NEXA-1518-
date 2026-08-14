@@ -1,32 +1,7 @@
 <!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>NEXA • Transfer Control Center</title><link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
-async function resolveHomeManageToken(){
-  const q=new URLSearchParams(location.search);
-  const tok=q.get('token');
-  if(!tok || q.get('event')) return;
-  try{
-    const {data}=await sb.rpc('get_public_transfer_form_data',{p_event_token:tok});
-    if(data?.event?.id){
-      const u=new URL(location.href);
-      u.searchParams.set('event',data.event.id);
-      u.searchParams.delete('token');
-      history.replaceState({},'',u);
-    }
-  }catch(_){}
-}
-resolveHomeManageToken();
-
-async function refreshTransferCapacitySummary(){
-  const box=document.getElementById('transfer-capacity-summary'); if(!box)return;
-  const active=(events||[]).find(x=>x.status==='open')||(events||[])[0]; if(!active){box.textContent='No Transfer event selected.';return;}
-  const {data,error}=await sb.rpc('transfer_capacity_summary',{p_event_id:active.id});
-  if(error||!data?.length){box.textContent=error?.message||'Capacity unavailable';return;}
-  const c=data[0]; box.textContent=`Ordinary ${c.ordinary_used}/${c.ordinary_capacity} • Special ${c.special_used}/${c.special_capacity} • Open ${c.open_used} • Waiting ${c.waiting_used}`;
-}
-
-</script></head>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
 <body><div class="nebula-bg" aria-hidden="true"></div><div class="starfield" aria-hidden="true"></div>
 <header class="topbar"><div class="shell nav"><a class="logo" href="index.html"><span class="star">✦</span><span>NEXA<small>STATE 1518</small></span></a></div></header>
 
@@ -425,7 +400,7 @@ function priorityLabel(score){return score>=90?'CRITICAL':score>=75?'VERY HIGH':
 te_start_time.innerHTML=TRANSFER_UTC_OPTIONS;te_end_time.innerHTML=TRANSFER_UTC_OPTIONS;
 function tab(name){document.querySelectorAll('.transfer-panel').forEach(x=>x.classList.add('hidden'));document.getElementById('tab-'+name).classList.remove('hidden');document.querySelectorAll('.transfer-tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===name));if(name==='history')loadHistory();}
 document.querySelectorAll('.transfer-tab').forEach(b=>b.onclick=()=>tab(b.dataset.tab));
-async function guard(){const {data}=await sb.rpc('can_manage_transfers');if(data!==true){access_message.textContent='Transfer Staff access required.';document.querySelectorAll('.transfer-panel,.transfer-tabs').forEach(x=>x.classList.add('hidden'));return false;}const a=await sb.rpc('is_admin');isAdmin=a.data===true;return true;}
+async function guard(){const {data}=await sb.rpc('can_manage_transfers');if(data!==true){access_message.textContent='Transfer Staff access required.';document.querySelectorAll('.transfer-panel,.transfer-tabs').forEach(x=>x.classList.add('hidden'));return false;}const r=await sb.rpc('current_nexa_role');isAdmin=['owner','admin'].includes(r.data);return true;}
 
 function fillTransferEventForm(x){
   if(!x)return;
@@ -736,7 +711,7 @@ async function loadRecruiting(){
  }
  if(!eventId){recruit_list.innerHTML='<div class="empty-state">Select a Transfer Event.</div>';return;}
  const [{data:all,error:allErr},{data:rowsRpc,error:rowsErr}]=await Promise.all([
-   sb.from('alliances').select('id,tag').eq('is_active',true).order('tag'),
+   sb.from('alliances').select('id,tag').order('tag'),
    sb.rpc('get_transfer_recruiting_for_event',{p_transfer_event_id:eventId})
  ]);
  const rows=(rowsRpc||[]).map(x=>({
@@ -1313,6 +1288,30 @@ window.addEventListener('error',ev=>{
   window.loadTransferRoster=loadTransferRoster;
   window.loadTransferWaitingList=loadWaitingList;
 })();
+
+async function resolveHomeManageToken(){
+  const q=new URLSearchParams(location.search);
+  const tok=q.get('token');
+  if(!tok || q.get('event')) return;
+  try{
+    const {data}=await sb.rpc('get_public_transfer_form_data',{p_event_token:tok});
+    if(data?.event?.id){
+      const u=new URL(location.href);
+      u.searchParams.set('event',data.event.id);
+      u.searchParams.delete('token');
+      history.replaceState({},'',u);
+    }
+  }catch(_){}
+}
+resolveHomeManageToken();
+
+async function refreshTransferCapacitySummary(){
+  const box=document.getElementById('transfer-capacity-summary'); if(!box)return;
+  const active=(events||[]).find(x=>x.status==='open')||(events||[])[0]; if(!active){box.textContent='No Transfer event selected.';return;}
+  const {data,error}=await sb.rpc('transfer_capacity_summary',{p_event_id:active.id});
+  if(error||!data?.length){box.textContent=error?.message||'Capacity unavailable';return;}
+  const c=data[0]; box.textContent=`Ordinary ${c.ordinary_used}/${c.ordinary_capacity} • Special ${c.special_used}/${c.special_capacity} • Open ${c.open_used} • Waiting ${c.waiting_used}`;
+}
 </script>
 
 </body></html>

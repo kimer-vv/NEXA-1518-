@@ -27,6 +27,7 @@
     <h1 id="event-title">Loading SvS…</h1>
     <div id="event-meta" class="muted">WOS Game Time (UTC)</div>
     <a id="manage-svs-inline" class="btn secondary hidden" href="index.html?admin=events" style="margin-top:10px">Manage SvS</a>
+    <a id="create-event-inline" class="btn secondary hidden" href="index.html?admin=events&create=1" style="margin-top:10px">Create Event</a>
     <button id="edit-event-inline" class="btn secondary hidden" type="button" style="margin-top:10px">Edit Event</button>
   </div>
 
@@ -252,11 +253,12 @@ async function loadEvent() {
 }
 
 async function enableInlineEdit(data){
-  const {data:isAdmin}=await sb.rpc('is_admin');
-  if(isAdmin!==true) return;
+  const {data:role}=await sb.rpc('current_nexa_role');
+  if(!['owner','admin','scheduler'].includes(role)) return;
   const btn=document.getElementById('edit-event-inline');
   btn.classList.remove('hidden');
   document.getElementById('manage-svs-inline')?.classList.remove('hidden');
+  document.getElementById('create-event-inline')?.classList.remove('hidden');
   btn.addEventListener('click',()=>{
     document.getElementById('inline-opponent').value=data.opponent_state;
     document.getElementById('inline-monday').value=data.prep_monday;
@@ -319,5 +321,6 @@ async function enableInlineEdit(data){
 syncScheduleButtonAccess();
 loadEvent();
 </script>
+<div style="position:fixed;right:8px;bottom:6px;font-size:10px;opacity:.35;z-index:9999">NEXA v33.2</div>
 </body>
 </html>

@@ -100,7 +100,7 @@
     <div id="home-transfer-events" class="glass events"></div>
   </section>
 
-  <div class="shell" style="margin-top:10px"><div class="build-proof">NEXA BUILD v33.3</div></div>
+  <div class="shell" style="margin-top:10px"><div class="build-proof">NEXA BUILD v33.4</div></div>
   <div class="footer">
     Your state. One hub. Everything connected.<br>
     NEXA • State 1518
@@ -1222,7 +1222,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const view = document.querySelector('.event-actions .btn');
     if (view) view.textContent = tr('viewEvent') + ' →';
     const footer = document.querySelector('.footer');
-    if (footer) footer.innerHTML = tr('motto') + '<br>NEXA • State 1518';
+    if (footer) footer.innerHTML = 'Your state. One hub. Everything connected.<br>NEXA • State 1518';
 
     setText('#language-label','yourLanguage');
     setText('#change-language','change');
@@ -1789,25 +1789,54 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   }catch(_){}
 });
 
-const deepParams=new URLSearchParams(location.search);
-  const adminQuery=deepParams.get('admin');
-  if(adminQuery==='events'){
+
+  async function ensureSvsStaff(){
+    const user=await currentUser();
+    if(!user) return false;
+    const {data:role}=await supabaseClient.rpc('current_nexa_role');
+    return ['owner','admin','scheduler'].includes(String(role||'').toLowerCase());
+  }
+
+  const deepParams=new URLSearchParams(location.search);
+  if(deepParams.get('admin')==='events'){
     setTimeout(async()=>{
-      if(await ensureAdmin()){
-        adminModal.classList.add('open');
-        document.body.classList.add('modal-open');
-        document.querySelector('[data-admin-tab="events"]')?.click();
-        await loadAdminEvents();
-        if(deepParams.get('create')==='1'){
-          resetEventForm();
-          setTimeout(()=>document.getElementById('opponent-state')?.focus(),80);
-        }
-        const editId=deepParams.get('edit');
-        if(editId){
-          setTimeout(()=>document.querySelector(`[data-event-edit="${CSS.escape(editId)}"]`)?.click(),100);
+      if(!(await ensureSvsStaff())) return;
+      adminModal.classList.add('open');
+      document.body.classList.add('modal-open');
+      document.querySelector('[data-admin-tab="events"]')?.click();
+      await loadAdminEvents();
+
+      if(deepParams.get('create')==='1'){
+        resetEventForm();
+        document.getElementById('event-form')?.scrollIntoView({behavior:'smooth',block:'start'});
+        setTimeout(()=>document.getElementById('opponent-state')?.focus(),80);
+      }
+
+      const editId=deepParams.get('edit');
+      if(editId){
+        const {data:row}=await supabaseClient.from('svs_events').select('*').eq('id',editId).maybeSingle();
+        if(row){
+          document.getElementById('event-id').value=row.id;
+          document.getElementById('opponent-state').value=row.opponent_state||'';
+          document.getElementById('prep-monday').value=row.prep_monday||'';
+          document.getElementById('event-description').value=row.description||'';
+          await loadEventAllianceSelectors(row.castle_alliance_id,row.presidency_alliance_id);
+          document.getElementById('prep-form-open').checked=!!row.prep_form_open;
+          document.getElementById('battle-form-open').checked=!!row.battle_form_open;
+          document.getElementById('schedule-published').checked=!!row.schedule_published;
+          document.getElementById('event-is-live').checked=!!row.is_live;
+          if(row.auto_end_at){
+            const iso=new Date(row.auto_end_at).toISOString();
+            document.getElementById('event-auto-end-date').value=iso.slice(0,10);
+            document.getElementById('event-auto-end-time').value=iso.slice(11,16);
+          }
+          document.getElementById('event-lifecycle-actions')?.classList.remove('hidden');
+          document.getElementById('cancel-event-edit')?.classList.remove('hidden');
+          renderEventPreview();
+          document.getElementById('event-form')?.scrollIntoView({behavior:'smooth',block:'start'});
         }
       }
-    },350);
+    },600);
   }
 </script>
 </body>

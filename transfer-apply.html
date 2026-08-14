@@ -11,7 +11,7 @@
 </div>
 
 <main class="shell event-page transfer-form-page">
- <span class="badge transfer-badge">TRANSFER APPLICATION • v32.4</span>
+ <span class="badge transfer-badge">TRANSFER APPLICATION • v33.4</span>
  <h1 id="event-title">State 1518 Transfer Application</h1>
 
  <section class="glass transfer-welcome">
@@ -44,7 +44,7 @@
 
    <label class="check event-understanding">
      <input id="confirms_event_structure" type="checkbox" required>
-     I understand and I am comfortable with State 1518’s coordinated approach to major events.
+     I understand and I am comfortable with State 1518’s coordinated approach to major events. *
    </label>
  </section>
 
@@ -75,7 +75,7 @@
   </div>
   <div class="form-step"><h2>3. Account Strength</h2>
    <label>Current Furnace Level *<select id="furnace_level" required><option value="fc10">FC10</option><option value="fc9">FC9</option><option value="fc8">FC8</option><option value="fc7_or_lower">≤ FC7</option></select></label>
-   <label>Current Total Power *<input id="current_power" inputmode="numeric" required placeholder="Example: 1250000000" pattern="[0-9]*" autocomplete="off"><p class="field-help power-format-help"><b>Enter your FULL power using numbers only — no commas, M, or B.</b><br>Example: <b>24500000</b>, not 24.5M. NEXA needs the complete number so the system can accurately classify your application against the current transfer power caps.</p></label>
+   <label>Current Total Power *<input id="current_power" inputmode="numeric" required placeholder="Example: 1250000000" pattern="[0-9]*" autocomplete="off"><div id="power-preview" class="info-box hidden"></div><p class="field-help power-format-help"><b>Enter your FULL power using numbers only — no commas, M, or B.</b><br>Example: <b>24500000</b>, not 24.5M. NEXA needs the complete number so the system can accurately classify your application against the current transfer power caps.</p></label>
    <fieldset><legend>Advanced Troops</legend>
     <label class="check"><input type="checkbox" id="t12_infantry"> T12 Exalted Infantry</label>
     <label class="check"><input type="checkbox" id="t12_lancer"> T12 Exalted Lancers</label>
@@ -83,8 +83,22 @@
     <label class="check"><input type="checkbox" id="t11_infantry"> T11 Helios Infantry</label>
     <label class="check"><input type="checkbox" id="t11_lancer"> T11 Helios Lancers</label>
     <label class="check"><input type="checkbox" id="t11_marksman"> T11 Helios Marksmen</label>
+    <label class="check"><input type="checkbox" id="no_advanced_troops"> I do not currently have T11 or T12 troops</label>
    </fieldset>
    <div id="threshold-note" class="info-box"></div>
+   <label>Which best describes your account? *
+     <select id="account_progression" required>
+       <option value="actively_progressing">Still actively progressing</option>
+       <option value="highly_developed">Highly developed / Near max / Maxed</option>
+       <option value="not_sure">Not sure</option>
+     </select>
+   </label>
+   <label id="leader_labyrinth_wrap">Did a State 1518 leader ask you to provide your Labyrinth Score?
+     <select id="leader_requested_labyrinth">
+       <option value="no">No</option>
+       <option value="yes">Yes</option>
+     </select>
+   </label>
    <label id="labyrinth_wrap" class="hidden">Labyrinth Score *<input id="labyrinth_score" inputmode="numeric"></label>
    <label>Do you have enough Transfer Passes/Tickets? *<select id="transfer_passes"><option value="yes">Yes</option><option value="no">No</option><option value="not_sure">Not yet, but I will before Transfer</option></select></label>
    <label>If needed to meet the ordinary power cap, would you be willing to reduce troop power? *<select id="willing_to_reduce_power"><option value="yes">Yes</option><option value="review_first">I’d prefer Transfer Staff to review my account first</option><option value="no">No</option></select></label>
@@ -165,6 +179,11 @@ const els={
   t11i:$('t11_infantry'),
   t11l:$('t11_lancer'),
   t11m:$('t11_marksman'),
+  noAdvanced:$('no_advanced_troops'),
+  powerPreview:$('power-preview'),
+  accountProgression:$('account_progression'),
+  leaderLabyrinthWrap:$('leader_labyrinth_wrap'),
+  leaderRequestedLabyrinth:$('leader_requested_labyrinth'),
   thresholdNote:$('threshold-note'),
   labyrinthWrap:$('labyrinth_wrap'),
   labyrinth:$('labyrinth_score'),
@@ -284,23 +303,18 @@ function renderRecruitingAlliances(rows){
 
 function updateLabyrinth(){
   if(!eventData) return;
-
-  const power=cleanNumber(els.power.value);
-  const specialCap=Number(eventData.special_power_cap||0);
-  const requiresLabyrinth=specialCap>0 && power>specialCap;
-
+  const progression=els.accountProgression?.value||'actively_progressing';
+  const autoRequired=progression==='highly_developed';
+  if(els.leaderLabyrinthWrap) els.leaderLabyrinthWrap.classList.toggle('hidden',autoRequired);
+  const leaderRequired=!autoRequired && els.leaderRequestedLabyrinth?.value==='yes';
+  const requiresLabyrinth=autoRequired || leaderRequired;
   els.labyrinthWrap.classList.toggle('hidden',!requiresLabyrinth);
   els.labyrinth.required=requiresLabyrinth;
-
-  if(!specialCap){
-    els.thresholdNote.innerHTML=NEXA_TF('rtSpecialNA').replace('N/A','<b>N/A</b>');
-  }else if(requiresLabyrinth){
-    els.thresholdNote.innerHTML=
-      NEXA_TF('rtSpecialReq',{cap:`<b>${fmtPower(specialCap)}</b>`});
-  }else{
-    els.thresholdNote.innerHTML=
-      NEXA_TF('rtSpecialOpt',{cap:`<b>${fmtPower(specialCap)}</b>`});
-  }
+  if(!requiresLabyrinth) els.labyrinth.value='';
+  const specialCap=Number(eventData.special_power_cap||0);
+  els.thresholdNote.innerHTML=!specialCap
+    ? 'Special Invite Power Cap: <b>N/A</b> for this cycle.'
+    : `Special Invite Power Cap: <b>${fmtPower(specialCap)}</b>. Transfer Staff will review invite type separately from account progression.`;
 }
 
 async function loadTransferForm(){
@@ -374,8 +388,27 @@ els.withGroup.addEventListener('change',()=>{
 els.power.addEventListener('input',()=>{
   const cleaned=els.power.value.replace(/\D/g,'');
   if(els.power.value!==cleaned) els.power.value=cleaned;
-  updateLabyrinth();
+  const n=cleanNumber(cleaned);
+  if(n>0){
+    els.powerPreview.classList.remove('hidden');
+    els.powerPreview.innerHTML=`Readable preview: <b>≈ ${fmtPower(n)} Power</b><br><small>NEXA saves the full number: ${String(n)}</small>`;
+  }else els.powerPreview.classList.add('hidden');
 });
+
+
+const advancedBoxes=[els.t12i,els.t12l,els.t12m,els.t11i,els.t11l,els.t11m];
+els.noAdvanced?.addEventListener('change',()=>{
+  if(els.noAdvanced.checked) advancedBoxes.forEach(x=>{x.checked=false;x.disabled=true;});
+  else advancedBoxes.forEach(x=>x.disabled=false);
+});
+advancedBoxes.forEach(x=>x?.addEventListener('change',()=>{
+  if(x.checked && els.noAdvanced?.checked){
+    els.noAdvanced.checked=false;
+    advancedBoxes.forEach(y=>y.disabled=false);
+  }
+}));
+els.accountProgression?.addEventListener('change',updateLabyrinth);
+els.leaderRequestedLabyrinth?.addEventListener('change',updateLabyrinth);
 
 els.discord.addEventListener('input',()=>{
   if(els.contactWarning)
@@ -384,6 +417,11 @@ els.discord.addEventListener('input',()=>{
 
 els.form.addEventListener('submit',async ev=>{
   ev.preventDefault();
+  if(!els.confirmsEvent.checked){
+    els.formMessage.textContent='You must acknowledge State 1518’s coordinated approach before submitting your application.';
+    els.confirmsEvent.scrollIntoView({behavior:'smooth',block:'center'});
+    return;
+  }
   els.formMessage.textContent=NEXA_TF('rtSubmitting');
 
   const allianceIds=[
@@ -420,6 +458,9 @@ els.form.addEventListener('submit',async ev=>{
     t11_infantry:els.t11i.checked,
     t11_lancer:els.t11l.checked,
     t11_marksman:els.t11m.checked,
+    no_t11_t12:!!els.noAdvanced?.checked,
+    account_progression:els.accountProgression?.value||'actively_progressing',
+    leader_requested_labyrinth:els.leaderRequestedLabyrinth?.value==='yes',
 
     willing_to_reduce_power:els.reducePower.value,
     labyrinth_score:els.labyrinth.value.trim(),
@@ -440,7 +481,10 @@ els.form.addEventListener('submit',async ev=>{
     coordinates:els.coordinates.value.trim(),
     additional_information:[
       els.additional.value.trim(),
-      `Major event structure acknowledged: ${els.confirmsEvent.checked?'Yes':'No'}`
+      `Major event structure acknowledged: ${els.confirmsEvent.checked?'Yes':'No'}`,
+      `Account progression: ${els.accountProgression?.value||'actively_progressing'}`,
+      `Leader requested Labyrinth: ${els.leaderRequestedLabyrinth?.value==='yes'?'Yes':'No'}`,
+      `No current T11/T12 troops: ${els.noAdvanced?.checked?'Yes':'No'}`
     ],
     state_playstyle:els.playstyle.value,
 

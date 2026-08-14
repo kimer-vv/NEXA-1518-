@@ -5,7 +5,14 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>NEXA • Ministry Schedule</title>
 <link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+document.getElementById('schedule-guide-btn')?.addEventListener('click',()=>{
+  const m=document.getElementById('schedule-guide-modal');m.classList.add('open');m.setAttribute('aria-hidden','false');
+});
+document.querySelectorAll('[data-close-schedule-guide]').forEach(x=>x.addEventListener('click',()=>{
+  const m=document.getElementById('schedule-guide-modal');m.classList.remove('open');m.setAttribute('aria-hidden','true');
+}));
+</script>
 <script src="lang.js"></script>
 <script src="ui-i18n-final.js"></script>
 <script src="help-guides.js" defer></script>
@@ -56,7 +63,8 @@
       <p>Appointments every 30 minutes</p><p id="move-help" class="muted" style="font-size:.82rem"></p>
     </div>
     <div class="form-actions" style="margin:12px 0">
-<button id="recent-changes-btn" class="btn secondary" type="button">Recent Changes</button>
+<button id="recent-changes-btn" class="btn secondary" type="button">Recent Changes ⓘ</button>
+<button id="schedule-guide-btn" class="btn secondary hidden" type="button">? Ministry Guide</button>
 </div>
 <section id="recent-changes-panel" class="glass hidden" style="margin-bottom:14px">
 <div class="section-head"><div><small>MINISTRY</small><h3>Recent Schedule Changes</h3></div></div>
@@ -228,6 +236,24 @@ async function loadRecentChanges(){
   box._changes=data||[];
 }
 
+
+function chooseMoveAction({sourceName,targetName,sourceTime,targetTime}){
+  return new Promise(resolve=>{
+    const modal=document.getElementById('move-choice-modal');
+    const finish=value=>{modal.classList.remove('open');modal.setAttribute('aria-hidden','true');resolve(value);};
+    document.getElementById('move-choice-title').textContent=`${targetTime} UTC is assigned to ${targetName}`;
+    document.getElementById('move-choice-description').textContent='Choose what should happen.';
+    document.getElementById('move-choice-preview').innerHTML=
+      `<b>Swap Times</b><br>${sourceName}: ${sourceTime} → ${targetTime} UTC<br>${targetName}: ${targetTime} → ${sourceTime} UTC<br><br>`+
+      `<b>Move & Unschedule</b><br>${sourceName}: ${sourceTime} → ${targetTime} UTC<br>${targetName}: ${targetTime} → Unscheduled`;
+    document.getElementById('choose-swap').onclick=()=>finish('swap');
+    document.getElementById('choose-unschedule').onclick=()=>finish('unschedule');
+    document.getElementById('choose-cancel').onclick=()=>finish('cancel');
+    modal.querySelectorAll('[data-close-move-choice]').forEach(x=>x.onclick=()=>finish('cancel'));
+    modal.classList.add('open');modal.setAttribute('aria-hidden','false');
+  });
+}
+
 async function moveAppointment(source,targetTime,target){
   const sourceTime=hmFor(source);
   if(sourceTime===targetTime){ moveSource=null; await renderSlots(); return; }
@@ -239,31 +265,27 @@ async function moveAppointment(source,targetTime,target){
     await recordScheduleChange('move',[snap(source)],[snap(source,stampForCurrentDay(targetTime))]);
     markUpdated([source.id]);
   }else{
-    const targetName=apptName(target);
-    const choice=prompt(`${targetTime} UTC is assigned to ${targetName}.\n\nType:\nSWAP — move ${targetName} to ${sourceTime} UTC\nREMOVE — move ${apptName(source)} to ${targetTime} UTC and unschedule ${targetName}\nCANCEL — change nothing`,'SWAP');
-    if(!choice) return;
-    const c=choice.trim().toUpperCase();
-    if(c==='CANCEL') return;
-    if(c==='SWAP'){
-      // Temporary timestamp prevents unique-slot conflicts while swapping.
+    const targetName=apptName(target), sourceName=apptName(source);
+    const choice=await chooseMoveAction({sourceName,targetName,sourceTime,targetTime});
+    if(!choice || choice==='cancel') return;
+    if(choice==='swap'){
+      if(!confirm(`Confirm Swap?\n\n${sourceName}: ${sourceTime} → ${targetTime} UTC\n${targetName}: ${targetTime} → ${sourceTime} UTC`)) return;
       const temp=new Date(stampForCurrentDay(sourceTime)); temp.setUTCDate(temp.getUTCDate()+7);
       let r=await sb.from('ministry_appointments').update({appointment_time:temp.toISOString()}).eq('id',source.id); if(r.error){alert(r.error.message);return;}
       r=await sb.from('ministry_appointments').update({appointment_time:stampForCurrentDay(sourceTime)}).eq('id',target.id);
-      if(r.error){ await sb.from('ministry_appointments').update({appointment_time:stampForCurrentDay(sourceTime)}).eq('id',source.id); alert(r.error.message); return; }
-      r=await sb.from('ministry_appointments').update({appointment_time:stampForCurrentDay(targetTime)}).eq('id',source.id);
-      if(r.error){alert(r.error.message);return;}
+      if(r.error){await sb.from('ministry_appointments').update({appointment_time:stampForCurrentDay(sourceTime)}).eq('id',source.id);alert(r.error.message);return;}
+      r=await sb.from('ministry_appointments').update({appointment_time:stampForCurrentDay(targetTime)}).eq('id',source.id);if(r.error){alert(r.error.message);return;}
       await auditMove('ministry_appointments_swapped',{first_id:source.id,first_from:sourceTime,first_to:targetTime,second_id:target.id,second_from:targetTime,second_to:sourceTime});
       await recordScheduleChange('swap',[snap(source),snap(target)],[snap(source,stampForCurrentDay(targetTime)),snap(target,stampForCurrentDay(sourceTime))]);
       markUpdated([source.id,target.id]);
-    }else if(c==='REMOVE'){
-      if(!confirm(`Move ${apptName(source)} to ${targetTime} UTC and remove ${targetName} from the schedule?\n\n${targetName}'s Prep Request will NOT be deleted.`)) return;
-      // Delete appointment only; Prep Request remains intact and can be scheduled again.
-      let r=await sb.from('ministry_appointments').delete().eq('id',target.id); if(r.error){alert(r.error.message);return;}
-      r=await sb.from('ministry_appointments').update({appointment_time:stampForCurrentDay(targetTime)}).eq('id',source.id); if(r.error){alert(r.error.message);return;}
+    }else if(choice==='unschedule'){
+      if(!confirm(`Confirm Change?\n\n${sourceName}: ${sourceTime} → ${targetTime} UTC\n${targetName}: ${targetTime} → Unscheduled\n\nThe Prep Request will remain available.`)) return;
+      let r=await sb.from('ministry_appointments').delete().eq('id',target.id);if(r.error){alert(r.error.message);return;}
+      r=await sb.from('ministry_appointments').update({appointment_time:stampForCurrentDay(targetTime)}).eq('id',source.id);if(r.error){alert(r.error.message);return;}
       await auditMove('ministry_appointment_replaced',{moved_id:source.id,from:sourceTime,to:targetTime,unscheduled_id:target.id});
       await recordScheduleChange('unschedule',[snap(source),snap(target)],[snap(source,stampForCurrentDay(targetTime)),snap(target,null)]);
       markUpdated([source.id]);
-    }else{ alert('Use SWAP, REMOVE, or CANCEL.'); return; }
+    }
   }
   moveSource=null; await renderSlots(); await refreshAllianceOptions();
 }
@@ -342,7 +364,7 @@ async function loadEvent() {
   privateContent.classList.remove('hidden');
 
   const {data:manageAllowed}=await sb.rpc('is_scheduler_or_admin');
-  canManageSchedule=(manageAllowed===true);
+  canManageSchedule=(manageAllowed===true);document.getElementById('schedule-guide-btn')?.classList.toggle('hidden',!canManageSchedule);
 
   await loadTZ();
   await sb.rpc('refresh_auto_ended_events');
@@ -401,5 +423,30 @@ document.getElementById('recent-changes-list')?.addEventListener('click',async e
   if(undo){if(!confirm('Undo this schedule change?'))return;const {error}=await sb.rpc('undo_ministry_schedule_change',{p_change_id:Number(undo.dataset.undoChange)});if(error)return alert(error.message);await renderSlots();await loadRecentChanges();}
 });
 </script>
+
+<div id="move-choice-modal" class="modal" aria-hidden="true">
+  <div class="modal-backdrop" data-close-move-choice></div>
+  <section class="modal-card">
+    <div class="modal-head"><div><small>MINISTRY</small><h2 id="move-choice-title">Choose Action</h2></div><button class="icon-btn" data-close-move-choice type="button">×</button></div>
+    <p id="move-choice-description" class="muted"></p>
+    <div id="move-choice-preview" class="info-box"></div>
+    <div class="form-actions">
+      <button id="choose-swap" class="btn" type="button">Swap Times</button>
+      <button id="choose-unschedule" class="btn secondary" type="button">Move & Unschedule</button>
+      <button id="choose-cancel" class="btn secondary" type="button">Cancel</button>
+    </div>
+  </section>
+</div>
+<div id="schedule-guide-modal" class="modal" aria-hidden="true">
+  <div class="modal-backdrop" data-close-schedule-guide></div>
+  <section class="modal-card">
+    <div class="modal-head"><div><small>NEXA HELP</small><h2>Ministry Schedule Guide</h2></div><button class="icon-btn" data-close-schedule-guide type="button">×</button></div>
+    <div class="detail-block"><b>Move</b><p>Tap a scheduled player, then tap an empty destination.</p></div>
+    <div class="detail-block"><b>Swap</b><p>Tap a scheduled player, then an occupied destination. Choose Swap Times to exchange both appointments.</p></div>
+    <div class="detail-block"><b>Move & Unschedule</b><p>The selected player takes the destination. The displaced player returns to an unscheduled state; the Prep Request remains.</p></div>
+    <div class="detail-block"><b>Undo</b><p>Available for 30 minutes. If the schedule changed again in a conflicting way, NEXA blocks the Undo instead of overwriting the newer appointment.</p></div>
+    <div class="detail-block"><b>Copy</b><p>Copy the current day, full schedule, one alliance, or a single Change Log update.</p></div>
+  </section>
+</div>
 </body>
 </html>

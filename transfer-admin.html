@@ -1,13 +1,21 @@
 <!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>NEXA • Transfer Control Center</title><link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="help-guides.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+document.getElementById('transfer-guide-btn')?.addEventListener('click',()=>{
+  const m=document.getElementById('transfer-guide-modal');m.classList.add('open');m.setAttribute('aria-hidden','false');
+});
+document.querySelectorAll('[data-close-transfer-guide]').forEach(x=>x.addEventListener('click',()=>{
+  const m=document.getElementById('transfer-guide-modal');m.classList.remove('open');m.setAttribute('aria-hidden','true');
+}));
+</script><script src="help-guides.js" defer></script>
 </head>
 <body><div class="nebula-bg" aria-hidden="true"></div><div class="starfield" aria-hidden="true"></div>
 <header class="topbar"><div class="shell nav"><a class="logo" href="index.html"><span class="star">✦</span><span>NEXA<small>STATE 1518</small></span></a></div></header>
 
 <main class="shell event-page transfer-admin-page">
- <div class="transfer-admin-head"><div><span class="badge">PRIVATE</span><h1>NEXA Transfers</h1><p class="muted">Transfer Control Center <span class="build-tag">v33.3</span></p><div id="transfer-diagnostic" class="diagnostic-chip">Loading transfer data…</div></div><a class="btn secondary" href="index.html?admin=modules&v=292">← Modules</a></div>
+ <div class="transfer-admin-head"><div><span class="badge">PRIVATE</span><h1>NEXA Transfers</h1><p class="muted">Transfer Control Center <span class="build-tag">v33.4</span></p><div id="transfer-diagnostic" class="diagnostic-chip">Loading transfer data…</div></div><a class="btn secondary" href="index.html?admin=modules&v=292">← Modules</a></div>
+ <div class="form-actions" style="margin:10px 0"><button id="transfer-guide-btn" class="btn secondary" type="button">? Transfer Guide</button></div>
  <div class="transfer-tabs">
   <button class="transfer-tab active" data-tab="applications">Applications</button>
   <button class="transfer-tab" data-tab="roster">Transfer Roster</button>
@@ -26,7 +34,7 @@
   <div class="form-actions compact-actions">
     <button id="go-transfer-form" class="btn secondary" type="button">View Transfer Form</button>
   </div>
-  <div class="filter-row"><input id="app-search" placeholder="Search IGN, Player ID or State"><select id="status-filter"><option value="">All statuses</option><option value="not_reviewed">Not Reviewed</option><option value="needs_review">Needs Review</option><option value="ordinary">Ordinary</option><option value="special_invite">Special Invite</option><option value="open_transfer">Open Transfer</option><option value="not_approved">Not Approved</option><option value="transferred">Transferred</option><option value="next_transfer">Next Transfer</option></select></div>
+  <div class="filter-row"><input id="app-search" placeholder="Search Application ID, IGN, Player ID, Discord or State"><select id="status-filter"><option value="">All statuses</option><option value="not_reviewed">Not Reviewed</option><option value="needs_review">Needs Review</option><option value="ordinary">Ordinary</option><option value="special_invite">Special Invite</option><option value="open_transfer">Open Transfer</option><option value="not_approved">Not Approved</option><option value="transferred">Transferred</option><option value="next_transfer">Next Transfer</option></select></div>
   <div id="applications-list" class="admin-list"></div>
  </section>
 
@@ -42,6 +50,13 @@
   </div>
 
   <div id="transfer-roster-summary" class="roster-summary"></div>
+  <div class="glass" style="margin-top:12px">
+    <div class="panel-head">
+      <div><h3>Alliance Distribution ⓘ</h3><p class="muted">Final distribution is based on Assigned Alliance.</p></div>
+      <button id="copy-roster-by-alliance" class="btn secondary" type="button">Copy by Alliance</button>
+    </div>
+    <div id="alliance-distribution" class="admin-list"></div>
+  </div>
 
   <div class="glass roster-copy-card">
     <div class="panel-head">
@@ -480,17 +495,17 @@ async function loadApplications(){
  const ids=base.map(x=>x.id);
  let flags=[];
  if(ids.length){
-   const res=await sb.from('transfer_applications').select('id,submitted_after_event_end').in('id',ids);
+   const res=await sb.from('transfer_applications').select('id,submitted_after_event_end,assigned_alliance_tag,application_id,discord_username').in('id',ids);
    flags=res.data||[];
  }
- const flagMap=Object.fromEntries(flags.map(x=>[x.id,x.submitted_after_event_end]));
- applications=base.map(x=>({...x,submitted_after_event_end:!!flagMap[x.id]}));
+ const flagMap=Object.fromEntries(flags.map(x=>[x.id,x]));
+ applications=base.map(x=>({...x,...(flagMap[x.id]||{}),submitted_after_event_end:!!flagMap[x.id]?.submitted_after_event_end}));
  renderApps();
 }
 function renderApps(){
  const q=app_search.value.toLowerCase().trim(),s=status_filter.value;
- const rows=applications.filter(a=>(!s||a.transfer_status===s)&&(!q||[a.in_game_name,a.player_id,a.current_state,a.current_alliance].join(' ').toLowerCase().includes(q)));
- applications_list.innerHTML=rows.length?rows.map(a=>`<article class="candidate-card" data-open-app="${a.id}"><div class="candidate-main"><div><b>${esc(a.in_game_name)}</b><small>State ${a.current_state} • ${esc(a.current_alliance||'No alliance')} • ID ${esc(a.player_id)}</small></div><span class="priority-pill">${priorityLabel(a.priority_score)} • ${a.priority_score}</span></div><div class="candidate-stats"><span>${esc(a.furnace_level.toUpperCase())}</span><span>${fmtPower(a.current_power)}</span>${a.potential_special_invite?'<span>Potential Special</span>':''}</div><div>${dotStatus(a.transfer_status)} ${a.submitted_after_event_end?'<span class="future-interest-badge">Future Interest</span>':''}</div></article>`).join(''):'<div class="empty-state">No matching applications.</div>';
+ const rows=applications.filter(a=>(!s||a.transfer_status===s)&&(!q||[a.application_id,a.in_game_name,a.player_id,a.discord_username,a.current_state,a.current_alliance].join(' ').toLowerCase().includes(q)));
+ applications_list.innerHTML=rows.length?rows.map(a=>`<article class="candidate-card" data-open-app="${a.id}"><div class="candidate-main"><div><b>${esc(a.in_game_name)}</b><small>State ${a.current_state} • ${esc(a.current_alliance||'No alliance')} • ID ${esc(a.player_id)}</small></div><span class="priority-pill">${priorityLabel(a.priority_score)} • ${a.priority_score}</span></div><div class="candidate-stats"><span>${esc(a.furnace_level.toUpperCase())}</span><span>${fmtPower(a.current_power)}</span>${a.assigned_alliance_tag?`<span>Assigned: ${esc(a.assigned_alliance_tag)}</span>`:'<span>Interested alliance(s) in application</span>'}</div><div>${dotStatus(a.transfer_status)} ${a.submitted_after_event_end?'<span class="future-interest-badge">Future Interest</span>':''}</div></article>`).join(''):'<div class="empty-state">No matching applications.</div>';
 }
 app_search.oninput=renderApps;status_filter.onchange=renderApps;application_event_filter.onchange=loadApplications;
 applications_list.onclick=e=>{
@@ -1015,70 +1030,63 @@ window.addEventListener('error',ev=>{
   async function loadWaitingList(){
     const box=document.getElementById('waiting-list-results');
     box.innerHTML='<p class="muted">Loading…</p>';
-
     const {data,error}=await sb.rpc('get_transfer_waiting_list');
-    if(error){
-      box.innerHTML=`<p class="muted">${escRoster(error.message)}</p>`;
-      return;
-    }
-    const eventOptions=(events||[]).filter(e=>e.status!=='archived').map(e=>`<option value="${e.id}">${escRoster(e.title)}</option>`).join('');
-    box.innerHTML=(data||[]).length
-      ?data.map(a=>`
-        <article class="waiting-person-card" data-waiting-id="${a.waiting_id||a.id}">
-          <div>
-            <b>${escRoster(a.in_game_name||'Unknown')}</b>
-            <small>State ${escRoster(a.current_state||'—')} • ${escRoster(a.current_alliance||'—')}</small>
-            <small>${escRoster(a.current_power||'—')} power ${a.manual_priority?'• PRIORITY':''}</small>
-          </div>
-          <div class="waiting-person-meta" style="min-width:190px">
-            <select data-wait-event><option value="">Choose new cycle</option>${eventOptions}</select>
-            <select data-wait-target>
-              <option value="ordinary">Move to Ordinary</option>
-              <option value="special_invite">Move to Special</option>
-              <option value="open_transfer">Move to Open</option>
-              <option value="keep">Keep Waiting</option>
-              <option value="remove">Remove from Waiting List</option>
-            </select>
-            <button class="btn secondary" type="button" data-wait-apply>Apply</button>
-          </div>
-        </article>
-      `).join('')
-      :'<div class="empty-state">No players are currently waiting for the next Transfer.</div>';
+    if(error){box.innerHTML=`<p class="muted">${escRoster(error.message)}</p>`;return;}
+    box.innerHTML=(data||[]).length?(data||[]).map(a=>`
+      <article class="waiting-person-card" data-waiting-id="${a.waiting_id}">
+        <div>
+          <b>${escRoster(a.in_game_name||'Unknown')}</b>
+          <small>Application ${escRoster(a.application_id||'—')} • State ${escRoster(a.current_state||'—')} • ${escRoster(a.current_alliance||'—')}</small>
+          <small>${escRoster(a.current_power||'—')} power</small>
+        </div>
+        <div class="waiting-person-meta">
+          <button class="btn secondary" type="button" data-wait-details>View Details</button>
+          <button class="btn secondary" type="button" data-wait-action="ordinary">Ordinary Invite</button>
+          <button class="btn secondary" type="button" data-wait-action="special_invite">Special Invite</button>
+          <button class="btn secondary" type="button" data-wait-action="return">Return to Applications</button>
+          <button class="btn danger" type="button" data-wait-action="remove">Remove from Waiting List</button>
+        </div>
+      </article>`).join(''):'<div class="empty-state">No players are currently waiting for the next Transfer.</div>';
+    window._waitingRows=data||[];
   }
 
   document.getElementById('waiting-list-results')?.addEventListener('click',async e=>{
-    const btn=e.target.closest('[data-wait-apply]'); if(!btn)return;
-    const card=btn.closest('[data-waiting-id]'); const wid=card.dataset.waitingId;
-    const action=card.querySelector('[data-wait-target]').value;
-    const eventId=card.querySelector('[data-wait-event]').value;
-    if(action==='keep') return;
+    const card=e.target.closest('[data-waiting-id]'); if(!card)return;
+    const wid=card.dataset.waitingId;
+    const row=(window._waitingRows||[]).find(x=>x.waiting_id===wid);
+
+    if(e.target.closest('[data-wait-details]')){
+      const source=row?.source_application_id||'';
+      location.href=`transfer-application.html?id=${encodeURIComponent(source)}&waiting=${encodeURIComponent(wid)}&event=${encodeURIComponent(activeTransferEventId()||'')}`;
+      return;
+    }
+
+    const b=e.target.closest('[data-wait-action]'); if(!b)return;
+    const action=b.dataset.waitAction;
+
     if(action==='remove'){
       if(!confirm('Remove this player from Waiting List?'))return;
       const {error}=await sb.rpc('remove_transfer_waiting_entry',{p_waiting_id:wid});
-      if(error)return alert(error.message); await loadWaitingList(); return;
+      if(error)return alert(error.message);
+      await loadWaitingList();return;
     }
-    if(!eventId) return alert('Choose the new Transfer cycle first.');
 
-    async function promote(){
-      const {error}=await sb.rpc('promote_transfer_waiting_entry',{p_waiting_id:wid,p_event_id:eventId,p_target_status:action});
-      if(!error){await loadWaitingList(); await loadTransferRoster(); return true;}
-      if(!String(error.message||'').includes('CAPACITY_FULL')){alert(error.message);return false;}
-
-      const label=action==='ordinary'?'Ordinary':'Special Invite';
-      const {data:candidates,error:ce}=await sb.from('transfer_applications')
-        .select('id,in_game_name,player_id').eq('transfer_event_id',eventId).eq('transfer_status',action).order('in_game_name');
-      if(ce){alert(ce.message);return false;}
-      const menu=(candidates||[]).map((x,i)=>`${i+1}. ${x.in_game_name} • ID ${x.player_id}`).join('\n');
-      const pick=prompt(`${label} is full.\n\nChoose someone to move to Waiting List:\n\n${menu}\n\nEnter the number.`);
-      const displaced=(candidates||[])[Number(pick)-1]; if(!displaced)return false;
-      if(!confirm(`Move ${displaced.in_game_name} to Waiting List and use the slot for this waiting player?`))return false;
-      const {error:we}=await sb.rpc('move_transfer_application_to_waiting_list',{p_application_id:displaced.id});
-      if(we){alert(we.message);return false;}
-      const {error:pe}=await sb.rpc('promote_transfer_waiting_entry',{p_waiting_id:wid,p_event_id:eventId,p_target_status:action});
-      if(pe){alert(pe.message);return false;}
-      await loadWaitingList(); await loadTransferRoster(); return true;
+    if(action==='return'){
+      const {error}=await sb.rpc('return_transfer_waiting_to_applications',{p_waiting_id:wid});
+      if(error)return alert(error.message);
+      await loadWaitingList();await loadApplications();return;
     }
-    await promote();
+
+    const eventId=activeTransferEventId();
+    if(!eventId)return alert('Select the current Transfer cycle first.');
+    const {error}=await sb.rpc('promote_transfer_waiting_entry',{p_waiting_id:wid,p_event_id:eventId,p_target_status:action});
+    if(error){
+      if(String(error.message||'').includes('NO_SPECIAL_INVITES')) alert('No Special Invites are available for this Transfer cycle.');
+      else if(String(error.message||'').includes('CAPACITY_FULL')) alert('That invite category is full. Use Applications to swap an existing applicant first.');
+      else alert(error.message);
+      return;
+    }
+    await loadWaitingList();await loadTransferRoster();await loadApplications();
   });
 
   document.getElementById('copy-transfer-roster').addEventListener('click',async()=>{
@@ -1110,6 +1118,36 @@ window.addEventListener('error',ev=>{
 
   document.querySelectorAll('[data-tab="roster"]').forEach(b=>b.addEventListener('click',loadTransferRoster));
   document.querySelectorAll('[data-tab="waiting"]').forEach(b=>b.addEventListener('click',loadWaitingList));
+
+  
+  async function renderAllianceDistribution(){
+    const eventId=activeTransferEventId();
+    const box=document.getElementById('alliance-distribution');
+    if(!box||!eventId)return;
+    const {data,error}=await sb.from('transfer_applications')
+      .select('in_game_name,transfer_status,assigned_alliance_tag')
+      .eq('transfer_event_id',eventId)
+      .in('transfer_status',['ordinary','special_invite','open_transfer']);
+    if(error){box.innerHTML=`<div class="empty-state">${escRoster(error.message)}</div>`;return;}
+    const groups={};
+    (data||[]).forEach(a=>{const tag=a.assigned_alliance_tag||'Unassigned';(groups[tag]||=[]).push(a);});
+    const tags=Object.keys(groups).sort((a,b)=>a==='Unassigned'?1:b==='Unassigned'?-1:a.localeCompare(b));
+    box.innerHTML=tags.length?tags.map(tag=>`<article class="history-card"><div><b>${escRoster(tag)} — ${groups[tag].length}</b><small>${groups[tag].map(x=>`${x.in_game_name} (${rosterLabels[x.transfer_status]||x.transfer_status})`).join(' • ')}</small></div></article>`).join(''):'<div class="empty-state">No assigned alliances yet.</div>';
+    window._transferRosterByAlliance=groups;
+  }
+
+  const originalLoadTransferRoster=loadTransferRoster;
+  loadTransferRoster=async function(){
+    await originalLoadTransferRoster();
+    await renderAllianceDistribution();
+  };
+
+  document.getElementById('copy-roster-by-alliance')?.addEventListener('click',async()=>{
+    const groups=window._transferRosterByAlliance||{};
+    const tags=Object.keys(groups).sort((a,b)=>a==='Unassigned'?1:b==='Unassigned'?-1:a.localeCompare(b));
+    const text=tags.map(tag=>`${tag} (${groups[tag].length})\n${groups[tag].map(x=>`• ${x.in_game_name} — ${rosterLabels[x.transfer_status]||x.transfer_status}`).join('\n')}`).join('\n\n');
+    try{await navigator.clipboard.writeText(text);alert('Alliance roster copied ✓');}catch{alert(text);}
+  });
 
   window.loadTransferRoster=loadTransferRoster;
   window.loadTransferWaitingList=loadWaitingList;
@@ -1358,4 +1396,18 @@ async function refreshTransferCapacitySummary(){
 }
 </script>
 
+
+<div id="transfer-guide-modal" class="modal" aria-hidden="true">
+  <div class="modal-backdrop" data-close-transfer-guide></div>
+  <section class="modal-card">
+    <div class="modal-head"><div><small>NEXA HELP</small><h2>Transfer Guide</h2></div><button class="icon-btn" data-close-transfer-guide type="button">×</button></div>
+    <div class="detail-block"><b>Applications</b><p>Review the application, Interested Alliance(s), Transfer Impact, contact info and final Assigned Alliance. Application ID stays with the submission.</p></div>
+    <div class="detail-block"><b>Ordinary / Special</b><p>These use limited invite capacity. If a category is full, choose an existing applicant to swap out. The displaced applicant returns to Applications / Not Reviewed.</p></div>
+    <div class="detail-block"><b>Open Transfer</b><p>Tracks a player who plans to try Open Transfer. It is not a guaranteed invite and does not consume an Ordinary/Special slot.</p></div>
+    <div class="detail-block"><b>Waiting List</b><p>Persists between cycles. Give an Ordinary Invite, give a Special Invite, return the player to Applications, or remove the Waiting List entry.</p></div>
+    <div class="detail-block"><b>Recruiting Alliances</b><p>Only alliances marked Recruiting appear on the public form. Turning recruiting off removes the alliance from the form without deleting it from NEXA.</p></div>
+    <div class="detail-block"><b>Alliance Distribution</b><p>Uses Assigned Alliance, not only the applicant’s preference. Copy by Alliance creates a Discord-ready breakdown.</p></div>
+    <div class="detail-block"><b>Manual Priority</b><p>Staff override for applicants leadership wants reviewed first regardless of estimated score.</p></div>
+  </section>
+</div>
 </body></html>

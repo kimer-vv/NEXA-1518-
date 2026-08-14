@@ -51,8 +51,12 @@
     </div>
 
     <div class="review-section">
-      <small>PREFERRED ALLIANCES</small>
+      <small>INTERESTED IN</small>
       <p id="review-alliances"></p>
+    </div>
+    <div class="review-section">
+      <small>TRANSFER IMPACT</small>
+      <p id="review-impact"></p>
     </div>
 
     <div class="review-section">
@@ -89,6 +93,9 @@
         </select>
       </label>
 
+      <label>Assigned Alliance
+        <select id="review-assigned-alliance"><option value="">Not assigned yet</option></select>
+      </label>
       <label>Staff Notes
         <textarea id="review-notes" rows="7" placeholder="Private Transfer Staff notes…"></textarea>
       </label>
@@ -107,6 +114,15 @@
     </div>
   </section>
 </main>
+<div id="app-swap-modal" class="modal" aria-hidden="true">
+  <div class="modal-backdrop" data-close-app-swap></div>
+  <section class="modal-card">
+    <div class="modal-head"><div><small>TRANSFER CAPACITY</small><h2 id="app-swap-title">Swap Applicant</h2></div><button class="icon-btn" data-close-app-swap type="button">×</button></div>
+    <p id="app-swap-text" class="muted"></p>
+    <div id="app-swap-list" class="admin-list"></div>
+    <div class="form-actions"><button id="app-swap-cancel" class="btn secondary" type="button">Cancel</button></div>
+  </section>
+</div>
 
 <script>
 const SUPABASE_URL="https://dfxcxboxrkfmrnsgpyin.supabase.co";
@@ -130,6 +146,8 @@ const reviewTimes=document.getElementById('review-times');
 const reviewGroup=document.getElementById('review-group');
 const reviewAdditional=document.getElementById('review-additional');
 const reviewCoordinates=document.getElementById('review-coordinates');
+const reviewImpact=document.getElementById('review-impact');
+const reviewAssignedAlliance=document.getElementById('review-assigned-alliance');
 const reviewStatus=document.getElementById('review-status');
 const reviewNotes=document.getElementById('review-notes');
 const reviewPriority=document.getElementById('review-priority');
@@ -169,6 +187,47 @@ function backToApplications(){
 document.getElementById('back-applications').onclick=backToApplications;
 document.getElementById('back-bottom').onclick=backToApplications;
 
+
+function powerScore(n){
+  n=Number(n||0);
+  if(n<150e6) return 5;
+  if(n<250e6) return 8;
+  if(n<400e6) return 12;
+  if(n<600e6) return 16;
+  if(n<800e6) return 20;
+  if(n<1e9) return 24;
+  return 30;
+}
+function troopScore(a){
+  const branch=(t12,t11)=>t12?10:(t11?5:2);
+  return branch(a.t12_infantry,a.t11_infantry)+branch(a.t12_lancer,a.t11_lancer)+branch(a.t12_marksman,a.t11_marksman);
+}
+function impactLabel(total){
+  if(total<=15)return 'Low';
+  if(total<=25)return 'Moderate';
+  if(total<=35)return 'High';
+  if(total<=45)return 'Very High';
+  return 'Critical';
+}
+async function copyValue(value,button){
+  try{await navigator.clipboard.writeText(String(value||''));button.textContent='Copied ✓';setTimeout(()=>button.textContent='Copy',1000);}
+  catch(_){alert(String(value||''));}
+}
+function chooseApplicantSwap(label,candidates){
+  return new Promise(resolve=>{
+    const modal=document.getElementById('app-swap-modal');
+    document.getElementById('app-swap-title').textContent=`${label} is full`;
+    document.getElementById('app-swap-text').textContent='Choose the applicant whose slot should be replaced. The displaced applicant returns to Applications without a final category.';
+    const list=document.getElementById('app-swap-list');
+    list.innerHTML=(candidates||[]).map(x=>`<button class="btn secondary" type="button" data-swap-candidate="${x.id}">${esc(x.in_game_name)} • ID ${esc(x.player_id)}</button>`).join('');
+    const finish=v=>{modal.classList.remove('open');modal.setAttribute('aria-hidden','true');resolve(v);};
+    list.onclick=e=>{const b=e.target.closest('[data-swap-candidate]');if(b)finish((candidates||[]).find(x=>x.id===b.dataset.swapCandidate)||null);};
+    document.getElementById('app-swap-cancel').onclick=()=>finish(null);
+    modal.querySelectorAll('[data-close-app-swap]').forEach(x=>x.onclick=()=>finish(null));
+    modal.classList.add('open');modal.setAttribute('aria-hidden','false');
+  });
+}
+
 async function loadApplication(){
   if(!applicationId){
     loadingCard.innerHTML='<p class="muted">Application ID is missing.</p>';
@@ -182,14 +241,13 @@ async function loadApplication(){
     return;
   }
 
-  const {data:a,error}=await sb
-    .from('transfer_applications')
-    .select('*')
-    .eq('id',applicationId)
-    .single();
-
-  if(error){
-    loadingCard.innerHTML=`<p class="muted">${esc(error.message)}</p>`;
+  let {data:a,error}=await sb.from('transfer_applications').select('*').eq('id',applicationId).maybeSingle();
+  if((error || !a) && qs.get('waiting')){
+    const {data:w,error:we}=await sb.rpc('get_transfer_waiting_entry',{p_waiting_id:qs.get('waiting')});
+    if(!we && w?.application){a=w.application;a.__waiting_id=w.waiting_id;}else error=we||error;
+  }
+  if(error || !a){
+    loadingCard.innerHTML=`<p class="muted">${esc(error?.message||'Application not found.')}</p>`;
     return;
   }
 
@@ -205,15 +263,15 @@ async function loadApplication(){
   reviewStatusBadge.innerHTML=statusBadge(a.transfer_status);
 
   reviewGrid.innerHTML=`
-    <div><small>APPLICATION ID</small><b>${esc(a.application_id||'—')}</b></div>
-    <div><small>PLAYER ID</small><b>${esc(a.player_id||'—')}</b></div>
+    <div><small>APPLICATION ID</small><b>${esc(a.application_id||'—')}</b><button class="btn secondary" data-copy-value="${esc(a.application_id||'')}">Copy</button></div>
+    <div><small>PLAYER ID</small><b>${esc(a.player_id||'—')}</b><button class="btn secondary" data-copy-value="${esc(a.player_id||'')}">Copy</button></div>
     <div><small>STATE</small><b>${esc(a.current_state??'—')}</b></div>
     <div><small>ALLIANCE</small><b>${esc(a.current_alliance||'—')}</b></div>
     <div><small>FURNACE</small><b>${esc((a.furnace_level||'—').toUpperCase())}</b></div>
     <div><small>POWER</small><b>${fmtPower(a.current_power)}</b></div>
     <div><small>LABYRINTH</small><b>${esc(a.labyrinth_score??'—')}</b></div>
     <div><small>PASSES</small><b>${esc(a.transfer_passes||'—')}</b></div>
-    <div><small>DISCORD</small><b>${esc(a.discord_username||'Not provided')}</b></div>
+    <div><small>DISCORD</small><b>${esc(a.discord_username||'Not provided')}</b>${a.discord_username?`<button class="btn secondary" data-copy-value="${esc(a.discord_username)}">Copy</button>`:''}</div>
     <div><small>VOICE CHAT</small><b>${esc(a.discord_vc||'—')}</b></div>
     <div><small>POWER REDUCTION</small><b>${esc(a.willing_to_reduce_power||'—')}</b></div>
     <div><small>FUTURE INTEREST</small><b>${a.submitted_after_event_end?'Yes':'No'}</b></div>
@@ -250,6 +308,17 @@ async function loadApplication(){
 
   reviewAdditional.textContent=a.additional_information||'—';
   reviewCoordinates.textContent=a.coordinates||'—';
+  const pScore=powerScore(a.current_power),tScore=troopScore(a),totalImpact=pScore+tScore;
+  reviewImpact.innerHTML=`<b>${impactLabel(totalImpact)} — ${totalImpact}/60</b><br><small>Power ${pScore}/30 • Troop Progression ${tScore}/30</small>`;
+  const {data:allianceRows}=await sb.from('alliances').select('tag').order('tag');
+  reviewAssignedAlliance.innerHTML='<option value="">Not assigned yet</option>'+(allianceRows||[]).map(x=>`<option value="${esc(x.tag)}">${esc(x.tag)}</option>`).join('');
+  reviewAssignedAlliance.value=a.assigned_alliance_tag||'';
+  const extras=Array.isArray(a.additional_information)?a.additional_information.join(' • '):String(a.additional_information||'');
+  const progression=a.account_progression || (extras.match(/Account progression:\s*([^",\]]+)/i)?.[1]||'').trim();
+  const noAdv=(a.no_t11_t12===true)||/No current T11\/T12 troops:\s*Yes/i.test(extras);
+  if(noAdv && !troops.length) reviewTroops.textContent='I do not currently have T11 or T12 troops.';
+  if(progression) reviewAdditional.textContent=(reviewAdditional.textContent==='—'?'':reviewAdditional.textContent+' • ')+`Account progression: ${progression.replaceAll('_',' ')}`;
+  reviewGrid.querySelectorAll('[data-copy-value]').forEach(b=>b.onclick=()=>copyValue(b.dataset.copyValue,b));
 
   reviewStatus.value=a.transfer_status||'not_reviewed';
   reviewNotes.value=a.staff_notes||'';
@@ -261,66 +330,57 @@ async function loadApplication(){
 
 document.getElementById('save-review').onclick=async()=>{
   reviewMessage.textContent='Saving…';
+  const finalStatus=reviewStatus.value;
 
-  if(['ordinary','special_invite'].includes(reviewStatus.value) && eventId){
-    const {data:capRows}=await sb.rpc('transfer_capacity_summary',{p_event_id:eventId});
-    const cap=capRows?.[0];
-    const used=reviewStatus.value==='ordinary'?Number(cap?.ordinary_used||0):Number(cap?.special_used||0);
-    const max=reviewStatus.value==='ordinary'?Number(cap?.ordinary_capacity||0):Number(cap?.special_capacity||0);
-    const {data:selfRow}=await sb.from('transfer_applications').select('transfer_status').eq('id',applicationId).single();
-    const already=selfRow?.transfer_status===reviewStatus.value;
-    if(!already && max>=0 && used>=max){
-      const label=reviewStatus.value==='ordinary'?'Ordinary':'Special Invite';
-      const choice=prompt(`${label} is full — ${used}/${max}.\n\nType SWAP to replace someone, WAITING to send this applicant to Waiting List, or CANCEL.`,'SWAP');
-      if(!choice || choice.trim().toUpperCase()==='CANCEL'){reviewMessage.textContent='No changes made.';return;}
-      if(choice.trim().toUpperCase()==='WAITING'){reviewStatus.value='next_transfer';}
-      else if(choice.trim().toUpperCase()==='SWAP'){
-        const {data:candidates,error:ce}=await sb.from('transfer_applications').select('id,in_game_name,player_id').eq('transfer_event_id',eventId).eq('transfer_status',reviewStatus.value).order('in_game_name');
-        if(ce){reviewMessage.textContent=ce.message;return;}
-        const menu=(candidates||[]).map((x,i)=>`${i+1}. ${x.in_game_name} • ID ${x.player_id}`).join('\n');
-        const pick=prompt(`Choose who to replace:\n\n${menu}\n\nEnter the number.`);
-        const idx=Number(pick)-1, displaced=(candidates||[])[idx];
-        if(!displaced){reviewMessage.textContent='Swap cancelled.';return;}
-        if(!confirm(`Replace ${displaced.in_game_name} with ${reviewName.textContent}?`)){reviewMessage.textContent='Swap cancelled.';return;}
-        const toWait=confirm(`Add ${displaced.in_game_name} to the Waiting List for next Transfer?\n\nOK = Waiting List\nCancel = return to unclassified applicant`);
-        const {error:de}=await sb.from('transfer_applications').update({transfer_status:toWait?'next_transfer':'not_reviewed',updated_at:new Date().toISOString()}).eq('id',displaced.id);
-        if(de){reviewMessage.textContent=de.message;return;}
-        if(toWait) await sb.rpc('move_transfer_application_to_waiting_list',{p_application_id:displaced.id});
-      } else {reviewMessage.textContent='Use SWAP, WAITING, or CANCEL.';return;}
-    }
-  }
+  if(['ordinary','special_invite'].includes(finalStatus) && eventId){
+    const {data:capRows,error:capErr}=await sb.rpc('transfer_capacity_summary',{p_event_id:eventId});
+    if(capErr){reviewMessage.textContent=capErr.message;return;}
+    const cap=capRows?.[0]||{};
+    const used=finalStatus==='ordinary'?Number(cap.ordinary_used||0):Number(cap.special_used||0);
+    const max=finalStatus==='ordinary'?Number(cap.ordinary_capacity||0):Number(cap.special_capacity||0);
+    const label=finalStatus==='ordinary'?'Ordinary':'Special Invite';
 
-  if(reviewStatus.value==='next_transfer'){
-    const {error:waitError}=await sb.rpc('move_transfer_application_to_waiting_list',{
-      p_application_id:applicationId
-    });
-    if(waitError){
-      reviewMessage.textContent=waitError.message;
+    if(finalStatus==='special_invite' && max===0){
+      reviewMessage.textContent='No Special Invites are available for this Transfer cycle.';
       return;
     }
+
+    const {data:selfRow}=await sb.from('transfer_applications').select('transfer_status').eq('id',applicationId).maybeSingle();
+    const already=selfRow?.transfer_status===finalStatus;
+
+    if(!already && used>=max){
+      const {data:candidates,error:ce}=await sb.from('transfer_applications').select('id,in_game_name,player_id')
+        .eq('transfer_event_id',eventId).eq('transfer_status',finalStatus).order('in_game_name');
+      if(ce){reviewMessage.textContent=ce.message;return;}
+      const displaced=await chooseApplicantSwap(label,candidates||[]);
+      if(!displaced){reviewMessage.textContent='No changes made.';return;}
+      if(!confirm(`Confirm swap?\n\n${reviewName.textContent} → ${label}\n${displaced.in_game_name} → Applications / Not Reviewed`)){
+        reviewMessage.textContent='No changes made.';return;
+      }
+      const {error:de}=await sb.from('transfer_applications').update({transfer_status:'not_reviewed',updated_at:new Date().toISOString()}).eq('id',displaced.id);
+      if(de){reviewMessage.textContent=de.message;return;}
+      await sb.rpc('log_transfer_action',{p_event_id:eventId,p_application_id:displaced.id,p_action:'capacity_swap_out',p_details:{replacement:applicationId,category:finalStatus}});
+    }
   }
 
-  const {error}=await sb
-    .from('transfer_applications')
-    .update({
-      transfer_status:reviewStatus.value,
-      staff_notes:reviewNotes.value,
-      manual_priority:reviewPriority.checked,
-      updated_at:new Date().toISOString()
-    })
-    .eq('id',applicationId);
-
-  if(error){
-    reviewMessage.textContent=error.message;
-    return;
+  if(finalStatus==='next_transfer'){
+    const {error:waitError}=await sb.rpc('move_transfer_application_to_waiting_list',{p_application_id:applicationId});
+    if(waitError){reviewMessage.textContent=waitError.message;return;}
   }
 
-  reviewStatusBadge.innerHTML=statusBadge(reviewStatus.value);
-  reviewMessage.textContent=reviewStatus.value==='next_transfer'
-    ? 'Saved to Next Transfer Waiting List ✓'
-    : 'Saved ✓';
+  const {error}=await sb.from('transfer_applications').update({
+    transfer_status:finalStatus,
+    staff_notes:reviewNotes.value,
+    manual_priority:reviewPriority.checked,
+    assigned_alliance_tag:reviewAssignedAlliance.value||null,
+    updated_at:new Date().toISOString()
+  }).eq('id',applicationId);
+  if(error){reviewMessage.textContent=error.message;return;}
+
+  await sb.rpc('log_transfer_action',{p_event_id:eventId||null,p_application_id:applicationId,p_action:'review_saved',p_details:{status:finalStatus,assigned_alliance:reviewAssignedAlliance.value||null}});
+  reviewStatusBadge.innerHTML=statusBadge(finalStatus);
+  reviewMessage.textContent=finalStatus==='next_transfer'?'Saved to Next Transfer Waiting List ✓':'Saved ✓';
 };
-
 loadApplication();
 </script>
 </body>

@@ -27,9 +27,12 @@
     <span class="badge">SVS</span>
     <h1 id="event-title">Loading SvS…</h1>
     <div id="event-meta" class="muted">WOS Game Time (UTC)</div>
-    <a id="manage-svs-inline" class="btn secondary hidden" href="index.html?admin=events" style="margin-top:10px">Manage SvS</a>
-    <a id="create-event-inline" class="btn secondary hidden" href="index.html?admin=events&create=1" style="margin-top:10px">Create Event</a>
-    <button id="edit-event-inline" class="btn secondary hidden" type="button" style="margin-top:10px">Edit Event</button>
+    <div id="svs-staff-actions" class="form-actions hidden" style="margin-top:14px">
+      <a id="manage-svs-inline" class="btn secondary" href="index.html?admin=events">Manage SvS</a>
+      <a id="create-event-inline" class="btn secondary hidden" href="index.html?admin=events&create=1">Create Event</a>
+      <a id="edit-event-inline" class="btn secondary hidden" href="#">Edit Event</a>
+      <button id="svs-guide-btn" class="btn secondary" type="button">? SvS Guide</button>
+    </div>
   </div>
 
   <section class="glass calendar">
@@ -196,8 +199,9 @@ async function loadEvent() {
     document.getElementById('event-title').textContent = 'No live SvS event';
     const {data:role}=await sb.rpc('current_nexa_role');
     if(['owner','admin','scheduler'].includes(String(role||'').toLowerCase())){
-      document.getElementById('manage-svs-inline')?.classList.remove('hidden');
+      document.getElementById('svs-staff-actions')?.classList.remove('hidden');
       document.getElementById('create-event-inline')?.classList.remove('hidden');
+      document.getElementById('edit-event-inline')?.classList.add('hidden');
     }
     return;
   }
@@ -263,19 +267,36 @@ async function loadEvent() {
 async function enableInlineEdit(data){
   const {data:role}=await sb.rpc('current_nexa_role');
   if(!['owner','admin','scheduler'].includes(String(role||'').toLowerCase())) return;
-  const manage=document.getElementById('manage-svs-inline');
-  const create=document.getElementById('create-event-inline');
+  document.getElementById('svs-staff-actions')?.classList.remove('hidden');
+  document.getElementById('create-event-inline')?.classList.add('hidden');
   const edit=document.getElementById('edit-event-inline');
-  if(manage){ manage.href='index.html?admin=events'; manage.classList.remove('hidden'); }
-  if(create){ create.href='index.html?admin=events&create=1'; create.classList.remove('hidden'); }
   if(edit){
+    edit.href='index.html?admin=events&edit='+encodeURIComponent(data.id);
     edit.classList.remove('hidden');
-    edit.textContent='Edit Event';
-    edit.onclick=()=>{ location.href='index.html?admin=events&edit='+encodeURIComponent(data.id); };
   }
 }
 
+
+document.getElementById('svs-guide-btn')?.addEventListener('click',()=>{
+  const m=document.getElementById('svs-guide-modal');m.classList.add('open');m.setAttribute('aria-hidden','false');
+});
+document.querySelectorAll('[data-close-svs-guide]').forEach(x=>x.addEventListener('click',()=>{
+  const m=document.getElementById('svs-guide-modal');m.classList.remove('open');m.setAttribute('aria-hidden','true');
+}));
 loadEvent();
 </script>
+
+<div id="svs-guide-modal" class="modal" aria-hidden="true">
+  <div class="modal-backdrop" data-close-svs-guide></div>
+  <section class="modal-card">
+    <div class="modal-head"><div><small>NEXA HELP</small><h2>SvS / Ministry Guide</h2></div><button class="icon-btn" data-close-svs-guide type="button">×</button></div>
+    <div class="detail-block"><b>Events</b><p>Create configures the opponent, Prep Monday, Castle/Presidency, forms, schedule publication and live status. Edit changes the same event. Delete removes the event and its dependent event data.</p></div>
+    <div class="detail-block"><b>Prep Requests</b><p>Players submit resources and preferred UTC times. Preferences help staff prioritize; they are not guaranteed appointments.</p></div>
+    <div class="detail-block"><b>Move / Swap / Unschedule</b><p>Tap an appointment, then a destination. Empty slot = Move. Occupied slot = choose Swap Times or Move & Unschedule. Unscheduling does not delete the player’s Prep Request.</p></div>
+    <div class="detail-block"><b>Recent Changes</b><p>Every Move, Swap or Unschedule is logged. Copy Change copies only that update. Undo is available for 30 minutes and will not overwrite a newer conflicting change.</p></div>
+    <div class="detail-block"><b>Copy Schedule</b><p>Copy a day, the full schedule, or filter by alliance for a clean Discord-ready list.</p></div>
+    <div class="detail-block"><b>Verified State Access</b><p>Verified members can see private schedule/assignments and internal announcements. External users only see public/basic event content and forms.</p></div>
+  </section>
+</div>
 </body>
 </html>

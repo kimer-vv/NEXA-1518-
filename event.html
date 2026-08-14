@@ -192,9 +192,10 @@ async function loadEvent() {
   await sb.rpc('refresh_auto_ended_events');
   const id = localStorage.getItem('nexa_live_event_id');
   let query = sb.from('svs_events').select('*,castle_alliance:alliances!svs_events_castle_alliance_id_fkey(tag),presidency_alliance:alliances!svs_events_presidency_alliance_id_fkey(tag)');
-  query = id ? query.eq('id', id) : query.eq('status','live').order('prep_monday', {ascending:false}).limit(1);
+  query = id ? query.eq('id', id).eq('status','live') : query.eq('status','live').order('prep_monday', {ascending:false}).limit(1);
   const { data, error } = id ? await query.maybeSingle() : await query.maybeSingle();
   if (error || !data) {
+    localStorage.removeItem('nexa_live_event_id');
     document.getElementById('event-title').textContent = 'No live SvS event';
     const {data:role}=await sb.rpc('current_nexa_role');
     if(['owner','admin','scheduler'].includes(String(role||'').toLowerCase())){
@@ -279,9 +280,7 @@ async function enableInlineEdit(data){
 document.getElementById('svs-guide-btn')?.addEventListener('click',()=>{
   const m=document.getElementById('svs-guide-modal');if(m){m.classList.add('open');m.setAttribute('aria-hidden','false');}
 });
-document.querySelectorAll('[data-close-svs-guide]').forEach(x=>x.addEventListener('click',()=>{
-  const m=document.getElementById('svs-guide-modal');if(m){m.classList.remove('open');m.setAttribute('aria-hidden','true');}
-}));
+document.addEventListener('click',e=>{ if(e.target.closest('[data-close-svs-guide]')){ const m=document.getElementById('svs-guide-modal'); if(m){m.classList.remove('open');m.setAttribute('aria-hidden','true');} } });
 loadEvent();
 </script>
 
@@ -292,7 +291,7 @@ loadEvent();
     <div class="detail-block"><b>Events</b><p>Create configures the opponent, Prep Monday, Castle/Presidency, forms, schedule publication and live status. Edit changes the same event. Delete removes the event and its dependent event data.</p></div>
     <div class="detail-block"><b>Prep Requests</b><p>Players submit resources and preferred UTC times. Preferences help staff prioritize; they are not guaranteed appointments.</p></div>
     <div class="detail-block"><b>Move / Swap / Unschedule</b><p>Tap an appointment, then a destination. Empty slot = Move. Occupied slot = choose Swap Times or Move & Unschedule. Unscheduling does not delete the player’s Prep Request.</p></div>
-    <div class="detail-block"><b>Recent Changes</b><p>Every Move, Swap or Unschedule is logged. Copy Change copies only that update. Undo is available for 30 minutes and will not overwrite a newer conflicting change.</p></div>
+    <div class="detail-block"><b>Recent Changes</b><p>Every Move, Swap or Unschedule is logged. Copy Change copies only that update.</p></div>
     <div class="detail-block"><b>Copy Schedule</b><p>Copy a day, the full schedule, or filter by alliance for a clean Discord-ready list.</p></div>
     <div class="detail-block"><b>Verified State Access</b><p>Verified members can see private schedule/assignments and internal announcements. External users only see public/basic event content and forms.</p></div>
   </section>

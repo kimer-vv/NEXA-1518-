@@ -278,8 +278,11 @@ function scheduleText(rows,title='SvS Ministry Schedule'){
   return out.trim();
 }
 async function copyText(text){
-  await navigator.clipboard.writeText(text);
-  document.getElementById('requests-message').textContent='Schedule copied.';
+  try{
+    if(navigator.clipboard && window.isSecureContext){ await navigator.clipboard.writeText(text); }
+    else { const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.focus();ta.select();if(!document.execCommand('copy'))throw new Error('copy');ta.remove(); }
+    document.getElementById('requests-message').textContent='Schedule copied ✓';
+  }catch(e){ prompt('Copy this schedule:',text); document.getElementById('requests-message').textContent='Copy window opened.'; }
 }
 document.getElementById('copy-alliance-schedule').addEventListener('click',async()=>{
   const a=document.getElementById('copy-alliance-filter').value;

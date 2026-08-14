@@ -56,7 +56,7 @@
     </div>
     <div class="form-actions" style="margin:12px 0">
 <button id="recent-changes-btn" class="btn secondary" type="button">Recent Changes ⓘ</button>
-<button id="schedule-guide-btn" class="btn secondary hidden" type="button">? Ministry Guide</button>
+<button id="schedule-guide-btn" class="btn secondary hidden" type="button">Ministry Guide</button>
 </div>
 <section id="recent-changes-panel" class="glass hidden" style="margin-bottom:14px">
 <div class="section-head"><div><small>MINISTRY</small><h3>Recent Schedule Changes</h3></div></div>
@@ -224,7 +224,7 @@ async function loadRecentChanges(){
     const left=Math.max(0,Math.ceil((new Date(c.changed_at).getTime()+30*60000-Date.now())/60000));
     return `<article class="history-card"><div><b>${summary}</b><small>${c.action_type.toUpperCase()} • ${when} • ${who}</small></div>
       <div class="history-actions"><button class="btn secondary" data-copy-change="${c.id}">Copy Change</button>
-      ${c.can_undo?`<button class="btn secondary" data-undo-change="${c.id}">Undo · ${left} min</button>`:''}</div></article>`;
+      </div></article>`;
   }).join(''):'<div class="empty-state">No schedule changes yet.</div>';
   box._changes=data||[];
 }
@@ -330,8 +330,11 @@ function lineFor(a){
   return `${t} UTC — ${p.in_game_name||'Player'}${tag?` [${tag}]`:''}`;
 }
 async function copyText(txt){
-  try{await navigator.clipboard.writeText(txt);copyMessage.textContent='Copied ✓';}
-  catch(e){copyMessage.textContent='Copy failed. Select and copy manually.';}
+  try{
+    if(navigator.clipboard && window.isSecureContext){ await navigator.clipboard.writeText(txt); }
+    else { const ta=document.createElement('textarea');ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.focus();ta.select();if(!document.execCommand('copy'))throw new Error('copy');ta.remove(); }
+    copyMessage.textContent='Copied ✓';
+  }catch(e){ prompt('Copy this schedule:',txt); copyMessage.textContent='Copy window opened.'; }
 }
 async function buildDayText(offset, allianceFilter=''){
   const apps=await getAppointmentsForDay(offset);
@@ -429,18 +432,13 @@ document.getElementById('recent-changes-list')?.addEventListener('click',async e
   const box=document.getElementById('recent-changes-list');
   const copy=e.target.closest('[data-copy-change]');
   if(copy){const c=(box._changes||[]).find(x=>String(x.id)===copy.dataset.copyChange);if(c){await navigator.clipboard.writeText(changeCopyText(c));copy.textContent='Copied ✓';setTimeout(()=>copy.textContent='Copy Change',1200);}return;}
-  const undo=e.target.closest('[data-undo-change]');
-  if(undo){if(!confirm('Undo this schedule change?'))return;const {error}=await sb.rpc('undo_ministry_schedule_change',{p_change_id:Number(undo.dataset.undoChange)});if(error)return alert(error.message);await renderSlots();await loadRecentChanges();}
 });
 
 document.getElementById('schedule-guide-btn')?.addEventListener('click',()=>{
   const m=document.getElementById('schedule-guide-modal');
   if(m){m.classList.add('open');m.setAttribute('aria-hidden','false');}
 });
-document.querySelectorAll('[data-close-schedule-guide]').forEach(x=>x.addEventListener('click',()=>{
-  const m=document.getElementById('schedule-guide-modal');
-  if(m){m.classList.remove('open');m.setAttribute('aria-hidden','true');}
-}));
+document.addEventListener('click',e=>{ if(e.target.closest('[data-close-schedule-guide]')){ const m=document.getElementById('schedule-guide-modal'); if(m){m.classList.remove('open');m.setAttribute('aria-hidden','true');} } });
 
 </script>
 
@@ -464,7 +462,6 @@ document.querySelectorAll('[data-close-schedule-guide]').forEach(x=>x.addEventLi
     <div class="detail-block"><b>Move</b><p>Tap a scheduled player, then tap an empty destination.</p></div>
     <div class="detail-block"><b>Swap</b><p>Tap a scheduled player, then an occupied destination. Choose Swap Times to exchange both appointments.</p></div>
     <div class="detail-block"><b>Move & Unschedule</b><p>The selected player takes the destination. The displaced player returns to an unscheduled state; the Prep Request remains.</p></div>
-    <div class="detail-block"><b>Undo</b><p>Available for 30 minutes. If the schedule changed again in a conflicting way, NEXA blocks the Undo instead of overwriting the newer appointment.</p></div>
     <div class="detail-block"><b>Copy</b><p>Copy the current day, full schedule, one alliance, or a single Change Log update.</p></div>
   </section>
 </div>

@@ -16,10 +16,9 @@ async function load(){
  const {data:role}=await sb.rpc('current_nexa_role');
  if(!['owner','admin','scheduler'].includes(String(role||'').toLowerCase())){location.href='index.html';return;}
  const id=localStorage.getItem('nexa_history_event_id');if(!id){location.href='history.html';return;}
- const {data,eventError}=await sb.from('svs_events').select('*').eq('id',id).maybeSingle();
- const {data:arc,error}=await sb.from('svs_event_archives').select('*').eq('event_id',id).maybeSingle();
+ const {data:e}=await sb.from('svs_events').select('*').eq('id',id).maybeSingle();
+ const {data:arc,error}=await sb.rpc('get_svs_event_archive',{p_event_id:id});
  if(error||!arc){history_meta.textContent=error?.message||'Archive snapshot not found.';return;}
- const e=eventError?null:data;
  history_title.textContent=`SvS vs ${e?.opponent_state||arc.event_data?.opponent_state||'—'}`;
  history_meta.textContent=`Prep Monday ${e?.prep_monday||arc.event_data?.prep_monday||'—'} • Ended ${new Date(arc.archived_at).toLocaleString()}`;
  const sum=arc.summary||{};

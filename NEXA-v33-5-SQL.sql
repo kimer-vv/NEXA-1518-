@@ -287,7 +287,7 @@ begin
     return result;
   end if;
 
-  generated_token:=encode(gen_random_bytes(18),'hex');
+  generated_token:=replace(gen_random_uuid()::text,'-','') || replace(gen_random_uuid()::text,'-','');
 
   update public.transfer_applications
   set edit_token_hash=encode(digest(generated_token,'sha256'),'hex')
@@ -472,3 +472,54 @@ end;
 $$;
 
 grant execute on function public.log_transfer_action(uuid,uuid,text,jsonb) to authenticated;
+
+
+-- ============================================================
+-- v33.6 HOTFIX — archive reader + reliable clone
+-- ============================================================
+create or replace function public.get_svs_event_archive(p_event_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare a public.svs_event_archives%rowtype;
+begin
+  if public.current_nexa_role() not in ('owner','admin','scheduler') then
+    raise exception 'SvS staff access required';
+  end if;
+  select * into a from public.svs_event_archives where event_id=p_event_id;
+  if a.event_id is null then raise exception 'Archive snapshot not found'; end if;
+  return to_jsonb(a);
+end;
+$$;
+grant execute on function public.get_svs_event_archive(uuid) to authenticated;
+
+create or replace function public.clone_svs_event(
+  source_event_id uuid,
+  new_opponent_state bigint,
+  new_prep_monday date
+)
+returns uuid
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare src public.svs_events%rowtype; new_id uuid;
+begin
+  if public.current_nexa_role() not in ('owner','admin','scheduler') then
+    raise exception 'SvS staff access required';
+  end if;
+  select * into src from public.svs_events where id=source_event_id;
+  if src.id is null then raise exception 'Source event not found'; end if;
+  insert into public.svs_events(
+    opponent_state,prep_monday,castle_alliance_id,presidency_alliance_id,description,
+    prep_form_open,battle_form_open,schedule_published,is_live,status,created_by,auto_end_at
+  ) values(
+    new_opponent_state,new_prep_monday,src.castle_alliance_id,src.presidency_alliance_id,src.description,
+    false,false,false,false,'upcoming',auth.uid(),null
+  ) returning id into new_id;
+  return new_id;
+end;
+$$;
+grant execute on function public.clone_svs_event(uuid,bigint,date) to authenticated;

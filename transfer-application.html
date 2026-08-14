@@ -267,7 +267,8 @@ function chooseApplicantSwap(label,candidates){
 }
 
 async function loadApplication(){
-  if(!applicationId || applicationId==='undefined' || applicationId==='null'){
+  const waitingId=qs.get('waiting');
+  if((!applicationId || applicationId==='undefined' || applicationId==='null') && !waitingId){
     loadingCard.innerHTML='<p class="muted">Application link is missing its internal ID. Return to Applications and open it again.</p>';
     return;
   }
@@ -279,9 +280,12 @@ async function loadApplication(){
     return;
   }
 
-  let {data:a,error}=await sb.from('transfer_applications').select('*').eq('id',applicationId).maybeSingle();
-  if((error || !a) && qs.get('waiting')){
-    const {data:w,error:we}=await sb.rpc('get_transfer_waiting_entry',{p_waiting_id:qs.get('waiting')});
+  let a=null,error=null;
+  if(applicationId && applicationId!=='undefined' && applicationId!=='null'){
+    const res=await sb.from('transfer_applications').select('*').eq('id',applicationId).maybeSingle(); a=res.data; error=res.error;
+  }
+  if((error || !a) && waitingId){
+    const {data:w,error:we}=await sb.rpc('get_transfer_waiting_entry',{p_waiting_id:waitingId});
     if(!we && w?.application){a=w.application;a.__waiting_id=w.waiting_id;}else error=we||error;
   }
   if(error || !a){

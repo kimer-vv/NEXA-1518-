@@ -8,6 +8,16 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="lang.js"></script>
 <script src="ui-i18n-final.js"></script>
+<style>
+.module-visibility-card{
+  grid-column:1/-1;
+  display:grid;
+  gap:10px;
+  margin-top:4px;
+  padding:14px 16px;
+}
+.module-visibility-card small{display:block;margin-top:3px}
+</style>
 </head>
 <body>
 <div class="nebula-bg" aria-hidden="true"></div>
@@ -65,7 +75,7 @@
     </div>
   </section>
 
-  <section class="section">
+  <section id="home-svs-section" class="section">
     <div class="head">
       <h2>Live & Upcoming Events</h2>
       <span>Tap to open</span>
@@ -211,10 +221,20 @@
       <button id="open-transfer-admin" class="module-card" type="button">
         <span class="module-kicker">MODULE</span><b>Transfers</b><small>Transfer cycles, applications, recruiting alliances & staff notes</small>
       </button>
+
+      <section id="home-module-visibility" class="glass-lite module-visibility-card">
+        <div>
+          <b>Home Visibility</b>
+          <small>Hide a module from Home without closing its event, form, or public links.</small>
+        </div>
+        <label class="toggle-line"><input id="show-svs-home" type="checkbox"> Show SvS on Home</label>
+        <label class="toggle-line"><input id="show-transfer-home" type="checkbox"> Show Transfer on Home</label>
+        <div id="home-visibility-message" class="form-message"></div>
+      </section>
     </div>
     <div id="svs-admin-content" class="hidden">
       <div class="module-back-row"><button id="back-to-modules" class="btn secondary" type="button">← Modules</button></div>
-    <div class="admin-quick-links"><a class="btn" href="prep-requests.html">Prep Requests</a></div>
+    <div class="admin-quick-links"><a class="btn" href="prep-requests.html">Schedule Management</a></div>
     <div class="admin-tabs">
       <button class="admin-tab active" type="button" data-admin-tab="events">Events</button>
       <button class="admin-tab" type="button" data-admin-tab="alliances">Alliances</button>
@@ -402,6 +422,14 @@
         <section class="glass-lite">
           <label>Important Announcement
             <textarea id="ann-main" rows="3" maxlength="500" placeholder="Write the main announcement..."></textarea>
+          </label>
+
+          <label>Audience
+            <select id="announcement-audience">
+              <option value="verified">Verified Only</option>
+              <option value="everyone">Everyone</option>
+            </select>
+            <small class="muted">Everyone may read public announcements. Only verified users can acknowledge them.</small>
           </label>
 
           <div class="translation-grid">
@@ -918,6 +946,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('back-to-modules')?.addEventListener('click',async()=>{
     document.getElementById('svs-admin-content')?.classList.add('hidden');
     await configureAdminModules();
+      await loadHomeVisibilityAdmin();
   });
   document.getElementById('open-transfer-admin')?.addEventListener('click',()=>{
     location.href='transfer-admin.html';
@@ -929,6 +958,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     adminModal.classList.add('open');
     adminModal.setAttribute('aria-hidden','false');
     await configureAdminModules();
+      await loadHomeVisibilityAdmin();
   });
 
   document.querySelectorAll('[data-close-admin]').forEach(el => el.addEventListener('click', () => {
@@ -1468,6 +1498,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if(!event) return;
 
     document.getElementById('ann-main').value=event.announcement_text||'';
+    document.getElementById('announcement-audience').value=event.announcement_audience||'verified';
     const ats=event.announcement_translations||{};
     ['es','tr','ko','ar','ja','zh','ru'].forEach(c=>{
       document.getElementById('ann-'+c).value=ats[c]||'';
@@ -1543,9 +1574,18 @@ document.addEventListener('DOMContentLoaded', async () => {
       new_text:document.getElementById('ann-main').value.trim(),
       new_translations:translations
     });
-    const msg=document.getElementById('announcement-admin-message');
-    msg.textContent=error?error.message:'Announcement saved.';
+    let audienceError=null;
     if(!error){
+      const audience=document.getElementById('announcement-audience').value||'verified';
+      const res=await supabaseClient.rpc('set_event_announcement_audience',{
+        target_event_id:event.id,
+        new_audience:audience
+      });
+      audienceError=res.error||null;
+    }
+    const msg=document.getElementById('announcement-admin-message');
+    msg.textContent=(error||audienceError)?(error?.message||audienceError?.message):'Announcement saved.';
+    if(!error && !audienceError){
       await loadAnnouncementsCenter();
       await syncHomeLiveEvent();
     }
@@ -1594,27 +1634,54 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   async function syncAnnouncement(eventData) {
-    const wrap = document.getElementById('global-announcement');
-    const {data:verifiedForAnnouncement}=await supabaseClient.rpc('is_verified_state_member');
-    if(verifiedForAnnouncement!==true){ wrap.classList.add('hidden'); return; }
-    const msgEl = document.getElementById('announcement-message');
-    const ackBtn = document.getElementById('announcement-ack');
+    const wrap=document.getElementById('global-announcement');
+    const msgEl=document.getElementById('announcement-message');
+    const ackBtn=document.getElementById('announcement-ack');
 
-    if (!eventData?.announcement_text) {
+    if(!eventData?.announcement_text){
+      wrap.classList.add('hidden');
+      return;
+    }
+
+    let verified=false;
+    let role='';
+    try{
+      const vr=await supabaseClient.rpc('is_verified_state_member');
+      verified=vr.data===true;
+    }catch(_){}
+    try{
+      const rr=await supabaseClient.rpc('current_nexa_role');
+      role=String(rr.data||'').toLowerCase();
+    }catch(_){}
+
+    const staff=['owner','admin','scheduler'].includes(role);
+    const audience=eventData.announcement_audience||'verified';
+    const maySee=(audience==='everyone') || verified || staff;
+
+    if(!maySee){
       wrap.classList.add('hidden');
       return;
     }
 
     wrap.classList.remove('hidden');
-    msgEl.textContent = eventData.announcement_translations?.[currentLanguage] || eventData.announcement_text;
-    ackBtn.textContent = tr('iveRead');
-    ackBtn.disabled = false;
     wrap.classList.remove('acknowledged');
+    msgEl.textContent=eventData.announcement_translations?.[currentLanguage] || eventData.announcement_text;
 
-    const user = await currentUser();
-    if (!user) return;
+    // Guests/public and unverified users can read an Everyone announcement,
+    // but acknowledgement is intentionally only available to verified members.
+    ackBtn.classList.toggle('hidden',!verified);
+    if(!verified){
+      ackBtn.onclick=null;
+      return;
+    }
 
-    const {data:existing} = await supabaseClient
+    ackBtn.textContent=tr('iveRead');
+    ackBtn.disabled=false;
+
+    const user=await currentUser();
+    if(!user) return;
+
+    const {data:existing}=await supabaseClient
       .from('announcement_acknowledgements')
       .select('id')
       .eq('event_id',eventData.id)
@@ -1623,16 +1690,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       .maybeSingle();
 
     if(existing){
-      ackBtn.textContent = tr('readConfirmed');
-      ackBtn.disabled = true;
+      ackBtn.textContent=tr('readConfirmed');
+      ackBtn.disabled=true;
       wrap.classList.add('acknowledged');
       wrap.classList.add('hidden');
       return;
     }
 
-    ackBtn.onclick = async()=>{
+    ackBtn.onclick=async()=>{
       const u=await currentUser();
-      if(!u){ document.getElementById('discord-login').click(); return; }
+      if(!u) return;
       const {error}=await supabaseClient.from('announcement_acknowledgements').insert({
         event_id:eventData.id,
         announcement_version:eventData.announcement_version,
@@ -1709,10 +1776,61 @@ document.addEventListener('DOMContentLoaded', async () => {
   await syncHomeLiveEvent();
 
 
+  async function getHomeModuleVisibility(){
+    try{
+      const {data,error}=await supabaseClient.rpc('get_home_module_visibility');
+      if(error) throw error;
+      return {
+        svs:data?.show_svs!==false,
+        transfer:data?.show_transfer!==false
+      };
+    }catch(_){
+      return {svs:true,transfer:true};
+    }
+  }
+
+  async function applyHomeModuleVisibility(){
+    const v=await getHomeModuleVisibility();
+    document.getElementById('home-svs-section')?.classList.toggle('hidden',!v.svs);
+    document.getElementById('home-transfers-section')?.classList.toggle('hidden',!v.transfer);
+    return v;
+  }
+
+  async function loadHomeVisibilityAdmin(){
+    const wrap=document.getElementById('home-module-visibility');
+    if(!wrap)return;
+    let role='';
+    try{
+      const {data}=await supabaseClient.rpc('current_nexa_role');
+      role=String(data||'').toLowerCase();
+    }catch(_){}
+    const canEdit=['owner','admin'].includes(role);
+    wrap.classList.toggle('hidden',!canEdit);
+    if(!canEdit)return;
+    const v=await getHomeModuleVisibility();
+    document.getElementById('show-svs-home').checked=v.svs;
+    document.getElementById('show-transfer-home').checked=v.transfer;
+  }
+
+  async function saveHomeVisibility(){
+    const msg=document.getElementById('home-visibility-message');
+    const {error}=await supabaseClient.rpc('set_home_module_visibility',{
+      new_show_svs:document.getElementById('show-svs-home').checked,
+      new_show_transfer:document.getElementById('show-transfer-home').checked
+    });
+    msg.textContent=error?error.message:'Home visibility updated ✓';
+    if(!error) await applyHomeModuleVisibility();
+  }
+
+  document.getElementById('show-svs-home')?.addEventListener('change',saveHomeVisibility);
+  document.getElementById('show-transfer-home')?.addEventListener('change',saveHomeVisibility);
+
   async function loadHomeTransfers(){
+    const visible=await getHomeModuleVisibility();
     const section=document.getElementById('home-transfers-section');
     const list=document.getElementById('home-transfer-events');
     if(!section || !list) return;
+    if(!visible.transfer){section.classList.add('hidden');return;}
     const {data,error}=await supabaseClient.from('transfer_events')
       .select('id,title,destination_state,source_state_min,source_state_max,public_token,starts_at,ends_at')
       .eq('status','open').eq('applications_open',true)
@@ -1753,6 +1871,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       adminModal.classList.add('open');
       adminModal.setAttribute('aria-hidden','false');
       await configureAdminModules();
+      await loadHomeVisibilityAdmin();
     }
     history.replaceState({},'',location.pathname);
   }

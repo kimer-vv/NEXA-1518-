@@ -523,3 +523,111 @@ begin
 end;
 $$;
 grant execute on function public.clone_svs_event(uuid,bigint,date) to authenticated;
+
+-- ============================================================
+-- NEXA v33.7 FINAL TESTING FIXES
+-- Robust Transfer Edit Token + Waiting entry + Archive reader
+-- ============================================================
+
+create extension if not exists pgcrypto;
+
+create or replace function public.submit_transfer_application_v2(
+  p_event_token uuid,
+  p_payload jsonb
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+  result jsonb;
+  generated_token text;
+  app_row_id uuid;
+  app_public_id text;
+  is_duplicate boolean := false;
+begin
+  result := to_jsonb(public.submit_transfer_application(p_event_token,p_payload));
+  app_public_id := nullif(result->>'application_id','');
+  begin
+    is_duplicate := coalesce((result->>'duplicate')::boolean,false);
+  exception when others then
+    is_duplicate := false;
+  end;
+
+  -- Find the row from the public Application ID first. If an older base
+  -- submit function did not return it, safely fall back to the Player ID
+  -- from THIS submission in THIS transfer cycle.
+  if app_public_id is not null then
+    select ta.id into app_row_id
+    from public.transfer_applications ta
+    join public.transfer_events te on te.id=ta.transfer_event_id
+    where ta.application_id=app_public_id
+      and te.public_token=p_event_token
+    order by ta.created_at desc
+    limit 1;
+  end if;
+
+  if app_row_id is null and nullif(trim(p_payload->>'player_id'),'') is not null then
+    select ta.id, ta.application_id into app_row_id, app_public_id
+    from public.transfer_applications ta
+    join public.transfer_events te on te.id=ta.transfer_event_id
+    where te.public_token=p_event_token
+      and ta.player_id=trim(p_payload->>'player_id')
+    order by ta.created_at desc
+    limit 1;
+  end if;
+
+  -- Never issue a new credential for a duplicate/existing application.
+  if app_row_id is null or is_duplicate then
+    return result;
+  end if;
+
+  generated_token := replace(gen_random_uuid()::text,'-','') || replace(gen_random_uuid()::text,'-','');
+
+  update public.transfer_applications
+  set edit_token_hash=encode(digest(generated_token,'sha256'),'hex')
+  where id=app_row_id;
+
+  return result || jsonb_build_object(
+    'application_id',coalesce(app_public_id,result->>'application_id'),
+    'edit_token',generated_token
+  );
+end;
+$$;
+
+grant execute on function public.submit_transfer_application_v2(uuid,jsonb) to anon,authenticated;
+
+create or replace function public.get_transfer_waiting_entry(p_waiting_id uuid)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path=public
+as $$
+declare
+  w public.transfer_waiting_list%rowtype;
+  app jsonb;
+begin
+  if not coalesce((select public.can_manage_transfers()),false)
+     and public.current_nexa_role() not in ('owner','admin') then
+    raise exception 'Transfer Staff access required';
+  end if;
+
+  select * into w from public.transfer_waiting_list where id=p_waiting_id;
+  if w.id is null then raise exception 'Waiting entry not found'; end if;
+
+  if w.source_application_id is not null then
+    select to_jsonb(a) into app from public.transfer_applications a where a.id=w.source_application_id;
+  end if;
+  app := coalesce(app,w.application_snapshot,'{}'::jsonb);
+
+  return jsonb_build_object(
+    'waiting_id',w.id,
+    'source_application_id',w.source_application_id,
+    'application',app
+  );
+end;
+$$;
+
+grant execute on function public.get_transfer_waiting_entry(uuid) to authenticated;

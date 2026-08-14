@@ -236,6 +236,8 @@
         </div>
       </div>
 
+      <div class="form-actions" style="margin:10px 0 16px"><a class="btn secondary" href="prep-form.html?direct=1" target="_blank">Open Prep Form</a><button id="admin-copy-prep-link" class="btn secondary" type="button">Copy Prep Form Link</button></div>
+
       <form id="event-form" class="account-form">
         <input id="event-id" type="hidden">
 
@@ -1796,6 +1798,20 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     const {data:role}=await supabaseClient.rpc('current_nexa_role');
     return ['owner','admin','scheduler'].includes(String(role||'').toLowerCase());
   }
+
+  document.getElementById('admin-copy-prep-link')?.addEventListener('click',async e=>{
+    const u=new URL('prep-form.html?direct=1',location.href).href;
+    const b=e.currentTarget;
+    try{
+      if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(u);
+      else throw new Error('clipboard');
+      b.textContent='Copied ✓'; setTimeout(()=>b.textContent='Copy Prep Form Link',1200);
+    }catch(_){
+      const ta=document.createElement('textarea');ta.value=u;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();
+      const ok=document.execCommand('copy');ta.remove();
+      if(ok){b.textContent='Copied ✓';setTimeout(()=>b.textContent='Copy Prep Form Link',1200);}else prompt('Copy this Prep Form link:',u);
+    }
+  });
 
   const deepParams=new URLSearchParams(location.search);
   if(deepParams.get('admin')==='events'){

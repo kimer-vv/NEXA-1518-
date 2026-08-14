@@ -14,7 +14,7 @@
 <header class="topbar">
   <div class="shell nav">
     <a class="logo" href="index.html"><span class="star">✦</span><span>NEXA<small>STATE 1518</small></span></a>
-    <a class="back" href="svs-admin.html">← SvS Control Panel</a>
+    <a class="back" href="index.html?admin=events">← SvS Control Panel</a>
   </div>
 </header>
 
@@ -93,7 +93,6 @@ async function render(){
 
         <div class="history-actions">
           <button class="btn secondary" type="button" data-view="${e.id}">View Archive</button>
-          <button class="btn secondary" type="button" data-clone="${e.id}">Clone Settings</button>
           ${isOwner?`<button class="btn danger" type="button" data-delete="${e.id}">Delete Permanently</button>`:''}
         </div>
       </article>
@@ -107,30 +106,11 @@ document.getElementById('history-search').addEventListener('input',render);
 
 document.getElementById('history-list').addEventListener('click',async e=>{
   const viewId=e.target.dataset.view;
-  const cloneId=e.target.dataset.clone;
   const deleteId=e.target.dataset.delete;
 
   if(viewId){
     localStorage.setItem('nexa_history_event_id',viewId);
-    location.href='history-event.html';
-    return;
-  }
-
-  if(cloneId){
-    const opponent=prompt('Opponent State for the new SvS:');
-    if(!opponent) return;
-    const monday=prompt('Prep Monday (YYYY-MM-DD):');
-    if(!monday) return;
-
-    const {error}=await sb.rpc('clone_svs_event',{
-      source_event_id:cloneId,
-      new_opponent_state:Number(opponent),
-      new_prep_monday:monday
-    });
-
-    if(error) return alert(error.message);
-    alert('New upcoming event created.');
-    location.href='svs-admin.html';
+    location.href='history-event.html?id='+encodeURIComponent(viewId);
     return;
   }
 

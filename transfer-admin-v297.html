@@ -1056,8 +1056,7 @@ window.addEventListener('error',ev=>{
     const row=(window._waitingRows||[]).find(x=>x.waiting_id===wid);
 
     if(e.target.closest('[data-wait-details]')){
-      const source=row?.source_application_id||'';
-      location.href=`transfer-application.html?${source?`id=${encodeURIComponent(source)}&`:''}waiting=${encodeURIComponent(wid)}&event=${encodeURIComponent(activeTransferEventId()||'')}`;
+      location.href=`transfer-application.html?waiting=${encodeURIComponent(wid)}&event=${encodeURIComponent(activeTransferEventId()||'')}`;
       return;
     }
 
@@ -1434,8 +1433,8 @@ async function refreshTransferCapacitySummary(){
     (data||[]).forEach(a=>{const tag=(a.assigned_alliance_tag||'').trim()||'Unassigned';(groups[tag]||=[]).push(a);});
     const tags=Object.keys(groups).sort((a,b)=>a==='Unassigned'?1:b==='Unassigned'?-1:a.localeCompare(b));
     box.innerHTML=tags.length?tags.map(tag=>`
-      <article class="history-card"><div><b>${escFinal(tag)} — ${groups[tag].length}</b>
-      <small>${groups[tag].map(x=>`${escFinal(x.in_game_name)} (${x.transfer_status==='special_invite'?'Special':x.transfer_status==='open_transfer'?'Open':'Ordinary'})`).join(' • ')}</small></div></article>
+      <article class="history-card alliance-roster-card" data-alliance-roster="${encodeURIComponent(tag)}"><div><b>${escFinal(tag)} — ${groups[tag].length}</b>
+      <small>${groups[tag].map(x=>`${escFinal(x.in_game_name)} (${x.transfer_status==='special_invite'?'Special':x.transfer_status==='open_transfer'?'Open':'Ordinary'})`).join(' • ')}</small></div><button class="btn secondary" type="button" data-copy-one-alliance="${encodeURIComponent(tag)}">Copy ${escFinal(tag)} Roster</button></article>
     `).join(''):'<div class="empty-state">No roster players in this cycle yet.</div>';
     window.NEXA_FINAL_ALLIANCE_GROUPS=groups;
   }
@@ -1454,6 +1453,14 @@ async function refreshTransferCapacitySummary(){
     try{await navigator.clipboard.writeText(text);alert('Alliance roster copied ✓');}catch{alert(text||'No assigned alliances yet.');}
   },true);
 
+
+  document.getElementById('alliance-distribution')?.addEventListener('click',async e=>{
+    const b=e.target.closest('[data-copy-one-alliance]'); if(!b)return;
+    const tag=decodeURIComponent(b.dataset.copyOneAlliance||'');
+    const rows=(window.NEXA_FINAL_ALLIANCE_GROUPS||{})[tag]||[];
+    const text=`${tag} TRANSFER ROSTER (${rows.length})\n`+rows.map((x,i)=>`${i+1}. ${x.in_game_name} — ${x.transfer_status==='special_invite'?'Special Invite':x.transfer_status==='open_transfer'?'Open Transfer':'Ordinary'}`).join('\n');
+    try{await navigator.clipboard.writeText(text);const old=b.textContent;b.textContent='Copied ✓';setTimeout(()=>b.textContent=old,1200);}catch{alert(text);}
+  });
   const guide=document.getElementById('transfer-guide-btn'),modal=document.getElementById('transfer-guide-modal');
   if(guide&&modal)guide.onclick=()=>{modal.classList.add('open');modal.setAttribute('aria-hidden','false');};
   document.querySelectorAll('[data-close-transfer-guide]').forEach(x=>x.onclick=()=>{modal?.classList.remove('open');modal?.setAttribute('aria-hidden','true');});

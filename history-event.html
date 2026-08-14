@@ -15,18 +15,18 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 async function load(){
  const {data:role}=await sb.rpc('current_nexa_role');
  if(!['owner','admin','scheduler'].includes(String(role||'').toLowerCase())){location.href='index.html';return;}
- const id=localStorage.getItem('nexa_history_event_id');if(!id){location.href='history.html';return;}
+ const id=new URLSearchParams(location.search).get('id')||localStorage.getItem('nexa_history_event_id');if(!id){location.href='history.html';return;}
  const {data:e}=await sb.from('svs_events').select('*').eq('id',id).maybeSingle();
  const {data:arc,error}=await sb.rpc('get_svs_event_archive',{p_event_id:id});
- if(error||!arc){history_meta.textContent=error?.message||'Archive snapshot not found.';return;}
- history_title.textContent=`SvS vs ${e?.opponent_state||arc.event_data?.opponent_state||'—'}`;
- history_meta.textContent=`Prep Monday ${e?.prep_monday||arc.event_data?.prep_monday||'—'} • Ended ${new Date(arc.archived_at).toLocaleString()}`;
+ if(error||!arc){document.getElementById('history-meta').textContent=error?.message||'Archive snapshot not found.';return;}
+ document.getElementById('history-title').textContent=`SvS vs ${e?.opponent_state||arc.event_data?.opponent_state||'—'}`;
+ document.getElementById('history-meta').textContent=`Prep Monday ${e?.prep_monday||arc.event_data?.prep_monday||'—'} • Ended ${new Date(arc.archived_at).toLocaleString()}`;
  const sum=arc.summary||{};
- archive_summary.innerHTML=`<div><b>${sum.prep_requests||0}</b><span>Requests</span></div><div><b>${sum.appointments||0}</b><span>Appointments</span></div><div><b>${sum.waitlisted||0}</b><span>Waitlisted</span></div>`;
+ document.getElementById('archive-summary').innerHTML=`<div><b>${sum.prep_requests||0}</b><span>Requests</span></div><div><b>${sum.appointments||0}</b><span>Appointments</span></div><div><b>${sum.waitlisted||0}</b><span>Waitlisted</span></div>`;
  const apps=Array.isArray(arc.appointments)?arc.appointments:[];
- archive_schedule.innerHTML=apps.length?apps.map(a=>`<article class="admin-row"><div><b>${a.time||'—'} UTC — ${esc(a.in_game_name||'Player')}</b><small>${esc(a.day_type||'')} • ${esc(a.ministry_position||'')} • ${esc(a.alliance||'')}</small></div></article>`).join(''):'<div class="empty-state">No appointments.</div>';
+ document.getElementById('archive-schedule').innerHTML=apps.length?apps.map(a=>`<article class="admin-row"><div><b>${a.time||'—'} UTC — ${esc(a.in_game_name||'Player')}</b><small>${esc(a.day_type||'')} • ${esc(a.ministry_position||'')} • ${esc(a.alliance||'')}</small></div></article>`).join(''):'<div class="empty-state">No appointments.</div>';
  const reqs=Array.isArray(arc.prep_requests)?arc.prep_requests:[];
- archive_requests.innerHTML=reqs.length?reqs.map(r=>`<article class="admin-row"><div><b>${esc(r.in_game_name||'Player')}</b><small>${esc(r.alliance||'')} • ID ${esc(r.player_id||'—')} • ${r.construction_requested?'Construction ':''}${r.research_requested?'Research ':''}${r.training_requested?'Training':''}</small></div></article>`).join(''):'<div class="empty-state">No Prep Requests.</div>';
+ document.getElementById('archive-requests').innerHTML=reqs.length?reqs.map(r=>`<article class="admin-row"><div><b>${esc(r.in_game_name||'Player')}</b><small>${esc(r.alliance||'')} • ID ${esc(r.player_id||'—')} • ${r.construction_requested?'Construction ':''}${r.research_requested?'Research ':''}${r.training_requested?'Training':''}</small></div></article>`).join(''):'<div class="empty-state">No Prep Requests.</div>';
 }
 load();
 </script></body></html>

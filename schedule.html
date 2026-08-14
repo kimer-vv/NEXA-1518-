@@ -8,7 +8,10 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="lang.js"></script>
 <script src="ui-i18n-final.js"></script>
-</head>
+<style>
+.slot-remove-x{margin-left:8px;border:0;border-radius:999px;width:24px;height:24px;font-size:18px;line-height:20px;font-weight:800;background:#b42335;color:white;cursor:pointer;vertical-align:middle}
+.slot-remove-x:active{transform:scale(.94)}
+</style></head>
 <body>
 <div class="nebula-bg" aria-hidden="true"></div>
 <div class="starfield" aria-hidden="true"></div>
@@ -157,7 +160,7 @@ async function renderSlots() {
     const p = a?.player_accounts;
     const alliance = p?.alliances?.tag || p?.custom_alliance_tag || '';
     out += `<div class="slot ${a?'':'open'} ${canManageSchedule?'movable':''} ${a&&recentlyUpdatedIds.has(a.id)?'updated-now':''}" data-slot-time="${hm}" data-appointment-id="${a?.id||''}">
-      <div class="utc">${hm} UTC</div>
+      <div class="utc">${hm} UTC ${a&&canManageSchedule?`<button class="slot-remove-x" type="button" data-unschedule-id="${a.id}" aria-label="Remove appointment" title="Remove from Schedule">×</button>`:''}</div>
       <div class="local">${NEXA_I18N.t(currentLang,'yourTime')}: ${localSlotLabel(d)}</div>
       <div class="name">${a ? (p?.in_game_name || 'Player') : NEXA_I18N.t(currentLang,'openUnassigned')}</div>
       <div class="id">${a ? `${alliance}${alliance?' • ':''}ID ${p?.player_id || '—'}` : '—'}</div>

@@ -1289,7 +1289,7 @@ window.addEventListener('error',ev=>{
     rosterPreview.textContent=lines.join('\n').trim();
   }
 
-  async function loadWaitingList(){
+  async function loadWaitingListLegacy(){
     waitingResults.innerHTML='<div class="empty-state">Loading waiting list…</div>';
 
     const {data,error}=await sb.rpc('get_transfer_waiting_list');
@@ -1356,7 +1356,7 @@ window.addEventListener('error',ev=>{
     window.tab=function(name){
       originalTab(name);
       if(name==='roster') loadTransferRoster();
-      if(name==='waiting') loadWaitingList();
+      if(name==='waiting' && window.loadTransferWaitingList) window.loadTransferWaitingList();
     };
   }
 
@@ -1364,10 +1364,10 @@ window.addEventListener('error',ev=>{
     .forEach(b=>b.addEventListener('click',()=>setTimeout(loadTransferRoster,0)));
 
   document.querySelectorAll('.transfer-tab[data-tab="waiting"]')
-    .forEach(b=>b.addEventListener('click',()=>setTimeout(loadWaitingList,0)));
+    .forEach(b=>b.addEventListener('click',()=>setTimeout(()=>window.loadTransferWaitingList?.(),0)));
 
   window.loadTransferRoster=loadTransferRoster;
-  window.loadTransferWaitingList=loadWaitingList;
+  // Keep the newer action-enabled Waiting List renderer.
 })();
 
 async function resolveHomeManageToken(){

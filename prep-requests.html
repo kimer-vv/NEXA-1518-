@@ -206,6 +206,23 @@ document.querySelectorAll('[data-request-day]').forEach(btn=>btn.addEventListene
   document.querySelectorAll('[data-request-day]').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active'); activeDay=btn.dataset.requestDay; render();
 }));
+
+function chooseAssignConflict(newName,currentName,hm,canSwap){
+  return new Promise(resolve=>{
+    const modal=document.getElementById('assign-conflict-modal');
+    document.getElementById('assign-conflict-title').textContent=`${hm} UTC is already assigned`;
+    document.getElementById('assign-conflict-text').textContent=`${currentName} currently has this time. Choose what should happen when assigning ${newName}.`;
+    const swap=document.getElementById('assign-conflict-swap');
+    swap.classList.toggle('hidden',!canSwap);
+    const done=v=>{modal.classList.remove('open');modal.setAttribute('aria-hidden','true');resolve(v);};
+    swap.onclick=()=>done('swap');
+    document.getElementById('assign-conflict-replace').onclick=()=>done('replace');
+    document.getElementById('assign-conflict-cancel').onclick=()=>done('cancel');
+    modal.querySelectorAll('[data-close-assign-conflict]').forEach(x=>x.onclick=()=>done('cancel'));
+    modal.classList.add('open');modal.setAttribute('aria-hidden','false');
+  });
+}
+
 document.getElementById('requests-list').addEventListener('click',async e=>{
   const waitId=e.target.dataset.waitlistRequest;
   if(waitId){
@@ -219,14 +236,38 @@ document.getElementById('requests-list').addEventListener('click',async e=>{
   const hm=sel.value; if(!hm){alert('Select a UTC time first.');return;}
 
   const existing=appointments.find(a=>a.prep_request_id===id && a.day_type===activeDay);
+  const targetStamp=utcStampForSlot(activeDay,hm);
+  const occupied=appointments.find(a=>a.day_type===activeDay && new Date(a.appointment_time).toISOString()===targetStamp && a.id!==existing?.id);
   let error;
-  if(existing){
-    ({error}=await sb.from('ministry_appointments').update({appointment_time:utcStampForSlot(activeDay,hm)}).eq('id',existing.id));
-  } else {
+
+  if(occupied){
+    const newReq=requests.find(r=>r.id===id);
+    const currentReq=requests.find(r=>r.id===occupied.prep_request_id);
+    const newName=newReq?.player_accounts?.in_game_name||'Player';
+    const currentName=currentReq?.player_accounts?.in_game_name||'Current player';
+    const choice=await chooseAssignConflict(newName,currentName,hm,!!existing);
+    if(!choice || choice==='cancel') return;
+
+    if(choice==='replace'){
+      ({error}=await sb.from('ministry_appointments').delete().eq('id',occupied.id));
+      if(!error){
+        if(existing) ({error}=await sb.from('ministry_appointments').update({appointment_time:targetStamp}).eq('id',existing.id));
+        else ({error}=await sb.rpc('assign_ministry_appointment',{target_request_id:id,target_day_type:activeDay,target_appointment_time:targetStamp}));
+      }
+    }else if(choice==='swap' && existing){
+      const oldStamp=existing.appointment_time;
+      const temp=new Date(targetStamp);temp.setUTCDate(temp.getUTCDate()+7);
+      ({error}=await sb.from('ministry_appointments').update({appointment_time:temp.toISOString()}).eq('id',existing.id));
+      if(!error) ({error}=await sb.from('ministry_appointments').update({appointment_time:oldStamp}).eq('id',occupied.id));
+      if(!error) ({error}=await sb.from('ministry_appointments').update({appointment_time:targetStamp}).eq('id',existing.id));
+    }
+  }else if(existing){
+    ({error}=await sb.from('ministry_appointments').update({appointment_time:targetStamp}).eq('id',existing.id));
+  }else{
     ({error}=await sb.rpc('assign_ministry_appointment',{
       target_request_id:id,
       target_day_type:activeDay,
-      target_appointment_time:utcStampForSlot(activeDay,hm)
+      target_appointment_time:targetStamp
     }));
   }
   document.getElementById('requests-message').textContent=error?error.message:'Appointment saved.';
@@ -370,5 +411,19 @@ document.getElementById('health-check').addEventListener('click',()=>{
 
 load();
 </script>
+
+<div id="assign-conflict-modal" class="modal" aria-hidden="true">
+  <div class="modal-backdrop" data-close-assign-conflict></div>
+  <section class="modal-card">
+    <div class="modal-head"><div><small>APPOINTMENT CONFLICT</small><h2 id="assign-conflict-title">Time is occupied</h2></div><button class="icon-btn" data-close-assign-conflict type="button">×</button></div>
+    <p id="assign-conflict-text" class="muted"></p>
+    <div class="form-actions">
+      <button id="assign-conflict-swap" class="btn" type="button">Swap Appointments</button>
+      <button id="assign-conflict-replace" class="btn secondary" type="button">Assign & Unschedule Current Player</button>
+      <button id="assign-conflict-cancel" class="btn secondary" type="button">Cancel</button>
+    </div>
+  </section>
+</div>
+
 </body>
 </html>

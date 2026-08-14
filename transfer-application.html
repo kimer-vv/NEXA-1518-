@@ -426,44 +426,60 @@ document.getElementById('save-review').onclick=async()=>{
   reviewStatusBadge.innerHTML=statusBadge(finalStatus);
   reviewMessage.textContent=finalStatus==='next_transfer'?'Saved to Next Transfer Waiting List ✓':'Saved ✓';
 };
+const staffEdit={
+  modal:document.getElementById('staff-edit-modal'),
+  discord:document.getElementById('staff-edit-discord'),
+  alliance:document.getElementById('staff-edit-alliance'),
+  coordinates:document.getElementById('staff-edit-coordinates'),
+  power:document.getElementById('staff-edit-power'),
+  furnace:document.getElementById('staff-edit-furnace'),
+  labyrinth:document.getElementById('staff-edit-labyrinth'),
+  passes:document.getElementById('staff-edit-passes'),
+  progression:document.getElementById('staff-edit-progression'),
+  t12i:document.getElementById('staff-t12i'),t12l:document.getElementById('staff-t12l'),t12m:document.getElementById('staff-t12m'),
+  t11i:document.getElementById('staff-t11i'),t11l:document.getElementById('staff-t11l'),t11m:document.getElementById('staff-t11m'),
+  noadv:document.getElementById('staff-noadv'),
+  message:document.getElementById('staff-edit-message')
+};
 function openStaffEdit(){
-  const a=currentApplication;if(!a)return;
-  staff_edit_discord.value=a.discord_username||'';
-  staff_edit_alliance.value=a.current_alliance||'';
-  staff_edit_coordinates.value=a.coordinates||'';
-  staff_edit_power.value=a.current_power||'';
-  staff_edit_furnace.value=a.furnace_level||'';
-  staff_edit_labyrinth.value=a.labyrinth_score??'';
-  staff_edit_passes.value=a.transfer_passes||'';
-  staff_edit_progression.value=a.account_progression||'actively_progressing';
-  staff_t12i.checked=!!a.t12_infantry;staff_t12l.checked=!!a.t12_lancer;staff_t12m.checked=!!a.t12_marksman;
-  staff_t11i.checked=!!a.t11_infantry;staff_t11l.checked=!!a.t11_lancer;staff_t11m.checked=!!a.t11_marksman;
-  staff_noadv.checked=!!a.no_t11_t12;
-  staff_edit_modal.classList.add('open');staff_edit_modal.setAttribute('aria-hidden','false');
+  const a=currentApplication;if(!a||!staffEdit.modal)return;
+  staffEdit.discord.value=a.discord_username||'';
+  staffEdit.alliance.value=a.current_alliance||'';
+  staffEdit.coordinates.value=a.coordinates||'';
+  staffEdit.power.value=a.current_power||'';
+  staffEdit.furnace.value=a.furnace_level||'';
+  staffEdit.labyrinth.value=a.labyrinth_score??'';
+  staffEdit.passes.value=a.transfer_passes||'';
+  staffEdit.progression.value=a.account_progression||'actively_progressing';
+  staffEdit.t12i.checked=!!a.t12_infantry;staffEdit.t12l.checked=!!a.t12_lancer;staffEdit.t12m.checked=!!a.t12_marksman;
+  staffEdit.t11i.checked=!!a.t11_infantry;staffEdit.t11l.checked=!!a.t11_lancer;staffEdit.t11m.checked=!!a.t11_marksman;
+  staffEdit.noadv.checked=!!a.no_t11_t12;
+  staffEdit.message.textContent='';
+  staffEdit.modal.classList.add('open');staffEdit.modal.setAttribute('aria-hidden','false');
 }
-function closeStaffEdit(){staff_edit_modal.classList.remove('open');staff_edit_modal.setAttribute('aria-hidden','true');}
-document.getElementById('edit-applicant-details').onclick=openStaffEdit;
-document.querySelectorAll('[data-close-staff-edit]').forEach(x=>x.onclick=closeStaffEdit);
-document.getElementById('save-staff-edit').onclick=async()=>{
+function closeStaffEdit(){staffEdit.modal?.classList.remove('open');staffEdit.modal?.setAttribute('aria-hidden','true');}
+document.getElementById('edit-applicant-details')?.addEventListener('click',openStaffEdit);
+document.querySelectorAll('[data-close-staff-edit]').forEach(x=>x.addEventListener('click',closeStaffEdit));
+document.getElementById('save-staff-edit')?.addEventListener('click',async()=>{
   const payload={
-    discord_username:staff_edit_discord.value.trim()||null,
-    current_alliance:staff_edit_alliance.value.trim()||null,
-    coordinates:staff_edit_coordinates.value.trim()||null,
-    current_power:Number(String(staff_edit_power.value).replace(/\D/g,''))||0,
-    furnace_level:staff_edit_furnace.value.trim()||null,
-    labyrinth_score:staff_edit_labyrinth.value?Number(staff_edit_labyrinth.value):null,
-    transfer_passes:staff_edit_passes.value.trim()||null,
-    account_progression:staff_edit_progression.value,
-    t12_infantry:staff_t12i.checked,t12_lancer:staff_t12l.checked,t12_marksman:staff_t12m.checked,
-    t11_infantry:staff_t11i.checked,t11_lancer:staff_t11l.checked,t11_marksman:staff_t11m.checked,
-    no_t11_t12:staff_noadv.checked,
+    discord_username:staffEdit.discord.value.trim()||null,
+    current_alliance:staffEdit.alliance.value.trim()||null,
+    coordinates:staffEdit.coordinates.value.trim()||null,
+    current_power:Number(String(staffEdit.power.value).replace(/\D/g,''))||0,
+    furnace_level:staffEdit.furnace.value.trim()||null,
+    labyrinth_score:staffEdit.labyrinth.value?Number(staffEdit.labyrinth.value):null,
+    transfer_passes:staffEdit.passes.value.trim()||null,
+    account_progression:staffEdit.progression.value,
+    t12_infantry:staffEdit.t12i.checked,t12_lancer:staffEdit.t12l.checked,t12_marksman:staffEdit.t12m.checked,
+    t11_infantry:staffEdit.t11i.checked,t11_lancer:staffEdit.t11l.checked,t11_marksman:staffEdit.t11m.checked,
+    no_t11_t12:staffEdit.noadv.checked,
     updated_at:new Date().toISOString()
   };
-  const {error}=await sb.from('transfer_applications').update(payload).eq('id',applicationId);
-  if(error){staff_edit_message.textContent=error.message;return;}
-  await sb.rpc('log_transfer_action',{p_event_id:eventId||null,p_application_id:applicationId,p_action:'staff_application_edit',p_details:{fields:['contact','alliance','coordinates','power','furnace','labyrinth','passes','progression','troops']}});
+  const {error}=await sb.from('transfer_applications').update(payload).eq('id',currentApplication.id);
+  if(error){staffEdit.message.textContent=error.message;return;}
+  await sb.rpc('log_transfer_action',{p_event_id:eventId||null,p_application_id:currentApplication.id,p_action:'staff_application_edit',p_details:{fields:['contact','alliance','coordinates','power','furnace','labyrinth','passes','progression','troops']}});
   closeStaffEdit();await loadApplication();
-};
+});
 
 loadApplication();
 </script>

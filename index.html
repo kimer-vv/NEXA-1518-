@@ -1815,23 +1815,39 @@ document.addEventListener('DOMContentLoaded', async ()=>{
 
   const deepParams=new URLSearchParams(location.search);
   if(deepParams.get('admin')==='events'){
-    setTimeout(async()=>{
-      if(!(await ensureSvsStaff())) return;
+    const openDeepSvsAdmin=async()=>{
+      if(!(await ensureSvsStaff())) return false;
+
       adminModal.classList.add('open');
+      adminModal.setAttribute('aria-hidden','false');
       document.body.classList.add('modal-open');
-      document.querySelector('[data-admin-tab="events"]')?.click();
+
+      // Open the SAME SvS Control Center used from Administration.
+      document.getElementById('admin-module-chooser')?.classList.add('hidden');
+      document.getElementById('svs-admin-content')?.classList.remove('hidden');
+      document.querySelectorAll('[data-admin-tab]').forEach(b=>{
+        b.classList.toggle('active',b.dataset.adminTab==='events');
+      });
+      showAdminSection('events');
+
       await loadAdminEvents();
+      await loadAdminAlliances();
+      await loadEventAllianceSelectors();
+      renderEventPreview();
 
       if(deepParams.get('create')==='1'){
         resetEventForm();
-        document.getElementById('event-form')?.scrollIntoView({behavior:'smooth',block:'start'});
+        await loadEventAllianceSelectors();
+        document.getElementById('event-form')?.scrollIntoView({behavior:'auto',block:'start'});
         setTimeout(()=>document.getElementById('opponent-state')?.focus(),80);
       }
 
       const editId=deepParams.get('edit');
       if(editId){
-        const {data:row}=await supabaseClient.from('svs_events').select('*').eq('id',editId).maybeSingle();
-        if(row){
+        const {data:row,error}=await supabaseClient
+          .from('svs_events').select('*').eq('id',editId).maybeSingle();
+
+        if(!error && row){
           document.getElementById('event-id').value=row.id;
           document.getElementById('opponent-state').value=row.opponent_state||'';
           document.getElementById('prep-monday').value=row.prep_monday||'';
@@ -1841,18 +1857,33 @@ document.addEventListener('DOMContentLoaded', async ()=>{
           document.getElementById('battle-form-open').checked=!!row.battle_form_open;
           document.getElementById('schedule-published').checked=!!row.schedule_published;
           document.getElementById('event-is-live').checked=!!row.is_live;
+
           if(row.auto_end_at){
             const iso=new Date(row.auto_end_at).toISOString();
             document.getElementById('event-auto-end-date').value=iso.slice(0,10);
             document.getElementById('event-auto-end-time').value=iso.slice(11,16);
+          }else{
+            document.getElementById('event-auto-end-date').value='';
+            document.getElementById('event-auto-end-time').value='';
           }
+
           document.getElementById('event-lifecycle-actions')?.classList.remove('hidden');
           document.getElementById('cancel-event-edit')?.classList.remove('hidden');
           renderEventPreview();
-          document.getElementById('event-form')?.scrollIntoView({behavior:'smooth',block:'start'});
+          document.getElementById('event-form')?.scrollIntoView({behavior:'auto',block:'start'});
         }
       }
-    },600);
+      return true;
+    };
+
+    // Auth/session initialization on mobile can finish slightly after page load.
+    let attempts=0;
+    const tryOpen=async()=>{
+      attempts++;
+      const ok=await openDeepSvsAdmin();
+      if(!ok && attempts<8) setTimeout(tryOpen,300);
+    };
+    window.addEventListener('load',()=>setTimeout(tryOpen,80),{once:true});
   }
 </script>
 </body>

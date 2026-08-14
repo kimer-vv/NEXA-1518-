@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="lang.js"></script>
 <script src="ui-i18n-final.js"></script>
+<script src="help-guides.js" defer></script>
 </head>
 <body>
 <div class="nebula-bg" aria-hidden="true"></div>
@@ -193,6 +194,11 @@ async function loadEvent() {
   const { data, error } = id ? await query.maybeSingle() : await query.maybeSingle();
   if (error || !data) {
     document.getElementById('event-title').textContent = 'No live SvS event';
+    const {data:role}=await sb.rpc('current_nexa_role');
+    if(['owner','admin','scheduler'].includes(String(role||'').toLowerCase())){
+      document.getElementById('manage-svs-inline')?.classList.remove('hidden');
+      document.getElementById('create-event-inline')?.classList.remove('hidden');
+    }
     return;
   }
 
@@ -219,6 +225,8 @@ async function loadEvent() {
   }).join('');
 
   document.getElementById('event-description').textContent = data.description || t('noNotes');
+  const aboutSection=document.querySelector('.glass.about:not(#state-assignments)');
+  if(aboutSection) aboutSection.classList.toggle('hidden',isVerified!==true);
 
   const prep = document.getElementById('prep-form-btn');
   const battle = document.getElementById('battle-form-btn');
@@ -254,73 +262,20 @@ async function loadEvent() {
 
 async function enableInlineEdit(data){
   const {data:role}=await sb.rpc('current_nexa_role');
-  if(!['owner','admin','scheduler'].includes(role)) return;
-  const btn=document.getElementById('edit-event-inline');
-  btn.classList.remove('hidden');
-  document.getElementById('manage-svs-inline')?.classList.remove('hidden');
-  document.getElementById('create-event-inline')?.classList.remove('hidden');
-  btn.addEventListener('click',()=>{
-    document.getElementById('inline-opponent').value=data.opponent_state;
-    document.getElementById('inline-monday').value=data.prep_monday;
-    document.getElementById('inline-notes').value=data.description||'';
-    document.getElementById('inline-prep-open').checked=!!data.prep_form_open;
-    document.getElementById('inline-battle-open').checked=!!data.battle_form_open;
-    document.getElementById('inline-schedule-published').checked=!!data.schedule_published;
-    document.getElementById('inline-live').checked=!!data.is_live;
-    if(data.auto_end_at){
-      const autoIso=new Date(data.auto_end_at).toISOString();
-      document.getElementById('inline-auto-end-date').value=autoIso.slice(0,10);
-      document.getElementById('inline-auto-end-time').value=autoIso.slice(11,16);
-    }else{
-      document.getElementById('inline-auto-end-date').value='';
-      document.getElementById('inline-auto-end-time').value='';
-    }
-    document.getElementById('inline-end-event').classList.toggle('hidden', data.status!=='live');
-    document.getElementById('event-edit-modal').classList.add('open');
-  });
-  document.querySelectorAll('[data-close-event-edit]').forEach(x=>x.addEventListener('click',()=>{
-    document.getElementById('event-edit-modal').classList.remove('open');
-  }));
-  
-  const inlineEnd=document.getElementById('inline-end-event');
-  if(inlineEnd){
-    inlineEnd.onclick=async()=>{
-      const ok=confirm('End this SvS event? Current requests and appointments will move to History. Nothing will be permanently deleted.');
-      if(!ok) return;
-      const {error}=await sb.rpc('end_svs_event',{target_event_id:data.id});
-      document.getElementById('inline-event-message').textContent=error?error.message:'Event ended.';
-      if(!error) setTimeout(()=>location.href='index.html',350);
-    };
+  if(!['owner','admin','scheduler'].includes(String(role||'').toLowerCase())) return;
+  const manage=document.getElementById('manage-svs-inline');
+  const create=document.getElementById('create-event-inline');
+  const edit=document.getElementById('edit-event-inline');
+  if(manage){ manage.href='index.html?admin=events'; manage.classList.remove('hidden'); }
+  if(create){ create.href='index.html?admin=events&create=1'; create.classList.remove('hidden'); }
+  if(edit){
+    edit.classList.remove('hidden');
+    edit.textContent='Edit Event';
+    edit.onclick=()=>{ location.href='index.html?admin=events&edit='+encodeURIComponent(data.id); };
   }
-
-  document.getElementById('inline-event-form').onsubmit=async(e)=>{
-    e.preventDefault();
-    const payload={
-      opponent_state:Number(document.getElementById('inline-opponent').value),
-      prep_monday:document.getElementById('inline-monday').value,
-      description:document.getElementById('inline-notes').value.trim()||null,
-      prep_form_open:document.getElementById('inline-prep-open').checked,
-      battle_form_open:document.getElementById('inline-battle-open').checked,
-      schedule_published:document.getElementById('inline-schedule-published').checked,
-      is_live:document.getElementById('inline-live').checked,
-      status:document.getElementById('inline-live').checked?'live':'upcoming',
-      auto_end_at:(
-        document.getElementById('inline-auto-end-date').value &&
-        document.getElementById('inline-auto-end-time').value
-      ) ? new Date(
-        document.getElementById('inline-auto-end-date').value+'T'+
-        document.getElementById('inline-auto-end-time').value+':00Z'
-      ).toISOString() : null
-    };
-    const {error}=await sb.from('svs_events').update(payload).eq('id',data.id);
-    document.getElementById('inline-event-message').textContent=error?error.message:'Event updated.';
-    if(!error) setTimeout(()=>location.reload(),350);
-  };
 }
 
-syncScheduleButtonAccess();
 loadEvent();
 </script>
-<div style="position:fixed;right:8px;bottom:6px;font-size:10px;opacity:.35;z-index:9999">NEXA v33.2</div>
 </body>
 </html>

@@ -1,12 +1,13 @@
 <!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>NEXA • Transfer Control Center</title><link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="help-guides.js" defer></script>
+</head>
 <body><div class="nebula-bg" aria-hidden="true"></div><div class="starfield" aria-hidden="true"></div>
 <header class="topbar"><div class="shell nav"><a class="logo" href="index.html"><span class="star">✦</span><span>NEXA<small>STATE 1518</small></span></a></div></header>
 
 <main class="shell event-page transfer-admin-page">
- <div class="transfer-admin-head"><div><span class="badge">PRIVATE</span><h1>NEXA Transfers</h1><p class="muted">Transfer Control Center <span class="build-tag">v32.2</span></p><div id="transfer-diagnostic" class="diagnostic-chip">Loading transfer data…</div></div><a class="btn secondary" href="index.html?admin=modules&v=292">← Modules</a></div>
+ <div class="transfer-admin-head"><div><span class="badge">PRIVATE</span><h1>NEXA Transfers</h1><p class="muted">Transfer Control Center <span class="build-tag">v33.3</span></p><div id="transfer-diagnostic" class="diagnostic-chip">Loading transfer data…</div></div><a class="btn secondary" href="index.html?admin=modules&v=292">← Modules</a></div>
  <div class="transfer-tabs">
   <button class="transfer-tab active" data-tab="applications">Applications</button>
   <button class="transfer-tab" data-tab="roster">Transfer Roster</button>
@@ -874,7 +875,7 @@ window.addEventListener('error',ev=>{
 
   const qs=new URLSearchParams(location.search);
   const requestedTab=qs.get('tab');
-  if(requestedTab && document.getElementById('tab-'+requestedTab)) tab(requestedTab);
+  if(requestedTab && document.getElementById('tab-'+requestedTab)) { tab(requestedTab); setTimeout(()=>document.getElementById('tab-'+requestedTab)?.scrollIntoView({block:'start'}),30); }
 
   const requestedEvent=qs.get('event');
   if(requestedEvent && events.some(e=>e.id===requestedEvent)){
@@ -1020,22 +1021,65 @@ window.addEventListener('error',ev=>{
       box.innerHTML=`<p class="muted">${escRoster(error.message)}</p>`;
       return;
     }
-
+    const eventOptions=(events||[]).filter(e=>e.status!=='archived').map(e=>`<option value="${e.id}">${escRoster(e.title)}</option>`).join('');
     box.innerHTML=(data||[]).length
       ?data.map(a=>`
-        <a class="waiting-person-card" href="transfer-application.html?id=${encodeURIComponent(a.id)}&event=${encodeURIComponent(a.transfer_event_id||'')}">
+        <article class="waiting-person-card" data-waiting-id="${a.waiting_id||a.id}">
           <div>
             <b>${escRoster(a.in_game_name||'Unknown')}</b>
             <small>State ${escRoster(a.current_state||'—')} • ${escRoster(a.current_alliance||'—')}</small>
+            <small>${escRoster(a.current_power||'—')} power ${a.manual_priority?'• PRIORITY':''}</small>
           </div>
-          <div class="waiting-person-meta">
-            <span>${escRoster(a.current_power||'—')} power</span>
-            ${a.manual_priority?'<span class="badge">PRIORITY</span>':''}
+          <div class="waiting-person-meta" style="min-width:190px">
+            <select data-wait-event><option value="">Choose new cycle</option>${eventOptions}</select>
+            <select data-wait-target>
+              <option value="ordinary">Move to Ordinary</option>
+              <option value="special_invite">Move to Special</option>
+              <option value="open_transfer">Move to Open</option>
+              <option value="keep">Keep Waiting</option>
+              <option value="remove">Remove from Waiting List</option>
+            </select>
+            <button class="btn secondary" type="button" data-wait-apply>Apply</button>
           </div>
-        </a>
+        </article>
       `).join('')
       :'<div class="empty-state">No players are currently waiting for the next Transfer.</div>';
   }
+
+  document.getElementById('waiting-list-results')?.addEventListener('click',async e=>{
+    const btn=e.target.closest('[data-wait-apply]'); if(!btn)return;
+    const card=btn.closest('[data-waiting-id]'); const wid=card.dataset.waitingId;
+    const action=card.querySelector('[data-wait-target]').value;
+    const eventId=card.querySelector('[data-wait-event]').value;
+    if(action==='keep') return;
+    if(action==='remove'){
+      if(!confirm('Remove this player from Waiting List?'))return;
+      const {error}=await sb.rpc('remove_transfer_waiting_entry',{p_waiting_id:wid});
+      if(error)return alert(error.message); await loadWaitingList(); return;
+    }
+    if(!eventId) return alert('Choose the new Transfer cycle first.');
+
+    async function promote(){
+      const {error}=await sb.rpc('promote_transfer_waiting_entry',{p_waiting_id:wid,p_event_id:eventId,p_target_status:action});
+      if(!error){await loadWaitingList(); await loadTransferRoster(); return true;}
+      if(!String(error.message||'').includes('CAPACITY_FULL')){alert(error.message);return false;}
+
+      const label=action==='ordinary'?'Ordinary':'Special Invite';
+      const {data:candidates,error:ce}=await sb.from('transfer_applications')
+        .select('id,in_game_name,player_id').eq('transfer_event_id',eventId).eq('transfer_status',action).order('in_game_name');
+      if(ce){alert(ce.message);return false;}
+      const menu=(candidates||[]).map((x,i)=>`${i+1}. ${x.in_game_name} • ID ${x.player_id}`).join('\n');
+      const pick=prompt(`${label} is full.\n\nChoose someone to move to Waiting List:\n\n${menu}\n\nEnter the number.`);
+      const displaced=(candidates||[])[Number(pick)-1]; if(!displaced)return false;
+      if(!confirm(`Move ${displaced.in_game_name} to Waiting List and use the slot for this waiting player?`))return false;
+      const {error:we}=await sb.rpc('move_transfer_application_to_waiting_list',{p_application_id:displaced.id});
+      if(we){alert(we.message);return false;}
+      const {error:pe}=await sb.rpc('promote_transfer_waiting_entry',{p_waiting_id:wid,p_event_id:eventId,p_target_status:action});
+      if(pe){alert(pe.message);return false;}
+      await loadWaitingList(); await loadTransferRoster(); return true;
+    }
+    await promote();
+  });
 
   document.getElementById('copy-transfer-roster').addEventListener('click',async()=>{
     await loadTransferRoster();
@@ -1314,5 +1358,4 @@ async function refreshTransferCapacitySummary(){
 }
 </script>
 
-<div style="position:fixed;right:8px;bottom:6px;font-size:10px;opacity:.35;z-index:9999">NEXA v33.2</div>
 </body></html>

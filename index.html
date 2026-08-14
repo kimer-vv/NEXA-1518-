@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="lang.js"></script>
 <script src="ui-i18n-final.js"></script>
+<script src="help-guides.js" defer></script>
 </head>
 <body>
 <div class="nebula-bg" aria-hidden="true"></div>
@@ -99,9 +100,9 @@
     <div id="home-transfer-events" class="glass events"></div>
   </section>
 
-  <div class="shell" style="margin-top:10px"><div class="build-proof">NEXA BUILD v31.4.1</div></div>
+  <div class="shell" style="margin-top:10px"><div class="build-proof">NEXA BUILD v33.3</div></div>
   <div class="footer">
-    One State. One Vision. One Victory.<br>
+    Your state. One hub. Everything connected.<br>
     NEXA • State 1518
   </div>
 </main>
@@ -1201,7 +1202,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   function applyIndexLanguage() {
     NEXA_I18N.setDir(currentLanguage);
 
-    setText('.hero p','stateHub');
+    const heroSub=document.querySelector('.hero p'); if(heroSub) heroSub.textContent='STATE 1518 • EVENTS • ACCOUNTS • COORDINATION';
     setText('.section .head h2','myAccounts');
     const heads = document.querySelectorAll('.section .head h2');
     if (heads[1]) heads[1].textContent = tr('liveUpcoming');
@@ -1788,20 +1789,26 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   }catch(_){}
 });
 
-const adminQuery=new URLSearchParams(location.search).get('admin');
+const deepParams=new URLSearchParams(location.search);
+  const adminQuery=deepParams.get('admin');
   if(adminQuery==='events'){
     setTimeout(async()=>{
       if(await ensureAdmin()){
         adminModal.classList.add('open');
         document.body.classList.add('modal-open');
         document.querySelector('[data-admin-tab="events"]')?.click();
-        if(new URLSearchParams(location.search).get('create')==='1'){
-          setTimeout(()=>document.getElementById('new-event-btn')?.click(),120);
+        await loadAdminEvents();
+        if(deepParams.get('create')==='1'){
+          resetEventForm();
+          setTimeout(()=>document.getElementById('opponent-state')?.focus(),80);
+        }
+        const editId=deepParams.get('edit');
+        if(editId){
+          setTimeout(()=>document.querySelector(`[data-event-edit="${CSS.escape(editId)}"]`)?.click(),100);
         }
       }
     },350);
   }
 </script>
-<div style="position:fixed;right:8px;bottom:6px;font-size:10px;opacity:.35;z-index:9999">NEXA v33.2</div>
 </body>
 </html>

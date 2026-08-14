@@ -1,7 +1,8 @@
 <!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>NEXA • Transfers</title><link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="help-guides.js" defer></script>
+</head>
 <body><div class="nebula-bg" aria-hidden="true"></div><div class="starfield" aria-hidden="true"></div>
 <header class="topbar"><div class="shell nav"><a class="logo" href="index.html"><span class="star">✦</span><span>NEXA<small>STATE 1518</small></span></a></div></header>
 <div class="shell event-top-nav">
@@ -83,12 +84,13 @@ const token=new URLSearchParams(location.search).get('token');
  cap.textContent=e.power_cap?fmtPower(e.power_cap):'Set by staff'; document.getElementById('special-cap').textContent=e.special_power_cap?fmtPower(e.special_power_cap):'Set by staff'; open.textContent=e.applications_open?'Open':'Closed';
  range.textContent=(e.source_state_min||e.source_state_max)?`Eligible range: State ${e.source_state_min||'—'}–${e.source_state_max||'—'}`:'State 1518 Transfer Cycle';
  notes.textContent=e.public_notes||'Submit an interest application for this transfer cycle.';
- const [{data:canManage},{data:isAdmin}] = await Promise.all([
+ const [{data:canManage},{data:role}] = await Promise.all([
    sb.rpc('can_manage_transfers'),
-   sb.rpc('is_admin')
+   sb.rpc('current_nexa_role')
  ]);
-
- const hasTransferAdminAccess = canManage===true || isAdmin===true;
+ const normalizedRole=String(role||'player').toLowerCase();
+ const isTransferAdmin=['owner','admin'].includes(normalizedRole);
+ const hasTransferAdminAccess = canManage===true || isTransferAdmin;
 
  if(hasTransferAdminAccess){
    const manageTransfersMain=document.getElementById('manage-transfers-main');
@@ -96,12 +98,12 @@ const token=new URLSearchParams(location.search).get('token');
    manageTransfersMain.classList.remove('hidden');
  }
 
- if(isAdmin===true){
+ if(isTransferAdmin){
    const base='transfer-admin.html';
    adminApplicationsLink.href=base+'?tab=applications&event='+encodeURIComponent(e.id);
    adminFormLink.href=base+'?tab=form&event='+encodeURIComponent(e.id);
    adminEventsLink.href=base+'?tab=events&edit='+encodeURIComponent(e.id);
-   adminRecruitingLink.href=base+'?tab=recruiting&event='+encodeURIComponent(e.id);
+   adminRecruitingLink.href=base+'?tab=alliances&event='+encodeURIComponent(e.id);
    adminPermissionsLink.href=base+'?tab=permissions';
    adminHistoryLink.href=base+'?tab=history';
    ownerAdminTools.classList.remove('hidden');

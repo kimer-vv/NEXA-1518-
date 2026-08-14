@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="lang.js"></script>
 <script src="ui-i18n-final.js"></script>
+<script src="help-guides.js" defer></script>
 </head>
 <body>
 <div class="nebula-bg" aria-hidden="true"></div>
@@ -94,6 +95,7 @@ let activeOffset = 0;
 let canManageSchedule = false;
 let currentDayAppointments = [];
 let moveSource = null;
+let recentlyUpdatedIds=new Set();
 
 const copyCurrentDayBtn = document.getElementById('copy-current-day');
 const copyFullScheduleBtn = document.getElementById('copy-full-schedule');
@@ -154,12 +156,12 @@ async function renderSlots() {
     const a = byTime.get(hm);
     const p = a?.player_accounts;
     const alliance = p?.alliances?.tag || p?.custom_alliance_tag || '';
-    out += `<div class="slot ${a?'':'open'} ${canManageSchedule?'movable':''}" data-slot-time="${hm}" data-appointment-id="${a?.id||''}">
+    out += `<div class="slot ${a?'':'open'} ${canManageSchedule?'movable':''} ${a&&recentlyUpdatedIds.has(a.id)?'updated-now':''}" data-slot-time="${hm}" data-appointment-id="${a?.id||''}">
       <div class="utc">${hm} UTC</div>
       <div class="local">${NEXA_I18N.t(currentLang,'yourTime')}: ${localSlotLabel(d)}</div>
       <div class="name">${a ? (p?.in_game_name || 'Player') : NEXA_I18N.t(currentLang,'openUnassigned')}</div>
       <div class="id">${a ? `${alliance}${alliance?' • ':''}ID ${p?.player_id || '—'}` : '—'}</div>
-      ${canManageSchedule?`<div class="move-hint">${moveSource?.id===a?.id?'Selected — tap destination':(a?'Tap to move':'Tap as destination')}</div>`:''}
+      ${a&&recentlyUpdatedIds.has(a.id)?'<span class="updated-chip">Updated</span>':''}${canManageSchedule?`<div class="move-hint">${moveSource?.id===a?.id?'Selected — tap destination':(a?'Tap to move':'Tap as destination')}</div>`:''}
     </div>`;
   }
   document.getElementById('schedule-slots').innerHTML = out;
@@ -174,8 +176,21 @@ async function auditMove(action,details){
   try{ await sb.rpc('write_audit',{action_name:action,action_details:details}); }catch(e){console.warn(e);}
 }
 
-function snap(a,timeOverride=null){
-  return {id:a.id,time:timeOverride||a.appointment_time,name:apptName(a)};
+function snap(a,timeOverride=undefined){
+  return {
+    id:a.id,
+    time:timeOverride===undefined?a.appointment_time:timeOverride,
+    name:apptName(a),
+    event_id:a.event_id,
+    prep_request_id:a.prep_request_id,
+    day_type:a.day_type,
+    ministry_position:a.ministry_position
+  };
+}
+function markUpdated(ids=[]){
+  recentlyUpdatedIds=new Set(ids.filter(Boolean));
+  renderSlots();
+  setTimeout(()=>{recentlyUpdatedIds.clear();renderSlots();},4200);
 }
 async function recordScheduleChange(type,before,after){
   const dayType=activeOffset===0?'construction':activeOffset===1?'research':'training';
@@ -200,12 +215,13 @@ async function loadRecentChanges(){
   if(error){box.innerHTML=`<div class="empty-state">${error.message}</div>`;return;}
   box.innerHTML=(data||[]).length?(data||[]).map(c=>{
     const when=new Date(c.changed_at).toLocaleString();
+    const who=c.changed_by_name||'Staff';
     const b=c.before_state||[],a=c.after_state||[];
     const summary=c.action_type==='swap'&&b.length>1
       ?`${b[0].name} ↔ ${b[1].name}`
       :`${b[0]?.name||'Player'}: ${b[0]?.time?new Date(b[0].time).toISOString().slice(11,16):'—'} → ${a[0]?.time?new Date(a[0].time).toISOString().slice(11,16):'Unscheduled'} UTC`;
     const left=Math.max(0,Math.ceil((new Date(c.changed_at).getTime()+30*60000-Date.now())/60000));
-    return `<article class="history-card"><div><b>${summary}</b><small>${c.action_type.toUpperCase()} • ${when}</small></div>
+    return `<article class="history-card"><div><b>${summary}</b><small>${c.action_type.toUpperCase()} • ${when} • ${who}</small></div>
       <div class="history-actions"><button class="btn secondary" data-copy-change="${c.id}">Copy Change</button>
       ${c.can_undo?`<button class="btn secondary" data-undo-change="${c.id}">Undo · ${left} min</button>`:''}</div></article>`;
   }).join(''):'<div class="empty-state">No schedule changes yet.</div>';
@@ -221,6 +237,7 @@ async function moveAppointment(source,targetTime,target){
     if(error){ alert(error.message); return; }
     await auditMove('ministry_appointment_moved',{appointment_id:source.id,from:sourceTime,to:targetTime});
     await recordScheduleChange('move',[snap(source)],[snap(source,stampForCurrentDay(targetTime))]);
+    markUpdated([source.id]);
   }else{
     const targetName=apptName(target);
     const choice=prompt(`${targetTime} UTC is assigned to ${targetName}.\n\nType:\nSWAP — move ${targetName} to ${sourceTime} UTC\nREMOVE — move ${apptName(source)} to ${targetTime} UTC and unschedule ${targetName}\nCANCEL — change nothing`,'SWAP');
@@ -237,13 +254,15 @@ async function moveAppointment(source,targetTime,target){
       if(r.error){alert(r.error.message);return;}
       await auditMove('ministry_appointments_swapped',{first_id:source.id,first_from:sourceTime,first_to:targetTime,second_id:target.id,second_from:targetTime,second_to:sourceTime});
       await recordScheduleChange('swap',[snap(source),snap(target)],[snap(source,stampForCurrentDay(targetTime)),snap(target,stampForCurrentDay(sourceTime))]);
+      markUpdated([source.id,target.id]);
     }else if(c==='REMOVE'){
       if(!confirm(`Move ${apptName(source)} to ${targetTime} UTC and remove ${targetName} from the schedule?\n\n${targetName}'s Prep Request will NOT be deleted.`)) return;
       // Delete appointment only; Prep Request remains intact and can be scheduled again.
       let r=await sb.from('ministry_appointments').delete().eq('id',target.id); if(r.error){alert(r.error.message);return;}
       r=await sb.from('ministry_appointments').update({appointment_time:stampForCurrentDay(targetTime)}).eq('id',source.id); if(r.error){alert(r.error.message);return;}
       await auditMove('ministry_appointment_replaced',{moved_id:source.id,from:sourceTime,to:targetTime,unscheduled_id:target.id});
-      await recordScheduleChange('unschedule',[snap(source),snap(target)],[snap(source,stampForCurrentDay(targetTime)),{id:target.id,time:null,name:apptName(target)}]);
+      await recordScheduleChange('unschedule',[snap(source),snap(target)],[snap(source,stampForCurrentDay(targetTime)),snap(target,null)]);
+      markUpdated([source.id]);
     }else{ alert('Use SWAP, REMOVE, or CANCEL.'); return; }
   }
   moveSource=null; await renderSlots(); await refreshAllianceOptions();
@@ -382,6 +401,5 @@ document.getElementById('recent-changes-list')?.addEventListener('click',async e
   if(undo){if(!confirm('Undo this schedule change?'))return;const {error}=await sb.rpc('undo_ministry_schedule_change',{p_change_id:Number(undo.dataset.undoChange)});if(error)return alert(error.message);await renderSlots();await loadRecentChanges();}
 });
 </script>
-<div style="position:fixed;right:8px;bottom:6px;font-size:10px;opacity:.35;z-index:9999">NEXA v33.2</div>
 </body>
 </html>

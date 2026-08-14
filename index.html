@@ -1886,5 +1886,89 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     window.addEventListener('load',()=>setTimeout(tryOpen,80),{once:true});
   }
 </script>
+
+<script>
+/* NEXA v33.9 — reliable SvS Admin navigation from View Event */
+(function(){
+  let attempts=0;
+
+  async function consumeSvsIntent(){
+    let intent=null;
+    try{intent=JSON.parse(sessionStorage.getItem('nexa_svs_admin_intent')||'null');}catch(_){}
+    if(!intent)return;
+
+    attempts++;
+    const adminBtn=document.getElementById('admin-panel-button');
+    const svsBtn=document.getElementById('open-svs-admin');
+    const modal=document.getElementById('admin-modal');
+
+    if(!adminBtn || !svsBtn || !modal){
+      if(attempts<20)setTimeout(consumeSvsIntent,250);
+      return;
+    }
+
+    // Wait until authentication/permissions are actually ready.
+    let can=false;
+    try{
+      const {data}=await supabaseClient.rpc('can_manage_svs');
+      can=data===true;
+    }catch(_){}
+
+    if(!can){
+      if(attempts<20)setTimeout(consumeSvsIntent,300);
+      return;
+    }
+
+    adminBtn.click();
+    setTimeout(async()=>{
+      svsBtn.click();
+
+      setTimeout(async()=>{
+        if(intent.mode==='create'){
+          if(typeof resetEventForm==='function') resetEventForm();
+          if(typeof loadEventAllianceSelectors==='function') await loadEventAllianceSelectors();
+          document.getElementById('event-form')?.scrollIntoView({behavior:'auto',block:'start'});
+        }
+
+        if(intent.mode==='edit' && intent.eventId){
+          const {data:row}=await supabaseClient
+            .from('svs_events').select('*').eq('id',intent.eventId).maybeSingle();
+
+          if(row){
+            document.getElementById('event-id').value=row.id;
+            document.getElementById('opponent-state').value=row.opponent_state||'';
+            document.getElementById('prep-monday').value=row.prep_monday||'';
+            document.getElementById('event-description').value=row.description||'';
+            if(typeof loadEventAllianceSelectors==='function'){
+              await loadEventAllianceSelectors(row.castle_alliance_id,row.presidency_alliance_id);
+            }
+            document.getElementById('prep-form-open').checked=!!row.prep_form_open;
+            document.getElementById('battle-form-open').checked=!!row.battle_form_open;
+            document.getElementById('schedule-published').checked=!!row.schedule_published;
+            document.getElementById('event-is-live').checked=!!row.is_live;
+
+            if(row.auto_end_at){
+              const iso=new Date(row.auto_end_at).toISOString();
+              document.getElementById('event-auto-end-date').value=iso.slice(0,10);
+              document.getElementById('event-auto-end-time').value=iso.slice(11,16);
+            }
+
+            document.getElementById('event-lifecycle-actions')?.classList.remove('hidden');
+            document.getElementById('cancel-event-edit')?.classList.remove('hidden');
+            if(typeof renderEventPreview==='function')renderEventPreview();
+            document.getElementById('event-form')?.scrollIntoView({behavior:'auto',block:'start'});
+          }
+        }
+
+        try{sessionStorage.removeItem('nexa_svs_admin_intent');}catch(_){}
+      },250);
+    },180);
+  }
+
+  window.addEventListener('load',()=>setTimeout(consumeSvsIntent,150),{once:true});
+  setTimeout(consumeSvsIntent,500);
+})();
+</script>
+
 </body>
 </html>

@@ -1467,4 +1467,111 @@ async function refreshTransferCapacitySummary(){
 })();
 </script>
 
+
+<script>
+/* NEXA v33.9 — authoritative Waiting List UI */
+(function(){
+  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const box=document.getElementById('waiting-list-results');
+
+  function currentEventId(){
+    const q=new URLSearchParams(location.search);
+    return q.get('event') || document.getElementById('application-event-filter')?.value || window.currentTransferEventId || '';
+  }
+
+  async function renderWaiting(){
+    if(!box)return;
+    box.innerHTML='<div class="empty-state">Loading waiting list…</div>';
+
+    const {data,error}=await sb.rpc('get_transfer_waiting_list');
+    if(error){
+      box.innerHTML=`<div class="empty-state">${esc(error.message)}</div>`;
+      return;
+    }
+
+    window.NEXA_WAITING_ROWS=data||[];
+
+    box.innerHTML=(data||[]).length
+      ?data.map(a=>`
+        <article class="waiting-person-card" data-wid="${esc(a.waiting_id)}">
+          <div>
+            <b>${esc(a.in_game_name||'Unknown')}</b>
+            <small>Application ${esc(a.application_id||'—')} • State ${esc(a.current_state||'—')} • ${esc(a.current_alliance||'—')}</small>
+            <small>${esc(a.current_power||'—')} power${a.manual_priority?' • PRIORITY':''}</small>
+          </div>
+          <div class="waiting-person-meta">
+            <button class="btn secondary" data-wait-act="details" type="button">View Details</button>
+            <button class="btn secondary" data-wait-act="ordinary" type="button">Ordinary Invite</button>
+            <button class="btn secondary" data-wait-act="special_invite" type="button">Special Invite</button>
+            <button class="btn secondary" data-wait-act="return" type="button">Return to Applications</button>
+            <button class="btn danger" data-wait-act="remove" type="button">Remove from Waiting List</button>
+          </div>
+        </article>`).join('')
+      :'<div class="empty-state">No players are currently waiting for the next Transfer.</div>';
+  }
+
+  window.loadTransferWaitingList=renderWaiting;
+
+  box?.addEventListener('click',async e=>{
+    const card=e.target.closest('[data-wid]');
+    const btn=e.target.closest('[data-wait-act]');
+    if(!card||!btn)return;
+
+    const wid=card.dataset.wid;
+    const action=btn.dataset.waitAct;
+    const row=(window.NEXA_WAITING_ROWS||[]).find(x=>String(x.waiting_id)===String(wid));
+
+    if(action==='details'){
+      if(row?.source_application_id){
+        location.href=`transfer-application.html?id=${encodeURIComponent(row.source_application_id)}&event=${encodeURIComponent(currentEventId())}`;
+      }else{
+        location.href=`transfer-application.html?waiting=${encodeURIComponent(wid)}&event=${encodeURIComponent(currentEventId())}`;
+      }
+      return;
+    }
+
+    if(action==='remove'){
+      if(!confirm('Remove this player from Waiting List?'))return;
+      const {error}=await sb.rpc('remove_transfer_waiting_entry',{p_waiting_id:wid});
+      if(error)return alert(error.message);
+      await renderWaiting();
+      return;
+    }
+
+    if(action==='return'){
+      const {error}=await sb.rpc('return_transfer_waiting_to_applications',{p_waiting_id:wid});
+      if(error)return alert(error.message);
+      await renderWaiting();
+      return;
+    }
+
+    const eventId=currentEventId();
+    if(!eventId)return alert('Select the current Transfer cycle first.');
+
+    const {error}=await sb.rpc('promote_transfer_waiting_entry',{
+      p_waiting_id:wid,
+      p_event_id:eventId,
+      p_target_status:action
+    });
+    if(error){
+      if(String(error.message||'').includes('NO_SPECIAL_INVITES')) alert('No Special Invites are available for this Transfer cycle.');
+      else if(String(error.message||'').includes('CAPACITY_FULL')) alert('That invite category is currently full.');
+      else alert(error.message);
+      return;
+    }
+    await renderWaiting();
+  });
+
+  // Capture the Waiting tab click after all older scripts have run.
+  document.addEventListener('click',e=>{
+    if(e.target.closest('[data-tab="waiting"]')){
+      setTimeout(renderWaiting,80);
+    }
+  },true);
+
+  const q=new URLSearchParams(location.search);
+  if(q.get('tab')==='waiting') setTimeout(renderWaiting,180);
+})();
+</script>
+
 </body></html>

@@ -5,7 +5,94 @@
 <script src="ui-i18n-final.js"></script><script src="transfer-i18n-full-data.js"></script><script src="transfer-i18n-full.js"></script><style>
 .coordinate-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .coordinate-pair label{margin:0}
-</style></head>
+</style>
+<style>
+.strong-account-callout{
+  margin:18px 0 4px;
+  padding:14px 16px;
+  border:1px solid rgba(241,196,79,.34);
+  border-radius:16px;
+  background:linear-gradient(135deg,rgba(241,196,79,.12),rgba(157,95,255,.08));
+  color:#f2cf70;
+  font-weight:800;
+}
+.application-received .public-transfer-topbar,
+.application-received #internal-form-nav,
+.application-received .transfer-badge,
+.application-received #event-title,
+.application-received .transfer-welcome,
+.application-received .transfer-placement-note,
+.application-received #transfer-form-event-summary,
+.application-received #transfer-form,
+.application-received #edit-my-application-top{
+  display:none !important;
+}
+.application-received .transfer-form-page{
+  width:min(100% - 24px,760px);
+  max-width:760px;
+  margin:0 auto;
+  padding-top:22px;
+}
+.application-received #success-card{
+  display:flex !important;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+  width:100%;
+  max-width:720px;
+  margin:0 auto 32px;
+  padding:clamp(24px,6vw,48px) clamp(18px,5vw,42px);
+  overflow:hidden;
+}
+.application-received #success-card h2{
+  margin:18px 0 20px;
+  font-size:clamp(2rem,8vw,3.3rem);
+  line-height:1.05;
+}
+.success-lead{
+  font-size:clamp(1.05rem,4.7vw,1.5rem);
+  line-height:1.35;
+}
+.success-credential{
+  width:100%;
+  max-width:100%;
+  margin:10px 0 14px;
+  padding:12px 10px;
+  font-size:clamp(1.15rem,5.7vw,2rem);
+  line-height:1.2;
+  font-weight:900;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+  white-space:normal;
+}
+.edit-token-value{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+  font-size:clamp(.82rem,3.7vw,1.15rem);
+  letter-spacing:.02em;
+}
+.credential-divider{
+  width:100%;
+  height:1px;
+  margin:28px 0 18px;
+  background:rgba(255,255,255,.09);
+}
+.credential-label{margin:0 0 4px}
+.success-save-note{
+  margin-top:24px;
+  max-width:600px;
+  line-height:1.5;
+}
+.success-actions{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:10px;
+  width:100%;
+  margin-top:26px;
+}
+.success-actions .btn{flex:1 1 210px;max-width:300px}
+</style>
+</head>
 <body><div class="nebula-bg" aria-hidden="true"></div><div class="starfield" aria-hidden="true"></div>
 <header class="topbar public-transfer-topbar"><div class="shell nav"><div class="logo public-form-logo"><span class="star">✦</span><span>NEXA<small>STATE 1518 • TRANSFERS</small></span></div></div></header>
 <div id="internal-form-nav" class="shell internal-form-nav hidden">
@@ -21,6 +108,7 @@
  <section class="glass transfer-welcome">
    <h2>Welcome to State 1518 💜</h2>
    <p>We’re building an <b>active, competitive, and team-oriented state</b>. We value players who contribute, communicate, prepare for important events, and understand that some competitions require a <b>state-first approach</b>.</p>
+   <p class="strong-account-callout"><b>Strong accounts matter — but the player behind the account matters just as much.</b></p>
 
    <details class="event-expectations">
      <summary>🏆 How does State 1518 run major events?</summary>
@@ -143,11 +231,27 @@
   <div id="form-message" class="form-message"></div>
   <button class="btn" type="submit">Submit Application</button>
  </form>
- <section id="success-card" class="glass success-card hidden"><span class="badge">RECEIVED</span><h2>Application Received 💜</h2><p>Thank you for your interest in State 1518. Your Application ID:</p><div id="application-id" class="application-id"></div>
-        <button id="copy-id" class="btn secondary" type="button">Copy Application ID</button>
-        <p><b>Private Edit Token:</b></p><div id="edit-token" class="application-id"></div>
-        <button id="copy-edit-token" class="btn secondary" type="button">Copy Edit Token</button>
-        <p class="muted"><b>Save both the Application ID and Edit Token.</b> You need both if you want to edit your application later. NEXA will not show the private token to staff.</p></section>
+ <section id="success-card" class="glass success-card hidden" aria-live="polite">
+  <span class="badge">RECEIVED</span>
+  <h2>Application Received 💜</h2>
+  <p class="success-lead">Thank you for your interest in State 1518.<br>Your Application ID:</p>
+
+  <div id="application-id" class="application-id success-credential"></div>
+  <button id="copy-id" class="btn secondary" type="button">Copy Application ID</button>
+
+  <div class="credential-divider"></div>
+
+  <p class="credential-label"><b>Private Edit Token</b></p>
+  <div id="edit-token" class="application-id success-credential edit-token-value"></div>
+  <button id="copy-edit-token" class="btn secondary" type="button">Copy Edit Token</button>
+
+  <p class="muted success-save-note"><b>Save both the Application ID and Edit Token.</b><br>You need both if you want to edit your application later. NEXA will not show the private token to staff.</p>
+
+  <div class="success-actions">
+    <a id="success-edit-application" class="btn" href="#">Edit My Application</a>
+    <a id="success-back-transfers" class="btn secondary" href="index.html">Back to Transfers</a>
+  </div>
+</section>
 </main>
 
 <script>
@@ -179,6 +283,8 @@ const els={
   copyId:$('copy-id'),
   editToken:$('edit-token'),
   copyEditToken:$('copy-edit-token'),
+  successEdit:$('success-edit-application'),
+  successBack:$('success-back-transfers'),
 
   confirmsEvent:$('confirms_event_structure'),
   completedBy:$('completed_by'),
@@ -530,6 +636,19 @@ els.form.addEventListener('submit',async ev=>{
   els.applicationId.textContent=data.application_id;
   els.editToken.textContent=data.edit_token||'Unavailable';
 
+  // Dedicated success screen: prevents the long token from forcing iPhone
+  // into a zoomed-out desktop-width layout.
+  document.body.classList.add('application-received');
+  sessionStorage.setItem('nexa_transfer_edit_application_id',data.application_id||'');
+  sessionStorage.setItem('nexa_transfer_edit_token',data.edit_token||'');
+  sessionStorage.setItem('nexa_transfer_event_token',token||'');
+  if(els.successEdit && token){
+    els.successEdit.href='transfer-edit.html?token='+encodeURIComponent(token);
+  }
+  if(els.successBack){
+    els.successBack.href=fromNexa?'transfer-event.html?token='+encodeURIComponent(token):'index.html';
+  }
+
   if(data.duplicate){
     els.success.insertAdjacentHTML(
       'beforeend',
@@ -544,7 +663,7 @@ els.form.addEventListener('submit',async ev=>{
     );
   }
 
-  els.success.scrollIntoView({behavior:'smooth',block:'start'});
+  window.scrollTo({top:0,left:0,behavior:'auto'});
 });
 
 els.copyId.addEventListener('click',async()=>{

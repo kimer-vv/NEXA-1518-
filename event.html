@@ -271,7 +271,7 @@ async function enableInlineEdit(data){
   document.getElementById('create-event-inline')?.classList.add('hidden');
   const edit=document.getElementById('edit-event-inline');
   if(edit){
-    edit.href='index.html?admin=events&module=svs&edit='+encodeURIComponent(data.id);
+    edit.href='index.html?admin=events&module=svs&edit='+encodeURIComponent(data.id); edit.dataset.eventId=data.id;
     edit.classList.remove('hidden');
   }
 }
@@ -296,5 +296,34 @@ loadEvent();
     <div class="detail-block"><b>Verified State Access</b><p>Verified members can see private schedule/assignments and internal announcements. External users only see public/basic event content and forms.</p></div>
   </section>
 </div>
+
+<script>
+(function(){
+  function goAdmin(intent){
+    try{sessionStorage.setItem('nexa_svs_admin_intent',JSON.stringify(intent));}catch(_){}
+    location.href='index.html';
+  }
+
+  document.getElementById('manage-svs-inline')?.addEventListener('click',e=>{
+    e.preventDefault();
+    goAdmin({mode:'manage'});
+  });
+
+  document.getElementById('create-event-inline')?.addEventListener('click',e=>{
+    e.preventDefault();
+    goAdmin({mode:'create'});
+  });
+
+  document.getElementById('edit-event-inline')?.addEventListener('click',e=>{
+    e.preventDefault();
+    const id=new URL(e.currentTarget.href,location.href).searchParams.get('edit')
+      || e.currentTarget.dataset.eventId
+      || localStorage.getItem('nexa_live_event_id')
+      || '';
+    goAdmin({mode:'edit',eventId:id});
+  });
+})();
+</script>
+
 </body>
 </html>

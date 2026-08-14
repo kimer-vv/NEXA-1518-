@@ -11,7 +11,7 @@
 <header class="topbar"><div class="shell nav"><a class="logo" href="index.html"><span class="star">✦</span><span>NEXA<small>STATE 1518 • TRANSFERS</small></span></a></div></header>
 <main class="shell event-page">
   <a class="back" href="javascript:history.back()">← Back</a>
-  <section class="glass" style="margin-top:16px">
+  <section id="unlock-card" class="glass" style="margin-top:16px">
     <span class="badge">PRIVATE APPLICATION EDIT</span>
     <h1>Edit My Application</h1>
     <p class="muted">Enter the Application ID and private Edit Token you received when you submitted.</p>
@@ -51,48 +51,192 @@
   </section>
 </main>
 <script>
-const sb=window.supabase.createClient("https://dfxcxboxrkfmrnsgpyin.supabase.co","sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-");
-const eventToken=new URLSearchParams(location.search).get('token')||'';
-let appId='',editToken='';
+const sb=window.supabase.createClient(
+  "https://dfxcxboxrkfmrnsgpyin.supabase.co",
+  "sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-"
+);
+
+const q=new URLSearchParams(location.search);
+const eventToken=q.get('token') || sessionStorage.getItem('nexa_transfer_event_token') || '';
+
+const ui={
+  unlockCard:document.getElementById('unlock-card'),
+  unlockForm:document.getElementById('unlock-form'),
+  appId:document.getElementById('app-id'),
+  token:document.getElementById('edit-token-input'),
+  unlockMessage:document.getElementById('unlock-message'),
+  editCard:document.getElementById('edit-card'),
+  identityTitle:document.getElementById('identity-title'),
+  editForm:document.getElementById('edit-form'),
+  editMessage:document.getElementById('edit-message'),
+  discord:document.getElementById('discord'),
+  alliance:document.getElementById('alliance'),
+  coordinates:document.getElementById('coordinates'),
+  power:document.getElementById('power'),
+  powerPreview:document.getElementById('power-preview'),
+  furnace:document.getElementById('furnace'),
+  passes:document.getElementById('passes'),
+  progression:document.getElementById('progression'),
+  leaderQ:document.getElementById('leader-q'),
+  leaderRequest:document.getElementById('leader-request'),
+  labWrap:document.getElementById('lab-wrap'),
+  labyrinth:document.getElementById('labyrinth'),
+  t12i:document.getElementById('t12i'),
+  t12l:document.getElementById('t12l'),
+  t12m:document.getElementById('t12m'),
+  t11i:document.getElementById('t11i'),
+  t11l:document.getElementById('t11l'),
+  t11m:document.getElementById('t11m'),
+  noadv:document.getElementById('noadv')
+};
+
+let currentAppId='';
+let currentEditToken='';
 
 function syncLab(){
-  const auto=progression.value==='highly_developed';
-  leader_q.classList.toggle('hidden',auto);
-  const needed=auto||leader_request.value==='yes';
-  lab_wrap.classList.toggle('hidden',!needed);labyrinth.required=needed;
+  const auto=ui.progression.value==='highly_developed';
+  ui.leaderQ.classList.toggle('hidden',auto);
+  const needed=auto || ui.leaderRequest.value==='yes';
+  ui.labWrap.classList.toggle('hidden',!needed);
+  ui.labyrinth.required=needed;
 }
-progression.onchange=syncLab;leader_request.onchange=syncLab;
-power.oninput=()=>{power.value=power.value.replace(/\D/g,'');const n=Number(power.value||0);power_preview.innerHTML=n?`Readable preview: <b>${n>=1e9?(n/1e9).toFixed(2)+'B':n>=1e6?(n/1e6).toFixed(1)+'M':n}</b>`:'';};
-const advanced=[t12i,t12l,t12m,t11i,t11l,t11m];
-noadv.onchange=()=>{if(noadv.checked)advanced.forEach(x=>{x.checked=false;x.disabled=true});else advanced.forEach(x=>x.disabled=false);};
-advanced.forEach(x=>x.onchange=()=>{if(x.checked){noadv.checked=false;advanced.forEach(y=>y.disabled=false);}});
 
-unlock_form.onsubmit=async e=>{
-  e.preventDefault();unlock_message.textContent='Checking…';
-  appId=document.getElementById('app-id').value.trim();editToken=edit_token_input.value.trim();
-  const {data,error}=await sb.rpc('get_transfer_application_for_edit',{p_event_token:eventToken,p_application_id:appId,p_edit_token:editToken});
-  if(error||!data){unlock_message.textContent=error?.message||'Application not found or token invalid.';return;}
-  identity_title.textContent=`${data.in_game_name} • ${data.application_id}`;
-  discord.value=data.discord_username||'';alliance.value=data.current_alliance||'';coordinates.value=data.coordinates||'';
-  power.value=data.current_power||'';furnace.value=data.furnace_level||'';passes.value=data.transfer_passes||'';
-  progression.value=data.account_progression||'actively_progressing';leader_request.value=data.leader_requested_labyrinth?'yes':'no';labyrinth.value=data.labyrinth_score??'';
-  t12i.checked=!!data.t12_infantry;t12l.checked=!!data.t12_lancer;t12m.checked=!!data.t12_marksman;
-  t11i.checked=!!data.t11_infantry;t11l.checked=!!data.t11_lancer;t11m.checked=!!data.t11_marksman;noadv.checked=!!data.no_t11_t12;
-  if(noadv.checked)advanced.forEach(x=>x.disabled=true);
-  syncLab();power.dispatchEvent(new Event('input'));edit_card.classList.remove('hidden');unlock_form.classList.add('hidden');
-};
-edit_form.onsubmit=async e=>{
-  e.preventDefault();edit_message.textContent='Saving…';
-  if((progression.value==='highly_developed'||leader_request.value==='yes')&&!labyrinth.value){edit_message.textContent='Labyrinth Score is required for this application.';return;}
+function syncPower(){
+  ui.power.value=ui.power.value.replace(/\D/g,'');
+  const n=Number(ui.power.value||0);
+  ui.powerPreview.innerHTML=n
+    ?`Readable preview: <b>${n>=1e9?(n/1e9).toFixed(2)+'B':n>=1e6?(n/1e6).toFixed(1)+'M':n}</b>`
+    :'';
+}
+
+const advanced=[ui.t12i,ui.t12l,ui.t12m,ui.t11i,ui.t11l,ui.t11m];
+ui.noadv.addEventListener('change',()=>{
+  if(ui.noadv.checked) advanced.forEach(x=>{x.checked=false;x.disabled=true;});
+  else advanced.forEach(x=>x.disabled=false);
+});
+advanced.forEach(x=>x.addEventListener('change',()=>{
+  if(x.checked){
+    ui.noadv.checked=false;
+    advanced.forEach(y=>y.disabled=false);
+  }
+}));
+ui.progression.addEventListener('change',syncLab);
+ui.leaderRequest.addEventListener('change',syncLab);
+ui.power.addEventListener('input',syncPower);
+
+async function openApplication(){
+  ui.unlockMessage.textContent='Checking…';
+
+  currentAppId=ui.appId.value.trim();
+  currentEditToken=ui.token.value.trim();
+
+  if(!eventToken){
+    ui.unlockMessage.textContent='This edit link is missing the Transfer Event token. Open Edit My Application from the Transfer Form or Transfer Event page.';
+    return;
+  }
+  if(!currentAppId || !currentEditToken){
+    ui.unlockMessage.textContent='Enter both your Application ID and Edit Token.';
+    return;
+  }
+
+  const {data,error}=await sb.rpc('get_transfer_application_for_edit',{
+    p_event_token:eventToken,
+    p_application_id:currentAppId,
+    p_edit_token:currentEditToken
+  });
+
+  if(error){
+    ui.unlockMessage.textContent=error.message;
+    return;
+  }
+
+  let row=data;
+  if(typeof row==='string'){
+    try{row=JSON.parse(row);}catch(_){}
+  }
+  if(!row || typeof row!=='object'){
+    ui.unlockMessage.textContent='Application could not be loaded.';
+    return;
+  }
+
+  ui.identityTitle.textContent=`${row.in_game_name||'Application'} • ${row.application_id||currentAppId}`;
+  ui.discord.value=row.discord_username||'';
+  ui.alliance.value=row.current_alliance||'';
+  ui.coordinates.value=row.coordinates||'';
+  ui.power.value=row.current_power||'';
+  ui.furnace.value=row.furnace_level||'';
+  ui.passes.value=row.transfer_passes||'';
+  ui.progression.value=row.account_progression||'actively_progressing';
+  ui.leaderRequest.value=row.leader_requested_labyrinth?'yes':'no';
+  ui.labyrinth.value=row.labyrinth_score??'';
+  ui.t12i.checked=!!row.t12_infantry;
+  ui.t12l.checked=!!row.t12_lancer;
+  ui.t12m.checked=!!row.t12_marksman;
+  ui.t11i.checked=!!row.t11_infantry;
+  ui.t11l.checked=!!row.t11_lancer;
+  ui.t11m.checked=!!row.t11_marksman;
+  ui.noadv.checked=!!row.no_t11_t12;
+
+  advanced.forEach(x=>x.disabled=ui.noadv.checked);
+  syncLab();
+  syncPower();
+
+  ui.unlockMessage.textContent='';
+  ui.unlockCard.classList.add('hidden');
+  ui.editCard.classList.remove('hidden');
+  window.scrollTo({top:0,left:0,behavior:'auto'});
+}
+
+ui.unlockForm.addEventListener('submit',async e=>{
+  e.preventDefault();
+  e.stopPropagation();
+  await openApplication();
+});
+
+ui.editForm.addEventListener('submit',async e=>{
+  e.preventDefault();
+  e.stopPropagation();
+
+  ui.editMessage.textContent='Saving…';
+
+  if((ui.progression.value==='highly_developed' || ui.leaderRequest.value==='yes') && !ui.labyrinth.value){
+    ui.editMessage.textContent='Labyrinth Score is required for this application.';
+    return;
+  }
+
   const payload={
-    discord_username:discord.value.trim(),current_alliance:alliance.value.trim(),coordinates:coordinates.value.trim(),
-    current_power:power.value,furnace_level:furnace.value.trim(),transfer_passes:passes.value.trim(),
-    account_progression:progression.value,leader_requested_labyrinth:leader_request.value==='yes',labyrinth_score:labyrinth.value||null,
-    t12_infantry:t12i.checked,t12_lancer:t12l.checked,t12_marksman:t12m.checked,t11_infantry:t11i.checked,t11_lancer:t11l.checked,t11_marksman:t11m.checked,
-    no_t11_t12:noadv.checked
+    discord_username:ui.discord.value.trim(),
+    current_alliance:ui.alliance.value.trim(),
+    coordinates:ui.coordinates.value.trim(),
+    current_power:ui.power.value,
+    furnace_level:ui.furnace.value.trim(),
+    transfer_passes:ui.passes.value.trim(),
+    account_progression:ui.progression.value,
+    leader_requested_labyrinth:ui.leaderRequest.value==='yes',
+    labyrinth_score:ui.labyrinth.value||null,
+    t12_infantry:ui.t12i.checked,
+    t12_lancer:ui.t12l.checked,
+    t12_marksman:ui.t12m.checked,
+    t11_infantry:ui.t11i.checked,
+    t11_lancer:ui.t11l.checked,
+    t11_marksman:ui.t11m.checked,
+    no_t11_t12:ui.noadv.checked
   };
-  const {error}=await sb.rpc('update_transfer_application_by_token',{p_event_token:eventToken,p_application_id:appId,p_edit_token:editToken,p_payload:payload});
-  edit_message.textContent=error?error.message:'Application updated ✓';
-};
+
+  const {error}=await sb.rpc('update_transfer_application_by_token',{
+    p_event_token:eventToken,
+    p_application_id:currentAppId,
+    p_edit_token:currentEditToken,
+    p_payload:payload
+  });
+
+  ui.editMessage.textContent=error ? error.message : 'Application updated ✓';
+});
+
+// Prefill from the immediately preceding successful submission.
+const savedId=sessionStorage.getItem('nexa_transfer_edit_application_id')||'';
+const savedToken=sessionStorage.getItem('nexa_transfer_edit_token')||'';
+if(savedId) ui.appId.value=savedId;
+if(savedToken) ui.token.value=savedToken;
 </script>
 </body></html>

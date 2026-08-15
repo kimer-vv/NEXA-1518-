@@ -94,14 +94,6 @@
 .success-actions .btn{flex:1 1 210px;max-width:300px}
 </style>
 
-<style>
-/* NEXA v33.20 — legacy duplicate line only.
-   If an old runtime script injects one extra paragraph between the intro
-   and Our Philosophy, hide only that paragraph. */
-#transfer-intro-copy + p:not(.strong-account-callout){
-  display:none !important;
-}
-</style>
 
 </head>
 <body><div class="nebula-bg" aria-hidden="true"></div><div class="starfield" aria-hidden="true"></div>
@@ -113,7 +105,7 @@
 
 <main class="shell event-page transfer-form-page">
 <div class="form-actions" style="margin:12px 0"><a id="edit-my-application-top" class="btn secondary" href="#">Edit My Application</a></div>
- <span class="badge transfer-badge">TRANSFER APPLICATION • v33.20</span>
+ <span class="badge transfer-badge">TRANSFER APPLICATION • v33.21</span>
  <h1 id="event-title">State 1518 Transfer Application</h1>
 
  <section class="glass transfer-welcome">
@@ -807,93 +799,7 @@ loadTransferForm();
 </script>
 
 
-<script>
-/* NEXA v33.19 — safe legacy-line removal
-   Keeps the fully functional form intact and removes ONLY the exact
-   standalone duplicate paragraph inside .transfer-welcome. */
-(function(){
-  const normalize=value=>String(value||'')
-    .replace(/\u00a0/g,' ')
-    .replace(/[—–]/g,'-')
-    .replace(/\s+/g,' ')
-    .trim()
-    .toLowerCase();
-
-  const legacyA=normalize(
-    'Strong accounts matter — but the player behind the account matters just as much.'
-  );
-  const legacyB=legacyA.replace(/\.$/,'');
-
-  function clean(){
-    const welcome=document.querySelector('.transfer-welcome');
-    if(!welcome) return;
-
-    // IMPORTANT: only inspect DIRECT CHILD paragraphs.
-    // Never inspect/remove parent containers or form sections.
-    [...welcome.children].forEach(el=>{
-      if(el.tagName!=='P') return;
-      if(el.classList.contains('strong-account-callout')) return;
-      if(el.id==='transfer-intro-copy') return;
-
-      const text=normalize(el.textContent);
-      if(text===legacyA || text===legacyB){
-        el.remove();
-      }
-    });
-  }
-
-  clean();
-
-  const welcome=document.querySelector('.transfer-welcome');
-  if(welcome){
-    const observer=new MutationObserver(()=>clean());
-    observer.observe(welcome,{childList:true});
-  }
-
-  document.addEventListener('DOMContentLoaded',clean,{once:true});
-  window.addEventListener('load',clean,{once:true});
-
-  // Catch delayed i18n injection without touching anything except
-  // the exact direct-child paragraph above.
-  [100,300,700,1200,2500,5000].forEach(ms=>setTimeout(clean,ms));
-})();
-</script>
 
 
-<script>
-/* NEXA v33.20 — remove only the single injected paragraph between intro and philosophy */
-(function(){
-  function cleanLegacyLine(){
-    const intro=document.getElementById('transfer-intro-copy');
-    const philosophy=document.querySelector('.strong-account-callout');
-    if(!intro || !philosophy) return;
-
-    const next=intro.nextElementSibling;
-
-    // The intended structure is intro -> Our Philosophy.
-    // If ONE old paragraph gets injected between them, remove just that paragraph.
-    if(next && next!==philosophy && next.tagName==='P'){
-      next.remove();
-    }
-
-    // If the legacy paragraph was removed, ensure philosophy follows intro.
-    if(intro.nextElementSibling!==philosophy && philosophy.parentElement===intro.parentElement){
-      intro.insertAdjacentElement('afterend',philosophy);
-    }
-  }
-
-  cleanLegacyLine();
-
-  const welcome=document.querySelector('.transfer-welcome');
-  if(welcome){
-    new MutationObserver(()=>cleanLegacyLine())
-      .observe(welcome,{childList:true});
-  }
-
-  document.addEventListener('DOMContentLoaded',cleanLegacyLine,{once:true});
-  window.addEventListener('load',cleanLegacyLine,{once:true});
-  [100,300,700,1500,3000].forEach(ms=>setTimeout(cleanLegacyLine,ms));
-})();
-</script>
 
 </body></html>

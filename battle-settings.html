@@ -4,7 +4,16 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>NEXA • Battle Form Settings</title>
 <link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+function nexaBack(fallback='event-operations.html'){
+  try{
+    const ref=document.referrer?new URL(document.referrer):null;
+    if(ref && ref.origin===location.origin){history.back();return}
+  }catch(e){}
+  location.href=fallback;
+}
+
+</script>
 <script src="/human-gate.js"></script>
 <style>
 .battle-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
@@ -23,11 +32,17 @@ body.embed main.shell{padding:0!important;max-width:none!important}body.embed .b
 .builder-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.check-row{display:flex;gap:8px;flex-wrap:wrap}.check-pill{display:flex!important;flex-direction:row!important;align-items:center;gap:7px!important;border:1px solid rgba(255,255,255,.12);padding:9px 11px;border-radius:12px}.check-pill input{width:20px!important;height:20px!important;flex:0 0 20px}.option-editor{display:grid;gap:8px;margin-top:8px}.option-edit-row{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}.tiny-btn{border:1px solid rgba(255,255,255,.14);background:transparent;color:inherit;border-radius:9px;padding:7px 9px}.drag-grip{cursor:grab;user-select:none;touch-action:none;padding:8px;font-size:20px;opacity:.7}.layout-list{display:grid;gap:9px;margin-top:12px}.layout-row{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:12px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(10,14,30,.42)}.layout-row.locked{opacity:.78;background:rgba(255,255,255,.035)}.layout-actions{display:flex;gap:5px}.preview-shell{margin-top:14px;padding:15px;border-radius:18px;border:1px solid rgba(255,255,255,.12);background:rgba(5,8,20,.48)}.preview-field{padding:11px 0;border-bottom:1px solid rgba(255,255,255,.08)}.preview-field:last-child{border-bottom:0}.preview-input{height:42px;border:1px solid rgba(255,255,255,.14);border-radius:11px;margin-top:7px;opacity:.65}.hidden{display:none!important}.library-list{display:grid;gap:8px;margin-top:10px}.library-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:11px;border:1px solid rgba(255,255,255,.1);border-radius:12px}
 @media(max-width:650px){.question-grid{grid-template-columns:1fr}.option-edit-row{grid-template-columns:auto minmax(0,1fr) auto}.library-row{grid-template-columns:1fr}}
 
+
+/* Phase 2A cleanup: manual question reordering is intentionally deferred. */
+#inline-arrange-event,#inline-arrange-role,#inline-layout-list,#inline-layout-status,
+.inline-up,.inline-down,.drag-grip,[data-tab="arrange"],.arrange-preview,
+#arrange-preview,#arrange-section{display:none!important}
+
 </style>
 </head>
 <body><script>if(new URLSearchParams(location.search).get("embed")==="1")document.body.classList.add("embed")</script>
 <main class="shell">
-<a class="back" href="event-operations.html">← Event Operations</a>
+<a class="back" href="javascript:void(0)" onclick="nexaBack(\'event-operations.html\')">← Back</a>
 <section class="glass">
 <div class="panel-head"><div><h1>Battle Form Settings</h1><p class="muted">Configure the complete Battle Form in one place: fixed NEXA base fields, combat settings, reusable event questions, order and preview.</p></div></div>
 <div id="state" class="form-message"></div>

@@ -108,7 +108,7 @@
 
  <section class="glass transfer-welcome">
    <h2>Welcome to State 1518 💜</h2>
-   <p class="transfer-intro-copy">We’re building an <b>active, competitive, and team-oriented state</b>. We value players who contribute, communicate, prepare for important events, and understand that some competitions require a <b>state-first approach</b>.</p>
+   <p id="transfer-intro-copy" class="transfer-intro-copy">We’re building an <b>active, competitive, and team-oriented state</b>. We value players who contribute, communicate, prepare for important events, and understand that some competitions require a <b>state-first approach</b>.</p>
    <p class="strong-account-callout"><span class="philosophy-star">✦</span> <b>Our Philosophy: Strong accounts matter, but character, teamwork, and the player behind the account matter just as much.</b> <span class="philosophy-star">✦</span></p>
    
 
@@ -768,6 +768,47 @@ loadTransferForm();
   removeOldPhilosophyDuplicates();
   setTimeout(removeOldPhilosophyDuplicates,150);
   setTimeout(removeOldPhilosophyDuplicates,700);
+})();
+</script>
+
+
+<script>
+/* NEXA v33.14 — persistent Transfer intro */
+(function(){
+  const welcome=document.querySelector('.transfer-welcome');
+  const intro=document.getElementById('transfer-intro-copy');
+  const philosophy=document.querySelector('.strong-account-callout');
+  if(!welcome || !intro || !philosophy) return;
+
+  let fixing=false;
+
+  function keepIntro(){
+    if(fixing) return;
+    fixing=true;
+    try{
+      // Reinsert the exact same node if a late translation/cleanup pass removes it.
+      if(!intro.isConnected){
+        welcome.insertBefore(intro,philosophy);
+      }
+      // Keep the requested order:
+      // Welcome → intro → Our Philosophy.
+      if(intro.nextElementSibling!==philosophy){
+        welcome.insertBefore(intro,philosophy);
+      }
+    }finally{
+      fixing=false;
+    }
+  }
+
+  keepIntro();
+
+  const observer=new MutationObserver(()=>queueMicrotask(keepIntro));
+  observer.observe(welcome,{childList:true});
+
+  document.addEventListener('DOMContentLoaded',keepIntro,{once:true});
+  window.addEventListener('load',keepIntro,{once:true});
+  setTimeout(keepIntro,150);
+  setTimeout(keepIntro,800);
 })();
 </script>
 

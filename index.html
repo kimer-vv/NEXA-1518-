@@ -18,6 +18,20 @@
 }
 .module-visibility-card small{display:block;margin-top:3px}
 </style>
+<style>
+.prep-monday-picker-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:10px;
+  align-items:center;
+}
+.prep-monday-picker-row input{min-width:0}
+#event-timeline-picker{cursor:pointer}
+@media(max-width:560px){
+  .prep-monday-picker-row{grid-template-columns:1fr}
+  #prep-monday-picker{width:100%}
+}
+</style>
 </head>
 <body>
 <div class="nebula-bg" aria-hidden="true"></div>
@@ -266,7 +280,10 @@
         </label>
 
         <label>Prep Monday — Game Date (UTC)
-          <input id="prep-monday" type="date" required>
+          <div class="prep-monday-picker-row">
+            <input id="prep-monday" type="date" required>
+            <button id="prep-monday-picker" class="btn secondary" type="button">Choose Monday</button>
+          </div>
         </label>
 
         <label>Castle Alliance
@@ -285,15 +302,15 @@
           <textarea id="event-description" rows="3" placeholder="Optional notes, opponent info, ministry buff notes, battle reminders..."></textarea>
         </label>
 
-        <div class="event-preview glass-lite">
+        <div id="event-timeline-picker" class="event-preview glass-lite" role="button" tabindex="0" aria-label="Choose Prep Monday">
           <small>AUTO-GENERATED WOS TIMELINE</small>
           <div id="event-preview-lines" class="preview-lines">Choose Prep Monday to preview dates.</div>
         </div>
 
         <div class="toggle-grid">
-          <label class="toggle-line"><input id="prep-form-open" type="checkbox"> Prep Form Open</label>
-          <label class="toggle-line"><input id="battle-form-open" type="checkbox"> Battle Form Open</label>
-          <label class="toggle-line"><input id="schedule-published" type="checkbox"> Schedule Published</label>
+          <label class="toggle-line"><input id="prep-form-open" type="checkbox"> Preparation Form</label>
+          <label class="toggle-line"><input id="battle-form-open" type="checkbox"> Battle Form</label>
+          <label class="toggle-line"><input id="schedule-published" type="checkbox"> Schedule</label>
           <label class="toggle-line"><input id="event-is-live" type="checkbox"> Live Event</label>
         </div>
 
@@ -908,6 +925,38 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('prep-monday').addEventListener('change', renderEventPreview);
 
+  function openPrepMondayPicker(){
+    const input=document.getElementById('prep-monday');
+    if(!input) return;
+    try{
+      if(typeof input.showPicker==='function'){
+        input.showPicker();
+        return;
+      }
+    }catch(_){}
+    input.focus();
+    input.click();
+  }
+
+  document.getElementById('prep-monday-picker')?.addEventListener('click',e=>{
+    e.preventDefault();
+    e.stopPropagation();
+    openPrepMondayPicker();
+  });
+
+  document.getElementById('event-timeline-picker')?.addEventListener('click',e=>{
+    if(e.target.closest('button,input,select,textarea,a')) return;
+    openPrepMondayPicker();
+  });
+
+  document.getElementById('event-timeline-picker')?.addEventListener('keydown',e=>{
+    if(e.key==='Enter' || e.key===' '){
+      e.preventDefault();
+      openPrepMondayPicker();
+    }
+  });
+
+
   
   async function getModuleAccess(){
     const [{data:svs},{data:transfers}] = await Promise.all([
@@ -1307,7 +1356,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if(eventLabels[4]) eventLabels[4].childNodes[0].nodeValue=tr('eventNotes')+'\n          ';
     const previewSmall=document.querySelector('.event-preview > small');
     if(previewSmall) previewSmall.textContent=tr('timeline');
-    const toggles=document.querySelectorAll('.toggle-line');
+    const toggles=document.querySelectorAll('#event-form .toggle-line');
     const toggleLabels=['Preparation Form','Battle Form','Schedule','Live Event'];
     toggles.forEach((x,i)=>{ if(toggleLabels[i]) x.lastChild.textContent=' '+toggleLabels[i]; });
     const saveEvent=document.querySelector('#event-form button[type="submit"]');
@@ -1865,7 +1914,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   await loadHomeTransfers();
 
-  if(new URLSearchParams(location.search).get('admin')==='modules'){
+  const adminTarget=new URLSearchParams(location.search).get('admin');
+
+  if(adminTarget==='modules'){
     const access=await getModuleAccess();
     if(access.svs || access.transfers){
       adminModal.classList.add('open');
@@ -1876,220 +1927,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     history.replaceState({},'',location.pathname);
   }
 
-
-});
-</script>
-
-
-
-<script>
-document.addEventListener('DOMContentLoaded', async ()=>{
-  try{
-    if(!window.supabase) return;
-    const sbNav=window.supabase.createClient(
-      "https://dfxcxboxrkfmrnsgpyin.supabase.co",
-      "sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-"
-    );
-    const {data:canManage}=await sbNav.rpc('can_manage_transfers');
-    if(canManage!==true) return;
-
-    document.querySelectorAll('a[href*="transfer-event.html?token="]').forEach(view=>{
-      const href=new URL(view.href,location.href);
-      const token=href.searchParams.get('token');
-      if(!token) return;
-
-      const controls=view.parentElement;
-      if(!controls || controls.querySelector('.home-transfer-manage')) return;
-
-      const manage=document.createElement('a');
-      manage.className='btn secondary home-transfer-manage';
-      manage.textContent='Manage';
-      manage.href='transfer-admin.html?tab=applications&token='+encodeURIComponent(token);
-      controls.insertBefore(manage, controls.firstChild);
-    });
-  }catch(_){}
-});
-
-
-  async function ensureSvsStaff(){
-    const user=await currentUser();
-    if(!user) return false;
-    const {data:role}=await supabaseClient.rpc('current_nexa_role');
-    return ['owner','admin','scheduler'].includes(String(role||'').toLowerCase());
-  }
-
-  document.getElementById('admin-copy-prep-link')?.addEventListener('click',async e=>{
-    const u=new URL('prep-form.html?direct=1',location.href).href;
-    const b=e.currentTarget;
-    try{
-      if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(u);
-      else throw new Error('clipboard');
-      b.textContent='Copied ✓'; setTimeout(()=>b.textContent='Copy Prep Form Link',1200);
-    }catch(_){
-      const ta=document.createElement('textarea');ta.value=u;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();
-      const ok=document.execCommand('copy');ta.remove();
-      if(ok){b.textContent='Copied ✓';setTimeout(()=>b.textContent='Copy Prep Form Link',1200);}else prompt('Copy this Prep Form link:',u);
-    }
-  });
-
-  const deepParams=new URLSearchParams(location.search);
-  if(deepParams.get('admin')==='events'){
-    const openDeepSvsAdmin=async()=>{
-      if(!(await ensureSvsStaff())) return false;
-
+  if(adminTarget==='svs'){
+    const access=await getModuleAccess();
+    if(access.svs){
       adminModal.classList.add('open');
       adminModal.setAttribute('aria-hidden','false');
-      document.body.classList.add('modal-open');
+      await configureAdminModules();
+      await loadHomeVisibilityAdmin();
 
-      // Open the SAME SvS Control Center used from Administration.
-      document.getElementById('admin-module-chooser')?.classList.add('hidden');
-      document.getElementById('svs-admin-content')?.classList.remove('hidden');
-      document.querySelectorAll('[data-admin-tab]').forEach(b=>{
-        b.classList.toggle('active',b.dataset.adminTab==='events');
-      });
-      showAdminSection('events');
-
-      await loadAdminEvents();
-      await loadAdminAlliances();
-      await loadEventAllianceSelectors();
-      renderEventPreview();
-
-      if(deepParams.get('create')==='1'){
-        resetEventForm();
-        await loadEventAllianceSelectors();
-        document.getElementById('event-form')?.scrollIntoView({behavior:'auto',block:'start'});
-        setTimeout(()=>document.getElementById('opponent-state')?.focus(),80);
-      }
-
-      const editId=deepParams.get('edit');
-      if(editId){
-        const {data:row,error}=await supabaseClient
-          .from('svs_events').select('*').eq('id',editId).maybeSingle();
-
-        if(!error && row){
-          document.getElementById('event-id').value=row.id;
-          document.getElementById('opponent-state').value=row.opponent_state||'';
-          document.getElementById('prep-monday').value=row.prep_monday||'';
-          document.getElementById('event-description').value=row.description||'';
-          await loadEventAllianceSelectors(row.castle_alliance_id,row.presidency_alliance_id);
-          document.getElementById('prep-form-open').checked=!!row.prep_form_open;
-          document.getElementById('battle-form-open').checked=!!row.battle_form_open;
-          document.getElementById('schedule-published').checked=!!row.schedule_published;
-          document.getElementById('event-is-live').checked=!!row.is_live;
-
-          if(row.auto_end_at){
-            const iso=new Date(row.auto_end_at).toISOString();
-            document.getElementById('event-auto-end-date').value=iso.slice(0,10);
-            document.getElementById('event-auto-end-time').value=iso.slice(11,16);
-          }else{
-            document.getElementById('event-auto-end-date').value='';
-            document.getElementById('event-auto-end-time').value='';
-          }
-
-          document.getElementById('event-lifecycle-actions')?.classList.remove('hidden');
-          document.getElementById('cancel-event-edit')?.classList.remove('hidden');
-          renderEventPreview();
-          document.getElementById('event-form')?.scrollIntoView({behavior:'auto',block:'start'});
-        }
-      }
-      return true;
-    };
-
-    // Auth/session initialization on mobile can finish slightly after page load.
-    let attempts=0;
-    const tryOpen=async()=>{
-      attempts++;
-      const ok=await openDeepSvsAdmin();
-      if(!ok && attempts<8) setTimeout(tryOpen,300);
-    };
-    window.addEventListener('load',()=>setTimeout(tryOpen,80),{once:true});
+      // Open the exact same SvS Control Center used by Admin → SvS.
+      document.getElementById('open-svs-admin')?.click();
+    }
+    // Consume the one-time navigation so browser refresh stays on Home.
+    history.replaceState({},'',location.pathname);
   }
+
+
+});
 </script>
 
 
-<script>
-/* NEXA v33.10 — deterministic SvS Control Center deep-link */
-(function(){
-  async function openSvsControlCenterFromHash(){
-    const h=location.hash||'';
-    if(!h.startsWith('#admin-svs')) return;
 
-    // Let auth + page initialization settle.
-    await new Promise(r=>setTimeout(r,650));
 
-    const modal=document.getElementById('admin-modal');
-    const chooser=document.getElementById('admin-module-chooser');
-    const svsContent=document.getElementById('svs-admin-content');
-    if(!modal||!chooser||!svsContent){
-      setTimeout(openSvsControlCenterFromHash,400);
-      return;
-    }
 
-    modal.classList.add('open');
-    modal.setAttribute('aria-hidden','false');
-    chooser.classList.add('hidden');
-    svsContent.classList.remove('hidden');
 
-    // Consume the one-time admin hash. Refreshing Home must not reopen Control Center.
-    try{ history.replaceState(null,'',location.pathname + location.search); }catch(_){}
-
-    try{
-      if(typeof showAdminSection==='function') showAdminSection('events');
-      document.querySelectorAll('[data-admin-tab]').forEach(b=>{
-        b.classList.toggle('active',b.dataset.adminTab==='events');
-      });
-      if(typeof loadAdminEvents==='function') await loadAdminEvents();
-      if(typeof loadAdminAlliances==='function') await loadAdminAlliances();
-      if(typeof loadEventAllianceSelectors==='function') await loadEventAllianceSelectors();
-      if(typeof renderEventPreview==='function') renderEventPreview();
-    }catch(e){ console.error('SvS admin deep-link load:',e); }
-
-    if(h==='#admin-svs-create'){
-      try{
-        if(typeof resetEventForm==='function') resetEventForm();
-        if(typeof loadEventAllianceSelectors==='function') await loadEventAllianceSelectors();
-        document.getElementById('event-form')?.scrollIntoView({behavior:'auto',block:'start'});
-      }catch(e){ console.error(e); }
-    }
-
-    if(h.startsWith('#admin-svs-edit=')){
-      const eventId=decodeURIComponent(h.slice('#admin-svs-edit='.length));
-      try{
-        const {data:row,error}=await supabaseClient
-          .from('svs_events').select('*').eq('id',eventId).maybeSingle();
-        if(error) throw error;
-        if(row){
-          document.getElementById('event-id').value=row.id;
-          document.getElementById('opponent-state').value=row.opponent_state||'';
-          document.getElementById('prep-monday').value=row.prep_monday||'';
-          document.getElementById('event-description').value=row.description||'';
-          if(typeof loadEventAllianceSelectors==='function'){
-            await loadEventAllianceSelectors(row.castle_alliance_id,row.presidency_alliance_id);
-          }
-          document.getElementById('prep-form-open').checked=!!row.prep_form_open;
-          document.getElementById('battle-form-open').checked=!!row.battle_form_open;
-          document.getElementById('schedule-published').checked=!!row.schedule_published;
-          document.getElementById('event-is-live').checked=!!row.is_live;
-          if(row.auto_end_at){
-            const iso=new Date(row.auto_end_at).toISOString();
-            document.getElementById('event-auto-end-date').value=iso.slice(0,10);
-            document.getElementById('event-auto-end-time').value=iso.slice(11,16);
-          }else{
-            document.getElementById('event-auto-end-date').value='';
-            document.getElementById('event-auto-end-time').value='';
-          }
-          document.getElementById('event-lifecycle-actions')?.classList.remove('hidden');
-          document.getElementById('cancel-event-edit')?.classList.remove('hidden');
-          if(typeof renderEventPreview==='function') renderEventPreview();
-          document.getElementById('event-form')?.scrollIntoView({behavior:'auto',block:'start'});
-        }
-      }catch(e){ console.error('Edit event deep-link:',e); }
-    }
-  }
-
-  window.addEventListener('load',openSvsControlCenterFromHash,{once:true});
-})();
-</script>
 
 
 <script>

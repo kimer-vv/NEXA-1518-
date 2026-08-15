@@ -1,14 +1,11 @@
-NEXA v31.6 MINI PATCH
+NEXA • Event Operations Syntax Fix
 
-Upload/replace only these files in GitHub:
-- transfer-apply.html
-- transfer-apply-v31.html
-- transfer-apply-v297.html
-- style.css
+Replace ONLY:
+- event-operations.html
 
-This patch ONLY adds:
-- Full Current Power instructions
-- Numbers-only Current Power input
-- Example 24500000 instead of 24.5M
+This fixes one malformed JavaScript line in selectedFormUrl() that stopped
+the entire Event Operations script from running. When that script stops,
+Form dropdowns remain empty and buttons/tabs do not respond.
 
-No SQL required.
+No SQL.
+Do not replace battle-settings.html or battle-form.html with this patch.

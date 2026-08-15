@@ -9,7 +9,12 @@
 <style>
  .role-grid,.troop-grid,.hero-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
  .choice-card,.hero-card{border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:14px;background:rgba(10,14,30,.38)}
- .availability{display:flex;flex-wrap:wrap;gap:8px}.availability label{display:flex;gap:7px;align-items:center;padding:9px 12px;border:1px solid rgba(255,255,255,.12);border-radius:999px}
+ .availability{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+ .availability label{display:flex;gap:9px;align-items:center;min-width:0;padding:11px 14px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(10,14,30,.30)}
+ .availability label input{flex:0 0 auto}
+ .availability label span{min-width:0;overflow-wrap:anywhere}
+ .availability .availability-special{border-color:rgba(145,110,255,.34);background:rgba(89,55,170,.10)}
+ @media(max-width:700px){.availability{grid-template-columns:1fr}.availability label{width:100%;box-sizing:border-box}}
  .hero-detail{margin-top:10px}.compact-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.hidden{display:none!important}
 </style>
 </head>
@@ -27,6 +32,7 @@
  <h3>Availability</h3><p class="muted">Select every UTC block when you expect to be available.</p>
  <div id="availability" class="availability"></div>
 
+ <div id="battle-details">
  <h3>Battle Role</h3>
  <div class="role-grid">
   <label class="choice-card"><input type="radio" name="role" value="joiner" required> <b>Joiner</b></label>
@@ -54,6 +60,7 @@
  <label id="discord-wrap" class="hidden">Available in Discord Voice Chat?
    <select id="discord"><option value="">Select…</option><option value="yes">Yes</option><option value="no">No</option><option value="if_needed">If needed</option></select>
  </label>
+ </div>
  <div class="form-actions"><button class="btn" type="submit">Submit Battle Form</button></div>
 </form>
 </section>
@@ -84,12 +91,33 @@ function renderIdentity(){
  const a=accounts.find(x=>String(x.id)===$('account').value); if(!a)return;
  $('identity').innerHTML=`<b>${esc(a.in_game_name)}</b><div class="muted">${esc(a.alliances?.tag||a.custom_alliance_tag||'Not listed')} • Player ID ${esc(a.player_id)}</div>`;
 }
+function isNotAvailable(){return $('not-available')?.checked===true}
+function setBattleDetailsState(){
+ const notAvailable=isNotAvailable();
+ $('battle-details')?.classList.toggle('hidden',notAvailable);
+ document.querySelectorAll('input[name=role]').forEach(x=>x.required=!notAvailable);
+}
 function renderAvailability(){
  const blocks=settings?.availability_blocks||[];let html='';
- if(settings?.full_availability_enabled && blocks.length) html+=`<label><input type="checkbox" id="full-avail"> Full Availability</label>`;
- html+=blocks.map((b,i)=>`<label><input class="avail" type="checkbox" value="${esc(b.label)}"> ${esc(b.label)}</label>`).join('');
+ if(settings?.full_availability_enabled && blocks.length) html+=`<label class="availability-special"><input type="checkbox" id="full-avail"><span>Full Availability</span></label>`;
+ html+=`<label class="availability-special"><input type="checkbox" id="not-available"><span>Not Available</span></label>`;
+ html+=blocks.map((b,i)=>`<label><input class="avail" type="checkbox" value="${esc(b.label)}"><span>${esc(b.label)}</span></label>`).join('');
  $('availability').innerHTML=html;
- $('full-avail')?.addEventListener('change',e=>document.querySelectorAll('.avail').forEach(x=>x.checked=e.target.checked));
+ $('full-avail')?.addEventListener('change',e=>{
+  if(e.target.checked){$('not-available').checked=false;document.querySelectorAll('.avail').forEach(x=>x.checked=true)}
+  else document.querySelectorAll('.avail').forEach(x=>x.checked=false);
+  setBattleDetailsState();
+ });
+ $('not-available')?.addEventListener('change',e=>{
+  if(e.target.checked){if($('full-avail'))$('full-avail').checked=false;document.querySelectorAll('.avail').forEach(x=>x.checked=false)}
+  setBattleDetailsState();
+ });
+ document.querySelectorAll('.avail').forEach(x=>x.addEventListener('change',()=>{
+  if(x.checked){$('not-available').checked=false;setBattleDetailsState()}
+  const all=[...document.querySelectorAll('.avail')];
+  if($('full-avail'))$('full-avail').checked=all.length>0&&all.every(a=>a.checked);
+ }));
+ setBattleDetailsState();
 }
 function troopCard(type,label){
  return `<div class="choice-card"><b>${label}</b><label>Level<select class="troop-level" data-type="${type}"><option value="">Select…</option><option>FC10</option><option>T11</option><option>T12</option></select></label><label class="skill-wrap hidden">T12 Skill<select class="troop-skill" data-type="${type}">${opt(0,settings?.t12_max_skill||5)}</select></label></div>`;
@@ -134,11 +162,22 @@ async function init(){
 document.addEventListener('change',e=>{if(e.target.name==='role'){const r=role();$('joiner').classList.toggle('hidden',r!=='joiner');$('rally').classList.toggle('hidden',r!=='rally_lead')}});
 $('form').onsubmit=async e=>{
  e.preventDefault();$('message').textContent='Saving…';
- const {data:{user}}=await sb.auth.getUser();const r=role();if(!r)return;
- const availability=[...document.querySelectorAll('.avail:checked')].map(x=>x.value);
- if($('full-avail')?.checked && settings.availability_blocks?.length) availability.splice(0,availability.length,...settings.availability_blocks.map(x=>x.label));
- if(!availability.length){$('message').textContent='Select at least one availability block.';return;}
+ const {data:{user}}=await sb.auth.getUser();
+ const notAvailable=isNotAvailable();
+ const r=notAvailable?'joiner':role();
+ if(!r){$('message').textContent='Select a Battle Role.';return;}
+ const availability=notAvailable?['Not Available']:[...document.querySelectorAll('.avail:checked')].map(x=>x.value);
+ if(!notAvailable&&$('full-avail')?.checked && settings.availability_blocks?.length) availability.splice(0,availability.length,...settings.availability_blocks.map(x=>x.label));
+ if(!availability.length){$('message').textContent='Select at least one availability block or choose Not Available.';return;}
  let troop_quality=null,joiner_heroes=[],rally_heroes=[],experts=[];
+ if(notAvailable){
+  const payload={event_id:eventData.id,user_id:user.id,player_account_id:$('account').value,role:'joiner',availability:['Not Available'],troop_quality:null,deployment_capacity:null,joiner_heroes:[],rally_heroes:[],experts:[],discord_voice:null,updated_at:new Date().toISOString()};
+  const {error}=await sb.from('battle_form_responses').upsert(payload,{onConflict:'event_id,player_account_id'});
+  if(error){$('message').textContent=error.message;$('message').scrollIntoView({behavior:'smooth',block:'center'});return;}
+  $('message').textContent='Battle Form submitted successfully ✓ Your response has been saved as Not Available.';
+  $('message').scrollIntoView({behavior:'smooth',block:'center'});
+  return;
+ }
  if(r==='joiner'){
   troop_quality={};for(const t of ['infantry','lancer','marksman']){const level=document.querySelector(`.troop-level[data-type="${t}"]`).value;if(!level){$('message').textContent='Select Infantry, Lancer and Marksman troop levels.';return;}const skill=level==='T12'?Number(document.querySelector(`.troop-skill[data-type="${t}"]`).value||0):null;if(level==='T12'&&!skill){$('message').textContent='Select the T12 skill level for every T12 troop type.';return;}troop_quality[t]={level,skill};}
   joiner_heroes=[...document.querySelectorAll('.joiner-hero:checked')].map(x=>({id:Number(x.value),name:x.dataset.name,skill_level:5}));

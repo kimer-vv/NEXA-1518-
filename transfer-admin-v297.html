@@ -744,16 +744,18 @@ refresh_public_recruiting_preview.onclick=async(ev)=>{
 async function loadRecruiting(){
  const eventId=recruit_event_filter.value;
  const selectedEvent=events.find(e=>e.id===eventId);
+
  if(recruit_cycle_notice){
    recruit_cycle_notice.innerHTML=selectedEvent
-     ? `<b>Editing:</b> ${esc(selectedEvent.title)} • ${selectedEvent.status} • Applications ${selectedEvent.applications_open?'OPEN':'CLOSED'}`
-     : 'Select a Transfer Cycle.';
+     ? `<b>Persistent Recruiting Alliances</b> • Previewing ${esc(selectedEvent.title)}`
+     : '<b>Persistent Recruiting Alliances</b> • These settings stay saved even when no Transfer Event is active.';
  }
- if(!eventId){recruit_list.innerHTML='<div class="empty-state">Recruiting Alliances are available across all Transfer Events.</div>';return;}
+
  const [{data:all,error:allErr},{data:rowsRpc,error:rowsErr}]=await Promise.all([
    sb.from('alliances').select('id,tag').order('tag'),
-   sb.rpc('get_transfer_recruiting_for_event',{p_transfer_event_id:eventId})
+   sb.rpc('list_transfer_recruiting_templates')
  ]);
+
  const rows=(rowsRpc||[]).map(x=>({
    id:x.row_id,
    alliance_id:x.alliance_id,
@@ -761,20 +763,42 @@ async function loadRecruiting(){
    schedule_notes:x.schedule_notes,
    alliances:{tag:x.tag}
  }));
- if(allErr){recruit_save_message.textContent='Could not load Existing Alliances: '+allErr.message; if(transfer_diagnostic) transfer_diagnostic.textContent='Alliance load error: '+allErr.message;}
- if(rowsErr){recruit_list.innerHTML=`<div class="empty-state">${esc(rowsErr.message)}</div>`;}
+
+ if(allErr){
+   recruit_save_message.textContent='Could not load Existing Alliances: '+allErr.message;
+   if(transfer_diagnostic) transfer_diagnostic.textContent='Alliance load error: '+allErr.message;
+ }
+ if(rowsErr){
+   recruit_list.innerHTML=`<div class="empty-state">${esc(rowsErr.message)}</div>`;
+ }
+
  recruitingRows=rows||[];
  const allianceOptions=all||[];
- recruit_alliance.innerHTML='<option value="">Select existing alliance</option>'+allianceOptions.map(a=>`<option value="${a.id}">${esc(a.tag)}</option>`).join('');
+
+ recruit_alliance.innerHTML='<option value="">Select existing alliance</option>'+
+   allianceOptions.map(a=>`<option value="${a.id}">${esc(a.tag)}</option>`).join('');
+
  const helper=document.getElementById('existing-alliance-count');
  if(helper) helper.textContent=`${allianceOptions.length} alliance${allianceOptions.length===1?'':'s'} available`;
- if(!allErr && transfer_diagnostic) transfer_diagnostic.textContent=`v32.2 • ${events.length} event(s) • ${allianceOptions.length} alliance(s) loaded`;
- recruit_list.innerHTML=rows?.length?rows.map(r=>`<article class="history-card"><div><b>${esc(r.alliances?.tag||'Alliance')}</b><small>${esc(scheduleSummary(r.schedule_notes))}</small></div><div class="history-actions">
-  <button class="btn ${r.is_recruiting?'':'secondary'}" data-toggle-recruit="${r.id}" data-active="${r.is_recruiting}">${r.is_recruiting?'Recruiting':'Not Recruiting'}</button>
-  <button class="btn secondary" data-edit-recruit="${r.id}">Edit Schedule</button>
-  <button class="btn danger" data-remove-recruit="${r.id}">Remove</button>
-</div></article>`).join(''):'<div class="empty-state">No alliances configured for this cycle.</div>';
- await loadPublicRecruitingPreview();
+
+ if(!allErr && transfer_diagnostic){
+   transfer_diagnostic.textContent=`${events.length} event(s) • ${allianceOptions.length} alliance(s) • ${recruitingRows.length} persistent recruiting setting(s)`;
+ }
+
+ recruit_list.innerHTML=rows?.length
+   ?rows.map(r=>`<article class="history-card"><div><b>${esc(r.alliances?.tag||'Alliance')}</b><small>${esc(scheduleSummary(r.schedule_notes))}</small></div><div class="history-actions">
+      <button class="btn ${r.is_recruiting?'':'secondary'}" data-toggle-recruit="${r.id}" data-active="${r.is_recruiting}">${r.is_recruiting?'Recruiting':'Not Recruiting'}</button>
+      <button class="btn secondary" data-edit-recruit="${r.id}">Edit Schedule</button>
+      <button class="btn danger" data-remove-recruit="${r.id}">Remove</button>
+    </div></article>`).join('')
+   :'<div class="empty-state">No persistent Recruiting Alliances configured yet.</div>';
+
+ if(selectedEvent){
+   await loadPublicRecruitingPreview();
+ }else{
+   if(public_recruiting_preview_list) public_recruiting_preview_list.innerHTML='<div class="empty-state">Create/open a Transfer Event to preview the public form. Your Recruiting Alliances remain saved.</div>';
+   if(recruit_sync_diagnostic) recruit_sync_diagnostic.textContent='No active Transfer Event. Persistent Recruiting Alliances are still editable.';
+ }
 }
 recruit_event_filter.onchange=loadRecruiting;
 recruit_form.onsubmit=async ev=>{
@@ -783,6 +807,7 @@ recruit_form.onsubmit=async ev=>{
 
   const allianceId=recruit_alliance.value?Number(recruit_alliance.value):null;
   const newTag=recruit_new_tag.value.trim().toUpperCase();
+
   if(!allianceId && !newTag){
     recruit_save_message.textContent='Choose an existing alliance or enter a new Alliance Tag.';
     return;
@@ -790,8 +815,7 @@ recruit_form.onsubmit=async ev=>{
 
   const schedule=scheduleDataFromForm();
 
-  const {error}=await sb.rpc('save_transfer_recruiting_alliance',{
-    p_transfer_event_id:null,
+  const {error}=await sb.rpc('save_transfer_recruiting_template',{
     p_alliance_id:allianceId,
     p_new_tag:newTag||null,
     p_is_recruiting:recruit_is_recruiting.checked,
@@ -803,8 +827,7 @@ recruit_form.onsubmit=async ev=>{
     return;
   }
 
-  const cycle=events.find(e=>e.id===recruit_event_filter.value);
-  recruit_save_message.textContent=`Recruiting alliance saved ✓ ${cycle?'for '+cycle.title:''}`;
+  recruit_save_message.textContent='Recruiting Alliance saved permanently ✓';
   recruit_new_tag.value='';
   recruit_extra_note.value='';
   recruit_is_recruiting.checked=true;
@@ -838,7 +861,7 @@ recruit_list.onclick=async e=>{
   const t=e.target.dataset.toggleRecruit,r=e.target.dataset.removeRecruit,edit=e.target.dataset.editRecruit;
 
   if(t){
-    const {error}=await sb.rpc('set_transfer_recruiting_status',{
+    const {error}=await sb.rpc('set_transfer_recruiting_template_status',{
       p_row_id:Number(t),
       p_is_recruiting:e.target.dataset.active!=='true'
     });
@@ -857,8 +880,8 @@ recruit_list.onclick=async e=>{
   }
 
   if(r){
-    if(!confirm('Remove this alliance from this Transfer Cycle?'))return;
-    const {error}=await sb.rpc('remove_transfer_recruiting_alliance',{p_row_id:Number(r)});
+    if(!confirm('Remove this Recruiting Alliance permanently?'))return;
+    const {error}=await sb.rpc('remove_transfer_recruiting_template',{p_row_id:Number(r)});
     if(error)return alert(error.message);
     await loadRecruiting();
   }

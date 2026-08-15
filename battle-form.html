@@ -148,7 +148,15 @@ function questionMatchesRole(q,r){return q.role_scope==='both'||q.role_scope===r
 function renderCustomQuestions(){
  const r=role(); const wrap=$('custom-questions-wrap'),box=$('custom-questions');
  if(!r){wrap.classList.add('hidden');box.innerHTML='';return}
- const qs=customQuestions.filter(q=>q.is_active&&questionMatchesEvent(q,eventType)&&questionMatchesRole(q,r));
+ let qs=customQuestions.filter(q=>q.is_active&&questionMatchesEvent(q,eventType)&&questionMatchesRole(q,r));
+ const order=savedLayouts[r]||[];
+ if(order.length){
+   const pos=new Map(order.map((key,i)=>[key,i]));
+   qs=[...qs].sort((a,b)=>{
+     const ak='question:'+a.id,bk='question:'+b.id;
+     return (pos.has(ak)?pos.get(ak):999999)-(pos.has(bk)?pos.get(bk):999999);
+   });
+ }
  if(!qs.length){wrap.classList.add('hidden');box.innerHTML='';return}
  wrap.classList.remove('hidden');
  box.innerHTML=qs.map(q=>{
@@ -175,14 +183,17 @@ function collectCustomAnswers(){
 }
 async function loadReusableTemplate(){
  const params=new URLSearchParams(location.search); eventType=params.get('event_type')||'svs';
- const [et,tpl,qs]=await Promise.all([
+ const [et,tpl,qs,layouts]=await Promise.all([
    sb.from('event_operation_types').select('*').eq('event_key',eventType).maybeSingle(),
    sb.from('event_form_templates').select('settings').eq('event_type_key',eventType).maybeSingle(),
-   sb.from('event_form_questions').select('*').eq('is_active',true).order('created_at',{ascending:true})
+   sb.from('event_form_questions').select('*').eq('is_active',true).order('created_at',{ascending:true}),
+   sb.from('event_form_layouts').select('role_scope,field_order').eq('event_scope',eventType)
  ]);
- if(et.error)throw et.error;if(tpl.error)throw tpl.error;if(qs.error)throw qs.error;
+ if(et.error)throw et.error;if(tpl.error)throw tpl.error;if(qs.error)throw qs.error;if(layouts.error)throw layouts.error;
  eventTypeInfo=et.data||{event_key:eventType,name:eventType.toUpperCase(),is_active:true};
  customQuestions=(qs.data||[]).filter(q=>questionMatchesEvent(q,eventType));
+ savedLayouts={};
+ for(const row of (layouts.data||[]))savedLayouts[row.role_scope]=Array.isArray(row.field_order)?row.field_order:[];
  return tpl.data?.settings||null;
 }
 

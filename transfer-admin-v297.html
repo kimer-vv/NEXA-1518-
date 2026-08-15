@@ -16,18 +16,18 @@ document.querySelectorAll('[data-close-transfer-guide]').forEach(x=>x.addEventLi
  <div class="transfer-admin-head"><div><span class="badge">PRIVATE</span><h1>NEXA Transfers</h1><p class="muted">Transfer Control Center <span class="build-tag">v33.5</span></p><div id="transfer-diagnostic" class="diagnostic-chip">Loading transfer data…</div></div><a class="btn secondary" href="index.html?admin=modules&v=292">← Modules</a></div>
  <div class="form-actions" style="margin:10px 0"><button id="transfer-guide-btn" class="btn secondary" type="button">Transfer Guide</button></div>
  <div class="transfer-tabs">
-  <button class="transfer-tab active" data-tab="applications">Applications</button>
+  <button class="transfer-tab active" data-tab="events">Event Management</button>
+  <button class="transfer-tab" data-tab="applications">Applications</button>
   <button class="transfer-tab" data-tab="roster">Transfer Roster</button>
   <button class="transfer-tab" data-tab="waiting">Waiting List</button>
   <button class="transfer-tab" data-tab="form">Transfer Form</button>
-  <button class="transfer-tab" data-tab="events">Transfer Events</button>
   <button class="transfer-tab" data-tab="alliances">Recruiting Alliances</button>
   <button class="transfer-tab" data-tab="permissions">Permissions</button>
   <button class="transfer-tab" data-tab="history">History</button>
  </div>
  <div id="access-message" class="form-message"></div>
 
- <section id="tab-applications" class="transfer-panel">
+ <section id="tab-applications" class="transfer-panel hidden">
   <div class="panel-head"><div><h2>Transfer Applications</h2><p class="muted">Priority is calculated from Furnace, T12/T11, power flexibility and state fit.</p></div>
    <select id="application-event-filter"></select></div>
   <div class="form-actions compact-actions">
@@ -169,8 +169,8 @@ document.querySelectorAll('[data-close-transfer-guide]').forEach(x=>x.addEventLi
   </section>
  </section>
 
- <section id="tab-events" class="transfer-panel hidden">
-  <h2>Transfer Events</h2>
+ <section id="tab-events" class="transfer-panel">
+  <h2>Event Management</h2>
   
 <form id="transfer-event-form" class="glass transfer-admin-form">
   <input id="te_id" type="hidden">
@@ -445,7 +445,7 @@ async function loadEvents(){
    recruit_event_filter.value=preferred.id;
    form_event_filter.value=preferred.id;
  }
- events_list.innerHTML=events.length?events.map(e=>`<article class="history-card"><div><b>${esc(e.title)}</b><small>State ${e.destination_state} • ${esc(e.status)} • Ordinary Cap ${e.power_cap?fmtPower(e.power_cap):'—'} • Special Cap ${e.special_power_cap?fmtPower(e.special_power_cap):'—'}</small><div class="history-summary">Applications ${e.applications_open?'OPEN':'CLOSED'} • ${e.leadership_status==='leading_with_specials'?'Leading • Specials':e.leadership_status==='leading_no_specials'?'Leading • No Specials':'Not Leading'} • ${e.special_invites_available||0} Special Invite(s) • <a href="transfer-event.html?token=${e.public_token}" target="_blank">View Event</a> • <a href="transfer-apply.html?token=${e.public_token}" target="_blank">Direct Form Link</a></div></div><div class="history-actions"><button class="btn secondary" data-edit-event="${e.id}">Edit</button>${e.status!=='archived'?`<button class="btn danger" data-end-event="${e.id}">End Event</button>`:''}</div></article>`).join(''):'<div class="empty-state">No transfer cycles yet.</div>';
+ events_list.innerHTML=active.length?active.map(e=>`<article class="history-card"><div><b>${esc(e.title)}</b><small>State ${e.destination_state} • ${esc(e.status)} • Ordinary Cap ${e.power_cap?fmtPower(e.power_cap):'—'} • Special Cap ${e.special_power_cap?fmtPower(e.special_power_cap):'—'}</small><div class="history-summary">Applications ${e.applications_open?'OPEN':'CLOSED'} • ${e.leadership_status==='leading_with_specials'?'Leading • Specials':e.leadership_status==='leading_no_specials'?'Leading • No Specials':'Not Leading'} • ${e.special_invites_available||0} Special Invite(s) • <a href="transfer-event.html?token=${e.public_token}" target="_blank">View Event</a> • <a href="transfer-apply.html?token=${e.public_token}" target="_blank">Direct Form Link</a></div></div><div class="history-actions"><button class="btn secondary" data-edit-event="${e.id}">Edit</button><button class="btn danger" data-end-event="${e.id}">End Event</button></div></article>`).join(''):'<div class="empty-state">No active Transfer Event. Create one when the next cycle is ready.</div>';
  refreshTransferFormPanel(); await loadApplications(); await loadRecruiting();
 }
 
@@ -597,6 +597,27 @@ function resetEventForm(){
   te_cancel.classList.add('hidden');te_end_event.classList.add('hidden');
 }
 te_cancel.onclick=resetEventForm;
+
+function clearEndedTransferCycleUI(){
+  // Waiting List intentionally remains untouched; it carries forward.
+  applications=[];
+  if(applications_list) applications_list.innerHTML='<div class="empty-state">No active Transfer Event.</div>';
+
+  if(application_event_filter) application_event_filter.innerHTML='';
+  if(recruit_event_filter) recruit_event_filter.innerHTML='';
+  if(form_event_filter) form_event_filter.innerHTML='';
+
+  const rosterSummary=document.getElementById('transfer-roster-summary');
+  const rosterPreview=document.getElementById('transfer-roster-copy-preview');
+  const allianceDistribution=document.getElementById('alliance-distribution');
+
+  if(rosterSummary) rosterSummary.innerHTML='<div class="empty-state">No active Transfer Event.</div>';
+  if(rosterPreview) rosterPreview.textContent='STATE 1518 — TRANSFER ROSTER\n\nNo active Transfer Event.';
+  if(allianceDistribution) allianceDistribution.innerHTML='<div class="empty-state">No active Transfer Event.</div>';
+
+  window._transferRosterByAlliance={};
+}
+
 events_list.onclick=async e=>{
   const edit=e.target.dataset.editEvent;
   const end=e.target.dataset.endEvent;
@@ -611,7 +632,9 @@ events_list.onclick=async e=>{
     if(!confirm('End this Transfer Event now?')) return;
     const {error}=await sb.rpc('end_transfer_event',{p_transfer_event_id:end});
     if(error) return alert(error.message);
+    clearEndedTransferCycleUI();
     await loadEvents();
+    await loadHistory();
   }
 };
 
@@ -621,7 +644,9 @@ te_end_event.onclick=async()=>{
   const {error}=await sb.rpc('end_transfer_event',{p_transfer_event_id:te_id.value});
   if(error) return alert(error.message);
   resetEventForm();
+  clearEndedTransferCycleUI();
   await loadEvents();
+  await loadHistory();
 };
 
 
@@ -890,7 +915,12 @@ window.addEventListener('error',ev=>{
 
   const qs=new URLSearchParams(location.search);
   const requestedTab=qs.get('tab');
-  if(requestedTab && document.getElementById('tab-'+requestedTab)) { tab(requestedTab); setTimeout(()=>document.getElementById('tab-'+requestedTab)?.scrollIntoView({block:'start'}),30); }
+  if(requestedTab && document.getElementById('tab-'+requestedTab)) {
+    tab(requestedTab);
+    setTimeout(()=>document.getElementById('tab-'+requestedTab)?.scrollIntoView({block:'start'}),30);
+  } else {
+    tab('events');
+  }
 
   const requestedEvent=qs.get('event');
   if(requestedEvent && events.some(e=>e.id===requestedEvent)){

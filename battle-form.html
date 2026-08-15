@@ -192,10 +192,21 @@ const previewMode=new URLSearchParams(location.search).get('preview')==='1';
 function applyPreviewMode(){
   if(!previewMode)return;
   const note=$('template-preview-note');
-  if(note){note.classList.remove('hidden');note.textContent='Preview Mode — responses cannot be submitted.';}
+  if(note){
+    note.classList.remove('hidden');
+    note.textContent='Preview Mode — choose Joiner or Rally Lead to review the questions. Responses cannot be submitted.';
+  }
   const submit=$('submit-btn');
   if(submit)submit.style.display='none';
-  document.querySelectorAll('#form input,#form select,#form textarea,#form button').forEach(el=>el.disabled=true);
+  document.querySelectorAll('#form input,#form select,#form textarea,#form button').forEach(el=>{
+    const isRole=el.matches('input[name="role"]');
+    if(!isRole)el.disabled=true;
+  });
+  document.querySelectorAll('input[name="role"]').forEach(el=>{
+    el.disabled=false;
+    const label=el.closest('label');
+    if(label)label.style.opacity='1';
+  });
 }
 
 async function init(){
@@ -242,7 +253,7 @@ async function init(){
  $('deployment')?.addEventListener('input',updateDeploymentPreview);updateDeploymentPreview();
  if(eventType!=='svs'){
    $('template-preview-note').classList.remove('hidden');
-   $('template-preview-note').textContent='Preview Mode — responses cannot be submitted.';
+   $('template-preview-note').textContent='Preview Mode — choose Joiner or Rally Lead to review the questions. Responses cannot be submitted.';
    $('submit-btn').disabled=true;
  }
  $('form').classList.remove('hidden');applyPreviewMode();

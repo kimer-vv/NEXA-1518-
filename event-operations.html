@@ -26,8 +26,16 @@
   <section id="tab-forms" class="ops-panel">
     <article class="ops-card">
       <div class="panel-head"><div><small>REUSABLE FORM</small><h2>Battle Form</h2><p class="muted">Build the complete form from one settings page. Base fields and combat questions stay protected; extra event questions are added there too.</p></div><span class="mini-badge">ACTIVE</span></div>
-      <div class="badge-row"><span id="active-event-count" class="mini-badge">3 Active Event Types</span></div>
-      <div class="ops-actions"><a class="btn" href="battle-form.html?direct=1" target="_blank">Open Form</a><button id="copy-form-link" class="btn secondary" type="button">Copy Link</button><a class="btn secondary" href="battle-settings.html">Form Settings</a></div>
+      <div style="margin-top:12px">
+        <label>Form
+          <select id="form-event-select"></select>
+        </label>
+      </div>
+      <div class="ops-actions">
+        <button id="open-selected-form" class="btn" type="button">Open Form</button>
+        <button id="copy-form-link" class="btn secondary" type="button">Copy Link</button>
+        <button id="open-form-settings" class="btn secondary" type="button">Form Settings</button>
+      </div>
       <div id="copy-status" class="form-message"></div>
     </article>
     <article class="ops-card">
@@ -83,10 +91,15 @@ function eventName(key){return eventTypes.find(x=>x.key===key)?.name||key}
 function slugify(v){return String(v||'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,50)}
 async function guard(){const {data:{session}}=await sb.auth.getSession();if(!session){location.href='index.html';return false}const {data:role}=await sb.rpc('current_nexa_role');if(!['owner','admin','scheduler'].includes(String(role||'').toLowerCase())){location.href='index.html';return false}return true}
 function showTab(name){document.querySelectorAll('.ops-panel').forEach(x=>x.classList.add('hidden'));$('tab-'+name).classList.remove('hidden');document.querySelectorAll('.ops-tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===name))}document.querySelectorAll('.ops-tab').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
-$('copy-form-link').onclick=async()=>{const u=new URL('battle-form.html?direct=1',location.href).href;try{await navigator.clipboard.writeText(u);$('copy-status').textContent='Battle Form link copied ✓'}catch{$('copy-status').textContent=u}};
+
 async function loadEventTypes(){let rows=null;const q=await sb.from('event_operation_types').select('*').order('sort_order',{ascending:true});if(!q.error)rows=q.data;else{try{rows=JSON.parse(localStorage.getItem('nexa_event_types_preview')||'null')}catch{}}eventTypes=(rows?.length?rows:DEFAULT_EVENT_TYPES).map((x,i)=>({key:x.event_key||x.key,name:x.name,short_name:x.short_name||x.name,active:x.is_active??x.active??true,system:x.is_system??x.system??false,sort_order:x.sort_order??i}));for(const d of DEFAULT_EVENT_TYPES)if(!eventTypes.some(x=>x.key===d.key))eventTypes.push(d);eventTypes.sort((a,b)=>a.sort_order-b.sort_order);savePreviewTypes();renderEventTypes();renderFilters();renderQuestionEventChecks()}
 function savePreviewTypes(){localStorage.setItem('nexa_event_types_preview',JSON.stringify(eventTypes))}
-function renderEventTypes(){const activeCount=eventTypes.filter(t=>t.active).length;if($('active-event-count'))$('active-event-count').textContent=`${activeCount} Active Event Type${activeCount===1?'':'s'}`;if($('manage-event-count'))$('manage-event-count').textContent=`${activeCount} ACTIVE`; $('event-type-list').innerHTML=eventTypes.map(t=>`<article class="q-card ${t.active?'':'inactive'}"><div class="panel-head"><div><div class="q-title">${esc(t.name)}</div><div class="q-meta">${esc(t.short_name||t.name)} • ${t.active?'Active':'Inactive'}${t.system?' • Base Event Type':''}</div></div><span class="mini-badge">${t.active?'ACTIVE':'INACTIVE'}</span></div><div class="ops-actions"><button class="tiny-btn event-toggle" data-key="${esc(t.key)}" type="button">${t.active?'Deactivate':'Activate'}</button><button class="tiny-btn event-delete" data-key="${esc(t.key)}" type="button">Delete</button></div></article>`).join('')}
+function selectedFormEvent(){return $('form-event-select')?.value||eventTypes.find(t=>t.active)?.key||'svs'}
+function selectedFormUrl(){const key=selectedFormEvent();return new URL(`battle-form.html?direct=1&event_type=${encodeURIComponent(key)}`,location.href)}
+$('open-selected-form').onclick=()=>window.open(selectedFormUrl().href,'_blank');
+$('copy-form-link').onclick=async()=>{const u=selectedFormUrl().href;try{await navigator.clipboard.writeText(u);$('copy-status').textContent=`${eventName(selectedFormEvent())} form link copied ✓`}catch{$('copy-status').textContent=u}};
+$('open-form-settings').onclick=()=>{location.href=`battle-settings.html?event_type=${encodeURIComponent(selectedFormEvent())}`};
+function renderEventTypes(){const active=eventTypes.filter(t=>t.active),activeCount=active.length;if($('manage-event-count'))$('manage-event-count').textContent=`${activeCount} ACTIVE`;if($('form-event-select')){const previous=$('form-event-select').value;$('form-event-select').innerHTML=active.map(t=>`<option value="${esc(t.key)}">${esc(t.name)}</option>`).join('');if(active.some(t=>t.key===previous))$('form-event-select').value=previous;} $('event-type-list').innerHTML=eventTypes.map(t=>`<article class="q-card ${t.active?'':'inactive'}"><div class="panel-head"><div><div class="q-title">${esc(t.name)}</div><div class="q-meta">${esc(t.short_name||t.name)} • ${t.active?'Active':'Inactive'}${t.system?' • Base Event Type':''}</div></div><span class="mini-badge">${t.active?'ACTIVE':'INACTIVE'}</span></div><div class="ops-actions"><button class="tiny-btn event-toggle" data-key="${esc(t.key)}" type="button">${t.active?'Deactivate':'Activate'}</button><button class="tiny-btn event-delete" data-key="${esc(t.key)}" type="button">Delete</button></div></article>`).join('')}
 function renderFilters(){const buttons=[`<button class="btn secondary scope-filter" data-filter="all" type="button">All</button>`,...eventTypes.filter(x=>x.active).map(x=>`<button class="btn secondary scope-filter" data-filter="${esc(x.key)}" type="button">${esc(x.name)}</button>`)].join('');$('scope-filters').innerHTML=buttons;$('scope-filters').onclick=e=>{if(!e.target.classList.contains('scope-filter'))return;filter=e.target.dataset.filter;renderQuestions()}}
 function renderQuestionEventChecks(selected=[]){if(!$('question-event-checks'))return;$('question-event-checks').innerHTML=`<label class="check-pill"><input class="event-check all-events-check" type="checkbox" value="all"> All Events</label>`+eventTypes.filter(x=>x.active).map(x=>`<label class="check-pill"><input class="event-check" type="checkbox" value="${esc(x.key)}"> ${esc(x.name)}</label>`).join('');document.querySelectorAll('.event-check').forEach(x=>x.checked=selected.includes(x.value))}
 $('question-event-checks').onchange=e=>{if(e.target.classList.contains('all-events-check')&&e.target.checked)document.querySelectorAll('.event-check:not(.all-events-check)').forEach(x=>x.checked=false);else if(e.target.classList.contains('event-check')&&!e.target.classList.contains('all-events-check')&&e.target.checked)document.querySelector('.all-events-check').checked=false};

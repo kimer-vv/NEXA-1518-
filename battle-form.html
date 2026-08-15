@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NEXA • Battle Form</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/human-gate.js"></script>
+<style>
+ .role-grid,.troop-grid,.hero-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+ .choice-card,.hero-card{border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:14px;background:rgba(10,14,30,.38)}
+ .availability{display:flex;flex-wrap:wrap;gap:8px}.availability label{display:flex;gap:7px;align-items:center;padding:9px 12px;border:1px solid rgba(255,255,255,.12);border-radius:999px}
+ .hero-detail{margin-top:10px}.compact-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.hidden{display:none!important}
+</style>
+</head>
+<body>
+<main class="shell">
+<a class="back" href="index.html">← Home</a>
+<section class="glass">
+<div class="panel-head"><div><h1>Battle Form</h1><p id="event-meta" class="muted">Loading current event…</p></div></div>
+<div id="message" class="form-message"></div>
+<div id="closed" class="empty-state hidden">The Battle Form is not currently open.</div>
+<form id="form" class="account-form hidden">
+ <label id="account-wrap">Account<select id="account"></select></label>
+ <div id="identity" class="setting-card"></div>
+
+ <h3>Availability</h3><p class="muted">Select every UTC block when you expect to be available.</p>
+ <div id="availability" class="availability"></div>
+
+ <h3>Battle Role</h3>
+ <div class="role-grid">
+  <label class="choice-card"><input type="radio" name="role" value="joiner" required> <b>Joiner</b></label>
+  <label class="choice-card"><input type="radio" name="role" value="rally_lead" required> <b>Rally Lead</b></label>
+ </div>
+
+ <section id="joiner" class="hidden">
+  <h3>Troop Quality</h3>
+  <div class="troop-grid" id="troops"></div>
+  <label id="deployment-wrap" class="hidden">Deployment Capacity<input id="deployment" type="number" min="0" inputmode="numeric"></label>
+  <h3>Lv. 5 Rally Joiner Heroes</h3><p class="muted">Select every configured hero you have with the required rally skill at Level 5.</p>
+  <div id="joiner-heroes" class="hero-grid"></div>
+  <div id="joiner-experts-wrap" class="hidden"><h3>Experts</h3><div id="joiner-experts" class="hero-grid"></div></div>
+ </section>
+
+ <section id="rally" class="hidden">
+  <h3>Rally Lead Heroes</h3><p class="muted">For each hero you have, mark Fully Maxed. If not maxed, report Stars, Skills and Widget.</p>
+  <div id="rally-heroes" class="hero-grid"></div>
+  <div id="rally-experts-wrap" class="hidden"><h3>Experts</h3><div id="rally-experts" class="hero-grid"></div></div>
+ </section>
+
+ <label id="discord-wrap" class="hidden">Available in Discord Voice Chat?
+   <select id="discord"><option value="">Select…</option><option value="yes">Yes</option><option value="no">No</option><option value="if_needed">If needed</option></select>
+ </label>
+ <div class="form-actions"><button class="btn" type="submit">Submit Battle Form</button></div>
+</form>
+</section>
+</main>
+<script>
+const sb=window.supabase.createClient("https://dfxcxboxrkfmrnsgpyin.supabase.co","sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-");
+const $=id=>document.getElementById(id); let eventData,settings,items=[],accounts=[];
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function opt(n,max){return '<option value="">—</option>'+Array.from({length:max},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')}
+function role(){return document.querySelector('input[name=role]:checked')?.value}
+function renderIdentity(){
+ const a=accounts.find(x=>String(x.id)===$('account').value); if(!a)return;
+ $('identity').innerHTML=`<b>${esc(a.in_game_name)}</b><div class="muted">${esc(a.alliances?.tag||a.custom_alliance_tag||'Not listed')} • Player ID ${esc(a.player_id)}</div>`;
+}
+function renderAvailability(){
+ const blocks=settings?.availability_blocks||[];let html='';
+ if(settings?.full_availability_enabled && blocks.length) html+=`<label><input type="checkbox" id="full-avail"> Full Availability</label>`;
+ html+=blocks.map((b,i)=>`<label><input class="avail" type="checkbox" value="${esc(b.label)}"> ${esc(b.label)}</label>`).join('');
+ $('availability').innerHTML=html;
+ $('full-avail')?.addEventListener('change',e=>document.querySelectorAll('.avail').forEach(x=>x.checked=e.target.checked));
+}
+function troopCard(type,label){
+ return `<div class="choice-card"><b>${label}</b><label>Level<select class="troop-level" data-type="${type}"><option value="">Select…</option><option>FC10</option><option>T11</option><option>T12</option></select></label><label class="skill-wrap hidden">T12 Skill<select class="troop-skill" data-type="${type}">${opt(0,settings?.t12_max_skill||5)}</select></label></div>`;
+}
+function renderTroops(){$('troops').innerHTML=troopCard('infantry','Infantry')+troopCard('lancer','Lancer')+troopCard('marksman','Marksman');document.querySelectorAll('.troop-level').forEach(s=>s.onchange=()=>s.closest('.choice-card').querySelector('.skill-wrap').classList.toggle('hidden',s.value!=='T12'))}
+function itemList(type){return items.filter(x=>x.item_type===type&&x.is_active!==false).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0))}
+function renderJoinerHeroes(){$('joiner-heroes').innerHTML=itemList('joiner_hero').map(h=>`<label class="hero-card"><input class="joiner-hero" type="checkbox" value="${h.id}" data-name="${esc(h.name)}"> <b>${esc(h.name)}</b></label>`).join('')||'<div class="muted">No Joiner Heroes configured yet.</div>'}
+function renderRallyHeroes(){
+ $('rally-heroes').innerHTML=itemList('rally_hero').map(h=>`<div class="hero-card rally-hero" data-id="${h.id}" data-name="${esc(h.name)}"><label><input class="has-hero" type="checkbox"> <b>${esc(h.name)}</b></label><div class="hero-detail hidden"><label>Fully Maxed?<select class="fully"><option value="">Select…</option><option value="yes">Yes</option><option value="no">No</option></select></label><div class="not-max hidden compact-grid"><label>Stars<select class="stars">${opt(0,5)}</select></label><label>Skills<select class="skills">${opt(0,5)}</select></label><label>Widget<select class="widget">${opt(0,10)}</select></label></div></div></div>`).join('')||'<div class="muted">No Rally Lead Heroes configured yet.</div>';
+ document.querySelectorAll('.rally-hero').forEach(c=>{c.querySelector('.has-hero').onchange=e=>c.querySelector('.hero-detail').classList.toggle('hidden',!e.target.checked);c.querySelector('.fully').onchange=e=>c.querySelector('.not-max').classList.toggle('hidden',e.target.value!=='no')});
+}
+function renderExperts(type,container){
+ $(container).innerHTML=itemList(type).map(h=>`<div class="hero-card expert" data-id="${h.id}" data-name="${esc(h.name)}" data-max="${h.max_level||10}"><label><input class="has-expert" type="checkbox"> <b>${esc(h.name)}</b></label><div class="hero-detail hidden"><label>Maxed?<select class="expert-maxed"><option value="">Select…</option><option value="yes">Yes</option><option value="no">No</option></select></label><label class="expert-level-wrap hidden">Current Level<select class="expert-level">${opt(0,h.max_level||10)}</select></label></div></div>`).join('')||'<div class="muted">No Experts configured yet.</div>';
+ $(container).querySelectorAll('.expert').forEach(c=>{c.querySelector('.has-expert').onchange=e=>c.querySelector('.hero-detail').classList.toggle('hidden',!e.target.checked);c.querySelector('.expert-maxed').onchange=e=>c.querySelector('.expert-level-wrap').classList.toggle('hidden',e.target.value!=='no')});
+}
+async function init(){
+ const {data:{session}}=await sb.auth.getSession(); if(!session){$('message').textContent='Please sign in to NEXA before opening the Battle Form.';return;}
+ await sb.rpc('refresh_auto_ended_events');
+ const {data:e}=await sb.from('svs_events').select('*').eq('status','live').order('prep_monday',{ascending:false}).limit(1).maybeSingle();
+ if(!e){$('message').textContent='There is no active SvS event.';return;} eventData=e;
+ $('event-meta').textContent=`SvS vs ${e.opponent_state} • Battle availability is shown in UTC`;
+ if(!e.battle_form_open){$('closed').classList.remove('hidden');return;}
+ const [{data:s},{data:i},{data:a,error}]=await Promise.all([
+  sb.from('battle_form_settings').select('*').eq('event_id',e.id).maybeSingle(),
+  sb.from('battle_form_items').select('*').eq('event_id',e.id).order('sort_order'),
+  sb.from('player_accounts').select('id,in_game_name,player_id,alliance_id,custom_alliance_tag,alliances(tag)').eq('user_id',session.user.id).order('in_game_name')
+ ]);
+ if(error){$('message').textContent=error.message;return;}
+ settings=s||{availability_blocks:[],full_availability_enabled:true,deployment_capacity_enabled:false,discord_voice_enabled:true,joiner_experts_enabled:false,rally_experts_enabled:true,t12_max_skill:5};items=i||[];accounts=a||[];
+ if(!accounts.length){$('message').textContent='No registered NEXA player account was found for your login.';return;}
+ $('account').innerHTML=accounts.map(a=>`<option value="${a.id}">${esc(a.in_game_name)} • ${esc(a.alliances?.tag||a.custom_alliance_tag||'Not listed')}</option>`).join('');
+ $('account-wrap').classList.toggle('hidden',accounts.length===1);$('account').onchange=renderIdentity;renderIdentity();
+ renderAvailability();renderTroops();renderJoinerHeroes();renderRallyHeroes();renderExperts('joiner_expert','joiner-experts');renderExperts('rally_expert','rally-experts');
+ $('deployment-wrap').classList.toggle('hidden',!settings.deployment_capacity_enabled);
+ $('discord-wrap').classList.toggle('hidden',!settings.discord_voice_enabled);
+ $('joiner-experts-wrap').classList.toggle('hidden',!settings.joiner_experts_enabled);
+ $('rally-experts-wrap').classList.toggle('hidden',!settings.rally_experts_enabled);
+ $('form').classList.remove('hidden');
+}
+document.addEventListener('change',e=>{if(e.target.name==='role'){const r=role();$('joiner').classList.toggle('hidden',r!=='joiner');$('rally').classList.toggle('hidden',r!=='rally_lead')}});
+$('form').onsubmit=async e=>{
+ e.preventDefault();$('message').textContent='Saving…';
+ const {data:{user}}=await sb.auth.getUser();const r=role();if(!r)return;
+ const availability=[...document.querySelectorAll('.avail:checked')].map(x=>x.value);
+ if($('full-avail')?.checked && settings.availability_blocks?.length) availability.splice(0,availability.length,...settings.availability_blocks.map(x=>x.label));
+ if(!availability.length){$('message').textContent='Select at least one availability block.';return;}
+ let troop_quality=null,joiner_heroes=[],rally_heroes=[],experts=[];
+ if(r==='joiner'){
+  troop_quality={};for(const t of ['infantry','lancer','marksman']){const level=document.querySelector(`.troop-level[data-type="${t}"]`).value;if(!level){$('message').textContent='Select Infantry, Lancer and Marksman troop levels.';return;}const skill=level==='T12'?Number(document.querySelector(`.troop-skill[data-type="${t}"]`).value||0):null;if(level==='T12'&&!skill){$('message').textContent='Select the T12 skill level for every T12 troop type.';return;}troop_quality[t]={level,skill};}
+  joiner_heroes=[...document.querySelectorAll('.joiner-hero:checked')].map(x=>({id:Number(x.value),name:x.dataset.name,skill_level:5}));
+  if(settings.joiner_experts_enabled) experts=collectExperts('joiner-experts');
+ }else{
+  rally_heroes=[...document.querySelectorAll('.rally-hero')].filter(c=>c.querySelector('.has-hero').checked).map(c=>({id:Number(c.dataset.id),name:c.dataset.name,fully_maxed:c.querySelector('.fully').value==='yes',stars:c.querySelector('.fully').value==='no'?Number(c.querySelector('.stars').value||0):5,skills:c.querySelector('.fully').value==='no'?Number(c.querySelector('.skills').value||0):5,widget:c.querySelector('.fully').value==='no'?Number(c.querySelector('.widget').value||0):10}));
+  if(settings.rally_experts_enabled) experts=collectExperts('rally-experts');
+ }
+ const payload={event_id:eventData.id,user_id:user.id,player_account_id:Number($('account').value),role:r,availability,troop_quality,deployment_capacity:settings.deployment_capacity_enabled&&$('deployment').value?Number($('deployment').value):null,joiner_heroes,rally_heroes,experts,discord_voice:settings.discord_voice_enabled?($('discord').value||null):null,updated_at:new Date().toISOString()};
+ const {error}=await sb.from('battle_form_responses').upsert(payload,{onConflict:'event_id,player_account_id'});
+ $('message').textContent=error?error.message:'Battle Form submitted ✓ You can submit again later to update your response.';
+};
+function collectExperts(container){return [...$(container).querySelectorAll('.expert')].filter(c=>c.querySelector('.has-expert').checked).map(c=>({id:Number(c.dataset.id),name:c.dataset.name,maxed:c.querySelector('.expert-maxed').value==='yes',level:c.querySelector('.expert-maxed').value==='yes'?Number(c.dataset.max):Number(c.querySelector('.expert-level').value||0),max_level:Number(c.dataset.max)}))}
+init();
+</script>
+</body></html>

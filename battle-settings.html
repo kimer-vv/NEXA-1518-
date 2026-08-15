@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NEXA • Battle Form Settings</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/human-gate.js"></script>
+<style>
+  .battle-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+  .setting-card{padding:16px;border:1px solid rgba(255,255,255,.12);border-radius:18px;background:rgba(10,14,30,.42)}
+  .item-row{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;margin:8px 0}
+  .block-row{display:grid;grid-template-columns:1fr auto;gap:8px;margin:8px 0}
+  .tiny{max-width:90px}.pill-note{font-size:12px;opacity:.72}
+</style>
+</head>
+<body>
+<main class="shell">
+<a class="back" href="svs-admin.html">← SvS Control Center</a>
+<section class="glass">
+<div class="panel-head"><div><h1>Battle Form Settings</h1><p class="muted">Configure the reusable Battle Form for the current SvS event.</p></div></div>
+<div id="state" class="form-message"></div>
+<label>Event<select id="event"></select></label>
+
+<div class="battle-grid" style="margin-top:16px">
+  <div class="setting-card">
+    <h3>Availability Blocks</h3>
+    <p class="muted">UTC. Players may select multiple blocks.</p>
+    <div id="blocks"></div>
+    <div class="form-actions"><button id="add-block" class="btn secondary" type="button">+ Add Block</button></div>
+    <label class="toggle-line"><input id="full-enabled" type="checkbox"> Show Full Availability option</label>
+  </div>
+
+  <div class="setting-card">
+    <h3>Form Options</h3>
+    <label>Maximum T12 Skill Level<input id="t12-max" type="number" min="1" max="20" value="5"></label>
+    <label class="toggle-line"><input id="deployment-enabled" type="checkbox"> Ask Deployment Capacity</label>
+    <label class="toggle-line"><input id="discord-enabled" type="checkbox" checked> Ask Discord Voice availability</label>
+    <label class="toggle-line"><input id="joiner-experts-enabled" type="checkbox"> Show Experts for Joiners</label>
+    <label class="toggle-line"><input id="rally-experts-enabled" type="checkbox" checked> Show Experts for Rally Leads</label>
+  </div>
+</div>
+
+<div class="battle-grid" style="margin-top:16px">
+  <div class="setting-card"><h3>Joiner Heroes</h3><p class="muted">Add heroes that count as eligible Lv.5 rally joiner heroes.</p><div id="joiner-heroes"></div><button class="btn secondary add-item" data-type="joiner_hero" type="button">+ Add Hero</button></div>
+  <div class="setting-card"><h3>Rally Lead Heroes</h3><p class="muted">Players report Fully Maxed, or Stars / Skills / Widget.</p><div id="rally-heroes"></div><button class="btn secondary add-item" data-type="rally_hero" type="button">+ Add Hero</button></div>
+  <div class="setting-card"><h3>Joiner Experts</h3><div id="joiner-experts"></div><button class="btn secondary add-item" data-type="joiner_expert" type="button">+ Add Expert</button></div>
+  <div class="setting-card"><h3>Rally Lead Experts</h3><div id="rally-experts"></div><button class="btn secondary add-item" data-type="rally_expert" type="button">+ Add Expert</button></div>
+</div>
+
+<div class="form-actions" style="margin-top:18px">
+<button id="save" class="btn" type="button">Save Battle Form Settings</button>
+<a class="btn secondary" href="battle-form.html?direct=1" target="_blank">Preview Battle Form</a>
+</div>
+</section>
+</main>
+<script>
+const sb=window.supabase.createClient("https://dfxcxboxrkfmrnsgpyin.supabase.co","sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-");
+const $=id=>document.getElementById(id);
+let items=[];
+const map={joiner_hero:'joiner-heroes',rally_hero:'rally-heroes',joiner_expert:'joiner-experts',rally_expert:'rally-experts'};
+
+async function guard(){
+ const {data:{session}}=await sb.auth.getSession(); if(!session){location.href='index.html';return false;}
+ const {data:role}=await sb.rpc('current_nexa_role');
+ if(!['owner','admin','scheduler'].includes(String(role||'').toLowerCase())){location.href='index.html';return false;}
+ return true;
+}
+function renderBlocks(blocks=[]){
+ $('blocks').innerHTML='';
+ (blocks.length?blocks:[{label:'12:00–13:00 UTC'},{label:'13:00–14:00 UTC'},{label:'14:00–15:00 UTC'},{label:'15:00–16:00 UTC'},{label:'16:00–17:00 UTC'}]).forEach(b=>{
+  const row=document.createElement('div');row.className='block-row';
+  row.innerHTML=`<input class="block-label" maxlength="40" value="${String(b.label||'').replaceAll('"','&quot;')}"><button class="btn secondary remove-block" type="button">Remove</button>`;
+  $('blocks').appendChild(row);
+ });
+}
+function renderItems(){
+ Object.values(map).forEach(id=>$(id).innerHTML='');
+ items.sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)).forEach(it=>{
+  const row=document.createElement('div');row.className='item-row';row.dataset.id=it.id||'';
+  row.dataset.type=it.item_type;
+  row.innerHTML=`<input class="item-name" maxlength="80" value="${String(it.name||'').replaceAll('"','&quot;')}">
+    <input class="item-max tiny" type="number" min="1" max="100" value="${it.max_level||''}" placeholder="Max">
+    <button class="btn secondary remove-item" type="button">×</button>`;
+  $(map[it.item_type]).appendChild(row);
+ });
+}
+async function loadEvents(){
+ const {data,error}=await sb.from('svs_events').select('id,opponent_state,prep_monday,status').neq('status','ended').order('prep_monday',{ascending:false});
+ if(error){$('state').textContent=error.message;return;}
+ $('event').innerHTML=(data||[]).map(e=>`<option value="${e.id}">SvS vs ${e.opponent_state} • ${e.prep_monday}</option>`).join('');
+ if(data?.length) await loadSettings();
+ else $('state').textContent='Create an SvS event first.';
+}
+async function loadSettings(){
+ const eventId=Number($('event').value); if(!eventId)return;
+ const [{data:s},{data:i,error}]=await Promise.all([
+   sb.from('battle_form_settings').select('*').eq('event_id',eventId).maybeSingle(),
+   sb.from('battle_form_items').select('*').eq('event_id',eventId).order('sort_order')
+ ]);
+ if(error){$('state').textContent=error.message;return;}
+ renderBlocks(s?.availability_blocks||[]);
+ $('full-enabled').checked=s?.full_availability_enabled??true;
+ $('deployment-enabled').checked=!!s?.deployment_capacity_enabled;
+ $('discord-enabled').checked=s?.discord_voice_enabled??true;
+ $('joiner-experts-enabled').checked=!!s?.joiner_experts_enabled;
+ $('rally-experts-enabled').checked=s?.rally_experts_enabled??true;
+ $('t12-max').value=s?.t12_max_skill||5;
+ items=i||[];renderItems();$('state').textContent='';
+}
+$('event').onchange=loadSettings;
+$('add-block').onclick=()=>{const r=document.createElement('div');r.className='block-row';r.innerHTML='<input class="block-label" maxlength="40" placeholder="12:00–13:00 UTC"><button class="btn secondary remove-block" type="button">Remove</button>';$('blocks').appendChild(r)};
+$('blocks').onclick=e=>{if(e.target.classList.contains('remove-block'))e.target.closest('.block-row').remove()};
+document.querySelectorAll('.add-item').forEach(b=>b.onclick=()=>{items.push({id:null,item_type:b.dataset.type,name:'',sort_order:items.filter(x=>x.item_type===b.dataset.type).length,max_level:b.dataset.type.includes('expert')?10:null});renderItems()});
+document.addEventListener('click',e=>{if(e.target.classList.contains('remove-item')){const r=e.target.closest('.item-row');const id=r.dataset.id;items=items.filter(x=>String(x.id||'')!==id || !id);r.remove()}});
+$('save').onclick=async()=>{
+ const eventId=Number($('event').value); if(!eventId)return;
+ $('state').textContent='Saving…';
+ const blocks=[...document.querySelectorAll('.block-label')].map(x=>({label:x.value.trim()})).filter(x=>x.label);
+ const {data:{user}}=await sb.auth.getUser();
+ const payload={event_id:eventId,availability_blocks:blocks,full_availability_enabled:$('full-enabled').checked,deployment_capacity_enabled:$('deployment-enabled').checked,discord_voice_enabled:$('discord-enabled').checked,joiner_experts_enabled:$('joiner-experts-enabled').checked,rally_experts_enabled:$('rally-experts-enabled').checked,t12_max_skill:Number($('t12-max').value)||5,updated_at:new Date().toISOString(),updated_by:user?.id||null};
+ const {error}=await sb.from('battle_form_settings').upsert(payload,{onConflict:'event_id'});
+ if(error){$('state').textContent=error.message;return;}
+ const rows=[...document.querySelectorAll('.item-row')].map((r,idx)=>({id:r.dataset.id?Number(r.dataset.id):undefined,event_id:eventId,item_type:r.dataset.type,name:r.querySelector('.item-name').value.trim(),sort_order:idx,max_level:r.querySelector('.item-max').value?Number(r.querySelector('.item-max').value):null,is_active:true})).filter(x=>x.name);
+ const existing=(await sb.from('battle_form_items').select('id').eq('event_id',eventId)).data||[];
+ const keep=rows.filter(x=>x.id).map(x=>x.id), del=existing.map(x=>x.id).filter(id=>!keep.includes(id));
+ if(del.length){const d=await sb.from('battle_form_items').delete().in('id',del);if(d.error){$('state').textContent=d.error.message;return;}}
+ for(const r of rows){const q=r.id?sb.from('battle_form_items').update(r).eq('id',r.id):sb.from('battle_form_items').insert(r);const z=await q;if(z.error){$('state').textContent=z.error.message;return;}}
+ $('state').textContent='Battle Form settings saved ✓';await loadSettings();
+};
+(async()=>{if(await guard())await loadEvents()})();
+</script>
+</body></html>

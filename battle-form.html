@@ -62,16 +62,21 @@
    <select id="discord"><option value="">Select…</option><option value="yes">Yes</option><option value="no">No</option><option value="if_needed">If needed</option></select>
  </label>
  </div>
- <div class="form-actions"><button class="btn" type="submit">Submit Battle Form</button></div>
+ <section id="custom-questions-wrap" class="hidden">
+   <h3>Event Questions</h3>
+   <div id="custom-questions"></div>
+ </section>
+ <div id="template-preview-note" class="form-message hidden"></div>
+ <div class="form-actions"><button id="submit-btn" class="btn" type="submit">Submit Battle Form</button></div>
 </form>
 </section>
 </main>
 <script>
 const sb=window.supabase.createClient("https://dfxcxboxrkfmrnsgpyin.supabase.co","sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-");
-const $=id=>document.getElementById(id); let eventData,settings,items=[],accounts=[];
+const $=id=>document.getElementById(id); let eventData,settings,items=[],accounts=[],eventType='svs',eventTypeInfo=null,customQuestions=[],savedLayouts={};
 const NOT_AVAILABLE_MARKER='__NEXA_NOT_AVAILABLE_OPTION__';
 function configuredAvailabilityBlocks(){return (settings?.availability_blocks||[]).filter(b=>b?.label&&b.label!==NOT_AVAILABLE_MARKER)}
-function notAvailableEnabled(){return (settings?.availability_blocks||[]).some(b=>b?.label===NOT_AVAILABLE_MARKER)}
+function notAvailableEnabled(){return settings?.not_available_enabled===true || (settings?.availability_blocks||[]).some(b=>b?.label===NOT_AVAILABLE_MARKER)}
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 function opt(n,max){return '<option value="">—</option>'+Array.from({length:max},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')}
 function role(){return document.querySelector('input[name=role]:checked')?.value}
@@ -137,35 +142,104 @@ function renderExperts(type,container){
  $(container).innerHTML=itemList(type).map(h=>`<div class="hero-card expert" data-id="${h.id}" data-name="${esc(h.name)}" data-max="${h.max_level||10}"><label><input class="has-expert" type="checkbox"> <b>${esc(h.name)}</b></label><div class="hero-detail hidden"><label>Maxed?<select class="expert-maxed"><option value="">Select…</option><option value="yes">Yes</option><option value="no">No</option></select></label><label class="expert-level-wrap hidden">Current Level<select class="expert-level">${opt(0,h.max_level||10)}</select></label></div></div>`).join('')||'<div class="muted">No Experts configured yet.</div>';
  $(container).querySelectorAll('.expert').forEach(c=>{c.querySelector('.has-expert').onchange=e=>c.querySelector('.hero-detail').classList.toggle('hidden',!e.target.checked);c.querySelector('.expert-maxed').onchange=e=>c.querySelector('.expert-level-wrap').classList.toggle('hidden',e.target.value!=='no')});
 }
+
+function questionMatchesEvent(q,key){return (q.event_scopes||[]).includes('all')||(q.event_scopes||[]).includes(key)}
+function questionMatchesRole(q,r){return q.role_scope==='both'||q.role_scope===r}
+function renderCustomQuestions(){
+ const r=role(); const wrap=$('custom-questions-wrap'),box=$('custom-questions');
+ if(!r){wrap.classList.add('hidden');box.innerHTML='';return}
+ const qs=customQuestions.filter(q=>q.is_active&&questionMatchesEvent(q,eventType)&&questionMatchesRole(q,r));
+ if(!qs.length){wrap.classList.add('hidden');box.innerHTML='';return}
+ wrap.classList.remove('hidden');
+ box.innerHTML=qs.map(q=>{
+   const id=`custom-q-${q.id}`,req=q.is_required?' required':'';
+   const opts=Array.isArray(q.options)?q.options:[];
+   let input='';
+   if(q.answer_type==='number') input=`<input id="${id}" data-qid="${q.id}" class="custom-answer" type="number"${req}>`;
+   else if(q.answer_type==='dropdown') input=`<select id="${id}" data-qid="${q.id}" class="custom-answer"${req}><option value="">Select…</option>${opts.map(o=>`<option value="${esc(o)}">${esc(o)}</option>`).join('')}</select>`;
+   else if(q.answer_type==='single_choice') input=`<div class="hero-grid">${opts.map((o,i)=>`<label class="choice-card"><input data-qid="${q.id}" class="custom-answer-radio" type="radio" name="custom_${q.id}" value="${esc(o)}"${q.is_required&&i===0?' required':''}> <b>${esc(o)}</b></label>`).join('')}</div>`;
+   else if(q.answer_type==='checkboxes') input=`<div class="hero-grid">${opts.map(o=>`<label class="choice-card"><input data-qid="${q.id}" class="custom-answer-check" type="checkbox" value="${esc(o)}"> <b>${esc(o)}</b></label>`).join('')}</div>`;
+   else input=`<input id="${id}" data-qid="${q.id}" class="custom-answer" type="text"${req}>`;
+   return `<div class="setting-card custom-q" data-id="${q.id}"><label><b>${esc(q.question_text)}</b>${q.is_required?' <small class="muted">Required</small>':''}${input}</label></div>`;
+ }).join('');
+}
+function collectCustomAnswers(){
+ const out={};
+ for(const q of customQuestions.filter(q=>q.is_active&&questionMatchesEvent(q,eventType)&&questionMatchesRole(q,role()))){
+   if(q.answer_type==='single_choice') out[q.id]=document.querySelector(`input[name="custom_${q.id}"]:checked`)?.value||'';
+   else if(q.answer_type==='checkboxes') out[q.id]=[...document.querySelectorAll(`.custom-answer-check[data-qid="${q.id}"]:checked`)].map(x=>x.value);
+   else out[q.id]=document.querySelector(`.custom-answer[data-qid="${q.id}"]`)?.value||'';
+   if(q.is_required && (Array.isArray(out[q.id])?out[q.id].length===0:!String(out[q.id]??'').trim())) throw new Error(`Answer required: ${q.question_text}`);
+ }
+ return out;
+}
+async function loadReusableTemplate(){
+ const params=new URLSearchParams(location.search); eventType=params.get('event_type')||'svs';
+ const [et,tpl,qs]=await Promise.all([
+   sb.from('event_operation_types').select('*').eq('event_key',eventType).maybeSingle(),
+   sb.from('event_form_templates').select('settings').eq('event_type_key',eventType).maybeSingle(),
+   sb.from('event_form_questions').select('*').eq('is_active',true).order('created_at',{ascending:true})
+ ]);
+ if(et.error)throw et.error;if(tpl.error)throw tpl.error;if(qs.error)throw qs.error;
+ eventTypeInfo=et.data||{event_key:eventType,name:eventType.toUpperCase(),is_active:true};
+ customQuestions=(qs.data||[]).filter(q=>questionMatchesEvent(q,eventType));
+ return tpl.data?.settings||null;
+}
+
 async function init(){
  const {data:{session}}=await sb.auth.getSession(); if(!session){$('message').textContent='Please sign in to NEXA before opening the Battle Form.';return;}
- await sb.rpc('refresh_auto_ended_events');
- const {data:e}=await sb.from('svs_events').select('*').eq('status','live').order('prep_monday',{ascending:false}).limit(1).maybeSingle();
- if(!e){$('message').textContent='There is no active SvS event.';return;} eventData=e;
- $('event-meta').textContent=`SvS vs ${e.opponent_state} • Battle availability is shown in UTC`;
- if(!e.battle_form_open){$('closed').classList.remove('hidden');return;}
- const [{data:s},{data:i},{data:a,error}]=await Promise.all([
-  sb.from('battle_form_settings').select('*').eq('event_id',e.id).maybeSingle(),
-  sb.from('battle_form_items').select('*').eq('event_id',e.id).order('sort_order'),
-  sb.from('player_accounts').select('id,in_game_name,player_id,alliance_id,custom_alliance_tag,alliances(tag)').eq('user_id',session.user.id).order('in_game_name')
- ]);
- if(error){$('message').textContent=error.message;return;}
- settings=s||{availability_blocks:[],full_availability_enabled:true,deployment_capacity_enabled:false,discord_voice_enabled:true,joiner_experts_enabled:false,rally_experts_enabled:true,t12_max_skill:5};items=i||[];accounts=a||[];
- if(!accounts.length){$('message').textContent='No registered NEXA player account was found for your login.';return;}
+ let reusable=null;
+ try{reusable=await loadReusableTemplate()}catch(err){$('message').textContent='Could not load Battle Form template: '+err.message;return}
+ const {data:a,error:accountError}=await sb.from('player_accounts').select('id,in_game_name,player_id,alliance_id,custom_alliance_tag,alliances(tag)').eq('user_id',session.user.id).order('in_game_name');
+ if(accountError){$('message').textContent=accountError.message;return}
+ accounts=a||[]; if(!accounts.length){$('message').textContent='No registered NEXA player account was found for your login.';return;}
  $('account').innerHTML=accounts.map(a=>`<option value="${a.id}">${esc(a.in_game_name)} • ${esc(a.alliances?.tag||a.custom_alliance_tag||'Not listed')}</option>`).join('');
  $('account-wrap').classList.toggle('hidden',accounts.length===1);$('account').onchange=renderIdentity;renderIdentity();
+
+ if(eventType==='svs'){
+   await sb.rpc('refresh_auto_ended_events');
+   const {data:e}=await sb.from('svs_events').select('*').eq('status','live').order('prep_monday',{ascending:false}).limit(1).maybeSingle();
+   eventData=e||null;
+   if(eventData)$('event-meta').textContent=`SvS vs ${eventData.opponent_state} • Battle availability is shown in UTC`;
+   else $('event-meta').textContent='SvS Battle Form Template • no live SvS is currently attached';
+ }else{
+   $('event-meta').textContent=`${esc(eventTypeInfo?.name||eventType)} Battle Form • reusable Event Operations template`;
+ }
+
+ // Reusable Event Operations template is the source of truth when saved.
+ if(reusable){
+   settings={availability_blocks:reusable.availability_blocks||[],full_availability_enabled:reusable.full_availability_enabled??true,not_available_enabled:reusable.not_available_enabled??true,deployment_capacity_enabled:!!reusable.deployment_capacity_enabled,discord_voice_enabled:reusable.discord_voice_enabled??true,joiner_experts_enabled:reusable.joiner_experts_enabled??true,rally_experts_enabled:reusable.rally_experts_enabled??true,t12_max_skill:reusable.t12_max_skill||5};
+   items=[];
+   for(const [type,list] of Object.entries(reusable.items||{})) for(const [i,x] of (list||[]).entries()) items.push({...x,id:x.id||(`${type}_${i}`),item_type:type,sort_order:i,is_active:x.is_active??true});
+ }else if(eventType==='svs' && eventData){
+   const [{data:oldSettings},{data:oldItems}]=await Promise.all([
+     sb.from('battle_form_settings').select('*').eq('event_id',eventData.id).maybeSingle(),
+     sb.from('battle_form_items').select('*').eq('event_id',eventData.id).order('sort_order')
+   ]);
+   settings=oldSettings||{availability_blocks:[],full_availability_enabled:true,not_available_enabled:true,deployment_capacity_enabled:false,discord_voice_enabled:true,joiner_experts_enabled:false,rally_experts_enabled:true,t12_max_skill:5};
+   items=oldItems||[];
+ }else{
+   settings={availability_blocks:[],full_availability_enabled:true,not_available_enabled:true,deployment_capacity_enabled:false,discord_voice_enabled:true,joiner_experts_enabled:true,rally_experts_enabled:true,t12_max_skill:5};items=[];
+ }
+
  renderAvailability();renderTroops();renderJoinerHeroes();renderRallyHeroes();renderExperts('joiner_expert','joiner-experts');renderExperts('rally_expert','rally-experts');
  $('deployment-wrap').classList.toggle('hidden',!settings.deployment_capacity_enabled);
  $('discord-wrap').classList.toggle('hidden',!settings.discord_voice_enabled);
  $('joiner-experts-wrap').classList.toggle('hidden',!settings.joiner_experts_enabled);
  $('rally-experts-wrap').classList.toggle('hidden',!settings.rally_experts_enabled);
- $('deployment')?.addEventListener('input',updateDeploymentPreview);
- updateDeploymentPreview();
+ $('deployment')?.addEventListener('input',updateDeploymentPreview);updateDeploymentPreview();
+ if(eventType!=='svs'){
+   $('template-preview-note').classList.remove('hidden');
+   $('template-preview-note').textContent='This Event Operations template is ready to preview. TAL/FDT/custom response collection will be activated in Phase 2B.';
+   $('submit-btn').disabled=true;
+ }
  $('form').classList.remove('hidden');
 }
-document.addEventListener('change',e=>{if(e.target.name==='role'){const r=role();$('joiner').classList.toggle('hidden',r!=='joiner');$('rally').classList.toggle('hidden',r!=='rally_lead')}});
+document.addEventListener('change',e=>{if(e.target.name==='role'){const r=role();$('joiner').classList.toggle('hidden',r!=='joiner');$('rally').classList.toggle('hidden',r!=='rally_lead');renderCustomQuestions()}});
 $('form').onsubmit=async e=>{
  e.preventDefault();$('message').textContent='Saving…';
+ if(eventType!=='svs'){$('message').textContent='Response collection for this Event Type will be activated in Phase 2B.';return}
+ if(!eventData){$('message').textContent='There is no active SvS event to receive this response.';return}
  const {data:{user}}=await sb.auth.getUser();
  const notAvailable=isNotAvailable();
  const r=notAvailable?'joiner':role();
@@ -173,9 +247,10 @@ $('form').onsubmit=async e=>{
  const availability=notAvailable?['Not Available']:[...document.querySelectorAll('.avail:checked')].map(x=>x.value);
  if(!notAvailable&&$('full-avail')?.checked && configuredAvailabilityBlocks().length) availability.splice(0,availability.length,...configuredAvailabilityBlocks().map(x=>x.label));
  if(!availability.length){$('message').textContent='Select at least one availability block or choose Not Available.';return;}
- let troop_quality=null,joiner_heroes=[],rally_heroes=[],experts=[];
+ let troop_quality=null,joiner_heroes=[],rally_heroes=[],experts=[],custom_answers={};
+ try{custom_answers=collectCustomAnswers()}catch(err){$('message').textContent=err.message;return}
  if(notAvailable){
-  const payload={event_id:eventData.id,user_id:user.id,player_account_id:$('account').value,role:'joiner',availability:['Not Available'],troop_quality:null,deployment_capacity:null,joiner_heroes:[],rally_heroes:[],experts:[],discord_voice:null,updated_at:new Date().toISOString()};
+  const payload={event_id:eventData.id,user_id:user.id,player_account_id:$('account').value,role:'joiner',availability:['Not Available'],troop_quality:null,deployment_capacity:null,joiner_heroes:[],rally_heroes:[],experts:[],discord_voice:null,custom_answers:{},updated_at:new Date().toISOString()};
   const {error}=await sb.from('battle_form_responses').upsert(payload,{onConflict:'event_id,player_account_id'});
   if(error){$('message').textContent=error.message;$('message').scrollIntoView({behavior:'smooth',block:'center'});return;}
   $('message').textContent='Battle Form submitted successfully ✓ Your response has been saved as Not Available.';
@@ -190,7 +265,7 @@ $('form').onsubmit=async e=>{
   rally_heroes=[...document.querySelectorAll('.rally-hero')].filter(c=>c.querySelector('.has-hero').checked).map(c=>({id:Number(c.dataset.id),name:c.dataset.name,fully_maxed:c.querySelector('.fully').value==='yes',stars:c.querySelector('.fully').value==='no'?Number(c.querySelector('.stars').value||0):5,skills:c.querySelector('.fully').value==='no'?Number(c.querySelector('.skills').value||0):5,widget:c.querySelector('.fully').value==='no'?Number(c.querySelector('.widget').value||0):10}));
   if(settings.rally_experts_enabled) experts=collectExperts('rally-experts');
  }
- const payload={event_id:eventData.id,user_id:user.id,player_account_id:$('account').value,role:r,availability,troop_quality,deployment_capacity:settings.deployment_capacity_enabled&&$('deployment').value?Number($('deployment').value):null,joiner_heroes,rally_heroes,experts,discord_voice:settings.discord_voice_enabled?($('discord').value||null):null,updated_at:new Date().toISOString()};
+ const payload={event_id:eventData.id,user_id:user.id,player_account_id:$('account').value,role:r,availability,troop_quality,deployment_capacity:settings.deployment_capacity_enabled&&$('deployment').value?Number($('deployment').value):null,joiner_heroes,rally_heroes,experts,discord_voice:settings.discord_voice_enabled?($('discord').value||null):null,custom_answers,updated_at:new Date().toISOString()};
  const {error}=await sb.from('battle_form_responses').upsert(payload,{onConflict:'event_id,player_account_id'});
  if(error){
    $('message').textContent=error.message;

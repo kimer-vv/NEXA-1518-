@@ -241,22 +241,86 @@ async function loadResponses(){
   const ev=$('responses-event')?.value;
   if(!ev)return;
   $('responses-list').innerHTML='<div class="muted">Loading responses…</div>';
-  const [{data:rows,error},{data:qs},{data:tpl,error:tplError}]=await Promise.all([
+
+  const {data:qs}=await sb.from('event_form_questions').select('id,question_text');
+  window._nexaResponseQuestions=qs||[];
+
+  if(ev==='svs'){
+    const {data:svsEvent,error:eventError}=await sb
+      .from('svs_events')
+      .select('id,opponent_state,prep_monday,status')
+      .eq('status','live')
+      .order('prep_monday',{ascending:false})
+      .limit(1)
+      .maybeSingle();
+
+    if(eventError){
+      $('responses-list').innerHTML=`<div class="form-message">${respEsc(eventError.message)}</div>`;
+      return;
+    }
+
+    if(!svsEvent){
+      responseRows=[];
+      $('responses-summary').textContent='';
+      $('responses-list').innerHTML='<div class="muted">No live SvS event found.</div>';
+      return;
+    }
+
+    const {data:rows,error}=await sb
+      .from('battle_form_responses')
+      .select('id,event_id,user_id,player_account_id,role,availability,availability_mode,troop_quality,deployment_capacity,joiner_heroes,rally_heroes,experts,discord_voice,custom_answers,updated_at,player_accounts(in_game_name,custom_alliance_tag,alliances(tag))')
+      .eq('event_id',svsEvent.id)
+      .order('updated_at',{ascending:false});
+
+    if(error){
+      $('responses-list').innerHTML=`<div class="form-message">${respEsc(error.message)}</div>`;
+      return;
+    }
+
+    responseRows=(rows||[]).map(r=>({
+      ...r,
+      event_type_key:'svs',
+      not_available:r.availability_mode==='not_available'||(Array.isArray(r.availability)&&r.availability.includes('Not Available')),
+      response_data:{
+        role:r.role,
+        availability:r.availability||[],
+        availability_mode:r.availability_mode||null,
+        troop_quality:r.troop_quality,
+        deployment_capacity:r.deployment_capacity,
+        joiner_heroes:r.joiner_heroes||[],
+        rally_heroes:r.rally_heroes||[],
+        experts:r.experts||[],
+        discord_voice:r.discord_voice,
+        custom_answers:r.custom_answers||{}
+      },
+      player_name:r.player_accounts?.in_game_name||'Unknown Player',
+      original_alliance:r.player_accounts?.alliances?.tag||r.player_accounts?.custom_alliance_tag||'Not listed'
+    }));
+    renderResponses();
+    return;
+  }
+
+  const [{data:rows,error},{data:tpl,error:tplError}]=await Promise.all([
     sb.from('event_operation_responses')
       .select('id,event_type_key,user_id,player_account_id,role,availability,not_available,response_data,submitted_at,updated_at,player_accounts(in_game_name,custom_alliance_tag,alliances(tag))')
       .eq('event_type_key',ev)
       .order('updated_at',{ascending:false}),
-    sb.from('event_form_questions').select('id,question_text'),
     sb.from('event_form_templates').select('settings').eq('event_type_key',ev).maybeSingle()
   ]);
-  if(error){$('responses-list').innerHTML=`<div class="form-message">${respEsc(error.message)}</div>`;return}
-  if(tplError){$('responses-list').innerHTML=`<div class="form-message">${respEsc(tplError.message)}</div>`;return}
+
+  if(error){
+    $('responses-list').innerHTML=`<div class="form-message">${respEsc(error.message)}</div>`;
+    return;
+  }
+  if(tplError){
+    $('responses-list').innerHTML=`<div class="form-message">${respEsc(tplError.message)}</div>`;
+    return;
+  }
 
   responseConfiguredBlocks=(tpl?.settings?.availability_blocks||[])
     .map(b=>typeof b==='string'?b:(b?.label||''))
     .filter(Boolean);
 
-  window._nexaResponseQuestions=qs||[];
   responseRows=(rows||[]).map(r=>({
     ...r,
     player_name:r.player_accounts?.in_game_name||'Unknown Player',

@@ -754,22 +754,6 @@ loadTransferForm();
 </script>
 
 
-<script>
-(function(){
-  function removeOldPhilosophyDuplicates(){
-    document.querySelectorAll('.transfer-welcome p').forEach(p=>{
-      if(p.classList.contains('strong-account-callout')) return;
-      const t=(p.textContent||'').toLowerCase();
-      const oldEnglish=t.includes('strong accounts matter') && t.includes('player behind the account');
-      const oldSpanish=t.includes('cuentas fuertes') && t.includes('detrás de la cuenta');
-      if(oldEnglish||oldSpanish) p.remove();
-    });
-  }
-  removeOldPhilosophyDuplicates();
-  setTimeout(removeOldPhilosophyDuplicates,150);
-  setTimeout(removeOldPhilosophyDuplicates,700);
-})();
-</script>
 
 
 <script>
@@ -809,6 +793,66 @@ loadTransferForm();
   window.addEventListener('load',keepIntro,{once:true});
   setTimeout(keepIntro,150);
   setTimeout(keepIntro,800);
+})();
+</script>
+
+
+<script>
+/* NEXA v33.16 — permanently remove the legacy duplicate Strong Accounts line */
+(function(){
+  const welcome=document.querySelector('.transfer-welcome');
+  if(!welcome) return;
+
+  const normalize=s=>(s||'')
+    .replace(/\s+/g,' ')
+    .replace(/[–—]/g,'-')
+    .trim()
+    .toLowerCase();
+
+  const legacyEnglish='strong accounts matter - but the player behind the account matters just as much.';
+  const legacyEnglishNoPeriod='strong accounts matter - but the player behind the account matters just as much';
+  const legacySpanish='las cuentas fuertes importan, pero el jugador detrás de la cuenta importa igual.';
+  const legacySpanish2='las cuentas fuertes importan, pero la persona detrás de la cuenta importa igual.';
+
+  function isLegacyDuplicate(node){
+    if(!node || node.nodeType!==1) return false;
+    if(node.classList?.contains('strong-account-callout')) return false;
+    if(node.id==='transfer-intro-copy') return false;
+
+    const t=normalize(node.textContent);
+    return t===legacyEnglish ||
+           t===legacyEnglishNoPeriod ||
+           t===legacySpanish ||
+           t===legacySpanish2 ||
+           (
+             t.includes('strong accounts matter') &&
+             t.includes('player behind the account') &&
+             !t.includes('our philosophy')
+           );
+  }
+
+  function clean(){
+    [...welcome.children].forEach(el=>{
+      if(isLegacyDuplicate(el)) el.remove();
+    });
+
+    // In case a translation script wraps/injects the sentence one level deeper.
+    welcome.querySelectorAll('p,div,span').forEach(el=>{
+      if(isLegacyDuplicate(el)) el.remove();
+    });
+  }
+
+  clean();
+
+  const observer=new MutationObserver(clean);
+  observer.observe(welcome,{childList:true,subtree:true,characterData:true});
+
+  document.addEventListener('DOMContentLoaded',clean,{once:true});
+  window.addEventListener('load',clean,{once:true});
+  setTimeout(clean,100);
+  setTimeout(clean,500);
+  setTimeout(clean,1500);
+  setTimeout(clean,3000);
 })();
 </script>
 

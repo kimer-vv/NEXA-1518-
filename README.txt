@@ -1,11 +1,15 @@
-NEXA • Event Operations Syntax Fix
+NEXA — SvS DELETE permission fix
 
-Replace ONLY:
-- event-operations.html
+Problem:
+SvS responses are stored in battle_form_responses and Supabase returns:
+permission denied for table battle_form_responses
 
-This fixes one malformed JavaScript line in selectedFormUrl() that stopped
-the entire Event Operations script from running. When that script stops,
-Form dropdowns remain empty and buttons/tabs do not respond.
+What to do:
+1. Open Supabase.
+2. Go to SQL Editor.
+3. Open svs-delete-permission-fix.sql.
+4. Copy/paste the SQL and Run it.
+5. Return to NEXA > Event Operations > Responses > SvS.
+6. Test the individual × first, then Select/Delete Selected.
 
-No SQL.
-Do not replace battle-settings.html or battle-form.html with this patch.
+This does not change TAL/FDT response deletion and does not change the NEXA page files.

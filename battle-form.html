@@ -157,7 +157,7 @@ function renderCustomQuestions(){
      return (pos.has(ak)?pos.get(ak):999999)-(pos.has(bk)?pos.get(bk):999999);
    });
  }
- if(!qs.length){wrap.classList.add('hidden');box.innerHTML='';return}
+ if(!qs.length){wrap.classList.add('hidden');box.innerHTML='';setTimeout(applySavedRoleLayout,0);return}
  wrap.classList.remove('hidden');
  box.innerHTML=qs.map(q=>{
    const id=`custom-q-${q.id}`,req=q.is_required?' required':'';
@@ -168,9 +168,34 @@ function renderCustomQuestions(){
    else if(q.answer_type==='single_choice') input=`<div class="hero-grid">${opts.map((o,i)=>`<label class="choice-card"><input data-qid="${q.id}" class="custom-answer-radio" type="radio" name="custom_${q.id}" value="${esc(o)}"${q.is_required&&i===0?' required':''}> <b>${esc(o)}</b></label>`).join('')}</div>`;
    else if(q.answer_type==='checkboxes') input=`<div class="hero-grid">${opts.map(o=>`<label class="choice-card"><input data-qid="${q.id}" class="custom-answer-check" type="checkbox" value="${esc(o)}"> <b>${esc(o)}</b></label>`).join('')}</div>`;
    else input=`<input id="${id}" data-qid="${q.id}" class="custom-answer" type="text"${req}>`;
-   return `<div class="setting-card custom-q" data-id="${q.id}"><label><b>${esc(q.question_text)}</b>${q.is_required?' <small class="muted">Required</small>':''}${input}</label></div>`;
+   return `<div class="setting-card custom-q" data-id="${q.id}" data-layout-key="question:${q.id}"><label><b>${esc(q.question_text)}</b>${q.is_required?' <small class="muted">Required</small>':''}${input}</label></div>`;
  }).join('');
+ setTimeout(applySavedRoleLayout,0);
 }
+
+function applySavedRoleLayout(){
+ const r=role();if(!r)return;
+ const order=savedLayouts[r]||[];if(!order.length)return;
+ const roleBox=$(r==='joiner'?'joiner':'rally');if(!roleBox)return;
+ const customWrap=$('custom-questions-wrap');
+ const nodes=new Map();
+ roleBox.querySelectorAll('[data-layout-key]').forEach(el=>nodes.set(el.dataset.layoutKey,el));
+ document.querySelectorAll('#custom-questions [data-layout-key]').forEach(el=>nodes.set(el.dataset.layoutKey,el));
+ // A dedicated ordered container keeps Core Base fixed while allowing
+ // Combat Base and Event Questions to interleave exactly as arranged.
+ let ordered=$('ordered-role-fields');
+ if(!ordered){
+   ordered=document.createElement('div');ordered.id='ordered-role-fields';
+   roleBox.parentNode.insertBefore(ordered,customWrap);
+ }
+ ordered.innerHTML='';
+ for(const key of order){
+   const el=nodes.get(key);if(el){ordered.appendChild(el);nodes.delete(key)}
+ }
+ // Any newly-added fields not present in an older saved layout go last.
+ for(const el of nodes.values())ordered.appendChild(el);
+}
+
 function collectCustomAnswers(){
  const out={};
  for(const q of customQuestions.filter(q=>q.is_active&&questionMatchesEvent(q,eventType)&&questionMatchesRole(q,role()))){

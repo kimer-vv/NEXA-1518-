@@ -4,19 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>NEXA • Battle Form</title>
 <link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
-function nexaBack(fallback='event-operations.html'){
-  try{
-    const params=new URLSearchParams(location.search);
-    const from=params.get('from');
-    const ref=document.referrer?new URL(document.referrer):null;
-    if(ref && ref.origin===location.origin){history.back();return}
-    if(from==='event-operations'){location.href='event-operations.html';return}
-  }catch(e){}
-  location.href=fallback;
-}
-
-</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/human-gate.js"></script>
 <style>
  .role-grid,.troop-grid,.hero-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
@@ -33,7 +21,7 @@ function nexaBack(fallback='event-operations.html'){
 </head>
 <body>
 <main class="shell">
-<a class="back" href="javascript:void(0)" onclick="nexaBack(\'event-operations.html\')">← Back</a>
+<a class="back" href="javascript:void(0)" id="nexa-back">← Back</a>
 <section class="glass">
 <div class="panel-head"><div><h1>Battle Form</h1><p id="event-meta" class="muted">Loading current event…</p></div></div>
 <div id="message" class="form-message"></div>
@@ -160,9 +148,8 @@ function questionMatchesRole(q,r){return q.role_scope==='both'||q.role_scope===r
 function renderCustomQuestions(){
  const r=role(); const wrap=$('custom-questions-wrap'),box=$('custom-questions');
  if(!r){wrap.classList.add('hidden');box.innerHTML='';return}
- let qs=customQuestions.filter(q=>q.is_active&&questionMatchesEvent(q,eventType)&&questionMatchesRole(q,r)););
- }
- if(!qs.length){wrap.classList.add('hidden');box.innerHTML='';setTimeout(applySavedRoleLayout,0);return}
+ const qs=customQuestions.filter(q=>q.is_active&&questionMatchesEvent(q,eventType)&&questionMatchesRole(q,r));
+ if(!qs.length){wrap.classList.add('hidden');box.innerHTML='';return}
  wrap.classList.remove('hidden');
  box.innerHTML=qs.map(q=>{
    const id=`custom-q-${q.id}`,req=q.is_required?' required':'';
@@ -173,13 +160,9 @@ function renderCustomQuestions(){
    else if(q.answer_type==='single_choice') input=`<div class="hero-grid">${opts.map((o,i)=>`<label class="choice-card"><input data-qid="${q.id}" class="custom-answer-radio" type="radio" name="custom_${q.id}" value="${esc(o)}"${q.is_required&&i===0?' required':''}> <b>${esc(o)}</b></label>`).join('')}</div>`;
    else if(q.answer_type==='checkboxes') input=`<div class="hero-grid">${opts.map(o=>`<label class="choice-card"><input data-qid="${q.id}" class="custom-answer-check" type="checkbox" value="${esc(o)}"> <b>${esc(o)}</b></label>`).join('')}</div>`;
    else input=`<input id="${id}" data-qid="${q.id}" class="custom-answer" type="text"${req}>`;
-   return `<div class="setting-card custom-q" data-id="${q.id}" data-layout-key="question:${q.id}"><label><b>${esc(q.question_text)}</b>${q.is_required?' <small class="muted">Required</small>':''}${input}</label></div>`;
+   return `<div class="setting-card custom-q" data-id="${q.id}"><label><b>${esc(q.question_text)}</b>${q.is_required?' <small class="muted">Required</small>':''}${input}</label></div>`;
  }).join('');
- setTimeout(applySavedRoleLayout,0);
 }
-
-function applySavedRoleLayout(){}
-
 function collectCustomAnswers(){
  const out={};
  for(const q of customQuestions.filter(q=>q.is_active&&questionMatchesEvent(q,eventType)&&questionMatchesRole(q,role()))){
@@ -192,20 +175,18 @@ function collectCustomAnswers(){
 }
 async function loadReusableTemplate(){
  const params=new URLSearchParams(location.search); eventType=params.get('event_type')||'svs';
- const [et,tpl,qs,layouts]=await Promise.all([
+ const [et,tpl,qs]=await Promise.all([
    sb.from('event_operation_types').select('*').eq('event_key',eventType).maybeSingle(),
    sb.from('event_form_templates').select('settings').eq('event_type_key',eventType).maybeSingle(),
-   sb.from('event_form_questions').select('*').eq('is_active',true).order('created_at',{ascending:true}),
-   sb.from('event_form_layouts').select('role_scope,field_order').eq('event_scope',eventType)
+   sb.from('event_form_questions').select('*').eq('is_active',true).order('created_at',{ascending:true})
  ]);
- if(et.error)throw et.error;if(tpl.error)throw tpl.error;if(qs.error)throw qs.error;if(layouts.error)throw layouts.error;
+ if(et.error)throw et.error;if(tpl.error)throw tpl.error;if(qs.error)throw qs.error;
  eventTypeInfo=et.data||{event_key:eventType,name:eventType.toUpperCase(),is_active:true};
  customQuestions=(qs.data||[]).filter(q=>questionMatchesEvent(q,eventType));
- savedLayouts={};
- for(const row of (layouts.data||[]))savedLayouts[row.role_scope]=Array.isArray(row.field_order)?row.field_order:[];
  return tpl.data?.settings||null;
 }
 
+$('nexa-back').onclick=()=>{try{const r=document.referrer?new URL(document.referrer):null;if(r&&r.origin===location.origin){history.back();return}}catch{}location.href='event-operations.html'};
 async function init(){
  const {data:{session}}=await sb.auth.getSession(); if(!session){$('message').textContent='Please sign in to NEXA before opening the Battle Form.';return;}
  let reusable=null;

@@ -93,6 +93,14 @@
 }
 .success-actions .btn{flex:1 1 210px;max-width:300px}
 </style>
+
+<style>
+/* NEXA v33.17 — hide only the obsolete paragraph injected between intro and philosophy */
+#transfer-intro-copy + p:not(.strong-account-callout){
+  display:none !important;
+}
+</style>
+
 </head>
 <body><div class="nebula-bg" aria-hidden="true"></div><div class="starfield" aria-hidden="true"></div>
 <header class="topbar public-transfer-topbar"><div class="shell nav"><div class="logo public-form-logo"><span class="star">✦</span><span>NEXA<small>STATE 1518 • TRANSFERS</small></span></div></div></header>
@@ -754,6 +762,22 @@ loadTransferForm();
 </script>
 
 
+<script>
+(function(){
+  function removeOldPhilosophyDuplicates(){
+    document.querySelectorAll('.transfer-welcome p').forEach(p=>{
+      if(p.classList.contains('strong-account-callout')) return;
+      const t=(p.textContent||'').toLowerCase();
+      const oldEnglish=t.includes('strong accounts matter') && t.includes('player behind the account');
+      const oldSpanish=t.includes('cuentas fuertes') && t.includes('detrás de la cuenta');
+      if(oldEnglish||oldSpanish) p.remove();
+    });
+  }
+  removeOldPhilosophyDuplicates();
+  setTimeout(removeOldPhilosophyDuplicates,150);
+  setTimeout(removeOldPhilosophyDuplicates,700);
+})();
+</script>
 
 
 <script>
@@ -798,61 +822,57 @@ loadTransferForm();
 
 
 <script>
-/* NEXA v33.16 — permanently remove the legacy duplicate Strong Accounts line */
+/* NEXA v33.17 — remove obsolete paragraph by position, not wording */
 (function(){
   const welcome=document.querySelector('.transfer-welcome');
-  if(!welcome) return;
+  const intro=document.getElementById('transfer-intro-copy');
+  const philosophy=document.querySelector('.strong-account-callout');
+  if(!welcome || !intro || !philosophy) return;
 
-  const normalize=s=>(s||'')
-    .replace(/\s+/g,' ')
-    .replace(/[–—]/g,'-')
-    .trim()
-    .toLowerCase();
+  let running=false;
 
-  const legacyEnglish='strong accounts matter - but the player behind the account matters just as much.';
-  const legacyEnglishNoPeriod='strong accounts matter - but the player behind the account matters just as much';
-  const legacySpanish='las cuentas fuertes importan, pero el jugador detrás de la cuenta importa igual.';
-  const legacySpanish2='las cuentas fuertes importan, pero la persona detrás de la cuenta importa igual.';
+  function cleanBetween(){
+    if(running) return;
+    running=true;
+    try{
+      // Keep requested order.
+      if(!intro.isConnected) welcome.insertBefore(intro, philosophy);
 
-  function isLegacyDuplicate(node){
-    if(!node || node.nodeType!==1) return false;
-    if(node.classList?.contains('strong-account-callout')) return false;
-    if(node.id==='transfer-intro-copy') return false;
+      let node=intro.nextElementSibling;
+      while(node && node!==philosophy){
+        const next=node.nextElementSibling;
 
-    const t=normalize(node.textContent);
-    return t===legacyEnglish ||
-           t===legacyEnglishNoPeriod ||
-           t===legacySpanish ||
-           t===legacySpanish2 ||
-           (
-             t.includes('strong accounts matter') &&
-             t.includes('player behind the account') &&
-             !t.includes('our philosophy')
-           );
+        // The only content allowed between intro and philosophy is nothing.
+        // Remove dynamically injected legacy paragraph(s) there.
+        if(node.matches('p,div,span')){
+          node.remove();
+        }else{
+          // For safety, move any non-text structural element after philosophy
+          // instead of deleting it.
+          philosophy.insertAdjacentElement('afterend',node);
+        }
+        node=next;
+      }
+
+      if(intro.nextElementSibling!==philosophy){
+        welcome.insertBefore(philosophy,intro.nextElementSibling);
+      }
+    }finally{
+      running=false;
+    }
   }
 
-  function clean(){
-    [...welcome.children].forEach(el=>{
-      if(isLegacyDuplicate(el)) el.remove();
-    });
+  cleanBetween();
 
-    // In case a translation script wraps/injects the sentence one level deeper.
-    welcome.querySelectorAll('p,div,span').forEach(el=>{
-      if(isLegacyDuplicate(el)) el.remove();
-    });
-  }
+  const observer=new MutationObserver(()=>queueMicrotask(cleanBetween));
+  observer.observe(welcome,{childList:true});
 
-  clean();
-
-  const observer=new MutationObserver(clean);
-  observer.observe(welcome,{childList:true,subtree:true,characterData:true});
-
-  document.addEventListener('DOMContentLoaded',clean,{once:true});
-  window.addEventListener('load',clean,{once:true});
-  setTimeout(clean,100);
-  setTimeout(clean,500);
-  setTimeout(clean,1500);
-  setTimeout(clean,3000);
+  document.addEventListener('DOMContentLoaded',cleanBetween,{once:true});
+  window.addEventListener('load',cleanBetween,{once:true});
+  setTimeout(cleanBetween,100);
+  setTimeout(cleanBetween,500);
+  setTimeout(cleanBetween,1500);
+  setTimeout(cleanBetween,3000);
 })();
 </script>
 

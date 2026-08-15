@@ -107,6 +107,12 @@
         <button class="tiny-btn response-role" data-role="joiner" type="button">Joiners</button>
       </div>
       <div id="responses-summary" class="muted" style="margin-top:10px"></div>
+      <div id="responses-manage-bar" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0">
+        <button type="button" class="tiny-btn" id="responses-select-mode">Select</button>
+        <button type="button" class="tiny-btn hidden" id="responses-delete-selected">Delete Selected (0)</button>
+        <button type="button" class="tiny-btn" id="responses-delete-all">Delete All</button>
+        <button type="button" class="tiny-btn hidden" id="responses-cancel-select">Cancel</button>
+      </div>
       <div id="responses-list" class="response-list" style="margin-top:12px"></div>
     </section>
 </section>
@@ -173,6 +179,8 @@ $('question-editor').onsubmit=async e=>{e.preventDefault();$('editor-status').te
 
 let responsesRole='rally_lead';
 let responseRows=[];
+let responsesSelectMode=false;
+let selectedResponseIds=new Set();
 let responseConfiguredBlocks=[];
 function respEsc(v){return esc(v==null?'':String(v))}
 function fmtAvailability(v, responseData={}){
@@ -239,13 +247,20 @@ function renderResponses(){
           return `<div class="k">${respEsc(q?.question_text||('Question '+qid))}</div><div class="v">${respEsc(simpleVal(val))}</div>`;
         }).join('')
       : '<div class="muted">No extra Event Questions.</div>';
+    const selectBox=responsesSelectMode
+      ? `<label style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><input type="checkbox" class="response-select" data-i="${i}" ${selectedResponseIds.has(String(r.id))?'checked':''}> Select</label>`
+      : '';
     return `<article class="response-card ${r.not_available?'response-na':''}">
+      ${selectBox}
       <div class="response-head">
         <div>
           <div class="response-title">${respEsc(r.player_name||'Unknown Player')} • ${respEsc(r.original_alliance||'No Alliance')}</div>
           <div class="response-badges"><span class="mini-badge">${r.role==='rally_lead'?'Rally Leader':'Joiner'}</span>${r.not_available?'<span class="mini-badge">Not Available</span>':''}</div>
         </div>
-        <button type="button" class="tiny-btn response-toggle" data-i="${i}">Details</button>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button type="button" class="tiny-btn response-toggle" data-i="${i}">Details</button>
+          <button type="button" class="tiny-btn response-delete" data-i="${i}" aria-label="Delete response" title="Delete response">×</button>
+        </div>
       </div>
       <div class="response-grid">${keyRows}</div>
       <div class="response-details hidden" data-detail="${i}">
@@ -345,22 +360,101 @@ async function loadResponses(){
   }));
   renderResponses();
 }
+
+function visibleResponseRows(){
+  return responseRows.filter(r=>(r.role||'joiner')===responsesRole);
+}
+function updateBulkDeleteUI(){
+  const n=selectedResponseIds.size;
+  const selected=$('responses-delete-selected');
+  if(selected){
+    selected.textContent=`Delete Selected (${n})`;
+    selected.disabled=n===0;
+    selected.classList.toggle('hidden',!responsesSelectMode);
+  }
+  $('responses-cancel-select')?.classList.toggle('hidden',!responsesSelectMode);
+  $('responses-select-mode')?.classList.toggle('hidden',responsesSelectMode);
+}
+async function deleteResponseRows(rows){
+  const svs=rows.filter(r=>r.event_type_key==='svs').map(r=>r.id);
+  const other=rows.filter(r=>r.event_type_key!=='svs').map(r=>r.id);
+  if(svs.length){
+    const {error}=await sb.from('battle_form_responses').delete().in('id',svs);
+    if(error)throw error;
+  }
+  if(other.length){
+    const {error}=await sb.from('event_operation_responses').delete().in('id',other);
+    if(error)throw error;
+  }
+}
 function initResponsesUI(){
   const sel=$('responses-event'); if(!sel)return;
   const active=eventTypes.filter(x=>x.active);
   sel.innerHTML=active.map(x=>`<option value="${respEsc(x.key)}">${respEsc(x.name)}</option>`).join('');
-  sel.onchange=loadResponses;
+  sel.onchange=()=>{
+    responsesSelectMode=false; selectedResponseIds.clear(); updateBulkDeleteUI(); loadResponses();
+  };
   document.querySelectorAll('.response-role').forEach(btn=>btn.onclick=()=>{
     responsesRole=btn.dataset.role;
+    responsesSelectMode=false; selectedResponseIds.clear(); updateBulkDeleteUI();
     document.querySelectorAll('.response-role').forEach(x=>x.classList.toggle('active',x===btn));
     renderResponses();
   });
-  $('responses-list').onclick=e=>{
+  $('responses-list').onclick=async e=>{
+    const pick=e.target.closest('.response-select');
+    if(pick){
+      const r=responseRows[Number(pick.dataset.i)];
+      if(r){const id=String(r.id); if(pick.checked)selectedResponseIds.add(id); else selectedResponseIds.delete(id); updateBulkDeleteUI();}
+      return;
+    }
+    const del=e.target.closest('.response-delete');
+    if(del){
+      const r=responseRows[Number(del.dataset.i)];
+      if(!r)return;
+      const player=r.player_name||'this player';
+      const ok=confirm(`Are you sure you want to delete ${player}'s submitted form?\n\nIf you delete this form, the player will need to resubmit it.`);
+      if(!ok)return;
+      del.disabled=true;
+      del.textContent='…';
+      const table=(r.event_type_key==='svs')?'battle_form_responses':'event_operation_responses';
+      const {error}=await sb.from(table).delete().eq('id',r.id);
+      if(error){
+        alert('Could not delete this form: '+error.message);
+        del.disabled=false;
+        del.textContent='×';
+        return;
+      }
+      await loadResponses();
+      return;
+    }
     const b=e.target.closest('.response-toggle');if(!b)return;
     const d=document.querySelector(`[data-detail="${b.dataset.i}"]`);
     d?.classList.toggle('hidden');
     b.textContent=d?.classList.contains('hidden')?'Details':'Hide';
   };
+  $('responses-select-mode').onclick=()=>{
+    responsesSelectMode=true; selectedResponseIds.clear(); updateBulkDeleteUI(); renderResponses();
+  };
+  $('responses-cancel-select').onclick=()=>{
+    responsesSelectMode=false; selectedResponseIds.clear(); updateBulkDeleteUI(); renderResponses();
+  };
+  $('responses-delete-selected').onclick=async()=>{
+    const rows=visibleResponseRows().filter(r=>selectedResponseIds.has(String(r.id)));
+    if(!rows.length)return;
+    if(!confirm(`Delete ${rows.length} submitted form${rows.length===1?'':'s'}?\n\nThese responses will be permanently deleted. Those players will need to resubmit their forms.`))return;
+    try{await deleteResponseRows(rows);responsesSelectMode=false;selectedResponseIds.clear();updateBulkDeleteUI();await loadResponses();}
+    catch(error){alert('Could not delete selected forms: '+error.message)}
+  };
+  $('responses-delete-all').onclick=async()=>{
+    const rows=visibleResponseRows();
+    if(!rows.length){alert('There are no submitted forms to delete in this view.');return}
+    const evName=$('responses-event')?.selectedOptions?.[0]?.textContent||'this event';
+    const roleName=responsesRole==='rally_lead'?'Rally Leader':'Joiner';
+    if(!confirm(`Delete all ${rows.length} ${roleName} submitted form${rows.length===1?'':'s'} for ${evName}?\n\nThis permanently deletes all forms in the current Event Type and role. Players will need to submit their forms again.`))return;
+    try{await deleteResponseRows(rows);responsesSelectMode=false;selectedResponseIds.clear();updateBulkDeleteUI();await loadResponses();}
+    catch(error){alert('Could not delete all forms: '+error.message)}
+  };
+  updateBulkDeleteUI();
   if(sel.value)loadResponses();
 }
 

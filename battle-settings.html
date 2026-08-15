@@ -41,7 +41,7 @@ body.embed main.shell{padding:0!important;max-width:none!important}body.embed .b
 <h3>Availability Blocks</h3>
 <p class="muted">Select the UTC one-hour blocks you want players to see. You can also add a custom block.</p>
 <div id="utc-grid" class="utc-grid"></div>
-<div class="custom-row"><input id="custom-block" maxlength="40" placeholder="Custom, e.g. 12:30–13:30 UTC"><button id="add-custom" class="btn secondary" type="button">+ Add</button></div>
+
 <div id="custom-list"></div>
 <label class="option-line" style="margin-top:10px"><input id="full-enabled" type="checkbox"> Show “Full Availability” option</label>
 <label class="option-line" style="margin-top:10px"><input id="not-available-enabled" type="checkbox"> Show “Not Available” option</label>
@@ -52,7 +52,7 @@ body.embed main.shell{padding:0!important;max-width:none!important}body.embed .b
 <div class="setting-card" style="margin-top:14px">
 <h3>Form Options</h3>
 <div class="option-list">
-<label>T12 Maximum Skill Level<select id="t12-max"></select></label>
+<label>T12 Maximum Skill Level<select id="t12-max"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></label>
 <label class="option-line"><input id="deployment-enabled" type="checkbox"> Ask Deployment Capacity</label>
 <label class="option-line"><input id="discord-enabled" type="checkbox"> Ask Discord Voice availability</label>
 <label class="option-line"><input id="joiner-experts-enabled" type="checkbox"> Show Experts for Joiners</label>
@@ -178,7 +178,17 @@ $('inline-question-editor').onsubmit=async e=>{e.preventDefault();$('inline-edit
 function inlineRenderLibraryPicker(){if(!$('library-picker-list'))return;const target=$('event').value;if($('library-target-event'))$('library-target-event').value=target;const available=inlineQuestions.filter(q=>q.is_active&&!questionMatchesEvent(q,target));$('library-picker-list').innerHTML=available.length?available.map(q=>`<div class="library-row"><div><b>${esc(q.question_text)}</b><div class="q-meta">${(q.event_scopes||[]).map(x=>x==='all'?'All Events':eventName(x)).join(' · ')} • ${inlineRoleLabel[q.role_scope]||q.role_scope}</div></div><button class="btn secondary inline-library-add" data-id="${q.id}" type="button">Add to ${esc(eventName(target))}</button></div>`).join(''):'<div class="muted">No reusable questions available for this event yet.</div>'}
 $('add-from-library').onclick=()=>{$('library-picker').classList.remove('hidden');$('inline-question-editor').classList.add('hidden');$('library-target-event').value=$('event').value;inlineRenderLibraryPicker();$('library-picker').scrollIntoView({behavior:'smooth',block:'start'})};$('close-library-picker').onclick=()=>$('library-picker').classList.add('hidden');$('library-target-event').onchange=inlineRenderLibraryPicker;$('library-picker-list').onclick=async e=>{if(!e.target.classList.contains('inline-library-add'))return;const q=inlineQuestions.find(x=>String(x.id)===String(e.target.dataset.id));if(!q)return;const target=$('library-target-event').value;const scopes=[...new Set([...(q.event_scopes||[]),target])];const {error}=await sb.from('event_form_questions').update({event_scopes:scopes,updated_at:new Date().toISOString()}).eq('id',q.id);if(error){$('question-load-note').textContent='Could not update Question Library: '+error.message;return}await inlineLoadQuestions()};
 $('nexa-back').onclick=()=>{try{const r=document.referrer?new URL(document.referrer):null;if(r&&r.origin===location.origin){history.back();return}}catch{}location.href='event-operations.html'};
-$('preview-battle-form').onclick=()=>{const key=$('event').value||'svs';window.open(`battle-form.html?direct=1&event_type=${encodeURIComponent(key)}`,'_blank')};
+$('preview-battle-form').onclick=()=>{const key=$('event').value||'svs';location.href=`battle-form.html?preview=1&event_type=${encodeURIComponent(key)}&from=form-settings`};
+
+if($('save-form-settings')){
+  const _oldSaveForm=$('save-form-settings').onclick;
+  $('save-form-settings').onclick=async(e)=>{
+    if(_oldSaveForm){const r=await _oldSaveForm.call($('save-form-settings'),e);}
+    else{await persistTemplate('form-save-status');}
+    if($('form-save-status') && !$('form-save-status').textContent)$('form-save-status').textContent='Saved ✓';
+  };
+}
+
 (async()=>{if(await guard()){await loadEventTypes();await loadTemplate();await inlineLoadQuestions()}})();
 </script>
 </body></html>

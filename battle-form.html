@@ -23,7 +23,7 @@
 <main class="shell">
 <a class="back" href="javascript:void(0)" id="nexa-back">← Back</a>
 <section class="glass">
-<div class="panel-head"><div><h1>Battle Form</h1><p id="event-meta" class="muted">Loading current event…</p></div></div>
+<div class="panel-head"><div><div id="preview-badge" class="mini-badge hidden" style="display:inline-block;margin-bottom:10px">PREVIEW</div><h1>Battle Form</h1><p id="event-meta" class="muted">Loading current event…</p></div></div>
 <div id="message" class="form-message"></div>
 <div id="closed" class="empty-state hidden">The Battle Form is not currently open.</div>
 <form id="form" class="account-form hidden">
@@ -187,6 +187,24 @@ async function loadReusableTemplate(){
 }
 
 $('nexa-back').onclick=()=>{try{const r=document.referrer?new URL(document.referrer):null;if(r&&r.origin===location.origin){history.back();return}}catch{}location.href='event-operations.html'};
+
+const previewMode=new URLSearchParams(location.search).get('preview')==='1';
+function applyPreviewMode(){
+  if(!previewMode)return;
+  const badge=$('preview-badge'); if(badge) badge.classList.remove('hidden');
+  const form=$('form');
+  if(form){
+    form.querySelectorAll('input,select,textarea,button').forEach(el=>{
+      if(el.id==='nexa-back')return;
+      el.disabled=true;
+    });
+  }
+  const submit=$('submit-btn');
+  if(submit){submit.style.display='none';}
+  const msg=$('template-preview-note');
+  if(msg){msg.classList.remove('hidden');msg.textContent='Preview only — responses cannot be submitted.';}
+}
+
 async function init(){
  const {data:{session}}=await sb.auth.getSession(); if(!session){$('message').textContent='Please sign in to NEXA before opening the Battle Form.';return;}
  let reusable=null;
@@ -234,11 +252,11 @@ async function init(){
    $('template-preview-note').textContent='This Event Operations template is ready to preview. TAL/FDT/custom response collection will be activated in Phase 2B.';
    $('submit-btn').disabled=true;
  }
- $('form').classList.remove('hidden');
+ $('form').classList.remove('hidden');applyPreviewMode();
 }
 document.addEventListener('change',e=>{if(e.target.name==='role'){const r=role();$('joiner').classList.toggle('hidden',r!=='joiner');$('rally').classList.toggle('hidden',r!=='rally_lead');renderCustomQuestions()}});
 $('form').onsubmit=async e=>{
- e.preventDefault();$('message').textContent='Saving…';
+ e.preventDefault();if(previewMode){$('message').textContent='Preview only — submission is disabled.';return}$('message').textContent='Saving…';
  if(eventType!=='svs'){$('message').textContent='Response collection for this Event Type will be activated in Phase 2B.';return}
  if(!eventData){$('message').textContent='There is no active SvS event to receive this response.';return}
  const {data:{user}}=await sb.auth.getUser();

@@ -1,15 +1,13 @@
-NEXA — SvS DELETE permission fix
+NEXA Phase 2B — Response Card + Priority Field
 
-Problem:
-SvS responses are stored in battle_form_responses and Supabase returns:
-permission denied for table battle_form_responses
+Replace ONLY event-operations.html and run the included SQL once.
 
-What to do:
-1. Open Supabase.
-2. Go to SQL Editor.
-3. Open svs-delete-permission-fix.sql.
-4. Copy/paste the SQL and Run it.
-5. Return to NEXA > Event Operations > Responses > SvS.
-6. Test the individual × first, then Select/Delete Selected.
+Question editor gains:
+- Show on Response Card
+- Priority Field
 
-This does not change TAL/FDT response deletion and does not change the NEXA page files.
+Show on Response Card: answer is shown outside on the compact response card.
+Priority Field: same, but displayed before other card information with a ★ marker.
+
+Existing questions default OFF, so nothing changes until you edit a question and enable a flag.
+No scoring/calculation is included yet.

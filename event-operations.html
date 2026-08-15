@@ -85,7 +85,7 @@
         <label>Answer Type<select id="answer-type"><option value="short_text">Short Text</option><option value="number">Number</option><option value="dropdown">Dropdown</option><option value="single_choice">Single Choice</option><option value="checkboxes">Checkboxes</option></select></label>
       </div>
       <div id="options-wrap" class="hidden"><div class="panel-head" style="margin-top:12px"><b>Answer Options</b><button id="add-option" class="btn secondary" type="button">+ Add Option</button></div><div id="option-editor" class="option-editor"></div></div>
-      <div class="check-row" style="margin-top:14px"><label class="check-pill"><input id="required" type="checkbox"> Required</label><label class="check-pill"><input id="permanent" type="checkbox" checked> Permanent / Reusable</label><label class="check-pill"><input id="active" type="checkbox" checked> Active</label></div>
+      <div class="check-row" style="margin-top:14px"><label class="check-pill"><input id="required" type="checkbox"> Required</label><label class="check-pill"><input id="permanent" type="checkbox" checked> Permanent / Reusable</label><label class="check-pill"><input id="active" type="checkbox" checked> Active</label><label class="check-pill"><input id="show-on-card" type="checkbox"> Show on Response Card</label><label class="check-pill"><input id="priority-field" type="checkbox"> Priority Field</label></div>
       <div class="ops-actions"><button class="btn" type="submit">Save Question</button></div><div id="editor-status" class="form-message"></div>
     </form>
   </section>
@@ -168,14 +168,14 @@ function scopeKey(q){const a=q.event_scopes||[];if(a.includes('all'))return'all'
 function scopeTitle(k){if(k==='all')return'🌐 All Events';return k.split('+').map(x=>eventName(x)).join(' · ')}
 function questionMatchesFilter(q){return filter==='all'||(q.event_scopes||[]).includes('all')||(q.event_scopes||[]).includes(filter)}
 function renderQuestions(){const visible=questions.filter(questionMatchesFilter),groups={};visible.forEach(q=>(groups[scopeKey(q)]??=[]).push(q));const keys=Object.keys(groups).sort((a,b)=>a==='all'?-1:b==='all'?1:a.localeCompare(b));$('question-list').innerHTML=keys.length?keys.map(k=>`<div class="group-title"><b>${scopeTitle(k)}</b><span class="mini-badge">${groups[k].length}</span></div><div class="question-grid">${groups[k].map(questionCard).join('')}</div>`).join(''):'<div class="empty-mini">No questions in this view yet.</div>'}
-function questionCard(q){const opts=Array.isArray(q.options)?q.options:[];return `<article class="q-card ${q.is_active?'':'inactive'}"><div class="q-title">${esc(q.question_text)}</div><div class="badge-row">${(q.event_scopes||[]).map(x=>`<span class="mini-badge">${x==='all'?'All Events':esc(eventName(x))}</span>`).join('')}<span class="mini-badge">${roleLabel[q.role_scope]||q.role_scope}</span></div><div class="q-meta">${String(q.answer_type||'').replaceAll('_',' ')}${opts.length?' • '+opts.length+' options':''}${q.is_required?' • Required':''}${q.is_permanent?' • Permanent':''}${q.is_active?'':' • Inactive'}</div><div class="ops-actions"><button class="tiny-btn q-edit" data-id="${q.id}" type="button">Edit</button><button class="tiny-btn q-toggle" data-id="${q.id}" type="button">${q.is_active?'Disable':'Enable'}</button><button class="tiny-btn q-delete" data-id="${q.id}" type="button">Delete</button></div></article>`}
+function questionCard(q){const opts=Array.isArray(q.options)?q.options:[];return `<article class="q-card ${q.is_active?'':'inactive'}"><div class="q-title">${esc(q.question_text)}</div><div class="badge-row">${(q.event_scopes||[]).map(x=>`<span class="mini-badge">${x==='all'?'All Events':esc(eventName(x))}</span>`).join('')}<span class="mini-badge">${roleLabel[q.role_scope]||q.role_scope}</span></div><div class="q-meta">${String(q.answer_type||'').replaceAll('_',' ')}${opts.length?' • '+opts.length+' options':''}${q.is_required?' • Required':''}${q.is_permanent?' • Permanent':''}${q.show_on_response_card?' • Response Card':''}${q.is_priority_field?' • Priority':''}${q.is_active?'':' • Inactive'}</div><div class="ops-actions"><button class="tiny-btn q-edit" data-id="${q.id}" type="button">Edit</button><button class="tiny-btn q-toggle" data-id="${q.id}" type="button">${q.is_active?'Disable':'Enable'}</button><button class="tiny-btn q-delete" data-id="${q.id}" type="button">Delete</button></div></article>`}
 $('question-list').onclick=async e=>{const id=Number(e.target.dataset.id);if(!id)return;const q=questions.find(x=>x.id===id);if(!q)return;if(e.target.classList.contains('q-edit'))openEditor(q);if(e.target.classList.contains('q-toggle')){const {error}=await sb.from('event_form_questions').update({is_active:!q.is_active,updated_at:new Date().toISOString()}).eq('id',id);if(error)$('state').textContent=error.message;else await loadQuestions()}if(e.target.classList.contains('q-delete')){if(!confirm(`Delete "${q.question_text}" permanently?`))return;const {error}=await sb.from('event_form_questions').delete().eq('id',id);if(error)$('state').textContent='Could not delete question: '+error.message;else{await loadQuestions();$('state').textContent='Question deleted ✓'}}};
 $('new-question').onclick=()=>openEditor(null);$('cancel-question').onclick=()=>$('question-editor').classList.add('hidden');
-function openEditor(q){showTab('questions');$('question-editor').classList.remove('hidden');$('editor-title').textContent=q?.id?'Edit Question':'New Question';$('question-id').value=q?.id||'';$('question-text').value=q?.question_text||'';renderQuestionEventChecks(q?.event_scopes||['svs']);$('role-scope').value=q?.role_scope||'both';$('answer-type').value=q?.answer_type||'short_text';$('required').checked=!!q?.is_required;$('permanent').checked=q?.is_permanent??true;$('active').checked=q?.is_active??true;optionDraft=Array.isArray(q?.options)?[...q.options]:[];renderOptionEditor();toggleOptions();$('question-editor').scrollIntoView({behavior:'smooth',block:'start'})}
+function openEditor(q){showTab('questions');$('question-editor').classList.remove('hidden');$('editor-title').textContent=q?.id?'Edit Question':'New Question';$('question-id').value=q?.id||'';$('question-text').value=q?.question_text||'';renderQuestionEventChecks(q?.event_scopes||['svs']);$('role-scope').value=q?.role_scope||'both';$('answer-type').value=q?.answer_type||'short_text';$('required').checked=!!q?.is_required;$('permanent').checked=q?.is_permanent??true;$('active').checked=q?.is_active??true;$('show-on-card').checked=!!q?.show_on_response_card;$('priority-field').checked=!!q?.is_priority_field;optionDraft=Array.isArray(q?.options)?[...q.options]:[];renderOptionEditor();toggleOptions();$('question-editor').scrollIntoView({behavior:'smooth',block:'start'})}
 function typeNeedsOptions(){return['dropdown','single_choice','checkboxes'].includes($('answer-type').value)}function toggleOptions(){$('options-wrap').classList.toggle('hidden',!typeNeedsOptions())}$('answer-type').onchange=toggleOptions;
 function renderOptionEditor(){$('option-editor').innerHTML=optionDraft.map((o,i)=>`<div class="option-edit-row"><span class="drag-grip">☰</span><input class="option-value" value="${esc(o)}" placeholder="Option ${i+1}"><button class="tiny-btn remove-option" data-i="${i}" type="button">×</button></div>`).join('')||'<div class="muted">No options yet.</div>'}function syncOptions(){optionDraft=[...document.querySelectorAll('.option-value')].map(x=>x.value.trim())}
 $('add-option').onclick=()=>{syncOptions();optionDraft.push('');renderOptionEditor()};$('option-editor').onclick=e=>{if(e.target.classList.contains('remove-option')){syncOptions();optionDraft.splice(Number(e.target.dataset.i),1);renderOptionEditor()}};
-$('question-editor').onsubmit=async e=>{e.preventDefault();$('editor-status').textContent='Saving…';syncOptions();const scopes=[...document.querySelectorAll('.event-check:checked')].map(x=>x.value);if(!scopes.length){$('editor-status').textContent='Select at least one event.';return}const type=$('answer-type').value,options=typeNeedsOptions()?optionDraft.filter(Boolean):[];if(typeNeedsOptions()&&!options.length){$('editor-status').textContent='Add at least one answer option.';return}const payload={question_text:$('question-text').value.trim(),event_scopes:scopes,role_scope:$('role-scope').value,answer_type:type,options,is_required:$('required').checked,is_permanent:$('permanent').checked,is_active:$('active').checked,updated_at:new Date().toISOString()};const id=$('question-id').value;const q=id?await sb.from('event_form_questions').update(payload).eq('id',id):await sb.from('event_form_questions').insert(payload);if(q.error){$('editor-status').textContent='Could not save question: '+q.error.message;return}$('editor-status').textContent='Saved ✓';await loadQuestions();setTimeout(()=>$('question-editor').classList.add('hidden'),350)};
+$('question-editor').onsubmit=async e=>{e.preventDefault();$('editor-status').textContent='Saving…';syncOptions();const scopes=[...document.querySelectorAll('.event-check:checked')].map(x=>x.value);if(!scopes.length){$('editor-status').textContent='Select at least one event.';return}const type=$('answer-type').value,options=typeNeedsOptions()?optionDraft.filter(Boolean):[];if(typeNeedsOptions()&&!options.length){$('editor-status').textContent='Add at least one answer option.';return}const payload={question_text:$('question-text').value.trim(),event_scopes:scopes,role_scope:$('role-scope').value,answer_type:type,options,is_required:$('required').checked,is_permanent:$('permanent').checked,is_active:$('active').checked,show_on_response_card:$('show-on-card').checked,is_priority_field:$('priority-field').checked,updated_at:new Date().toISOString()};const id=$('question-id').value;const q=id?await sb.from('event_form_questions').update(payload).eq('id',id):await sb.from('event_form_questions').insert(payload);if(q.error){$('editor-status').textContent='Could not save question: '+q.error.message;return}$('editor-status').textContent='Saved ✓';await loadQuestions();setTimeout(()=>$('question-editor').classList.add('hidden'),350)};
 
 let responsesRole='rally_lead';
 let responseRows=[];
@@ -215,9 +215,25 @@ function formatTroopQuality(v){
   }
   return out.length?out.join(' | '):'—';
 }
+
+function responseCardCustomRows(r){
+  const d=r.response_data||{};
+  const custom=d.custom_answers||{};
+  const questions=window._nexaResponseQuestions||[];
+  const rows=[];
+  for(const q of questions){
+    if(!q.show_on_response_card)continue;
+    const raw=(custom[String(q.id)]!==undefined)?custom[String(q.id)]:custom[q.id];
+    if(raw===undefined||raw===null||raw===''||(Array.isArray(raw)&&!raw.length))continue;
+    rows.push({label:q.question_text,value:simpleVal(raw),priority:!!q.is_priority_field});
+  }
+  rows.sort((a,b)=>Number(b.priority)-Number(a.priority));
+  return rows;
+}
 function responseCompactRows(r){
   const d=r.response_data||{};
   const rows=[];
+  for(const x of responseCardCustomRows(r))rows.push([x.priority?'★ '+x.label:x.label,x.value]);
   rows.push(['Original Alliance',r.original_alliance||'—']);
   rows.push(['Availability',fmtAvailability(r.availability,r.response_data||{})]);
   if(r.not_available)return rows;
@@ -274,7 +290,7 @@ async function loadResponses(){
   if(!ev)return;
   $('responses-list').innerHTML='<div class="muted">Loading responses…</div>';
 
-  const {data:qs}=await sb.from('event_form_questions').select('id,question_text');
+  const {data:qs}=await sb.from('event_form_questions').select('id,question_text,show_on_response_card,is_priority_field');
   window._nexaResponseQuestions=qs||[];
 
   if(ev==='svs'){

@@ -39,10 +39,10 @@ body.embed main.shell{padding:0!important;max-width:none!important}body.embed .b
 
 <div class="setting-card" style="margin-top:16px">
 <h3>Availability Blocks</h3>
-<p class="muted">Select the UTC one-hour blocks you want players to see. You can also add a custom block.</p>
+<p class="muted">Select the UTC one-hour blocks you want players to see.</p>
 <div id="utc-grid" class="utc-grid"></div>
-
-<div id="custom-list"></div>
+<div class="custom-row" style="display:none"><input id="custom-block" maxlength="40" placeholder="Custom, e.g. 12:30–13:30 UTC"><button id="add-custom" class="btn secondary" type="button">+ Add</button></div>
+<div id="custom-list" style="display:none"></div>
 <label class="option-line" style="margin-top:10px"><input id="full-enabled" type="checkbox"> Show “Full Availability” option</label>
 <label class="option-line" style="margin-top:10px"><input id="not-available-enabled" type="checkbox"> Show “Not Available” option</label>
 <div class="section-actions"><button id="save-availability" class="btn" type="button">Save Availability</button></div>
@@ -119,7 +119,7 @@ body.embed main.shell{padding:0!important;max-width:none!important}body.embed .b
 </div>
 
 <div class="form-actions" style="margin-top:18px">
-<button id="save-all" class="btn" type="button">Save Form Settings</button>
+<button id="save-all" class="btn" type="button">Save Form Settings</button><span id="save-all-status" class="save-status"></span>
 <button id="preview-battle-form" class="btn secondary" type="button">Preview Battle Form</button>
 </div>
 </section></main>
@@ -161,7 +161,7 @@ $('custom-list').onclick=e=>{if(e.target.classList.contains('remove-custom')){cu
 document.querySelectorAll('.add-item').forEach(b=>b.onclick=()=>addLocal(b.dataset.type));
 document.addEventListener('click',e=>{if(e.target.classList.contains('remove-item')){e.target.closest('.item-row')?.remove()}});
 $('save-availability').onclick=()=>persistTemplate('availability-status');$('save-options').onclick=()=>persistTemplate('options-status');document.querySelectorAll('.save-items').forEach(b=>b.onclick=()=>persistTemplate(b.dataset.type+'-status'));
-$('save-all').onclick=async()=>{$('state').textContent='Saving…';await persistTemplate('state')};
+$('save-all').onclick=async()=>{$('save-all-status').textContent='Saving…';const ok=await persistTemplate('save-all-status');if(ok)$('save-all-status').textContent='Saved ✓'};
 
 function questionMatchesEvent(q,key){const scopes=q.event_scopes||[];return scopes.includes('all')||scopes.includes(key)}
 function renderEventQuestionList(){if(!$('event-question-list'))return;const key=$('event').value;const shown=inlineQuestions.filter(q=>q.is_active&&questionMatchesEvent(q,key));$('event-question-list').innerHTML=shown.length?shown.map(inlineQuestionCard).join(''):`<div class="muted">No extra questions saved for ${esc(eventName(key))} yet. Base and combat fields stay above.</div>`;inlineRenderLibraryPicker()}
@@ -179,16 +179,6 @@ function inlineRenderLibraryPicker(){if(!$('library-picker-list'))return;const t
 $('add-from-library').onclick=()=>{$('library-picker').classList.remove('hidden');$('inline-question-editor').classList.add('hidden');$('library-target-event').value=$('event').value;inlineRenderLibraryPicker();$('library-picker').scrollIntoView({behavior:'smooth',block:'start'})};$('close-library-picker').onclick=()=>$('library-picker').classList.add('hidden');$('library-target-event').onchange=inlineRenderLibraryPicker;$('library-picker-list').onclick=async e=>{if(!e.target.classList.contains('inline-library-add'))return;const q=inlineQuestions.find(x=>String(x.id)===String(e.target.dataset.id));if(!q)return;const target=$('library-target-event').value;const scopes=[...new Set([...(q.event_scopes||[]),target])];const {error}=await sb.from('event_form_questions').update({event_scopes:scopes,updated_at:new Date().toISOString()}).eq('id',q.id);if(error){$('question-load-note').textContent='Could not update Question Library: '+error.message;return}await inlineLoadQuestions()};
 $('nexa-back').onclick=()=>{try{const r=document.referrer?new URL(document.referrer):null;if(r&&r.origin===location.origin){history.back();return}}catch{}location.href='event-operations.html'};
 $('preview-battle-form').onclick=()=>{const key=$('event').value||'svs';location.href=`battle-form.html?preview=1&event_type=${encodeURIComponent(key)}&from=form-settings`};
-
-if($('save-form-settings')){
-  const _oldSaveForm=$('save-form-settings').onclick;
-  $('save-form-settings').onclick=async(e)=>{
-    if(_oldSaveForm){const r=await _oldSaveForm.call($('save-form-settings'),e);}
-    else{await persistTemplate('form-save-status');}
-    if($('form-save-status') && !$('form-save-status').textContent)$('form-save-status').textContent='Saved ✓';
-  };
-}
-
 (async()=>{if(await guard()){await loadEventTypes();await loadTemplate();await inlineLoadQuestions()}})();
 </script>
 </body></html>

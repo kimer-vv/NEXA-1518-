@@ -9,6 +9,19 @@
 <style>
 .ops-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.ops-tabs{display:flex;gap:8px;overflow-x:auto;padding:4px 0 10px;scrollbar-width:none;-webkit-overflow-scrolling:touch}.ops-tabs::-webkit-scrollbar{display:none}.ops-tab{white-space:nowrap;border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:10px 14px;background:rgba(8,12,28,.42);color:inherit;font-weight:800}.ops-tab.active{border-color:rgba(137,98,255,.8);box-shadow:0 0 20px rgba(112,66,255,.18)}.ops-panel{margin-top:12px}.ops-card{padding:16px;border:1px solid rgba(255,255,255,.12);border-radius:18px;background:rgba(10,14,30,.42);margin-bottom:12px}.ops-card h3,.ops-card h4{margin:0 0 6px}.ops-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.badge-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.mini-badge{font-size:11px;font-weight:900;padding:5px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05)}.group-title{display:flex;align-items:center;gap:8px;margin:22px 0 10px}.group-title:after{content:"";height:1px;flex:1;background:rgba(255,255,255,.1)}.question-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px}.q-card{padding:14px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:rgba(10,14,30,.38)}.q-card.inactive{opacity:.55}.q-title{font-weight:900;font-size:15px}.q-meta{font-size:12px;opacity:.72;margin-top:4px}.builder-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}.check-row{display:flex;gap:10px;flex-wrap:wrap}.check-pill{display:flex!important;flex-direction:row!important;align-items:center;gap:7px!important;border:1px solid rgba(255,255,255,.12);padding:9px 11px;border-radius:12px}.check-pill input{width:20px!important;height:20px!important;flex:0 0 20px}.option-editor{display:grid;gap:8px;margin-top:8px}.option-edit-row{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}.drag-grip{cursor:grab;user-select:none;touch-action:none;padding:8px;font-size:20px;opacity:.7}.layout-list{display:grid;gap:9px;margin-top:12px}.layout-row{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:12px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(10,14,30,.42)}.layout-row.locked{opacity:.78;background:rgba(255,255,255,.035)}.layout-row.dragging{opacity:.55;outline:1px solid rgba(151,111,255,.8)}.layout-actions{display:flex;gap:5px}.tiny-btn{border:1px solid rgba(255,255,255,.14);background:transparent;color:inherit;border-radius:9px;padding:7px 9px}.preview-shell{margin-top:14px;padding:15px;border-radius:18px;border:1px solid rgba(255,255,255,.12);background:rgba(5,8,20,.48)}.preview-field{padding:11px 0;border-bottom:1px solid rgba(255,255,255,.08)}.preview-field:last-child{border-bottom:0}.preview-input{height:42px;border:1px solid rgba(255,255,255,.14);border-radius:11px;margin-top:7px;opacity:.65}.scope-filters{display:flex;gap:7px;overflow-x:auto;margin:10px 0 14px}.scope-filter{white-space:nowrap}.empty-mini{padding:18px;text-align:center;border:1px dashed rgba(255,255,255,.15);border-radius:14px;opacity:.7}.hidden{display:none!important}
 @media(max-width:650px){.question-grid{grid-template-columns:1fr}.option-edit-row{grid-template-columns:auto minmax(0,1fr) auto}.ops-card{padding:14px}}
+
+.response-card{border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:12px 14px;background:rgba(255,255,255,.035);margin-bottom:10px}
+.response-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.response-title{font-weight:800}
+.response-badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px}
+.response-grid{display:grid;grid-template-columns:minmax(110px,.8fr) 1.2fr;gap:6px 10px;margin-top:10px;font-size:.92rem}
+.response-grid .k{color:var(--muted,#aab)}
+.response-grid .v{overflow-wrap:anywhere}
+.response-details{margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08)}
+.response-toggle{white-space:nowrap}
+.response-na{opacity:.7}
+@media(max-width:700px){.response-grid{grid-template-columns:105px 1fr}.response-head{align-items:center}}
+
 </style>
 </head>
 <body>
@@ -78,8 +91,24 @@
   </section>
 
   <section id="tab-responses" class="ops-panel hidden">
-    <article class="ops-card"><h2>Responses</h2><p class="muted">Phase 2B will place response cards and filters here. The tab is already reserved so Event Operations can grow without changing the navigation again.</p><div class="empty-mini">Responses view is the next phase.</div></article>
-  </section>
+      <div class="panel-head">
+        <div>
+          <h2>Responses</h2>
+          <p class="muted">Submitted Battle Forms only.</p>
+        </div>
+      </div>
+      <div class="builder-grid">
+        <label>Event Type
+          <select id="responses-event"></select>
+        </label>
+      </div>
+      <div class="tab-row" style="margin-top:12px">
+        <button class="tiny-btn response-role active" data-role="rally_lead" type="button">Rally Leaders</button>
+        <button class="tiny-btn response-role" data-role="joiner" type="button">Joiners</button>
+      </div>
+      <div id="responses-summary" class="muted" style="margin-top:10px"></div>
+      <div id="responses-list" class="response-list" style="margin-top:12px"></div>
+    </section>
 </section>
 </main>
 <script>
@@ -141,6 +170,109 @@ function typeNeedsOptions(){return['dropdown','single_choice','checkboxes'].incl
 function renderOptionEditor(){$('option-editor').innerHTML=optionDraft.map((o,i)=>`<div class="option-edit-row"><span class="drag-grip">☰</span><input class="option-value" value="${esc(o)}" placeholder="Option ${i+1}"><button class="tiny-btn remove-option" data-i="${i}" type="button">×</button></div>`).join('')||'<div class="muted">No options yet.</div>'}function syncOptions(){optionDraft=[...document.querySelectorAll('.option-value')].map(x=>x.value.trim())}
 $('add-option').onclick=()=>{syncOptions();optionDraft.push('');renderOptionEditor()};$('option-editor').onclick=e=>{if(e.target.classList.contains('remove-option')){syncOptions();optionDraft.splice(Number(e.target.dataset.i),1);renderOptionEditor()}};
 $('question-editor').onsubmit=async e=>{e.preventDefault();$('editor-status').textContent='Saving…';syncOptions();const scopes=[...document.querySelectorAll('.event-check:checked')].map(x=>x.value);if(!scopes.length){$('editor-status').textContent='Select at least one event.';return}const type=$('answer-type').value,options=typeNeedsOptions()?optionDraft.filter(Boolean):[];if(typeNeedsOptions()&&!options.length){$('editor-status').textContent='Add at least one answer option.';return}const payload={question_text:$('question-text').value.trim(),event_scopes:scopes,role_scope:$('role-scope').value,answer_type:type,options,is_required:$('required').checked,is_permanent:$('permanent').checked,is_active:$('active').checked,updated_at:new Date().toISOString()};const id=$('question-id').value;const q=id?await sb.from('event_form_questions').update(payload).eq('id',id):await sb.from('event_form_questions').insert(payload);if(q.error){$('editor-status').textContent='Could not save question: '+q.error.message;return}$('editor-status').textContent='Saved ✓';await loadQuestions();setTimeout(()=>$('question-editor').classList.add('hidden'),350)};
+
+let responsesRole='rally_lead';
+let responseRows=[];
+function respEsc(v){return esc(v==null?'':String(v))}
+function fmtAvailability(v){
+  if(!Array.isArray(v)||!v.length)return '—';
+  if(v.includes('Not Available'))return 'Not Available';
+  return v.join(', ');
+}
+function simpleVal(v){
+  if(v==null||v==='')return '—';
+  if(Array.isArray(v))return v.length? v.map(x=>typeof x==='object'?(x.name||x.label||JSON.stringify(x)):x).join(', '):'—';
+  if(typeof v==='object')return v.name||v.label||JSON.stringify(v);
+  return String(v);
+}
+function responseCompactRows(r){
+  const d=r.response_data||{};
+  const rows=[];
+  rows.push(['Original Alliance',r.original_alliance||'—']);
+  rows.push(['Availability',fmtAvailability(r.availability)]);
+  if(r.not_available)return rows;
+  rows.push(['Troop Level',simpleVal(d.troop_quality)]);
+  if(d.deployment_capacity!=null)rows.push(['Rally Cap / Deployment',simpleVal(d.deployment_capacity)]);
+  if((d.joiner_heroes||[]).length)rows.push(['Heroes',simpleVal(d.joiner_heroes)]);
+  if((d.rally_heroes||[]).length)rows.push(['Heroes',simpleVal(d.rally_heroes)]);
+  if((d.experts||[]).length)rows.push(['Experts',simpleVal(d.experts)]);
+  if(d.discord_voice)rows.push(['Discord Voice',simpleVal(d.discord_voice)]);
+  return rows;
+}
+function renderResponses(){
+  const list=$('responses-list'); if(!list)return;
+  let rows=responseRows.filter(r=>r.role===responsesRole);
+  rows.sort((a,b)=>(a.not_available===b.not_available?0:(a.not_available?1:-1)) || String(a.player_name||'').localeCompare(String(b.player_name||'')));
+  $('responses-summary').textContent=`${rows.length} submitted ${responsesRole==='rally_lead'?'Rally Leader':'Joiner'} form${rows.length===1?'':'s'}`;
+  if(!rows.length){list.innerHTML='<div class="muted">No submitted forms for this view yet.</div>';return}
+  list.innerHTML=rows.map((r,i)=>{
+    const compact=responseCompactRows(r);
+    const d=r.response_data||{};
+    const custom=d.custom_answers||{};
+    const customEntries=Object.entries(custom);
+    const keyRows=compact.map(([k,v])=>`<div class="k">${respEsc(k)}</div><div class="v">${respEsc(v)}</div>`).join('');
+    const detailRows=customEntries.length
+      ? customEntries.map(([qid,val])=>{
+          const q=(window._nexaResponseQuestions||[]).find(x=>String(x.id)===String(qid));
+          return `<div class="k">${respEsc(q?.question_text||('Question '+qid))}</div><div class="v">${respEsc(simpleVal(val))}</div>`;
+        }).join('')
+      : '<div class="muted">No extra Event Questions.</div>';
+    return `<article class="response-card ${r.not_available?'response-na':''}">
+      <div class="response-head">
+        <div>
+          <div class="response-title">${respEsc(r.player_name||'Unknown Player')} • ${respEsc(r.original_alliance||'No Alliance')}</div>
+          <div class="response-badges"><span class="mini-badge">${r.role==='rally_lead'?'Rally Leader':'Joiner'}</span>${r.not_available?'<span class="mini-badge">Not Available</span>':''}</div>
+        </div>
+        <button type="button" class="tiny-btn response-toggle" data-i="${i}">Details</button>
+      </div>
+      <div class="response-grid">${keyRows}</div>
+      <div class="response-details hidden" data-detail="${i}">
+        <div class="response-grid">${detailRows}</div>
+      </div>
+    </article>`;
+  }).join('');
+}
+async function loadResponses(){
+  const ev=$('responses-event')?.value;
+  if(!ev)return;
+  $('responses-list').innerHTML='<div class="muted">Loading responses…</div>';
+  const [{data:rows,error},{data:qs}]=await Promise.all([
+    sb.from('event_operation_responses')
+      .select('id,event_type_key,user_id,player_account_id,role,availability,not_available,response_data,submitted_at,updated_at,player_accounts(in_game_name,custom_alliance_tag,alliances(tag))')
+      .eq('event_type_key',ev)
+      .order('updated_at',{ascending:false}),
+    sb.from('event_form_questions').select('id,question_text')
+  ]);
+  if(error){$('responses-list').innerHTML=`<div class="form-message">${respEsc(error.message)}</div>`;return}
+  window._nexaResponseQuestions=qs||[];
+  responseRows=(rows||[]).map(r=>({
+    ...r,
+    player_name:r.player_accounts?.in_game_name||'Unknown Player',
+    original_alliance:r.player_accounts?.alliances?.tag||r.player_accounts?.custom_alliance_tag||'Not listed'
+  }));
+  renderResponses();
+}
+function initResponsesUI(){
+  const sel=$('responses-event'); if(!sel)return;
+  const active=eventTypes.filter(x=>x.active);
+  sel.innerHTML=active.map(x=>`<option value="${respEsc(x.key)}">${respEsc(x.name)}</option>`).join('');
+  sel.onchange=loadResponses;
+  document.querySelectorAll('.response-role').forEach(btn=>btn.onclick=()=>{
+    responsesRole=btn.dataset.role;
+    document.querySelectorAll('.response-role').forEach(x=>x.classList.toggle('active',x===btn));
+    renderResponses();
+  });
+  $('responses-list').onclick=e=>{
+    const b=e.target.closest('.response-toggle');if(!b)return;
+    const d=document.querySelector(`[data-detail="${b.dataset.i}"]`);
+    d?.classList.toggle('hidden');
+    b.textContent=d?.classList.contains('hidden')?'Details':'Hide';
+  };
+  if(sel.value)loadResponses();
+}
+
 (async()=>{if(await guard()){await loadEventTypes();await loadQuestions()}})();
+
+setTimeout(initResponsesUI,300);
 </script>
 </body></html>

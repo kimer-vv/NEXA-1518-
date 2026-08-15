@@ -9,12 +9,13 @@
 <style>
  .role-grid,.troop-grid,.hero-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
  .choice-card,.hero-card{border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:14px;background:rgba(10,14,30,.38)}
- .availability{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
- .availability label{display:flex;gap:9px;align-items:center;min-width:0;padding:11px 14px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(10,14,30,.30)}
- .availability label input{flex:0 0 auto}
- .availability label span{min-width:0;overflow-wrap:anywhere}
+ .availability{display:grid;grid-template-columns:1fr;gap:10px;width:100%;min-width:0}
+ .availability label{display:flex!important;flex-direction:row!important;gap:12px;align-items:center;min-width:0;width:100%;box-sizing:border-box;padding:14px 16px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:rgba(10,14,30,.30);font-size:15px!important;line-height:1.25}
+ .availability label input[type="checkbox"],.role-grid input[type="radio"],.hero-grid input[type="checkbox"],.troop-grid input[type="checkbox"]{display:inline-block!important;width:24px!important;height:24px!important;min-width:24px!important;flex:0 0 24px!important;margin:0!important;padding:0!important;accent-color:#1597ff}
+ .availability label span{display:block;min-width:0;overflow-wrap:normal;word-break:normal;white-space:normal;font-weight:800;color:#d7d9e8}
  .availability .availability-special{border-color:rgba(145,110,255,.34);background:rgba(89,55,170,.10)}
- @media(max-width:700px){.availability{grid-template-columns:1fr}.availability label{width:100%;box-sizing:border-box}}
+ .role-grid .choice-card{display:flex!important;flex-direction:row!important;align-items:center;gap:10px}
+ @media(max-width:700px){.availability{grid-template-columns:minmax(0,1fr)}.availability label{padding:13px 14px;border-radius:15px}.availability label span{font-size:15px}}
  .hero-detail{margin-top:10px}.compact-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.hidden{display:none!important}
 </style>
 </head>
@@ -68,6 +69,9 @@
 <script>
 const sb=window.supabase.createClient("https://dfxcxboxrkfmrnsgpyin.supabase.co","sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-");
 const $=id=>document.getElementById(id); let eventData,settings,items=[],accounts=[];
+const NOT_AVAILABLE_MARKER='__NEXA_NOT_AVAILABLE_OPTION__';
+function configuredAvailabilityBlocks(){return (settings?.availability_blocks||[]).filter(b=>b?.label&&b.label!==NOT_AVAILABLE_MARKER)}
+function notAvailableEnabled(){return (settings?.availability_blocks||[]).some(b=>b?.label===NOT_AVAILABLE_MARKER)}
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 function opt(n,max){return '<option value="">—</option>'+Array.from({length:max},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')}
 function role(){return document.querySelector('input[name=role]:checked')?.value}
@@ -98,13 +102,13 @@ function setBattleDetailsState(){
  document.querySelectorAll('input[name=role]').forEach(x=>x.required=!notAvailable);
 }
 function renderAvailability(){
- const blocks=settings?.availability_blocks||[];let html='';
+ const blocks=configuredAvailabilityBlocks();let html='';
  if(settings?.full_availability_enabled && blocks.length) html+=`<label class="availability-special"><input type="checkbox" id="full-avail"><span>Full Availability</span></label>`;
- html+=`<label class="availability-special"><input type="checkbox" id="not-available"><span>Not Available</span></label>`;
+ if(notAvailableEnabled()) html+=`<label class="availability-special"><input type="checkbox" id="not-available"><span>Not Available</span></label>`;
  html+=blocks.map((b,i)=>`<label><input class="avail" type="checkbox" value="${esc(b.label)}"><span>${esc(b.label)}</span></label>`).join('');
  $('availability').innerHTML=html;
  $('full-avail')?.addEventListener('change',e=>{
-  if(e.target.checked){$('not-available').checked=false;document.querySelectorAll('.avail').forEach(x=>x.checked=true)}
+  if(e.target.checked){if($('not-available'))$('not-available').checked=false;document.querySelectorAll('.avail').forEach(x=>x.checked=true)}
   else document.querySelectorAll('.avail').forEach(x=>x.checked=false);
   setBattleDetailsState();
  });
@@ -113,7 +117,7 @@ function renderAvailability(){
   setBattleDetailsState();
  });
  document.querySelectorAll('.avail').forEach(x=>x.addEventListener('change',()=>{
-  if(x.checked){$('not-available').checked=false;setBattleDetailsState()}
+  if(x.checked&&$('not-available')){$('not-available').checked=false;setBattleDetailsState()}
   const all=[...document.querySelectorAll('.avail')];
   if($('full-avail'))$('full-avail').checked=all.length>0&&all.every(a=>a.checked);
  }));
@@ -167,7 +171,7 @@ $('form').onsubmit=async e=>{
  const r=notAvailable?'joiner':role();
  if(!r){$('message').textContent='Select a Battle Role.';return;}
  const availability=notAvailable?['Not Available']:[...document.querySelectorAll('.avail:checked')].map(x=>x.value);
- if(!notAvailable&&$('full-avail')?.checked && settings.availability_blocks?.length) availability.splice(0,availability.length,...settings.availability_blocks.map(x=>x.label));
+ if(!notAvailable&&$('full-avail')?.checked && configuredAvailabilityBlocks().length) availability.splice(0,availability.length,...configuredAvailabilityBlocks().map(x=>x.label));
  if(!availability.length){$('message').textContent='Select at least one availability block or choose Not Available.';return;}
  let troop_quality=null,joiner_heroes=[],rally_heroes=[],experts=[];
  if(notAvailable){

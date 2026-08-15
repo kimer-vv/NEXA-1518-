@@ -190,13 +190,30 @@ function simpleVal(v){
   if(typeof v==='object')return v.name||v.label||JSON.stringify(v);
   return String(v);
 }
+function formatTroopQuality(v){
+  if(!v)return '—';
+  if(typeof v==='string'){
+    try{v=JSON.parse(v)}catch{return v}
+  }
+  if(typeof v!=='object')return String(v);
+  const order=[['infantry','Infantry'],['lancer','Lancer'],['marksman','Marksman']];
+  const out=[];
+  for(const [key,label] of order){
+    const x=v[key];
+    if(!x)continue;
+    const level=x.level||'—';
+    const skill=(x.skill!==null&&x.skill!==undefined&&x.skill!=='')?` • Skill ${x.skill}`:'';
+    out.push(`${label}: ${level}${skill}`);
+  }
+  return out.length?out.join(' | '):'—';
+}
 function responseCompactRows(r){
   const d=r.response_data||{};
   const rows=[];
   rows.push(['Original Alliance',r.original_alliance||'—']);
   rows.push(['Availability',fmtAvailability(r.availability,r.response_data||{})]);
   if(r.not_available)return rows;
-  rows.push(['Troop Level',simpleVal(d.troop_quality)]);
+  rows.push(['Troop Level',formatTroopQuality(d.troop_quality)]);
   if(d.deployment_capacity!=null)rows.push(['Rally Cap / Deployment',simpleVal(d.deployment_capacity)]);
   if((d.joiner_heroes||[]).length)rows.push(['Heroes',simpleVal(d.joiner_heroes)]);
   if((d.rally_heroes||[]).length)rows.push(['Heroes',simpleVal(d.rally_heroes)]);

@@ -270,6 +270,25 @@ async function saveEventOperationsResponse({user,accountId,roleValue,availabilit
   return error;
 }
 
+
+function getAvailabilityMode(){
+  const full=document.querySelector('input[name="availability-full"]:checked')
+    || document.querySelector('#full-availability:checked')
+    || document.querySelector('[data-full-availability="1"]:checked');
+  if(full)return 'full';
+
+  const na=document.querySelector('input[name="availability-not-available"]:checked')
+    || document.querySelector('#not-available:checked')
+    || document.querySelector('[data-not-available="1"]:checked');
+  if(na)return 'not_available';
+
+  // Fallback to the state already used by this form.
+  try{
+    if(typeof notAvailable==='boolean' && notAvailable)return 'not_available';
+  }catch(e){}
+  return 'selected_blocks';
+}
+
 $('form').onsubmit=async e=>{
  e.preventDefault();$('message').textContent='Saving…';
  if(eventType==='svs'&&!eventData){$('message').textContent='There is no active SvS event to receive this response.';return}
@@ -284,7 +303,7 @@ $('form').onsubmit=async e=>{
  try{custom_answers=collectCustomAnswers()}catch(err){$('message').textContent=err.message;return}
  if(notAvailable){
   if(eventType!=='svs'){
-    const responseData={role:'joiner',availability:['Not Available'],troop_quality:null,deployment_capacity:null,joiner_heroes:[],rally_heroes:[],experts:[],discord_voice:null,custom_answers:{}};
+    const responseData={role:'joiner',availability:['Not Available'],availability_mode:'not_available',troop_quality:null,deployment_capacity:null,joiner_heroes:[],rally_heroes:[],experts:[],discord_voice:null,custom_answers:{}};
     const error=await saveEventOperationsResponse({user,accountId:$('account').value,roleValue:'joiner',availabilityValue:['Not Available'],notAvailableValue:true,responseData});
     if(error){$('message').textContent=error.message;$('message').scrollIntoView({behavior:'smooth',block:'center'});return;}
   }else{
@@ -304,7 +323,7 @@ $('form').onsubmit=async e=>{
   rally_heroes=[...document.querySelectorAll('.rally-hero')].filter(c=>c.querySelector('.has-hero').checked).map(c=>({id:Number(c.dataset.id),name:c.dataset.name,fully_maxed:c.querySelector('.fully').value==='yes',stars:c.querySelector('.fully').value==='no'?Number(c.querySelector('.stars').value||0):5,skills:c.querySelector('.fully').value==='no'?Number(c.querySelector('.skills').value||0):5,widget:c.querySelector('.fully').value==='no'?Number(c.querySelector('.widget').value||0):10}));
   if(settings.rally_experts_enabled) experts=collectExperts('rally-experts');
  }
- const baseResponse={role:r,availability,troop_quality,deployment_capacity:settings.deployment_capacity_enabled&&$('deployment').value?Number($('deployment').value):null,joiner_heroes,rally_heroes,experts,discord_voice:settings.discord_voice_enabled?($('discord').value||null):null,custom_answers};
+ const baseResponse={role:r,availability,availability_mode:getAvailabilityMode(),troop_quality,deployment_capacity:settings.deployment_capacity_enabled&&$('deployment').value?Number($('deployment').value):null,joiner_heroes,rally_heroes,experts,discord_voice:settings.discord_voice_enabled?($('discord').value||null):null,custom_answers};
  let error=null;
  if(eventType!=='svs'){
    error=await saveEventOperationsResponse({

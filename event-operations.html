@@ -175,19 +175,14 @@ let responsesRole='rally_lead';
 let responseRows=[];
 let responseConfiguredBlocks=[];
 function respEsc(v){return esc(v==null?'':String(v))}
-function fmtAvailability(v){
+function fmtAvailability(v, responseData={}){
+  const mode=responseData?.availability_mode;
+  if(mode==='full')return 'Full Availability';
+  if(mode==='not_available')return 'Not Available';
+
   if(!Array.isArray(v)||!v.length)return '—';
   if(v.includes('Not Available'))return 'Not Available';
-  if(v.includes('Full Availability'))return 'Full Availability';
-
-  const selected=[...new Set(v.map(x=>String(x).trim()).filter(Boolean))];
-  const configured=[...new Set((responseConfiguredBlocks||[]).map(x=>String(x).trim()).filter(Boolean))];
-
-  if(configured.length && configured.every(x=>selected.includes(x))){
-    return 'Full Availability';
-  }
-
-  return selected.join(', ');
+  return [...new Set(v.map(x=>String(x).trim()).filter(Boolean))].join(', ');
 }
 function simpleVal(v){
   if(v==null||v==='')return '—';
@@ -199,7 +194,7 @@ function responseCompactRows(r){
   const d=r.response_data||{};
   const rows=[];
   rows.push(['Original Alliance',r.original_alliance||'—']);
-  rows.push(['Availability',fmtAvailability(r.availability)]);
+  rows.push(['Availability',fmtAvailability(r.availability,r.response_data||{})]);
   if(r.not_available)return rows;
   rows.push(['Troop Level',simpleVal(d.troop_quality)]);
   if(d.deployment_capacity!=null)rows.push(['Rally Cap / Deployment',simpleVal(d.deployment_capacity)]);

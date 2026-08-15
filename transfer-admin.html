@@ -749,7 +749,7 @@ async function loadRecruiting(){
      ? `<b>Editing:</b> ${esc(selectedEvent.title)} • ${selectedEvent.status} • Applications ${selectedEvent.applications_open?'OPEN':'CLOSED'}`
      : 'Select a Transfer Cycle.';
  }
- if(!eventId){recruit_list.innerHTML='<div class="empty-state">Select a Transfer Event.</div>';return;}
+ if(!eventId){recruit_list.innerHTML='<div class="empty-state">Recruiting Alliances are available across all Transfer Events.</div>';return;}
  const [{data:all,error:allErr},{data:rowsRpc,error:rowsErr}]=await Promise.all([
    sb.from('alliances').select('id,tag').order('tag'),
    sb.rpc('get_transfer_recruiting_for_event',{p_transfer_event_id:eventId})
@@ -791,7 +791,7 @@ recruit_form.onsubmit=async ev=>{
   const schedule=scheduleDataFromForm();
 
   const {error}=await sb.rpc('save_transfer_recruiting_alliance',{
-    p_transfer_event_id:recruit_event_filter.value,
+    p_transfer_event_id:null,
     p_alliance_id:allianceId,
     p_new_tag:newTag||null,
     p_is_recruiting:recruit_is_recruiting.checked,

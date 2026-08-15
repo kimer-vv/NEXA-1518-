@@ -7,127 +7,112 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/human-gate.js"></script>
 <style>
-  .battle-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
-  .setting-card{padding:16px;border:1px solid rgba(255,255,255,.12);border-radius:18px;background:rgba(10,14,30,.42)}
-  .item-row{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;margin:8px 0}
-  .block-row{display:grid;grid-template-columns:1fr auto;gap:8px;margin:8px 0}
-  .tiny{max-width:90px}.pill-note{font-size:12px;opacity:.72}
+.battle-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.setting-card{padding:16px;border:1px solid rgba(255,255,255,.12);border-radius:18px;background:rgba(10,14,30,.42)}
+.setting-card h3{margin-top:0}.section-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.utc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px;margin-top:10px}
+.utc-option{display:flex;align-items:center;gap:8px;padding:9px 10px;border:1px solid rgba(255,255,255,.12);border-radius:12px}
+.item-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin:8px 0}
+.fixed-note{font-size:12px;opacity:.72;margin:3px 0 8px}.save-status{font-size:12px;min-height:18px;margin-top:7px;opacity:.85}
+.option-list{display:grid;gap:10px}.option-line{display:flex;gap:9px;align-items:center;padding:10px;border:1px solid rgba(255,255,255,.1);border-radius:12px}
+.custom-row{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:10px}
 </style>
 </head>
 <body>
 <main class="shell">
 <a class="back" href="svs-admin.html">← SvS Control Center</a>
 <section class="glass">
-<div class="panel-head"><div><h1>Battle Form Settings</h1><p class="muted">Configure the reusable Battle Form for the current SvS event.</p></div></div>
+<div class="panel-head"><div><h1>Battle Form Settings</h1><p class="muted">Configure the Battle Form for the selected SvS event. Each content section saves independently.</p></div></div>
 <div id="state" class="form-message"></div>
 <label>Event<select id="event"></select></label>
 
-<div class="battle-grid" style="margin-top:16px">
-  <div class="setting-card">
-    <h3>Availability Blocks</h3>
-    <p class="muted">UTC. Players may select multiple blocks.</p>
-    <div id="blocks"></div>
-    <div class="form-actions"><button id="add-block" class="btn secondary" type="button">+ Add Block</button></div>
-    <label class="toggle-line"><input id="full-enabled" type="checkbox"> Show Full Availability option</label>
-  </div>
-
-  <div class="setting-card">
-    <h3>Form Options</h3>
-    <label>Maximum T12 Skill Level<input id="t12-max" type="number" min="1" max="20" value="5"></label>
-    <label class="toggle-line"><input id="deployment-enabled" type="checkbox"> Ask Deployment Capacity</label>
-    <label class="toggle-line"><input id="discord-enabled" type="checkbox" checked> Ask Discord Voice availability</label>
-    <label class="toggle-line"><input id="joiner-experts-enabled" type="checkbox"> Show Experts for Joiners</label>
-    <label class="toggle-line"><input id="rally-experts-enabled" type="checkbox" checked> Show Experts for Rally Leads</label>
-  </div>
+<div class="setting-card" style="margin-top:16px">
+<h3>Availability Blocks</h3>
+<p class="muted">Select the UTC one-hour blocks you want players to see. You can also add a custom block.</p>
+<div id="utc-grid" class="utc-grid"></div>
+<div class="custom-row"><input id="custom-block" maxlength="40" placeholder="Custom, e.g. 12:30–13:30 UTC"><button id="add-custom" class="btn secondary" type="button">+ Add</button></div>
+<div id="custom-list"></div>
+<label class="option-line" style="margin-top:10px"><input id="full-enabled" type="checkbox"> Show “Full Availability” option</label>
+<div class="section-actions"><button id="save-availability" class="btn" type="button">Save Availability</button></div>
+<div id="availability-status" class="save-status"></div>
 </div>
 
-<div class="battle-grid" style="margin-top:16px">
-  <div class="setting-card"><h3>Joiner Heroes</h3><p class="muted">Add heroes that count as eligible Lv.5 rally joiner heroes.</p><div id="joiner-heroes"></div><button class="btn secondary add-item" data-type="joiner_hero" type="button">+ Add Hero</button></div>
-  <div class="setting-card"><h3>Rally Lead Heroes</h3><p class="muted">Players report Fully Maxed, or Stars / Skills / Widget.</p><div id="rally-heroes"></div><button class="btn secondary add-item" data-type="rally_hero" type="button">+ Add Hero</button></div>
-  <div class="setting-card"><h3>Joiner Experts</h3><div id="joiner-experts"></div><button class="btn secondary add-item" data-type="joiner_expert" type="button">+ Add Expert</button></div>
-  <div class="setting-card"><h3>Rally Lead Experts</h3><div id="rally-experts"></div><button class="btn secondary add-item" data-type="rally_expert" type="button">+ Add Expert</button></div>
+<div class="setting-card" style="margin-top:14px">
+<h3>Form Options</h3>
+<div class="option-list">
+<label>T12 Maximum Skill Level<select id="t12-max"></select></label>
+<label class="option-line"><input id="deployment-enabled" type="checkbox"> Ask Deployment Capacity</label>
+<label class="option-line"><input id="discord-enabled" type="checkbox"> Ask Discord Voice availability</label>
+<label class="option-line"><input id="joiner-experts-enabled" type="checkbox"> Show Experts for Joiners</label>
+<label class="option-line"><input id="rally-experts-enabled" type="checkbox"> Show Experts for Rally Leads</label>
+</div>
+<div class="section-actions"><button id="save-options" class="btn" type="button">Save Form Options</button></div>
+<div id="options-status" class="save-status"></div>
+</div>
+
+<div class="battle-grid" style="margin-top:14px">
+<div class="setting-card">
+<h3>Joiner Heroes</h3><p class="fixed-note">Required rally skill is fixed at Level 5.</p>
+<div id="joiner-heroes"></div>
+<button class="btn secondary add-item" data-type="joiner_hero" type="button">+ Add Hero</button>
+<div class="section-actions"><button class="btn save-items" data-type="joiner_hero" type="button">Save Joiner Heroes</button></div><div id="joiner_hero-status" class="save-status"></div>
+</div>
+<div class="setting-card">
+<h3>Rally Lead Heroes</h3><p class="fixed-note">Fixed maximums: Stars 5 • Skills 5 • Widget 10.</p>
+<div id="rally-heroes"></div>
+<button class="btn secondary add-item" data-type="rally_hero" type="button">+ Add Hero</button>
+<div class="section-actions"><button class="btn save-items" data-type="rally_hero" type="button">Save Rally Lead Heroes</button></div><div id="rally_hero-status" class="save-status"></div>
+</div>
+<div class="setting-card">
+<h3>Joiner Experts</h3><p class="fixed-note">Expert maximum level is fixed at 100.</p>
+<div id="joiner-experts"></div>
+<button class="btn secondary add-item" data-type="joiner_expert" type="button">+ Add Expert</button>
+<div class="section-actions"><button class="btn save-items" data-type="joiner_expert" type="button">Save Joiner Experts</button></div><div id="joiner_expert-status" class="save-status"></div>
+</div>
+<div class="setting-card">
+<h3>Rally Lead Experts</h3><p class="fixed-note">Expert maximum level is fixed at 100.</p>
+<div id="rally-experts"></div>
+<button class="btn secondary add-item" data-type="rally_expert" type="button">+ Add Expert</button>
+<div class="section-actions"><button class="btn save-items" data-type="rally_expert" type="button">Save Rally Lead Experts</button></div><div id="rally_expert-status" class="save-status"></div>
+</div>
 </div>
 
 <div class="form-actions" style="margin-top:18px">
-<button id="save" class="btn" type="button">Save Battle Form Settings</button>
+<button id="save-all" class="btn" type="button">Save Form Settings</button>
 <a class="btn secondary" href="battle-form.html?direct=1" target="_blank">Preview Battle Form</a>
 </div>
-</section>
-</main>
+</section></main>
 <script>
 const sb=window.supabase.createClient("https://dfxcxboxrkfmrnsgpyin.supabase.co","sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-");
 const $=id=>document.getElementById(id);
-let items=[];
 const map={joiner_hero:'joiner-heroes',rally_hero:'rally-heroes',joiner_expert:'joiner-experts',rally_expert:'rally-experts'};
+let dbItems=[], customBlocks=[];
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 
-async function guard(){
- const {data:{session}}=await sb.auth.getSession(); if(!session){location.href='index.html';return false;}
- const {data:role}=await sb.rpc('current_nexa_role');
- if(!['owner','admin','scheduler'].includes(String(role||'').toLowerCase())){location.href='index.html';return false;}
- return true;
-}
-function renderBlocks(blocks=[]){
- $('blocks').innerHTML='';
- (blocks.length?blocks:[{label:'12:00–13:00 UTC'},{label:'13:00–14:00 UTC'},{label:'14:00–15:00 UTC'},{label:'15:00–16:00 UTC'},{label:'16:00–17:00 UTC'}]).forEach(b=>{
-  const row=document.createElement('div');row.className='block-row';
-  row.innerHTML=`<input class="block-label" maxlength="40" value="${String(b.label||'').replaceAll('"','&quot;')}"><button class="btn secondary remove-block" type="button">Remove</button>`;
-  $('blocks').appendChild(row);
- });
-}
-function renderItems(){
- Object.values(map).forEach(id=>$(id).innerHTML='');
- items.sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)).forEach(it=>{
-  const row=document.createElement('div');row.className='item-row';row.dataset.id=it.id||'';
-  row.dataset.type=it.item_type;
-  row.innerHTML=`<input class="item-name" maxlength="80" value="${String(it.name||'').replaceAll('"','&quot;')}">
-    <input class="item-max tiny" type="number" min="1" max="100" value="${it.max_level||''}" placeholder="Max">
-    <button class="btn secondary remove-item" type="button">×</button>`;
-  $(map[it.item_type]).appendChild(row);
- });
-}
-async function loadEvents(){
- const {data,error}=await sb.from('svs_events').select('id,opponent_state,prep_monday,status').neq('status','ended').order('prep_monday',{ascending:false});
- if(error){$('state').textContent=error.message;return;}
- $('event').innerHTML=(data||[]).map(e=>`<option value="${e.id}">SvS vs ${e.opponent_state} • ${e.prep_monday}</option>`).join('');
- if(data?.length) await loadSettings();
- else $('state').textContent='Create an SvS event first.';
-}
-async function loadSettings(){
- const eventId=Number($('event').value); if(!eventId)return;
- const [{data:s},{data:i,error}]=await Promise.all([
-   sb.from('battle_form_settings').select('*').eq('event_id',eventId).maybeSingle(),
-   sb.from('battle_form_items').select('*').eq('event_id',eventId).order('sort_order')
- ]);
- if(error){$('state').textContent=error.message;return;}
- renderBlocks(s?.availability_blocks||[]);
- $('full-enabled').checked=s?.full_availability_enabled??true;
- $('deployment-enabled').checked=!!s?.deployment_capacity_enabled;
- $('discord-enabled').checked=s?.discord_voice_enabled??true;
- $('joiner-experts-enabled').checked=!!s?.joiner_experts_enabled;
- $('rally-experts-enabled').checked=s?.rally_experts_enabled??true;
- $('t12-max').value=s?.t12_max_skill||5;
- items=i||[];renderItems();$('state').textContent='';
-}
+async function guard(){const {data:{session}}=await sb.auth.getSession();if(!session){location.href='index.html';return false}const {data:role}=await sb.rpc('current_nexa_role');if(!['owner','admin','scheduler'].includes(String(role||'').toLowerCase())){location.href='index.html';return false}return true}
+function presetLabel(h){const n=(h+1)%24;return `${String(h).padStart(2,'0')}:00–${String(n).padStart(2,'0')}:00 UTC`}
+function renderPresets(selected=[]){$('utc-grid').innerHTML=Array.from({length:24},(_,h)=>{const l=presetLabel(h);return `<label class="utc-option"><input class="utc-preset" type="checkbox" value="${l}" ${selected.includes(l)?'checked':''}> ${l}</label>`}).join('')}
+function renderCustom(){$('custom-list').innerHTML=customBlocks.map((b,i)=>`<div class="custom-row"><input value="${esc(b)}" readonly><button class="btn secondary remove-custom" data-i="${i}" type="button">Remove</button></div>`).join('')}
+function renderType(type){const box=$(map[type]);box.innerHTML='';dbItems.filter(x=>x.item_type===type).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)).forEach(it=>{const r=document.createElement('div');r.className='item-row';r.dataset.id=it.id||'';r.dataset.type=type;r.innerHTML=`<input class="item-name" maxlength="80" value="${esc(it.name)}" placeholder="${type.includes('hero')?'Hero name':'Expert name'}"><button class="btn secondary remove-item" type="button">Remove</button>`;box.appendChild(r)})}
+function addLocal(type){dbItems.push({id:null,item_type:type,name:'',sort_order:dbItems.filter(x=>x.item_type===type).length,max_level:type.includes('expert')?100:null,is_active:true});renderType(type);const inputs=$(map[type]).querySelectorAll('.item-name');inputs[inputs.length-1]?.focus()}
+function syncTypeFromDom(type){const rows=[...$(map[type]).querySelectorAll('.item-row')];const other=dbItems.filter(x=>x.item_type!==type);const mine=rows.map((r,i)=>({id:r.dataset.id?Number(r.dataset.id):null,item_type:type,name:r.querySelector('.item-name').value.trim(),sort_order:i,is_active:true,max_level:type.includes('expert')?100:null}));dbItems=[...other,...mine]}
+function status(id,msg){$(id).textContent=msg}
+async function baseSettingsPatch(patch){const event_id=$('event').value;if(!event_id)throw new Error('Select an event first.');const {data:{user}}=await sb.auth.getUser();const payload={event_id,updated_at:new Date().toISOString(),updated_by:user?.id||null,...patch};const {error}=await sb.from('battle_form_settings').upsert(payload,{onConflict:'event_id'});if(error)throw error}
+async function loadEvents(){const {data,error}=await sb.from('svs_events').select('id,opponent_state,prep_monday,status').neq('status','ended').order('prep_monday',{ascending:false});if(error){$('state').textContent=error.message;return}$('event').innerHTML=(data||[]).map(e=>`<option value="${e.id}">SvS vs ${e.opponent_state} • ${e.prep_monday}</option>`).join('');if(data?.length)await loadSettings();else $('state').textContent='Create an SvS event first.'}
+async function loadSettings(){const eventId=$('event').value;if(!eventId)return;const [{data:s,error:se},{data:i,error:ie}]=await Promise.all([sb.from('battle_form_settings').select('*').eq('event_id',eventId).maybeSingle(),sb.from('battle_form_items').select('*').eq('event_id',eventId).order('sort_order')]);if(se||ie){$('state').textContent=(se||ie).message;return}const blocks=s?.availability_blocks||[];const labels=blocks.map(x=>x.label);const presets=Array.from({length:24},(_,h)=>presetLabel(h));renderPresets(labels.filter(x=>presets.includes(x)));customBlocks=labels.filter(x=>!presets.includes(x));renderCustom();$('full-enabled').checked=s?.full_availability_enabled??true;$('deployment-enabled').checked=!!s?.deployment_capacity_enabled;$('discord-enabled').checked=s?.discord_voice_enabled??true;$('joiner-experts-enabled').checked=!!s?.joiner_experts_enabled;$('rally-experts-enabled').checked=s?.rally_experts_enabled??true;$('t12-max').value=String(s?.t12_max_skill||5);dbItems=i||[];Object.keys(map).forEach(renderType);$('state').textContent=''}
 $('event').onchange=loadSettings;
-$('add-block').onclick=()=>{const r=document.createElement('div');r.className='block-row';r.innerHTML='<input class="block-label" maxlength="40" placeholder="12:00–13:00 UTC"><button class="btn secondary remove-block" type="button">Remove</button>';$('blocks').appendChild(r)};
-$('blocks').onclick=e=>{if(e.target.classList.contains('remove-block'))e.target.closest('.block-row').remove()};
-document.querySelectorAll('.add-item').forEach(b=>b.onclick=()=>{items.push({id:null,item_type:b.dataset.type,name:'',sort_order:items.filter(x=>x.item_type===b.dataset.type).length,max_level:b.dataset.type.includes('expert')?10:null});renderItems()});
-document.addEventListener('click',e=>{if(e.target.classList.contains('remove-item')){const r=e.target.closest('.item-row');const id=r.dataset.id;items=items.filter(x=>String(x.id||'')!==id || !id);r.remove()}});
-$('save').onclick=async()=>{
- const eventId=Number($('event').value); if(!eventId)return;
- $('state').textContent='Saving…';
- const blocks=[...document.querySelectorAll('.block-label')].map(x=>({label:x.value.trim()})).filter(x=>x.label);
- const {data:{user}}=await sb.auth.getUser();
- const payload={event_id:eventId,availability_blocks:blocks,full_availability_enabled:$('full-enabled').checked,deployment_capacity_enabled:$('deployment-enabled').checked,discord_voice_enabled:$('discord-enabled').checked,joiner_experts_enabled:$('joiner-experts-enabled').checked,rally_experts_enabled:$('rally-experts-enabled').checked,t12_max_skill:Number($('t12-max').value)||5,updated_at:new Date().toISOString(),updated_by:user?.id||null};
- const {error}=await sb.from('battle_form_settings').upsert(payload,{onConflict:'event_id'});
- if(error){$('state').textContent=error.message;return;}
- const rows=[...document.querySelectorAll('.item-row')].map((r,idx)=>({id:r.dataset.id?Number(r.dataset.id):undefined,event_id:eventId,item_type:r.dataset.type,name:r.querySelector('.item-name').value.trim(),sort_order:idx,max_level:r.querySelector('.item-max').value?Number(r.querySelector('.item-max').value):null,is_active:true})).filter(x=>x.name);
- const existing=(await sb.from('battle_form_items').select('id').eq('event_id',eventId)).data||[];
- const keep=rows.filter(x=>x.id).map(x=>x.id), del=existing.map(x=>x.id).filter(id=>!keep.includes(id));
- if(del.length){const d=await sb.from('battle_form_items').delete().in('id',del);if(d.error){$('state').textContent=d.error.message;return;}}
- for(const r of rows){const q=r.id?sb.from('battle_form_items').update(r).eq('id',r.id):sb.from('battle_form_items').insert(r);const z=await q;if(z.error){$('state').textContent=z.error.message;return;}}
- $('state').textContent='Battle Form settings saved ✓';await loadSettings();
-};
+$('add-custom').onclick=()=>{const v=$('custom-block').value.trim();if(v&&!customBlocks.includes(v)){customBlocks.push(v);renderCustom();$('custom-block').value=''}};
+$('custom-list').onclick=e=>{if(e.target.classList.contains('remove-custom')){customBlocks.splice(Number(e.target.dataset.i),1);renderCustom()}};
+document.querySelectorAll('.add-item').forEach(b=>b.onclick=()=>{syncTypeFromDom(b.dataset.type);addLocal(b.dataset.type)});
+document.addEventListener('click',e=>{if(e.target.classList.contains('remove-item')){const r=e.target.closest('.item-row'),type=r.dataset.type;syncTypeFromDom(type);const id=r.dataset.id;dbItems=dbItems.filter(x=>!(x.item_type===type&&((id&&String(x.id)===id)||(!id&&!x.id&&x.name===r.querySelector('.item-name').value.trim()))));r.remove()}});
+
+async function saveAvailability(){status('availability-status','Saving…');try{const blocks=[...document.querySelectorAll('.utc-preset:checked')].map(x=>({label:x.value})).concat(customBlocks.map(label=>({label})));await baseSettingsPatch({availability_blocks:blocks,full_availability_enabled:$('full-enabled').checked});status('availability-status','Saved ✓')}catch(e){status('availability-status',e.message)}}
+async function saveOptions(){status('options-status','Saving…');try{await baseSettingsPatch({deployment_capacity_enabled:$('deployment-enabled').checked,discord_voice_enabled:$('discord-enabled').checked,joiner_experts_enabled:$('joiner-experts-enabled').checked,rally_experts_enabled:$('rally-experts-enabled').checked,t12_max_skill:Number($('t12-max').value)||5});status('options-status','Saved ✓')}catch(e){status('options-status',e.message)}}
+async function saveItems(type){syncTypeFromDom(type);status(type+'-status','Saving…');try{const eventId=$('event').value;const existing=(await sb.from('battle_form_items').select('id').eq('event_id',eventId).eq('item_type',type)).data||[];const rows=dbItems.filter(x=>x.item_type===type&&x.name).map((x,i)=>({...x,event_id:eventId,sort_order:i,max_level:type.includes('expert')?100:null}));const keep=rows.filter(x=>x.id).map(x=>x.id);const del=existing.map(x=>x.id).filter(id=>!keep.includes(id));if(del.length){const q=await sb.from('battle_form_items').delete().in('id',del);if(q.error)throw q.error}for(const r0 of rows){const r={...r0};if(!r.id)delete r.id;const q=r0.id?await sb.from('battle_form_items').update(r).eq('id',r0.id):await sb.from('battle_form_items').insert(r);if(q.error)throw q.error}const {data:fresh,error}=await sb.from('battle_form_items').select('*').eq('event_id',eventId).eq('item_type',type).order('sort_order');if(error)throw error;dbItems=[...dbItems.filter(x=>x.item_type!==type),...(fresh||[])];renderType(type);status(type+'-status','Saved ✓')}catch(e){status(type+'-status',e.message)}}
+$('save-availability').onclick=saveAvailability;$('save-options').onclick=saveOptions;
+document.querySelectorAll('.save-items').forEach(b=>b.onclick=()=>saveItems(b.dataset.type));
+$('save-all').onclick=async()=>{ $('state').textContent='Saving all settings…';await saveAvailability();await saveOptions();for(const type of Object.keys(map))await saveItems(type);$('state').textContent='All Battle Form settings saved ✓'};
+$('t12-max').innerHTML=Array.from({length:20},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('');
 (async()=>{if(await guard())await loadEvents()})();
 </script>
 </body></html>

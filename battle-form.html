@@ -120,17 +120,17 @@ $('form').onsubmit=async e=>{
  let troop_quality=null,joiner_heroes=[],rally_heroes=[],experts=[];
  if(r==='joiner'){
   troop_quality={};for(const t of ['infantry','lancer','marksman']){const level=document.querySelector(`.troop-level[data-type="${t}"]`).value;if(!level){$('message').textContent='Select Infantry, Lancer and Marksman troop levels.';return;}const skill=level==='T12'?Number(document.querySelector(`.troop-skill[data-type="${t}"]`).value||0):null;if(level==='T12'&&!skill){$('message').textContent='Select the T12 skill level for every T12 troop type.';return;}troop_quality[t]={level,skill};}
-  joiner_heroes=[...document.querySelectorAll('.joiner-hero:checked')].map(x=>({id:Number(x.value),name:x.dataset.name,skill_level:5}));
+  joiner_heroes=[...document.querySelectorAll('.joiner-hero:checked')].map(x=>({id:x.value,name:x.dataset.name,skill_level:5}));
   if(settings.joiner_experts_enabled) experts=collectExperts('joiner-experts');
  }else{
-  rally_heroes=[...document.querySelectorAll('.rally-hero')].filter(c=>c.querySelector('.has-hero').checked).map(c=>({id:Number(c.dataset.id),name:c.dataset.name,fully_maxed:c.querySelector('.fully').value==='yes',stars:c.querySelector('.fully').value==='no'?Number(c.querySelector('.stars').value||0):5,skills:c.querySelector('.fully').value==='no'?Number(c.querySelector('.skills').value||0):5,widget:c.querySelector('.fully').value==='no'?Number(c.querySelector('.widget').value||0):10}));
+  rally_heroes=[...document.querySelectorAll('.rally-hero')].filter(c=>c.querySelector('.has-hero').checked).map(c=>({id:c.dataset.id,name:c.dataset.name,fully_maxed:c.querySelector('.fully').value==='yes',stars:c.querySelector('.fully').value==='no'?Number(c.querySelector('.stars').value||0):5,skills:c.querySelector('.fully').value==='no'?Number(c.querySelector('.skills').value||0):5,widget:c.querySelector('.fully').value==='no'?Number(c.querySelector('.widget').value||0):10}));
   if(settings.rally_experts_enabled) experts=collectExperts('rally-experts');
  }
- const payload={event_id:eventData.id,user_id:user.id,player_account_id:Number($('account').value),role:r,availability,troop_quality,deployment_capacity:settings.deployment_capacity_enabled&&$('deployment').value?Number($('deployment').value):null,joiner_heroes,rally_heroes,experts,discord_voice:settings.discord_voice_enabled?($('discord').value||null):null,updated_at:new Date().toISOString()};
+ const payload={event_id:eventData.id,user_id:user.id,player_account_id:$('account').value,role:r,availability,troop_quality,deployment_capacity:settings.deployment_capacity_enabled&&$('deployment').value?Number($('deployment').value):null,joiner_heroes,rally_heroes,experts,discord_voice:settings.discord_voice_enabled?($('discord').value||null):null,updated_at:new Date().toISOString()};
  const {error}=await sb.from('battle_form_responses').upsert(payload,{onConflict:'event_id,player_account_id'});
  $('message').textContent=error?error.message:'Battle Form submitted ✓ You can submit again later to update your response.';
 };
-function collectExperts(container){return [...$(container).querySelectorAll('.expert')].filter(c=>c.querySelector('.has-expert').checked).map(c=>({id:Number(c.dataset.id),name:c.dataset.name,maxed:c.querySelector('.expert-maxed').value==='yes',level:c.querySelector('.expert-maxed').value==='yes'?Number(c.dataset.max):Number(c.querySelector('.expert-level').value||0),max_level:Number(c.dataset.max)}))}
+function collectExperts(container){return [...$(container).querySelectorAll('.expert')].filter(c=>c.querySelector('.has-expert').checked).map(c=>({id:c.dataset.id,name:c.dataset.name,maxed:c.querySelector('.expert-maxed').value==='yes',level:c.querySelector('.expert-maxed').value==='yes'?Number(c.dataset.max):Number(c.querySelector('.expert-level').value||0),max_level:Number(c.dataset.max)}))}
 init();
 </script>
 </body></html>

@@ -2,78 +2,7 @@
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>NEXA • Transfer Application</title><link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="lang.js"></script>
-<script src="ui-i18n-final.js"></script><script src="transfer-i18n-full-data.js"></script><script src="transfer-i18n-full.js"></script>
-<script>
-/* NEXA v33.18 — document-level guard for obsolete Strong Accounts sentence */
-(function(){
-  const normalize = value => String(value || '')
-    .replace(/\u00a0/g,' ')
-    .replace(/[—–]/g,'-')
-    .replace(/\s+/g,' ')
-    .trim()
-    .toLowerCase();
-
-  const obsolete = normalize(
-    'Strong accounts matter — but the player behind the account matters just as much.'
-  );
-
-  function isObsoleteElement(el){
-    if(!el || el.nodeType !== 1) return false;
-    if(el.classList && el.classList.contains('strong-account-callout')) return false;
-
-    const text = normalize(el.textContent);
-    if(text === obsolete || text === obsolete.replace(/\.$/,'')) return true;
-
-    return (
-      text.includes('strong accounts matter') &&
-      text.includes('player behind the account') &&
-      !text.includes('our philosophy')
-    );
-  }
-
-  function removeObsolete(root){
-    if(!root) return;
-
-    if(root.nodeType === 1 && isObsoleteElement(root)){
-      root.remove();
-      return;
-    }
-
-    const scope = root.querySelectorAll ? root : document;
-    scope.querySelectorAll?.('.transfer-welcome p, .transfer-welcome div, .transfer-welcome span')
-      .forEach(el => {
-        if(isObsoleteElement(el)) el.remove();
-      });
-  }
-
-  // Starts observing while the document is still being parsed, before body scripts finish.
-  const observer = new MutationObserver(records => {
-    for(const record of records){
-      for(const node of record.addedNodes){
-        removeObsolete(node);
-      }
-    }
-    removeObsolete(document);
-  });
-
-  observer.observe(document.documentElement, {
-    childList:true,
-    subtree:true
-  });
-
-  document.addEventListener('DOMContentLoaded', () => removeObsolete(document));
-  window.addEventListener('load', () => removeObsolete(document));
-
-  // Also catches delayed translation/i18n passes.
-  let checks = 0;
-  const timer = setInterval(() => {
-    removeObsolete(document);
-    checks += 1;
-    if(checks >= 120) clearInterval(timer); // 60 seconds
-  }, 500);
-})();
-</script>
-<style>
+<script src="ui-i18n-final.js"></script><script src="transfer-i18n-full-data.js"></script><script src="transfer-i18n-full.js"></script><style>
 .coordinate-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .coordinate-pair label{margin:0}
 </style>
@@ -174,7 +103,7 @@
 
 <main class="shell event-page transfer-form-page">
 <div class="form-actions" style="margin:12px 0"><a id="edit-my-application-top" class="btn secondary" href="#">Edit My Application</a></div>
- <span class="badge transfer-badge">TRANSFER APPLICATION • v33.18</span>
+ <span class="badge transfer-badge">TRANSFER APPLICATION • v33.19</span>
  <h1 id="event-title">State 1518 Transfer Application</h1>
 
  <section class="glass transfer-welcome">
@@ -864,6 +793,59 @@ loadTransferForm();
   window.addEventListener('load',keepIntro,{once:true});
   setTimeout(keepIntro,150);
   setTimeout(keepIntro,800);
+})();
+</script>
+
+
+<script>
+/* NEXA v33.19 — safe legacy-line removal
+   Keeps the fully functional form intact and removes ONLY the exact
+   standalone duplicate paragraph inside .transfer-welcome. */
+(function(){
+  const normalize=value=>String(value||'')
+    .replace(/\u00a0/g,' ')
+    .replace(/[—–]/g,'-')
+    .replace(/\s+/g,' ')
+    .trim()
+    .toLowerCase();
+
+  const legacyA=normalize(
+    'Strong accounts matter — but the player behind the account matters just as much.'
+  );
+  const legacyB=legacyA.replace(/\.$/,'');
+
+  function clean(){
+    const welcome=document.querySelector('.transfer-welcome');
+    if(!welcome) return;
+
+    // IMPORTANT: only inspect DIRECT CHILD paragraphs.
+    // Never inspect/remove parent containers or form sections.
+    [...welcome.children].forEach(el=>{
+      if(el.tagName!=='P') return;
+      if(el.classList.contains('strong-account-callout')) return;
+      if(el.id==='transfer-intro-copy') return;
+
+      const text=normalize(el.textContent);
+      if(text===legacyA || text===legacyB){
+        el.remove();
+      }
+    });
+  }
+
+  clean();
+
+  const welcome=document.querySelector('.transfer-welcome');
+  if(welcome){
+    const observer=new MutationObserver(()=>clean());
+    observer.observe(welcome,{childList:true});
+  }
+
+  document.addEventListener('DOMContentLoaded',clean,{once:true});
+  window.addEventListener('load',clean,{once:true});
+
+  // Catch delayed i18n injection without touching anything except
+  // the exact direct-child paragraph above.
+  [100,300,700,1200,2500,5000].forEach(ms=>setTimeout(clean,ms));
 })();
 </script>
 

@@ -91,6 +91,7 @@ const read=()=>{try{return JSON.parse(localStorage.getItem(key())||'{"rally":[],
 const write=v=>localStorage.setItem(key(),JSON.stringify(v));
 let rallyHeroPool={infantry:[],lancer:[],marksman:[]};
 let joinerHeroPool=[];
+let editingFormation={type:null,index:null};
 
 $('title').textContent=`${allianceTag} Alliance Formations`;
 $('event-badge').textContent=eventType.toUpperCase();
@@ -142,18 +143,74 @@ function ratioValid(i,l,m){return Number(i)+Number(l)+Number(m)===100}
 
 function formationHeroText(x,type){
   if(type==='rally'){
-    const parts=[
-      x.infantry_hero?`Infantry: ${x.infantry_hero}`:'',
-      x.lancer_hero?`Lancer: ${x.lancer_hero}`:'',
-      x.marksman_hero?`Marksman: ${x.marksman_hero}`:''
-    ].filter(Boolean);
-    return parts.length?' • '+parts.join(' • '):'';
+    return [x.infantry_hero,x.lancer_hero,x.marksman_hero].filter(Boolean).join(' • ');
   }
-  return x.heroes?.length?' • Heroes: '+x.heroes.join(', '):'';
+  return x.heroes?.length?x.heroes.join(' • '):'';
+}
+
+function clearFormationEdit(){
+  editingFormation={type:null,index:null};
+  $('rally-form').reset();
+  $('joiner-form').reset();
+  $('joiner-heroes-wrap').style.display='none';
+  renderJoinerHeroPicker();
+  setSelectOptions('rally-infantry-hero',rallyHeroPool.infantry);
+  setSelectOptions('rally-lancer-hero',rallyHeroPool.lancer);
+  setSelectOptions('rally-marksman-hero',rallyHeroPool.marksman);
+  const rb=$('rally-form').querySelector('button[type="submit"]'); if(rb)rb.textContent='+ Add Formation';
+  const jb=$('joiner-form').querySelector('button[type="submit"]'); if(jb)jb.textContent='+ Add Formation';
+}
+function editFormation(type,index){
+  const d=read();
+  const arr=d[type]||[];
+  const x=arr[index];
+  if(!x)return;
+  editingFormation={type,index};
+
+  if(type==='rally'){
+    $('rally-name').value=x.name||'';
+    $('rally-type').value=x.type||'attack';
+    $('rally-inf').value=x.inf??'';
+    $('rally-lan').value=x.lan??'';
+    $('rally-mar').value=x.mar??'';
+    $('rally-infantry-hero').value=x.infantry_hero||'';
+    $('rally-lancer-hero').value=x.lancer_hero||'';
+    $('rally-marksman-hero').value=x.marksman_hero||'';
+    const b=$('rally-form').querySelector('button[type="submit"]'); if(b)b.textContent='Save Changes';
+    $('rally-form').scrollIntoView({behavior:'smooth',block:'start'});
+    return;
+  }
+
+  $('joiner-name').value=x.name||'';
+  $('joiner-type').value=x.type||'attack';
+  $('joiner-inf').value=x.inf??'';
+  $('joiner-lan').value=x.lan??'';
+  $('joiner-mar').value=x.mar??'';
+  const useHeroes=Array.isArray(x.heroes)&&x.heroes.length>0;
+  $('joiner-use-heroes').checked=useHeroes;
+  $('joiner-heroes-wrap').style.display=useHeroes?'block':'none';
+  renderJoinerHeroPicker();
+  if(useHeroes){
+    const selected=new Set(x.heroes);
+    document.querySelectorAll('.joiner-rec-hero').forEach(cb=>cb.checked=selected.has(cb.value));
+  }
+  const b=$('joiner-form').querySelector('button[type="submit"]'); if(b)b.textContent='Save Changes';
+  $('joiner-form').scrollIntoView({behavior:'smooth',block:'start'});
 }
 function render(){
   const d=read();
-  const make=(x,i,type)=>`<div class="form-item"><b>${esc(x.name)}</b> <span class="mini-badge">${esc(x.type.toUpperCase())}</span><div class="muted">${x.inf}/${x.lan}/${x.mar}${esc(formationHeroText(x,type))}</div><div class="actions"><button class="tiny-btn del" data-type="${type}" data-i="${i}" type="button">Delete</button></div></div>`;
+  const make=(x,i,type)=>{
+    const heroes=formationHeroText(x,type);
+    return `<div class="form-item">
+      <div><b>${esc(x.name)}</b> <span class="mini-badge">${esc(x.type.toUpperCase())}</span></div>
+      ${heroes?`<div style="margin-top:8px;font-weight:700">${esc(heroes)}</div>`:''}
+      <div class="muted" style="margin-top:4px">${x.inf} / ${x.lan} / ${x.mar}</div>
+      <div class="actions">
+        <button class="tiny-btn edit-formation" data-type="${type}" data-i="${i}" type="button">Edit</button>
+        <button class="tiny-btn del" data-type="${type}" data-i="${i}" type="button">Delete</button>
+      </div>
+    </div>`;
+  };
   $('rally-list').innerHTML=(d.rally||[]).map((x,i)=>make(x,i,'rally')).join('')||'<p class="muted">No Rally Leader formations yet.</p>';
   $('joiner-list').innerHTML=(d.joiner||[]).map((x,i)=>make(x,i,'joiner')).join('')||'<p class="muted">No Joiner formations yet.</p>';
 }
@@ -161,19 +218,22 @@ $('rally-form').onsubmit=e=>{
   e.preventDefault();
   const inf=$('rally-inf').value,lan=$('rally-lan').value,mar=$('rally-mar').value;
   if(!ratioValid(inf,lan,mar)){alert('Troop ratio must total 100%.');return}
-  const d=read(); d.rally=d.rally||[];
-  d.rally.push({
+  const item={
     name:$('rally-name').value.trim()||'Formation',
     type:$('rally-type').value,
     inf:Number(inf),lan:Number(lan),mar:Number(mar),
     infantry_hero:$('rally-infantry-hero').value||'',
     lancer_hero:$('rally-lancer-hero').value||'',
     marksman_hero:$('rally-marksman-hero').value||''
-  });
-  write(d); e.target.reset();
-  setSelectOptions('rally-infantry-hero',rallyHeroPool.infantry);
-  setSelectOptions('rally-lancer-hero',rallyHeroPool.lancer);
-  setSelectOptions('rally-marksman-hero',rallyHeroPool.marksman);
+  };
+  const d=read(); d.rally=d.rally||[];
+  if(editingFormation.type==='rally' && Number.isInteger(editingFormation.index)){
+    d.rally[editingFormation.index]=item;
+  }else{
+    d.rally.push(item);
+  }
+  write(d);
+  clearFormationEdit();
   render();
 };
 $('joiner-form').onsubmit=e=>{
@@ -183,19 +243,35 @@ $('joiner-form').onsubmit=e=>{
   const heroes=$('joiner-use-heroes').checked
     ? [...document.querySelectorAll('.joiner-rec-hero:checked')].map(x=>x.value)
     : [];
+  const item={
+    name:$('joiner-name').value.trim()||'Formation',
+    type:$('joiner-type').value,
+    inf:Number(inf),lan:Number(lan),mar:Number(mar),
+    heroes
+  };
   const d=read(); d.joiner=d.joiner||[];
-  d.joiner.push({name:$('joiner-name').value.trim()||'Formation',type:$('joiner-type').value,inf:Number(inf),lan:Number(lan),mar:Number(mar),heroes});
-  write(d); e.target.reset();
-  $('joiner-heroes-wrap').style.display='none';
-  renderJoinerHeroPicker();
+  if(editingFormation.type==='joiner' && Number.isInteger(editingFormation.index)){
+    d.joiner[editingFormation.index]=item;
+  }else{
+    d.joiner.push(item);
+  }
+  write(d);
+  clearFormationEdit();
   render();
 };
 document.addEventListener('click',e=>{
+  const edit=e.target.closest('.edit-formation');
+  if(edit){
+    editFormation(edit.dataset.type,Number(edit.dataset.i));
+    return;
+  }
   const b=e.target.closest('.del'); if(!b)return;
   const d=read(); const arr=d[b.dataset.type]||[]; const i=Number(b.dataset.i);
   if(!arr[i])return;
   if(!confirm(`Delete "${arr[i].name}"?`))return;
-  arr.splice(i,1); d[b.dataset.type]=arr; write(d); render();
+  arr.splice(i,1); d[b.dataset.type]=arr; write(d);
+  if(editingFormation.type===b.dataset.type && editingFormation.index===i) clearFormationEdit();
+  render();
 });
 (async()=>{
   const {data:{session}}=await sb.auth.getSession();

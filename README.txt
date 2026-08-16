@@ -1,29 +1,20 @@
-NEXA Teams V2 — Workspace Preview
+NEXA Patch — Clean Formation Display
 
-Replace/add:
-- alliance-teams.html
+Replace ONLY:
 - alliance-formations.html
-- team-builder.html
-- event-operations.html is included unchanged from the current Teams dashboard baseline.
 
-New structure:
-Teams Dashboard -> Alliance Workspace
+Display-only change.
 
-Alliance Workspace now has:
-1. Alliance Formations (GLOBAL for the whole alliance)
-2. Teams list
+Saved Rally Leader formations now display cleanly:
 
-Open Formations:
-- Rally Leader formations
-- Joiner formations
-- Attack / Defense
-- Troop ratios
-- Optional recommended heroes for Joiners
+Main Attack   ATTACK
+Geronimo • Mia • Nora
+50 / 20 / 30
 
-Open Team:
-- Dedicated Team page
-- Rally Leaders placeholder
-- Joiners placeholder
-- Inherited Alliance Formations summary
+Instead of:
+Infantry: Geronimo • Lancer: Mia • Marksman: Nora
 
-No SQL yet. Preview/localStorage only.
+Joiner recommended heroes are also displayed on a clean single line.
+
+No SQL required.
+No formation logic, dropdowns, editing, or saved data changed.

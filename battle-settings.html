@@ -23,6 +23,13 @@ body.embed main.shell{padding:0!important;max-width:none!important}body.embed .b
 .builder-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.check-row{display:flex;gap:8px;flex-wrap:wrap}.check-pill{display:flex!important;flex-direction:row!important;align-items:center;gap:7px!important;border:1px solid rgba(255,255,255,.12);padding:9px 11px;border-radius:12px}.check-pill input{width:20px!important;height:20px!important;flex:0 0 20px}.option-editor{display:grid;gap:8px;margin-top:8px}.option-edit-row{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}.tiny-btn{border:1px solid rgba(255,255,255,.14);background:transparent;color:inherit;border-radius:9px;padding:7px 9px}.drag-grip{cursor:grab;user-select:none;touch-action:none;padding:8px;font-size:20px;opacity:.7}.layout-list{display:grid;gap:9px;margin-top:12px}.layout-row{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:12px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(10,14,30,.42)}.layout-row.locked{opacity:.78;background:rgba(255,255,255,.035)}.layout-actions{display:flex;gap:5px}.preview-shell{margin-top:14px;padding:15px;border-radius:18px;border:1px solid rgba(255,255,255,.12);background:rgba(5,8,20,.48)}.preview-field{padding:11px 0;border-bottom:1px solid rgba(255,255,255,.08)}.preview-field:last-child{border-bottom:0}.preview-input{height:42px;border:1px solid rgba(255,255,255,.14);border-radius:11px;margin-top:7px;opacity:.65}.hidden{display:none!important}.library-list{display:grid;gap:8px;margin-top:10px}.library-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:11px;border:1px solid rgba(255,255,255,.1);border-radius:12px}
 @media(max-width:650px){.question-grid{grid-template-columns:1fr}.option-edit-row{grid-template-columns:auto minmax(0,1fr) auto}.library-row{grid-template-columns:1fr}}
 
+
+.item-row .hero-troop-type{min-width:140px}
+@media(max-width:700px){
+  .item-row{display:grid!important;grid-template-columns:1fr!important;gap:8px!important}
+  .item-row .hero-troop-type,.item-row .item-name,.item-row .remove-item{width:100%!important;max-width:100%!important}
+}
+
 </style>
 </head>
 <body><script>if(new URLSearchParams(location.search).get("embed")==="1")document.body.classList.add("embed")</script>
@@ -147,9 +154,35 @@ function renderEventSelectors(){const active=eventTypes.filter(x=>x.active);cons
 function renderInlineEventChecks(){const selected=[...document.querySelectorAll('.inline-event-check:checked')].map(x=>x.value);$('inline-event-checks').innerHTML=`<label class="check-pill"><input class="inline-event-check inline-all-events" type="checkbox" value="all"> All Events</label>`+eventTypes.filter(x=>x.active).map(x=>`<label class="check-pill"><input class="inline-event-check" type="checkbox" value="${esc(x.key)}"> ${esc(x.name)}</label>`).join('');document.querySelectorAll('.inline-event-check').forEach(x=>x.checked=selected.includes(x.value))}
 function renderPresets(selected=[]){$('utc-grid').innerHTML=Array.from({length:24},(_,h)=>{const l=presetLabel(h);return `<label class="utc-option"><input class="utc-preset" type="checkbox" value="${l}" ${selected.includes(l)?'checked':''}> ${l}</label>`}).join('')}
 function renderCustom(){$('custom-list').innerHTML=customBlocks.map((b,i)=>`<div class="custom-row"><input value="${esc(b)}" readonly><button class="btn secondary remove-custom" data-i="${i}" type="button">Remove</button></div>`).join('')}
-function renderType(type){const box=$(map[type]);box.innerHTML='';dbItems.filter(x=>x.item_type===type).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)).forEach(it=>{const r=document.createElement('div');r.className='item-row';r.dataset.type=type;r.innerHTML=`<input class="item-name" maxlength="80" value="${esc(it.name)}" placeholder="${type.includes('hero')?'Hero name':'Expert name'}"><button class="btn secondary remove-item" type="button">Remove</button>`;box.appendChild(r)})}
-function syncTypeFromDom(type){const other=dbItems.filter(x=>x.item_type!==type);const mine=[...$(map[type]).querySelectorAll('.item-row')].map((r,i)=>({item_type:type,name:r.querySelector('.item-name').value.trim(),sort_order:i,max_level:type.includes('expert')?100:null,is_active:true}));dbItems=[...other,...mine]}
-function addLocal(type){syncTypeFromDom(type);dbItems.push({item_type:type,name:'',sort_order:dbItems.filter(x=>x.item_type===type).length,max_level:type.includes('expert')?100:null,is_active:true});renderType(type);const a=$(map[type]).querySelectorAll('.item-name');a[a.length-1]?.focus()}
+function renderType(type){
+ const box=$(map[type]);box.innerHTML='';
+ dbItems.filter(x=>x.item_type===type).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)).forEach(it=>{
+   const r=document.createElement('div');r.className='item-row';r.dataset.type=type;
+   const typePicker=type==='rally_hero'
+     ? `<select class="hero-troop-type" aria-label="Hero troop type">
+          <option value="">Troop Type…</option>
+          <option value="infantry" ${it.troop_type==='infantry'?'selected':''}>Infantry</option>
+          <option value="lancer" ${it.troop_type==='lancer'?'selected':''}>Lancer</option>
+          <option value="marksman" ${it.troop_type==='marksman'?'selected':''}>Marksman</option>
+        </select>`
+     : '';
+   r.innerHTML=`<input class="item-name" maxlength="80" value="${esc(it.name)}" placeholder="${type.includes('hero')?'Hero name':'Expert name'}">${typePicker}<button class="btn secondary remove-item" type="button">Remove</button>`;
+   box.appendChild(r)
+ })
+}
+function syncTypeFromDom(type){
+ const other=dbItems.filter(x=>x.item_type!==type);
+ const mine=[...$(map[type]).querySelectorAll('.item-row')].map((r,i)=>({
+   item_type:type,
+   name:r.querySelector('.item-name').value.trim(),
+   sort_order:i,
+   max_level:type.includes('expert')?100:null,
+   troop_type:type==='rally_hero'?(r.querySelector('.hero-troop-type')?.value||''):undefined,
+   is_active:true
+ }));
+ dbItems=[...other,...mine]
+}
+function addLocal(type){syncTypeFromDom(type);dbItems.push({item_type:type,name:'',sort_order:dbItems.filter(x=>x.item_type===type).length,max_level:type.includes('expert')?100:null,troop_type:type==='rally_hero'?'':undefined,is_active:true});renderType(type);const a=$(map[type]).querySelectorAll('.item-name');a[a.length-1]?.focus()}
 function status(id,msg){$(id).textContent=msg}
 async function seedSvSIfAvailable(){try{const ev=await sb.from('svs_events').select('id').neq('status','ended').order('prep_monday',{ascending:false}).limit(1).maybeSingle();if(ev.error||!ev.data?.id)return null;const [s,i]=await Promise.all([sb.from('battle_form_settings').select('*').eq('event_id',ev.data.id).maybeSingle(),sb.from('battle_form_items').select('*').eq('event_id',ev.data.id).order('sort_order')]);if(s.error||i.error)return null;const blocks=s.data?.availability_blocks||[];return {availability_blocks:blocks.filter(x=>x?.label!==NOT_AVAILABLE_MARKER),full_availability_enabled:s.data?.full_availability_enabled??true,not_available_enabled:blocks.some(x=>x?.label===NOT_AVAILABLE_MARKER),deployment_capacity_enabled:!!s.data?.deployment_capacity_enabled,discord_voice_enabled:s.data?.discord_voice_enabled??true,joiner_experts_enabled:!!s.data?.joiner_experts_enabled,rally_experts_enabled:s.data?.rally_experts_enabled??true,t12_max_skill:s.data?.t12_max_skill||5,items:Object.fromEntries(Object.keys(map).map(t=>[t,(i.data||[]).filter(x=>x.item_type===t).map((x,n)=>({item_type:t,name:x.name,sort_order:n,max_level:x.max_level,is_active:true}))]))}}catch{return null}}
 async function loadTemplate(){const key=$('event').value;if(!key)return;let loaded=null;const q=await sb.from('event_form_templates').select('settings').eq('event_type_key',key).maybeSingle();if(q.error){$('state').textContent='Could not load Form Settings: '+q.error.message;return}if(q.data?.settings)loaded=q.data.settings;if(!loaded&&key==='svs')loaded=await seedSvSIfAvailable();if(!loaded){try{const preview=JSON.parse(localStorage.getItem('nexa_form_template_'+key)||'null');if(preview){const mig=await sb.from('event_form_templates').upsert({event_type_key:key,settings:preview,updated_at:new Date().toISOString()},{onConflict:'event_type_key'});if(!mig.error)loaded=preview}}catch{}}template={...defaultTemplate(),...(loaded||{})};customBlocks=(template.availability_blocks||[]).map(x=>x?.label||x).filter(Boolean).filter(x=>!Array.from({length:24},(_,h)=>presetLabel(h)).includes(x));const labels=(template.availability_blocks||[]).map(x=>x?.label||x).filter(Boolean);renderPresets(labels);renderCustom();$('full-enabled').checked=template.full_availability_enabled??true;$('not-available-enabled').checked=template.not_available_enabled??true;$('deployment-enabled').checked=!!template.deployment_capacity_enabled;$('discord-enabled').checked=template.discord_voice_enabled??true;$('joiner-experts-enabled').checked=template.joiner_experts_enabled??true;$('rally-experts-enabled').checked=template.rally_experts_enabled??true;$('t12-max').value=String(template.t12_max_skill||5);dbItems=[];for(const t of Object.keys(map))for(const [n,x] of (template.items?.[t]||[]).entries())dbItems.push({...x,item_type:t,sort_order:n});Object.keys(map).forEach(renderType);$('event-template-note').textContent=`Editing ${eventName(key)} Battle Form Template • independent from live events`;renderEventQuestionList();}

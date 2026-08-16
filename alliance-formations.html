@@ -13,7 +13,13 @@ h1,h2,h3{margin:.25rem 0 .5rem}.badge,.mini-badge{display:inline-flex;border:1px
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.card{border:1px solid var(--line);border-radius:16px;padding:14px;background:rgba(255,255,255,.03)}label{display:grid;gap:7px;margin-top:10px}input,select{width:100%;background:#0d0e18;color:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 12px}
 .row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.btn,.tiny-btn{border:1px solid var(--line);background:#1c1d31;color:#fff;border-radius:12px;padding:10px 12px;font-weight:700}.btn{background:linear-gradient(135deg,#6b4cff,#8f6dff)}
 .form-item{border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:10px}.check{display:flex;gap:8px;align-items:center;margin-top:10px}
-@media(max-width:800px){.grid{grid-template-columns:1fr}.row{grid-template-columns:1fr}}
+.formation-troop-grid{display:grid;gap:10px;margin-top:10px}.troop-line{display:grid;grid-template-columns:minmax(110px,.65fr) minmax(170px,1.35fr);gap:10px;align-items:end}
+.hero-toggle{display:flex!important;grid-template-columns:none!important;justify-content:flex-start;align-items:center!important;gap:9px!important;width:100%;margin-top:14px}
+.hero-toggle input{width:auto!important;flex:0 0 auto;margin:0}.hero-toggle span{display:inline!important;white-space:normal}
+.hero-picker-title{font-weight:700;margin-top:12px}.hero-multi-picker{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.hero-choice{display:inline-flex!important;align-items:center;gap:7px!important;border:1px solid var(--line);border-radius:999px;padding:8px 10px;margin:0!important;background:rgba(255,255,255,.035)}
+.hero-choice input{width:auto!important;margin:0!important}
+@media(max-width:800px){.grid{grid-template-columns:1fr}.row{grid-template-columns:1fr}.troop-line{grid-template-columns:1fr}.hero-multi-picker{display:grid;grid-template-columns:1fr}.hero-choice{border-radius:12px;width:100%}}
 </style>
 </head>
 <body>
@@ -31,10 +37,19 @@ h1,h2,h3{margin:.25rem 0 .5rem}.badge,.mini-badge{display:inline-flex;border:1px
       <form id="rally-form">
         <label>Formation Name<input id="rally-name" placeholder="e.g. Main Attack"></label>
         <label>Type<select id="rally-type"><option value="attack">Attack</option><option value="defense">Defense</option></select></label>
-        <div class="row">
-          <label>Infantry %<input id="rally-inf" type="number" min="0" max="100"></label>
-          <label>Lancer %<input id="rally-lan" type="number" min="0" max="100"></label>
-          <label>Marksman %<input id="rally-mar" type="number" min="0" max="100"></label>
+        <div class="formation-troop-grid">
+          <div class="troop-line">
+            <label>Infantry %<input id="rally-inf" type="number" min="0" max="100"></label>
+            <label>Infantry Hero<select id="rally-infantry-hero"><option value="">Select hero…</option></select></label>
+          </div>
+          <div class="troop-line">
+            <label>Lancer %<input id="rally-lan" type="number" min="0" max="100"></label>
+            <label>Lancer Hero<select id="rally-lancer-hero"><option value="">Select hero…</option></select></label>
+          </div>
+          <div class="troop-line">
+            <label>Marksman %<input id="rally-mar" type="number" min="0" max="100"></label>
+            <label>Marksman Hero<select id="rally-marksman-hero"><option value="">Select hero…</option></select></label>
+          </div>
         </div>
         <button class="btn" type="submit">+ Add Formation</button>
       </form>
@@ -52,11 +67,11 @@ h1,h2,h3{margin:.25rem 0 .5rem}.badge,.mini-badge{display:inline-flex;border:1px
           <label>Lancer %<input id="joiner-lan" type="number" min="0" max="100"></label>
           <label>Marksman %<input id="joiner-mar" type="number" min="0" max="100"></label>
         </div>
-        <label class="check"><input id="joiner-use-heroes" type="checkbox"> Include Recommended Heroes</label>
+        <label class="check hero-toggle"><input id="joiner-use-heroes" type="checkbox"><span>Include Recommended Heroes</span></label>
         <div id="joiner-heroes-wrap" style="display:none">
-          <label>Recommended Heroes
-            <input id="joiner-heroes" placeholder="Preview: comma-separated names">
-          </label>
+          <div class="hero-picker-title">Recommended Heroes</div>
+          <div id="joiner-hero-options" class="hero-multi-picker"></div>
+          <p class="muted" id="joiner-hero-note">Choose one or multiple Joiner Heroes from this Event Type's Battle Form.</p>
         </div>
         <button class="btn" type="submit">+ Add Formation</button>
       </form>
@@ -66,6 +81,7 @@ h1,h2,h3{margin:.25rem 0 .5rem}.badge,.mini-badge{display:inline-flex;border:1px
 </section>
 </main>
 <script>
+const sb=window.supabase.createClient("https://dfxcxboxrkfmrnsgpyin.supabase.co","sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-");
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 const p=new URLSearchParams(location.search);
@@ -73,31 +89,120 @@ const eventType=p.get('event_type')||'svs', allianceId=p.get('alliance_id')||'',
 const key=()=>`nexa_preview_alliance_formations_${eventType}_${allianceId}`;
 const read=()=>{try{return JSON.parse(localStorage.getItem(key())||'{"rally":[],"joiner":[]}')}catch{return{rally:[],joiner:[]}}};
 const write=v=>localStorage.setItem(key(),JSON.stringify(v));
-$('title').textContent=`${allianceTag} Alliance Formations`; $('event-badge').textContent=eventType.toUpperCase();
+let rallyHeroPool={infantry:[],lancer:[],marksman:[]};
+let joinerHeroPool=[];
+
+$('title').textContent=`${allianceTag} Alliance Formations`;
+$('event-badge').textContent=eventType.toUpperCase();
 $('back-link').onclick=()=>location.href=`alliance-teams.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}`;
+
+function setSelectOptions(id,names){
+  const el=$(id);
+  el.innerHTML='<option value="">Select hero…</option>'+names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');
+}
+function renderJoinerHeroPicker(){
+  const box=$('joiner-hero-options');
+  if(!joinerHeroPool.length){
+    box.innerHTML='<div class="muted">No Joiner Heroes are configured for this Event Type yet.</div>';
+    return;
+  }
+  box.innerHTML=joinerHeroPool.map(n=>`<label class="hero-choice"><input class="joiner-rec-hero" type="checkbox" value="${esc(n)}"><span>${esc(n)}</span></label>`).join('');
+}
+async function loadHeroPools(){
+  const {data,error}=await sb.from('event_form_templates').select('settings').eq('event_type_key',eventType).maybeSingle();
+  if(error){
+    $('joiner-hero-note').textContent='Could not load Battle Form heroes: '+error.message;
+    return;
+  }
+  const items=data?.settings?.items||{};
+  const rally=(items.rally_hero||[]).filter(x=>x?.name);
+  rallyHeroPool={
+    infantry:rally.filter(x=>x.troop_type==='infantry').map(x=>x.name),
+    lancer:rally.filter(x=>x.troop_type==='lancer').map(x=>x.name),
+    marksman:rally.filter(x=>x.troop_type==='marksman').map(x=>x.name)
+  };
+  joinerHeroPool=(items.joiner_hero||[]).filter(x=>x?.name).map(x=>x.name);
+
+  setSelectOptions('rally-infantry-hero',rallyHeroPool.infantry);
+  setSelectOptions('rally-lancer-hero',rallyHeroPool.lancer);
+  setSelectOptions('rally-marksman-hero',rallyHeroPool.marksman);
+  renderJoinerHeroPicker();
+
+  const unclassified=rally.filter(x=>!x.troop_type).length;
+  if(unclassified){
+    const note=document.createElement('p');
+    note.className='muted';
+    note.textContent=`${unclassified} Rally Hero${unclassified===1?' is':'es are'} not classified as Infantry/Lancer/Marksman yet. Classify them in Form Settings to use them here.`;
+    $('rally-form').appendChild(note);
+  }
+}
+
 $('joiner-use-heroes').onchange=e=>$('joiner-heroes-wrap').style.display=e.target.checked?'block':'none';
 function ratioValid(i,l,m){return Number(i)+Number(l)+Number(m)===100}
+
+function formationHeroText(x,type){
+  if(type==='rally'){
+    const parts=[
+      x.infantry_hero?`Infantry: ${x.infantry_hero}`:'',
+      x.lancer_hero?`Lancer: ${x.lancer_hero}`:'',
+      x.marksman_hero?`Marksman: ${x.marksman_hero}`:''
+    ].filter(Boolean);
+    return parts.length?' • '+parts.join(' • '):'';
+  }
+  return x.heroes?.length?' • Heroes: '+x.heroes.join(', '):'';
+}
 function render(){
   const d=read();
-  const make=(x,i,type)=>`<div class="form-item"><b>${esc(x.name)}</b> <span class="mini-badge">${esc(x.type.toUpperCase())}</span><div class="muted">${x.inf}/${x.lan}/${x.mar}${x.heroes?.length?' • Heroes: '+esc(x.heroes.join(', ')):''}</div><div class="actions"><button class="tiny-btn del" data-type="${type}" data-i="${i}" type="button">Delete</button></div></div>`;
+  const make=(x,i,type)=>`<div class="form-item"><b>${esc(x.name)}</b> <span class="mini-badge">${esc(x.type.toUpperCase())}</span><div class="muted">${x.inf}/${x.lan}/${x.mar}${esc(formationHeroText(x,type))}</div><div class="actions"><button class="tiny-btn del" data-type="${type}" data-i="${i}" type="button">Delete</button></div></div>`;
   $('rally-list').innerHTML=(d.rally||[]).map((x,i)=>make(x,i,'rally')).join('')||'<p class="muted">No Rally Leader formations yet.</p>';
   $('joiner-list').innerHTML=(d.joiner||[]).map((x,i)=>make(x,i,'joiner')).join('')||'<p class="muted">No Joiner formations yet.</p>';
 }
 $('rally-form').onsubmit=e=>{
-  e.preventDefault(); const inf=$('rally-inf').value,lan=$('rally-lan').value,mar=$('rally-mar').value;
+  e.preventDefault();
+  const inf=$('rally-inf').value,lan=$('rally-lan').value,mar=$('rally-mar').value;
   if(!ratioValid(inf,lan,mar)){alert('Troop ratio must total 100%.');return}
-  const d=read(); d.rally=d.rally||[]; d.rally.push({name:$('rally-name').value.trim()||'Formation',type:$('rally-type').value,inf:Number(inf),lan:Number(lan),mar:Number(mar)}); write(d); e.target.reset(); render();
+  const d=read(); d.rally=d.rally||[];
+  d.rally.push({
+    name:$('rally-name').value.trim()||'Formation',
+    type:$('rally-type').value,
+    inf:Number(inf),lan:Number(lan),mar:Number(mar),
+    infantry_hero:$('rally-infantry-hero').value||'',
+    lancer_hero:$('rally-lancer-hero').value||'',
+    marksman_hero:$('rally-marksman-hero').value||''
+  });
+  write(d); e.target.reset();
+  setSelectOptions('rally-infantry-hero',rallyHeroPool.infantry);
+  setSelectOptions('rally-lancer-hero',rallyHeroPool.lancer);
+  setSelectOptions('rally-marksman-hero',rallyHeroPool.marksman);
+  render();
 };
 $('joiner-form').onsubmit=e=>{
-  e.preventDefault(); const inf=$('joiner-inf').value,lan=$('joiner-lan').value,mar=$('joiner-mar').value;
+  e.preventDefault();
+  const inf=$('joiner-inf').value,lan=$('joiner-lan').value,mar=$('joiner-mar').value;
   if(!ratioValid(inf,lan,mar)){alert('Troop ratio must total 100%.');return}
-  const heroes=$('joiner-use-heroes').checked?$('joiner-heroes').value.split(',').map(x=>x.trim()).filter(Boolean):[];
-  const d=read(); d.joiner=d.joiner||[]; d.joiner.push({name:$('joiner-name').value.trim()||'Formation',type:$('joiner-type').value,inf:Number(inf),lan:Number(lan),mar:Number(mar),heroes}); write(d); e.target.reset(); $('joiner-heroes-wrap').style.display='none'; render();
+  const heroes=$('joiner-use-heroes').checked
+    ? [...document.querySelectorAll('.joiner-rec-hero:checked')].map(x=>x.value)
+    : [];
+  const d=read(); d.joiner=d.joiner||[];
+  d.joiner.push({name:$('joiner-name').value.trim()||'Formation',type:$('joiner-type').value,inf:Number(inf),lan:Number(lan),mar:Number(mar),heroes});
+  write(d); e.target.reset();
+  $('joiner-heroes-wrap').style.display='none';
+  renderJoinerHeroPicker();
+  render();
 };
 document.addEventListener('click',e=>{
-  const b=e.target.closest('.del'); if(!b)return; const d=read(); const arr=d[b.dataset.type]||[]; const i=Number(b.dataset.i); if(!arr[i])return; if(!confirm(`Delete "${arr[i].name}"?`))return; arr.splice(i,1); d[b.dataset.type]=arr; write(d); render();
+  const b=e.target.closest('.del'); if(!b)return;
+  const d=read(); const arr=d[b.dataset.type]||[]; const i=Number(b.dataset.i);
+  if(!arr[i])return;
+  if(!confirm(`Delete "${arr[i].name}"?`))return;
+  arr.splice(i,1); d[b.dataset.type]=arr; write(d); render();
 });
-render();
+(async()=>{
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){location.href='index.html';return}
+  await loadHeroPools();
+  render();
+})();
 </script>
 </body>
 </html>

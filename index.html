@@ -168,6 +168,16 @@
   overflow:hidden;
 }
 
+
+.internal-module-frame{
+  overflow:hidden!important;
+  pointer-events:auto;
+}
+.internal-module-frame-wrap{
+  overflow:visible!important;
+  padding-bottom:calc(140px + env(safe-area-inset-bottom));
+}
+
 </style>
 <style>
 .prep-monday-picker-row{
@@ -1213,20 +1223,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     try{
       const doc=frame.contentDocument || frame.contentWindow?.document;
       if(!doc) return;
-      const h=Math.max(
-        doc.body?.scrollHeight||0,
-        doc.documentElement?.scrollHeight||0,
-        900
-      );
-      frame.style.height=(h+80)+'px';
-      frame.style.minHeight=(h+80)+'px';
+      const h=Math.max(doc.body?.scrollHeight||0,doc.documentElement?.scrollHeight||0,700);
+      frame.style.height=(h+140)+'px';
+      frame.style.minHeight=(h+140)+'px';
     }catch(_){}
   }
 
   document.getElementById('internal-module-frame')?.addEventListener('load',()=>{
     resizeInternalFrame();
-    setTimeout(resizeInternalFrame,150);
-    setTimeout(resizeInternalFrame,600);
+    const frame=document.getElementById('internal-module-frame');
+    try{
+      const doc=frame.contentDocument || frame.contentWindow?.document;
+      if(doc && window.ResizeObserver){
+        frame._nexaRO?.disconnect?.();
+        frame._nexaRO=new ResizeObserver(()=>resizeInternalFrame());
+        frame._nexaRO.observe(doc.documentElement);
+        if(doc.body) frame._nexaRO.observe(doc.body);
+      }
+    }catch(_){}
+    setTimeout(resizeInternalFrame,100);
+    setTimeout(resizeInternalFrame,500);
+    setTimeout(resizeInternalFrame,1200);
   });
 
 function showInternalModuleFrame(src, mode){

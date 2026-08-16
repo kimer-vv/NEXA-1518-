@@ -684,7 +684,11 @@ function initTeamsUI(){
     const eventType=$('teams-event').value||'svs';
     const allianceId=card.dataset.allianceId;
     const allianceTag=card.dataset.allianceTag;
-    location.href=`alliance-teams.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}`;
+    {
+      const embedded=new URLSearchParams(location.search).get('embed')==='1';
+      const embedPart=embedded?'&embed=1':'';
+      location.href=`alliance-teams.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}${embedPart}`;
+    }
   };
   loadTeamsAlliances();
 }
@@ -696,4 +700,24 @@ setTimeout(initTeamsUI,350);
 </script>
 
 </div>
-</body></html>
+
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+  const q=new URLSearchParams(location.search);
+  if(q.get('embed')==='1'){
+    document.documentElement.classList.add('embed-mode');
+    document.body.style.background='transparent';
+    document.querySelector('.nebula-bg')?.remove();
+    document.querySelector('.starfield')?.remove();
+    document.querySelector('header.topbar')?.remove();
+    document.querySelector('a.back')?.remove();
+    document.querySelector('.ops-head')?.remove();
+    const glass=document.querySelector('main > section.glass');
+    if(glass){glass.style.border='0';glass.style.background='transparent';glass.style.padding='0';glass.style.boxShadow='none';}
+    const main=document.querySelector('main');
+    if(main){main.style.padding='0';main.style.margin='0';main.style.maxWidth='none';main.style.width='100%';}
+  }
+  const tab=q.get('tab');
+  if(tab && typeof showTab==='function') setTimeout(()=>showTab(tab),50);
+});
+</script></body></html>

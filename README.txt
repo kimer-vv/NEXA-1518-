@@ -1,16 +1,13 @@
-NEXA — SCROLL + EMBED FIX
+NEXA — EMBED NAVIGATION FIX
 NO SQL.
 
-Fixes:
-• The Admin modal now owns vertical scrolling on iPhone/Safari.
-• Background page should no longer scroll while the module stays frozen.
-• Internal module frame auto-resizes to content so the parent panel scrolls naturally.
-• Extra bottom safe-area spacing prevents Safari's bottom bar from covering the last controls.
-• Event Operations remains embedded without duplicated page chrome.
-• Transfers embed removes nested NEXA header / page shell.
-• SvS Schedule Setup embed removes nested NEXA header/title shell.
-• SvS History embed removes nested NEXA header/title shell.
-• Existing functions are preserved.
+Fixes from the screenshots:
+• Transfers: when opened inside Modules, duplicated NEXA/Transfers header is removed at runtime.
+• SvS Schedule Setup: duplicated NEXA/SvS/page header is removed at runtime; only schedule content remains.
+• SvS History: duplicated NEXA/SvS/page header is removed at runtime; only history content remains.
+• Event Operations: embedded mode is forced at runtime, not CSS-only.
+• Teams -> Alliance workspace keeps embed mode.
+• ← Teams returns to Event Operations with the Teams tab active, instead of nesting Event Operations inside itself.
+• Internal frame continuously resizes with its content and keeps extra Safari bottom spacing.
 
-Administration tab structure is not changed.
-No database or SQL changes.
+No database changes.

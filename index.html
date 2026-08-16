@@ -1273,6 +1273,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     }catch(_){}
   }
 
+  
+  window.addEventListener('message',e=>{
+    if(e.origin!==location.origin) return;
+    if(e.data?.type!=='nexa-embed-scroll') return;
+    const scroller=document.querySelector('#admin-modal .admin-modal-card');
+    if(scroller) scroller.scrollTop += Number(e.data.dy||0);
+  });
+
   document.getElementById('internal-module-frame')?.setAttribute('scrolling','no');
 
   document.getElementById('internal-module-frame')?.addEventListener('load',()=>{
@@ -1303,10 +1311,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }catch(_){}
 
-    setTimeout(syncEmbeddedFrame,80);
-    setTimeout(syncEmbeddedFrame,250);
-    setTimeout(syncEmbeddedFrame,700);
-    setTimeout(syncEmbeddedFrame,1500);
+    syncEmbeddedFrame();
+    requestAnimationFrame(syncEmbeddedFrame);
+    setTimeout(syncEmbeddedFrame,40);
+    setTimeout(syncEmbeddedFrame,120);
+    setTimeout(syncEmbeddedFrame,300);
+    setTimeout(syncEmbeddedFrame,800);
   });
 
 function showInternalModuleFrame(src, mode){

@@ -1,13 +1,18 @@
-NEXA — SINGLE SCROLL + TEAM NAV FIX
-NO SQL.
+NEXA — FRONTEND STABILITY FIX V2
+NO NEW SQL.
 
-Fixes:
-• Only the outer Admin module panel owns vertical scrolling.
-• Embedded Event Operations / Transfers / SvS Schedule / SvS History cannot create a second vertical scrollbar.
-• iframe height continuously follows its content using ResizeObserver + MutationObserver.
-• Safari safe-area bottom spacing remains on the outer panel.
-• Teams -> Alliance Workspace -> Open Team preserves embed mode.
-• Team Builder -> ← Alliance Workspace returns to the embedded alliance workspace instead of nesting Event Operations again.
-• Alliance Formations back navigation also preserves embed mode.
+Teams / Formations:
+• Restores the latest functional Supabase-backed Alliance Workspace.
+• Restores the full Team Builder with Rally Leaders, Joiners, Pets, hero assignments and inherited Alliance Formations.
+• Restores Supabase-backed Alliance Formations.
+• Open Team / Open Formations / Back navigation preserve internal embed mode.
+• Removes the stale local-browser preview message.
+• Fixes mobile layout of “Include Recommended Heroes”.
 
-No database changes.
+Scrolling:
+• Embedded pages forward vertical finger swipes to the outer Admin panel immediately.
+• A swipe begun on a card, form, Schedule Tools, History card or Transfers content scrolls the full module.
+• Keeps only the outer module as the visible vertical scrolling surface.
+• Faster iframe height synchronization reduces the initial waiting/sticking feeling.
+
+No database schema changes are included.

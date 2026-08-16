@@ -1,12 +1,10 @@
-NEXA — MOBILE TEAM SHEET OVERFLOW FIX
+NEXA — HEADER / RALLY ROW CLIPPING FIX
 Replace template-builder.html only.
 
-Fixes the clipping/overlap visible in the latest iPhone screenshot:
-- legend is smaller and constrained to the top-right
-- legend no longer covers Team 2 content
-- rally leader names stay inside their rows
-- two-team typography is reduced to fit cleanly
-- Attack/Defense/Joiner headers remain inside columns
-- formation cards remain compact/readable
-- dynamic 1/2/3/4 team width behavior is preserved
+Corrects the latest preview screenshot:
+- Team 1 / Team 2 titles stay inside blue headers
+- rally leader names no longer paint upward through section headers
+- team cards clip their own contents correctly
+- legend remains contained in the top-right header
+- preserves dynamic 2-team width and formation layout
 - no SQL / no data changes

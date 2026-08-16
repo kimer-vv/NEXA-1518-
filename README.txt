@@ -1,7 +1,18 @@
-NEXA Team Builder — Unified Button Color Fix
-Replace only team-builder.html.
-No SQL required.
+NEXA — Pet Window undefined fix
 
-Keeps the Pet Window UTC dropdown fix and forces Team Builder buttons to use
-the same dark/purple visual family as the rest of NEXA instead of iPhone's
-light native button rendering.
+Replace ONLY:
+- team-builder.html
+
+Cause:
+The Pet Window overlap check was testing the returned data array instead of the
+Supabase error object. That caused an alert showing "undefined" even when the
+query itself succeeded.
+
+Fix:
+The code now checks `error` correctly and continues to save the Pet Window.
+
+Keeps:
+- dark NEXA button colors
+- UTC Start/End dropdowns
+
+No SQL required.

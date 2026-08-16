@@ -1,21 +1,31 @@
-NEXA — TEAM LAYOUT PREVIEW + DOWNLOAD FIX
+NEXA — FINAL TEAM SHEET REDESIGN + TEAM DATA FIX
 NO SQL.
 
-This patch only changes template-builder.html.
+This patch changes only template-builder.html.
 
-Changes:
-• Removes “Preview Fullscreen”.
-• Removes “Print / PDF”.
-• Adds “Preview Layout”.
-  - Opens a clean in-app full-screen preview that works on iPhone/Safari.
-  - Does not depend on the browser Fullscreen API.
-• Adds “Download Layout”.
-  - Downloads the clean Team Sheet directly as PNG.
-  - Does not open the browser print dialog.
-  - Exports only the sheet, not the NEXA controls/editor.
-• Keeps “Save Layout”.
-  - Saves the current layout/style state locally on the device.
-• Preview overlay also has its own Download Layout button.
+What changed:
+• Fixes Team loading for event-type case differences (e.g. TAL vs tal).
+• Adds a visible empty-state message if no Teams are actually saved.
+• Keeps the approved clean white four-column Team Sheet essence.
+• Each Team has its own TEAM 1 / TEAM 2 / TEAM 3 / TEAM 4 header.
+• Rally Leader icon appears only in the RALLY LEADERS section header, not beside every player.
+• Joiner icon appears only in the JOINERS section header, not beside every player.
+• Rally Leader rows show player name + assigned time.
+• Yellow paw appears only on a Rally Leader who actually has a Pet window/active Pet.
+• Removes “PET SCHEDULE” as a column title.
+• Joiner table is JOINER | ATTACK | DEFENSE.
+• No Attack/Defense icons are repeated in player rows.
+• Hero cells support portrait + name automatically if future Library data provides an image URL; for current string-only data they show the hero name cleanly.
+• Legend is top-right and contains only Rally Leader / Joiner / Pet Active.
+• “All times in UTC” appears only once at the bottom.
+• Global Formations render once for the whole sheet, not under every Team.
+• Global Formations are separated into JOINER FORMATIONS and RALLY LEADER FORMATIONS.
+• Formation cards are automatically labeled Main Attack / Alt Attack / Main Defense / Alt Defense.
+• Removes repeated “Joiner” / “Rally Leader” wording from individual formation cards.
+• Removes “OUT:” wording; ratio displays directly as e.g. 50 / 20 / 30.
+• If heroes are selected in a formation, they appear; if no heroes are selected, the card stays clean with just title + ratio.
+• Existing Preview Layout / Download Layout / Save Layout workflow is preserved.
+• Color customization remains; the Team Sheet structure stays uniform/professional.
 
-This patch does NOT yet redesign the Team Sheet content/layout itself.
-It only fixes the Preview / Download / Save workflow discussed before the visual redesign.
+Future Library integration:
+When Hero Library is built, image URLs can flow into the same hero cells/cards without redesigning this sheet again.

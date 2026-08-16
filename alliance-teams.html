@@ -50,37 +50,42 @@ html.embed-mode .team-card,
 html.embed-mode .builder-grid{
   touch-action:pan-y!important;
 }
+
+/* BBC / Team workspace: native iOS scrolling.
+   Do not forward touch events to the parent shell. */
+html.embed-mode,
+html.embed-mode body{
+  height:100%!important;
+  min-height:100%!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  -webkit-overflow-scrolling:touch!important;
+  overscroll-behavior-y:contain!important;
+  touch-action:pan-y!important;
+}
+html.embed-mode body{
+  margin:0!important;
+  padding:0 0 calc(120px + env(safe-area-inset-bottom))!important;
+}
+html.embed-mode main,
+html.embed-mode .shell{
+  height:auto!important;
+  min-height:100%!important;
+  overflow:visible!important;
+}
+html.embed-mode .team-table-wrap{
+  overflow-x:auto!important;
+  overflow-y:visible!important;
+  -webkit-overflow-scrolling:touch!important;
+}
+
 </style>
 </head>
 <body>
 <script>
 (function(){
   const q=new URLSearchParams(location.search);
-  if(q.get('embed')!=='1') return;
-  document.documentElement.classList.add('embed-mode');
-
-  let lastY=null,lastX=null,dragging=false;
-  document.addEventListener('touchstart',e=>{
-    const t=e.touches?.[0];
-    if(!t)return;
-    lastY=t.clientY; lastX=t.clientX; dragging=false;
-  },{passive:true,capture:true});
-
-  document.addEventListener('touchmove',e=>{
-    const t=e.touches?.[0];
-    if(!t||lastY===null)return;
-    const dy=lastY-t.clientY, dx=lastX-t.clientX;
-    if(!dragging && Math.abs(dy)>6 && Math.abs(dy)>Math.abs(dx)){
-      dragging=true;
-    }
-    if(dragging){
-      e.preventDefault();
-      parent.postMessage({type:'nexa-embed-scroll',dy},location.origin);
-      lastY=t.clientY; lastX=t.clientX;
-    }
-  },{passive:false,capture:true});
-
-  document.addEventListener('touchend',()=>{lastY=null;lastX=null;dragging=false},{passive:true,capture:true});
+  if(q.get('embed')==='1') document.documentElement.classList.add('embed-mode');
 })();
 </script>
 
@@ -269,39 +274,6 @@ $('finish-alliance').onclick=()=>{
 (async()=>{if(!(await guard()))return;await Promise.all([loadTeams(),loadFormationSummary()]);})();
 </script>
 
-<script>
-(function(){
-  const q=new URLSearchParams(location.search);
-  if(q.get('embed')!=='1') return;
 
-  let y=null,x=null,vertical=false;
-  const getScroller=()=>{
-    try{return parent.document.querySelector('#admin-modal .admin-modal-card')}catch(_){return null}
-  };
-
-  document.addEventListener('touchstart',e=>{
-    const t=e.touches&&e.touches[0];
-    if(!t)return;
-    y=t.clientY;x=t.clientX;vertical=false;
-  },{passive:true,capture:true});
-
-  document.addEventListener('touchmove',e=>{
-    const t=e.touches&&e.touches[0];
-    if(!t||y===null)return;
-    const dy=y-t.clientY,dx=x-t.clientX;
-    if(!vertical && Math.abs(dy)>4 && Math.abs(dy)>Math.abs(dx)) vertical=true;
-    if(vertical){
-      const scroller=getScroller();
-      if(scroller){
-        e.preventDefault();
-        scroller.scrollTop+=dy;
-      }
-      y=t.clientY;x=t.clientX;
-    }
-  },{passive:false,capture:true});
-
-  document.addEventListener('touchend',()=>{y=null;x=null;vertical=false},{passive:true,capture:true});
-})();
-</script>
 </body>
 </html>

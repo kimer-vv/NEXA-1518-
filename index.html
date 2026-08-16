@@ -207,6 +207,22 @@
   overflow:hidden!important;
 }
 
+
+#admin-modal.team-native-scroll .admin-modal-card{
+  overflow:hidden!important;
+  padding-bottom:0!important;
+}
+#admin-modal.team-native-scroll .internal-module-frame-wrap{
+  overflow:hidden!important;
+  padding-bottom:0!important;
+  min-height:0!important;
+}
+#admin-modal.team-native-scroll .internal-module-frame{
+  overflow:hidden!important;
+  min-height:0!important;
+  display:block!important;
+}
+
 </style>
 <style>
 .prep-monday-picker-row{
@@ -1277,6 +1293,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.addEventListener('message',e=>{
     if(e.origin!==location.origin) return;
     if(e.data?.type!=='nexa-embed-scroll') return;
+    if(document.getElementById('admin-modal')?.classList.contains('team-native-scroll')) return;
     const scroller=document.querySelector('#admin-modal .admin-modal-card');
     if(scroller) scroller.scrollTop += Number(e.data.dy||0);
   });
@@ -1285,12 +1302,51 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('internal-module-frame')?.addEventListener('load',()=>{
     const frame=document.getElementById('internal-module-frame');
+    const modal=document.getElementById('admin-modal');
+    frame?.setAttribute('scrolling','yes');
+
+    let path='';
+    try{ path=new URL(frame.contentWindow.location.href).pathname.split('/').pop()||''; }catch(_){}
+    const teamNative=['alliance-teams.html','team-builder.html','alliance-formations.html'].includes(path);
+
+    modal?.classList.toggle('team-native-scroll',teamNative);
+
+    if(teamNative){
+      // BBC / Team Builder gets ONE native Safari scroller: the iframe itself.
+      // The outer Admin shell/header stays fixed.
+      try{
+        const doc=frame.contentDocument || frame.contentWindow?.document;
+        if(doc){
+          doc.documentElement.style.overflowY='auto';
+          doc.documentElement.style.overflowX='hidden';
+          doc.body.style.overflowY='auto';
+          doc.body.style.overflowX='hidden';
+          doc.documentElement.style.height='100%';
+          doc.body.style.height='100%';
+          doc.documentElement.style.webkitOverflowScrolling='touch';
+          doc.body.style.webkitOverflowScrolling='touch';
+        }
+      }catch(_){}
+
+      const sizeTeamFrame=()=>{
+        const top=frame.getBoundingClientRect().top;
+        const bottomGap=Math.max(24,Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-bottom'))||24);
+        const h=Math.max(360,window.innerHeight-top-bottomGap-18);
+        frame.style.height=h+'px';
+        frame.style.minHeight=h+'px';
+      };
+      sizeTeamFrame();
+      requestAnimationFrame(sizeTeamFrame);
+      setTimeout(sizeTeamFrame,80);
+      setTimeout(sizeTeamFrame,300);
+      return;
+    }
+
     frame?.setAttribute('scrolling','no');
     syncEmbeddedFrame();
 
     try{
       const doc=frame.contentDocument || frame.contentWindow?.document;
-
       frame._nexaRO?.disconnect?.();
       frame._nexaMO?.disconnect?.();
 
@@ -1299,14 +1355,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         frame._nexaRO.observe(doc.documentElement);
         if(doc.body) frame._nexaRO.observe(doc.body);
       }
-
       if(doc && window.MutationObserver){
         frame._nexaMO=new MutationObserver(()=>syncEmbeddedFrame());
         frame._nexaMO.observe(doc.documentElement,{
-          subtree:true,
-          childList:true,
-          attributes:true,
-          characterData:false
+          subtree:true,childList:true,attributes:true,characterData:false
         });
       }
     }catch(_){}

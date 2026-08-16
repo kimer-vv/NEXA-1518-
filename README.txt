@@ -1,19 +1,24 @@
-NEXA Patch — Alliance Formation Summary
+NEXA Teams — Shared Phase 1
 
-Replace ONLY:
+Run NEXA-TEAMS-SHARED-PHASE1.sql first.
+
+Replace/add:
 - alliance-teams.html
+- alliance-formations.html
+- team-builder.html
+- alliance-team-history.html
 
-Alliance Workspace now shows the formations already saved directly inside the
-Alliance Formations card, without opening the Formations page.
+This converts Teams and Alliance Formations from preview/localStorage to shared Supabase data.
 
-It displays:
-- Rally Leader Formations
-- Joiner Formations
-- Formation name
-- Attack/Defense badge
-- Hero names when configured
-- Troop ratio
+Team Builder now activates:
+- Add Rally Leader from submitted responses
+- Add Joiner from submitted responses
+- Joiner single-assignment rule per Event Type
+- Moving a Joiner removes the old Team assignment after confirmation
+- Rally Leaders may be in multiple Teams/alliances
+- Pet Windows with Start/End UTC
+- Pet overlap warning (does not hard block)
+- Remove members
+- Change History / audit trail
 
-Open Formations remains available for editing.
-
-No SQL required.
+Hero assignment is intentionally the next Team Builder step.

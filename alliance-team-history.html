@@ -1,0 +1,12 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NEXA • Team History</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>body{margin:0;background:#080812;color:#f7f7ff;font-family:system-ui}main{max-width:900px;margin:auto;padding:20px}a{color:#c9c8ff;text-decoration:none}.card{border:1px solid #2d2d40;border-radius:14px;padding:12px;margin-top:10px;background:#11111d}.muted{color:#aaaac0}.badge{display:inline-block;border:1px solid #33334b;border-radius:999px;padding:4px 8px;font-size:12px}</style></head>
+<body><main><a id="back" href="#">← Alliance Workspace</a><h1 id="title">Team History</h1><p class="muted">Audit trail for Team changes. This is for reference when you need to verify who changed what.</p><div id="list">Loading…</div></main>
+<script>
+const sb=window.supabase.createClient("https://dfxcxboxrkfmrnsgpyin.supabase.co","sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-"),$=id=>document.getElementById(id);
+const p=new URLSearchParams(location.search),eventType=p.get('event_type')||'svs',allianceId=p.get('alliance_id')||'',allianceTag=p.get('alliance_tag')||'Alliance';
+$('title').textContent=`${allianceTag} Team History`;$('back').href=`alliance-teams.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}`;
+const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+(async()=>{const {data,error}=await sb.from('team_change_log').select('*').eq('event_type_key',eventType).eq('alliance_id',String(allianceId)).order('created_at',{ascending:false}).limit(300);if(error){$('list').textContent=error.message;return}$('list').innerHTML=(data||[]).map(x=>`<div class="card"><div><span class="badge">${esc(x.action_type)}</span></div><b>${esc(x.details?.player_name||x.details?.team_name||'Team change')}</b><div class="muted">${new Date(x.created_at).toLocaleString()}</div><div style="margin-top:6px">${esc(JSON.stringify(x.details||{}))}</div></div>`).join('')||'<div class="muted">No changes recorded yet.</div>';})();
+</script></body></html>

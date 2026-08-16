@@ -11,24 +11,34 @@
 h1,h2{margin:.25rem 0 .5rem}.badge,.mini-badge{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:5px 9px;font-size:.78rem;color:#d9d8ff}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}.card{border:1px solid var(--line);border-radius:16px;padding:14px;background:rgba(255,255,255,.03)}.placeholder{padding:18px;border:1px dashed var(--line);border-radius:14px;color:var(--muted);margin-top:10px}
 @media(max-width:800px){.grid{grid-template-columns:1fr}}
+
+.member{border:1px solid var(--line);border-radius:13px;padding:11px;margin-top:9px;background:rgba(255,255,255,.025)}
+.member-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.member-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+.pet-window{display:grid;grid-template-columns:1fr 1fr auto;gap:7px;align-items:end;margin-top:8px}
+input,select{width:100%;background:#0d0e18;color:#fff;border:1px solid var(--line);border-radius:10px;padding:9px}
+button{cursor:pointer}
+@media(max-width:700px){.pet-window{grid-template-columns:1fr 1fr}.pet-window button{grid-column:1/-1}}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <main class="shell">
 <a class="back" href="javascript:void(0)" id="back-link">← Alliance Workspace</a>
 <section class="glass">
-  <span class="badge" id="event-badge">EVENT</span>
-  <h1 id="title">Team Builder</h1>
-  <p class="muted">This Team inherits the global alliance formations. Here you will manage people, pets and individual hero assignments.</p>
+  <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap">
+    <div><span class="badge" id="event-badge">EVENT</span><h1 id="title">Team Builder</h1><p class="muted">Rally Leaders may be used in multiple Teams/alliances. Joiners have one active Team assignment per Event Type.</p></div>
+    <button id="history-btn" type="button" class="mini-badge" style="background:transparent;color:inherit">History</button>
+  </div>
 
   <div class="grid">
     <section class="card">
-      <h2>Rally Leaders</h2>
-      <div class="placeholder">Next step: Add Rally Leader • Pet Active? • Start/End pet windows • individual hero assignment if needed.</div>
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><h2>Rally Leaders</h2><button id="add-rally" class="mini-badge" type="button">+ Add Rally Leader</button></div>
+      <div id="rally-list" class="placeholder">Loading…</div>
     </section>
     <section class="card">
-      <h2>Joiners</h2>
-      <div class="placeholder">Next step: Add Joiner • Attack Hero • optional Defense Hero.</div>
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><h2>Joiners</h2><button id="add-joiner" class="mini-badge" type="button">+ Add Joiner</button></div>
+      <div id="joiner-list" class="placeholder">Loading…</div>
     </section>
   </div>
 
@@ -36,18 +46,103 @@ h1,h2{margin:.25rem 0 .5rem}.badge,.mini-badge{display:inline-flex;border:1px so
     <h2>Inherited Alliance Formations</h2>
     <div id="formation-summary" class="muted">Loading…</div>
   </section>
+
+  <div id="picker" class="card" style="display:none;margin-top:14px">
+    <div style="display:flex;justify-content:space-between;gap:10px"><div><h2 id="picker-title">Select Player</h2><div class="muted" id="picker-note"></div></div><button id="picker-close" class="mini-badge" type="button">Close</button></div>
+    <div id="picker-list" style="display:grid;gap:8px;margin-top:12px"></div>
+  </div>
 </section>
 </main>
 <script>
+const sb=window.supabase.createClient("https://dfxcxboxrkfmrnsgpyin.supabase.co","sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-");
 const $=id=>document.getElementById(id);
+const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 const p=new URLSearchParams(location.search);
-const eventType=p.get('event_type')||'svs', allianceId=p.get('alliance_id')||'', allianceTag=p.get('alliance_tag')||'Alliance', teamName=p.get('team_name')||'Team';
-$('event-badge').textContent=eventType.toUpperCase(); $('title').textContent=`${allianceTag} • ${teamName}`;
+const eventType=p.get('event_type')||'svs',allianceId=p.get('alliance_id')||'',allianceTag=p.get('alliance_tag')||'Alliance',teamId=p.get('team_id')||'',teamName=p.get('team_name')||'Team';
+let members=[],candidates={rally_lead:[],joiner:[]},pickerRole=null;
+$('event-badge').textContent=eventType.toUpperCase();$('title').textContent=`${allianceTag} • ${teamName}`;
 $('back-link').onclick=()=>location.href=`alliance-teams.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}`;
-try{
-  const d=JSON.parse(localStorage.getItem(`nexa_preview_alliance_formations_${eventType}_${allianceId}`)||'{"rally":[],"joiner":[]}');
-  $('formation-summary').textContent=`Rally Leader formations: ${(d.rally||[]).length} • Joiner formations: ${(d.joiner||[]).length}`;
-}catch{$('formation-summary').textContent='No alliance formations configured yet.'}
+$('history-btn').onclick=()=>location.href=`alliance-team-history.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}`;
+
+async function guard(){const {data:{session}}=await sb.auth.getSession();if(!session){location.href='index.html';return false}return true}
+async function addLog(action,details={},playerAccountId=null){await sb.from('team_change_log').insert({event_type_key:eventType,alliance_id:String(allianceId),alliance_tag:allianceTag,team_id:teamId,player_account_id:playerAccountId,action_type:action,details})}
+async function loadMembers(){
+ const {data,error}=await sb.from('team_members').select('*,pet_windows(*)').eq('team_id',teamId).order('member_role').order('created_at');
+ if(error){alert(error.message);return}members=data||[];renderMembers();
+}
+function renderMembers(){
+ const row=m=>`<div class="member"><div class="member-head"><div><b>${esc(m.player_name)}</b><div class="muted">${esc(m.original_alliance||'Not listed')}</div></div><span class="mini-badge">${m.member_role==='rally_lead'?'RALLY LEADER':'JOINER'}</span></div>
+ ${m.member_role==='rally_lead'?`<div class="member-actions"><button class="mini-badge pet-add" data-id="${m.id}" type="button">+ Pet Window</button><button class="mini-badge remove-member" data-id="${m.id}" type="button">Remove</button></div><div>${(m.pet_windows||[]).map(w=>`<div class="pet-window"><div><span class="muted">Start UTC</span><div>${esc(w.start_utc)}</div></div><div><span class="muted">End UTC</span><div>${esc(w.end_utc)}</div></div><button class="mini-badge pet-delete" data-id="${w.id}" type="button">Remove 🐾</button></div>`).join('')}</div>`:`<div class="member-actions"><button class="mini-badge remove-member" data-id="${m.id}" type="button">Remove</button></div>`}</div>`;
+ $('rally-list').className='';$('joiner-list').className='';
+ $('rally-list').innerHTML=members.filter(x=>x.member_role==='rally_lead').map(row).join('')||'<div class="placeholder">No Rally Leaders assigned yet.</div>';
+ $('joiner-list').innerHTML=members.filter(x=>x.member_role==='joiner').map(row).join('')||'<div class="placeholder">No Joiners assigned yet.</div>';
+}
+async function loadCandidates(role){
+ if(eventType==='svs'){
+   const {data:e}=await sb.from('svs_events').select('id').eq('status','live').order('prep_monday',{ascending:false}).limit(1).maybeSingle();
+   if(!e)return[];
+   const {data,error}=await sb.from('battle_form_responses').select('player_account_id,role,player_accounts(in_game_name,custom_alliance_tag,alliances(tag))').eq('event_id',e.id).eq('role',role);
+   if(error)throw error;
+   return (data||[]).map(r=>({player_account_id:String(r.player_account_id),player_name:r.player_accounts?.in_game_name||'Unknown',original_alliance:r.player_accounts?.alliances?.tag||r.player_accounts?.custom_alliance_tag||'Not listed'}));
+ }
+ const {data,error}=await sb.from('event_operation_responses').select('player_account_id,role,player_accounts(in_game_name,custom_alliance_tag,alliances(tag))').eq('event_type_key',eventType).eq('role',role);
+ if(error)throw error;
+ return (data||[]).map(r=>({player_account_id:String(r.player_account_id),player_name:r.player_accounts?.in_game_name||'Unknown',original_alliance:r.player_accounts?.alliances?.tag||r.player_accounts?.custom_alliance_tag||'Not listed'}));
+}
+async function openPicker(role){
+ pickerRole=role;$('picker').style.display='block';$('picker-title').textContent=role==='rally_lead'?'Add Rally Leader':'Add Joiner';$('picker-note').textContent=role==='rally_lead'?'Rally Leaders may be assigned to multiple Teams.':'Joiners can only have one active Team assignment per Event Type.';
+ $('picker-list').innerHTML='<div class="muted">Loading…</div>';
+ try{candidates[role]=await loadCandidates(role);const existing=new Set(members.filter(m=>m.member_role===role).map(m=>String(m.player_account_id)));$('picker-list').innerHTML=candidates[role].filter(x=>!existing.has(x.player_account_id)).map(x=>`<button type="button" class="member pick-player" data-player="${esc(x.player_account_id)}"><div style="text-align:left"><b>${esc(x.player_name)}</b><div class="muted">Original Alliance: ${esc(x.original_alliance)}</div></div></button>`).join('')||'<div class="muted">No available submitted forms in this role.</div>';}catch(error){$('picker-list').innerHTML=`<div class="muted">${esc(error.message)}</div>`}
+ $('picker').scrollIntoView({behavior:'smooth'});
+}
+async function assignmentForJoiner(playerId){
+ const {data,error}=await sb.from('team_members').select('id,team_id,assigned_alliance_tag,team_name').eq('event_type_key',eventType).eq('player_account_id',String(playerId)).eq('member_role','joiner').maybeSingle();
+ if(error)throw error;return data;
+}
+async function addPlayer(playerId){
+ const c=candidates[pickerRole].find(x=>x.player_account_id===String(playerId));if(!c)return;
+ if(pickerRole==='joiner'){
+   const old=await assignmentForJoiner(playerId);
+   if(old && String(old.team_id)!==String(teamId)){
+     const ok=confirm(`${c.player_name} is currently assigned to ${old.assigned_alliance_tag||'another alliance'} • ${old.team_name||'another Team'}.\n\nMoving this player will remove them from that Team.\n\nMove Player?`);
+     if(!ok)return;
+     await sb.from('team_members').delete().eq('id',old.id);
+     await addLog('joiner_moved',{player_name:c.player_name,from_alliance:old.assigned_alliance_tag,from_team:old.team_name,to_alliance:allianceTag,to_team:teamName},playerId);
+   }
+ }
+ const payload={team_id:teamId,event_type_key:eventType,assigned_alliance_id:String(allianceId),assigned_alliance_tag:allianceTag,team_name:teamName,player_account_id:String(playerId),player_name:c.player_name,original_alliance:c.original_alliance,member_role:pickerRole};
+ const {error}=await sb.from('team_members').insert(payload);if(error){alert(error.message);return}
+ await addLog(pickerRole==='joiner'?'joiner_added':'rally_leader_added',{player_name:c.player_name,team_name:teamName},playerId);
+ $('picker').style.display='none';await loadMembers();
+}
+function timeToMin(t){const [h,m]=String(t).split(':').map(Number);return h*60+m}
+function overlaps(a1,a2,b1,b2){return Math.max(a1,b1)<Math.min(a2,b2)}
+async function addPetWindow(member){
+ const start=prompt('Pet Start UTC (HH:MM)','13:00');if(start===null)return;const end=prompt('Pet End UTC (HH:MM)','15:00');if(end===null)return;
+ if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(start)||!/^([01]\d|2[0-3]):[0-5]\d$/.test(end)){alert('Use HH:MM UTC, for example 13:00.');return}
+ if(timeToMin(end)<=timeToMin(start)){alert('End time must be after start time.');return}
+ const {data:otherMembers,error:me}=await sb.from('team_members').select('id,team_name,assigned_alliance_tag').eq('event_type_key',eventType).eq('player_account_id',String(member.player_account_id)).eq('member_role','rally_lead');
+ if(me){alert(me.message);return}
+ let conflicts=[];
+ const ids=(otherMembers||[]).map(x=>x.id);if(ids.length){const {data:w,error}=await sb.from('pet_windows').select('team_member_id,start_utc,end_utc').in('team_member_id',ids);if(w){alert(w.message);return}conflicts=(w||[]).filter(x=>overlaps(timeToMin(start),timeToMin(end),timeToMin(x.start_utc),timeToMin(x.end_utc))).map(x=>{const tm=otherMembers.find(m=>String(m.id)===String(x.team_member_id));return `${tm?.assigned_alliance_tag||''} • ${tm?.team_name||''} (${x.start_utc}–${x.end_utc} UTC)`})}
+ if(conflicts.length){const ok=confirm(`Pet schedule overlap detected for ${member.player_name}:\n\n${conflicts.join('\n')}\n\nAdd this Pet Window anyway?`);if(!ok)return}
+ const {error}=await sb.from('pet_windows').insert({team_member_id:member.id,start_utc:start,end_utc:end});if(error){alert(error.message);return}
+ await addLog('pet_window_added',{player_name:member.player_name,start_utc:start,end_utc:end,team_name:teamName},member.player_account_id);await loadMembers();
+}
+async function loadFormations(){
+ const {data,error}=await sb.from('alliance_formations').select('formation_scope,name,formation_type,infantry_pct,lancer_pct,marksman_pct').eq('event_type_key',eventType).eq('alliance_id',String(allianceId)).order('formation_scope').order('sort_order');
+ if(error){$('formation-summary').textContent=error.message;return}
+ const r=(data||[]).filter(x=>x.formation_scope==='rally'),j=(data||[]).filter(x=>x.formation_scope==='joiner');
+ $('formation-summary').innerHTML=`<b>Rally Leader:</b> ${r.map(x=>`${esc(x.name)} (${x.infantry_pct}/${x.lancer_pct}/${x.marksman_pct})`).join(' • ')||'None'}<br><b>Joiner:</b> ${j.map(x=>`${esc(x.name)} (${x.infantry_pct}/${x.lancer_pct}/${x.marksman_pct})`).join(' • ')||'None'}`;
+}
+$('add-rally').onclick=()=>openPicker('rally_lead');$('add-joiner').onclick=()=>openPicker('joiner');$('picker-close').onclick=()=>$('picker').style.display='none';
+$('picker-list').onclick=e=>{const b=e.target.closest('.pick-player');if(b)addPlayer(b.dataset.player)};
+document.addEventListener('click',async e=>{
+ const rem=e.target.closest('.remove-member');if(rem){const m=members.find(x=>String(x.id)===String(rem.dataset.id));if(!m)return;if(!confirm(`Remove ${m.player_name} from ${teamName}?`))return;const {error}=await sb.from('team_members').delete().eq('id',m.id);if(error){alert(error.message);return}await addLog(m.member_role==='joiner'?'joiner_removed':'rally_leader_removed',{player_name:m.player_name,team_name:teamName},m.player_account_id);await loadMembers();return}
+ const pet=e.target.closest('.pet-add');if(pet){const m=members.find(x=>String(x.id)===String(pet.dataset.id));if(m)addPetWindow(m);return}
+ const pd=e.target.closest('.pet-delete');if(pd){const w=members.flatMap(m=>m.pet_windows||[]).find(x=>String(x.id)===String(pd.dataset.id));if(!w)return;if(!confirm('Remove this Pet Window?'))return;const {error}=await sb.from('pet_windows').delete().eq('id',w.id);if(error){alert(error.message);return}await addLog('pet_window_removed',{start_utc:w.start_utc,end_utc:w.end_utc,team_name:teamName});await loadMembers();}
+});
+(async()=>{if(!(await guard()))return;await Promise.all([loadMembers(),loadFormations()]);})();
 </script>
 </body>
 </html>

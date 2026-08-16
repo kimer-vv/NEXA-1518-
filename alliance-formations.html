@@ -86,199 +86,76 @@ const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 const p=new URLSearchParams(location.search);
 const eventType=p.get('event_type')||'svs', allianceId=p.get('alliance_id')||'', allianceTag=p.get('alliance_tag')||'Alliance';
-const key=()=>`nexa_preview_alliance_formations_${eventType}_${allianceId}`;
-const read=()=>{try{return JSON.parse(localStorage.getItem(key())||'{"rally":[],"joiner":[]}')}catch{return{rally:[],joiner:[]}}};
-const write=v=>localStorage.setItem(key(),JSON.stringify(v));
-let rallyHeroPool={infantry:[],lancer:[],marksman:[]};
-let joinerHeroPool=[];
-let editingFormation={type:null,index:null};
-
-$('title').textContent=`${allianceTag} Alliance Formations`;
-$('event-badge').textContent=eventType.toUpperCase();
+let rows=[],editingFormation={scope:null,id:null},rallyHeroPool={infantry:[],lancer:[],marksman:[]},joinerHeroPool=[];
+$('title').textContent=`${allianceTag} Alliance Formations`;$('event-badge').textContent=eventType.toUpperCase();
 $('back-link').onclick=()=>location.href=`alliance-teams.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}`;
 
-function setSelectOptions(id,names){
-  const el=$(id);
-  el.innerHTML='<option value="">Select hero…</option>'+names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');
-}
-function renderJoinerHeroPicker(){
-  const box=$('joiner-hero-options');
-  if(!joinerHeroPool.length){
-    box.innerHTML='<div class="muted">No Joiner Heroes are configured for this Event Type yet.</div>';
-    return;
-  }
-  box.innerHTML=joinerHeroPool.map(n=>`<label class="hero-choice"><input class="joiner-rec-hero" type="checkbox" value="${esc(n)}"><span>${esc(n)}</span></label>`).join('');
-}
+async function guard(){const {data:{session}}=await sb.auth.getSession();if(!session){location.href='index.html';return false}return true}
+async function addLog(action,details={}){await sb.from('team_change_log').insert({event_type_key:eventType,alliance_id:String(allianceId),alliance_tag:allianceTag,action_type:action,details})}
+function setSelectOptions(id,names){const el=$(id),old=el.value;el.innerHTML='<option value="">Select hero…</option>'+names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');if(names.includes(old))el.value=old}
+function renderJoinerHeroPicker(selected=[]){const box=$('joiner-hero-options');if(!joinerHeroPool.length){box.innerHTML='<div class="muted">No Joiner Heroes are configured for this Event Type yet.</div>';return}const set=new Set(selected);box.innerHTML=joinerHeroPool.map(n=>`<label class="hero-choice"><input class="joiner-rec-hero" type="checkbox" value="${esc(n)}" ${set.has(n)?'checked':''}><span>${esc(n)}</span></label>`).join('')}
 async function loadHeroPools(){
   const {data,error}=await sb.from('event_form_templates').select('settings').eq('event_type_key',eventType).maybeSingle();
-  if(error){
-    $('joiner-hero-note').textContent='Could not load Battle Form heroes: '+error.message;
-    return;
-  }
-  const items=data?.settings?.items||{};
-  const rally=(items.rally_hero||[]).filter(x=>x?.name);
+  if(error){$('joiner-hero-note').textContent='Could not load Battle Form heroes: '+error.message;return}
+  const items=data?.settings?.items||{},rally=(items.rally_hero||[]).filter(x=>x?.name);
   rallyHeroPool={
     infantry:rally.filter(x=>x.troop_type==='infantry').map(x=>x.name),
     lancer:rally.filter(x=>x.troop_type==='lancer').map(x=>x.name),
     marksman:rally.filter(x=>x.troop_type==='marksman').map(x=>x.name)
   };
   joinerHeroPool=(items.joiner_hero||[]).filter(x=>x?.name).map(x=>x.name);
-
-  setSelectOptions('rally-infantry-hero',rallyHeroPool.infantry);
-  setSelectOptions('rally-lancer-hero',rallyHeroPool.lancer);
-  setSelectOptions('rally-marksman-hero',rallyHeroPool.marksman);
-  renderJoinerHeroPicker();
-
-  const unclassified=rally.filter(x=>!x.troop_type).length;
-  if(unclassified){
-    const note=document.createElement('p');
-    note.className='muted';
-    note.textContent=`${unclassified} Rally Hero${unclassified===1?' is':'es are'} not classified as Infantry/Lancer/Marksman yet. Classify them in Form Settings to use them here.`;
-    $('rally-form').appendChild(note);
-  }
+  setSelectOptions('rally-infantry-hero',rallyHeroPool.infantry);setSelectOptions('rally-lancer-hero',rallyHeroPool.lancer);setSelectOptions('rally-marksman-hero',rallyHeroPool.marksman);renderJoinerHeroPicker();
 }
-
-$('joiner-use-heroes').onchange=e=>$('joiner-heroes-wrap').style.display=e.target.checked?'block':'none';
+async function loadRows(){
+  const {data,error}=await sb.from('alliance_formations').select('*').eq('event_type_key',eventType).eq('alliance_id',String(allianceId)).order('formation_scope').order('sort_order').order('created_at');
+  if(error){alert(error.message);return}rows=data||[];render();
+}
 function ratioValid(i,l,m){return Number(i)+Number(l)+Number(m)===100}
-
-function formationHeroText(x,type){
-  if(type==='rally'){
-    return [x.infantry_hero,x.lancer_hero,x.marksman_hero].filter(Boolean).join(' • ');
-  }
-  return x.heroes?.length?x.heroes.join(' • '):'';
-}
-
-function clearFormationEdit(){
-  editingFormation={type:null,index:null};
-  $('rally-form').reset();
-  $('joiner-form').reset();
-  $('joiner-heroes-wrap').style.display='none';
-  renderJoinerHeroPicker();
-  setSelectOptions('rally-infantry-hero',rallyHeroPool.infantry);
-  setSelectOptions('rally-lancer-hero',rallyHeroPool.lancer);
-  setSelectOptions('rally-marksman-hero',rallyHeroPool.marksman);
-  const rb=$('rally-form').querySelector('button[type="submit"]'); if(rb)rb.textContent='+ Add Formation';
-  const jb=$('joiner-form').querySelector('button[type="submit"]'); if(jb)jb.textContent='+ Add Formation';
-}
-function editFormation(type,index){
-  const d=read();
-  const arr=d[type]||[];
-  const x=arr[index];
-  if(!x)return;
-  editingFormation={type,index};
-
-  if(type==='rally'){
-    $('rally-name').value=x.name||'';
-    $('rally-type').value=x.type||'attack';
-    $('rally-inf').value=x.inf??'';
-    $('rally-lan').value=x.lan??'';
-    $('rally-mar').value=x.mar??'';
-    $('rally-infantry-hero').value=x.infantry_hero||'';
-    $('rally-lancer-hero').value=x.lancer_hero||'';
-    $('rally-marksman-hero').value=x.marksman_hero||'';
-    const b=$('rally-form').querySelector('button[type="submit"]'); if(b)b.textContent='Save Changes';
-    $('rally-form').scrollIntoView({behavior:'smooth',block:'start'});
-    return;
-  }
-
-  $('joiner-name').value=x.name||'';
-  $('joiner-type').value=x.type||'attack';
-  $('joiner-inf').value=x.inf??'';
-  $('joiner-lan').value=x.lan??'';
-  $('joiner-mar').value=x.mar??'';
-  const useHeroes=Array.isArray(x.heroes)&&x.heroes.length>0;
-  $('joiner-use-heroes').checked=useHeroes;
-  $('joiner-heroes-wrap').style.display=useHeroes?'block':'none';
-  renderJoinerHeroPicker();
-  if(useHeroes){
-    const selected=new Set(x.heroes);
-    document.querySelectorAll('.joiner-rec-hero').forEach(cb=>cb.checked=selected.has(cb.value));
-  }
-  const b=$('joiner-form').querySelector('button[type="submit"]'); if(b)b.textContent='Save Changes';
-  $('joiner-form').scrollIntoView({behavior:'smooth',block:'start'});
+function heroText(x){
+  if(x.formation_scope==='rally'){const h=x.hero_config||{};return [h.infantry_hero,h.lancer_hero,h.marksman_hero].filter(Boolean).join(' • ')}
+  return Array.isArray(x.recommended_heroes)?x.recommended_heroes.join(' • '):'';
 }
 function render(){
-  const d=read();
-  const make=(x,i,type)=>{
-    const heroes=formationHeroText(x,type);
-    return `<div class="form-item">
-      <div><b>${esc(x.name)}</b> <span class="mini-badge">${esc(x.type.toUpperCase())}</span></div>
-      ${heroes?`<div style="margin-top:8px;font-weight:700">${esc(heroes)}</div>`:''}
-      <div class="muted" style="margin-top:4px">${x.inf} / ${x.lan} / ${x.mar}</div>
-      <div class="actions">
-        <button class="tiny-btn edit-formation" data-type="${type}" data-i="${i}" type="button">Edit</button>
-        <button class="tiny-btn del" data-type="${type}" data-i="${i}" type="button">Delete</button>
-      </div>
-    </div>`;
-  };
-  $('rally-list').innerHTML=(d.rally||[]).map((x,i)=>make(x,i,'rally')).join('')||'<p class="muted">No Rally Leader formations yet.</p>';
-  $('joiner-list').innerHTML=(d.joiner||[]).map((x,i)=>make(x,i,'joiner')).join('')||'<p class="muted">No Joiner formations yet.</p>';
+  const make=x=>`<div class="form-item"><div><b>${esc(x.name)}</b> <span class="mini-badge">${esc(String(x.formation_type).toUpperCase())}</span></div>${heroText(x)?`<div style="margin-top:8px;font-weight:700">${esc(heroText(x))}</div>`:''}<div class="muted" style="margin-top:4px">${x.infantry_pct} / ${x.lancer_pct} / ${x.marksman_pct}</div><div class="actions"><button class="tiny-btn edit-formation" data-id="${x.id}" type="button">Edit</button><button class="tiny-btn del" data-id="${x.id}" type="button">Delete</button></div></div>`;
+  $('rally-list').innerHTML=rows.filter(x=>x.formation_scope==='rally').map(make).join('')||'<p class="muted">No Rally Leader formations yet.</p>';
+  $('joiner-list').innerHTML=rows.filter(x=>x.formation_scope==='joiner').map(make).join('')||'<p class="muted">No Joiner formations yet.</p>';
 }
-$('rally-form').onsubmit=e=>{
-  e.preventDefault();
-  const inf=$('rally-inf').value,lan=$('rally-lan').value,mar=$('rally-mar').value;
-  if(!ratioValid(inf,lan,mar)){alert('Troop ratio must total 100%.');return}
-  const item={
-    name:$('rally-name').value.trim()||'Formation',
-    type:$('rally-type').value,
-    inf:Number(inf),lan:Number(lan),mar:Number(mar),
-    infantry_hero:$('rally-infantry-hero').value||'',
-    lancer_hero:$('rally-lancer-hero').value||'',
-    marksman_hero:$('rally-marksman-hero').value||''
-  };
-  const d=read(); d.rally=d.rally||[];
-  if(editingFormation.type==='rally' && Number.isInteger(editingFormation.index)){
-    d.rally[editingFormation.index]=item;
-  }else{
-    d.rally.push(item);
+function clearEdit(){
+  editingFormation={scope:null,id:null};$('rally-form').reset();$('joiner-form').reset();$('joiner-heroes-wrap').style.display='none';renderJoinerHeroPicker();
+  const rb=$('rally-form').querySelector('button[type="submit"]');if(rb)rb.textContent='+ Add Formation';
+  const jb=$('joiner-form').querySelector('button[type="submit"]');if(jb)jb.textContent='+ Add Formation';
+}
+function editFormation(x){
+  editingFormation={scope:x.formation_scope,id:x.id};
+  if(x.formation_scope==='rally'){
+    const h=x.hero_config||{};$('rally-name').value=x.name;$('rally-type').value=x.formation_type;$('rally-inf').value=x.infantry_pct;$('rally-lan').value=x.lancer_pct;$('rally-mar').value=x.marksman_pct;
+    $('rally-infantry-hero').value=h.infantry_hero||'';$('rally-lancer-hero').value=h.lancer_hero||'';$('rally-marksman-hero').value=h.marksman_hero||'';
+    $('rally-form').querySelector('button[type="submit"]').textContent='Save Changes';$('rally-form').scrollIntoView({behavior:'smooth'});return;
   }
-  write(d);
-  clearFormationEdit();
-  render();
+  $('joiner-name').value=x.name;$('joiner-type').value=x.formation_type;$('joiner-inf').value=x.infantry_pct;$('joiner-lan').value=x.lancer_pct;$('joiner-mar').value=x.marksman_pct;
+  const heroes=Array.isArray(x.recommended_heroes)?x.recommended_heroes:[];$('joiner-use-heroes').checked=heroes.length>0;$('joiner-heroes-wrap').style.display=heroes.length?'block':'none';renderJoinerHeroPicker(heroes);
+  $('joiner-form').querySelector('button[type="submit"]').textContent='Save Changes';$('joiner-form').scrollIntoView({behavior:'smooth'});
+}
+$('joiner-use-heroes').onchange=e=>$('joiner-heroes-wrap').style.display=e.target.checked?'block':'none';
+$('rally-form').onsubmit=async e=>{
+  e.preventDefault();const inf=$('rally-inf').value,lan=$('rally-lan').value,mar=$('rally-mar').value;if(!ratioValid(inf,lan,mar)){alert('Troop ratio must total 100%.');return}
+  const payload={event_type_key:eventType,alliance_id:String(allianceId),alliance_tag:allianceTag,formation_scope:'rally',name:$('rally-name').value.trim()||'Formation',formation_type:$('rally-type').value,infantry_pct:Number(inf),lancer_pct:Number(lan),marksman_pct:Number(mar),hero_config:{infantry_hero:$('rally-infantry-hero').value||'',lancer_hero:$('rally-lancer-hero').value||'',marksman_hero:$('rally-marksman-hero').value||''},recommended_heroes:[]};
+  let error;if(editingFormation.scope==='rally')({error}=await sb.from('alliance_formations').update({...payload,updated_at:new Date().toISOString()}).eq('id',editingFormation.id));else({error}=await sb.from('alliance_formations').insert(payload));
+  if(error){alert(error.message);return}await addLog(editingFormation.scope?'formation_updated':'formation_created',{scope:'rally',name:payload.name});clearEdit();await loadRows();
 };
-$('joiner-form').onsubmit=e=>{
-  e.preventDefault();
-  const inf=$('joiner-inf').value,lan=$('joiner-lan').value,mar=$('joiner-mar').value;
-  if(!ratioValid(inf,lan,mar)){alert('Troop ratio must total 100%.');return}
-  const heroes=$('joiner-use-heroes').checked
-    ? [...document.querySelectorAll('.joiner-rec-hero:checked')].map(x=>x.value)
-    : [];
-  const item={
-    name:$('joiner-name').value.trim()||'Formation',
-    type:$('joiner-type').value,
-    inf:Number(inf),lan:Number(lan),mar:Number(mar),
-    heroes
-  };
-  const d=read(); d.joiner=d.joiner||[];
-  if(editingFormation.type==='joiner' && Number.isInteger(editingFormation.index)){
-    d.joiner[editingFormation.index]=item;
-  }else{
-    d.joiner.push(item);
-  }
-  write(d);
-  clearFormationEdit();
-  render();
+$('joiner-form').onsubmit=async e=>{
+  e.preventDefault();const inf=$('joiner-inf').value,lan=$('joiner-lan').value,mar=$('joiner-mar').value;if(!ratioValid(inf,lan,mar)){alert('Troop ratio must total 100%.');return}
+  const heroes=$('joiner-use-heroes').checked?[...document.querySelectorAll('.joiner-rec-hero:checked')].map(x=>x.value):[];
+  const payload={event_type_key:eventType,alliance_id:String(allianceId),alliance_tag:allianceTag,formation_scope:'joiner',name:$('joiner-name').value.trim()||'Formation',formation_type:$('joiner-type').value,infantry_pct:Number(inf),lancer_pct:Number(lan),marksman_pct:Number(mar),hero_config:{},recommended_heroes:heroes};
+  let error;if(editingFormation.scope==='joiner')({error}=await sb.from('alliance_formations').update({...payload,updated_at:new Date().toISOString()}).eq('id',editingFormation.id));else({error}=await sb.from('alliance_formations').insert(payload));
+  if(error){alert(error.message);return}await addLog(editingFormation.scope?'formation_updated':'formation_created',{scope:'joiner',name:payload.name});clearEdit();await loadRows();
 };
-document.addEventListener('click',e=>{
-  const edit=e.target.closest('.edit-formation');
-  if(edit){
-    editFormation(edit.dataset.type,Number(edit.dataset.i));
-    return;
-  }
-  const b=e.target.closest('.del'); if(!b)return;
-  const d=read(); const arr=d[b.dataset.type]||[]; const i=Number(b.dataset.i);
-  if(!arr[i])return;
-  if(!confirm(`Delete "${arr[i].name}"?`))return;
-  arr.splice(i,1); d[b.dataset.type]=arr; write(d);
-  if(editingFormation.type===b.dataset.type && editingFormation.index===i) clearFormationEdit();
-  render();
+document.addEventListener('click',async e=>{
+  const edit=e.target.closest('.edit-formation'),del=e.target.closest('.del');const id=edit?.dataset.id||del?.dataset.id;if(!id)return;const x=rows.find(r=>String(r.id)===String(id));if(!x)return;
+  if(edit){editFormation(x);return}
+  if(!confirm(`Delete "${x.name}"?`))return;const {error}=await sb.from('alliance_formations').delete().eq('id',x.id);if(error){alert(error.message);return}await addLog('formation_deleted',{scope:x.formation_scope,name:x.name});await loadRows();
 });
-(async()=>{
-  const {data:{session}}=await sb.auth.getSession();
-  if(!session){location.href='index.html';return}
-  await loadHeroPools();
-  render();
-})();
+(async()=>{if(!(await guard()))return;await loadHeroPools();await loadRows();})();
 </script>
 </body>
 </html>

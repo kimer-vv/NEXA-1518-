@@ -38,7 +38,7 @@ label{display:grid;gap:7px;color:#e7e9f8}input,select{width:100%;background:#0d0
       <h1 id="title">Alliance Team Organization</h1>
       <p class="muted">This workspace is independent for this alliance. Other alliances can be organized at the same time in their own workspace.</p>
     </div>
-    <span class="mini-badge" id="alliance-badge">Alliance</span>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button id="history-btn" class="tiny-btn" type="button">History</button><span class="mini-badge" id="alliance-badge">Alliance</span></div>
   </div>
 
   <form id="create-team" class="builder-grid">
@@ -88,98 +88,119 @@ const params=new URLSearchParams(location.search);
 const eventType=params.get('event_type')||'svs';
 const allianceId=params.get('alliance_id')||'';
 const allianceTag=params.get('alliance_tag')||'Alliance';
-function storageKey(){return `nexa_preview_alliance_teams_${eventType}_${allianceId}`}
-function readTeams(){try{return JSON.parse(localStorage.getItem(storageKey())||'[]')}catch{return[]}}
-function writeTeams(v){localStorage.setItem(storageKey(),JSON.stringify(v))}
+let teams=[];
 
-function formationStorageKey(){return `nexa_preview_alliance_formations_${eventType}_${allianceId}`}
-function readFormationConfig(){try{return JSON.parse(localStorage.getItem(formationStorageKey())||'{}')}catch{return{}}}
-function renderFormationSummary(){
-  const cfg=readFormationConfig();
-  const rally=cfg.rally||[];
-  const joiner=cfg.joiner||[];
-
-  const heroText=(x,type)=>{
-    if(type==='rally'){
-      return [x.infantry_hero,x.lancer_hero,x.marksman_hero].filter(Boolean).join(' • ');
-    }
-    return Array.isArray(x.heroes)&&x.heroes.length?x.heroes.join(' • '):'';
-  };
-
-  const renderList=(rows,type)=>{
-    if(!rows.length)return '<div class="muted">No formations saved.</div>';
-    return rows.map(x=>{
-      const heroes=heroText(x,type);
-      return `<div class="formation-mini">
-        <div class="formation-mini-name">${esc(x.name||'Formation')} <span class="mini-badge">${esc(String(x.type||'').toUpperCase())}</span></div>
-        ${heroes?`<div class="formation-mini-heroes">${esc(heroes)}</div>`:''}
-        <div class="formation-mini-ratio">${Number(x.inf)||0} / ${Number(x.lan)||0} / ${Number(x.mar)||0}</div>
-      </div>`;
-    }).join('');
-  };
-
-  $('formation-summary-rally').innerHTML=renderList(rally,'rally');
-  $('formation-summary-joiner').innerHTML=renderList(joiner,'joiner');
-}
-function render(){
-  renderFormationSummary();
-  const list=readTeams();
-  $('teams-list').innerHTML=list.length?list.map((t,i)=>`<article class="team-card">
-    <div class="panel-head">
-      <div>
-        <div class="team-title">${esc(t.name)}</div>
-        <div class="muted">Open this Team to assign Rally Leaders, Joiners, Pets and individual heroes.</div>
-      </div>
-      <button class="tiny-btn open-team" data-i="${i}" type="button">Open Team</button>
-    </div>
-    <div class="actions">
-      <button class="tiny-btn rename-team" data-i="${i}" type="button">Rename</button>
-      <button class="tiny-btn delete-team" data-i="${i}" type="button">Delete</button>
-    </div>
-  </article>`).join(''):'<div class="empty">No Teams created yet for this alliance.</div>';
-}
 $('title').textContent=`${allianceTag} Team Organization`;
 $('alliance-badge').textContent=allianceTag;
 $('event-badge').textContent=eventType.toUpperCase();
 $('back-link').onclick=()=>location.href='event-operations.html#teams';
-$('create-team').onsubmit=e=>{
+$('history-btn').onclick=()=>location.href=`alliance-team-history.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}`;
+$('open-formations').onclick=()=>location.href=`alliance-formations.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}`;
+
+async function guard(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){location.href='index.html';return false}
+  return true;
+}
+async function addLog(action,details={},teamId=null,playerAccountId=null){
+  await sb.from('team_change_log').insert({
+    event_type_key:eventType,alliance_id:String(allianceId),alliance_tag:allianceTag,
+    team_id:teamId,player_account_id:playerAccountId,action_type:action,details
+  });
+}
+async function loadTeams(){
+  const {data,error}=await sb.from('alliance_teams')
+    .select('*').eq('event_type_key',eventType).eq('alliance_id',String(allianceId))
+    .order('sort_order').order('created_at');
+  if(error){$('teams-list').innerHTML=`<div class="empty">${esc(error.message)}</div>`;return}
+  teams=data||[];
+  renderTeams();
+}
+async function loadFormationSummary(){
+  const {data,error}=await sb.from('alliance_formations')
+    .select('*').eq('event_type_key',eventType).eq('alliance_id',String(allianceId))
+    .order('formation_scope').order('sort_order').order('created_at');
+  if(error){
+    $('formation-summary-rally').innerHTML=`<div class="muted">${esc(error.message)}</div>`;
+    $('formation-summary-joiner').innerHTML='';
+    return;
+  }
+  const rows=data||[];
+  const heroText=x=>{
+    const h=x.hero_config||{};
+    if(x.formation_scope==='rally')return [h.infantry_hero,h.lancer_hero,h.marksman_hero].filter(Boolean).join(' • ');
+    const arr=Array.isArray(x.recommended_heroes)?x.recommended_heroes:[];
+    return arr.join(' • ');
+  };
+  const renderList=(arr)=>arr.length?arr.map(x=>{
+    const heroes=heroText(x);
+    return `<div class="formation-mini">
+      <div class="formation-mini-name">${esc(x.name)} <span class="mini-badge">${esc(String(x.formation_type).toUpperCase())}</span></div>
+      ${heroes?`<div class="formation-mini-heroes">${esc(heroes)}</div>`:''}
+      <div class="formation-mini-ratio">${x.infantry_pct} / ${x.lancer_pct} / ${x.marksman_pct}</div>
+    </div>`;
+  }).join(''):'<div class="muted">No formations saved.</div>';
+  $('formation-summary-rally').innerHTML=renderList(rows.filter(x=>x.formation_scope==='rally'));
+  $('formation-summary-joiner').innerHTML=renderList(rows.filter(x=>x.formation_scope==='joiner'));
+}
+function renderTeams(){
+  $('teams-list').innerHTML=teams.length?teams.map(t=>`<article class="team-card">
+    <div class="panel-head">
+      <div>
+        <div class="team-title">${esc(t.name)}</div>
+        <div class="muted">Open this Team to manage Rally Leaders, Joiners and Pets.</div>
+      </div>
+      <button class="tiny-btn open-team" data-id="${t.id}" type="button">Open Team</button>
+    </div>
+    <div class="actions">
+      <button class="tiny-btn rename-team" data-id="${t.id}" type="button">Rename</button>
+      <button class="tiny-btn delete-team" data-id="${t.id}" type="button">Delete</button>
+    </div>
+  </article>`).join(''):'<div class="empty">No Teams created yet for this alliance.</div>';
+}
+$('create-team').onsubmit=async e=>{
   e.preventDefault();
-  const name=$('team-name').value.trim();
-  if(!name)return;
-  const list=readTeams();list.push({name,created_at:new Date().toISOString()});writeTeams(list);
-  $('team-name').value='';render();
+  const name=$('team-name').value.trim();if(!name)return;
+  const {data,error}=await sb.from('alliance_teams').insert({
+    event_type_key:eventType,alliance_id:String(allianceId),alliance_tag:allianceTag,name,sort_order:teams.length
+  }).select().single();
+  if(error){alert(error.message);return}
+  await addLog('team_created',{team_name:name},data.id);
+  $('team-name').value='';
+  await loadTeams();
 };
-$('teams-list').onclick=e=>{
+$('teams-list').onclick=async e=>{
   const open=e.target.closest('.open-team');
   const ren=e.target.closest('.rename-team');
   const del=e.target.closest('.delete-team');
-  const list=readTeams();
+  const id=open?.dataset.id||ren?.dataset.id||del?.dataset.id;
+  const team=teams.find(x=>String(x.id)===String(id));if(!team)return;
   if(open){
-    const i=Number(open.dataset.i);const team=list[i];if(!team)return;
-    location.href=`team-builder.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}&team_index=${i}&team_name=${encodeURIComponent(team.name)}`;
+    location.href=`team-builder.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}&team_id=${encodeURIComponent(team.id)}&team_name=${encodeURIComponent(team.name)}`;
     return;
   }
   if(ren){
-    const i=Number(ren.dataset.i);const next=prompt('Rename Team',list[i]?.name||'');
-    if(next===null)return;const clean=next.trim();if(!clean)return;list[i].name=clean;writeTeams(list);render();return;
+    const next=prompt('Rename Team',team.name);if(next===null)return;
+    const clean=next.trim();if(!clean||clean===team.name)return;
+    const old=team.name;
+    const {error}=await sb.from('alliance_teams').update({name:clean,updated_at:new Date().toISOString()}).eq('id',team.id);
+    if(error){alert(error.message);return}
+    await addLog('team_renamed',{from:old,to:clean},team.id);
+    await loadTeams();return;
   }
   if(del){
-    const i=Number(del.dataset.i);const team=list[i];if(!team)return;
-    if(!confirm(`Delete "${team.name}"?`))return;
-    list.splice(i,1);writeTeams(list);render();
+    if(!confirm(`Delete "${team.name}"?\n\nThis also removes its Team assignments and Pet Windows.`))return;
+    const {error}=await sb.from('alliance_teams').delete().eq('id',team.id);
+    if(error){alert(error.message);return}
+    await addLog('team_deleted',{team_name:team.name},team.id);
+    await loadTeams();
   }
 };
-
-$('open-formations').onclick=()=>{
-  location.href=`alliance-formations.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}`;
-};
-
 $('finish-alliance').onclick=()=>{
-  const list=readTeams();
-  if(!list.length){alert('Create at least one Team first.');return}
-  confirm(`Finish ${allianceTag} setup with ${list.length} Team${list.length===1?'':'s'}?\n\nThis is only a preview. Template Builder will be connected after the Team workflow is complete.`);
+  if(!teams.length){alert('Create at least one Team first.');return}
+  confirm(`Finish ${allianceTag} setup with ${teams.length} Team${teams.length===1?'':'s'}?\n\nTemplate Builder will be connected after the Team workflow is complete.`);
 };
-render();
+(async()=>{if(!(await guard()))return;await Promise.all([loadTeams(),loadFormationSummary()]);})();
 </script>
 </body>
 </html>

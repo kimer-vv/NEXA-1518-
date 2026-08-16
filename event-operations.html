@@ -458,6 +458,7 @@ function renderResponses(){
 async function loadResponses(){
   const ev=$('responses-event')?.value;
   if(!ev)return;
+  localStorage.setItem('nexa_eventops_event_type',ev);
   $('responses-list').innerHTML='<div class="muted">Loading responses…</div>';
 
   const {data:qs}=await sb.from('event_form_questions').select('id,question_text,show_on_response_card,is_priority_field');
@@ -602,7 +603,17 @@ function initResponsesUI(){
   const sel=$('responses-event'); if(!sel)return;
   const active=eventTypes.filter(x=>x.active);
   sel.innerHTML=active.map(x=>`<option value="${respEsc(x.key)}">${respEsc(x.name)}</option>`).join('');
-  sel.onchange=()=>{};
+
+  const remembered=localStorage.getItem('nexa_eventops_event_type');
+  if(remembered && active.some(x=>x.key===remembered)) sel.value=remembered;
+
+  sel.onchange=()=>{
+    localStorage.setItem('nexa_eventops_event_type',sel.value);
+    responsesSelectMode=false;
+    selectedResponseIds.clear();
+    updateBulkDeleteUI();
+    loadResponses();
+  };
   document.querySelectorAll('.response-role').forEach(btn=>btn.onclick=()=>{
     responsesRole=btn.dataset.role;
     responsesSelectMode=false; selectedResponseIds.clear(); updateBulkDeleteUI();
@@ -712,10 +723,20 @@ function initTeamsUI(){
   if(!sel)return;
   const active=eventTypes.filter(x=>x.active);
   sel.innerHTML=active.map(x=>`<option value="${esc(x.key)}">${esc(x.name)}</option>`).join('');
+
+  const remembered=localStorage.getItem('nexa_eventops_event_type');
+  if(remembered && active.some(x=>x.key===remembered)) sel.value=remembered;
+
+  sel.onchange=()=>{
+    localStorage.setItem('nexa_eventops_event_type',sel.value);
+    loadTeamsAlliances();
+  };
+
   $('teams-alliance-grid').onclick=e=>{
     const card=e.target.closest('.teams-alliance-card');
     if(!card)return;
     const eventType=$('teams-event').value||'svs';
+    localStorage.setItem('nexa_eventops_event_type',eventType);
     const allianceId=card.dataset.allianceId;
     const allianceTag=card.dataset.allianceTag;
     {

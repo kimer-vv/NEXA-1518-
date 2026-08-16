@@ -518,17 +518,78 @@ function renderMembers(){
   $('joiner-list').innerHTML=joinerRows||'<div class="team-row"><div class="muted">No Joiners assigned yet.</div><div></div><div class="defense-col"></div><div></div></div>';
   $('joiner-table').classList.toggle('no-defense',!useDefensiveHeroes);
 }
+function normalizedCandidateRole(v){
+  const x=String(v||'').trim().toLowerCase().replace(/[\s-]+/g,'_');
+  if(['rally_lead','rally_leader','rallyleader','rally'].includes(x)) return 'rally_lead';
+  if(['joiner','joiners','join'].includes(x)) return 'joiner';
+  return x;
+}
+
+async function hydrateCandidatePlayers(rows){
+  const ids=[...new Set((rows||[]).map(r=>String(r.player_account_id||'')).filter(Boolean))];
+  if(!ids.length)return [];
+
+  const {data:players,error:pErr}=await sb.from('player_accounts')
+    .select('id,in_game_name,custom_alliance_tag,alliance_id,alliances(tag)')
+    .in('id',ids);
+  if(pErr)throw pErr;
+
+  const byId=new Map((players||[]).map(x=>[String(x.id),x]));
+  return ids.map(id=>{
+    const pa=byId.get(id)||{};
+    return {
+      player_account_id:id,
+      player_name:pa.in_game_name||'Unknown',
+      original_alliance:pa.alliances?.tag||pa.custom_alliance_tag||'Not listed'
+    };
+  });
+}
+
+async function currentSvsCandidateEvent(){
+  let q=await sb.from('svs_events')
+    .select('id,status,prep_monday')
+    .eq('status','live')
+    .order('prep_monday',{ascending:false})
+    .limit(1)
+    .maybeSingle();
+  if(q.error) throw q.error;
+  if(q.data?.id)return q.data;
+
+  q=await sb.from('svs_events')
+    .select('id,status,prep_monday')
+    .neq('status','ended')
+    .order('prep_monday',{ascending:false})
+    .limit(1)
+    .maybeSingle();
+  if(q.error) throw q.error;
+  return q.data||null;
+}
+
 async function loadCandidates(role){
- if(eventType==='svs'){
-   const {data:e}=await sb.from('svs_events').select('id').eq('status','live').order('prep_monday',{ascending:false}).limit(1).maybeSingle();
-   if(!e)return[];
-   const {data,error}=await sb.from('battle_form_responses').select('player_account_id,role,player_accounts(in_game_name,custom_alliance_tag,alliances(tag))').eq('event_id',e.id).eq('role',role);
-   if(error)throw error;
-   return (data||[]).map(r=>({player_account_id:String(r.player_account_id),player_name:r.player_accounts?.in_game_name||'Unknown',original_alliance:r.player_accounts?.alliances?.tag||r.player_accounts?.custom_alliance_tag||'Not listed'}));
- }
- const {data,error}=await sb.from('event_operation_responses').select('player_account_id,role,player_accounts(in_game_name,custom_alliance_tag,alliances(tag))').eq('event_type_key',eventType).eq('role',role);
- if(error)throw error;
- return (data||[]).map(r=>({player_account_id:String(r.player_account_id),player_name:r.player_accounts?.in_game_name||'Unknown',original_alliance:r.player_accounts?.alliances?.tag||r.player_accounts?.custom_alliance_tag||'Not listed'}));
+  const wanted=normalizedCandidateRole(role);
+
+  if(eventType==='svs'){
+    const event=await currentSvsCandidateEvent();
+    if(!event?.id)return[];
+
+    const {data,error}=await sb.from('battle_form_responses')
+      .select('player_account_id,role,updated_at')
+      .eq('event_id',event.id)
+      .order('updated_at',{ascending:false});
+    if(error)throw error;
+
+    const matches=(data||[]).filter(r=>normalizedCandidateRole(r.role)===wanted);
+    return await hydrateCandidatePlayers(matches);
+  }
+
+  const {data,error}=await sb.from('event_operation_responses')
+    .select('player_account_id,role,updated_at')
+    .eq('event_type_key',eventType)
+    .order('updated_at',{ascending:false});
+  if(error)throw error;
+
+  const matches=(data||[]).filter(r=>normalizedCandidateRole(r.role)===wanted);
+  return await hydrateCandidatePlayers(matches);
 }
 
 function hourLabel(v){if(v===null||v===undefined||v==='')return '';return String(Number(v)).padStart(2,'0')+':00'}
@@ -559,10 +620,22 @@ function assignmentHTML(x,role){
 
 async function openPicker(role){
  pickerRole=role;
- await loadAssignmentIndex();$('picker').style.display='block';$('picker-title').textContent=role==='rally_lead'?'Add Rally Leader':'Add Joiner';$('picker-note').textContent=role==='rally_lead'?'Rally Leaders may be assigned to multiple Teams.':'Joiners can only have one active Team assignment per Event Type.';
- $('picker-list').innerHTML='<div class="muted">Loading…</div>';
- try{candidates[role]=await loadCandidates(role);const existing=new Set(members.filter(m=>m.member_role===role).map(m=>String(m.player_account_id)));$('picker-list').innerHTML=candidates[role].filter(x=>!existing.has(x.player_account_id)).map(x=>`<button type="button" class="member pick-player" data-player="${esc(x.player_account_id)}"><div style="text-align:left"><b>${esc(displayName(x.player_name))}</b>${assignmentHTML(x,role)}<div class="muted">Original Alliance: ${esc(x.original_alliance)}</div></div></button>`).join('')||'<div class="muted">No available submitted forms in this role.</div>';}catch(error){$('picker-list').innerHTML=`<div class="muted">${esc(error.message)}</div>`}
- $('picker').scrollIntoView({behavior:'smooth'});
+ $('picker').style.display='block';
+ $('picker-title').textContent=role==='rally_lead'?'Add Rally Leader':'Add Joiner';
+ $('picker-note').textContent=role==='rally_lead'?'Rally Leaders may be assigned to multiple Teams.':'Joiners can only have one active Team assignment per Event Type.';
+ $('picker-list').innerHTML='<div class="muted">Loading submitted players…</div>';
+ $('picker').scrollIntoView({behavior:'smooth',block:'start'});
+
+ try{
+   await loadAssignmentIndex();
+   candidates[role]=await loadCandidates(role);
+   const existing=new Set(members.filter(m=>m.member_role===role).map(m=>String(m.player_account_id)));
+   const available=candidates[role].filter(x=>!existing.has(String(x.player_account_id)));
+   $('picker-list').innerHTML=available.map(x=>`<button type="button" class="member pick-player" data-player="${esc(x.player_account_id)}"><div style="text-align:left"><b>${esc(displayName(x.player_name))}</b>${assignmentHTML(x,role)}<div class="muted">Original Alliance: ${esc(x.original_alliance)}</div></div></button>`).join('')||'<div class="muted">No available submitted forms in this role.</div>';
+ }catch(error){
+   console.error('Candidate loader error',error);
+   $('picker-list').innerHTML=`<div class="form-message">Could not load submitted players: ${esc(error?.message||'Unknown error')}</div>`;
+ }
 }
 async function assignmentForJoiner(playerId){
  const {data,error}=await sb.from('team_members').select('id,team_id,assigned_alliance_tag,team_name').eq('event_type_key',eventType).eq('player_account_id',String(playerId)).eq('member_role','joiner').maybeSingle();

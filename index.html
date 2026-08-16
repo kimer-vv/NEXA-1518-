@@ -692,6 +692,37 @@ body.nexa-schedule-open{
   overflow:hidden!important;
 }
 
+
+/* TRUE NATIVE SvS secondary views */
+#native-module-host[data-native-svs="1"]{
+  width:100%;
+  min-width:0;
+  padding:0 0 calc(100px + env(safe-area-inset-bottom));
+}
+#native-module-host[data-native-svs="1"] .nebula-bg,
+#native-module-host[data-native-svs="1"] .starfield,
+#native-module-host[data-native-svs="1"] header.topbar{
+  display:none!important;
+}
+#native-module-host[data-native-svs="1"] > main,
+#native-module-host[data-native-svs="1"] main.shell,
+#native-module-host[data-native-svs="1"] .shell{
+  width:100%!important;
+  max-width:none!important;
+  margin:0!important;
+  padding-left:0!important;
+  padding-right:0!important;
+}
+#native-module-host[data-native-svs="1"] .nexa-native-remove{
+  display:none!important;
+}
+#admin-modal.native-svs-view .admin-modal-card{
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  touch-action:pan-y!important;
+  -webkit-overflow-scrolling:touch!important;
+}
+
 </style>
 <style>
 .prep-monday-picker-row{
@@ -1733,8 +1764,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     try{ window._nexaNativeCleanup?.forEach(fn=>{try{fn()}catch(_){}}); }catch(_){}
     window._nexaNativeCleanup=[];
     window.NEXA_NATIVE_PARAMS=null;
-    if(host){host.innerHTML='';host.classList.add('hidden');host.dataset.nativePage='';}
-    document.getElementById('admin-modal')?.classList.remove('native-eventops-view');
+    if(host){
+      host.innerHTML='';
+      host.classList.add('hidden');
+      host.dataset.nativePage='';
+      delete host.dataset.nativeSvs;
+    }
+    document.getElementById('admin-modal')?.classList.remove('native-eventops-view','native-svs-view');
   }
 
   async function loadNativeEventOpsView(src){
@@ -1823,6 +1859,142 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.querySelector('#admin-modal .admin-modal-card')?.scrollTo({top:0,behavior:'auto'});
   }
 
+
+  async function loadNativeSvsView(src,activeTab){
+    cleanupNativeModule();
+    hideInternalModuleFrame();
+
+    const modal=document.getElementById('admin-modal');
+    const host=document.getElementById('native-module-host');
+    if(!host)return;
+
+    const url=new URL(src,location.href);
+    const file=(url.pathname.split('/').pop()||'').toLowerCase();
+    const childView=['schedule.html','history-event.html'].includes(file);
+
+    window.NEXA_SVS_NATIVE_OPEN=(next)=>{
+      const n=new URL(next,location.href);
+      const f=(n.pathname.split('/').pop()||'').toLowerCase();
+      const tab=f.startsWith('history')?'history':'schedule';
+      return loadNativeSvsView(next,tab);
+    };
+
+    setUnifiedModuleHeader('svs');
+    modal?.classList.add('module-view','native-svs-view');
+    document.getElementById('admin-module-chooser')?.classList.add('hidden');
+    document.getElementById('svs-admin-content')?.classList.remove('hidden');
+
+    document.querySelectorAll('.svs-context-tab').forEach(x=>x.classList.remove('hidden'));
+    document.querySelectorAll('.administration-context-tab').forEach(x=>x.classList.add('hidden'));
+    document.getElementById('admin-context-tabs')?.classList.remove('hidden');
+    document.querySelectorAll('[data-admin-tab]').forEach(b=>b.classList.toggle('active',b.dataset.adminTab===activeTab));
+
+    ['admin-events','admin-forms','admin-alliances','admin-permissions','admin-announcements'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));
+
+    host.classList.remove('hidden');
+    host.dataset.nativePage=file.replace(/\.html$/,'');
+    host.dataset.nativeSvs='1';
+    host.innerHTML='<div class="muted" style="padding:18px 0">Loading…</div>';
+
+    const res=await fetch(url.pathname+url.search,{cache:'no-store'});
+    if(!res.ok){
+      host.innerHTML='<div class="form-message">Could not open this SvS view.</div>';
+      return;
+    }
+    const html=await res.text();
+    const parsed=new DOMParser().parseFromString(html,'text/html');
+
+    const clone=parsed.body.cloneNode(true);
+    clone.querySelectorAll('script,.nebula-bg,.starfield,header.topbar').forEach(x=>x.remove());
+
+    // Standalone page navigation belongs to the outer SvS shell now.
+    clone.querySelectorAll('a.back,.back-link,a[href*="event.html"],a[href*="index.html?admin=svs"]').forEach(x=>x.remove());
+
+    // For Schedule Setup and History list, remove duplicated page-level heading.
+    if(!childView){
+      const main=clone.querySelector('main');
+      if(main){
+        const firstWrap=main.firstElementChild;
+        if(firstWrap && (firstWrap.querySelector('h1') || firstWrap.matches('h1'))){
+          firstWrap.remove();
+        }else{
+          main.querySelector(':scope > h1')?.remove();
+          main.querySelector(':scope > p.muted')?.remove();
+        }
+      }
+    }else{
+      // Child pages keep their useful title, but not standalone back links.
+      clone.querySelectorAll('a[href*="history.html"],a[href*="event.html"]').forEach(x=>x.remove());
+    }
+
+    host.innerHTML=clone.innerHTML;
+
+    const cleanup=[];
+    const oldDocAdd=document.addEventListener.bind(document);
+    const oldWinAdd=window.addEventListener.bind(window);
+    const oldSetTimeout=window.setTimeout.bind(window);
+    const oldSetInterval=window.setInterval.bind(window);
+
+    document.addEventListener=function(type,listener,opts){
+      oldDocAdd(type,listener,opts);
+      cleanup.push(()=>document.removeEventListener(type,listener,opts));
+    };
+    window.addEventListener=function(type,listener,opts){
+      oldWinAdd(type,listener,opts);
+      cleanup.push(()=>window.removeEventListener(type,listener,opts));
+    };
+    window.setTimeout=function(fn,ms,...args){
+      const id=oldSetTimeout(fn,ms,...args); cleanup.push(()=>clearTimeout(id)); return id;
+    };
+    window.setInterval=function(fn,ms,...args){
+      const id=oldSetInterval(fn,ms,...args); cleanup.push(()=>clearInterval(id)); return id;
+    };
+
+    // Make location-search dependent child scripts see the fetched route's query params.
+    const oldNativeParams=window.NEXA_NATIVE_PARAMS;
+    window.NEXA_NATIVE_PARAMS=new URLSearchParams(url.search);
+
+    try{
+      const scriptParts=[...parsed.body.querySelectorAll('script:not([src])')]
+        .map(x=>x.textContent||'')
+        .filter(code=>code.trim())
+        .filter(code=>!code.includes("classList.add('embed-mode')"))
+        .map(code=>code
+          .replaceAll("new URLSearchParams(location.search)","(window.NEXA_NATIVE_PARAMS||new URLSearchParams(location.search))")
+          .replaceAll("location.href='history-event.html?id='+encodeURIComponent(viewId)",
+                      "window.NEXA_SVS_NATIVE_OPEN?window.NEXA_SVS_NATIVE_OPEN('history-event.html?id='+encodeURIComponent(viewId)):location.href='history-event.html?id='+encodeURIComponent(viewId)")
+        );
+      const combined=scriptParts.join('\n;\n');
+      if(combined.trim()) (new Function(combined))();
+    }catch(err){
+      console.error('NEXA native SvS view error:',err);
+      const msg=document.createElement('div');
+      msg.className='form-message';
+      msg.textContent='This SvS view hit a loading error. Refresh and try again.';
+      host.prepend(msg);
+    }finally{
+      document.addEventListener=oldDocAdd;
+      window.addEventListener=oldWinAdd;
+      window.setTimeout=oldSetTimeout;
+      window.setInterval=oldSetInterval;
+      window._nexaNativeCleanup=(window._nexaNativeCleanup||[]).concat(cleanup);
+      window.NEXA_NATIVE_PARAMS=oldNativeParams;
+    }
+
+    // Generic navigation interception for child links.
+    host.onclick=(e)=>{
+      const a=e.target.closest('a');
+      if(!a)return;
+      const href=a.getAttribute('href')||'';
+      if(/^(schedule\.html|history\.html|history-event\.html|prep-requests\.html)/i.test(href)){
+        e.preventDefault();
+        window.NEXA_SVS_NATIVE_OPEN(href);
+      }
+    };
+
+    document.querySelector('#admin-modal .admin-modal-card')?.scrollTo({top:0,behavior:'auto'});
+  }
+
 function hideInternalModuleFrame(){
     const wrap=document.getElementById('internal-module-frame-wrap');
     const frame=document.getElementById('internal-module-frame');
@@ -1831,72 +2003,12 @@ function hideInternalModuleFrame(){
   }
 
   
-  
-  function normalizeSvsEmbeddedDoc(frame){
-    try{
-      const doc=frame.contentDocument || frame.contentWindow?.document;
-      if(!doc || !doc.body) return;
-      const path=(frame.contentWindow?.location?.pathname||'').split('/').pop()?.toLowerCase()||'';
-      const isSvsChild=['schedule.html','history-event.html'].includes(path);
-      if(!isSvsChild) return;
-
-      doc.documentElement.classList.add('nexa-svs-child-embed');
-      doc.body.classList.add('nexa-svs-child-embed');
-
-      // Remove the second NEXA shell. The outer SvS module already owns navigation.
-      [
-        '.nebula-bg','.starfield','header.topbar','.topbar',
-        '.site-header','.app-header','.page-header'
-      ].forEach(sel=>doc.querySelectorAll(sel).forEach(el=>el.style.setProperty('display','none','important')));
-
-      // Hide page-level back navigation that belongs to the standalone page.
-      doc.querySelectorAll(
-        'a.back,a.back-link,[class*="back-link"],a[href*="event.html"],a[href*="history.html"],a[href*="svs-admin.html"]'
-      ).forEach(el=>el.style.setProperty('display','none','important'));
-
-      const style=doc.getElementById('nexa-svs-child-embed-style') || doc.createElement('style');
-      style.id='nexa-svs-child-embed-style';
-      style.textContent=`
-        html.nexa-svs-child-embed,
-        body.nexa-svs-child-embed{
-          background:transparent!important;
-          background-image:none!important;
-          margin:0!important;
-          padding:0!important;
-          width:100%!important;
-          max-width:none!important;
-          min-height:0!important;
-          height:auto!important;
-          overflow:hidden!important;
-        }
-        body.nexa-svs-child-embed main,
-        body.nexa-svs-child-embed .shell,
-        body.nexa-svs-child-embed .page-shell,
-        body.nexa-svs-child-embed .event-shell,
-        body.nexa-svs-child-embed .history-shell{
-          width:100%!important;
-          max-width:none!important;
-          margin:0!important;
-          padding:0!important;
-          background:transparent!important;
-        }
-        body.nexa-svs-child-embed > main{
-          padding-top:0!important;
-        }
-      `;
-      if(!style.parentNode) doc.head.appendChild(style);
-    }catch(err){
-      console.warn('Could not normalize SvS child view',err);
-    }
-  }
-
-function syncEmbeddedFrame(){
+  function syncEmbeddedFrame(){
     const frame=document.getElementById('internal-module-frame');
     if(!frame) return;
     try{
       const doc=frame.contentDocument || frame.contentWindow?.document;
       if(!doc) return;
-      normalizeSvsEmbeddedDoc(frame);
 
       // Prevent a second vertical scrollbar inside the iframe.
       doc.documentElement.style.overflowY='hidden';
@@ -1931,7 +2043,6 @@ function syncEmbeddedFrame(){
   document.getElementById('internal-module-frame')?.addEventListener('load',()=>{
     const frame=document.getElementById('internal-module-frame');
     frame?.setAttribute('scrolling','no');
-    normalizeSvsEmbeddedDoc(frame);
     syncEmbeddedFrame();
 
     try{
@@ -2129,11 +2240,11 @@ document.getElementById('open-svs-admin')?.addEventListener('click',async()=>{
     const target=btn.dataset.adminTab;
 
     if(target==='schedule'){
-      showSvsEmbeddedView('prep-requests.html?embed=1','schedule');
+      loadNativeSvsView('prep-requests.html','schedule');
       return;
     }
     if(target==='history'){
-      showSvsEmbeddedView('history.html?embed=1','history');
+      loadNativeSvsView('history.html','history');
       return;
     }
 

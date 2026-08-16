@@ -1,16 +1,23 @@
-NEXA — SvS VIEW SCHEDULE + VIEW ARCHIVE SHELL FIX
+NEXA — COMBINED TEAM + SvS TRUE NATIVE FIX
 NO SQL.
 
-Keeps the confirmed fixes:
-• BBC / Teams native scrolling
-• Pet Schedule modal
+Built from the last confirmed-good baseline:
+• BBC / Team scrolling fixed
+• Pet Schedule editor fixed
 
-This patch fixes the two SvS nested-page visuals:
-• Schedule Setup -> View Schedule
-• History -> View Archive
+This combined patch adds:
+1. Team Builder candidate loader fix
+   • + Add Rally Leader
+   • + Add Joiner
+   • Reads submitted Battle Forms reliably
+   • Accepts rally_lead / rally_leader
+   • Uses live SvS, or newest not-ended SvS as fallback
 
-When schedule.html or history-event.html navigates inside the SvS frame,
-NEXA now removes the duplicate standalone NEXA header/background/back navigation
-and lets the OUTER SvS module remain the single visible module shell.
+2. SvS native secondary views
+   • Schedule Setup no longer relies on the nested iframe
+   • View Schedule opens as a real internal SvS view
+   • History no longer relies on the nested iframe
+   • View Archive opens as a real internal SvS view
+   • No second NEXA header/page should appear inside SvS
 
-No Transfer status logic is changed in this patch.
+Transfers are intentionally untouched in this patch.

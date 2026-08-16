@@ -1,11 +1,12 @@
-NEXA — TEAM SHEET VISUAL POLISH
+NEXA — MOBILE TEAM SHEET OVERFLOW FIX
 Replace template-builder.html only.
 
-This keeps the working dynamic Team widths and only polishes presentation:
-- cleaner Rally Leaders typography
-- Attack / Defense headers no longer crowd each other
-- better Joiner column proportions
-- cleaner Global Formation cards
-- more compact legend
-- improved spacing for 2-Team layouts
-- no SQL and no data-logic changes
+Fixes the clipping/overlap visible in the latest iPhone screenshot:
+- legend is smaller and constrained to the top-right
+- legend no longer covers Team 2 content
+- rally leader names stay inside their rows
+- two-team typography is reduced to fit cleanly
+- Attack/Defense/Joiner headers remain inside columns
+- formation cards remain compact/readable
+- dynamic 1/2/3/4 team width behavior is preserved
+- no SQL / no data changes

@@ -490,6 +490,25 @@ body.nexa-layout-preview-open{
   transform-origin:top left!important;
 }
 
+
+/* iOS live-sheet fix: CSS zoom keeps the complete scaled document in normal flow. */
+.sheet-inline-holder{
+  width:100%!important;
+  height:auto!important;
+  min-height:0!important;
+  overflow:visible!important;
+  position:relative;
+}
+.sheet-inline-holder>.sheet{
+  transform:none!important;
+  transform-origin:top left!important;
+  margin:0!important;
+}
+@supports not (zoom: 1){
+  .sheet-inline-holder{overflow:auto!important}
+  .sheet-inline-holder>.sheet{zoom:1!important}
+}
+
 </style>
 </head>
 <body>
@@ -1001,15 +1020,20 @@ function fitInlineSheet(){
   const sheet=$('sheet');
   if(!holder||!sheet)return;
 
-  sheet.style.transform='none';
-  holder.style.height='auto';
+  // Reset first so dimensions are always measured from the real 1400px sheet.
+  sheet.style.transform='';
+  sheet.style.zoom='';
+  holder.style.height='';
+  holder.style.minHeight='';
 
-  const natural=naturalSheetSize(sheet);
-  const available=Math.max(280,holder.clientWidth);
-  const scale=Math.min(1,available/natural.width);
+  const naturalWidth=sheet.offsetWidth||1400;
+  const available=Math.max(280,holder.clientWidth||window.innerWidth-40);
+  const scale=Math.min(1,available/naturalWidth);
 
-  sheet.style.transform=`scale(${scale})`;
-  holder.style.height=Math.ceil(natural.height*scale)+'px';
+  // CSS zoom participates in layout, unlike transform:scale(), so the holder
+  // automatically gets the complete scaled sheet height instead of showing
+  // a blank/cropped rectangle on iOS Safari.
+  sheet.style.zoom=String(scale);
 }
 
 function fitPreviewSheet(){

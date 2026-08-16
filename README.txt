@@ -1,13 +1,12 @@
-NEXA — MOBILE FULL-LAYOUT FIT FIX
+NEXA — iOS BLANK PREVIEW FIX
 NO SQL.
 
-Changes:
-• The inline Team Sheet preview now automatically scales the ENTIRE 1400px sheet to the available phone width.
-• You should no longer see only the top-left / top-right corner of the layout.
-• Preview Layout uses the same fit-to-width behavior and scrolls vertically while keeping the full sheet width visible.
-• Download Layout still exports the full natural-size Team Sheet; mobile scaling does not reduce the downloaded image.
-• Joiner icon changed from a green dot to a green person/silhouette.
-• The Joiner icon remains only in section/group headings, not beside every player.
-• Existing approved Team Sheet design and data logic are preserved.
+Fixes:
+• Fixes the white/blank Team Sheet preview seen on iPhone after the previous fit patch.
+• The live sheet now scales to the phone width while remaining in normal document flow.
+• The full sheet height grows automatically as teams/formations render.
+• Preview Layout keeps the full-sheet fit behavior.
+• Download Layout remains full resolution.
+• Keeps the green Joiner person icon.
 
 Replace template-builder.html only.

@@ -109,6 +109,14 @@
 .admin-tabs-scroll::-webkit-scrollbar{display:none}
 .admin-tabs-scroll .admin-tab{flex:0 0 auto!important;white-space:nowrap!important}
 
+
+.announcement-main-card{display:grid;gap:18px}
+.announcement-field{display:grid;gap:8px}
+.announcement-field label{font-weight:800}
+.announcement-field textarea,
+.announcement-field select{width:100%}
+.announcement-audience-help{display:block;line-height:1.45}
+
 </style>
 <style>
 .prep-monday-picker-row{
@@ -575,18 +583,20 @@
       </div>
 
       <div class="announcement-admin-layout">
-        <section class="glass-lite">
-          <label>Important Announcement
-            <textarea id="ann-main" rows="3" maxlength="500" placeholder="Write the main announcement..."></textarea>
-          </label>
+        <section class="glass-lite announcement-main-card">
+          <div class="announcement-field">
+            <label for="ann-main">Important Announcement</label>
+            <textarea id="ann-main" rows="4" maxlength="500" placeholder="Write the main announcement..."></textarea>
+          </div>
 
-          <label>Audience
+          <div class="announcement-field">
+            <label for="announcement-audience">Audience</label>
             <select id="announcement-audience">
               <option value="verified">Verified Only</option>
               <option value="everyone">Everyone</option>
             </select>
-            <small class="muted">Everyone may read public announcements. Only verified users can acknowledge them.</small>
-          </label>
+            <small class="muted announcement-audience-help">Everyone may read public announcements. Only verified users can acknowledge them.</small>
+          </div>
 
           <div class="translation-grid">
             <div class="translation-note">
@@ -1201,6 +1211,21 @@ document.getElementById('open-svs-admin')?.addEventListener('click',async()=>{
   document.getElementById('open-event-operations')?.addEventListener('click',()=>{
     location.href='event-operations.html';
   });
+
+  
+  const directAdminModule=new URLSearchParams(location.search).get('admin');
+  if(directAdminModule==='svs'){
+    adminModal.classList.add('open');
+    adminModal.setAttribute('aria-hidden','false');
+    await configureAdminModules();
+    document.getElementById('admin-module-chooser')?.classList.add('hidden');
+    document.getElementById('svs-admin-content')?.classList.remove('hidden');
+    setAdminContext('svs');
+    showAdminSection('events');
+    await loadAdminEvents();
+    await loadEventAllianceSelectors();
+    renderEventPreview();
+  }
 
   adminButton.addEventListener('click', async () => {
     const access=await getModuleAccess();

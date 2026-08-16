@@ -1,39 +1,28 @@
-NEXA — MODULE SHELL FIX V2
+NEXA — UI CONSISTENCY FIX
 NO SQL.
 
-This patch directly fixes the old Control Center shell instead of layering more UI on top.
-
 Administration:
-- Control Center header hidden while inside module.
-- No duplicate Modules button.
-- No Schedule Management or History.
-- Administration title + description.
-- Alliances | Permissions only.
-- permissionsHelp technical key replaced.
+- Intentionally left unchanged.
 
 Announcements:
-- Control Center header hidden while inside module.
-- No Schedule Management / History.
-- Header is Announcements.
-- Content heading simplified to Highlighted Announcement.
-- Repetitive intro text removed.
-- Translations · Optional remains.
-- Announcement History section removed.
-
-SvS:
-- Control Center header hidden while inside module.
-- Tabs: Event Setup | Forms | Schedule Setup | History.
-- No Alliances / Permissions / Announcements.
-- Prep/Battle form buttons removed from Event Setup.
-- Forms tab contains Prep Form Open/Copy and Battle Form Open/Copy.
-- Schedule Setup opens schedule management.
-- History opens SvS history.
+- Important Announcement now full width.
+- Audience now full width below it.
+- Audience helper text sits under the selector.
+- Translations · Optional remains below.
 
 Event Operations:
-- Keeps independent-page structure with small blue ← Modules.
+- Modules link styled like the other modules.
+- ADMIN badge removed.
+- Description normalized.
+
+SvS subpages:
+- Schedule Management back link now says ← SvS.
+- Event History back link now says ← SvS.
+- Both return to the SvS module instead of Home.
+- index.html understands ?admin=svs and reopens the SvS module.
 
 Transfers:
-- Small blue ← Modules moved next to/above the Transfers heading.
-- No version label.
+- Modules link moved above Transfers title.
+- Modules link styled as a small blue breadcrumb instead of a large button.
 
-No new database changes.
+No database changes.

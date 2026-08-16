@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • Template Builder</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
 :root{
   --bg:#070812;--panel:#111321;--panel2:#171a2b;--text:#f6f7ff;--muted:#a9aec7;--line:#2e3246;
@@ -87,6 +88,61 @@ select,input{width:100%;background:#090b15;color:#fff;border:1px solid #3c415a;b
 .pet-time{color:var(--sheet-text);font-weight:700}
 .pet-paw{color:var(--pet)!important;font-size:1.12em;filter:saturate(1.2)}
 .player-row.no-defense-row{grid-template-columns:minmax(110px,1fr) minmax(90px,.85fr)}
+
+
+/* NEXA clean layout preview — works on iPhone without relying on Fullscreen API */
+.layout-preview-overlay{
+  position:fixed;
+  inset:0;
+  z-index:2147483000;
+  background:#eef1f6;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+.layout-preview-overlay.hidden{display:none!important}
+.layout-preview-toolbar{
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+  padding:calc(10px + env(safe-area-inset-top)) 12px 10px;
+  background:#fff;
+  border-bottom:1px solid rgba(0,0,0,.1);
+  flex:0 0 auto;
+}
+.layout-preview-stage{
+  flex:1 1 auto;
+  overflow:auto;
+  -webkit-overflow-scrolling:touch;
+  padding:16px;
+}
+#layout-preview-content{
+  width:max-content;
+  min-width:100%;
+  display:flex;
+  justify-content:center;
+}
+#layout-preview-content .sheet{
+  margin:0!important;
+  box-shadow:0 10px 34px rgba(0,0,0,.16)!important;
+}
+body.nexa-layout-preview-open{
+  overflow:hidden!important;
+}
+#export-status.success{color:#59c98a}
+#export-status.error{color:#ff8ca4}
+@media(max-width:700px){
+  .layout-preview-stage{padding:10px}
+  #layout-preview-content{
+    width:100%;
+    min-width:0;
+    justify-content:flex-start;
+  }
+  #layout-preview-content .sheet{
+    transform-origin:top left;
+    max-width:none!important;
+  }
+}
 
 </style>
 </head>
@@ -175,11 +231,12 @@ select,input{width:100%;background:#090b15;color:#fff;border:1px solid #3c415a;b
 
       <div class="control-card">
         <h3>7. Preview & Export</h3>
-        <button class="btn" id="fullscreen" type="button">Preview Fullscreen</button>
+        <button class="btn" id="preview-layout" type="button">Preview Layout</button>
         <div class="row" style="margin-top:8px">
-          <button class="btn" id="print-btn" type="button">Print / PDF</button>
+          <button class="btn primary" id="download-layout" type="button">Download Layout</button>
           <button class="btn" id="save-preview" type="button">Save Layout</button>
         </div>
+        <div class="muted" id="export-status" style="margin-top:8px;font-size:.82rem"></div>
       </div>
     </div>
   </aside>
@@ -407,13 +464,145 @@ $('reset-branding').onclick=()=>{
 };
 
 $('density').onchange=()=>autoDensity(document.querySelectorAll('.team-card').length);
-$('fullscreen').onclick=()=>document.getElementById('sheet').requestFullscreen?.();
-$('print-btn').onclick=()=>window.print();
-$('save-preview').onclick=()=>alert('Layout preview saved locally for this session. Alliance branding is saved separately with Save Alliance Branding.');
+
+function setExportStatus(message,type=''){
+  const el=$('export-status');
+  if(!el)return;
+  el.textContent=message||'';
+  el.classList.remove('success','error');
+  if(type)el.classList.add(type);
+}
+
+function cloneLayoutSheet(){
+  const source=$('sheet');
+  const clone=source.cloneNode(true);
+  clone.id='sheet-preview-clone';
+  clone.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));
+  return clone;
+}
+
+function fitPreviewSheet(){
+  const stage=$('layout-preview-stage');
+  const holder=$('layout-preview-content');
+  const sheet=holder?.querySelector('.sheet');
+  if(!stage||!holder||!sheet)return;
+
+  sheet.style.transform='';
+  holder.style.height='';
+
+  if(window.innerWidth<=700){
+    const naturalWidth=sheet.scrollWidth||sheet.getBoundingClientRect().width;
+    const available=Math.max(280,stage.clientWidth-2);
+    const scale=Math.min(1,available/naturalWidth);
+    sheet.style.transform=`scale(${scale})`;
+    holder.style.height=Math.ceil((sheet.scrollHeight||sheet.getBoundingClientRect().height)*scale)+'px';
+  }
+}
+
+function openLayoutPreview(){
+  const overlay=$('layout-preview-overlay');
+  const holder=$('layout-preview-content');
+  holder.innerHTML='';
+  holder.appendChild(cloneLayoutSheet());
+  overlay.classList.remove('hidden');
+  overlay.setAttribute('aria-hidden','false');
+  document.body.classList.add('nexa-layout-preview-open');
+  requestAnimationFrame(()=>{
+    fitPreviewSheet();
+    setTimeout(fitPreviewSheet,80);
+  });
+}
+
+function closeLayoutPreview(){
+  const overlay=$('layout-preview-overlay');
+  overlay.classList.add('hidden');
+  overlay.setAttribute('aria-hidden','true');
+  $('layout-preview-content').innerHTML='';
+  document.body.classList.remove('nexa-layout-preview-open');
+}
+
+async function downloadLayout(){
+  if(typeof window.html2canvas!=='function'){
+    setExportStatus('Download tool did not load. Refresh and try again.','error');
+    return;
+  }
+
+  const source=$('sheet');
+  setExportStatus('Preparing layout…');
+
+  try{
+    // Export the actual clean sheet only — no NEXA controls/editor.
+    const canvas=await window.html2canvas(source,{
+      backgroundColor:'#ffffff',
+      scale:Math.min(3,Math.max(2,window.devicePixelRatio||2)),
+      useCORS:true,
+      allowTaint:false,
+      logging:false,
+      scrollX:0,
+      scrollY:-window.scrollY,
+      windowWidth:Math.max(document.documentElement.clientWidth,source.scrollWidth),
+      windowHeight:Math.max(document.documentElement.clientHeight,source.scrollHeight)
+    });
+
+    const safeAlliance=String(allianceTag||'Alliance').replace(/[^a-z0-9_-]+/gi,'-').replace(/^-+|-+$/g,'')||'Alliance';
+    const safeEvent=String(eventType||'event').replace(/[^a-z0-9_-]+/gi,'-');
+    const link=document.createElement('a');
+    link.download=`${safeAlliance}-${safeEvent}-team-layout.png`;
+    link.href=canvas.toDataURL('image/png',1);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setExportStatus('Layout downloaded ✓','success');
+  }catch(error){
+    console.error('Layout download error',error);
+    setExportStatus('Could not download the layout. '+(error?.message||''),'error');
+  }
+}
+
+function saveLayoutState(){
+  readLiveColors();
+  const state={
+    event_type:eventType,
+    alliance_id:String(allianceId),
+    alliance_tag:allianceTag,
+    density:$('density')?.value||'auto',
+    template_style:$('template-style')?.value||'classic',
+    colors:{...branding.colors},
+    font_family:branding.font_family,
+    title_weight:branding.title_weight,
+    body_weight:branding.body_weight,
+    saved_at:new Date().toISOString()
+  };
+  localStorage.setItem(`nexa_saved_team_layout_${eventType}_${allianceId}`,JSON.stringify(state));
+  setExportStatus('Layout saved on this device ✓','success');
+}
+
+$('preview-layout').onclick=openLayoutPreview;
+$('close-layout-preview').onclick=closeLayoutPreview;
+$('download-layout').onclick=downloadLayout;
+$('download-layout-preview').onclick=downloadLayout;
+$('save-preview').onclick=saveLayoutState;
+$('layout-preview-overlay').addEventListener('click',e=>{
+  if(e.target.id==='layout-preview-overlay')closeLayoutPreview();
+});
+window.addEventListener('resize',()=>{
+  if(!$('layout-preview-overlay').classList.contains('hidden'))fitPreviewSheet();
+});
 
 (async()=>{
   await Promise.all([load(),loadBranding()]);
 })();
 </script>
+
+<div id="layout-preview-overlay" class="layout-preview-overlay hidden" aria-hidden="true">
+  <div class="layout-preview-toolbar">
+    <button class="btn" id="close-layout-preview" type="button">Close</button>
+    <button class="btn primary" id="download-layout-preview" type="button">Download Layout</button>
+  </div>
+  <div class="layout-preview-stage">
+    <div id="layout-preview-content"></div>
+  </div>
+</div>
+
 </body>
 </html>

@@ -1,20 +1,19 @@
-NEXA Patch — Clean Formation Display
+NEXA Patch — Alliance Formation Summary
 
 Replace ONLY:
-- alliance-formations.html
+- alliance-teams.html
 
-Display-only change.
+Alliance Workspace now shows the formations already saved directly inside the
+Alliance Formations card, without opening the Formations page.
 
-Saved Rally Leader formations now display cleanly:
+It displays:
+- Rally Leader Formations
+- Joiner Formations
+- Formation name
+- Attack/Defense badge
+- Hero names when configured
+- Troop ratio
 
-Main Attack   ATTACK
-Geronimo • Mia • Nora
-50 / 20 / 30
-
-Instead of:
-Infantry: Geronimo • Lancer: Mia • Marksman: Nora
-
-Joiner recommended heroes are also displayed on a clean single line.
+Open Formations remains available for editing.
 
 No SQL required.
-No formation logic, dropdowns, editing, or saved data changed.

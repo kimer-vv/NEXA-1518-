@@ -25,6 +25,21 @@
 .preview-permissions-grid{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
 .preview-permission-chip{border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 9px;font-size:.75rem}
 
+
+.admin-tabs-scroll{display:flex!important;flex-wrap:nowrap!important;overflow-x:auto!important;gap:10px!important;padding-bottom:7px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.admin-tabs-scroll::-webkit-scrollbar{display:none}
+.admin-tabs-scroll .admin-tab{flex:0 0 auto;white-space:nowrap}
+.module-action-grid{display:grid;gap:12px;margin-top:14px}
+.module-action-card{border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:16px;background:rgba(8,12,28,.55)}
+.module-action-card h4{margin:5px 0 8px;font-size:1.05rem}
+.module-action-card p{margin:0 0 12px;color:var(--muted)}
+.module-action-row{display:flex;gap:10px;flex-wrap:wrap}
+.translation-note{display:grid;gap:6px;padding:13px 14px;margin:14px 0;border:1px solid rgba(132,92,246,.35);border-radius:14px;background:rgba(132,92,246,.08)}
+.translation-note strong{color:#d9ccff}
+.translation-note span{color:var(--muted);font-size:.9rem;line-height:1.45}
+.announcement-intro{color:var(--muted)}
+#admin-events .svs-form-links,#admin-events [data-svs-form-links]{display:none!important}
+
 </style>
 <style>
 .prep-monday-picker-row{
@@ -282,8 +297,11 @@
     <div id="svs-admin-content" class="hidden">
       <div class="module-back-row"><button id="back-to-modules" class="btn secondary" type="button">← Modules</button></div>
     <div class="admin-quick-links"><a class="btn" href="prep-requests.html">Schedule Management</a></div>
-    <div class="admin-tabs" id="admin-context-tabs">
+    <div class="admin-tabs admin-tabs-scroll" id="admin-context-tabs">
       <button class="admin-tab svs-context-tab active" type="button" data-admin-tab="events">Events</button>
+      <button class="admin-tab svs-context-tab" type="button" data-admin-tab="forms">Forms</button>
+      <button class="admin-tab svs-context-tab" type="button" data-admin-tab="schedule">Schedule Management</button>
+      <button class="admin-tab svs-context-tab" type="button" data-admin-tab="history">History</button>
       <button class="admin-tab administration-context-tab hidden" type="button" data-admin-tab="alliances">Alliances</button>
       <button class="admin-tab administration-context-tab hidden" type="button" data-admin-tab="permissions">Permissions</button>
     </div>
@@ -458,10 +476,34 @@
       <div id="permissions-list" class="admin-list"></div>
     </section>
 
+    <section id="admin-forms" class="admin-section hidden">
+      <h3>SvS Forms</h3>
+      <p>Open or share the forms used for the current SvS event.</p>
+      <div class="module-action-grid">
+        <article class="module-action-card">
+          <span class="module-kicker">PREP</span>
+          <h4>Prep Form</h4>
+          <div class="module-action-row">
+            <button id="open-prep-form-polish" type="button">Open Form</button>
+            <button id="copy-prep-form-polish" type="button">Copy Link</button>
+          </div>
+        </article>
+        <article class="module-action-card">
+          <span class="module-kicker">BATTLE</span>
+          <h4>Battle Form</h4>
+          <p>Open the SvS Battle Form directly.</p>
+          <div class="module-action-row">
+            <button id="open-battle-form-polish" type="button">Open Form</button>
+          </div>
+        </article>
+      </div>
+    </section>
+
     <section id="admin-announcements" class="admin-section hidden">
       <div class="admin-section-head">
         <div>
           <h3>Announcements</h3>
+      <p class="announcement-intro">Create the main announcement first. Translations are optional.</p>
           <p>Manage the highlighted NEXA announcement separately from SvS event details.</p>
         </div>
       </div>
@@ -481,7 +523,11 @@
           </label>
 
           <div class="translation-grid">
-            <label>Español<textarea id="ann-es" rows="2"></textarea></label>
+            <div class="translation-note">
+        <strong>Translations · Optional</strong>
+        <span>NEXA does not automatically translate custom announcements. Add translated versions only if you want users to see the announcement in their selected language. You can leave these fields blank.</span>
+      </div>
+      <label>Español<textarea id="ann-es" rows="2"></textarea></label>
             <label>Türkçe<textarea id="ann-tr" rows="2"></textarea></label>
             <label>한국어<textarea id="ann-ko" rows="2"></textarea></label>
             <label>العربية<textarea id="ann-ar" rows="2"></textarea></label>
@@ -1019,6 +1065,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('admin-alliances')?.classList.toggle('hidden',mode!=='administration');
     document.getElementById('admin-permissions')?.classList.toggle('hidden',true);
     document.getElementById('admin-announcements')?.classList.toggle('hidden',mode!=='announcements');
+    document.getElementById('admin-forms')?.classList.add('hidden');
 
     document.querySelectorAll('[data-admin-tab]').forEach(b=>b.classList.remove('active'));
     if(mode==='svs') document.querySelector('[data-admin-tab="events"]')?.classList.add('active');

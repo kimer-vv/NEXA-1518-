@@ -1,24 +1,15 @@
-NEXA — Administration Reorganization PREVIEW
+NEXA MODULE POLISH — VISUAL PREVIEW (NO NEW SQL)
 
-NO SQL YET.
+Includes the previous Administration reorganization plus:
+• Administration: no standalone Schedule Management or SvS History.
+• Announcements: no standalone Schedule/History navigation.
+• Announcements translations clearly marked OPTIONAL with explanatory copy.
+• SvS navigation uses one horizontally scrollable tab row:
+  Events | Forms | Schedule Management | History
+• New SvS Forms view groups Prep Form and Battle Form.
+• Battle Form button is labeled simply “Battle Form” and attempts to open SvS directly.
+• Event Operations back navigation standardized to “← Modules”.
+• Transfer tabs are kept on one horizontally scrollable row on mobile.
+• Same visual navigation pattern is being established across modules.
 
-Replace:
-- index.html
-- event-operations.html
-- svs-admin.html
-- transfer-admin.html
-
-What this preview changes:
-• Admin modules are alphabetical:
-  Administration, Announcements, Event Operations, SvS, Transfer
-• Administration contains Alliances and Permissions.
-• SvS no longer contains Alliances, Permissions, or Announcements.
-• SvS card text is now: Events, Prep Requests, Schedule & History.
-• Transfer no longer contains Permissions.
-• Home Visibility block is removed; Show now lives on each module card.
-• SvS/Transfer Show still uses the current backend.
-• EO/Announcements Show is preview/local only until the SQL phase.
-• Active alliances only are shown in Event Operations, SvS selectors, and Transfer Recruiting Alliances.
-• Alliance Management now visually shows Edit / Activate-Deactivate / Delete.
-• Delete is preview-only until safe-delete SQL is added.
-• Permissions visually previews future Admin / EO / SvS / Transfer module permissions.
+Still intentionally NO new permission/home-visibility/delete SQL in this preview.

@@ -9,6 +9,33 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+<script>
+(function(){
+  const q=new URLSearchParams(location.search);
+  if(q.get('embed')!=='1') return;
+  document.documentElement.classList.add('embed-mode');
+
+  let y=null,x=null,vertical=false;
+  document.addEventListener('touchstart',e=>{
+    const t=e.touches&&e.touches[0]; if(!t)return;
+    y=t.clientY;x=t.clientX;vertical=false;
+  },{passive:true,capture:true});
+  document.addEventListener('touchmove',e=>{
+    const t=e.touches&&e.touches[0]; if(!t||y===null)return;
+    const dy=y-t.clientY,dx=x-t.clientX;
+    if(!vertical && Math.abs(dy)>4 && Math.abs(dy)>Math.abs(dx)) vertical=true;
+    if(vertical){
+      try{
+        const scroller=parent.document.querySelector('#admin-modal .admin-modal-card');
+        if(scroller){e.preventDefault();scroller.scrollTop+=dy;}
+      }catch(_){}
+      y=t.clientY;x=t.clientX;
+    }
+  },{passive:false,capture:true});
+  document.addEventListener('touchend',()=>{y=null;x=null;vertical=false},{passive:true,capture:true});
+})();
+</script>
+
 <header class="topbar">
   <div class="shell nav">
     <a class="logo" href="index.html">
@@ -222,8 +249,16 @@ function statusBadge(s){
 }
 
 function backToApplications(){
-  const suffix=eventId?`?tab=applications&event=${encodeURIComponent(eventId)}`:'?tab=applications';
-  location.href='transfer-admin.html'+suffix;
+  const from=qs.get('from')==='waiting'?'waiting':'applications';
+  const embedded=qs.get('embed')==='1';
+  const parts=[`tab=${encodeURIComponent(from)}`];
+  if(eventId) parts.push(`event=${encodeURIComponent(eventId)}`);
+  if(embedded) parts.push('embed=1');
+  location.href='transfer-admin.html?'+parts.join('&');
+}
+if(qs.get('from')==='waiting'){
+  document.getElementById('back-applications').textContent='← Back to Waiting List';
+  document.getElementById('back-bottom').textContent='← Back to Waiting List';
 }
 document.getElementById('back-applications').onclick=backToApplications;
 document.getElementById('back-bottom').onclick=backToApplications;

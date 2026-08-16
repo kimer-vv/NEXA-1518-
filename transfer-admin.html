@@ -514,7 +514,11 @@ applications_list.onclick=e=>{
   const appId=card.dataset.openApp;
   if(!appId || appId==='undefined' || appId==='null'){alert('This application link is missing its internal ID. Refresh Applications and try again.');return;}
   const eventId=application_event_filter.value||'';
-  location.href=`transfer-application.html?id=${encodeURIComponent(appId)}&event=${encodeURIComponent(eventId)}`;
+  {
+    const embedded=new URLSearchParams(location.search).get('embed')==='1';
+    const embedPart=embedded?'&embed=1':'';
+    location.href=`transfer-application.html?id=${encodeURIComponent(appId)}&event=${encodeURIComponent(eventId)}&from=applications${embedPart}`;
+  }
 };
 function openApplication(a){
  modal_app_title.textContent=a.in_game_name;
@@ -1110,7 +1114,11 @@ window.addEventListener('error',ev=>{
     const row=(window._waitingRows||[]).find(x=>x.waiting_id===wid);
 
     if(e.target.closest('[data-wait-details]')){
-      location.href=`transfer-application.html?waiting=${encodeURIComponent(wid)}&event=${encodeURIComponent(activeTransferEventId()||'')}`;
+      {
+      const embedded=new URLSearchParams(location.search).get('embed')==='1';
+      const embedPart=embedded?'&embed=1':'';
+      location.href=`transfer-application.html?waiting=${encodeURIComponent(wid)}&event=${encodeURIComponent(activeTransferEventId()||'')}&from=waiting${embedPart}`;
+    }
       return;
     }
 
@@ -1125,9 +1133,30 @@ window.addEventListener('error',ev=>{
     }
 
     if(action==='return'){
-      const {error}=await sb.rpc('return_transfer_waiting_to_applications',{p_waiting_id:wid});
+      const {data:returnedAppId,error}=await sb.rpc('return_transfer_waiting_to_applications',{p_waiting_id:wid});
       if(error)return alert(error.message);
-      await loadWaitingList();await loadApplications();return;
+
+      let targetEventId='';
+      if(returnedAppId){
+        const {data:returnedApp}=await sb.from('transfer_applications')
+          .select('id,transfer_event_id,transfer_status')
+          .eq('id',returnedAppId)
+          .maybeSingle();
+        targetEventId=returnedApp?.transfer_event_id||'';
+      }
+
+      if(targetEventId && application_event_filter){
+        application_event_filter.value=targetEventId;
+      }
+      if(status_filter) status_filter.value='';
+
+      tab('applications');
+      await loadApplications();
+      await loadWaitingList();
+
+      const card=document.querySelector(`[data-open-app="${returnedAppId}"]`);
+      card?.scrollIntoView({block:'center',behavior:'smooth'});
+      return;
     }
 
     const eventId=activeTransferEventId();
@@ -1709,4 +1738,14 @@ document.addEventListener('DOMContentLoaded',()=>{
   const main=document.querySelector('main');
   if(main){main.style.padding='0';main.style.margin='0';main.style.maxWidth='none';main.style.width='100%';}
 });
-</script></body></html>
+</script>
+<script>
+window.addEventListener('load',()=>{
+  const q=new URLSearchParams(location.search);
+  const requested=q.get('tab');
+  if(['events','applications','roster','waiting','alliances','history'].includes(requested)){
+    setTimeout(()=>{ try{tab(requested)}catch(_){} },80);
+  }
+});
+</script>
+</body></html>

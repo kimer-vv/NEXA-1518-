@@ -1,18 +1,17 @@
-NEXA — FRONTEND STABILITY FIX V2
+NEXA — WAITING LIST + ALLIANCE SCROLL FIX
 NO NEW SQL.
 
-Teams / Formations:
-• Restores the latest functional Supabase-backed Alliance Workspace.
-• Restores the full Team Builder with Rally Leaders, Joiners, Pets, hero assignments and inherited Alliance Formations.
-• Restores Supabase-backed Alliance Formations.
-• Open Team / Open Formations / Back navigation preserve internal embed mode.
-• Removes the stale local-browser preview message.
-• Fixes mobile layout of “Include Recommended Heroes”.
+Alliance Workspace:
+• BBC/other Alliance Workspace now forwards vertical finger swipes directly to the outer Admin panel.
+• Swipe can begin on cards/content, not only on empty borders.
+• No database changes.
 
-Scrolling:
-• Embedded pages forward vertical finger swipes to the outer Admin panel immediately.
-• A swipe begun on a card, form, Schedule Tools, History card or Transfers content scrolls the full module.
-• Keeps only the outer module as the visible vertical scrolling surface.
-• Faster iframe height synchronization reduces the initial waiting/sticking feeling.
+Transfers / Waiting List:
+• Waiting List action buttons now wrap into a mobile-safe 2-column grid.
+• View Details stays inside the Transfers module and remembers whether it came from Waiting List or Applications.
+• Back button says “Back to Waiting List” when opened from Waiting List.
+• No nested Transfers page after returning from details.
+• Move Back to Applications now uses the returned application ID, selects that application’s original Transfer Cycle, opens Applications, clears status filtering, reloads the list and scrolls toward the returned application.
+• No SQL changes were required because the existing RPC already restores transfer_status='not_reviewed'.
 
-No database schema changes are included.
+Administration, Announcements, Event Operations, SvS and the already-approved module shell are otherwise left unchanged.

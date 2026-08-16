@@ -447,6 +447,49 @@ body.nexa-layout-preview-open{
   font-weight:750;
 }
 
+
+/* Mobile-safe live preview: show the FULL sheet width inside the phone. */
+.preview-wrap{
+  overflow:hidden!important;
+}
+.sheet-inline-holder{
+  width:100%;
+  position:relative;
+  overflow:hidden;
+}
+.sheet-inline-holder>.sheet{
+  transform-origin:top left;
+  margin:0!important;
+}
+.joiner-person-svg{
+  width:1em;
+  height:1em;
+  display:block;
+  fill:#24783b;
+}
+.legend-icon.joiner-icon,
+.section-icon.joiner-icon{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+.legend-icon.joiner-icon .joiner-person-svg{width:18px;height:18px}
+.section-icon.joiner-icon .joiner-person-svg{width:16px;height:16px}
+
+/* Preview overlay must use all available phone width and scroll vertically only. */
+.layout-preview-stage{
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+}
+#layout-preview-content{
+  width:100%!important;
+  min-width:0!important;
+  display:block!important;
+}
+#layout-preview-content .sheet{
+  transform-origin:top left!important;
+}
+
 </style>
 </head>
 <body>
@@ -545,6 +588,7 @@ body.nexa-layout-preview-open{
   </aside>
 
   <section class="panel preview-wrap">
+    <div id="sheet-inline-holder" class="sheet-inline-holder">
     <div id="sheet" class="sheet">
       <div class="sheet-header">
         <div class="sheet-brand-row">
@@ -556,13 +600,14 @@ body.nexa-layout-preview-open{
         </div>
         <div class="sheet-legend" aria-label="Legend">
           <div><span class="legend-icon rally-icon">♜</span><span>Rally Leader</span></div>
-          <div><span class="legend-icon joiner-icon">●</span><span>Joiner</span></div>
+          <div><span class="legend-icon joiner-icon"><svg class="joiner-person-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"></circle><path d="M4.5 21c.4-5.1 3.1-8 7.5-8s7.1 2.9 7.5 8H4.5z"></path></svg></span><span>Joiner</span></div>
           <div><span class="legend-icon pet-icon">🐾</span><span>Pet Active <small>(at time shown)</small></span></div>
         </div>
       </div>
       <div id="teams-grid" class="teams-grid"></div>
       <div id="formations" class="formations"></div>
       <div class="sheet-utc">◷ &nbsp; All times in UTC</div>
+    </div>
     </div>
   </section>
 </div>
@@ -629,6 +674,7 @@ async function load(){
   renderTeams(teams||[],members);
   renderFormations(formations||[]);
   autoDensity((teams||[]).length);
+  requestAnimationFrame(()=>{fitInlineSheet();setTimeout(fitInlineSheet,80);});
 
   if(!(teams||[]).length){
     $('teams-grid').innerHTML=`<div class="empty-sheet-message">
@@ -713,7 +759,7 @@ function renderTeams(teams,members){
       <div class="rally-list">${rallyHtml}</div>
 
       <div class="team-section-title joiners-heading">
-        <span class="section-icon joiner-icon">●</span>
+        <span class="section-icon joiner-icon"><svg class="joiner-person-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"></circle><path d="M4.5 21c.4-5.1 3.1-8 7.5-8s7.1 2.9 7.5 8H4.5z"></path></svg></span>
         <span>JOINERS</span>
       </div>
       <div class="joiner-table">
@@ -783,7 +829,7 @@ function renderFormations(rows){
   const group=(items,scope)=>{
     if(!items.length)return '';
     const label=scope==='joiner'?'JOINER FORMATIONS':'RALLY LEADER FORMATIONS';
-    const icon=scope==='joiner'?'●':'♜';
+    const icon=scope==='joiner'?`<svg class="joiner-person-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"></circle><path d="M4.5 21c.4-5.1 3.1-8 7.5-8s7.1 2.9 7.5 8H4.5z"></path></svg>`:'♜';
     return `<section class="formation-group ${scope}">
       <div class="formation-group-title"><span class="${scope==='joiner'?'joiner-icon':'rally-icon'}">${icon}</span>${label}</div>
       <div class="formation-cards">${items.map(formationCard).join('')}</div>
@@ -941,22 +987,46 @@ function cloneLayoutSheet(){
   return clone;
 }
 
+function naturalSheetSize(sheet){
+  const prevTransform=sheet.style.transform;
+  sheet.style.transform='none';
+  const width=sheet.offsetWidth||sheet.scrollWidth||1400;
+  const height=sheet.offsetHeight||sheet.scrollHeight||900;
+  sheet.style.transform=prevTransform;
+  return {width,height};
+}
+
+function fitInlineSheet(){
+  const holder=$('sheet-inline-holder');
+  const sheet=$('sheet');
+  if(!holder||!sheet)return;
+
+  sheet.style.transform='none';
+  holder.style.height='auto';
+
+  const natural=naturalSheetSize(sheet);
+  const available=Math.max(280,holder.clientWidth);
+  const scale=Math.min(1,available/natural.width);
+
+  sheet.style.transform=`scale(${scale})`;
+  holder.style.height=Math.ceil(natural.height*scale)+'px';
+}
+
 function fitPreviewSheet(){
   const stage=$('layout-preview-stage');
   const holder=$('layout-preview-content');
   const sheet=holder?.querySelector('.sheet');
   if(!stage||!holder||!sheet)return;
 
-  sheet.style.transform='';
-  holder.style.height='';
+  sheet.style.transform='none';
+  holder.style.height='auto';
 
-  if(window.innerWidth<=700){
-    const naturalWidth=sheet.scrollWidth||sheet.getBoundingClientRect().width;
-    const available=Math.max(280,stage.clientWidth-2);
-    const scale=Math.min(1,available/naturalWidth);
-    sheet.style.transform=`scale(${scale})`;
-    holder.style.height=Math.ceil((sheet.scrollHeight||sheet.getBoundingClientRect().height)*scale)+'px';
-  }
+  const natural=naturalSheetSize(sheet);
+  const available=Math.max(280,stage.clientWidth);
+  const scale=Math.min(1,available/natural.width);
+
+  sheet.style.transform=`scale(${scale})`;
+  holder.style.height=Math.ceil(natural.height*scale)+'px';
 }
 
 function openLayoutPreview(){
@@ -991,8 +1061,17 @@ async function downloadLayout(){
   setExportStatus('Preparing layout…');
 
   try{
-    // Export the actual clean sheet only — no NEXA controls/editor.
-    const canvas=await window.html2canvas(source,{
+    // Export a natural-size clone so mobile preview scaling never shrinks the downloaded image.
+    const exportHost=document.createElement('div');
+    exportHost.style.cssText='position:fixed;left:-20000px;top:0;width:1400px;z-index:-1;background:#fff;';
+    const exportSheet=source.cloneNode(true);
+    exportSheet.removeAttribute('id');
+    exportSheet.style.transform='none';
+    exportSheet.style.margin='0';
+    exportHost.appendChild(exportSheet);
+    document.body.appendChild(exportHost);
+
+    const canvas=await window.html2canvas(exportSheet,{
       backgroundColor:'#ffffff',
       scale:Math.min(3,Math.max(2,window.devicePixelRatio||2)),
       useCORS:true,
@@ -1004,6 +1083,8 @@ async function downloadLayout(){
       windowHeight:Math.max(document.documentElement.clientHeight,source.scrollHeight)
     });
 
+    exportHost.remove();
+
     const safeAlliance=String(allianceTag||'Alliance').replace(/[^a-z0-9_-]+/gi,'-').replace(/^-+|-+$/g,'')||'Alliance';
     const safeEvent=String(eventType||'event').replace(/[^a-z0-9_-]+/gi,'-');
     const link=document.createElement('a');
@@ -1014,6 +1095,7 @@ async function downloadLayout(){
     link.remove();
     setExportStatus('Layout downloaded ✓','success');
   }catch(error){
+    document.querySelectorAll('body > div[style*="-20000px"]').forEach(el=>el.remove());
     console.error('Layout download error',error);
     setExportStatus('Could not download the layout. '+(error?.message||''),'error');
   }
@@ -1046,6 +1128,7 @@ $('layout-preview-overlay').addEventListener('click',e=>{
   if(e.target.id==='layout-preview-overlay')closeLayoutPreview();
 });
 window.addEventListener('resize',()=>{
+  fitInlineSheet();
   if(!$('layout-preview-overlay').classList.contains('hidden'))fitPreviewSheet();
 });
 

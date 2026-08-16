@@ -19,6 +19,14 @@ h1,h2{margin:.25rem 0 .5rem}.badge,.mini-badge{display:inline-flex;border:1px so
 input,select{width:100%;background:#0d0e18;color:#fff;border:1px solid var(--line);border-radius:10px;padding:9px}
 button{cursor:pointer}
 @media(max-width:700px){.pet-window{grid-template-columns:1fr 1fr}.pet-window button{grid-column:1/-1}}
+button{color:#fff!important}
+button.secondary{background:#17192a!important;color:#f4f1ff!important;border-color:#565b79!important}
+button.danger{background:#321a28!important;color:#ffbfd3!important;border-color:#74405a!important}
+button:disabled{background:#25283a!important;color:#9297b2!important;border-color:#3a3e55!important;opacity:.8}
+.utc-modal{position:fixed;inset:0;background:rgba(3,4,12,.76);display:flex;align-items:center;justify-content:center;padding:22px;z-index:99999}
+.utc-card{width:min(420px,100%);background:#111322;border:1px solid #565b79;border-radius:22px;padding:22px}
+.utc-card select{width:100%;padding:14px;border-radius:13px;background:#090b16;color:#fff;border:1px solid #565b79;font-size:17px}
+.utc-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -151,7 +159,16 @@ async function addPlayer(playerId){
 function timeToMin(t){const [h,m]=String(t).split(':').map(Number);return h*60+m}
 function overlaps(a1,a2,b1,b2){return Math.max(a1,b1)<Math.min(a2,b2)}
 async function addPetWindow(member){
- const start=prompt('Pet Start UTC (HH:MM)','13:00');if(start===null)return;const end=prompt('Pet End UTC (HH:MM)','15:00');if(end===null)return;
+ const hours=Array.from({length:24},(_,i)=>String(i).padStart(2,'0')+':00');
+ const pickHour=(title,def)=>new Promise(resolve=>{
+   const modal=document.createElement('div');modal.className='utc-modal';
+   modal.innerHTML=`<div class="utc-card"><h3>${esc(title)}</h3><select>${hours.map(h=>`<option value="${h}" ${h===def?'selected':''}>${h} UTC</option>`).join('')}</select><div class="utc-actions"><button class="secondary" data-cancel>Cancel</button><button data-ok>Select</button></div></div>`;
+   document.body.appendChild(modal);
+   modal.querySelector('[data-cancel]').onclick=()=>{modal.remove();resolve(null)};
+   modal.querySelector('[data-ok]').onclick=()=>{const v=modal.querySelector('select').value;modal.remove();resolve(v)};
+ });
+ const start=await pickHour('Pet Window — Start UTC','13:00');if(start===null)return;
+ const end=await pickHour('Pet Window — End UTC','15:00');if(end===null)return;
  if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(start)||!/^([01]\d|2[0-3]):[0-5]\d$/.test(end)){alert('Use HH:MM UTC, for example 13:00.');return}
  if(timeToMin(end)<=timeToMin(start)){alert('End time must be after start time.');return}
  const {data:otherMembers,error:me}=await sb.from('team_members').select('id,team_name,assigned_alliance_tag').eq('event_type_key',eventType).eq('player_account_id',String(member.player_account_id)).eq('member_role','rally_lead');

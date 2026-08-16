@@ -631,11 +631,20 @@ body.nexa-layout-preview-open{
   </section>
 </div>
 </main>
+<div id="layout-preview-overlay" class="layout-preview-overlay hidden" aria-hidden="true">
+  <div class="layout-preview-toolbar">
+    <button class="btn" id="close-layout-preview" type="button">Close</button>
+    <button class="btn primary" id="download-layout-preview" type="button">Download Layout</button>
+  </div>
+  <div class="layout-preview-stage">
+    <div id="layout-preview-content"></div>
+  </div>
+</div>
 <script>
 const sb=window.supabase.createClient("https://dfxcxboxrkfmrnsgpyin.supabase.co","sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-");
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
-const p=new URLSearchParams(location.search);
+const p=window.NEXA_NATIVE_PARAMS||new URLSearchParams(location.search);
 const eventType=p.get('event_type')||'svs',eventKey=String(eventType).trim().toLowerCase(),allianceId=p.get('alliance_id')||'',allianceTag=p.get('alliance_tag')||'Alliance';
 
 function displayName(v){
@@ -665,13 +674,19 @@ async function load(){
     if(!fallback.error && fallback.data?.length)teams=fallback.data;
   }
 
-  if(tErr){alert(tErr.message);return}
+  if(tErr){
+    $('teams-grid').innerHTML=`<div class="empty-sheet-message">Could not load Teams: ${esc(tErr.message)}</div>`;
+    return;
+  }
 
   const ids=(teams||[]).map(x=>x.id);
   let members=[];
   if(ids.length){
     const {data,error}=await sb.from('team_members').select('*,pet_windows(*)').in('team_id',ids).order('created_at');
-    if(error){alert(error.message);return}
+    if(error){
+      $('teams-grid').innerHTML=`<div class="empty-sheet-message">Teams were found, but Team members could not load: ${esc(error.message)}</div>`;
+      return;
+    }
     members=data||[];
   }
 
@@ -688,7 +703,11 @@ async function load(){
     if(!fallback.error && fallback.data?.length)formations=fallback.data;
   }
 
-  if(fErr){alert(fErr.message);return}
+  if(fErr){
+    $('formations').classList.remove('is-empty');
+    $('formations').innerHTML=`<div class="empty-sheet-message">Could not load Formations: ${esc(fErr.message)}</div>`;
+    formations=[];
+  }
 
   renderTeams(teams||[],members);
   renderFormations(formations||[]);
@@ -1075,9 +1094,32 @@ function closeLayoutPreview(){
   document.body.classList.remove('nexa-layout-preview-open');
 }
 
+async function ensureHtml2Canvas(){
+  if(typeof window.html2canvas==='function')return true;
+  const existing=document.querySelector('script[data-nexa-html2canvas="1"]');
+  if(existing){
+    await new Promise(resolve=>{
+      if(typeof window.html2canvas==='function')return resolve();
+      existing.addEventListener('load',resolve,{once:true});
+      existing.addEventListener('error',resolve,{once:true});
+    });
+    return typeof window.html2canvas==='function';
+  }
+  return await new Promise(resolve=>{
+    const script=document.createElement('script');
+    script.src='https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+    script.async=true;
+    script.dataset.nexaHtml2canvas='1';
+    script.onload=()=>resolve(typeof window.html2canvas==='function');
+    script.onerror=()=>resolve(false);
+    document.head.appendChild(script);
+  });
+}
+
 async function downloadLayout(){
-  if(typeof window.html2canvas!=='function'){
-    setExportStatus('Download tool did not load. Refresh and try again.','error');
+  setExportStatus('Preparing download…');
+  if(!(await ensureHtml2Canvas())){
+    setExportStatus('Download tool could not load. Check your connection and try again.','error');
     return;
   }
 
@@ -1160,16 +1202,6 @@ window.addEventListener('resize',()=>{
   await Promise.all([load(),loadBranding()]);
 })();
 </script>
-
-<div id="layout-preview-overlay" class="layout-preview-overlay hidden" aria-hidden="true">
-  <div class="layout-preview-toolbar">
-    <button class="btn" id="close-layout-preview" type="button">Close</button>
-    <button class="btn primary" id="download-layout-preview" type="button">Download Layout</button>
-  </div>
-  <div class="layout-preview-stage">
-    <div id="layout-preview-content"></div>
-  </div>
-</div>
 
 </body>
 </html>

@@ -1844,7 +1844,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     if(file==='event-operations.html'){
       clone.querySelectorAll('.back,.ops-head').forEach(x=>x.remove());
     }
-    host.innerHTML=clone.innerHTML;
+
+    // Preserve page-specific styles when a standalone page is rendered natively
+    // inside the Administration modal. Previously only <body> was cloned, so
+    // template-builder.html lost all of its <head><style> rules.
+    const nativePageStyles=[...parsed.head.querySelectorAll('style')]
+      .map(x=>x.textContent||'')
+      .filter(Boolean)
+      .join('\n');
+    host.innerHTML=(nativePageStyles?`<style data-nexa-native-page-style="1">${nativePageStyles}</style>`:'')+clone.innerHTML;
 
     // Scripts get a controlled lifecycle so old Team/Formation document listeners
     // are removed when moving to another native workspace.

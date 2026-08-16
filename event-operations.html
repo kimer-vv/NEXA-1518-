@@ -22,6 +22,13 @@
 .response-na{opacity:.7}
 @media(max-width:700px){.response-grid{grid-template-columns:105px 1fr}.response-head{align-items:center}}
 
+
+.teams-alliance-card{cursor:pointer}
+.teams-alliance-card:hover{border-color:rgba(125,92,255,.65)}
+.team-v1-card{border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:14px;margin-bottom:10px;background:rgba(255,255,255,.035)}
+.team-v1-title{font-weight:800;font-size:1.08rem}
+.team-v1-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+
 </style>
 </head>
 <body>
@@ -34,6 +41,7 @@
     <button class="ops-tab active" data-tab="forms" type="button">Form Builder</button>
     <button class="ops-tab" data-tab="questions" type="button">Question Library</button>
     <button class="ops-tab" data-tab="responses" type="button">Responses</button>
+    <button class="ops-tab" data-tab="teams" type="button">Teams</button>
   </nav>
 
   <section id="tab-forms" class="ops-panel">
@@ -115,6 +123,57 @@
       </div>
       <div id="responses-list" class="response-list" style="margin-top:12px"></div>
     </section>
+
+  <section id="tab-teams" class="ops-panel hidden">
+    <div class="panel-head">
+      <div>
+        <h2>Teams</h2>
+        <p class="muted">Build each alliance setup here. Rally Leaders, Joiners, pets and formations come in the next steps.</p>
+      </div>
+    </div>
+
+    <div class="builder-grid">
+      <label>Event Type
+        <select id="teams-event"></select>
+      </label>
+    </div>
+
+    <div class="setting-card" style="margin-top:14px">
+      <div class="panel-head">
+        <div>
+          <h3>Alliance Organization</h3>
+          <p class="muted">Choose an alliance, then create as many Teams or Flex Teams as you need.</p>
+        </div>
+      </div>
+      <div id="teams-alliance-grid" class="question-grid"></div>
+    </div>
+
+    <div id="teams-workspace" class="setting-card hidden" style="margin-top:14px">
+      <div class="panel-head">
+        <div>
+          <div class="badge-row"><span class="mini-badge" id="teams-alliance-badge">Alliance</span></div>
+          <h3 id="teams-alliance-title">Alliance Teams</h3>
+          <p class="muted">Team names are completely custom: Team 1, Team Flex, Defense, anything you want.</p>
+        </div>
+        <button id="teams-close-alliance" class="tiny-btn" type="button">Close</button>
+      </div>
+
+      <form id="teams-create-form" class="builder-grid" style="align-items:end">
+        <label>Team Name
+          <input id="teams-new-name" maxlength="50" placeholder="e.g. Team 1, Flex 1, Defense">
+        </label>
+        <button class="btn" type="submit">+ Create Team</button>
+      </form>
+
+      <div id="teams-list" style="margin-top:14px"></div>
+
+      <div class="section-actions" style="margin-top:18px">
+        <button id="teams-finish-alliance" class="btn secondary" type="button">Finish Alliance Setup</button>
+      </div>
+      <div class="muted" style="margin-top:8px">Preview only for now — Finish Alliance Setup will connect to Template Builder after the Team module is complete.</div>
+    </div>
+  </section>
+
 </section>
 </main>
 <script>
@@ -474,8 +533,150 @@ function initResponsesUI(){
   if(sel.value)loadResponses();
 }
 
+
+let teamsAlliances=[];
+let teamsSelectedAlliance=null;
+
+function teamsStorageKey(){
+  const ev=$('teams-event')?.value||'svs';
+  return `nexa_preview_teams_${ev}`;
+}
+function readPreviewTeams(){
+  try{return JSON.parse(localStorage.getItem(teamsStorageKey())||'{}')}catch{return {}}
+}
+function writePreviewTeams(v){
+  localStorage.setItem(teamsStorageKey(),JSON.stringify(v));
+}
+async function loadTeamsAlliances(){
+  const {data,error}=await sb.from('alliances').select('id,tag').order('tag');
+  if(error){
+    $('teams-alliance-grid').innerHTML=`<div class="form-message">${esc(error.message)}</div>`;
+    return;
+  }
+  teamsAlliances=(data||[]).filter(a=>a.tag);
+  renderTeamsAlliances();
+}
+function renderTeamsAlliances(){
+  const grid=$('teams-alliance-grid');
+  if(!grid)return;
+  if(!teamsAlliances.length){
+    grid.innerHTML='<div class="muted">No alliances are registered in NEXA yet.</div>';
+    return;
+  }
+  const saved=readPreviewTeams();
+  grid.innerHTML=teamsAlliances.map(a=>{
+    const count=(saved[String(a.id)]||[]).length;
+    return `<article class="q-card teams-alliance-card" data-alliance-id="${esc(a.id)}">
+      <div class="panel-head">
+        <div><div class="q-title">${esc(a.tag)}</div><div class="q-meta">${count} Team${count===1?'':'s'} created</div></div>
+        <span class="mini-badge">Open</span>
+      </div>
+    </article>`;
+  }).join('');
+}
+function openTeamsAlliance(id){
+  teamsSelectedAlliance=teamsAlliances.find(a=>String(a.id)===String(id));
+  if(!teamsSelectedAlliance)return;
+  $('teams-alliance-badge').textContent=teamsSelectedAlliance.tag;
+  $('teams-alliance-title').textContent=`${teamsSelectedAlliance.tag} Teams`;
+  $('teams-workspace').classList.remove('hidden');
+  renderTeamsList();
+  $('teams-workspace').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function renderTeamsList(){
+  if(!teamsSelectedAlliance)return;
+  const saved=readPreviewTeams();
+  const list=saved[String(teamsSelectedAlliance.id)]||[];
+  $('teams-list').innerHTML=list.length?list.map((t,i)=>`<article class="team-v1-card">
+    <div class="team-v1-title">${esc(t.name)}</div>
+    <div class="q-meta">Team setup preview • Members will be added in Phase 2</div>
+    <div class="team-v1-actions">
+      <button class="tiny-btn team-v1-rename" data-i="${i}" type="button">Rename</button>
+      <button class="tiny-btn team-v1-delete" data-i="${i}" type="button">Delete</button>
+    </div>
+  </article>`).join(''):'<div class="muted">No Teams created for this alliance yet.</div>';
+}
+function createPreviewTeam(name){
+  if(!teamsSelectedAlliance)return;
+  const clean=String(name||'').trim();
+  if(!clean)return;
+  const saved=readPreviewTeams();
+  const key=String(teamsSelectedAlliance.id);
+  saved[key]=saved[key]||[];
+  saved[key].push({name:clean,created_at:new Date().toISOString()});
+  writePreviewTeams(saved);
+  renderTeamsList();
+  renderTeamsAlliances();
+}
+function initTeamsUI(){
+  const sel=$('teams-event');
+  if(!sel)return;
+  const active=eventTypes.filter(x=>x.active);
+  sel.innerHTML=active.map(x=>`<option value="${esc(x.key)}">${esc(x.name)}</option>`).join('');
+  sel.onchange=()=>{
+    teamsSelectedAlliance=null;
+    $('teams-workspace').classList.add('hidden');
+    renderTeamsAlliances();
+  };
+
+  $('teams-alliance-grid').onclick=e=>{
+    const card=e.target.closest('.teams-alliance-card');
+    if(card)openTeamsAlliance(card.dataset.allianceId);
+  };
+  $('teams-close-alliance').onclick=()=>{
+    teamsSelectedAlliance=null;
+    $('teams-workspace').classList.add('hidden');
+  };
+  $('teams-create-form').onsubmit=e=>{
+    e.preventDefault();
+    createPreviewTeam($('teams-new-name').value);
+    $('teams-new-name').value='';
+  };
+  $('teams-list').onclick=e=>{
+    const del=e.target.closest('.team-v1-delete');
+    const ren=e.target.closest('.team-v1-rename');
+    if(!teamsSelectedAlliance)return;
+    const saved=readPreviewTeams();
+    const key=String(teamsSelectedAlliance.id);
+    const list=saved[key]||[];
+    if(del){
+      const i=Number(del.dataset.i);
+      const team=list[i];
+      if(!team)return;
+      if(!confirm(`Delete "${team.name}"?`))return;
+      list.splice(i,1);
+      saved[key]=list;
+      writePreviewTeams(saved);
+      renderTeamsList();renderTeamsAlliances();
+      return;
+    }
+    if(ren){
+      const i=Number(ren.dataset.i);
+      const team=list[i];
+      if(!team)return;
+      const next=prompt('Rename Team',team.name);
+      if(next===null)return;
+      const clean=next.trim();
+      if(!clean)return;
+      list[i].name=clean;
+      saved[key]=list;
+      writePreviewTeams(saved);
+      renderTeamsList();renderTeamsAlliances();
+    }
+  };
+  $('teams-finish-alliance').onclick=()=>{
+    if(!teamsSelectedAlliance)return;
+    const saved=readPreviewTeams();
+    const count=(saved[String(teamsSelectedAlliance.id)]||[]).length;
+    if(!count){alert('Create at least one Team first.');return}
+    confirm(`Finish ${teamsSelectedAlliance.tag} setup with ${count} Team${count===1?'':'s'}?\n\nThis is only a preview right now. Template Builder will be connected after the full Teams workflow is completed.`);
+  };
+  loadTeamsAlliances();
+}
+
 (async()=>{if(await guard()){await loadEventTypes();await loadQuestions()}})();
 
 setTimeout(initResponsesUI,300);
+setTimeout(initTeamsUI,350);
 </script>
 </body></html>

@@ -1,16 +1,39 @@
-NEXA — UNIFIED MODULE STRUCTURE PREVIEW
-NO NEW SQL.
+NEXA — MODULE SHELL FIX V2
+NO SQL.
 
-Goal:
-• Control Center remains ONLY on the module selector.
-• Once a module opens, its own name becomes the page title.
-• “← Modules” sits above the module title everywhere.
-• Administration: Administration + description + Alliances / Permissions.
-• Announcements: Announcements + description; no SvS Schedule/History.
-• SvS: SvS + description + horizontal Event Setup / Forms / Schedule / History.
-• Event Operations: same small blue ← Modules navigation above its title.
-• Transfers: renamed from NEXA Transfers to Transfers; version removed; Modules navigation normalized.
-• Friendly UI copy replaces technical labels such as allianceTags/allianceHelp.
-• Module cards use clearer one-line descriptions.
+This patch directly fixes the old Control Center shell instead of layering more UI on top.
 
-This remains a visual/navigation preview. Permission/Home visibility/Delete SQL is still intentionally deferred.
+Administration:
+- Control Center header hidden while inside module.
+- No duplicate Modules button.
+- No Schedule Management or History.
+- Administration title + description.
+- Alliances | Permissions only.
+- permissionsHelp technical key replaced.
+
+Announcements:
+- Control Center header hidden while inside module.
+- No Schedule Management / History.
+- Header is Announcements.
+- Content heading simplified to Highlighted Announcement.
+- Repetitive intro text removed.
+- Translations · Optional remains.
+- Announcement History section removed.
+
+SvS:
+- Control Center header hidden while inside module.
+- Tabs: Event Setup | Forms | Schedule Setup | History.
+- No Alliances / Permissions / Announcements.
+- Prep/Battle form buttons removed from Event Setup.
+- Forms tab contains Prep Form Open/Copy and Battle Form Open/Copy.
+- Schedule Setup opens schedule management.
+- History opens SvS history.
+
+Event Operations:
+- Keeps independent-page structure with small blue ← Modules.
+
+Transfers:
+- Small blue ← Modules moved next to/above the Transfers heading.
+- No version label.
+
+No new database changes.

@@ -38,6 +38,19 @@ label{display:grid;gap:7px;color:#e7e9f8}input,select{width:100%;background:#0d0
     <button class="btn" type="submit">+ Create Team</button>
   </form>
 
+  
+  <section class="team-card" style="margin-top:18px">
+    <div class="panel-head">
+      <div>
+        <h2>Alliance Formations</h2>
+        <p class="muted">These formations belong to the whole alliance workspace and will be shared by every Team.</p>
+      </div>
+      <button id="open-formations" class="tiny-btn" type="button">Open Formations</button>
+    </div>
+    <div id="formation-summary" class="muted">No global formations configured yet.</div>
+  </section>
+
+  <h2 style="margin-top:22px">Teams</h2>
   <div id="teams-list"></div>
 
   <div class="footer-actions">
@@ -57,11 +70,28 @@ const allianceTag=params.get('alliance_tag')||'Alliance';
 function storageKey(){return `nexa_preview_alliance_teams_${eventType}_${allianceId}`}
 function readTeams(){try{return JSON.parse(localStorage.getItem(storageKey())||'[]')}catch{return[]}}
 function writeTeams(v){localStorage.setItem(storageKey(),JSON.stringify(v))}
+
+function formationStorageKey(){return `nexa_preview_alliance_formations_${eventType}_${allianceId}`}
+function readFormationConfig(){try{return JSON.parse(localStorage.getItem(formationStorageKey())||'{}')}catch{return{}}}
+function renderFormationSummary(){
+  const cfg=readFormationConfig();
+  const rally=(cfg.rally||[]).length;
+  const joiner=(cfg.joiner||[]).length;
+  $('formation-summary').textContent=(rally||joiner)
+    ? `${rally} Rally Leader formation${rally===1?'':'s'} • ${joiner} Joiner formation${joiner===1?'':'s'}`
+    : 'No global formations configured yet.';
+}
 function render(){
+  renderFormationSummary();
   const list=readTeams();
   $('teams-list').innerHTML=list.length?list.map((t,i)=>`<article class="team-card">
-    <div class="team-title">${esc(t.name)}</div>
-    <div class="muted">Team setup preview • Rally Leaders, Joiners, Pets and Formations come next.</div>
+    <div class="panel-head">
+      <div>
+        <div class="team-title">${esc(t.name)}</div>
+        <div class="muted">Open this Team to assign Rally Leaders, Joiners, Pets and individual heroes.</div>
+      </div>
+      <button class="tiny-btn open-team" data-i="${i}" type="button">Open Team</button>
+    </div>
     <div class="actions">
       <button class="tiny-btn rename-team" data-i="${i}" type="button">Rename</button>
       <button class="tiny-btn delete-team" data-i="${i}" type="button">Delete</button>
@@ -80,9 +110,15 @@ $('create-team').onsubmit=e=>{
   $('team-name').value='';render();
 };
 $('teams-list').onclick=e=>{
+  const open=e.target.closest('.open-team');
   const ren=e.target.closest('.rename-team');
   const del=e.target.closest('.delete-team');
   const list=readTeams();
+  if(open){
+    const i=Number(open.dataset.i);const team=list[i];if(!team)return;
+    location.href=`team-builder.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}&team_index=${i}&team_name=${encodeURIComponent(team.name)}`;
+    return;
+  }
   if(ren){
     const i=Number(ren.dataset.i);const next=prompt('Rename Team',list[i]?.name||'');
     if(next===null)return;const clean=next.trim();if(!clean)return;list[i].name=clean;writeTeams(list);render();return;
@@ -93,6 +129,11 @@ $('teams-list').onclick=e=>{
     list.splice(i,1);writeTeams(list);render();
   }
 };
+
+$('open-formations').onclick=()=>{
+  location.href=`alliance-formations.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}`;
+};
+
 $('finish-alliance').onclick=()=>{
   const list=readTeams();
   if(!list.length){alert('Create at least one Team first.');return}

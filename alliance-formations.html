@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>NEXA • Alliance Formations</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#070711;--panel:#111221;--text:#f5f7ff;--muted:#a6abc4;--line:rgba(255,255,255,.11)}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#17132c 0,#090912 42%,#06060b 100%);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.shell{max-width:1100px;margin:0 auto;padding:20px 16px 60px}.back{display:inline-block;margin:4px 0 14px;color:#c9c8ff;text-decoration:none}.glass{background:rgba(16,17,31,.86);border:1px solid var(--line);border-radius:22px;padding:18px}.muted{color:var(--muted)}
+h1,h2,h3{margin:.25rem 0 .5rem}.badge,.mini-badge{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:5px 9px;font-size:.78rem;color:#d9d8ff}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.card{border:1px solid var(--line);border-radius:16px;padding:14px;background:rgba(255,255,255,.03)}label{display:grid;gap:7px;margin-top:10px}input,select{width:100%;background:#0d0e18;color:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 12px}
+.row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.btn,.tiny-btn{border:1px solid var(--line);background:#1c1d31;color:#fff;border-radius:12px;padding:10px 12px;font-weight:700}.btn{background:linear-gradient(135deg,#6b4cff,#8f6dff)}
+.form-item{border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:10px}.check{display:flex;gap:8px;align-items:center;margin-top:10px}
+@media(max-width:800px){.grid{grid-template-columns:1fr}.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main class="shell">
+<a class="back" href="javascript:void(0)" id="back-link">← Alliance Workspace</a>
+<section class="glass">
+  <span class="badge" id="event-badge">EVENT</span>
+  <h1 id="title">Alliance Formations</h1>
+  <p class="muted">Global formations for this alliance. Every Team can inherit these settings.</p>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Rally Leader Formations</h2>
+      <p class="muted">Create unlimited Attack or Defense formations.</p>
+      <form id="rally-form">
+        <label>Formation Name<input id="rally-name" placeholder="e.g. Main Attack"></label>
+        <label>Type<select id="rally-type"><option value="attack">Attack</option><option value="defense">Defense</option></select></label>
+        <div class="row">
+          <label>Infantry %<input id="rally-inf" type="number" min="0" max="100"></label>
+          <label>Lancer %<input id="rally-lan" type="number" min="0" max="100"></label>
+          <label>Marksman %<input id="rally-mar" type="number" min="0" max="100"></label>
+        </div>
+        <button class="btn" type="submit">+ Add Formation</button>
+      </form>
+      <div id="rally-list"></div>
+    </section>
+
+    <section class="card">
+      <h2>Joiner Formations</h2>
+      <p class="muted">Recommended Heroes are optional for you as Admin.</p>
+      <form id="joiner-form">
+        <label>Formation Name<input id="joiner-name" placeholder="e.g. Main Attack"></label>
+        <label>Type<select id="joiner-type"><option value="attack">Attack</option><option value="defense">Defense</option></select></label>
+        <div class="row">
+          <label>Infantry %<input id="joiner-inf" type="number" min="0" max="100"></label>
+          <label>Lancer %<input id="joiner-lan" type="number" min="0" max="100"></label>
+          <label>Marksman %<input id="joiner-mar" type="number" min="0" max="100"></label>
+        </div>
+        <label class="check"><input id="joiner-use-heroes" type="checkbox"> Include Recommended Heroes</label>
+        <div id="joiner-heroes-wrap" style="display:none">
+          <label>Recommended Heroes
+            <input id="joiner-heroes" placeholder="Preview: comma-separated names">
+          </label>
+        </div>
+        <button class="btn" type="submit">+ Add Formation</button>
+      </form>
+      <div id="joiner-list"></div>
+    </section>
+  </div>
+</section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+const p=new URLSearchParams(location.search);
+const eventType=p.get('event_type')||'svs', allianceId=p.get('alliance_id')||'', allianceTag=p.get('alliance_tag')||'Alliance';
+const key=()=>`nexa_preview_alliance_formations_${eventType}_${allianceId}`;
+const read=()=>{try{return JSON.parse(localStorage.getItem(key())||'{"rally":[],"joiner":[]}')}catch{return{rally:[],joiner:[]}}};
+const write=v=>localStorage.setItem(key(),JSON.stringify(v));
+$('title').textContent=`${allianceTag} Alliance Formations`; $('event-badge').textContent=eventType.toUpperCase();
+$('back-link').onclick=()=>location.href=`alliance-teams.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}`;
+$('joiner-use-heroes').onchange=e=>$('joiner-heroes-wrap').style.display=e.target.checked?'block':'none';
+function ratioValid(i,l,m){return Number(i)+Number(l)+Number(m)===100}
+function render(){
+  const d=read();
+  const make=(x,i,type)=>`<div class="form-item"><b>${esc(x.name)}</b> <span class="mini-badge">${esc(x.type.toUpperCase())}</span><div class="muted">${x.inf}/${x.lan}/${x.mar}${x.heroes?.length?' • Heroes: '+esc(x.heroes.join(', ')):''}</div><div class="actions"><button class="tiny-btn del" data-type="${type}" data-i="${i}" type="button">Delete</button></div></div>`;
+  $('rally-list').innerHTML=(d.rally||[]).map((x,i)=>make(x,i,'rally')).join('')||'<p class="muted">No Rally Leader formations yet.</p>';
+  $('joiner-list').innerHTML=(d.joiner||[]).map((x,i)=>make(x,i,'joiner')).join('')||'<p class="muted">No Joiner formations yet.</p>';
+}
+$('rally-form').onsubmit=e=>{
+  e.preventDefault(); const inf=$('rally-inf').value,lan=$('rally-lan').value,mar=$('rally-mar').value;
+  if(!ratioValid(inf,lan,mar)){alert('Troop ratio must total 100%.');return}
+  const d=read(); d.rally=d.rally||[]; d.rally.push({name:$('rally-name').value.trim()||'Formation',type:$('rally-type').value,inf:Number(inf),lan:Number(lan),mar:Number(mar)}); write(d); e.target.reset(); render();
+};
+$('joiner-form').onsubmit=e=>{
+  e.preventDefault(); const inf=$('joiner-inf').value,lan=$('joiner-lan').value,mar=$('joiner-mar').value;
+  if(!ratioValid(inf,lan,mar)){alert('Troop ratio must total 100%.');return}
+  const heroes=$('joiner-use-heroes').checked?$('joiner-heroes').value.split(',').map(x=>x.trim()).filter(Boolean):[];
+  const d=read(); d.joiner=d.joiner||[]; d.joiner.push({name:$('joiner-name').value.trim()||'Formation',type:$('joiner-type').value,inf:Number(inf),lan:Number(lan),mar:Number(mar),heroes}); write(d); e.target.reset(); $('joiner-heroes-wrap').style.display='none'; render();
+};
+document.addEventListener('click',e=>{
+  const b=e.target.closest('.del'); if(!b)return; const d=read(); const arr=d[b.dataset.type]||[]; const i=Number(b.dataset.i); if(!arr[i])return; if(!confirm(`Delete "${arr[i].name}"?`))return; arr.splice(i,1); d[b.dataset.type]=arr; write(d); render();
+});
+render();
+</script>
+</body>
+</html>

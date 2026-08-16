@@ -50,44 +50,10 @@ html.embed-mode .team-card,
 html.embed-mode .builder-grid{
   touch-action:pan-y!important;
 }
-
-/* BBC / Team workspace: native iOS scrolling.
-   Do not forward touch events to the parent shell. */
-html.embed-mode,
-html.embed-mode body{
-  height:100%!important;
-  min-height:100%!important;
-  overflow-y:auto!important;
-  overflow-x:hidden!important;
-  -webkit-overflow-scrolling:touch!important;
-  overscroll-behavior-y:contain!important;
-  touch-action:pan-y!important;
-}
-html.embed-mode body{
-  margin:0!important;
-  padding:0 0 calc(120px + env(safe-area-inset-bottom))!important;
-}
-html.embed-mode main,
-html.embed-mode .shell{
-  height:auto!important;
-  min-height:100%!important;
-  overflow:visible!important;
-}
-html.embed-mode .team-table-wrap{
-  overflow-x:auto!important;
-  overflow-y:visible!important;
-  -webkit-overflow-scrolling:touch!important;
-}
-
 </style>
 </head>
 <body>
-<script>
-(function(){
-  const q=new URLSearchParams(location.search);
-  if(q.get('embed')==='1') document.documentElement.classList.add('embed-mode');
-})();
-</script>
+
 
 <main class="shell">
 <a class="back" href="javascript:void(0)" id="back-link">← Teams</a>
@@ -144,7 +110,7 @@ html.embed-mode .team-table-wrap{
 const sb=window.supabase.createClient("https://dfxcxboxrkfmrnsgpyin.supabase.co","sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-");
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
-const params=new URLSearchParams(location.search);
+const params=window.NEXA_NATIVE_PARAMS||new URLSearchParams(location.search);
 const eventType=params.get('event_type')||'svs';
 const allianceId=params.get('alliance_id')||'';
 const allianceTag=params.get('alliance_tag')||'Alliance';
@@ -154,13 +120,19 @@ $('title').textContent=`${allianceTag} Team Organization`;
 $('alliance-badge').textContent=allianceTag;
 $('event-badge').textContent=eventType.toUpperCase();
 $('back-link').onclick=()=>{
-  const embedded=params.get('embed')==='1';
-  location.href=embedded?'event-operations.html?embed=1&tab=teams':'event-operations.html?tab=teams';
+  const _next='event-operations.html?tab=teams';
+  if(typeof window.NEXA_NATIVE_OPEN==='function') window.NEXA_NATIVE_OPEN(_next);
+  else location.href=_next;
 };
-$('history-btn').onclick=()=>location.href=`alliance-team-history.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}`;
+$('history-btn').onclick=()=>{
+  const _next=`alliance-team-history.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}`;
+  if(typeof window.NEXA_NATIVE_OPEN==='function') window.NEXA_NATIVE_OPEN(_next);
+  else location.href=_next;
+};
 $('open-formations').onclick=()=>{
-  const embedPart=params.get('embed')==='1'?'&embed=1':'';
-  location.href=`alliance-formations.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}${embedPart}`;
+  const _next=`alliance-formations.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}`;
+  if(typeof window.NEXA_NATIVE_OPEN==='function') window.NEXA_NATIVE_OPEN(_next);
+  else location.href=_next;
 };
 
 async function guard(){
@@ -244,7 +216,11 @@ $('teams-list').onclick=async e=>{
   if(open){
     {
       const embedPart=params.get('embed')==='1'?'&embed=1':'';
-      location.href=`team-builder.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}&team_id=${encodeURIComponent(team.id)}&team_name=${encodeURIComponent(team.name)}${embedPart}`;
+      {
+      const _next=`team-builder.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}&team_id=${encodeURIComponent(team.id)}&team_name=${encodeURIComponent(team.name)}`;
+      if(typeof window.NEXA_NATIVE_OPEN==='function') window.NEXA_NATIVE_OPEN(_next);
+      else location.href=_next;
+    }
     }
     return;
   }
@@ -274,6 +250,39 @@ $('finish-alliance').onclick=()=>{
 (async()=>{if(!(await guard()))return;await Promise.all([loadTeams(),loadFormationSummary()]);})();
 </script>
 
+<script>
+(function(){
+  const q=new URLSearchParams(location.search);
+  if(q.get('embed')!=='1') return;
 
+  let y=null,x=null,vertical=false;
+  const getScroller=()=>{
+    try{return parent.document.querySelector('#admin-modal .admin-modal-card')}catch(_){return null}
+  };
+
+  document.addEventListener('touchstart',e=>{
+    const t=e.touches&&e.touches[0];
+    if(!t)return;
+    y=t.clientY;x=t.clientX;vertical=false;
+  },{passive:true,capture:true});
+
+  document.addEventListener('touchmove',e=>{
+    const t=e.touches&&e.touches[0];
+    if(!t||y===null)return;
+    const dy=y-t.clientY,dx=x-t.clientX;
+    if(!vertical && Math.abs(dy)>4 && Math.abs(dy)>Math.abs(dx)) vertical=true;
+    if(vertical){
+      const scroller=getScroller();
+      if(scroller){
+        e.preventDefault();
+        scroller.scrollTop+=dy;
+      }
+      y=t.clientY;x=t.clientX;
+    }
+  },{passive:false,capture:true});
+
+  document.addEventListener('touchend',()=>{y=null;x=null;vertical=false},{passive:true,capture:true});
+})();
+</script>
 </body>
 </html>

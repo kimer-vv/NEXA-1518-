@@ -238,45 +238,11 @@ html.embed-mode main{
   position:relative!important;z-index:100000!important;
   max-height:calc(100dvh - 40px)!important;overflow-y:auto!important;
 }
-
-/* BBC / Team workspace: native iOS scrolling.
-   Do not forward touch events to the parent shell. */
-html.embed-mode,
-html.embed-mode body{
-  height:100%!important;
-  min-height:100%!important;
-  overflow-y:auto!important;
-  overflow-x:hidden!important;
-  -webkit-overflow-scrolling:touch!important;
-  overscroll-behavior-y:contain!important;
-  touch-action:pan-y!important;
-}
-html.embed-mode body{
-  margin:0!important;
-  padding:0 0 calc(120px + env(safe-area-inset-bottom))!important;
-}
-html.embed-mode main,
-html.embed-mode .shell{
-  height:auto!important;
-  min-height:100%!important;
-  overflow:visible!important;
-}
-html.embed-mode .team-table-wrap{
-  overflow-x:auto!important;
-  overflow-y:visible!important;
-  -webkit-overflow-scrolling:touch!important;
-}
-
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-<script>
-(function(){
-  const q=new URLSearchParams(location.search);
-  if(q.get('embed')==='1') document.documentElement.classList.add('embed-mode');
-})();
-</script>
+
 
 <main class="shell">
 <a class="back" href="javascript:void(0)" id="back-link">← Alliance Workspace</a>
@@ -380,7 +346,7 @@ function displayName(v){
   return out;
 }
 
-const p=new URLSearchParams(location.search);
+const p=window.NEXA_NATIVE_PARAMS||new URLSearchParams(location.search);
 const eventType=p.get('event_type')||'svs',allianceId=p.get('alliance_id')||'',allianceTag=p.get('alliance_tag')||'Alliance';
 let teamId=p.get('team_id')||'';
 const teamName=p.get('team_name')||'Team';
@@ -392,12 +358,14 @@ let assignmentIndex={rally:{},joiner:{}};
 let scheduleMember=null;
 $('event-badge').textContent=eventType.toUpperCase();$('title').textContent=`${allianceTag} • ${teamName}`;
 $('back-link').onclick=()=>{
-  const embedPart=p.get('embed')==='1'?'&embed=1':'';
-  location.href=`alliance-teams.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}${embedPart}`;
+  const _next=`alliance-teams.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}`;
+  if(typeof window.NEXA_NATIVE_OPEN==='function') window.NEXA_NATIVE_OPEN(_next);
+  else location.href=_next;
 };
 $('history-btn').onclick=()=>{
-  const embedPart=p.get('embed')==='1'?'&embed=1':'';
-  location.href=`alliance-team-history.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}${embedPart}`;
+  const _next=`alliance-team-history.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}`;
+  if(typeof window.NEXA_NATIVE_OPEN==='function') window.NEXA_NATIVE_OPEN(_next);
+  else location.href=_next;
 };
 
 async function guard(){const {data:{session}}=await sb.auth.getSession();if(!session){location.href='index.html';return false}return true}
@@ -725,8 +693,28 @@ $('joiner-list').onchange=async e=>{
 };
 
 
-function openScheduleModal(m){scheduleMember=m;$('schedule-player').textContent=displayName(m.player_name);$('schedule-start').innerHTML=hourOptions(m.schedule_start_utc);$('schedule-end').innerHTML=hourOptions(m.schedule_end_utc);$('schedule-pets').value=m.pets_active?'yes':'no';$('schedule-modal').style.display='grid'}
-$('schedule-close').onclick=()=>{$('schedule-modal').style.display='none';scheduleMember=null};
+function openScheduleModal(m){
+ scheduleMember=m;
+ const modal=$('schedule-modal');
+ $('schedule-player').textContent=displayName(m.player_name);
+ $('schedule-start').innerHTML=hourOptions(m.schedule_start_utc);
+ $('schedule-end').innerHTML=hourOptions(m.schedule_end_utc);
+ $('schedule-pets').value=m.pets_active?'yes':'no';
+
+ // When Team Builder is running as a true native Admin view, move the modal
+ // to document.body so no scroll/overflow container can clip it.
+ if(window.NEXA_NATIVE_PARAMS && modal.parentElement!==document.body){
+   modal.dataset.nexaNativePortal='1';
+   document.body.appendChild(modal);
+ }
+ modal.style.display='grid';
+ document.body.classList.add('nexa-schedule-open');
+}
+$('schedule-close').onclick=()=>{
+ $('schedule-modal').style.display='none';
+ document.body.classList.remove('nexa-schedule-open');
+ scheduleMember=null;
+};
 $('schedule-save').onclick=async()=>{
  if(!scheduleMember)return; const a=$('schedule-start').value,b=$('schedule-end').value,pets=$('schedule-pets').value==='yes';
  if(a===''||b===''){alert('Choose both Start UTC and End UTC.');return} if(+a>=+b){alert('End UTC must be later than Start UTC.');return}
@@ -737,7 +725,10 @@ $('schedule-save').onclick=async()=>{
  const {error}=await sb.from('team_members').update({schedule_start_utc:+a,schedule_end_utc:+b,pets_active:pets,updated_at:new Date().toISOString()}).eq('id',scheduleMember.id);
  if(error){alert(error.message);return}
  await addLog('rally_schedule_changed',{player_name:scheduleMember.player_name,team_name:teamName,from:prev,to:{start:+a,end:+b,pets}},scheduleMember.player_account_id);
- $('schedule-modal').style.display='none';scheduleMember=null;await loadMembers();
+ $('schedule-modal').style.display='none';
+ document.body.classList.remove('nexa-schedule-open');
+ scheduleMember=null;
+ await loadMembers();
 };
 
 document.addEventListener('click',async e=>{

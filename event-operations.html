@@ -696,7 +696,11 @@ function initTeamsUI(){
     {
       const embedded=new URLSearchParams(location.search).get('embed')==='1';
       const embedPart=embedded?'&embed=1':'';
-      location.href=`alliance-teams.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}${embedPart}`;
+      {
+    const _next=`alliance-teams.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}`;
+    if(typeof window.NEXA_NATIVE_OPEN==='function') window.NEXA_NATIVE_OPEN(_next);
+    else location.href=_next;
+  }
     }
   };
   loadTeamsAlliances();
@@ -706,6 +710,10 @@ function initTeamsUI(){
 
 setTimeout(initResponsesUI,300);
 setTimeout(initTeamsUI,350);
+setTimeout(()=>{
+  const _tab=window.NEXA_NATIVE_PARAMS?.get('tab')||new URLSearchParams(location.search).get('tab');
+  if(_tab && typeof showTab==='function') showTab(_tab);
+},420);
 </script>
 
 </div>

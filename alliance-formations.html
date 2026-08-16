@@ -69,44 +69,10 @@ html.embed-mode main{
   .hero-toggle{grid-template-columns:28px minmax(0,1fr)!important}
 }
 
-
-/* BBC / Team workspace: native iOS scrolling.
-   Do not forward touch events to the parent shell. */
-html.embed-mode,
-html.embed-mode body{
-  height:100%!important;
-  min-height:100%!important;
-  overflow-y:auto!important;
-  overflow-x:hidden!important;
-  -webkit-overflow-scrolling:touch!important;
-  overscroll-behavior-y:contain!important;
-  touch-action:pan-y!important;
-}
-html.embed-mode body{
-  margin:0!important;
-  padding:0 0 calc(120px + env(safe-area-inset-bottom))!important;
-}
-html.embed-mode main,
-html.embed-mode .shell{
-  height:auto!important;
-  min-height:100%!important;
-  overflow:visible!important;
-}
-html.embed-mode .team-table-wrap{
-  overflow-x:auto!important;
-  overflow-y:visible!important;
-  -webkit-overflow-scrolling:touch!important;
-}
-
 </style>
 </head>
 <body>
-<script>
-(function(){
-  const q=new URLSearchParams(location.search);
-  if(q.get('embed')==='1') document.documentElement.classList.add('embed-mode');
-})();
-</script>
+
 
 <main class="shell">
 <a class="back" href="javascript:void(0)" id="back-link">← Alliance Workspace</a>
@@ -169,13 +135,14 @@ html.embed-mode .team-table-wrap{
 const sb=window.supabase.createClient("https://dfxcxboxrkfmrnsgpyin.supabase.co","sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-");
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
-const p=new URLSearchParams(location.search);
+const p=window.NEXA_NATIVE_PARAMS||new URLSearchParams(location.search);
 const eventType=p.get('event_type')||'svs', allianceId=p.get('alliance_id')||'', allianceTag=p.get('alliance_tag')||'Alliance';
 let rows=[],editingFormation={scope:null,id:null},rallyHeroPool={infantry:[],lancer:[],marksman:[]},joinerHeroPool=[];
 $('title').textContent=`${allianceTag} Alliance Formations`;$('event-badge').textContent=eventType.toUpperCase();
 $('back-link').onclick=()=>{
-  const embedPart=p.get('embed')==='1'?'&embed=1':'';
-  location.href=`alliance-teams.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}${embedPart}`;
+  const _next=`alliance-teams.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}`;
+  if(typeof window.NEXA_NATIVE_OPEN==='function') window.NEXA_NATIVE_OPEN(_next);
+  else location.href=_next;
 };
 
 async function guard(){const {data:{session}}=await sb.auth.getSession();if(!session){location.href='index.html';return false}return true}

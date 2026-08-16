@@ -1,26 +1,16 @@
-NEXA — Finish Alliance + Template Builder V1
+NEXA — Live Template Branding V2
 
-Replace/add:
-- alliance-teams.html
+Run NEXA-ALLIANCE-BRANDING.sql first.
+Replace ONLY:
 - template-builder.html
 
-No SQL required.
+Adds:
+- Alliance emblem upload, saved permanently for that alliance.
+- Live preview while changing template, colors, font, weights and layout.
+- Saved alliance branding shared across events for the same alliance.
+- Color controls for background, team headers, section background, primary/secondary text, pet accent, borders.
+- Font family + title/body weights.
+- Existing adaptive 1–6 Team layout remains.
 
-New flow:
-Alliance Workspace -> Finish Alliance Setup -> Template Builder
-
-Template Builder V1:
-- Loads ALL Teams for the selected alliance/event.
-- Loads Rally Leaders, Pet Windows, Joiners, Attack Heroes, Defensive Heroes.
-- Loads Alliance Formations once at the bottom.
-- Hides Defensive Hero values when the Team is not using Defensive Heroes.
-- Adapts layout based on Team count:
-  1 team = 1 column
-  2 = 2 columns
-  3 = 3 columns
-  4 = 4 columns
-  5-6 = 3 columns x multiple rows, with Auto compact mode for 5+.
-- Normalizes player names visually.
-- Includes template theme selector and preview fullscreen.
-- Print/PDF works through the browser.
-- PNG/JPG export and persistent custom template saves are intentionally the next phase.
+Emblem is stored as a compact data URL in Supabase for simplicity.
+Client limits uploaded emblem to 700 KB.

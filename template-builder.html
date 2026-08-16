@@ -8,7 +8,7 @@
 <style>
 :root{
   --bg:#070812;--panel:#111321;--panel2:#171a2b;--text:#f6f7ff;--muted:#a9aec7;--line:#2e3246;
-  --accent:#6f52ff;--sheet-bg:#ffffff;--sheet-text:#14213d;--team-head:#173b7a;--section-bg:#eef2f8;--pet:#d89b20;
+  --accent:#6f52ff;--sheet-bg:#ffffff;--sheet-text:#14213d;--sheet-muted:#677084;--team-head:#173b7a;--section-bg:#eef2f8;--pet:#d89b20;--sheet-border:#cfd5e2;--sheet-font:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;--title-weight:900;--body-weight:400;
 }
 *{box-sizing:border-box}
 body{margin:0;background:radial-gradient(circle at top,#17132c 0,#090912 42%,#06060b 100%);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -59,6 +59,22 @@ select,input{width:100%;background:#090b15;color:#fff;border:1px solid #3c415a;b
   .builder{grid-template-columns:1fr}
   .sheet{min-width:820px}
 }
+
+.color-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.color-grid input[type=color]{height:42px;padding:3px}
+.brand-preview{display:flex;gap:10px;align-items:center}
+.brand-preview img{width:58px;height:58px;object-fit:contain;border-radius:12px;border:1px solid var(--line);background:#090b15;padding:5px}
+.sheet{font-family:var(--sheet-font)!important;font-weight:var(--body-weight)}
+.sheet-title{font-weight:var(--title-weight)!important}
+.sheet-subtitle{color:var(--sheet-muted);font-weight:700}
+.sheet-brand-row{display:flex;justify-content:center;align-items:center;gap:16px}
+.sheet-emblem{width:74px;height:74px;object-fit:contain}
+.team-card{border-color:var(--sheet-border)!important}
+.player-row{border-top-color:var(--sheet-border)!important}
+.formations{border-top-color:var(--sheet-border)!important}
+.formation-card{border-color:var(--sheet-border)!important}
+.legend{color:var(--sheet-muted)!important}
+
 </style>
 </head>
 <body>
@@ -70,7 +86,22 @@ select,input{width:100%;background:#090b15;color:#fff;border:1px solid #3c415a;b
     <p class="muted">Build the final alliance team plan from your saved NEXA data.</p>
     <div class="controls">
       <div class="control-card">
-        <h3>1. Template</h3>
+        <h3>1. Alliance Branding</h3>
+        <div class="brand-preview">
+          <img id="brand-emblem-preview" alt="" style="display:none">
+          <div>
+            <b id="brand-alliance-label">Alliance</b>
+            <div class="muted" style="font-size:.8rem">Saved permanently for this alliance.</div>
+          </div>
+        </div>
+        <label style="margin-top:10px">Alliance Emblem
+          <input id="emblem-file" type="file" accept="image/png,image/jpeg,image/webp">
+        </label>
+        <button class="btn" id="remove-emblem" type="button">Remove Emblem</button>
+      </div>
+
+      <div class="control-card">
+        <h3>2. Select Template</h3>
         <select id="template-style">
           <option value="classic">Classic Light</option>
           <option value="dark">Dark Forge</option>
@@ -79,8 +110,41 @@ select,input{width:100%;background:#090b15;color:#fff;border:1px solid #3c415a;b
           <option value="forest">Forest Green</option>
         </select>
       </div>
+
       <div class="control-card">
-        <h3>2. Layout</h3>
+        <h3>3. Customize Colors</h3>
+        <div class="color-grid">
+          <label>Background<input id="c-bg" type="color"></label>
+          <label>Title / Header<input id="c-header" type="color"></label>
+          <label>Team Header<input id="c-team" type="color"></label>
+          <label>Section Background<input id="c-section" type="color"></label>
+          <label>Primary Text<input id="c-text" type="color"></label>
+          <label>Secondary Text<input id="c-muted" type="color"></label>
+          <label>Pets Accent<input id="c-pet" type="color"></label>
+          <label>Border / Divider<input id="c-border" type="color"></label>
+        </div>
+      </div>
+
+      <div class="control-card">
+        <h3>4. Text Style</h3>
+        <label>Font Family
+          <select id="font-family">
+            <option value="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">NEXA / System</option>
+            <option value="Arial, Helvetica, sans-serif">Arial</option>
+            <option value="'Trebuchet MS', Arial, sans-serif">Trebuchet</option>
+            <option value="Georgia, 'Times New Roman', serif">Georgia</option>
+          </select>
+        </label>
+        <label style="margin-top:10px">Title Weight
+          <select id="title-weight"><option value="700">Medium</option><option value="900">Bold</option></select>
+        </label>
+        <label style="margin-top:10px">Body Weight
+          <select id="body-weight"><option value="400">Normal</option><option value="600">Medium</option><option value="700">Bold</option></select>
+        </label>
+      </div>
+
+      <div class="control-card">
+        <h3>5. Layout</h3>
         <label>Scale
           <select id="density">
             <option value="auto">Auto</option>
@@ -89,17 +153,20 @@ select,input{width:100%;background:#090b15;color:#fff;border:1px solid #3c415a;b
           </select>
         </label>
       </div>
+
       <div class="control-card">
-        <h3>3. Preview</h3>
-        <button class="btn" id="fullscreen" type="button">Preview Fullscreen</button>
+        <h3>6. Save Branding</h3>
+        <button class="btn primary" id="save-branding" type="button">Save Alliance Branding</button>
+        <button class="btn" id="reset-branding" type="button" style="margin-top:8px">Reset to Template Default</button>
       </div>
+
       <div class="control-card">
-        <h3>4. Export</h3>
-        <div class="row">
-          <button class="btn primary" id="save-preview" type="button">Save</button>
+        <h3>7. Preview & Export</h3>
+        <button class="btn" id="fullscreen" type="button">Preview Fullscreen</button>
+        <div class="row" style="margin-top:8px">
           <button class="btn" id="print-btn" type="button">Print / PDF</button>
+          <button class="btn" id="save-preview" type="button">Save Layout</button>
         </div>
-        <p class="muted" style="font-size:.8rem;margin-bottom:0">PNG/JPG export comes next; this first version validates the final layout and data flow.</p>
       </div>
     </div>
   </aside>
@@ -107,8 +174,13 @@ select,input{width:100%;background:#090b15;color:#fff;border:1px solid #3c415a;b
   <section class="panel preview-wrap">
     <div id="sheet" class="sheet">
       <div class="sheet-header">
-        <div class="sheet-title" id="sheet-title">Alliance</div>
-        <div id="sheet-subtitle" style="color:#677084;font-weight:700"></div>
+        <div class="sheet-brand-row">
+          <img id="sheet-emblem" class="sheet-emblem" alt="" style="display:none">
+          <div>
+            <div class="sheet-title" id="sheet-title">Alliance</div>
+            <div id="sheet-subtitle" class="sheet-subtitle"></div>
+          </div>
+        </div>
       </div>
       <div id="teams-grid" class="teams-grid"></div>
       <div id="formations" class="formations"></div>
@@ -198,24 +270,135 @@ function autoDensity(count){
   const compact=mode==='compact'||(mode==='auto'&&count>=5);
   $('sheet').classList.toggle('compact',compact);
 }
-function applyTheme(v){
+
+const templateDefaults={
+  classic:{bg:'#ffffff',text:'#14213d',muted:'#677084',head:'#173b7a',section:'#eef2f8',pet:'#d89b20',border:'#cfd5e2'},
+  dark:{bg:'#0d111c',text:'#f4f6ff',muted:'#a8b0c1',head:'#1b243a',section:'#151a26',pet:'#f0a82c',border:'#2d3446'},
+  gold:{bg:'#fffaf0',text:'#2b210d',muted:'#77684c',head:'#8a6719',section:'#f5ead0',pet:'#c89012',border:'#d9c99c'},
+  ice:{bg:'#f4fbff',text:'#103149',muted:'#607c8d',head:'#1976a5',section:'#e3f4fb',pet:'#dc9b20',border:'#b9d8e5'},
+  forest:{bg:'#f6fbf7',text:'#183c29',muted:'#607769',head:'#285f42',section:'#e6f1e9',pet:'#d99b20',border:'#bfd2c5'}
+};
+let branding={
+  emblem_data_url:'',
+  template_style:'classic',
+  colors:{...templateDefaults.classic},
+  font_family:"Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  title_weight:'900',
+  body_weight:'400'
+};
+
+function applyBranding(){
   const root=document.documentElement;
-  const themes={
-    classic:['#ffffff','#14213d','#173b7a','#eef2f8','#d89b20'],
-    dark:['#0d111c','#f4f6ff','#1b243a','#151a26','#f0a82c'],
-    gold:['#fffaf0','#2b210d','#8a6719','#f5ead0','#c89012'],
-    ice:['#f4fbff','#103149','#1976a5','#e3f4fb','#dc9b20'],
-    forest:['#f6fbf7','#183c29','#285f42','#e6f1e9','#d99b20']
-  };
-  const [bg,text,head,section,pet]=themes[v]||themes.classic;
-  root.style.setProperty('--sheet-bg',bg);root.style.setProperty('--sheet-text',text);root.style.setProperty('--team-head',head);root.style.setProperty('--section-bg',section);root.style.setProperty('--pet',pet);
+  const c=branding.colors||templateDefaults.classic;
+  root.style.setProperty('--sheet-bg',c.bg);
+  root.style.setProperty('--sheet-text',c.text);
+  root.style.setProperty('--sheet-muted',c.muted);
+  root.style.setProperty('--team-head',c.head);
+  root.style.setProperty('--section-bg',c.section);
+  root.style.setProperty('--pet',c.pet);
+  root.style.setProperty('--sheet-border',c.border);
+  root.style.setProperty('--sheet-font',branding.font_family);
+  root.style.setProperty('--title-weight',branding.title_weight);
+  root.style.setProperty('--body-weight',branding.body_weight);
+
+  $('template-style').value=branding.template_style||'classic';
+  $('c-bg').value=c.bg;$('c-header').value=c.head;$('c-team').value=c.head;$('c-section').value=c.section;
+  $('c-text').value=c.text;$('c-muted').value=c.muted;$('c-pet').value=c.pet;$('c-border').value=c.border;
+  $('font-family').value=branding.font_family;
+  $('title-weight').value=branding.title_weight;
+  $('body-weight').value=branding.body_weight;
+
+  const emblem=branding.emblem_data_url||'';
+  $('sheet-emblem').src=emblem;$('sheet-emblem').style.display=emblem?'block':'none';
+  $('brand-emblem-preview').src=emblem;$('brand-emblem-preview').style.display=emblem?'block':'none';
 }
-$('template-style').onchange=e=>applyTheme(e.target.value);
-$('density').onchange=()=>load();
+
+async function loadBranding(){
+  const {data,error}=await sb.from('alliance_branding').select('*').eq('alliance_id',String(allianceId)).maybeSingle();
+  if(error){console.warn(error.message);applyBranding();return}
+  if(data){
+    branding={
+      emblem_data_url:data.emblem_data_url||'',
+      template_style:data.template_style||'classic',
+      colors:{...templateDefaults[data.template_style||'classic'],...(data.colors||{})},
+      font_family:data.font_family||branding.font_family,
+      title_weight:String(data.title_weight||900),
+      body_weight:String(data.body_weight||400)
+    };
+  }
+  applyBranding();
+}
+
+function useTemplatePreset(name){
+  branding.template_style=name;
+  branding.colors={...templateDefaults[name]};
+  applyBranding();
+}
+
+function readLiveColors(){
+  branding.colors={
+    bg:$('c-bg').value,
+    text:$('c-text').value,
+    muted:$('c-muted').value,
+    head:$('c-team').value,
+    section:$('c-section').value,
+    pet:$('c-pet').value,
+    border:$('c-border').value
+  };
+  branding.font_family=$('font-family').value;
+  branding.title_weight=$('title-weight').value;
+  branding.body_weight=$('body-weight').value;
+  applyBranding();
+}
+
+$('brand-alliance-label').textContent=allianceTag;
+$('template-style').onchange=e=>useTemplatePreset(e.target.value);
+['c-bg','c-header','c-team','c-section','c-text','c-muted','c-pet','c-border','font-family','title-weight','body-weight']
+  .forEach(id=>$(id).oninput=readLiveColors);
+
+$('emblem-file').onchange=e=>{
+  const file=e.target.files?.[0];if(!file)return;
+  if(file.size>700000){alert('Please use an emblem image smaller than 700 KB.');e.target.value='';return}
+  const reader=new FileReader();
+  reader.onload=()=>{branding.emblem_data_url=String(reader.result||'');applyBranding()};
+  reader.readAsDataURL(file);
+};
+$('remove-emblem').onclick=()=>{branding.emblem_data_url='';$('emblem-file').value='';applyBranding()};
+
+$('save-branding').onclick=async()=>{
+  readLiveColors();
+  const payload={
+    alliance_id:String(allianceId),
+    alliance_tag:allianceTag,
+    emblem_data_url:branding.emblem_data_url||null,
+    template_style:branding.template_style,
+    colors:branding.colors,
+    font_family:branding.font_family,
+    title_weight:Number(branding.title_weight),
+    body_weight:Number(branding.body_weight),
+    updated_at:new Date().toISOString()
+  };
+  const {error}=await sb.from('alliance_branding').upsert(payload,{onConflict:'alliance_id'});
+  if(error){alert(error.message);return}
+  alert('Alliance branding saved ✓');
+};
+
+$('reset-branding').onclick=()=>{
+  branding.template_style=$('template-style').value||'classic';
+  branding.colors={...templateDefaults[branding.template_style]};
+  branding.font_family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+  branding.title_weight='900';branding.body_weight='400';
+  applyBranding();
+};
+
+$('density').onchange=()=>autoDensity(document.querySelectorAll('.team-card').length);
 $('fullscreen').onclick=()=>document.getElementById('sheet').requestFullscreen?.();
 $('print-btn').onclick=()=>window.print();
-$('save-preview').onclick=()=>alert('Template layout saved for this preview. Persistent saved-template profiles come in the next export phase.');
-load();
+$('save-preview').onclick=()=>alert('Layout preview saved locally for this session. Alliance branding is saved separately with Save Alliance Branding.');
+
+(async()=>{
+  await Promise.all([load(),loadBranding()]);
+})();
 </script>
 </body>
 </html>

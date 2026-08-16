@@ -69,6 +69,42 @@ button.danger{
 .hero-status.warn{color:#ffc981}
 @media(max-width:700px){.hero-assignment-grid{grid-template-columns:1fr}.defense-toggle{width:100%;justify-content:space-between}}
 
+
+.team-section{border:1px solid var(--line);border-radius:18px;padding:14px;background:rgba(255,255,255,.025)}
+.team-section-head{display:flex;justify-content:space-between;gap:14px;align-items:center;flex-wrap:wrap}
+.team-section-head h2{margin:0}
+.joiner-head-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.team-table-wrap{overflow-x:auto;margin-top:12px}
+.team-table{min-width:640px;border:1px solid #2d3044;border-radius:14px;overflow:hidden;background:#0d0f19}
+.team-table-head,.team-row{display:grid;align-items:center;gap:10px;padding:10px 12px}
+.team-table-head{background:#151728;color:#bfc4dd;font-size:.78rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+.team-table-rally .team-table-head,.team-table-rally .team-row{grid-template-columns:minmax(180px,1fr) minmax(240px,1.4fr) auto}
+.team-table-joiner .team-table-head,.team-table-joiner .team-row{grid-template-columns:minmax(180px,1fr) minmax(180px,1fr) minmax(180px,1fr) auto}
+.team-row{border-top:1px solid #26293a;background:#0f111d}
+.team-row:first-child{border-top:none}
+.player-cell{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;font-weight:800;font-style:normal!important}
+.player-sub{font-size:.78rem;color:var(--muted);font-weight:500;margin-top:2px}
+.pet-list{display:flex;gap:6px;flex-wrap:wrap}
+.pet-chip{display:inline-flex;align-items:center;gap:5px;border:1px solid #474c68;border-radius:999px;padding:6px 8px;font-size:.8rem;color:#eef0ff;background:#171928}
+.pet-chip button{padding:2px 5px!important;min-width:0!important;border:none!important;background:transparent!important;color:#ffb4c9!important}
+.team-actions-cell{display:flex;gap:6px;justify-content:flex-end;align-items:center}
+.team-actions-cell button{white-space:nowrap}
+.hero-cell select{width:100%;min-width:150px}
+.hero-cell .hero-status{margin-top:4px}
+.no-defense .defense-col{display:none}
+.no-defense.team-table-joiner .team-table-head,.no-defense.team-table-joiner .team-row{grid-template-columns:minmax(180px,1fr) minmax(180px,1fr) auto}
+#formation-summary{display:grid;gap:10px}
+.inherited-formation{border:1px solid #303348;border-radius:12px;padding:10px;background:#0f111d}
+.inherited-formation b{display:block}
+.inherited-formation .heroes{font-weight:700;margin-top:4px}
+.inherited-formation .ratio{color:var(--muted);margin-top:3px}
+@media(max-width:700px){
+  .team-section{padding:12px}
+  .team-section-head{align-items:flex-start}
+  .joiner-head-actions{width:100%}
+  .team-table{min-width:600px}
+}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -81,27 +117,57 @@ button.danger{
     <button id="history-btn" type="button" class="mini-badge" style="background:transparent;color:inherit">History</button>
   </div>
 
-  <div class="grid">
-    <section class="card">
-      <div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><h2>Rally Leaders</h2><button id="add-rally" class="mini-badge" type="button">+ Add Rally Leader</button></div>
-      <div id="rally-list" class="placeholder">Loading…</div>
-    </section>
-    <section class="card">
-      <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
-        <h2>Joiners</h2>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <label class="defense-toggle"><span>Use Defensive Heroes</span>
-            <select id="use-defensive-heroes">
-              <option value="no">No</option>
-              <option value="yes">Yes</option>
-            </select>
-          </label>
-          <button id="add-joiner" class="mini-badge" type="button">+ Add Joiner</button>
-        </div>
+  
+  <section class="team-section">
+    <div class="team-section-head">
+      <div>
+        <h2>Rally Leaders</h2>
+        <p class="muted">Rally heroes come from the Alliance Formations. Pet windows are managed here.</p>
       </div>
-      <div id="joiner-list" class="placeholder">Loading…</div>
-    </section>
-  </div>
+      <button id="add-rally" class="mini-badge" type="button">+ Add Rally Leader</button>
+    </div>
+    <div class="team-table-wrap">
+      <div class="team-table team-table-rally">
+        <div class="team-table-head">
+          <div>Rally Leader</div>
+          <div>🐾 Pet Schedule</div>
+          <div></div>
+        </div>
+        <div id="rally-list">Loading…</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="team-section" style="margin-top:16px">
+    <div class="team-section-head">
+      <div>
+        <h2>Joiners</h2>
+        <p class="muted">Assign each Joiner's Attack Hero and, when enabled, Defensive Hero.</p>
+      </div>
+      <div class="joiner-head-actions">
+        <label class="defense-toggle">
+          <span>Use Defensive Heroes</span>
+          <select id="use-defensive-heroes">
+            <option value="no">No</option>
+            <option value="yes">Yes</option>
+          </select>
+        </label>
+        <button id="add-joiner" class="mini-badge" type="button">+ Add Joiner</button>
+      </div>
+    </div>
+    <div class="team-table-wrap">
+      <div class="team-table team-table-joiner" id="joiner-table">
+        <div class="team-table-head" id="joiner-table-head">
+          <div>Joiner</div>
+          <div>Attack Hero</div>
+          <div class="defense-col">Defensive Hero</div>
+          <div></div>
+        </div>
+        <div id="joiner-list">Loading…</div>
+      </div>
+    </div>
+  </section>
+
 
   <section class="card" style="margin-top:14px">
     <h2>Inherited Alliance Formations</h2>
@@ -118,6 +184,13 @@ button.danger{
 const sb=window.supabase.createClient("https://dfxcxboxrkfmrnsgpyin.supabase.co","sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-");
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+function displayName(v){
+  return String(v??'')
+    .normalize('NFKC')
+    .replace(/[\u200B-\u200D\uFEFF]/g,'')
+    .trim();
+}
+
 const p=new URLSearchParams(location.search);
 const eventType=p.get('event_type')||'svs',allianceId=p.get('alliance_id')||'',allianceTag=p.get('alliance_tag')||'Alliance';
 let teamId=p.get('team_id')||'';
@@ -244,22 +317,18 @@ function heroStatus(member,heroName){
   return `<div class="hero-status warn">⚠ Not reported at required Skill 5</div>`;
 }
 
-function joinerHeroFields(m){
-  const defense=useDefensiveHeroes?`
-    <div class="hero-field">
-      <label>Defensive Hero</label>
-      <select class="joiner-hero-select" data-kind="defensive" data-id="${m.id}">${heroOptions(m,m.defensive_hero||'')}</select>
-      ${heroStatus(m,m.defensive_hero)}
-    </div>`:'';
-
-  return `<div class="hero-assignment-grid">
-    <div class="hero-field">
-      <label>Attack Hero</label>
-      <select class="joiner-hero-select" data-kind="attack" data-id="${m.id}">${heroOptions(m,m.attack_hero||'')}</select>
-      ${heroStatus(m,m.attack_hero)}
-    </div>
-    ${defense}
+function joinerHeroCells(m){
+  const attack=`<div class="hero-cell">
+    <select class="joiner-hero-select" data-kind="attack" data-id="${m.id}">${heroOptions(m,m.attack_hero||'')}</select>
+    ${heroStatus(m,m.attack_hero)}
   </div>`;
+
+  const defense=`<div class="hero-cell defense-col">
+    <select class="joiner-hero-select" data-kind="defensive" data-id="${m.id}">${heroOptions(m,m.defensive_hero||'')}</select>
+    ${heroStatus(m,m.defensive_hero)}
+  </div>`;
+
+  return {attack,defense};
 }
 
 async function loadMembers(){
@@ -271,13 +340,36 @@ async function loadMembers(){
 }
 
 function renderMembers(){
- const row=m=>`<div class="member"><div class="member-head"><div><b>${esc(m.player_name)}</b><div class="muted">${esc(m.original_alliance||'Not listed')}</div></div><span class="mini-badge">${m.member_role==='rally_lead'?'RALLY LEADER':'JOINER'}</span></div>
- ${m.member_role==='rally_lead'
-   ?`<div class="member-actions"><button class="mini-badge pet-add" data-id="${m.id}" type="button">+ Pet Window</button><button class="mini-badge remove-member" data-id="${m.id}" type="button">Remove</button></div><div>${(m.pet_windows||[]).map(w=>`<div class="pet-window"><div><span class="muted">Start UTC</span><div>${esc(w.start_utc)}</div></div><div><span class="muted">End UTC</span><div>${esc(w.end_utc)}</div></div><button class="mini-badge pet-delete" data-id="${w.id}" type="button">Remove 🐾</button></div>`).join('')}</div>`
-   :`${joinerHeroFields(m)}<div class="member-actions"><button class="mini-badge remove-member" data-id="${m.id}" type="button">Remove</button></div>`}</div>`;
- $('rally-list').className='';$('joiner-list').className='';
- $('rally-list').innerHTML=members.filter(x=>x.member_role==='rally_lead').map(row).join('')||'<div class="placeholder">No Rally Leaders assigned yet.</div>';
- $('joiner-list').innerHTML=members.filter(x=>x.member_role==='joiner').map(row).join('')||'<div class="placeholder">No Joiners assigned yet.</div>';
+  const rallyRows=members.filter(x=>x.member_role==='rally_lead').map(m=>{
+    const windows=(m.pet_windows||[]);
+    const pets=windows.length
+      ? `<div class="pet-list">${windows.map(w=>`<span class="pet-chip">🐾 ${esc(w.start_utc)}–${esc(w.end_utc)} UTC <button class="pet-delete" data-id="${w.id}" type="button" title="Remove Pet Window">×</button></span>`).join('')}</div>`
+      : '<span class="muted">—</span>';
+
+    return `<div class="team-row">
+      <div class="player-cell">${esc(displayName(m.player_name))}<div class="player-sub">${esc(m.original_alliance||'Not listed')}</div></div>
+      <div>${pets}</div>
+      <div class="team-actions-cell">
+        <button class="mini-badge pet-add" data-id="${m.id}" type="button">+ Pet Window</button>
+        <button class="mini-badge remove-member danger" data-id="${m.id}" type="button">Remove</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  const joinerRows=members.filter(x=>x.member_role==='joiner').map(m=>{
+    const h=joinerHeroCells(m);
+    return `<div class="team-row">
+      <div class="player-cell">${esc(displayName(m.player_name))}<div class="player-sub">${esc(m.original_alliance||'Not listed')}</div></div>
+      ${h.attack}
+      ${h.defense}
+      <div class="team-actions-cell"><button class="mini-badge remove-member danger" data-id="${m.id}" type="button">Remove</button></div>
+    </div>`;
+  }).join('');
+
+  $('rally-list').innerHTML=rallyRows||'<div class="team-row"><div class="muted">No Rally Leaders assigned yet.</div><div></div><div></div></div>';
+  $('joiner-list').innerHTML=joinerRows||'<div class="team-row"><div class="muted">No Joiners assigned yet.</div><div></div><div class="defense-col"></div><div></div></div>';
+
+  $('joiner-table').classList.toggle('no-defense',!useDefensiveHeroes);
 }
 async function loadCandidates(role){
  if(eventType==='svs'){
@@ -294,7 +386,7 @@ async function loadCandidates(role){
 async function openPicker(role){
  pickerRole=role;$('picker').style.display='block';$('picker-title').textContent=role==='rally_lead'?'Add Rally Leader':'Add Joiner';$('picker-note').textContent=role==='rally_lead'?'Rally Leaders may be assigned to multiple Teams.':'Joiners can only have one active Team assignment per Event Type.';
  $('picker-list').innerHTML='<div class="muted">Loading…</div>';
- try{candidates[role]=await loadCandidates(role);const existing=new Set(members.filter(m=>m.member_role===role).map(m=>String(m.player_account_id)));$('picker-list').innerHTML=candidates[role].filter(x=>!existing.has(x.player_account_id)).map(x=>`<button type="button" class="member pick-player" data-player="${esc(x.player_account_id)}"><div style="text-align:left"><b>${esc(x.player_name)}</b><div class="muted">Original Alliance: ${esc(x.original_alliance)}</div></div></button>`).join('')||'<div class="muted">No available submitted forms in this role.</div>';}catch(error){$('picker-list').innerHTML=`<div class="muted">${esc(error.message)}</div>`}
+ try{candidates[role]=await loadCandidates(role);const existing=new Set(members.filter(m=>m.member_role===role).map(m=>String(m.player_account_id)));$('picker-list').innerHTML=candidates[role].filter(x=>!existing.has(x.player_account_id)).map(x=>`<button type="button" class="member pick-player" data-player="${esc(x.player_account_id)}"><div style="text-align:left"><b>${esc(displayName(x.player_name))}</b><div class="muted">Original Alliance: ${esc(x.original_alliance)}</div></div></button>`).join('')||'<div class="muted">No available submitted forms in this role.</div>';}catch(error){$('picker-list').innerHTML=`<div class="muted">${esc(error.message)}</div>`}
  $('picker').scrollIntoView({behavior:'smooth'});
 }
 async function assignmentForJoiner(playerId){
@@ -341,10 +433,29 @@ async function addPetWindow(member){
  await addLog('pet_window_added',{player_name:member.player_name,start_utc:start,end_utc:end,team_name:teamName},member.player_account_id);await loadMembers();
 }
 async function loadFormations(){
- const {data,error}=await sb.from('alliance_formations').select('formation_scope,name,formation_type,infantry_pct,lancer_pct,marksman_pct').eq('event_type_key',eventType).eq('alliance_id',String(allianceId)).order('formation_scope').order('sort_order');
+ const {data,error}=await sb.from('alliance_formations')
+   .select('formation_scope,name,formation_type,infantry_pct,lancer_pct,marksman_pct,hero_config,recommended_heroes')
+   .eq('event_type_key',eventType)
+   .eq('alliance_id',String(allianceId))
+   .order('formation_scope')
+   .order('sort_order');
+
  if(error){$('formation-summary').textContent=error.message;return}
- const r=(data||[]).filter(x=>x.formation_scope==='rally'),j=(data||[]).filter(x=>x.formation_scope==='joiner');
- $('formation-summary').innerHTML=`<b>Rally Leader:</b> ${r.map(x=>`${esc(x.name)} (${x.infantry_pct}/${x.lancer_pct}/${x.marksman_pct})`).join(' • ')||'None'}<br><b>Joiner:</b> ${j.map(x=>`${esc(x.name)} (${x.infantry_pct}/${x.lancer_pct}/${x.marksman_pct})`).join(' • ')||'None'}`;
+
+ const rows=data||[];
+ const card=x=>{
+   const heroes=x.formation_scope==='rally'
+     ? [x.hero_config?.infantry_hero,x.hero_config?.lancer_hero,x.hero_config?.marksman_hero].filter(Boolean)
+     : (Array.isArray(x.recommended_heroes)?x.recommended_heroes:[]);
+
+   return `<div class="inherited-formation">
+     <b>${esc(x.formation_scope==='rally'?'Rally Leader':'Joiner')} — ${esc(x.name)} <span class="mini-badge">${esc(String(x.formation_type).toUpperCase())}</span></b>
+     ${heroes.length?`<div class="heroes">${heroes.map(displayName).map(esc).join(' • ')}</div>`:''}
+     <div class="ratio">${x.infantry_pct} / ${x.lancer_pct} / ${x.marksman_pct}</div>
+   </div>`;
+ };
+
+ $('formation-summary').innerHTML=rows.length?rows.map(card).join(''):'<span class="muted">No Alliance Formations configured yet.</span>';
 }
 $('add-rally').onclick=()=>openPicker('rally_lead');$('add-joiner').onclick=()=>openPicker('joiner');$('picker-close').onclick=()=>$('picker').style.display='none';
 $('picker-list').onclick=e=>{const b=e.target.closest('.pick-player');if(b)addPlayer(b.dataset.player)};

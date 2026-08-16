@@ -1,19 +1,18 @@
-NEXA — Joiner Hero Assignment
+NEXA — Team Builder Compact Visual Patch
 
-Run the SQL first, then replace ONLY:
+Replace ONLY:
 - team-builder.html
 
-Adds:
-- Attack Hero for every Joiner.
-- Team-level Use Defensive Heroes: Yes / No.
-- Defensive Hero appears only when enabled.
-- Dropdown comes from the Admin-configured Joiner Hero catalog for that Event Type.
-- Player response is used only for status/warnings.
-- If a hero was reported, it displays Skill 5 ✓.
-- If not reported at required Skill 5, NEXA warns before assignment but allows Admin override.
-- Attack/Defensive Hero changes are written to History.
+No SQL required.
 
-Keeps:
-- Pet Window UTC dropdowns.
-- Dark NEXA buttons.
-- Joiner single-Team move rules.
+Changes:
+- Compact Rally Leaders table:
+  Rally Leader | Pet Schedule | actions
+- Compact Joiners table:
+  Joiner | Attack Hero | Defensive Hero (only when enabled) | actions
+- Alliance Formations displayed as clean inherited formation cards.
+- Player names are normalized for DISPLAY using Unicode NFKC so decorative
+  alphabets render in NEXA's normal system typography where possible.
+- Original player name stored in the database is NOT modified.
+- All existing functionality remains: hero warnings, pet windows, moving Joiners,
+  History, dark buttons, etc.

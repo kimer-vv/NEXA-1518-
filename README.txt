@@ -1,17 +1,16 @@
-NEXA Phase 2B — Response Card / Priority Fields Everywhere
+NEXA Teams V1 — Alliance Workspace Preview
 
-Replace:
+Replace/add:
 - event-operations.html
-- battle-settings.html
+- alliance-teams.html
 
-This makes the two options available in BOTH places where questions can be edited:
-1. Question Library
-2. Form Settings > Create/Edit Question
+Behavior:
+- Event Operations > Teams is now only the alliance dashboard.
+- Clicking BBC/FSU/etc opens a dedicated alliance workspace in the SAME tab.
+- Each alliance workspace shows only that alliance's Teams.
+- Team names can be created, renamed, deleted.
+- Preview data remains separated by Event Type + Alliance.
+- Back returns to the Teams dashboard.
 
-Options:
-- Show on Response Card
-- Priority Field
-
-If the SQL columns were already added, DO NOT run SQL again.
-If they were not added yet, run the SQL previously provided for:
-show_on_response_card and is_priority_field.
+No SQL yet.
+This is still the visual/flow preview before Supabase persistence.

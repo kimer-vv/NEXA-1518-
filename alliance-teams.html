@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>NEXA • Alliance Teams</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#070711;--panel:#111221;--panel2:#17182b;--text:#f5f7ff;--muted:#a6abc4;--line:rgba(255,255,255,.11);--accent:#7d5cff}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#17132c 0,#090912 42%,#06060b 100%);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.shell{max-width:1100px;margin:0 auto;padding:20px 16px 60px}.back{display:inline-block;margin:4px 0 14px;color:#c9c8ff;text-decoration:none}
+.glass{background:rgba(16,17,31,.86);border:1px solid var(--line);border-radius:22px;padding:18px;box-shadow:0 20px 70px rgba(0,0,0,.28);backdrop-filter:blur(16px)}
+.panel-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}.muted{color:var(--muted)}.badge,.mini-badge{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;padding:5px 9px;font-size:.78rem;color:#d9d8ff;background:rgba(125,92,255,.08)}
+h1,h2,h3{margin:.25rem 0 .5rem}.builder-grid{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;margin-top:16px}
+label{display:grid;gap:7px;color:#e7e9f8}input,select{width:100%;background:#0d0e18;color:var(--text);border:1px solid var(--line);border-radius:12px;padding:12px 13px;font:inherit}
+.btn,.tiny-btn{border:1px solid var(--line);background:#1c1d31;color:#fff;border-radius:12px;padding:11px 14px;font-weight:700}.btn{background:linear-gradient(135deg,#6b4cff,#8f6dff)}.tiny-btn{padding:8px 10px}.team-card{border:1px solid var(--line);border-radius:16px;padding:14px;background:rgba(255,255,255,.03);margin-top:12px}.team-title{font-weight:800;font-size:1.08rem}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.empty{padding:18px;border:1px dashed var(--line);border-radius:14px;color:var(--muted);margin-top:14px}
+.footer-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:18px}
+@media(max-width:700px){.panel-head{flex-direction:column}.builder-grid{grid-template-columns:1fr}.footer-actions{justify-content:stretch}.footer-actions .btn{width:100%}}
+</style>
+</head>
+<body>
+<main class="shell">
+<a class="back" href="javascript:void(0)" id="back-link">← Teams</a>
+<section class="glass">
+  <div class="panel-head">
+    <div>
+      <span class="badge" id="event-badge">EVENT</span>
+      <h1 id="title">Alliance Team Organization</h1>
+      <p class="muted">This workspace is independent for this alliance. Other alliances can be organized at the same time in their own workspace.</p>
+    </div>
+    <span class="mini-badge" id="alliance-badge">Alliance</span>
+  </div>
+
+  <form id="create-team" class="builder-grid">
+    <label>Team Name
+      <input id="team-name" maxlength="50" placeholder="e.g. Team 1, Flex 1, Defense">
+    </label>
+    <button class="btn" type="submit">+ Create Team</button>
+  </form>
+
+  <div id="teams-list"></div>
+
+  <div class="footer-actions">
+    <button id="finish-alliance" class="btn" type="button">Finish Alliance Setup</button>
+  </div>
+  <p class="muted">Preview build: team names are saved in this browser for testing. After approval, Supabase will make this workspace shared across admins/devices.</p>
+</section>
+</main>
+<script>
+const sb=window.supabase.createClient("https://dfxcxboxrkfmrnsgpyin.supabase.co","sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-");
+const $=id=>document.getElementById(id);
+const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+const params=new URLSearchParams(location.search);
+const eventType=params.get('event_type')||'svs';
+const allianceId=params.get('alliance_id')||'';
+const allianceTag=params.get('alliance_tag')||'Alliance';
+function storageKey(){return `nexa_preview_alliance_teams_${eventType}_${allianceId}`}
+function readTeams(){try{return JSON.parse(localStorage.getItem(storageKey())||'[]')}catch{return[]}}
+function writeTeams(v){localStorage.setItem(storageKey(),JSON.stringify(v))}
+function render(){
+  const list=readTeams();
+  $('teams-list').innerHTML=list.length?list.map((t,i)=>`<article class="team-card">
+    <div class="team-title">${esc(t.name)}</div>
+    <div class="muted">Team setup preview • Rally Leaders, Joiners, Pets and Formations come next.</div>
+    <div class="actions">
+      <button class="tiny-btn rename-team" data-i="${i}" type="button">Rename</button>
+      <button class="tiny-btn delete-team" data-i="${i}" type="button">Delete</button>
+    </div>
+  </article>`).join(''):'<div class="empty">No Teams created yet for this alliance.</div>';
+}
+$('title').textContent=`${allianceTag} Team Organization`;
+$('alliance-badge').textContent=allianceTag;
+$('event-badge').textContent=eventType.toUpperCase();
+$('back-link').onclick=()=>location.href='event-operations.html#teams';
+$('create-team').onsubmit=e=>{
+  e.preventDefault();
+  const name=$('team-name').value.trim();
+  if(!name)return;
+  const list=readTeams();list.push({name,created_at:new Date().toISOString()});writeTeams(list);
+  $('team-name').value='';render();
+};
+$('teams-list').onclick=e=>{
+  const ren=e.target.closest('.rename-team');
+  const del=e.target.closest('.delete-team');
+  const list=readTeams();
+  if(ren){
+    const i=Number(ren.dataset.i);const next=prompt('Rename Team',list[i]?.name||'');
+    if(next===null)return;const clean=next.trim();if(!clean)return;list[i].name=clean;writeTeams(list);render();return;
+  }
+  if(del){
+    const i=Number(del.dataset.i);const team=list[i];if(!team)return;
+    if(!confirm(`Delete "${team.name}"?`))return;
+    list.splice(i,1);writeTeams(list);render();
+  }
+};
+$('finish-alliance').onclick=()=>{
+  const list=readTeams();
+  if(!list.length){alert('Create at least one Team first.');return}
+  confirm(`Finish ${allianceTag} setup with ${list.length} Team${list.length===1?'':'s'}?\n\nThis is only a preview. Template Builder will be connected after the Team workflow is complete.`);
+};
+render();
+</script>
+</body>
+</html>

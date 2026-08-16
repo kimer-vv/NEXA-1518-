@@ -1,28 +1,34 @@
-NEXA — UI CONSISTENCY FIX
+NEXA — FINAL MODULE POLISH
 NO SQL.
 
 Administration:
-- Intentionally left unchanged.
+- Intentionally unchanged.
 
 Announcements:
-- Important Announcement now full width.
-- Audience now full width below it.
-- Audience helper text sits under the selector.
-- Translations · Optional remains below.
+- Intentionally left as the corrected version.
 
 Event Operations:
-- Modules link styled like the other modules.
-- ADMIN badge removed.
-- Description normalized.
+- Visual shell tightened to match the other modules.
+- No ADMIN/PRIVATE badge.
+- Small blue ← Modules.
+- Consistent width/spacing.
 
-SvS subpages:
-- Schedule Management back link now says ← SvS.
-- Event History back link now says ← SvS.
-- Both return to the SvS module instead of Home.
-- index.html understands ?admin=svs and reopens the SvS module.
+Schedule Setup:
+- ADMIN badge removed.
+- Title changed to Schedule Setup.
+- Back link is ← SvS and returns directly to the SvS module.
+- Stale Loading... is hidden after load.
+
+Event History:
+- ADMIN badge removed.
+- Back link is ← SvS and returns directly to the SvS module.
+- Keeps Event History title and all archive tools.
 
 Transfers:
-- Modules link moved above Transfers title.
-- Modules link styled as a small blue breadcrumb instead of a large button.
+- PRIVATE removed.
+- Giant Modules button converted into small blue ← Modules above the title.
+- Diagnostic stats chip removed.
+- Horizontal tabs preserved.
+- Same width/navigation treatment as the other modules.
 
 No database changes.

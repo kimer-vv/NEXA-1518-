@@ -75,6 +75,19 @@ select,input{width:100%;background:#090b15;color:#fff;border:1px solid #3c415a;b
 .formation-card{border-color:var(--sheet-border)!important}
 .legend{color:var(--sheet-muted)!important}
 
+
+.column-labels{
+  background:color-mix(in srgb,var(--section-bg) 72%,var(--sheet-bg));
+  color:var(--sheet-muted);
+  font-size:10px!important;
+  font-weight:900;
+  letter-spacing:.045em;
+  text-transform:uppercase;
+}
+.pet-time{color:var(--sheet-text);font-weight:700}
+.pet-paw{color:var(--pet)!important;font-size:1.12em;filter:saturate(1.2)}
+.player-row.no-defense-row{grid-template-columns:minmax(110px,1fr) minmax(90px,.85fr)}
+
 </style>
 </head>
 <body>
@@ -237,16 +250,18 @@ function renderTeams(teams,members){
     return `<section class="team-card">
       <div class="team-title">${esc(t.name)}</div>
       <div class="team-section-title">RALLY LEADS</div>
+      <div class="player-row rally column-labels"><div>RALLY LEAD</div><div>PET SCHEDULE</div></div>
       ${rally.length?rally.map(m=>{
-        const pets=(m.pet_windows||[]).map(w=>`${esc(w.start_utc)}–${esc(w.end_utc)}`).join(', ');
-        return `<div class="player-row rally"><div class="player-name">${esc(displayName(m.player_name))}</div><div class="pet">${pets?'🐾 '+pets+' UTC':'—'}</div></div>`;
+        const pets=(m.pet_windows||[]).map(w=>`${esc(w.start_utc)}–${esc(w.end_utc)} UTC <span class="pet-paw">🐾</span>`).join(', ');
+        return `<div class="player-row rally"><div class="player-name">${esc(displayName(m.player_name))}</div><div class="pet-time">${pets||'—'}</div></div>`;
       }).join(''):'<div class="player-row rally"><div>—</div><div>—</div></div>'}
       <div class="team-section-title">JOINERS</div>
-      ${joiners.length?joiners.map(m=>`<div class="player-row">
+      <div class="player-row ${useDefense?'':'no-defense-row'} column-labels"><div>JOINER</div><div>ATTACK</div>${useDefense?'<div>DEFENSE</div>':''}</div>
+      ${joiners.length?joiners.map(m=>`<div class="player-row ${useDefense?'':'no-defense-row'}">
         <div class="player-name">${esc(displayName(m.player_name))}</div>
         <div>${esc(displayName(m.attack_hero||'—'))}</div>
-        <div>${useDefense?esc(displayName(m.defensive_hero||'—')):''}</div>
-      </div>`).join(''):'<div class="player-row"><div>—</div><div>—</div><div></div></div>'}
+        ${useDefense?`<div>${esc(displayName(m.defensive_hero||'—'))}</div>`:''}
+      </div>`).join(''):`<div class="player-row ${useDefense?'':'no-defense-row'}"><div>—</div><div>—</div>${useDefense?'<div>—</div>':''}</div>`}
     </section>`;
   }).join('');
 }

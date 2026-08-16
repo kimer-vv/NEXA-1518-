@@ -1,16 +1,15 @@
-NEXA — Live Template Branding V2
+NEXA Template Builder — Headers + Pet Accent
 
-Run NEXA-ALLIANCE-BRANDING.sql first.
-Replace ONLY:
+Replace only:
 - template-builder.html
 
-Adds:
-- Alliance emblem upload, saved permanently for that alliance.
-- Live preview while changing template, colors, font, weights and layout.
-- Saved alliance branding shared across events for the same alliance.
-- Color controls for background, team headers, section background, primary/secondary text, pet accent, borders.
-- Font family + title/body weights.
-- Existing adaptive 1–6 Team layout remains.
+No SQL required.
 
-Emblem is stored as a compact data URL in Supabase for simplicity.
-Client limits uploaded emblem to 700 KB.
+Changes:
+- Rally section now clearly shows RALLY LEAD | PET SCHEDULE.
+- Joiner section now clearly shows JOINER | ATTACK | DEFENSE.
+- When Defensive Heroes is disabled, DEFENSE disappears and the layout becomes JOINER | ATTACK.
+- Pet schedule renders as: 13:00–15:00 UTC 🐾
+- Only the paw uses the Pets Accent color; the time remains normal text.
+- Default Pets Accent remains the gold/yellow #D89B20 and can still be customized live.
+- Keeps all Live Template Branding V2 features.

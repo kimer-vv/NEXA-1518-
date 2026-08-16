@@ -1,13 +1,13 @@
-NEXA — EMBED NAVIGATION FIX
+NEXA — SINGLE SCROLL + TEAM NAV FIX
 NO SQL.
 
-Fixes from the screenshots:
-• Transfers: when opened inside Modules, duplicated NEXA/Transfers header is removed at runtime.
-• SvS Schedule Setup: duplicated NEXA/SvS/page header is removed at runtime; only schedule content remains.
-• SvS History: duplicated NEXA/SvS/page header is removed at runtime; only history content remains.
-• Event Operations: embedded mode is forced at runtime, not CSS-only.
-• Teams -> Alliance workspace keeps embed mode.
-• ← Teams returns to Event Operations with the Teams tab active, instead of nesting Event Operations inside itself.
-• Internal frame continuously resizes with its content and keeps extra Safari bottom spacing.
+Fixes:
+• Only the outer Admin module panel owns vertical scrolling.
+• Embedded Event Operations / Transfers / SvS Schedule / SvS History cannot create a second vertical scrollbar.
+• iframe height continuously follows its content using ResizeObserver + MutationObserver.
+• Safari safe-area bottom spacing remains on the outer panel.
+• Teams -> Alliance Workspace -> Open Team preserves embed mode.
+• Team Builder -> ← Alliance Workspace returns to the embedded alliance workspace instead of nesting Event Operations again.
+• Alliance Formations back navigation also preserves embed mode.
 
 No database changes.

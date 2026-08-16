@@ -178,6 +178,35 @@
   padding-bottom:calc(140px + env(safe-area-inset-bottom));
 }
 
+
+/* SINGLE-SCROLL FIX
+   The parent Admin panel is the ONLY vertical scroller. */
+#admin-modal.open{
+  overflow:hidden!important;
+}
+#admin-modal .admin-modal-card{
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+  touch-action:pan-y;
+  max-height:calc(100dvh - 34px)!important;
+  padding-bottom:calc(130px + env(safe-area-inset-bottom))!important;
+}
+.internal-module-frame-wrap{
+  overflow:visible!important;
+  min-height:0!important;
+  padding-bottom:0!important;
+}
+.internal-module-frame{
+  display:block!important;
+  width:100%!important;
+  height:1px;
+  min-height:0!important;
+  border:0!important;
+  overflow:hidden!important;
+}
+
 </style>
 <style>
 .prep-monday-picker-row{
@@ -1217,33 +1246,67 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   
-  function resizeInternalFrame(){
+  function syncEmbeddedFrame(){
     const frame=document.getElementById('internal-module-frame');
     if(!frame) return;
     try{
       const doc=frame.contentDocument || frame.contentWindow?.document;
       if(!doc) return;
-      const h=Math.max(doc.body?.scrollHeight||0,doc.documentElement?.scrollHeight||0,700);
-      frame.style.height=(h+140)+'px';
-      frame.style.minHeight=(h+140)+'px';
+
+      // Prevent a second vertical scrollbar inside the iframe.
+      doc.documentElement.style.overflowY='hidden';
+      doc.documentElement.style.overflowX='hidden';
+      doc.body.style.overflowY='hidden';
+      doc.body.style.overflowX='hidden';
+      doc.documentElement.style.height='auto';
+      doc.body.style.height='auto';
+
+      const h=Math.max(
+        doc.body?.scrollHeight||0,
+        doc.body?.offsetHeight||0,
+        doc.documentElement?.scrollHeight||0,
+        doc.documentElement?.offsetHeight||0,
+        300
+      );
+      frame.style.height=(h+40)+'px';
+      frame.style.minHeight='0';
     }catch(_){}
   }
 
+  document.getElementById('internal-module-frame')?.setAttribute('scrolling','no');
+
   document.getElementById('internal-module-frame')?.addEventListener('load',()=>{
-    resizeInternalFrame();
     const frame=document.getElementById('internal-module-frame');
+    frame?.setAttribute('scrolling','no');
+    syncEmbeddedFrame();
+
     try{
       const doc=frame.contentDocument || frame.contentWindow?.document;
+
+      frame._nexaRO?.disconnect?.();
+      frame._nexaMO?.disconnect?.();
+
       if(doc && window.ResizeObserver){
-        frame._nexaRO?.disconnect?.();
-        frame._nexaRO=new ResizeObserver(()=>resizeInternalFrame());
+        frame._nexaRO=new ResizeObserver(()=>syncEmbeddedFrame());
         frame._nexaRO.observe(doc.documentElement);
         if(doc.body) frame._nexaRO.observe(doc.body);
       }
+
+      if(doc && window.MutationObserver){
+        frame._nexaMO=new MutationObserver(()=>syncEmbeddedFrame());
+        frame._nexaMO.observe(doc.documentElement,{
+          subtree:true,
+          childList:true,
+          attributes:true,
+          characterData:false
+        });
+      }
     }catch(_){}
-    setTimeout(resizeInternalFrame,100);
-    setTimeout(resizeInternalFrame,500);
-    setTimeout(resizeInternalFrame,1200);
+
+    setTimeout(syncEmbeddedFrame,80);
+    setTimeout(syncEmbeddedFrame,250);
+    setTimeout(syncEmbeddedFrame,700);
+    setTimeout(syncEmbeddedFrame,1500);
   });
 
 function showInternalModuleFrame(src, mode){
@@ -1263,7 +1326,8 @@ function showInternalModuleFrame(src, mode){
     const wrap=document.getElementById('internal-module-frame-wrap');
     const frame=document.getElementById('internal-module-frame');
     wrap?.classList.remove('hidden');
-    if(frame) frame.src=src;
+    if(frame){ frame.style.height='1px'; frame.src=src; }
+    document.querySelector('#admin-modal .admin-modal-card')?.scrollTo({top:0,behavior:'auto'});
   }
 
   function showSvsEmbeddedView(src, activeTab){
@@ -1282,7 +1346,8 @@ function showInternalModuleFrame(src, mode){
     const wrap=document.getElementById('internal-module-frame-wrap');
     const frame=document.getElementById('internal-module-frame');
     wrap?.classList.remove('hidden');
-    if(frame) frame.src=src;
+    if(frame){ frame.style.height='1px'; frame.src=src; }
+    document.querySelector('#admin-modal .admin-modal-card')?.scrollTo({top:0,behavior:'auto'});
   }
 
 function setAdminContext(mode){

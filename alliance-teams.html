@@ -16,9 +16,17 @@ label{display:grid;gap:7px;color:#e7e9f8}input,select{width:100%;background:#0d0
 .btn,.tiny-btn{border:1px solid var(--line);background:#1c1d31;color:#fff;border-radius:12px;padding:11px 14px;font-weight:700}.btn{background:linear-gradient(135deg,#6b4cff,#8f6dff)}.tiny-btn{padding:8px 10px}.team-card{border:1px solid var(--line);border-radius:16px;padding:14px;background:rgba(255,255,255,.03);margin-top:12px}.team-title{font-weight:800;font-size:1.08rem}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.empty{padding:18px;border:1px dashed var(--line);border-radius:14px;color:var(--muted);margin-top:14px}
 .footer-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:18px}
 @media(max-width:700px){.panel-head{flex-direction:column}.builder-grid{grid-template-columns:1fr}.footer-actions{justify-content:stretch}.footer-actions .btn{width:100%}}
+
+html.embed-mode,html.embed-mode body{
+  overflow:hidden!important;
+  background:transparent!important;
+  height:auto!important;
+  min-height:0!important;
+}
+html.embed-mode .shell{max-width:none!important;margin:0!important;padding:0!important}
 </style>
 </head>
-<body>
+<body><script>if(new URLSearchParams(location.search).get('embed')==='1')document.documentElement.classList.add('embed-mode');</script>
 <main class="shell">
 <a class="back" href="javascript:void(0)" id="back-link">← Teams</a>
 <section class="glass">
@@ -116,7 +124,11 @@ $('teams-list').onclick=e=>{
   const list=readTeams();
   if(open){
     const i=Number(open.dataset.i);const team=list[i];if(!team)return;
-    location.href=`team-builder.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}&team_index=${i}&team_name=${encodeURIComponent(team.name)}`;
+    {
+      const embedded=params.get('embed')==='1';
+      const embedPart=embedded?'&embed=1':'';
+      location.href=`team-builder.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}&team_index=${i}&team_name=${encodeURIComponent(team.name)}${embedPart}`;
+    }
     return;
   }
   if(ren){
@@ -131,7 +143,11 @@ $('teams-list').onclick=e=>{
 };
 
 $('open-formations').onclick=()=>{
-  location.href=`alliance-formations.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}`;
+  {
+    const embedded=params.get('embed')==='1';
+    const embedPart=embedded?'&embed=1':'';
+    location.href=`alliance-formations.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}${embedPart}`;
+  }
 };
 
 $('finish-alliance').onclick=()=>{

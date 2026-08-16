@@ -206,6 +206,13 @@ button.danger{
   }
 }
 
+
+.assignment-status{font-size:.76rem;margin-top:5px;line-height:1.35}.assignment-status.free{color:#8ee6b0}.assignment-status.assigned{color:#ffc981}
+.rally-schedule-cell{display:grid;gap:4px}.schedule-display{font-weight:800}.pets-display{font-size:.78rem}.pets-yes{color:#f0b43c;font-weight:800}
+#schedule-modal{position:fixed;inset:0;background:rgba(0,0,0,.68);z-index:9999;place-items:center;padding:18px}.schedule-modal-card{width:min(520px,100%);background:#111321;border:1px solid #34384e;border-radius:18px;padding:16px}
+.schedule-form{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:16px 0}.schedule-form label{display:grid;gap:6px;color:var(--muted);font-size:.82rem}.schedule-form select{width:100%;background:#090b15;color:#fff;border:1px solid #3d4159;border-radius:10px;padding:10px}
+@media(max-width:700px){.schedule-form{grid-template-columns:1fr}.rally-schedule-cell::before{content:"Schedule";display:block;color:var(--muted);font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -316,6 +323,8 @@ let members=[],candidates={rally_lead:[],joiner:[]},pickerRole=null;
 let joinerHeroCatalog=[];
 let joinerReports={};
 let useDefensiveHeroes=false;
+let assignmentIndex={rally:{},joiner:{}};
+let scheduleMember=null;
 $('event-badge').textContent=eventType.toUpperCase();$('title').textContent=`${allianceTag} • ${teamName}`;
 $('back-link').onclick=()=>location.href=`alliance-teams.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}`;
 $('history-btn').onclick=()=>location.href=`alliance-team-history.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}`;
@@ -458,34 +467,16 @@ async function loadMembers(){
 
 function renderMembers(){
   const rallyRows=members.filter(x=>x.member_role==='rally_lead').map(m=>{
-    const windows=(m.pet_windows||[]);
-    const pets=windows.length
-      ? `<div class="pet-list">${windows.map(w=>`<span class="pet-chip">🐾 ${esc(w.start_utc)}–${esc(w.end_utc)} UTC <button class="pet-delete" data-id="${w.id}" type="button" title="Remove Pet Window">×</button></span>`).join('')}</div>`
-      : '<span class="muted">—</span>';
-
+    const st=scheduleText(m);
     return `<div class="team-row">
       <div class="player-cell">${esc(displayName(m.player_name))}<div class="player-sub">${esc(m.original_alliance||'Not listed')}</div></div>
-      <div>${pets}</div>
-      <div class="team-actions-cell">
-        <button class="mini-badge pet-add" data-id="${m.id}" type="button">+ Pet Window</button>
-        <button class="mini-badge remove-member danger" data-id="${m.id}" type="button">Remove</button>
-      </div>
+      <div class="rally-schedule-cell"><div class="schedule-display">${st||'<span class="muted">Schedule not set</span>'}</div><div class="pets-display">${m.pets_active?'<span class="pets-yes">Pets: Yes</span>':'<span class="muted">Pets: No</span>'}</div></div>
+      <div class="team-actions-cell"><button class="mini-badge rally-schedule-edit" data-id="${m.id}" type="button">${st?'Edit Schedule':'Set Schedule'}</button><button class="mini-badge remove-member danger" data-id="${m.id}" type="button">Remove</button></div>
     </div>`;
   }).join('');
-
-  const joinerRows=members.filter(x=>x.member_role==='joiner').map(m=>{
-    const h=joinerHeroCells(m);
-    return `<div class="team-row">
-      <div class="player-cell">${esc(displayName(m.player_name))}<div class="player-sub">${esc(m.original_alliance||'Not listed')}</div></div>
-      ${h.attack}
-      ${h.defense}
-      <div class="team-actions-cell"><button class="mini-badge remove-member danger" data-id="${m.id}" type="button">Remove</button></div>
-    </div>`;
-  }).join('');
-
+  const joinerRows=members.filter(x=>x.member_role==='joiner').map(m=>{const h=joinerHeroCells(m);return `<div class="team-row"><div class="player-cell">${esc(displayName(m.player_name))}<div class="player-sub">${esc(m.original_alliance||'Not listed')}</div></div>${h.attack}${h.defense}<div class="team-actions-cell"><button class="mini-badge remove-member danger" data-id="${m.id}" type="button">Remove</button></div></div>`}).join('');
   $('rally-list').innerHTML=rallyRows||'<div class="team-row"><div class="muted">No Rally Leaders assigned yet.</div><div></div><div></div></div>';
   $('joiner-list').innerHTML=joinerRows||'<div class="team-row"><div class="muted">No Joiners assigned yet.</div><div></div><div class="defense-col"></div><div></div></div>';
-
   $('joiner-table').classList.toggle('no-defense',!useDefensiveHeroes);
 }
 async function loadCandidates(role){
@@ -500,10 +491,38 @@ async function loadCandidates(role){
  if(error)throw error;
  return (data||[]).map(r=>({player_account_id:String(r.player_account_id),player_name:r.player_accounts?.in_game_name||'Unknown',original_alliance:r.player_accounts?.alliances?.tag||r.player_accounts?.custom_alliance_tag||'Not listed'}));
 }
+
+function hourLabel(v){if(v===null||v===undefined||v==='')return '';return String(Number(v)).padStart(2,'0')+':00'}
+function scheduleText(m){return (m.schedule_start_utc==null||m.schedule_end_utc==null)?'':`${hourLabel(m.schedule_start_utc)}–${hourLabel(m.schedule_end_utc)} UTC`}
+function hourOptions(v){let x='<option value="">Select…</option>';for(let h=0;h<24;h++)x+=`<option value="${h}" ${String(v??'')===String(h)?'selected':''}>${String(h).padStart(2,'0')}:00 UTC</option>`;return x}
+function overlaps(a,b,c,d){if([a,b,c,d].some(v=>v==null||v===''))return false;return Math.max(+a,+c)<Math.min(+b,+d)}
+
+async function loadAssignmentIndex(){
+ assignmentIndex={rally:{},joiner:{}};
+ const {data:ts,error:te}=await sb.from('alliance_teams').select('id,name,alliance_id,event_type_key').eq('event_type_key',eventType);
+ if(te){console.warn(te.message);return}
+ const ids=(ts||[]).map(x=>x.id); if(!ids.length)return;
+ const tm=Object.fromEntries(ts.map(x=>[String(x.id),x]));
+ const {data:ms,error:me}=await sb.from('team_members').select('id,team_id,player_account_id,player_name,member_role,schedule_start_utc,schedule_end_utc,pets_active,original_alliance').in('team_id',ids);
+ if(me){console.warn(me.message);return}
+ for(const m of ms||[]){
+   const t=tm[String(m.team_id)]||{}, k=String(m.player_account_id);
+   const r={member_id:m.id,team_name:t.name||'Team',alliance_tag:m.original_alliance||t.alliance_id||'Alliance',start:m.schedule_start_utc,end:m.schedule_end_utc,pets:!!m.pets_active};
+   const b=m.member_role==='rally_lead'?assignmentIndex.rally:assignmentIndex.joiner;(b[k]||(b[k]=[])).push(r);
+ }
+}
+function assignmentHTML(x,role){
+ const rows=(role==='rally_lead'?assignmentIndex.rally:assignmentIndex.joiner)[String(x.player_account_id)]||[];
+ if(!rows.length)return '<div class="assignment-status free">Not assigned</div>';
+ if(role==='joiner'){const r=rows[0];return `<div class="assignment-status assigned">Assigned • ${esc(r.alliance_tag)} — ${esc(r.team_name)}</div>`}
+ return `<div class="assignment-status assigned">${rows.map(r=>`Assigned • ${esc(r.alliance_tag)} — ${esc(r.team_name)}${r.start!=null&&r.end!=null?` • ${hourLabel(r.start)}–${hourLabel(r.end)} UTC`:''}`).join('<br>')}</div>`;
+}
+
 async function openPicker(role){
- pickerRole=role;$('picker').style.display='block';$('picker-title').textContent=role==='rally_lead'?'Add Rally Leader':'Add Joiner';$('picker-note').textContent=role==='rally_lead'?'Rally Leaders may be assigned to multiple Teams.':'Joiners can only have one active Team assignment per Event Type.';
+ pickerRole=role;
+ await loadAssignmentIndex();$('picker').style.display='block';$('picker-title').textContent=role==='rally_lead'?'Add Rally Leader':'Add Joiner';$('picker-note').textContent=role==='rally_lead'?'Rally Leaders may be assigned to multiple Teams.':'Joiners can only have one active Team assignment per Event Type.';
  $('picker-list').innerHTML='<div class="muted">Loading…</div>';
- try{candidates[role]=await loadCandidates(role);const existing=new Set(members.filter(m=>m.member_role===role).map(m=>String(m.player_account_id)));$('picker-list').innerHTML=candidates[role].filter(x=>!existing.has(x.player_account_id)).map(x=>`<button type="button" class="member pick-player" data-player="${esc(x.player_account_id)}"><div style="text-align:left"><b>${esc(displayName(x.player_name))}</b><div class="muted">Original Alliance: ${esc(x.original_alliance)}</div></div></button>`).join('')||'<div class="muted">No available submitted forms in this role.</div>';}catch(error){$('picker-list').innerHTML=`<div class="muted">${esc(error.message)}</div>`}
+ try{candidates[role]=await loadCandidates(role);const existing=new Set(members.filter(m=>m.member_role===role).map(m=>String(m.player_account_id)));$('picker-list').innerHTML=candidates[role].filter(x=>!existing.has(x.player_account_id)).map(x=>`<button type="button" class="member pick-player" data-player="${esc(x.player_account_id)}"><div style="text-align:left"><b>${esc(displayName(x.player_name))}</b>${assignmentHTML(x,role)}<div class="muted">Original Alliance: ${esc(x.original_alliance)}</div></div></button>`).join('')||'<div class="muted">No available submitted forms in this role.</div>';}catch(error){$('picker-list').innerHTML=`<div class="muted">${esc(error.message)}</div>`}
  $('picker').scrollIntoView({behavior:'smooth'});
 }
 async function assignmentForJoiner(playerId){
@@ -634,7 +653,24 @@ $('joiner-list').onchange=async e=>{
   renderMembers();
 };
 
+
+function openScheduleModal(m){scheduleMember=m;$('schedule-player').textContent=displayName(m.player_name);$('schedule-start').innerHTML=hourOptions(m.schedule_start_utc);$('schedule-end').innerHTML=hourOptions(m.schedule_end_utc);$('schedule-pets').value=m.pets_active?'yes':'no';$('schedule-modal').style.display='grid'}
+$('schedule-close').onclick=()=>{$('schedule-modal').style.display='none';scheduleMember=null};
+$('schedule-save').onclick=async()=>{
+ if(!scheduleMember)return; const a=$('schedule-start').value,b=$('schedule-end').value,pets=$('schedule-pets').value==='yes';
+ if(a===''||b===''){alert('Choose both Start UTC and End UTC.');return} if(+a>=+b){alert('End UTC must be later than Start UTC.');return}
+ await loadAssignmentIndex();
+ const conflicts=(assignmentIndex.rally[String(scheduleMember.player_account_id)]||[]).filter(r=>String(r.member_id)!==String(scheduleMember.id)&&overlaps(a,b,r.start,r.end));
+ if(conflicts.length&&!confirm(`Schedule warning\n\n${displayName(scheduleMember.player_name)} already has an overlapping Rally Leader assignment:\n\n${conflicts.map(r=>`${r.alliance_tag} — ${r.team_name} • ${hourLabel(r.start)}–${hourLabel(r.end)} UTC`).join('\n')}\n\nSave anyway?`))return;
+ const prev={start:scheduleMember.schedule_start_utc,end:scheduleMember.schedule_end_utc,pets:!!scheduleMember.pets_active};
+ const {error}=await sb.from('team_members').update({schedule_start_utc:+a,schedule_end_utc:+b,pets_active:pets,updated_at:new Date().toISOString()}).eq('id',scheduleMember.id);
+ if(error){alert(error.message);return}
+ await addLog('rally_schedule_changed',{player_name:scheduleMember.player_name,team_name:teamName,from:prev,to:{start:+a,end:+b,pets}},scheduleMember.player_account_id);
+ $('schedule-modal').style.display='none';scheduleMember=null;await loadMembers();
+};
+
 document.addEventListener('click',async e=>{
+ const sched=e.target.closest('.rally-schedule-edit'); if(sched){const m=members.find(x=>String(x.id)===String(sched.dataset.id));if(m)openScheduleModal(m);return}
  const rem=e.target.closest('.remove-member');if(rem){const m=members.find(x=>String(x.id)===String(rem.dataset.id));if(!m)return;if(!confirm(`Remove ${m.player_name} from ${teamName}?`))return;const {error}=await sb.from('team_members').delete().eq('id',m.id);if(error){alert(error.message);return}await addLog(m.member_role==='joiner'?'joiner_removed':'rally_leader_removed',{player_name:m.player_name,team_name:teamName},m.player_account_id);await loadMembers();return}
  const pet=e.target.closest('.pet-add');if(pet){const m=members.find(x=>String(x.id)===String(pet.dataset.id));if(m)addPetWindow(m);return}
  const pd=e.target.closest('.pet-delete');if(pd){const w=members.flatMap(m=>m.pet_windows||[]).find(x=>String(x.id)===String(pd.dataset.id));if(!w)return;if(!confirm('Remove this Pet Window?'))return;const {error}=await sb.from('pet_windows').delete().eq('id',w.id);if(error){alert(error.message);return}await addLog('pet_window_removed',{start_utc:w.start_utc,end_utc:w.end_utc,team_name:teamName});await loadMembers();}
@@ -646,5 +682,9 @@ document.addEventListener('click',async e=>{
   await loadMembers();
 })();
 </script>
+<div id="schedule-modal" class="modal" style="display:none"><div class="modal-card schedule-modal-card">
+<div style="display:flex;justify-content:space-between;align-items:center"><div><h2 style="margin:0">Rally Leader Schedule</h2><div id="schedule-player" class="muted"></div></div><button id="schedule-close" class="mini-badge" type="button">×</button></div>
+<div class="schedule-form"><label>Start UTC<select id="schedule-start"></select></label><label>End UTC<select id="schedule-end"></select></label><label>Pets<select id="schedule-pets"><option value="no">No</option><option value="yes">Yes</option></select></label></div>
+<button id="schedule-save" class="btn primary" type="button">Save Schedule</button></div></div>
 </body>
 </html>

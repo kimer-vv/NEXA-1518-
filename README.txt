@@ -1,15 +1,8 @@
-NEXA Template Builder — Headers + Pet Accent
-
-Replace only:
-- template-builder.html
-
-No SQL required.
-
-Changes:
-- Rally section now clearly shows RALLY LEAD | PET SCHEDULE.
-- Joiner section now clearly shows JOINER | ATTACK | DEFENSE.
-- When Defensive Heroes is disabled, DEFENSE disappears and the layout becomes JOINER | ATTACK.
-- Pet schedule renders as: 13:00–15:00 UTC 🐾
-- Only the paw uses the Pets Accent color; the time remains normal text.
-- Default Pets Accent remains the gold/yellow #D89B20 and can still be customized live.
-- Keeps all Live Template Branding V2 features.
+NEXA Team Builder patch
+- Rally Leader Schedule is independent from Pets.
+- Start/End UTC dropdown + Pets Yes/No.
+- Rally picker shows Not assigned or all Assigned Alliance — Team — Schedule entries.
+- Joiner picker shows Not assigned or Assigned Alliance — Team.
+- Rally schedule overlap gives a warning but never blocks an admin override.
+- Existing Joiner move/warning behavior remains.
+Run the SQL first, then replace team-builder.html.

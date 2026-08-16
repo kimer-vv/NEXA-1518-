@@ -1085,7 +1085,36 @@ window.addEventListener('error',ev=>{
     `).join('');
   }
 
-  async function loadWaitingList(){
+  
+  async function resolveWaitingApplication(row){
+    if(!row) return null;
+    const ids=[row.source_application_id,row.application?.id,row.application_snapshot?.id].filter(Boolean);
+    if(ids.length){
+      const {data}=await sb.from('transfer_applications').select('*').in('id',ids).limit(1);
+      if(data?.[0]) return data[0];
+    }
+    if(row.application_id){
+      const {data}=await sb.from('transfer_applications').select('*')
+        .eq('application_id',row.application_id).order('created_at',{ascending:false}).limit(1);
+      if(data?.[0]) return data[0];
+    }
+    if(row.player_id){
+      const {data}=await sb.from('transfer_applications').select('*')
+        .eq('player_id',row.player_id).order('created_at',{ascending:false}).limit(1);
+      if(data?.[0]) return data[0];
+    }
+    return null;
+  }
+
+  async function refreshAllTransferViews(targetEventId=''){
+    if(targetEventId && application_event_filter) application_event_filter.value=targetEventId;
+    if(status_filter) status_filter.value='';
+    await loadApplications();
+    await loadWaitingList();
+    await loadTransferRoster();
+  }
+
+async function loadWaitingList(){
     const box=document.getElementById('waiting-list-results');
     box.innerHTML='<p class="muted">Loading…</p>';
     const {data,error}=await sb.rpc('get_transfer_waiting_list');
@@ -1133,42 +1162,52 @@ window.addEventListener('error',ev=>{
     }
 
     if(action==='return'){
+      const original=await resolveWaitingApplication(row);
       const {data:returnedAppId,error}=await sb.rpc('return_transfer_waiting_to_applications',{p_waiting_id:wid});
       if(error)return alert(error.message);
 
-      let targetEventId='';
-      if(returnedAppId){
-        const {data:returnedApp}=await sb.from('transfer_applications')
-          .select('id,transfer_event_id,transfer_status')
-          .eq('id',returnedAppId)
-          .maybeSingle();
-        targetEventId=returnedApp?.transfer_event_id||'';
+      const appId=returnedAppId||original?.id||'';
+      let targetEventId=original?.transfer_event_id||'';
+      if(appId){
+        const {data:returned}=await sb.from('transfer_applications')
+          .select('id,transfer_event_id,transfer_status').eq('id',appId).maybeSingle();
+        targetEventId=returned?.transfer_event_id||targetEventId;
       }
-
-      if(targetEventId && application_event_filter){
-        application_event_filter.value=targetEventId;
-      }
-      if(status_filter) status_filter.value='';
 
       tab('applications');
-      await loadApplications();
-      await loadWaitingList();
-
-      const card=document.querySelector(`[data-open-app="${returnedAppId}"]`);
-      card?.scrollIntoView({block:'center',behavior:'smooth'});
+      await refreshAllTransferViews(targetEventId);
+      document.querySelector(`[data-open-app="${appId}"]`)?.scrollIntoView({block:'center',behavior:'smooth'});
       return;
     }
 
     const eventId=activeTransferEventId();
     if(!eventId)return alert('Select the current Transfer cycle first.');
-    const {error}=await sb.rpc('promote_transfer_waiting_entry',{p_waiting_id:wid,p_event_id:eventId,p_target_status:action});
+
+    const original=await resolveWaitingApplication(row);
+    const {data:promotedAppId,error}=await sb.rpc('promote_transfer_waiting_entry',{
+      p_waiting_id:wid,p_event_id:eventId,p_target_status:action
+    });
     if(error){
       if(String(error.message||'').includes('NO_SPECIAL_INVITES')) alert('No Special Invites are available for this Transfer cycle.');
       else if(String(error.message||'').includes('CAPACITY_FULL')) alert('That invite category is full. Use Applications to swap an existing applicant first.');
       else alert(error.message);
       return;
     }
-    await loadWaitingList();await loadTransferRoster();await loadApplications();
+
+    const appId=promotedAppId||original?.id||'';
+    if(appId){
+      const {error:syncError}=await sb.from('transfer_applications')
+        .update({
+          transfer_status:action,
+          transfer_event_id:eventId,
+          updated_at:new Date().toISOString()
+        }).eq('id',appId);
+      if(syncError) console.warn('Transfer application sync:',syncError);
+    }
+
+    tab('applications');
+    await refreshAllTransferViews(eventId);
+    document.querySelector(`[data-open-app="${appId}"]`)?.scrollIntoView({block:'center',behavior:'smooth'});
   });
 
   document.getElementById('copy-transfer-roster').addEventListener('click',async()=>{

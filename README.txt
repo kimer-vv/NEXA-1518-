@@ -1,17 +1,19 @@
-NEXA — WAITING LIST + ALLIANCE SCROLL FIX
-NO NEW SQL.
+NEXA — TRANSFER STATE SYNC ROOT FIX V2
+No new SQL migration.
 
-Alliance Workspace:
-• BBC/other Alliance Workspace now forwards vertical finger swipes directly to the outer Admin panel.
-• Swipe can begin on cards/content, not only on empty borders.
-• No database changes.
+Transfer status behavior:
+- Waiting List -> Ordinary Invite updates the original transfer_applications record to Ordinary,
+  assigns it to the selected/current Transfer Event, removes it from Waiting List through the
+  existing RPC, refreshes Applications + Roster + Waiting List, and opens Applications.
+- Waiting List -> Special Invite does the same with Special Invite status.
+- Move Back to Applications restores the original application as Not Reviewed through the
+  existing RPC and reloads the correct Transfer Event in Applications.
+- Applications is treated as the canonical status display.
 
-Transfers / Waiting List:
-• Waiting List action buttons now wrap into a mobile-safe 2-column grid.
-• View Details stays inside the Transfers module and remembers whether it came from Waiting List or Applications.
-• Back button says “Back to Waiting List” when opened from Waiting List.
-• No nested Transfers page after returning from details.
-• Move Back to Applications now uses the returned application ID, selects that application’s original Transfer Cycle, opens Applications, clears status filtering, reloads the list and scrolls toward the returned application.
-• No SQL changes were required because the existing RPC already restores transfer_status='not_reviewed'.
+UI:
+- Waiting List buttons use a 2-column responsive mobile layout.
+- Application Review preserves internal embed navigation and remembers Waiting List vs Applications.
+- Team Builder modal layering is strengthened for Pet Schedule.
+- SvS archive links preserve embed mode when compatible detail pages exist.
 
-Administration, Announcements, Event Operations, SvS and the already-approved module shell are otherwise left unchanged.
+No database schema changes included.

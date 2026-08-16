@@ -7,6 +7,16 @@
 <title>NEXA • Transfer Application Review</title>
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+html.embed-mode,html.embed-mode body{
+  overflow:hidden!important;background:transparent!important;height:auto!important;min-height:0!important;
+}
+html.embed-mode header.topbar{display:none!important}
+html.embed-mode main.fullscreen-app-review{
+  max-width:none!important;width:100%!important;margin:0!important;padding:0!important;
+}
+</style>
 </head>
 <body>
 <script>
@@ -14,16 +24,14 @@
   const q=new URLSearchParams(location.search);
   if(q.get('embed')!=='1') return;
   document.documentElement.classList.add('embed-mode');
-
   let y=null,x=null,vertical=false;
   document.addEventListener('touchstart',e=>{
-    const t=e.touches&&e.touches[0]; if(!t)return;
-    y=t.clientY;x=t.clientX;vertical=false;
+    const t=e.touches?.[0]; if(!t)return; y=t.clientY;x=t.clientX;vertical=false;
   },{passive:true,capture:true});
   document.addEventListener('touchmove',e=>{
-    const t=e.touches&&e.touches[0]; if(!t||y===null)return;
+    const t=e.touches?.[0]; if(!t||y===null)return;
     const dy=y-t.clientY,dx=x-t.clientX;
-    if(!vertical && Math.abs(dy)>4 && Math.abs(dy)>Math.abs(dx)) vertical=true;
+    if(!vertical && Math.abs(dy)>4 && Math.abs(dy)>Math.abs(dx))vertical=true;
     if(vertical){
       try{
         const scroller=parent.document.querySelector('#admin-modal .admin-modal-card');
@@ -251,8 +259,8 @@ function statusBadge(s){
 function backToApplications(){
   const from=qs.get('from')==='waiting'?'waiting':'applications';
   const embedded=qs.get('embed')==='1';
-  const parts=[`tab=${encodeURIComponent(from)}`];
-  if(eventId) parts.push(`event=${encodeURIComponent(eventId)}`);
+  const parts=['tab='+encodeURIComponent(from)];
+  if(eventId) parts.push('event='+encodeURIComponent(eventId));
   if(embedded) parts.push('embed=1');
   location.href='transfer-admin.html?'+parts.join('&');
 }

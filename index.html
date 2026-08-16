@@ -1831,12 +1831,72 @@ function hideInternalModuleFrame(){
   }
 
   
-  function syncEmbeddedFrame(){
+  
+  function normalizeSvsEmbeddedDoc(frame){
+    try{
+      const doc=frame.contentDocument || frame.contentWindow?.document;
+      if(!doc || !doc.body) return;
+      const path=(frame.contentWindow?.location?.pathname||'').split('/').pop()?.toLowerCase()||'';
+      const isSvsChild=['schedule.html','history-event.html'].includes(path);
+      if(!isSvsChild) return;
+
+      doc.documentElement.classList.add('nexa-svs-child-embed');
+      doc.body.classList.add('nexa-svs-child-embed');
+
+      // Remove the second NEXA shell. The outer SvS module already owns navigation.
+      [
+        '.nebula-bg','.starfield','header.topbar','.topbar',
+        '.site-header','.app-header','.page-header'
+      ].forEach(sel=>doc.querySelectorAll(sel).forEach(el=>el.style.setProperty('display','none','important')));
+
+      // Hide page-level back navigation that belongs to the standalone page.
+      doc.querySelectorAll(
+        'a.back,a.back-link,[class*="back-link"],a[href*="event.html"],a[href*="history.html"],a[href*="svs-admin.html"]'
+      ).forEach(el=>el.style.setProperty('display','none','important'));
+
+      const style=doc.getElementById('nexa-svs-child-embed-style') || doc.createElement('style');
+      style.id='nexa-svs-child-embed-style';
+      style.textContent=`
+        html.nexa-svs-child-embed,
+        body.nexa-svs-child-embed{
+          background:transparent!important;
+          background-image:none!important;
+          margin:0!important;
+          padding:0!important;
+          width:100%!important;
+          max-width:none!important;
+          min-height:0!important;
+          height:auto!important;
+          overflow:hidden!important;
+        }
+        body.nexa-svs-child-embed main,
+        body.nexa-svs-child-embed .shell,
+        body.nexa-svs-child-embed .page-shell,
+        body.nexa-svs-child-embed .event-shell,
+        body.nexa-svs-child-embed .history-shell{
+          width:100%!important;
+          max-width:none!important;
+          margin:0!important;
+          padding:0!important;
+          background:transparent!important;
+        }
+        body.nexa-svs-child-embed > main{
+          padding-top:0!important;
+        }
+      `;
+      if(!style.parentNode) doc.head.appendChild(style);
+    }catch(err){
+      console.warn('Could not normalize SvS child view',err);
+    }
+  }
+
+function syncEmbeddedFrame(){
     const frame=document.getElementById('internal-module-frame');
     if(!frame) return;
     try{
       const doc=frame.contentDocument || frame.contentWindow?.document;
       if(!doc) return;
+      normalizeSvsEmbeddedDoc(frame);
 
       // Prevent a second vertical scrollbar inside the iframe.
       doc.documentElement.style.overflowY='hidden';
@@ -1871,6 +1931,7 @@ function hideInternalModuleFrame(){
   document.getElementById('internal-module-frame')?.addEventListener('load',()=>{
     const frame=document.getElementById('internal-module-frame');
     frame?.setAttribute('scrolling','no');
+    normalizeSvsEmbeddedDoc(frame);
     syncEmbeddedFrame();
 
     try{

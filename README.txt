@@ -1,12 +1,16 @@
-NEXA — PET SCHEDULE PORTAL FIX
+NEXA — SvS VIEW SCHEDULE + VIEW ARCHIVE SHELL FIX
 NO SQL.
 
-This patch is intentionally narrow:
-• Keeps the now-working native BBC/Team scrolling unchanged.
-• When Edit Schedule is opened, the Pet Schedule modal is moved to document.body.
-• The modal is rendered above the Admin panel with a global high z-index.
-• Start UTC, End UTC, Pets and Save Schedule should be visible and usable.
-• Closing/saving removes the modal-open state.
-• Leaving the native Event Operations workspace cleans up any portal modal.
+Keeps the confirmed fixes:
+• BBC / Teams native scrolling
+• Pet Schedule modal
 
-No Transfer/SvS changes in this patch.
+This patch fixes the two SvS nested-page visuals:
+• Schedule Setup -> View Schedule
+• History -> View Archive
+
+When schedule.html or history-event.html navigates inside the SvS frame,
+NEXA now removes the duplicate standalone NEXA header/background/back navigation
+and lets the OUTER SvS module remain the single visible module shell.
+
+No Transfer status logic is changed in this patch.

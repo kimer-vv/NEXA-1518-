@@ -117,6 +117,21 @@
 .announcement-field select{width:100%}
 .announcement-audience-help{display:block;line-height:1.45}
 
+
+.internal-module-frame-wrap{width:100%;margin-top:8px}
+.internal-module-frame{
+  display:block;
+  width:100%;
+  min-height:72vh;
+  border:0;
+  background:transparent;
+  border-radius:18px;
+}
+#admin-modal.module-view .admin-modal-card{overflow:hidden}
+@media(max-width:700px){
+  .internal-module-frame{min-height:76vh}
+}
+
 </style>
 <style>
 .prep-monday-picker-row{
@@ -385,6 +400,10 @@
       <button class="admin-tab administration-context-tab hidden" type="button" data-admin-tab="alliances">Alliances</button>
       <button class="admin-tab administration-context-tab hidden" type="button" data-admin-tab="permissions">Permissions</button>
     </div>
+    <section id="internal-module-frame-wrap" class="internal-module-frame-wrap hidden">
+      <iframe id="internal-module-frame" class="internal-module-frame" title="NEXA module"></iframe>
+    </section>
+
 <section id="admin-events" class="admin-section">
       <div class="admin-section-head">
         <div>
@@ -1133,7 +1152,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const data={
       administration:['Administration','Manage alliances, permissions and NEXA access.'],
       announcements:['Announcements','Create announcements and optionally provide translations for different languages.'],
-      svs:['SvS','Set up SvS events, manage forms, schedules, assignments and event history.']
+      svs:['SvS','Set up SvS events, manage forms, schedules, assignments and event history.'],
+      eventops:['Event Operations','Build reusable forms, manage event types, responses and team organization.'],
+      transfers:['Transfers','Manage transfer cycles, applications, recruiting alliances, rosters and waiting lists.']
     };
     if(!data[mode]){ head?.classList.add('hidden'); return; }
     head?.classList.remove('hidden');
@@ -1141,7 +1162,53 @@ document.addEventListener('DOMContentLoaded', async () => {
     if(desc) desc.textContent=data[mode][1];
   }
 
-  function setAdminContext(mode){
+  
+  function hideInternalModuleFrame(){
+    const wrap=document.getElementById('internal-module-frame-wrap');
+    const frame=document.getElementById('internal-module-frame');
+    wrap?.classList.add('hidden');
+    if(frame) frame.src='about:blank';
+  }
+
+  function showInternalModuleFrame(src, mode){
+    setUnifiedModuleHeader(mode);
+    document.getElementById('admin-modal')?.classList.add('module-view');
+    document.getElementById('admin-module-chooser')?.classList.add('hidden');
+    document.getElementById('svs-admin-content')?.classList.remove('hidden');
+
+    document.querySelectorAll('.svs-context-tab,.administration-context-tab').forEach(x=>x.classList.add('hidden'));
+    document.getElementById('admin-context-tabs')?.classList.add('hidden');
+
+    ['admin-events','admin-forms','admin-alliances','admin-permissions','admin-announcements'].forEach(id=>{
+      document.getElementById(id)?.classList.add('hidden');
+    });
+
+    const wrap=document.getElementById('internal-module-frame-wrap');
+    const frame=document.getElementById('internal-module-frame');
+    wrap?.classList.remove('hidden');
+    if(frame) frame.src=src;
+  }
+
+  function showSvsEmbeddedView(src, activeTab){
+    setUnifiedModuleHeader('svs');
+    document.getElementById('admin-modal')?.classList.add('module-view');
+    document.getElementById('admin-context-tabs')?.classList.remove('hidden');
+    document.querySelectorAll('.svs-context-tab').forEach(x=>x.classList.remove('hidden'));
+    document.querySelectorAll('.administration-context-tab').forEach(x=>x.classList.add('hidden'));
+
+    ['admin-events','admin-forms','admin-alliances','admin-permissions','admin-announcements'].forEach(id=>{
+      document.getElementById(id)?.classList.add('hidden');
+    });
+
+    document.querySelectorAll('[data-admin-tab]').forEach(b=>b.classList.toggle('active',b.dataset.adminTab===activeTab));
+    const wrap=document.getElementById('internal-module-frame-wrap');
+    const frame=document.getElementById('internal-module-frame');
+    wrap?.classList.remove('hidden');
+    if(frame) frame.src=src;
+  }
+
+function setAdminContext(mode){
+    hideInternalModuleFrame();
     setUnifiedModuleHeader(mode);
     document.getElementById('admin-modal')?.classList.add('module-view');
 
@@ -1170,6 +1237,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   document.getElementById('nexa-module-back')?.addEventListener('click',async()=>{
+    hideInternalModuleFrame();
     document.getElementById('admin-modal')?.classList.remove('module-view');
     document.getElementById('svs-admin-content')?.classList.add('hidden');
     document.getElementById('admin-module-chooser')?.classList.remove('hidden');
@@ -1206,10 +1274,10 @@ document.getElementById('open-svs-admin')?.addEventListener('click',async()=>{
 
   
   document.getElementById('open-transfer-admin')?.addEventListener('click',()=>{
-    location.href='transfer-admin.html';
+    showInternalModuleFrame('transfer-admin.html?embed=1','transfers');
   });
   document.getElementById('open-event-operations')?.addEventListener('click',()=>{
-    location.href='event-operations.html';
+    showInternalModuleFrame('event-operations.html?embed=1','eventops');
   });
 
   
@@ -1259,14 +1327,15 @@ document.getElementById('open-svs-admin')?.addEventListener('click',async()=>{
     const target=btn.dataset.adminTab;
 
     if(target==='schedule'){
-      location.href='prep-requests.html';
+      showSvsEmbeddedView('prep-requests.html?embed=1','schedule');
       return;
     }
     if(target==='history'){
-      location.href='history.html';
+      showSvsEmbeddedView('history.html?embed=1','history');
       return;
     }
 
+    hideInternalModuleFrame();
     document.querySelectorAll('[data-admin-tab]').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
 

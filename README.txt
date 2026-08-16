@@ -1,34 +1,15 @@
-NEXA — FINAL MODULE POLISH
+NEXA — INTERNAL MODULE VISUAL V1
 NO SQL.
 
-Administration:
-- Intentionally unchanged.
+This patch changes navigation so the user stays inside the Admin panel:
 
-Announcements:
-- Intentionally left as the corrected version.
+• Administration and Announcements remain native internal views.
+• Event Operations opens inside the same Admin panel instead of navigating away.
+• Transfers opens inside the same Admin panel instead of navigating away.
+• SvS Schedule Setup opens inside the SvS module under the existing SvS tabs.
+• SvS History opens inside the SvS module under the existing SvS tabs.
+• No page jump is visible for these module views.
+• Existing child-page functionality is preserved inside the internal module viewport.
 
-Event Operations:
-- Visual shell tightened to match the other modules.
-- No ADMIN/PRIVATE badge.
-- Small blue ← Modules.
-- Consistent width/spacing.
-
-Schedule Setup:
-- ADMIN badge removed.
-- Title changed to Schedule Setup.
-- Back link is ← SvS and returns directly to the SvS module.
-- Stale Loading... is hidden after load.
-
-Event History:
-- ADMIN badge removed.
-- Back link is ← SvS and returns directly to the SvS module.
-- Keeps Event History title and all archive tools.
-
-Transfers:
-- PRIVATE removed.
-- Giant Modules button converted into small blue ← Modules above the title.
-- Diagnostic stats chip removed.
-- Horizontal tabs preserved.
-- Same width/navigation treatment as the other modules.
-
-No database changes.
+This is the visual/navigation phase only.
+No realtime/concurrency/database changes are included yet.

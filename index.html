@@ -17,6 +17,14 @@
   padding:14px 16px;
 }
 .module-visibility-card small{display:block;margin-top:3px}
+
+.module-card-shell{padding:0!important;overflow:hidden;display:flex!important;flex-direction:column!important}
+.module-card-main{appearance:none;-webkit-appearance:none;border:0;background:transparent;color:inherit;text-align:left;padding:18px;width:100%;display:grid;gap:5px;cursor:pointer}
+.module-show-toggle{display:flex;align-items:center;gap:8px;padding:10px 16px;border-top:1px solid rgba(255,255,255,.09);font-size:.82rem;color:var(--muted);cursor:pointer}
+.module-show-toggle input{width:auto!important;margin:0}
+.preview-permissions-grid{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+.preview-permission-chip{border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 9px;font-size:.75rem}
+
 </style>
 <style>
 .prep-monday-picker-row{
@@ -230,36 +238,54 @@
     </div>
 
     <div id="admin-module-chooser" class="module-chooser">
-      <button id="open-svs-admin" class="module-card" type="button">
-        <span class="module-kicker">MODULE</span><b>SvS</b><small>Events, Prep Requests, Schedule, Announcements & History</small>
-      </button>
-      <button id="open-transfer-admin" class="module-card" type="button">
-        <span class="module-kicker">MODULE</span><b>Transfers</b><small>Transfer cycles, applications, recruiting alliances & staff notes</small>
-      </button>
-      <button id="open-event-operations" class="module-card" type="button">
-        <span class="module-kicker">MODULE</span><b>Event Operations</b><small>Reusable forms, question library, layouts, previews & responses</small>
-      </button>
+      <article class="module-card module-card-shell">
+        <button id="open-administration" class="module-card-main" type="button">
+          <span class="module-kicker">MODULE</span><b>Administration</b>
+          <small>Alliances, permissions & NEXA access control</small>
+        </button>
+      </article>
 
-      <section id="home-module-visibility" class="glass-lite module-visibility-card">
-        <div>
-          <b>Home Visibility</b>
-          <small>Hide a module from Home without closing its event, form, or public links.</small>
-        </div>
-        <label class="toggle-line"><input id="show-svs-home" type="checkbox"> SvS</label>
-        <label class="toggle-line"><input id="show-transfer-home" type="checkbox"> Transfer</label>
-        <div id="home-visibility-message" class="form-message"></div>
-      </section>
+      <article class="module-card module-card-shell">
+        <button id="open-announcements" class="module-card-main" type="button">
+          <span class="module-kicker">MODULE</span><b>Announcements</b>
+          <small>Announcements, translations, acknowledgements & history</small>
+        </button>
+        <label class="module-show-toggle"><input id="preview-show-announcements" type="checkbox"> Show</label>
+      </article>
+
+      <article class="module-card module-card-shell">
+        <button id="open-event-operations" class="module-card-main" type="button">
+          <span class="module-kicker">MODULE</span><b>Event Operations</b>
+          <small>Forms, responses, Teams & event organization</small>
+        </button>
+        <label class="module-show-toggle"><input id="preview-show-eo" type="checkbox"> Show</label>
+      </article>
+
+      <article class="module-card module-card-shell">
+        <button id="open-svs-admin" class="module-card-main" type="button">
+          <span class="module-kicker">MODULE</span><b>SvS</b>
+          <small>Events, Prep Requests, Schedule & History</small>
+        </button>
+        <label class="module-show-toggle"><input id="show-svs-home" type="checkbox"> Show</label>
+      </article>
+
+      <article class="module-card module-card-shell">
+        <button id="open-transfer-admin" class="module-card-main" type="button">
+          <span class="module-kicker">MODULE</span><b>Transfer</b>
+          <small>Transfer cycles, applications, recruiting alliances & staff notes</small>
+        </button>
+        <label class="module-show-toggle"><input id="show-transfer-home" type="checkbox"> Show</label>
+      </article>
+
+      <div id="home-visibility-message" class="form-message"></div>
     </div>
     <div id="svs-admin-content" class="hidden">
       <div class="module-back-row"><button id="back-to-modules" class="btn secondary" type="button">← Modules</button></div>
     <div class="admin-quick-links"><a class="btn" href="prep-requests.html">Schedule Management</a></div>
-    <div class="admin-tabs">
-      <button class="admin-tab active" type="button" data-admin-tab="events">Events</button>
-      <button class="admin-tab" type="button" data-admin-tab="alliances">Alliances</button>
-      <button class="admin-tab" type="button" data-admin-tab="permissions">Permissions</button>
-      <button class="admin-tab" type="button" data-admin-tab="announcements">Announcements</button>
-      
-      
+    <div class="admin-tabs" id="admin-context-tabs">
+      <button class="admin-tab svs-context-tab active" type="button" data-admin-tab="events">Events</button>
+      <button class="admin-tab administration-context-tab hidden" type="button" data-admin-tab="alliances">Alliances</button>
+      <button class="admin-tab administration-context-tab hidden" type="button" data-admin-tab="permissions">Permissions</button>
     </div>
 
     <div class="admin-subtabs">
@@ -398,7 +424,7 @@
       <div class="admin-section-head">
         <div>
           <h3>Alliance Tags</h3>
-          <p>Add, rename, or deactivate official alliance tags.</p>
+          <p>Add, rename, activate/deactivate, or delete official alliance tags.</p>
         </div>
       </div>
 
@@ -419,7 +445,7 @@
       <div class="admin-section-head">
         <div>
           <h3 id="permissions-title">Permissions</h3>
-          <p id="permissions-help">Search by IGN or Player ID and assign access. Owner is protected.</p>
+          <p id="permissions-help">Preview of module-based access: Admin, EO, SvS and Transfer. Owner is protected.</p>
         </div>
       </div>
 
@@ -973,24 +999,50 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function configureAdminModules(){
     const access=await getModuleAccess();
-    const svsBtn=document.getElementById('open-svs-admin');
-    const transferBtn=document.getElementById('open-transfer-admin');
-    const eventOpsBtn=document.getElementById('open-event-operations');
-    if(svsBtn) svsBtn.classList.toggle('hidden',!access.svs);
-    if(transferBtn) transferBtn.classList.toggle('hidden',!access.transfers);
-    if(eventOpsBtn) eventOpsBtn.classList.toggle('hidden',!access.svs);
-    const svsContent=document.getElementById('svs-admin-content');
-    if(svsContent) svsContent.classList.add('hidden');
-    const chooser=document.getElementById('admin-module-chooser');
-    if(chooser) chooser.classList.remove('hidden');
-
-
+    document.getElementById('open-svs-admin')?.classList.toggle('hidden',!access.svs);
+    document.getElementById('open-transfer-admin')?.classList.toggle('hidden',!access.transfers);
+    document.getElementById('open-event-operations')?.classList.toggle('hidden',!access.svs);
+    document.getElementById('open-administration')?.classList.remove('hidden');
+    document.getElementById('open-announcements')?.classList.remove('hidden');
+    document.getElementById('svs-admin-content')?.classList.add('hidden');
+    document.getElementById('admin-module-chooser')?.classList.remove('hidden');
   }
 
-  document.getElementById('open-svs-admin')?.addEventListener('click',async()=>{
+  
+  function setAdminContext(mode){
+    const tabs=document.getElementById('admin-context-tabs');
+    document.querySelectorAll('.svs-context-tab').forEach(x=>x.classList.toggle('hidden',mode!=='svs'));
+    document.querySelectorAll('.administration-context-tab').forEach(x=>x.classList.toggle('hidden',mode!=='administration'));
+    if(tabs) tabs.classList.toggle('hidden',mode==='announcements');
+
+    document.getElementById('admin-events')?.classList.toggle('hidden',mode!=='svs');
+    document.getElementById('admin-alliances')?.classList.toggle('hidden',mode!=='administration');
+    document.getElementById('admin-permissions')?.classList.toggle('hidden',true);
+    document.getElementById('admin-announcements')?.classList.toggle('hidden',mode!=='announcements');
+
+    document.querySelectorAll('[data-admin-tab]').forEach(b=>b.classList.remove('active'));
+    if(mode==='svs') document.querySelector('[data-admin-tab="events"]')?.classList.add('active');
+    if(mode==='administration') document.querySelector('[data-admin-tab="alliances"]')?.classList.add('active');
+  }
+
+  document.getElementById('open-administration')?.addEventListener('click',async()=>{
     document.getElementById('admin-module-chooser')?.classList.add('hidden');
     document.getElementById('svs-admin-content')?.classList.remove('hidden');
-    document.querySelectorAll('[data-admin-tab]').forEach(b=>b.classList.toggle('active',b.dataset.adminTab==='events'));
+    setAdminContext('administration');
+    await loadAdminAlliances();
+  });
+
+  document.getElementById('open-announcements')?.addEventListener('click',async()=>{
+    document.getElementById('admin-module-chooser')?.classList.add('hidden');
+    document.getElementById('svs-admin-content')?.classList.remove('hidden');
+    setAdminContext('announcements');
+    await loadAnnouncementsCenter();
+  });
+
+document.getElementById('open-svs-admin')?.addEventListener('click',async()=>{
+    document.getElementById('admin-module-chooser')?.classList.add('hidden');
+    document.getElementById('svs-admin-content')?.classList.remove('hidden');
+    setAdminContext('svs');
     showAdminSection('events');
     await loadAdminEvents();
     await loadAdminAlliances();
@@ -1222,6 +1274,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           <button type="button" data-alliance-toggle="${a.id}" data-active="${a.is_active}">
             ${a.is_active ? tr('deactivate') : tr('activate')}
           </button>
+          <button type="button" data-alliance-delete-preview="${a.id}" data-alliance-tag="${a.tag}">Delete</button>
         </div>
       </article>
     `).join('') : '<div class="empty-state">No alliances found.</div>';
@@ -1258,6 +1311,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!(await ensureAdmin())) return;
     const editId = e.target.dataset.allianceEdit;
     const toggleId = e.target.dataset.allianceToggle;
+    const deletePreviewId = e.target.dataset.allianceDeletePreview;
+
+    if (deletePreviewId) {
+      const tag=e.target.dataset.allianceTag||'this alliance';
+      alert(`Delete ${tag}?\n\nPreview only: final safe delete will verify historical references before removing this alliance. Use Deactivate for now if you only want it hidden.`);
+      return;
+    }
 
     if (editId) {
       const { data, error } = await supabaseClient.from('alliances').select('id,tag').eq('id', editId).single();
@@ -1482,6 +1542,12 @@ document.addEventListener('DOMContentLoaded', async () => {
               </select>` : `<span class="owner-badge">${role}</span>`}
           ${canVerify && !isOwner ? `<button class="btn secondary" type="button" data-verify-user="${u.user_id}" data-verified="${verified?'1':'0'}">${verified?'Remove Verification':'Verify Member'}</button>` : ''}
           <small>${verified?'✓ Verified State Member':'External / Unverified'}</small>
+          ${!isOwner ? `<div class="preview-permissions-grid">
+            <span class="preview-permission-chip">Admin</span>
+            <span class="preview-permission-chip">EO</span>
+            <span class="preview-permission-chip">SvS</span>
+            <span class="preview-permission-chip">Transfer</span>
+          </div>` : ''}
         </div>
       </article>`;
     }).join('') : `<div class="empty-state">${tr('noUsers')}</div>`;
@@ -1856,19 +1922,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   async function loadHomeVisibilityAdmin(){
-    const wrap=document.getElementById('home-module-visibility');
-    if(!wrap)return;
     let role='';
-    try{
-      const {data}=await supabaseClient.rpc('current_nexa_role');
-      role=String(data||'').toLowerCase();
-    }catch(_){}
+    try{const {data}=await supabaseClient.rpc('current_nexa_role');role=String(data||'').toLowerCase();}catch(_){}
     const canEdit=['owner','admin'].includes(role);
-    wrap.classList.toggle('hidden',!canEdit);
+    document.querySelectorAll('.module-show-toggle').forEach(x=>x.classList.toggle('hidden',!canEdit));
     if(!canEdit)return;
+
     const v=await getHomeModuleVisibility();
-    document.getElementById('show-svs-home').checked=v.svs;
-    document.getElementById('show-transfer-home').checked=v.transfer;
+    if(document.getElementById('show-svs-home')) document.getElementById('show-svs-home').checked=v.svs;
+    if(document.getElementById('show-transfer-home')) document.getElementById('show-transfer-home').checked=v.transfer;
+    document.getElementById('preview-show-announcements').checked=localStorage.getItem('nexa_preview_show_announcements')==='1';
+    document.getElementById('preview-show-eo').checked=localStorage.getItem('nexa_preview_show_eo')==='1';
   }
 
   async function saveHomeVisibility(){
@@ -1883,6 +1947,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('show-svs-home')?.addEventListener('change',saveHomeVisibility);
   document.getElementById('show-transfer-home')?.addEventListener('change',saveHomeVisibility);
+  document.getElementById('preview-show-announcements')?.addEventListener('change',e=>{
+    localStorage.setItem('nexa_preview_show_announcements',e.target.checked?'1':'0');
+    document.getElementById('home-visibility-message').textContent='Preview visibility updated ✓';
+  });
+  document.getElementById('preview-show-eo')?.addEventListener('change',e=>{
+    localStorage.setItem('nexa_preview_show_eo',e.target.checked?'1':'0');
+    document.getElementById('home-visibility-message').textContent='Preview visibility updated ✓';
+  });
 
   async function loadHomeTransfers(){
     const visible=await getHomeModuleVisibility();

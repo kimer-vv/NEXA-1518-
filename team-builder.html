@@ -503,7 +503,7 @@ function overlaps(a,b,c,d){if([a,b,c,d].some(v=>v==null||v===''))return false;re
 
 async function loadAssignmentIndex(){
  assignmentIndex={rally:{},joiner:{}};
- const {data:ts,error:te}=await sb.from('alliance_teams').select('id,name,alliance_id,event_type_key').eq('event_type_key',eventType);
+ const {data:ts,error:te}=await sb.from('alliance_teams').select('id,name,alliance_id,alliance_tag,event_type_key').eq('event_type_key',eventType);
  if(te){console.warn(te.message);return}
  const ids=(ts||[]).map(x=>x.id); if(!ids.length)return;
  const tm=Object.fromEntries(ts.map(x=>[String(x.id),x]));
@@ -511,7 +511,7 @@ async function loadAssignmentIndex(){
  if(me){console.warn(me.message);return}
  for(const m of ms||[]){
    const t=tm[String(m.team_id)]||{}, k=String(m.player_account_id);
-   const r={member_id:m.id,team_name:t.name||'Team',alliance_tag:m.original_alliance||t.alliance_id||'Alliance',start:m.schedule_start_utc,end:m.schedule_end_utc,pets:!!m.pets_active};
+   const r={member_id:m.id,team_name:t.name||'Team',alliance_tag:t.alliance_tag||t.alliance_id||'Alliance',start:m.schedule_start_utc,end:m.schedule_end_utc,pets:!!m.pets_active};
    const b=m.member_role==='rally_lead'?assignmentIndex.rally:assignmentIndex.joiner;(b[k]||(b[k]=[])).push(r);
  }
 }

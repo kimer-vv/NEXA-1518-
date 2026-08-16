@@ -1,15 +1,16 @@
-NEXA Team Builder — Loading Fix
+NEXA Team Builder — Assigned Alliance Display Fix
 
 Replace ONLY:
 - team-builder.html
 
-Cause:
-The new Rally Schedule modal was inserted after the page's JavaScript.
-The script tried to bind buttons before the modal existed, stopping page
-initialization and leaving Rally Leaders / Joiners stuck on Loading.
+Fixes the Rally Leader and Joiner picker assignment status.
 
-Fix:
-The modal is now in the DOM before the JavaScript runs.
+Before:
+Assigned • [player's original alliance] — Team 1
+
+Now:
+Assigned • [actual assigned alliance] — Team 1
+
+The player's original alliance remains unchanged elsewhere in NEXA.
 
 No SQL required.
-The SQL you already ran is correct and does not need to be run again.

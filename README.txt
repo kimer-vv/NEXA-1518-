@@ -1,15 +1,16 @@
-NEXA MODULE POLISH — VISUAL PREVIEW (NO NEW SQL)
+NEXA — UNIFIED MODULE STRUCTURE PREVIEW
+NO NEW SQL.
 
-Includes the previous Administration reorganization plus:
-• Administration: no standalone Schedule Management or SvS History.
-• Announcements: no standalone Schedule/History navigation.
-• Announcements translations clearly marked OPTIONAL with explanatory copy.
-• SvS navigation uses one horizontally scrollable tab row:
-  Events | Forms | Schedule Management | History
-• New SvS Forms view groups Prep Form and Battle Form.
-• Battle Form button is labeled simply “Battle Form” and attempts to open SvS directly.
-• Event Operations back navigation standardized to “← Modules”.
-• Transfer tabs are kept on one horizontally scrollable row on mobile.
-• Same visual navigation pattern is being established across modules.
+Goal:
+• Control Center remains ONLY on the module selector.
+• Once a module opens, its own name becomes the page title.
+• “← Modules” sits above the module title everywhere.
+• Administration: Administration + description + Alliances / Permissions.
+• Announcements: Announcements + description; no SvS Schedule/History.
+• SvS: SvS + description + horizontal Event Setup / Forms / Schedule / History.
+• Event Operations: same small blue ← Modules navigation above its title.
+• Transfers: renamed from NEXA Transfers to Transfers; version removed; Modules navigation normalized.
+• Friendly UI copy replaces technical labels such as allianceTags/allianceHelp.
+• Module cards use clearer one-line descriptions.
 
-Still intentionally NO new permission/home-visibility/delete SQL in this preview.
+This remains a visual/navigation preview. Permission/Home visibility/Delete SQL is still intentionally deferred.

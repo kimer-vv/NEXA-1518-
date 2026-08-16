@@ -40,6 +40,64 @@
 .announcement-intro{color:var(--muted)}
 #admin-events .svs-form-links,#admin-events [data-svs-form-links]{display:none!important}
 
+
+/* NEXA unified module shell */
+#svs-admin-content .legacy-svs-nav,
+#svs-admin-content #open-schedule-manager,
+#svs-admin-content #open-history { display:none !important; }
+
+.nexa-module-shell-head{
+  display:grid;
+  gap:7px;
+  margin:0 0 18px;
+}
+.nexa-module-back{
+  appearance:none;
+  border:0;
+  background:transparent;
+  padding:0;
+  width:max-content;
+  color:#2497ff;
+  font:inherit;
+  font-weight:800;
+  cursor:pointer;
+}
+.nexa-module-title{
+  margin:0;
+  font-size:clamp(2rem,7vw,3.1rem);
+  line-height:1.02;
+  color:#fff;
+  letter-spacing:-.03em;
+}
+.nexa-module-description{
+  margin:0;
+  max-width:760px;
+  color:var(--muted);
+  line-height:1.5;
+}
+#svs-admin-content > .admin-header,
+#svs-admin-content .admin-panel-title,
+#svs-admin-content .adminPanel,
+#svs-admin-content .controlCenter,
+#svs-admin-content .control-center-title { display:none !important; }
+
+.admin-tabs-scroll{
+  display:flex!important;
+  flex-wrap:nowrap!important;
+  overflow-x:auto!important;
+  gap:10px!important;
+  padding:2px 0 8px;
+  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;
+}
+.admin-tabs-scroll::-webkit-scrollbar{display:none}
+.admin-tabs-scroll .admin-tab{flex:0 0 auto!important;white-space:nowrap!important}
+
+/* Prevent technical translation keys from looking like UI copy */
+.section-friendly-title{margin:0 0 5px;font-size:1.35rem}
+.section-friendly-help{margin:0 0 16px;color:var(--muted);line-height:1.45}
+.translation-note{margin-top:16px}
+
 </style>
 <style>
 .prep-monday-picker-row{
@@ -256,14 +314,14 @@
       <article class="module-card module-card-shell">
         <button id="open-administration" class="module-card-main" type="button">
           <span class="module-kicker">MODULE</span><b>Administration</b>
-          <small>Alliances, permissions & NEXA access control</small>
+          <small>Manage alliances, permissions & NEXA access.</small>
         </button>
       </article>
 
       <article class="module-card module-card-shell">
         <button id="open-announcements" class="module-card-main" type="button">
           <span class="module-kicker">MODULE</span><b>Announcements</b>
-          <small>Announcements, translations, acknowledgements & history</small>
+          <small>Create announcements and optionally provide translations for different languages.</small>
         </button>
         <label class="module-show-toggle"><input id="preview-show-announcements" type="checkbox"> Show</label>
       </article>
@@ -271,7 +329,7 @@
       <article class="module-card module-card-shell">
         <button id="open-event-operations" class="module-card-main" type="button">
           <span class="module-kicker">MODULE</span><b>Event Operations</b>
-          <small>Forms, responses, Teams & event organization</small>
+          <small>Build reusable forms, manage event types, responses & team organization.</small>
         </button>
         <label class="module-show-toggle"><input id="preview-show-eo" type="checkbox"> Show</label>
       </article>
@@ -279,15 +337,15 @@
       <article class="module-card module-card-shell">
         <button id="open-svs-admin" class="module-card-main" type="button">
           <span class="module-kicker">MODULE</span><b>SvS</b>
-          <small>Events, Prep Requests, Schedule & History</small>
+          <small>Set up SvS events, forms, schedules, assignments & history.</small>
         </button>
         <label class="module-show-toggle"><input id="show-svs-home" type="checkbox"> Show</label>
       </article>
 
       <article class="module-card module-card-shell">
         <button id="open-transfer-admin" class="module-card-main" type="button">
-          <span class="module-kicker">MODULE</span><b>Transfer</b>
-          <small>Transfer cycles, applications, recruiting alliances & staff notes</small>
+          <span class="module-kicker">MODULE</span><b>Transfers</b>
+          <small>Manage transfer cycles, applications, recruiting alliances, rosters & waiting lists.</small>
         </button>
         <label class="module-show-toggle"><input id="show-transfer-home" type="checkbox"> Show</label>
       </article>
@@ -297,10 +355,15 @@
     <div id="svs-admin-content" class="hidden">
       <div class="module-back-row"><button id="back-to-modules" class="btn secondary" type="button">← Modules</button></div>
     <div class="admin-quick-links"><a class="btn" href="prep-requests.html">Schedule Management</a></div>
+    <div id="nexa-module-shell-head" class="nexa-module-shell-head hidden">
+      <button id="nexa-module-back" class="nexa-module-back" type="button">← Modules</button>
+      <h2 id="nexa-module-title" class="nexa-module-title">SvS</h2>
+      <p id="nexa-module-description" class="nexa-module-description"></p>
+    </div>
     <div class="admin-tabs admin-tabs-scroll" id="admin-context-tabs">
-      <button class="admin-tab svs-context-tab active" type="button" data-admin-tab="events">Events</button>
+      <button class="admin-tab svs-context-tab active" type="button" data-admin-tab="events">Event Setup</button>
       <button class="admin-tab svs-context-tab" type="button" data-admin-tab="forms">Forms</button>
-      <button class="admin-tab svs-context-tab" type="button" data-admin-tab="schedule">Schedule Management</button>
+      <button class="admin-tab svs-context-tab" type="button" data-admin-tab="schedule">Schedule</button>
       <button class="admin-tab svs-context-tab" type="button" data-admin-tab="history">History</button>
       <button class="admin-tab administration-context-tab hidden" type="button" data-admin-tab="alliances">Alliances</button>
       <button class="admin-tab administration-context-tab hidden" type="button" data-admin-tab="permissions">Permissions</button>
@@ -1055,7 +1118,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   
+  function setUnifiedModuleHeader(mode){
+    const head=document.getElementById('nexa-module-shell-head');
+    const title=document.getElementById('nexa-module-title');
+    const desc=document.getElementById('nexa-module-description');
+    const data={
+      administration:['Administration','Manage alliances, permissions and NEXA access.'],
+      announcements:['Announcements','Create announcements and optionally provide translations for different languages.'],
+      svs:['SvS','Set up SvS events, manage forms, schedules, assignments and event history.']
+    };
+    if(!data[mode]){ head?.classList.add('hidden'); return; }
+    head?.classList.remove('hidden');
+    if(title) title.textContent=data[mode][0];
+    if(desc) desc.textContent=data[mode][1];
+  }
+
   function setAdminContext(mode){
+    setUnifiedModuleHeader(mode);
     const tabs=document.getElementById('admin-context-tabs');
     document.querySelectorAll('.svs-context-tab').forEach(x=>x.classList.toggle('hidden',mode!=='svs'));
     document.querySelectorAll('.administration-context-tab').forEach(x=>x.classList.toggle('hidden',mode!=='administration'));
@@ -1071,6 +1150,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     if(mode==='svs') document.querySelector('[data-admin-tab="events"]')?.classList.add('active');
     if(mode==='administration') document.querySelector('[data-admin-tab="alliances"]')?.classList.add('active');
   }
+
+  document.getElementById('nexa-module-back')?.addEventListener('click',()=>{
+    document.getElementById('svs-admin-content')?.classList.add('hidden');
+    document.getElementById('admin-module-chooser')?.classList.remove('hidden');
+    document.getElementById('nexa-module-shell-head')?.classList.add('hidden');
+  });
 
   document.getElementById('open-administration')?.addEventListener('click',async()=>{
     document.getElementById('admin-module-chooser')?.classList.add('hidden');
@@ -1454,10 +1539,10 @@ document.getElementById('open-svs-admin')?.addEventListener('click',async()=>{
     if(tabs[2]) tabs[2].textContent=tr('permissions');
     if(tabs[3]) tabs[3].textContent='Announcements';
 
-    setText('#admin-events h3','svsEvents');
-    setText('#admin-events .admin-section-head p','eventsHelp');
-    setText('#admin-alliances h3','allianceTags');
-    setText('#admin-alliances .admin-section-head p','allianceHelp');
+    setText('#admin-events h3','Event Setup');
+    setText('#admin-events .admin-section-head p','Configure the opponent, event dates, castle and presidency assignments for the current SvS.');
+    setText('#admin-alliances h3','Manage Alliances');
+    setText('#admin-alliances .admin-section-head p','Add, edit, activate, deactivate or remove alliance tags.');
     setText('#permissions-title','permissions');
     setText('#permissions-help','permissionsHelp');
 

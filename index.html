@@ -132,6 +132,42 @@
   .internal-module-frame{min-height:76vh}
 }
 
+
+/* FIX: module panel owns vertical scrolling on iPhone/Safari */
+#admin-modal.open{
+  overflow:hidden !important;
+  overscroll-behavior:contain;
+}
+#admin-modal .modal-backdrop{
+  touch-action:none;
+}
+#admin-modal .admin-modal-card{
+  max-height:calc(100dvh - 36px) !important;
+  height:auto !important;
+  overflow-y:auto !important;
+  overflow-x:hidden !important;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+  touch-action:pan-y;
+  padding-bottom:calc(120px + env(safe-area-inset-bottom)) !important;
+}
+#admin-modal.module-view .admin-modal-card{
+  max-height:calc(100dvh - 36px) !important;
+  overflow-y:auto !important;
+}
+#svs-admin-content{
+  min-height:0;
+}
+.internal-module-frame-wrap{
+  min-height:0;
+  overflow:visible;
+}
+.internal-module-frame{
+  min-height:900px !important;
+  height:900px;
+  overflow:hidden;
+}
+
 </style>
 <style>
 .prep-monday-picker-row{
@@ -1170,7 +1206,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     if(frame) frame.src='about:blank';
   }
 
-  function showInternalModuleFrame(src, mode){
+  
+  function resizeInternalFrame(){
+    const frame=document.getElementById('internal-module-frame');
+    if(!frame) return;
+    try{
+      const doc=frame.contentDocument || frame.contentWindow?.document;
+      if(!doc) return;
+      const h=Math.max(
+        doc.body?.scrollHeight||0,
+        doc.documentElement?.scrollHeight||0,
+        900
+      );
+      frame.style.height=(h+80)+'px';
+      frame.style.minHeight=(h+80)+'px';
+    }catch(_){}
+  }
+
+  document.getElementById('internal-module-frame')?.addEventListener('load',()=>{
+    resizeInternalFrame();
+    setTimeout(resizeInternalFrame,150);
+    setTimeout(resizeInternalFrame,600);
+  });
+
+function showInternalModuleFrame(src, mode){
+    document.querySelector('#admin-modal .admin-modal-card')?.scrollTo({top:0,behavior:'auto'});
     setUnifiedModuleHeader(mode);
     document.getElementById('admin-modal')?.classList.add('module-view');
     document.getElementById('admin-module-chooser')?.classList.add('hidden');
@@ -1190,6 +1250,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function showSvsEmbeddedView(src, activeTab){
+    document.querySelector('#admin-modal .admin-modal-card')?.scrollTo({top:0,behavior:'auto'});
     setUnifiedModuleHeader('svs');
     document.getElementById('admin-modal')?.classList.add('module-view');
     document.getElementById('admin-context-tabs')?.classList.remove('hidden');

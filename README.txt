@@ -1,15 +1,16 @@
-NEXA — INTERNAL MODULE VISUAL V1
+NEXA — SCROLL + EMBED FIX
 NO SQL.
 
-This patch changes navigation so the user stays inside the Admin panel:
+Fixes:
+• The Admin modal now owns vertical scrolling on iPhone/Safari.
+• Background page should no longer scroll while the module stays frozen.
+• Internal module frame auto-resizes to content so the parent panel scrolls naturally.
+• Extra bottom safe-area spacing prevents Safari's bottom bar from covering the last controls.
+• Event Operations remains embedded without duplicated page chrome.
+• Transfers embed removes nested NEXA header / page shell.
+• SvS Schedule Setup embed removes nested NEXA header/title shell.
+• SvS History embed removes nested NEXA header/title shell.
+• Existing functions are preserved.
 
-• Administration and Announcements remain native internal views.
-• Event Operations opens inside the same Admin panel instead of navigating away.
-• Transfers opens inside the same Admin panel instead of navigating away.
-• SvS Schedule Setup opens inside the SvS module under the existing SvS tabs.
-• SvS History opens inside the SvS module under the existing SvS tabs.
-• No page jump is visible for these module views.
-• Existing child-page functionality is preserved inside the internal module viewport.
-
-This is the visual/navigation phase only.
-No realtime/concurrency/database changes are included yet.
+Administration tab structure is not changed.
+No database or SQL changes.

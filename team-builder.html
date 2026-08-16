@@ -58,7 +58,9 @@ const sb=window.supabase.createClient("https://dfxcxboxrkfmrnsgpyin.supabase.co"
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 const p=new URLSearchParams(location.search);
-const eventType=p.get('event_type')||'svs',allianceId=p.get('alliance_id')||'',allianceTag=p.get('alliance_tag')||'Alliance',teamId=p.get('team_id')||'',teamName=p.get('team_name')||'Team';
+const eventType=p.get('event_type')||'svs',allianceId=p.get('alliance_id')||'',allianceTag=p.get('alliance_tag')||'Alliance';
+let teamId=p.get('team_id')||'';
+const teamName=p.get('team_name')||'Team';
 let members=[],candidates={rally_lead:[],joiner:[]},pickerRole=null;
 $('event-badge').textContent=eventType.toUpperCase();$('title').textContent=`${allianceTag} • ${teamName}`;
 $('back-link').onclick=()=>location.href=`alliance-teams.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}`;
@@ -66,6 +68,37 @@ $('history-btn').onclick=()=>location.href=`alliance-team-history.html?event_typ
 
 async function guard(){const {data:{session}}=await sb.auth.getSession();if(!session){location.href='index.html';return false}return true}
 async function addLog(action,details={},playerAccountId=null){await sb.from('team_change_log').insert({event_type_key:eventType,alliance_id:String(allianceId),alliance_tag:allianceTag,team_id:teamId,player_account_id:playerAccountId,action_type:action,details})}
+
+async function resolveTeamId(){
+  if(teamId)return true;
+
+  const {data,error}=await sb.from('alliance_teams')
+    .select('id,name')
+    .eq('event_type_key',eventType)
+    .eq('alliance_id',String(allianceId))
+    .eq('name',teamName)
+    .order('created_at',{ascending:false})
+    .limit(1)
+    .maybeSingle();
+
+  if(error){
+    alert('Could not open this Team: '+error.message);
+    return false;
+  }
+
+  if(!data?.id){
+    alert(`This Team is from the old preview and is not saved in the shared Teams database yet.\n\nGo back to ${allianceTag} Team Organization, create "${teamName}" again, then open it.`);
+    return false;
+  }
+
+  teamId=data.id;
+
+  // Repair the URL so refreshes/open history use the real shared Team UUID.
+  const url=new URL(location.href);
+  url.searchParams.set('team_id',teamId);
+  history.replaceState({},'',url);
+  return true;
+}
 async function loadMembers(){
  const {data,error}=await sb.from('team_members').select('*,pet_windows(*)').eq('team_id',teamId).order('member_role').order('created_at');
  if(error){alert(error.message);return}members=data||[];renderMembers();
@@ -142,7 +175,11 @@ document.addEventListener('click',async e=>{
  const pet=e.target.closest('.pet-add');if(pet){const m=members.find(x=>String(x.id)===String(pet.dataset.id));if(m)addPetWindow(m);return}
  const pd=e.target.closest('.pet-delete');if(pd){const w=members.flatMap(m=>m.pet_windows||[]).find(x=>String(x.id)===String(pd.dataset.id));if(!w)return;if(!confirm('Remove this Pet Window?'))return;const {error}=await sb.from('pet_windows').delete().eq('id',w.id);if(error){alert(error.message);return}await addLog('pet_window_removed',{start_utc:w.start_utc,end_utc:w.end_utc,team_name:teamName});await loadMembers();}
 });
-(async()=>{if(!(await guard()))return;await Promise.all([loadMembers(),loadFormations()]);})();
+(async()=>{
+  if(!(await guard()))return;
+  if(!(await resolveTeamId()))return;
+  await Promise.all([loadMembers(),loadFormations()]);
+})();
 </script>
 </body>
 </html>

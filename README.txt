@@ -1,24 +1,18 @@
-NEXA Teams — Shared Phase 1
+NEXA Patch — Team Builder Missing UUID Fix
 
-Run NEXA-TEAMS-SHARED-PHASE1.sql first.
-
-Replace/add:
-- alliance-teams.html
-- alliance-formations.html
+Replace ONLY:
 - team-builder.html
-- alliance-team-history.html
 
-This converts Teams and Alliance Formations from preview/localStorage to shared Supabase data.
+Cause of the error:
+Some Team links created during the preview phase do not include the new shared
+Supabase team UUID. Team Builder then queried team_members with team_id = "",
+which PostgreSQL rejected as an invalid UUID.
 
-Team Builder now activates:
-- Add Rally Leader from submitted responses
-- Add Joiner from submitted responses
-- Joiner single-assignment rule per Event Type
-- Moving a Joiner removes the old Team assignment after confirmation
-- Rally Leaders may be in multiple Teams/alliances
-- Pet Windows with Start/End UTC
-- Pet overlap warning (does not hard block)
-- Remove members
-- Change History / audit trail
+Fix:
+- If team_id is missing, Team Builder now resolves the Team UUID from:
+  Event Type + Alliance + Team Name.
+- It repairs the URL automatically once found.
+- If the Team only exists in the old browser preview and not in Supabase,
+  NEXA tells you to recreate that Team once in the shared Alliance Workspace.
 
-Hero assignment is intentionally the next Team Builder step.
+No SQL required.

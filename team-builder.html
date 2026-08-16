@@ -105,6 +105,107 @@ button.danger{
   .team-table{min-width:600px}
 }
 
+
+@media(max-width:700px){
+  .team-table-wrap{overflow:visible!important}
+  .team-table{min-width:0!important;width:100%!important;border:none!important;background:transparent!important;overflow:visible!important}
+  .team-table-head{display:none!important}
+
+  .team-row{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    gap:10px!important;
+    padding:14px!important;
+    margin-top:10px!important;
+    border:1px solid #2d3044!important;
+    border-radius:14px!important;
+    background:#0f111d!important;
+  }
+
+  .team-row:first-child{border-top:1px solid #2d3044!important}
+  .player-cell{font-size:1.05rem}
+  .player-sub{margin-top:3px}
+
+  .team-actions-cell{
+    justify-content:flex-start!important;
+    flex-wrap:wrap!important;
+    width:100%!important;
+  }
+
+  .team-actions-cell button{
+    width:auto!important;
+    max-width:100%!important;
+  }
+
+  .pet-list{width:100%!important}
+  .pet-chip{
+    width:fit-content!important;
+    max-width:100%!important;
+    white-space:normal!important;
+  }
+
+  .hero-cell,
+  .defense-col{
+    display:block!important;
+    width:100%!important;
+  }
+
+  .hero-cell::before{
+    display:block;
+    color:var(--muted);
+    font-size:.75rem;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    margin-bottom:6px;
+  }
+
+  .hero-cell:nth-of-type(2)::before{content:"Attack Hero"}
+  .hero-cell.defense-col::before{content:"Defensive Hero"}
+
+  .hero-cell select{
+    width:100%!important;
+    min-width:0!important;
+  }
+
+  .no-defense .defense-col{display:none!important}
+
+  .team-table-rally .team-row > div:nth-child(2)::before{
+    content:"Pet Schedule";
+    display:block;
+    color:var(--muted);
+    font-size:.75rem;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    margin-bottom:6px;
+  }
+
+  .team-table-rally .team-row > div:nth-child(2):has(.muted)::before{
+    content:"Pet Schedule";
+  }
+
+  .joiner-head-actions{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    width:100%!important;
+  }
+
+  .defense-toggle{
+    width:100%!important;
+    justify-content:space-between!important;
+  }
+
+  .defense-toggle select{
+    min-width:92px!important;
+  }
+
+  #add-joiner,#add-rally{
+    width:max-content!important;
+    max-width:100%!important;
+  }
+}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -185,10 +286,26 @@ const sb=window.supabase.createClient("https://dfxcxboxrkfmrnsgpyin.supabase.co"
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 function displayName(v){
-  return String(v??'')
-    .normalize('NFKC')
-    .replace(/[\u200B-\u200D\uFEFF]/g,'')
-    .trim();
+  let out=String(v??'')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/[\u200B-\u200D\uFEFF]/g,'');
+
+  const lookalikes={
+    'Α':'A','Β':'B','Ε':'E','Ζ':'Z','Η':'H','Ι':'I','Κ':'K','Μ':'M','Ν':'N','Ο':'O','Ρ':'P','Τ':'T','Υ':'Y','Χ':'X',
+    'α':'a','β':'b','ε':'e','ι':'i','κ':'k','μ':'m','ν':'n','ο':'o','ρ':'p','τ':'t','υ':'y','χ':'x',
+    'Ɛ':'E','ɛ':'e','Ǝ':'E','Ʌ':'A','ʌ':'a','Ɩ':'I','ɪ':'i','Ɨ':'I','ɨ':'i','Ƙ':'K','ƙ':'k',
+    'Ɯ':'M','ɯ':'m','Ɲ':'N','ɲ':'n','Ƥ':'P','ƥ':'p','Ʀ':'R','ʀ':'R','Ƨ':'S','ʂ':'s',
+    'Ƭ':'T','ƭ':'t','Ʋ':'V','ʋ':'v','Ƴ':'Y','ƴ':'y','Ƶ':'Z','ƶ':'z'
+  };
+  out=[...out].map(ch=>lookalikes[ch]??ch).join('');
+
+  // Remove common decorative wrappers used around otherwise-Latin player names.
+  out=out.replace(/[ʚɞ꧁꧂༺༻『』【】〖〗《》〈〉❖✦✧★☆•·]+/g,'');
+
+  // Collapse odd spacing left by decorative characters.
+  out=out.replace(/\s+/g,' ').trim();
+  return out;
 }
 
 const p=new URLSearchParams(location.search);

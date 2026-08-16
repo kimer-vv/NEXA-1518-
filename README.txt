@@ -1,4 +1,4 @@
-NEXA — Team Builder Compact Visual Patch
+NEXA — Team Builder Mobile + Uniform Names
 
 Replace ONLY:
 - team-builder.html
@@ -6,13 +6,10 @@ Replace ONLY:
 No SQL required.
 
 Changes:
-- Compact Rally Leaders table:
-  Rally Leader | Pet Schedule | actions
-- Compact Joiners table:
-  Joiner | Attack Hero | Defensive Hero (only when enabled) | actions
-- Alliance Formations displayed as clean inherited formation cards.
-- Player names are normalized for DISPLAY using Unicode NFKC so decorative
-  alphabets render in NEXA's normal system typography where possible.
-- Original player name stored in the database is NOT modified.
-- All existing functionality remains: hero warnings, pet windows, moving Joiners,
-  History, dark buttons, etc.
+- Removes horizontal table scrolling on iPhone.
+- Rally Leaders and Joiners become stacked mobile cards automatically.
+- Attack Hero / Defensive Hero / Pet Schedule labels remain visible in mobile layout.
+- Desktop/tablet keeps the compact table layout.
+- Stronger DISPLAY-only name normalization for decorative Latin/Greek lookalikes.
+  Example decorative variants of Kimer render closer to plain "Kimer".
+- Original player names in Supabase are not changed.

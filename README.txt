@@ -1,18 +1,19 @@
-NEXA — BATTLE FORM -> RESPONSES -> TEAMS SYNC FIX
+NEXA — BATTLE FORM END-TO-END SYNC FIX
 NO SQL.
 
-Problem found:
-Different parts of NEXA were identifying the current SvS differently.
-Some use svs_events.is_live=true while Responses/Team Builder were only looking for status='live'.
+Important: the previous sync patch fixed Responses + Team Builder, but did NOT include battle-form.html.
+This patch now includes and fixes the actual Battle Form submission page too.
 
-Fix:
-• Responses now resolves current SvS in this order:
-  1) is_live=true
-  2) status='live'
-  3) newest event not ended
-• Team Builder uses the exact same current-SvS resolution.
-• Add Rally Leader / Add Joiner reads Battle Form submissions from that same event.
-• Joiner hero reports also use that same event.
-• Responses shows the current SvS and number of submitted responses for easier verification.
+All three now use the same current SvS resolution:
+1. is_live = true
+2. status = live
+3. newest event that is not ended
 
-No database schema changes.
+Flow:
+Battle Form submit -> battle_form_responses -> Responses -> Team Builder candidates.
+
+The Battle Form now also verifies that the row really exists after saving before showing
+"submitted successfully". If it cannot verify the save, it shows the database error instead.
+
+Includes all prior Team/SvS fixes from the current combined baseline.
+No database migration required.

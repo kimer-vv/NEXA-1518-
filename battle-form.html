@@ -221,10 +221,39 @@ async function init(){
 
  if(eventType==='svs'){
    await sb.rpc('refresh_auto_ended_events');
-   const {data:e}=await sb.from('svs_events').select('*').eq('status','live').order('prep_monday',{ascending:false}).limit(1).maybeSingle();
-   eventData=e||null;
+
+   async function resolveCurrentSvsForBattleForm(){
+     let q=await sb.from('svs_events').select('*')
+       .eq('is_live',true)
+       .order('prep_monday',{ascending:false})
+       .limit(1).maybeSingle();
+     if(q.error) throw q.error;
+     if(q.data?.id) return q.data;
+
+     q=await sb.from('svs_events').select('*')
+       .eq('status','live')
+       .order('prep_monday',{ascending:false})
+       .limit(1).maybeSingle();
+     if(q.error) throw q.error;
+     if(q.data?.id) return q.data;
+
+     q=await sb.from('svs_events').select('*')
+       .neq('status','ended')
+       .order('prep_monday',{ascending:false})
+       .limit(1).maybeSingle();
+     if(q.error) throw q.error;
+     return q.data||null;
+   }
+
+   try{
+     eventData=await resolveCurrentSvsForBattleForm();
+   }catch(err){
+     $('message').textContent='Could not identify the current SvS event: '+err.message;
+     return;
+   }
+
    if(eventData)$('event-meta').textContent=`SvS vs ${eventData.opponent_state} • Battle availability is shown in UTC`;
-   else $('event-meta').textContent='SvS Battle Form Template • no live SvS is currently attached';
+   else $('event-meta').textContent='SvS Battle Form Template • no current SvS is attached';
  }else{
    $('event-meta').textContent=`${esc(eventTypeInfo?.name||eventType)} Battle Form • reusable Event Operations template`;
  }
@@ -271,22 +300,14 @@ async function saveEventOperationsResponse({user,accountId,roleValue,availabilit
 }
 
 
-function getAvailabilityMode(){
-  const full=document.querySelector('#full-avail:checked')
-    || document.querySelector('input[name="availability-full"]:checked')
-    || document.querySelector('[data-full-availability="1"]:checked');
-  if(full)return 'full';
-
-  const na=document.querySelector('input[name="availability-not-available"]:checked')
-    || document.querySelector('#not-available:checked')
-    || document.querySelector('[data-not-available="1"]:checked');
-  if(na)return 'not_available';
-
-  // Fallback to the state already used by this form.
-  try{
-    if(typeof notAvailable==='boolean' && notAvailable)return 'not_available';
-  }catch(e){}
-  return 'selected_blocks';
+async function verifyBattleResponseSaved(eventId,playerAccountId){
+  const {data,error}=await sb.from('battle_form_responses')
+    .select('id,event_id,player_account_id,role,updated_at')
+    .eq('event_id',eventId)
+    .eq('player_account_id',String(playerAccountId))
+    .maybeSingle();
+  if(error) throw error;
+  return data||null;
 }
 
 $('form').onsubmit=async e=>{
@@ -303,12 +324,18 @@ $('form').onsubmit=async e=>{
  try{custom_answers=collectCustomAnswers()}catch(err){$('message').textContent=err.message;return}
  if(notAvailable){
   if(eventType!=='svs'){
-    const responseData={role:'joiner',availability:['Not Available'],availability_mode:'not_available',troop_quality:null,deployment_capacity:null,joiner_heroes:[],rally_heroes:[],experts:[],discord_voice:null,custom_answers:{}};
+    const responseData={role:'joiner',availability:['Not Available'],troop_quality:null,deployment_capacity:null,joiner_heroes:[],rally_heroes:[],experts:[],discord_voice:null,custom_answers:{}};
     const error=await saveEventOperationsResponse({user,accountId:$('account').value,roleValue:'joiner',availabilityValue:['Not Available'],notAvailableValue:true,responseData});
     if(error){$('message').textContent=error.message;$('message').scrollIntoView({behavior:'smooth',block:'center'});return;}
   }else{
     const payload={event_id:eventData.id,user_id:user.id,player_account_id:$('account').value,role:'joiner',availability:['Not Available'],troop_quality:null,deployment_capacity:null,joiner_heroes:[],rally_heroes:[],experts:[],discord_voice:null,custom_answers:{},updated_at:new Date().toISOString()};
-    const {error}=await sb.from('battle_form_responses').upsert(payload,{onConflict:'event_id,player_account_id'});
+    let {error}=await sb.from('battle_form_responses').upsert(payload,{onConflict:'event_id,player_account_id'});
+    if(!error){
+      try{
+        const saved=await verifyBattleResponseSaved(eventData.id,$('account').value);
+        if(!saved) error=new Error('NEXA could not verify the saved Battle Form response.');
+      }catch(err){ error=err; }
+    }
     if(error){$('message').textContent=error.message;$('message').scrollIntoView({behavior:'smooth',block:'center'});return;}
   }
   $('message').textContent='Battle Form submitted successfully ✓ Your response has been saved as Not Available.';
@@ -323,7 +350,7 @@ $('form').onsubmit=async e=>{
   rally_heroes=[...document.querySelectorAll('.rally-hero')].filter(c=>c.querySelector('.has-hero').checked).map(c=>({id:Number(c.dataset.id),name:c.dataset.name,fully_maxed:c.querySelector('.fully').value==='yes',stars:c.querySelector('.fully').value==='no'?Number(c.querySelector('.stars').value||0):5,skills:c.querySelector('.fully').value==='no'?Number(c.querySelector('.skills').value||0):5,widget:c.querySelector('.fully').value==='no'?Number(c.querySelector('.widget').value||0):10}));
   if(settings.rally_experts_enabled) experts=collectExperts('rally-experts');
  }
- const baseResponse={role:r,availability,availability_mode:getAvailabilityMode(),troop_quality,deployment_capacity:settings.deployment_capacity_enabled&&$('deployment').value?Number($('deployment').value):null,joiner_heroes,rally_heroes,experts,discord_voice:settings.discord_voice_enabled?($('discord').value||null):null,custom_answers};
+ const baseResponse={role:r,availability,troop_quality,deployment_capacity:settings.deployment_capacity_enabled&&$('deployment').value?Number($('deployment').value):null,joiner_heroes,rally_heroes,experts,discord_voice:settings.discord_voice_enabled?($('discord').value||null):null,custom_answers};
  let error=null;
  if(eventType!=='svs'){
    error=await saveEventOperationsResponse({
@@ -337,6 +364,12 @@ $('form').onsubmit=async e=>{
  }else{
    const payload={event_id:eventData.id,user_id:user.id,player_account_id:$('account').value,...baseResponse,updated_at:new Date().toISOString()};
    ({error}=await sb.from('battle_form_responses').upsert(payload,{onConflict:'event_id,player_account_id'}));
+   if(!error){
+     try{
+       const saved=await verifyBattleResponseSaved(eventData.id,$('account').value);
+       if(!saved) error=new Error('NEXA could not verify the saved Battle Form response.');
+     }catch(err){ error=err; }
+   }
  }
  if(error){
    $('message').textContent=error.message;

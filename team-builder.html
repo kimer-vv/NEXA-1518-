@@ -59,8 +59,13 @@ button.danger{
 }
 
 
-.defense-toggle{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:.85rem}
-.defense-toggle select{width:auto;min-width:76px;background:#0b0d18;color:#fff;border:1px solid #3d4159;border-radius:10px;padding:8px 10px}
+.defense-toggle{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:.85rem;cursor:pointer;position:relative}
+.nexa-switch-input{position:absolute!important;opacity:0!important;width:1px!important;height:1px!important;pointer-events:none}
+.nexa-switch{width:48px;height:28px;border-radius:999px;background:#25283a;border:1px solid #464b68;padding:3px;display:inline-flex;align-items:center;transition:.18s ease;flex:0 0 auto}
+.nexa-switch-knob{width:20px;height:20px;border-radius:50%;background:#aeb4ca;display:block;transition:.18s ease;transform:translateX(0)}
+.nexa-switch-input:checked + .nexa-switch{background:linear-gradient(135deg,#6b4cff,#8f6dff);border-color:#9a78ff;box-shadow:0 0 16px rgba(139,92,246,.28)}
+.nexa-switch-input:checked + .nexa-switch .nexa-switch-knob{transform:translateX(20px);background:#fff}
+.nexa-switch-input:focus-visible + .nexa-switch{outline:2px solid #9a78ff;outline-offset:2px}
 .hero-assignment-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid #303348}
 .hero-field label{display:block;font-size:.78rem;color:var(--muted);margin-bottom:5px}
 .hero-field select{width:100%;background:#0b0d18;color:#fff;border:1px solid #3d4159;border-radius:11px;padding:10px}
@@ -282,10 +287,8 @@ html.embed-mode main{
       <div class="joiner-head-actions">
         <label class="defense-toggle">
           <span>Use Defensive Heroes</span>
-          <select id="use-defensive-heroes">
-            <option value="no">No</option>
-            <option value="yes">Yes</option>
-          </select>
+          <input id="use-defensive-heroes" class="nexa-switch-input" type="checkbox" role="switch" aria-label="Use Defensive Heroes">
+          <span class="nexa-switch" aria-hidden="true"><span class="nexa-switch-knob"></span></span>
         </label>
         <button id="add-joiner" class="mini-badge" type="button">+ Add Joiner</button>
       </div>
@@ -408,7 +411,7 @@ async function loadTeamSettings(){
     .maybeSingle();
   if(error){alert(error.message);return}
   useDefensiveHeroes=!!data?.use_defensive_heroes;
-  $('use-defensive-heroes').value=useDefensiveHeroes?'yes':'no';
+  $('use-defensive-heroes').checked=useDefensiveHeroes;
 }
 
 async function loadHeroCatalog(){
@@ -717,13 +720,13 @@ $('add-rally').onclick=()=>openPicker('rally_lead');$('add-joiner').onclick=()=>
 $('picker-list').onclick=e=>{const b=e.target.closest('.pick-player');if(b)addPlayer(b.dataset.player)};
 
 $('use-defensive-heroes').onchange=async e=>{
-  const next=e.target.value==='yes';
+  const next=!!e.target.checked;
   const {error}=await sb.from('alliance_teams')
     .update({use_defensive_heroes:next,updated_at:new Date().toISOString()})
     .eq('id',teamId);
   if(error){
     alert(error.message);
-    e.target.value=useDefensiveHeroes?'yes':'no';
+    e.target.checked=useDefensiveHeroes;
     return;
   }
   const old=useDefensiveHeroes;

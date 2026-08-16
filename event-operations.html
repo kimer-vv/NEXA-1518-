@@ -360,7 +360,14 @@ function fmtAvailability(v, responseData={}){
 
   if(!Array.isArray(v)||!v.length)return '—';
   if(v.includes('Not Available'))return 'Not Available';
-  return [...new Set(v.map(x=>String(x).trim()).filter(Boolean))].join(', ');
+
+  const clean=[...new Set(v.map(x=>String(x).trim()).filter(Boolean))];
+
+  // Compatibility with responses saved before availability_mode was stored:
+  // if the response explicitly marked full_availability, compress the card.
+  if(responseData?.full_availability===true)return 'Full Availability';
+
+  return clean.join(', ');
 }
 function simpleVal(v){
   if(v==null||v==='')return '—';
@@ -405,10 +412,19 @@ function responseCompactRows(r){
   const rows=[];
   for(const x of responseCardCustomRows(r))rows.push([x.priority?'★ '+x.label:x.label,x.value]);
   rows.push(['Original Alliance',r.original_alliance||'—']);
-  rows.push(['Availability',fmtAvailability(r.availability,r.response_data||{})]);
+  rows.push(['Availability',fmtAvailability(r.availability,d)]);
   if(r.not_available)return rows;
-  rows.push(['Troop Level',formatTroopQuality(d.troop_quality)]);
-  if(d.deployment_capacity!=null)rows.push(['Rally Cap / Deployment',simpleVal(d.deployment_capacity)]);
+
+  // Role-aware response card:
+  // troop quality + deployment capacity are Joiner fields only.
+  if(r.role==='joiner'){
+    const troopText=formatTroopQuality(d.troop_quality);
+    if(troopText!=='—') rows.push(['Troop Level',troopText]);
+    if(d.deployment_capacity!=null && d.deployment_capacity!==''){
+      rows.push(['Deployment Capacity',simpleVal(d.deployment_capacity)]);
+    }
+  }
+
   if((d.joiner_heroes||[]).length)rows.push(['Heroes',simpleVal(d.joiner_heroes)]);
   if((d.rally_heroes||[]).length)rows.push(['Heroes',simpleVal(d.rally_heroes)]);
   if((d.experts||[]).length)rows.push(['Experts',simpleVal(d.experts)]);

@@ -324,11 +324,11 @@ $('form').onsubmit=async e=>{
  try{custom_answers=collectCustomAnswers()}catch(err){$('message').textContent=err.message;return}
  if(notAvailable){
   if(eventType!=='svs'){
-    const responseData={role:'joiner',availability:['Not Available'],troop_quality:null,deployment_capacity:null,joiner_heroes:[],rally_heroes:[],experts:[],discord_voice:null,custom_answers:{}};
+    const responseData={role:'joiner',availability:['Not Available'],availability_mode:'not_available',full_availability:false,troop_quality:null,deployment_capacity:null,joiner_heroes:[],rally_heroes:[],experts:[],discord_voice:null,custom_answers:{}};
     const error=await saveEventOperationsResponse({user,accountId:$('account').value,roleValue:'joiner',availabilityValue:['Not Available'],notAvailableValue:true,responseData});
     if(error){$('message').textContent=error.message;$('message').scrollIntoView({behavior:'smooth',block:'center'});return;}
   }else{
-    const payload={event_id:eventData.id,user_id:user.id,player_account_id:$('account').value,role:'joiner',availability:['Not Available'],troop_quality:null,deployment_capacity:null,joiner_heroes:[],rally_heroes:[],experts:[],discord_voice:null,custom_answers:{},updated_at:new Date().toISOString()};
+    const payload={event_id:eventData.id,user_id:user.id,player_account_id:$('account').value,role:'joiner',availability:['Not Available'],availability_mode:'not_available',troop_quality:null,deployment_capacity:null,joiner_heroes:[],rally_heroes:[],experts:[],discord_voice:null,custom_answers:{},updated_at:new Date().toISOString()};
     let {error}=await sb.from('battle_form_responses').upsert(payload,{onConflict:'event_id,player_account_id'});
     if(!error){
       try{
@@ -350,7 +350,23 @@ $('form').onsubmit=async e=>{
   rally_heroes=[...document.querySelectorAll('.rally-hero')].filter(c=>c.querySelector('.has-hero').checked).map(c=>({id:Number(c.dataset.id),name:c.dataset.name,fully_maxed:c.querySelector('.fully').value==='yes',stars:c.querySelector('.fully').value==='no'?Number(c.querySelector('.stars').value||0):5,skills:c.querySelector('.fully').value==='no'?Number(c.querySelector('.skills').value||0):5,widget:c.querySelector('.fully').value==='no'?Number(c.querySelector('.widget').value||0):10}));
   if(settings.rally_experts_enabled) experts=collectExperts('rally-experts');
  }
- const baseResponse={role:r,availability,troop_quality,deployment_capacity:settings.deployment_capacity_enabled&&$('deployment').value?Number($('deployment').value):null,joiner_heroes,rally_heroes,experts,discord_voice:settings.discord_voice_enabled?($('discord').value||null):null,custom_answers};
+ const fullAvailability=!!($('full-avail')?.checked && !notAvailable);
+ const baseResponse={
+   role:r,
+   availability,
+   availability_mode:fullAvailability?'full':'custom',
+   full_availability:fullAvailability,
+   troop_quality,
+   // Deployment Capacity is a Joiner field. Rally Leaders should not save it.
+   deployment_capacity:r==='joiner'&&settings.deployment_capacity_enabled&&$('deployment').value
+     ? Number($('deployment').value)
+     : null,
+   joiner_heroes,
+   rally_heroes,
+   experts,
+   discord_voice:settings.discord_voice_enabled?($('discord').value||null):null,
+   custom_answers
+ };
  let error=null;
  if(eventType!=='svs'){
    error=await saveEventOperationsResponse({

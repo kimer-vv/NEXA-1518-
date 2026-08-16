@@ -1,18 +1,19 @@
-NEXA — Pet Window undefined fix
+NEXA — Joiner Hero Assignment
 
-Replace ONLY:
+Run the SQL first, then replace ONLY:
 - team-builder.html
 
-Cause:
-The Pet Window overlap check was testing the returned data array instead of the
-Supabase error object. That caused an alert showing "undefined" even when the
-query itself succeeded.
-
-Fix:
-The code now checks `error` correctly and continues to save the Pet Window.
+Adds:
+- Attack Hero for every Joiner.
+- Team-level Use Defensive Heroes: Yes / No.
+- Defensive Hero appears only when enabled.
+- Dropdown comes from the Admin-configured Joiner Hero catalog for that Event Type.
+- Player response is used only for status/warnings.
+- If a hero was reported, it displays Skill 5 ✓.
+- If not reported at required Skill 5, NEXA warns before assignment but allows Admin override.
+- Attack/Defensive Hero changes are written to History.
 
 Keeps:
-- dark NEXA button colors
-- UTC Start/End dropdowns
-
-No SQL required.
+- Pet Window UTC dropdowns.
+- Dark NEXA buttons.
+- Joiner single-Team move rules.

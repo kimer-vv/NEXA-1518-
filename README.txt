@@ -1,23 +1,18 @@
-NEXA — COMBINED TEAM + SvS TRUE NATIVE FIX
+NEXA — BATTLE FORM -> RESPONSES -> TEAMS SYNC FIX
 NO SQL.
 
-Built from the last confirmed-good baseline:
-• BBC / Team scrolling fixed
-• Pet Schedule editor fixed
+Problem found:
+Different parts of NEXA were identifying the current SvS differently.
+Some use svs_events.is_live=true while Responses/Team Builder were only looking for status='live'.
 
-This combined patch adds:
-1. Team Builder candidate loader fix
-   • + Add Rally Leader
-   • + Add Joiner
-   • Reads submitted Battle Forms reliably
-   • Accepts rally_lead / rally_leader
-   • Uses live SvS, or newest not-ended SvS as fallback
+Fix:
+• Responses now resolves current SvS in this order:
+  1) is_live=true
+  2) status='live'
+  3) newest event not ended
+• Team Builder uses the exact same current-SvS resolution.
+• Add Rally Leader / Add Joiner reads Battle Form submissions from that same event.
+• Joiner hero reports also use that same event.
+• Responses shows the current SvS and number of submitted responses for easier verification.
 
-2. SvS native secondary views
-   • Schedule Setup no longer relies on the nested iframe
-   • View Schedule opens as a real internal SvS view
-   • History no longer relies on the nested iframe
-   • View Archive opens as a real internal SvS view
-   • No second NEXA header/page should appear inside SvS
-
-Transfers are intentionally untouched in this patch.
+No database schema changes.

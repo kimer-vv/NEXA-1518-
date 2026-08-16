@@ -436,10 +436,9 @@ async function loadJoinerReports(){
   if(!ids.length)return;
 
   if(eventType==='svs'){
-    const {data:e,error:eErr}=await sb.from('svs_events')
-      .select('id').eq('status','live')
-      .order('prep_monday',{ascending:false}).limit(1).maybeSingle();
-    if(eErr||!e?.id)return;
+    let e=null;
+    try{ e=await currentSvsCandidateEvent(); }catch(_){ return; }
+    if(!e?.id)return;
 
     const {data,error}=await sb.from('battle_form_responses')
       .select('player_account_id,joiner_heroes')
@@ -547,7 +546,16 @@ async function hydrateCandidatePlayers(rows){
 
 async function currentSvsCandidateEvent(){
   let q=await sb.from('svs_events')
-    .select('id,status,prep_monday')
+    .select('id,status,is_live,prep_monday')
+    .eq('is_live',true)
+    .order('prep_monday',{ascending:false})
+    .limit(1)
+    .maybeSingle();
+  if(q.error) throw q.error;
+  if(q.data?.id)return q.data;
+
+  q=await sb.from('svs_events')
+    .select('id,status,is_live,prep_monday')
     .eq('status','live')
     .order('prep_monday',{ascending:false})
     .limit(1)
@@ -556,7 +564,7 @@ async function currentSvsCandidateEvent(){
   if(q.data?.id)return q.data;
 
   q=await sb.from('svs_events')
-    .select('id,status,prep_monday')
+    .select('id,status,is_live,prep_monday')
     .neq('status','ended')
     .order('prep_monday',{ascending:false})
     .limit(1)

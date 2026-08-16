@@ -464,13 +464,34 @@ async function loadResponses(){
   window._nexaResponseQuestions=qs||[];
 
   if(ev==='svs'){
-    const {data:svsEvent,error:eventError}=await sb
-      .from('svs_events')
-      .select('id,opponent_state,prep_monday,status')
-      .eq('status','live')
-      .order('prep_monday',{ascending:false})
-      .limit(1)
-      .maybeSingle();
+    async function resolveCurrentSvsForResponses(){
+      let q=await sb.from('svs_events')
+        .select('id,opponent_state,prep_monday,status,is_live')
+        .eq('is_live',true)
+        .order('prep_monday',{ascending:false})
+        .limit(1)
+        .maybeSingle();
+      if(q.error) return {data:null,error:q.error};
+      if(q.data?.id) return q;
+
+      q=await sb.from('svs_events')
+        .select('id,opponent_state,prep_monday,status,is_live')
+        .eq('status','live')
+        .order('prep_monday',{ascending:false})
+        .limit(1)
+        .maybeSingle();
+      if(q.error) return {data:null,error:q.error};
+      if(q.data?.id) return q;
+
+      return await sb.from('svs_events')
+        .select('id,opponent_state,prep_monday,status,is_live')
+        .neq('status','ended')
+        .order('prep_monday',{ascending:false})
+        .limit(1)
+        .maybeSingle();
+    }
+
+    const {data:svsEvent,error:eventError}=await resolveCurrentSvsForResponses();
 
     if(eventError){
       $('responses-list').innerHTML=`<div class="form-message">${respEsc(eventError.message)}</div>`;
@@ -480,7 +501,7 @@ async function loadResponses(){
     if(!svsEvent){
       responseRows=[];
       $('responses-summary').textContent='';
-      $('responses-list').innerHTML='<div class="muted">No live SvS event found.</div>';
+      $('responses-list').innerHTML='<div class="muted">No current SvS event found.</div>';
       return;
     }
 
@@ -493,6 +514,10 @@ async function loadResponses(){
     if(error){
       $('responses-list').innerHTML=`<div class="form-message">${respEsc(error.message)}</div>`;
       return;
+    }
+
+    if($('responses-summary')){
+      $('responses-summary').textContent=`SvS vs ${svsEvent.opponent_state||'—'} • ${rows?.length||0} submitted response${(rows?.length||0)===1?'':'s'}`;
     }
 
     responseRows=(rows||[]).map(r=>({

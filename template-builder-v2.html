@@ -78,7 +78,7 @@ select,input{width:100%;background:#090b15;color:#fff;border:1px solid #3c415a;b
 
 
 .column-labels{
-  background:color-mix(in srgb,var(--section-bg) 72%,var(--sheet-bg));
+  background:var(--section-bg);
   color:var(--sheet-muted);
   font-size:10px!important;
   font-weight:900;
@@ -180,7 +180,7 @@ body.nexa-layout-preview-open{
   padding:10px 14px;
   display:grid;
   gap:6px;
-  background:color-mix(in srgb,var(--sheet-bg) 96%,var(--section-bg));
+  background:var(--sheet-bg);
   font-size:13px;
   font-weight:800;
 }
@@ -222,7 +222,7 @@ body.nexa-layout-preview-open{
   justify-content:center;
   align-items:center;
   gap:7px;
-  background:color-mix(in srgb,var(--section-bg) 83%,var(--sheet-bg))!important;
+  background:var(--section-bg)!important;
   padding:8px 8px!important;
   font-weight:900;
   text-align:center;
@@ -264,7 +264,7 @@ body.nexa-layout-preview-open{
   grid-template-columns:minmax(115px,1.35fr) minmax(95px,1fr);
 }
 .joiner-head{
-  background:color-mix(in srgb,var(--section-bg) 62%,var(--sheet-bg));
+  background:var(--section-bg);
   color:#24783b;
   font-size:10px;
   font-weight:900;
@@ -376,7 +376,7 @@ body.nexa-layout-preview-open{
   padding:8px 6px!important;
   min-width:0;
   text-align:center;
-  background:color-mix(in srgb,var(--sheet-bg) 96%,var(--section-bg));
+  background:var(--sheet-bg);
 }
 .formation-title{
   font-size:10.5px;
@@ -415,7 +415,7 @@ body.nexa-layout-preview-open{
   margin-top:7px!important;
   padding:5px 4px;
   border-radius:7px;
-  background:color-mix(in srgb,var(--section-bg) 70%,var(--sheet-bg));
+  background:var(--section-bg);
   color:var(--sheet-text)!important;
   font-size:13px;
   line-height:1;
@@ -2226,8 +2226,6 @@ const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 const p=window.NEXA_NATIVE_PARAMS||new URLSearchParams(location.search);
 const eventType=p.get('event_type')||'svs',eventKey=String(eventType).trim().toLowerCase(),allianceId=p.get('alliance_id')||'',allianceTag=p.get('alliance_tag')||'Alliance';
-window.allianceId=allianceId;
-window.allianceTag=allianceTag;
 
 function displayName(v){
   let out=String(v??'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[\u200B-\u200D\uFEFF]/g,'');
@@ -2540,41 +2538,6 @@ function applyBranding(){
 }
 
 async function loadBranding(){
-  // Layout Management is the source of truth for alliance identity.
-  // Read that assignment first so a saved preset/emblem always follows the
-  // selected alliance into Template Builder.
-  const PRESET_ACCENTS={
-    forest_green:'#315f4b',ice_blue:'#5d88a8',royal_gold:'#a77a2b',ocean_teal:'#287b7b',
-    soft_burgundy:'#884d5c',lavender:'#746b9d',slate_blue:'#536d96',sage:'#6f876b',
-    dusty_rose:'#a66d78',steel:'#596579'
-  };
-  try{
-    const {data:layout,error:layoutError}=await sb.from('alliance_layout_settings')
-      .select('alliance_id,preset_key,emblem_data_url')
-      .eq('alliance_id',String(allianceId)).maybeSingle();
-    if(layoutError) throw layoutError;
-    if(layout){
-      const accent=PRESET_ACCENTS[layout.preset_key]||PRESET_ACCENTS.forest_green;
-      branding={
-        ...branding,
-        emblem_data_url:layout.emblem_data_url||'',
-        template_style:'classic',
-        colors:{...templateDefaults.classic,head:accent},
-      };
-      applyBranding();
-      const sheet=$('sheet');
-      if(sheet){
-        sheet.style.setProperty('--accent',accent);
-        sheet.style.setProperty('--team-head',accent);
-      }
-      return;
-    }
-  }catch(layoutErr){
-    console.warn('Alliance layout identity:',layoutErr?.message||layoutErr);
-  }
-
-  // Backward-compatible fallback for alliances that have not yet been assigned
-  // through Layout Management.
   const {data,error}=await sb.from('alliance_branding').select('*').eq('alliance_id',String(allianceId)).maybeSingle();
   if(error){console.warn(error.message);applyBranding();return}
   if(data){
@@ -2775,6 +2738,12 @@ async function downloadLayout(){
     exportSheet.removeAttribute('id');
     exportSheet.style.transform='none';
     exportSheet.style.margin='0';
+    const exportStyle=getComputedStyle(source);
+    ['--sheet-bg','--sheet-text','--sheet-muted','--team-head','--section-bg','--pet',
+     '--sheet-border','--sheet-font','--title-weight','--body-weight','--accent'].forEach(name=>{
+      const value=exportStyle.getPropertyValue(name).trim();
+      if(value) exportSheet.style.setProperty(name,value);
+    });
     exportHost.appendChild(exportSheet);
     document.body.appendChild(exportHost);
 
@@ -3011,7 +2980,9 @@ window.addEventListener('DOMContentLoaded',()=>{
         .eq('alliance_id',String(window.allianceId)).maybeSingle();
       if(!data)return;
       const accent=PRESET_COLORS[data.preset_key]||'#244887';
-      document.getElementById('sheet')?.style.setProperty('--accent',accent);
+      const identitySheet=document.getElementById('sheet');
+      identitySheet?.style.setProperty('--accent',accent);
+      identitySheet?.style.setProperty('--team-head',accent);
       document.querySelectorAll('.team-title').forEach(x=>x.style.background=accent);
       const img=document.getElementById('sheet-emblem');
       if(img){
@@ -3189,8 +3160,18 @@ window.addEventListener('DOMContentLoaded',()=>{
     if(!sheet)return false;
 
     const clone=sheet.cloneNode(true);
-    clone.removeAttribute('style');
-    clone.style.cssText='transform:none!important;position:relative!important;left:auto!important;top:auto!important;margin:0 auto!important;';
+    // Keep the selected alliance preset/emblem identity in Preview.
+    const sourceStyle=getComputedStyle(sheet);
+    ['--sheet-bg','--sheet-text','--sheet-muted','--team-head','--section-bg','--pet',
+     '--sheet-border','--sheet-font','--title-weight','--body-weight','--accent'].forEach(name=>{
+      const value=sourceStyle.getPropertyValue(name).trim();
+      if(value) clone.style.setProperty(name,value);
+    });
+    clone.style.setProperty('transform','none','important');
+    clone.style.setProperty('position','relative','important');
+    clone.style.setProperty('left','auto','important');
+    clone.style.setProperty('top','auto','important');
+    clone.style.setProperty('margin','0 auto','important');
 
     const styles=[...document.querySelectorAll('style,link[rel="stylesheet"]')]
       .map(el=>el.outerHTML).join('\n');
@@ -3248,3 +3229,46 @@ window.addEventListener('DOMContentLoaded',()=>{
 
 </body>
 </html>
+
+
+<style id="nexa-final-alliance-brand-fix">
+/* MUST remain at EOF: overrides older mobile cleanup rules declared later in this file. */
+.sheet-header{
+  min-height:170px!important;
+  padding-top:14px!important;
+  padding-bottom:14px!important;
+}
+.sheet-brand-row{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:22px!important;
+}
+.sheet-emblem{
+  width:150px!important;
+  height:150px!important;
+  max-width:150px!important;
+  max-height:150px!important;
+  object-fit:contain!important;
+  flex:0 0 150px!important;
+}
+.sheet-title{
+  font-size:54px!important;
+  line-height:.95!important;
+  font-weight:900!important;
+  letter-spacing:.03em!important;
+}
+.sheet-subtitle{
+  font-size:18px!important;
+  line-height:1!important;
+  margin-top:10px!important;
+  letter-spacing:.22em!important;
+  font-weight:800!important;
+}
+.column-labels,.joiner-head,.team-section-title,.formation-ratio{
+  background:var(--section-bg)!important;
+}
+.sheet-legend,.formation-card{
+  background:var(--sheet-bg)!important;
+}
+</style>

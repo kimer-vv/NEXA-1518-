@@ -1,25 +1,12 @@
-NEXA V51.6 — SYSTEM OPERATIONS SCOPE FIX
+NEXA V51.8 — SYSTEM OPERATIONS REAL DIAGNOSTIC
 
-This patch is rebuilt from the last working V51.1 index, NOT from the broken V51.5 file.
+Built from V51.6 (the version where Discord/Admin access works).
 
-Fix:
-- Keeps the existing main NEXA Supabase client untouched.
-- Gives only System Operations its own isolated Supabase client.
-- Fixes the error caused by System Operations trying to access a client outside its JavaScript scope.
-- Restores normal Home/Admin click behavior.
+This patch changes the actual visible System Operations error path so the UI
+cannot silently collapse the underlying failure into the old generic message.
 
-UPLOAD ONLY:
-index.html -> repository root (replace current index.html)
+UPLOAD ONLY index.html to the repository root and replace the current file.
 
-Do not change:
-- /api
-- middleware.ts
-- package.json
-- SQL
-- Vercel environment variables
-
-After the new Production deployment is Ready:
-1. Confirm Admin opens normally.
-2. Go to Administration > System Operations.
-3. Confirm the blue client-variable error is gone.
-4. DO NOT turn Maintenance Mode on until confirmed.
+Do not change /api, middleware.ts, package.json, SQL, or Vercel variables.
+After the new Production deployment is Ready, open System Operations and send
+a screenshot of the cyan error line. Do not enable Maintenance Mode.

@@ -3739,8 +3739,13 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
       body:body ? JSON.stringify(body) : undefined,
       cache:'no-store'
     });
-    const data = await response.json().catch(()=>({}));
-    if(!response.ok) throw new Error(data.error || 'System Operations request failed.');
+    const raw = await response.text();
+    let data = {};
+    try { data = raw ? JSON.parse(raw) : {}; } catch {}
+    if(!response.ok){
+      const detail = data.error || data.message || raw || 'No response body';
+      throw new Error(`${response.status} ${response.statusText}: ${detail}`);
+    }
     return data;
   }
 
@@ -3804,5 +3809,6 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
 
 <!-- NEXA V51.1 Administration/System Operations fix -->
 <!-- NEXA V51.6 isolated System Operations Supabase client fix -->
+<!-- NEXA V51.8 diagnostic catch-path marker -->
 </body>
 </html>

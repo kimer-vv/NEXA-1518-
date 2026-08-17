@@ -5,14 +5,32 @@ const SUPABASE_ANON = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBL
 function json(res,status,body){res.setHeader('Cache-Control','no-store');return res.status(status).json(body);}
 async function userRole(token){
   if(!token) throw Object.assign(new Error('Sign in required.'),{status:401});
-  const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/current_nexa_role`,{
-    method:'POST',
-    headers:{apikey:SUPABASE_ANON,Authorization:`Bearer ${token}`,'Content-Type':'application/json'},
-    body:'{}'
+
+  // 1) Verify the browser session token directly with Supabase Auth.
+  const authRes=await fetch(`${SUPABASE_URL}/auth/v1/user`,{
+    headers:{apikey:SUPABASE_ANON,Authorization:`Bearer ${token}`},
+    cache:'no-store'
   });
-  const role=await r.json().catch(()=>null);
-  if(!r.ok) throw Object.assign(new Error('Could not verify NEXA role.'),{status:403});
-  return String(role||'').replace(/^"|"$/g,'').toLowerCase();
+  const user=await authRes.json().catch(()=>null);
+  if(!authRes.ok || !user?.id){
+    throw Object.assign(new Error('Owner session could not be verified. Please sign in again.'),{status:401});
+  }
+
+  // 2) Resolve the NEXA role server-side with the service role.
+  // This avoids depending on the browser/RPC permission path for System Operations.
+  const service=process.env.SUPABASE_SERVICE_ROLE_KEY||'';
+  if(!service){
+    throw Object.assign(new Error('SUPABASE_SERVICE_ROLE_KEY is not configured in Vercel.'),{status:503});
+  }
+  const roleRes=await fetch(`${SUPABASE_URL}/rest/v1/user_roles?user_id=eq.${encodeURIComponent(user.id)}&select=role&limit=1`,{
+    headers:{apikey:service,Authorization:`Bearer ${service}`},
+    cache:'no-store'
+  });
+  const rows=await roleRes.json().catch(()=>[]);
+  if(!roleRes.ok){
+    throw Object.assign(new Error('NEXA could not read the Owner role.'),{status:500});
+  }
+  return String(rows?.[0]?.role||'player').toLowerCase();
 }
 function bypassCookie(res){
   const secret=process.env.NEXA_MAINTENANCE_COOKIE_SECRET;

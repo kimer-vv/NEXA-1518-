@@ -1,12 +1,9 @@
-NEXA — FONT SIZE + FULL LEGEND FIX
-Replace template-builder.html only.
+NEXA MOBILE SHEET CLEANUP v2
+Replace template-builder.html.
 
-Changes:
-- reduces oversized Team Sheet typography
-- makes Rally Leaders / Joiners / Formation blocks less boxed-in
-- restores all 3 legend items:
-  Rally Leader
-  Joiner
-  Pet Active (at time shown)
-- removes legend clipping/max-height issue
-- no SQL / no data changes
+- reduces oversized/cropped text
+- restores a readable 3-item legend
+- compacts team + formation typography
+- prevents cell text overflow
+- preserves white professional layout
+- no SQL/data changes

@@ -775,6 +775,37 @@ body.nexa-schedule-open{
 </style>
 <script src="/human-gate.js"></script>
 
+<style>
+/* Safe Admin-only Layout Management card. No global JS/observer and no login code changes. */
+.nexa-layout-admin-module{
+  border:1px solid rgba(133,83,255,.42);
+  border-radius:22px;
+  background:rgba(15,17,47,.78);
+  padding:22px 32px;
+  margin:18px 0;
+  color:#fff;
+  cursor:pointer;
+}
+.nexa-layout-kicker{
+  color:#a78bfa;
+  font-size:12px;
+  letter-spacing:.18em;
+  font-weight:900;
+  margin-bottom:10px;
+}
+.nexa-layout-title{
+  font-size:28px;
+  line-height:1.08;
+  font-weight:900;
+  margin-bottom:8px;
+}
+.nexa-layout-desc{
+  color:#aeb3c8;
+  font-size:13px;
+  line-height:1.4;
+  font-weight:600;
+}
+</style>
 
 </head>
 <body>
@@ -971,7 +1002,2250 @@ body.nexa-schedule-open{
       </div>
       <button class="icon-btn" type="button" data-close-admin>×</button>
     </div>
-<div id="home-transfer-staff-actions" class="event-actions hidden">
+
+    <div id="admin-module-chooser" class="module-chooser">
+      <article class="module-card module-card-shell">
+        <button id="open-administration" class="module-card-main" type="button">
+          <span class="module-kicker">MODULE</span><b>Administration</b>
+          <small>Manage alliances, permissions & NEXA access.</small>
+        </button>
+      </article>
+
+      <article class="module-card module-card-shell">
+        <button id="open-announcements" class="module-card-main" type="button">
+          <span class="module-kicker">MODULE</span><b>Announcements</b>
+          <small>Create announcements and optionally provide translations for different languages.</small>
+        </button>
+        <label class="module-show-toggle"><input id="preview-show-announcements" type="checkbox"> Show</label>
+      </article>
+
+      <article class="module-card module-card-shell">
+        <button id="open-event-operations" class="module-card-main" type="button">
+          <span class="module-kicker">MODULE</span><b>Event Operations</b>
+          <small>Build reusable forms, manage event types, responses & team organization.</small>
+        </button>
+        <label class="module-show-toggle"><input id="preview-show-eo" type="checkbox"> Show</label>
+      </article>
+
+      <article class="module-card module-card-shell">
+        <button id="open-svs-admin" class="module-card-main" type="button">
+          <span class="module-kicker">MODULE</span><b>SvS</b>
+          <small>Set up SvS events, forms, schedules, assignments & history.</small>
+        </button>
+        <label class="module-show-toggle"><input id="show-svs-home" type="checkbox"> Show</label>
+      </article>
+
+      <article class="module-card module-card-shell">
+        <button id="open-transfer-admin" class="module-card-main" type="button">
+          <span class="module-kicker">MODULE</span><b>Transfers</b>
+          <small>Manage transfer cycles, applications, recruiting alliances, rosters & waiting lists.</small>
+        </button>
+        <label class="module-show-toggle"><input id="show-transfer-home" type="checkbox"> Show</label>
+      </article>
+
+      <div id="home-visibility-message" class="form-message"></div>
+    </div>
+    <div id="svs-admin-content" class="hidden">
+<div id="nexa-module-shell-head" class="nexa-module-shell-head hidden">
+      <button id="nexa-module-back" class="nexa-module-back" type="button">← Modules</button>
+      <h2 id="nexa-module-title" class="nexa-module-title">SvS</h2>
+      <p id="nexa-module-description" class="nexa-module-description"></p>
+    </div>
+    <div class="admin-tabs admin-tabs-scroll" id="admin-context-tabs">
+      <button class="admin-tab svs-context-tab active" type="button" data-admin-tab="events">Event Setup</button>
+      <button class="admin-tab svs-context-tab" type="button" data-admin-tab="forms">Forms</button>
+      <button class="admin-tab svs-context-tab" type="button" data-admin-tab="schedule">Schedule Setup</button>
+      <button class="admin-tab svs-context-tab" type="button" data-admin-tab="history">History</button>
+      <button class="admin-tab administration-context-tab hidden" type="button" data-admin-tab="alliances">Alliances</button>
+      <button class="admin-tab administration-context-tab hidden" type="button" data-admin-tab="permissions">Permissions</button>
+    </div>
+    <section id="internal-module-frame-wrap" class="internal-module-frame-wrap hidden">
+      <iframe id="internal-module-frame" class="internal-module-frame" title="NEXA module"></iframe>
+    </section>
+    <section id="native-module-host" class="native-module-host hidden" data-native-page=""></section>
+    <style id="native-module-runtime-style"></style>
+
+<section id="admin-events" class="admin-section">
+      <div class="admin-section-head">
+        <div>
+          <h3>Event Setup</h3>
+          <p>Configure the opponent, event dates, castle and presidency assignments for the current SvS.</p>
+        </div>
+      </div>
+<form id="event-form" class="account-form">
+        <input id="event-id" type="hidden">
+
+        <label>Opponent State
+          <input id="opponent-state" inputmode="numeric" min="1" required placeholder="e.g. 1833">
+        </label>
+
+        <label>Prep Monday — Game Date (UTC)
+          <div class="prep-monday-picker-row">
+            <input id="prep-monday" type="date" required>
+            <button id="prep-monday-picker" class="btn secondary" type="button">Choose Monday</button>
+          </div>
+        </label>
+
+        <label>Castle Alliance
+          <select id="castle-alliance">
+            <option value="">Not assigned yet</option>
+          </select>
+        </label>
+
+        <label>Presidency Alliance
+          <select id="presidency-alliance">
+            <option value="">Not assigned yet</option>
+          </select>
+        </label>
+
+        <label>Event Notes
+          <textarea id="event-description" rows="3" placeholder="Optional notes, opponent info, ministry buff notes, battle reminders..."></textarea>
+        </label>
+
+        <div id="event-timeline-picker" class="event-preview glass-lite" role="button" tabindex="0" aria-label="Choose Prep Monday">
+          <small>AUTO-GENERATED WOS TIMELINE</small>
+          <div id="event-preview-lines" class="preview-lines">Choose Prep Monday to preview dates.</div>
+        </div>
+
+        <div class="toggle-grid">
+          <label class="toggle-line"><input id="prep-form-open" type="checkbox"> Preparation Form</label>
+          <label class="toggle-line"><input id="battle-form-open" type="checkbox"> Battle Form</label>
+          <label class="toggle-line"><input id="schedule-published" type="checkbox"> Schedule</label>
+          <label class="toggle-line"><input id="event-is-live" type="checkbox"> Live Event</label>
+        </div>
+
+        <div class="auto-end-grid">
+          <label>Auto End Date
+            <input id="event-auto-end-date" type="date">
+          </label>
+          <label>Auto End Time (UTC)
+            <select id="event-auto-end-time">
+              <option value="">Select UTC time</option>
+<option value="00:00">00:00 UTC</option>
+<option value="00:30">00:30 UTC</option>
+<option value="01:00">01:00 UTC</option>
+<option value="01:30">01:30 UTC</option>
+<option value="02:00">02:00 UTC</option>
+<option value="02:30">02:30 UTC</option>
+<option value="03:00">03:00 UTC</option>
+<option value="03:30">03:30 UTC</option>
+<option value="04:00">04:00 UTC</option>
+<option value="04:30">04:30 UTC</option>
+<option value="05:00">05:00 UTC</option>
+<option value="05:30">05:30 UTC</option>
+<option value="06:00">06:00 UTC</option>
+<option value="06:30">06:30 UTC</option>
+<option value="07:00">07:00 UTC</option>
+<option value="07:30">07:30 UTC</option>
+<option value="08:00">08:00 UTC</option>
+<option value="08:30">08:30 UTC</option>
+<option value="09:00">09:00 UTC</option>
+<option value="09:30">09:30 UTC</option>
+<option value="10:00">10:00 UTC</option>
+<option value="10:30">10:30 UTC</option>
+<option value="11:00">11:00 UTC</option>
+<option value="11:30">11:30 UTC</option>
+<option value="12:00">12:00 UTC</option>
+<option value="12:30">12:30 UTC</option>
+<option value="13:00">13:00 UTC</option>
+<option value="13:30">13:30 UTC</option>
+<option value="14:00">14:00 UTC</option>
+<option value="14:30">14:30 UTC</option>
+<option value="15:00">15:00 UTC</option>
+<option value="15:30">15:30 UTC</option>
+<option value="16:00">16:00 UTC</option>
+<option value="16:30">16:30 UTC</option>
+<option value="17:00">17:00 UTC</option>
+<option value="17:30">17:30 UTC</option>
+<option value="18:00">18:00 UTC</option>
+<option value="18:30">18:30 UTC</option>
+<option value="19:00">19:00 UTC</option>
+<option value="19:30">19:30 UTC</option>
+<option value="20:00">20:00 UTC</option>
+<option value="20:30">20:30 UTC</option>
+<option value="21:00">21:00 UTC</option>
+<option value="21:30">21:30 UTC</option>
+<option value="22:00">22:00 UTC</option>
+<option value="22:30">22:30 UTC</option>
+<option value="23:00">23:00 UTC</option>
+<option value="23:30">23:30 UTC</option>
+            </select>
+            <small>All Auto End times are UTC.</small>
+          </label>
+        </div>
+
+        <div id="event-lifecycle-actions" class="form-actions hidden">
+          <button id="activate-event" class="btn secondary" type="button">Make Live</button>
+          <button id="end-event" class="btn danger" type="button">End Event</button>
+        </div>
+
+        <div class="form-actions">
+          <button id="cancel-event-edit" class="btn secondary hidden" type="button">Cancel</button>
+          <button class="btn" type="submit">Save Event</button>
+        </div>
+      </form>
+
+      <div id="admin-events-message" class="form-message"></div>
+      <div id="events-admin-list" class="admin-list"></div>
+</section>
+
+    <section id="admin-alliances" class="admin-section hidden">
+      <div class="admin-section-head">
+        <div>
+          <h3>Alliance Tags</h3>
+          <p>Add, rename, activate/deactivate, or delete official alliance tags.</p>
+        </div>
+      </div>
+
+      <form id="alliance-admin-form" class="alliance-inline-form">
+        <input id="alliance-admin-id" type="hidden">
+        <input id="alliance-admin-tag" maxlength="12" required placeholder="Alliance tag">
+        <div class="form-actions">
+          <button id="cancel-alliance-edit" class="btn secondary hidden" type="button">Cancel</button>
+          <button class="btn" type="submit">Save Tag</button>
+        </div>
+      </form>
+
+      <div id="admin-alliances-message" class="form-message"></div>
+      <div id="alliances-admin-list" class="admin-list"></div>
+    </section>
+
+    <section id="admin-permissions" class="admin-section hidden">
+      <div class="admin-section-head">
+        <div>
+          <h3 id="permissions-title">Permissions</h3>
+          <p id="permissions-help">Search users and manage NEXA access. Owner access is protected.</p>
+        </div>
+      </div>
+
+      <form id="permissions-search-form" class="alliance-inline-form">
+        <input id="permissions-search" placeholder="Search IGN or Player ID">
+        <button class="btn" type="submit">Search</button>
+      </form>
+
+      <div id="permissions-message" class="form-message"></div>
+      <div id="permissions-list" class="admin-list"></div>
+    </section>
+
+    <section id="admin-forms" class="admin-section hidden">
+      <div class="admin-section-head">
+        <div>
+          <h3>Forms</h3>
+          <p>Open or share the forms used for the current SvS.</p>
+        </div>
+      </div>
+      <div class="module-action-grid">
+        <article class="module-action-card">
+          <span class="module-kicker">PREP</span>
+          <h4>Prep Form</h4>
+          <div class="module-action-row">
+            <button id="open-prep-form-polish" class="btn" type="button">Open Form</button>
+            <button id="copy-prep-form-polish" class="btn secondary" type="button">Copy Link</button>
+          </div>
+        </article>
+        <article class="module-action-card">
+          <span class="module-kicker">BATTLE</span>
+          <h4>Battle Form</h4>
+          <div class="module-action-row">
+            <button id="open-battle-form-polish" class="btn" type="button">Open Form</button>
+            <button id="copy-battle-form-polish" class="btn secondary" type="button">Copy Link</button>
+          </div>
+        </article>
+      </div>
+      <div id="svs-forms-message" class="form-message"></div>
+    </section>
+
+    <section id="admin-announcements" class="admin-section hidden">
+      <div class="admin-section-head">
+        <div>
+          <h3>Highlighted Announcement</h3>
+        </div>
+      </div>
+
+      <div class="announcement-admin-layout">
+        <section class="glass-lite announcement-main-card">
+          <div class="announcement-field">
+            <label for="ann-main">Important Announcement</label>
+            <textarea id="ann-main" rows="4" maxlength="500" placeholder="Write the main announcement..."></textarea>
+          </div>
+
+          <div class="announcement-field">
+            <label for="announcement-audience">Audience</label>
+            <select id="announcement-audience">
+              <option value="verified">Verified Only</option>
+              <option value="everyone">Everyone</option>
+            </select>
+            <small class="muted announcement-audience-help">Everyone may read public announcements. Only verified users can acknowledge them.</small>
+          </div>
+
+          <div class="translation-grid">
+            <div class="translation-note">
+        <strong>Translations · Optional</strong>
+        <span>NEXA does not automatically translate custom announcements. Add translated versions only if you want users to see the announcement in their selected language. You can leave these fields blank.</span>
+      </div>
+      <label>Español<textarea id="ann-es" rows="2"></textarea></label>
+            <label>Türkçe<textarea id="ann-tr" rows="2"></textarea></label>
+            <label>한국어<textarea id="ann-ko" rows="2"></textarea></label>
+            <label>العربية<textarea id="ann-ar" rows="2"></textarea></label>
+            <label>日本語<textarea id="ann-ja" rows="2"></textarea></label>
+            <label>中文<textarea id="ann-zh" rows="2"></textarea></label>
+            <label>Русский<textarea id="ann-ru" rows="2"></textarea></label>
+          </div>
+
+          <div class="form-actions">
+            <button id="clear-announcement" class="btn secondary" type="button">Deactivate</button>
+            <button id="save-announcement" class="btn" type="button">Save Announcement</button>
+          </div>
+          <div id="announcement-admin-message" class="form-message"></div>
+        </section>
+
+        <section class="glass-lite">
+          <div class="announcement-status-head">
+            <h3>Acknowledgements</h3>
+            <div class="announcement-status-tabs">
+              <button class="mini-tab active" data-ack-filter="all" type="button">All</button>
+              <button class="mini-tab" data-ack-filter="yes" type="button">Acknowledged</button>
+              <button class="mini-tab" data-ack-filter="no" type="button">Not Acknowledged</button>
+            </div>
+          </div>
+          <div id="announcement-summary" class="scheduler-stats"></div>
+          <div id="announcement-status-list" class="admin-list"></div>
+        </section>
+</div>
+    </section>
+
+    
+      </div>
+</section>
+</div>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+
+  const SUPABASE_URL = "https://dfxcxboxrkfmrnsgpyin.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-";
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const loginButton = document.getElementById('discord-login');
+  const nameEl = document.getElementById('discord-name');
+  const statusEl = document.getElementById('discord-status');
+  const avatarEl = document.getElementById('discord-avatar');
+
+  function getAvatarUrl(user) {
+    const meta = user?.user_metadata || {};
+    return meta.avatar_url || meta.picture || null;
+  }
+
+  function getDisplayName(user) {
+    const meta = user?.user_metadata || {};
+    return meta.full_name || meta.name || meta.preferred_username || meta.user_name || user?.email || 'Discord User';
+  }
+
+  async function renderSession() {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+
+    if (!session?.user) {
+      nameEl.textContent = 'Discord Profile';
+      statusEl.textContent = 'Sign in with Discord';
+      avatarEl.style.backgroundImage = '';
+      avatarEl.classList.remove('has-image');
+      loginButton.dataset.loggedIn = 'false';
+      return;
+    }
+
+    const user = session.user;
+    nameEl.textContent = getDisplayName(user);
+    statusEl.textContent = 'Discord Connected';
+    const avatarUrl = getAvatarUrl(user);
+    if (avatarUrl) {
+      avatarEl.style.backgroundImage = `url("${avatarUrl}")`;
+      avatarEl.classList.add('has-image');
+    }
+    loginButton.dataset.loggedIn = 'true';
+  }
+
+  loginButton.addEventListener('click', async () => {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+
+    if (session?.user) {
+      const shouldSignOut = confirm('You are signed in with Discord. Sign out?');
+      if (shouldSignOut) {
+        await supabaseClient.auth.signOut();
+        await renderSession();
+      }
+      return;
+    }
+
+    await supabaseClient.auth.signInWithOAuth({
+      provider: 'discord',
+      options: {
+        redirectTo: window.location.origin + '/',
+        scopes: 'identify email'
+      }
+    });
+  });
+
+  supabaseClient.auth.onAuthStateChange(async () => {
+    await renderSession();
+    if (typeof loadLanguageProfile === 'function') await loadLanguageProfile();
+    if (typeof refreshAdminVisibility === 'function') {
+      await refreshAdminVisibility();
+  await loadLanguageProfile();
+    }
+  });
+
+  renderSession();
+
+  const accountsModal = document.getElementById('accounts-modal');
+  const accountsList = document.getElementById('accounts-list');
+  const accountCount = document.getElementById('account-count');
+  const accountForm = document.getElementById('account-form');
+  const allianceSelect = document.getElementById('alliance');
+  const customAllianceWrap = document.getElementById('custom-alliance-wrap');
+  const customAlliance = document.getElementById('custom-alliance');
+  const messageEl = document.getElementById('accounts-message');
+  let allianceRows = [];
+
+  function msg(text, bad=false) {
+    messageEl.textContent = text || '';
+    messageEl.className = 'form-message' + (bad ? ' error' : '');
+  }
+
+  async function currentUser() {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    return session?.user || null;
+  }
+
+  async function loadAlliances() {
+    await supabaseClient.rpc('refresh_auto_ended_events');
+    const { data, error } = await supabaseClient.from('alliances')
+      .select('id,tag').eq('is_active', true).order('tag');
+    if (error) throw error;
+    allianceRows = data || [];
+    allianceSelect.innerHTML = '<option value="">'+tr('selectAlliance')+'</option>' +
+      allianceRows.map(a => `<option value="${a.id}">${a.tag}</option>`).join('') +
+      '<option value="not-listed">'+tr('notListed')+'</option>';
+  }
+
+  allianceSelect.addEventListener('change', () => {
+    const other = allianceSelect.value === 'not-listed';
+    customAllianceWrap.classList.toggle('hidden', !other);
+    customAlliance.required = other;
+    if (!other) customAlliance.value = '';
+  });
+
+  function resetAccountForm() {
+    document.getElementById('edit-account-id').value = '';
+    document.getElementById('ign').value = '';
+    document.getElementById('player-id').value = '';
+    document.getElementById('player-id').disabled = false;
+    allianceSelect.value = '';
+    customAlliance.value = '';
+    customAlliance.required = false;
+    customAllianceWrap.classList.add('hidden');
+    document.getElementById('save-account').textContent = tr('addAccount');
+    document.getElementById('cancel-edit').classList.add('hidden');
+  }
+
+  async function loadAccounts() {
+    const user = await currentUser();
+    if (!user) {
+      accountsList.innerHTML = '<div class="empty-state">'+tr('signInDiscord')+'</div>';
+      accountCount.textContent = '0/5';
+      accountForm.classList.add('hidden');
+      return;
+    }
+    accountForm.classList.remove('hidden');
+    const { data, error } = await supabaseClient.from('player_accounts')
+      .select('id,in_game_name,player_id,alliance_id,custom_alliance_tag,alliances(tag)')
+      .order('created_at');
+    if (error) { msg(error.message, true); return; }
+    const rows = data || [];
+    accountCount.textContent = `${rows.length}/5`;
+    document.getElementById('save-account').disabled = rows.length >= 5 && !document.getElementById('edit-account-id').value;
+    accountsList.innerHTML = rows.length ? rows.map(a => {
+      const tag = a.alliances?.tag || a.custom_alliance_tag || 'Not Listed';
+      return `<article class="claimed-account">
+        <div><b>${a.in_game_name}</b><small>${tag} • ID ${a.player_id}</small></div>
+        <div class="account-actions">
+          <button type="button" data-edit="${a.id}">Edit</button>
+          <button type="button" data-delete="${a.id}">Delete</button>
+        </div>
+      </article>`;
+    }).join('') : '<div class="empty-state">'+tr('noAccounts')+'</div>';
+  }
+
+  const openAccountsButton = document.getElementById('open-accounts');
+  openAccountsButton?.addEventListener('click', async () => {
+    const user = await currentUser();
+    if (!user) {
+      document.getElementById('discord-login').click();
+      return;
+    }
+    accountsModal.classList.add('open');
+    accountsModal.setAttribute('aria-hidden','false');
+    msg('');
+    try { await loadAlliances(); await loadAccounts(); await loadTimeZoneProfile(); } catch(e) { msg(e.message, true); }
+  });
+
+  document.querySelectorAll('[data-close-accounts]').forEach(el => el.addEventListener('click', () => {
+    accountsModal.classList.remove('open');
+    accountsModal.setAttribute('aria-hidden','true');
+    resetAccountForm();
+  }));
+
+  document.getElementById('cancel-edit').addEventListener('click', () => {
+    resetAccountForm(); loadAccounts();
+  });
+
+  accountForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    msg('');
+    const user = await currentUser();
+    if (!user) return msg('Sign in with Discord first.', true);
+
+    const editId = document.getElementById('edit-account-id').value;
+    const notListed = allianceSelect.value === 'not-listed';
+    const payload = {
+      in_game_name: document.getElementById('ign').value.trim(),
+      alliance_id: notListed ? null : Number(allianceSelect.value),
+      custom_alliance_tag: notListed ? customAlliance.value.trim() : null
+    };
+    if (!editId) {
+      payload.user_id = user.id;
+      payload.player_id = document.getElementById('player-id').value.trim();
+    }
+
+    const q = editId
+      ? supabaseClient.from('player_accounts').update(payload).eq('id', editId)
+      : supabaseClient.from('player_accounts').insert(payload);
+    const { error } = await q;
+    if (error) return msg(error.message, true);
+    msg(editId ? tr('accountUpdated') : tr('accountAdded'));
+    resetAccountForm();
+    await loadAccounts();
+  });
+
+  accountsList.addEventListener('click', async (e) => {
+    const editId = e.target.dataset.edit;
+    const deleteId = e.target.dataset.delete;
+    if (deleteId) {
+      if (!confirm(tr('removeAccount'))) return;
+      const { error } = await supabaseClient.from('player_accounts').delete().eq('id', deleteId);
+      if (error) return msg(error.message, true);
+      resetAccountForm(); await loadAccounts(); return;
+    }
+    if (editId) {
+      const { data, error } = await supabaseClient.from('player_accounts')
+        .select('id,in_game_name,player_id,alliance_id,custom_alliance_tag').eq('id', editId).single();
+      if (error) return msg(error.message, true);
+      document.getElementById('edit-account-id').value = data.id;
+      document.getElementById('ign').value = data.in_game_name;
+      document.getElementById('player-id').value = data.player_id;
+      document.getElementById('player-id').disabled = true;
+      if (data.alliance_id) allianceSelect.value = String(data.alliance_id);
+      else {
+        allianceSelect.value = 'not-listed';
+        customAllianceWrap.classList.remove('hidden');
+        customAlliance.required = true;
+        customAlliance.value = data.custom_alliance_tag || '';
+      }
+      document.getElementById('save-account').textContent = tr('saveChanges');
+      document.getElementById('save-account').disabled = false;
+      document.getElementById('cancel-edit').classList.remove('hidden');
+    }
+  });
+
+
+
+  const timezoneDisplay = document.getElementById('timezone-display');
+  const timezoneOffset = document.getElementById('timezone-offset');
+  const timezoneEditor = document.getElementById('timezone-editor');
+  const timezoneSelect = document.getElementById('timezone-select');
+
+  function browserTimeZone() {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  }
+
+  function utcOffsetLabel(timeZone) {
+    try {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        timeZoneName: 'shortOffset',
+        hour: '2-digit'
+      }).formatToParts(new Date());
+      const zone = parts.find(p => p.type === 'timeZoneName')?.value || '';
+      return zone.replace('GMT', 'UTC');
+    } catch {
+      return '';
+    }
+  }
+
+  function timeZoneOptions(current) {
+    const common = [
+      'UTC',
+      'America/Puerto_Rico',
+      'America/New_York',
+      'America/Chicago',
+      'America/Denver',
+      'America/Los_Angeles',
+      'America/Toronto',
+      'America/Mexico_City',
+      'America/Sao_Paulo',
+      'Europe/London',
+      'Europe/Paris',
+      'Europe/Berlin',
+      'Europe/Istanbul',
+      'Asia/Dubai',
+      'Asia/Kolkata',
+      'Asia/Bangkok',
+      'Asia/Manila',
+      'Asia/Seoul',
+      'Asia/Tokyo',
+      'Australia/Sydney'
+    ];
+    const set = [...new Set([current, browserTimeZone(), ...common].filter(Boolean))];
+    timezoneSelect.innerHTML = set.map(z => `<option value="${z}">${z}</option>`).join('');
+  }
+
+  async function loadTimeZoneProfile() {
+    const user = await currentUser();
+    if (!user) {
+      timezoneDisplay.textContent = 'Sign in with Discord';
+      timezoneOffset.textContent = '';
+      return;
+    }
+
+    const detected = browserTimeZone();
+    const { data, error } = await supabaseClient
+      .from('user_profiles')
+      .select('time_zone')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (error) {
+      msg(error.message, true);
+      return;
+    }
+
+    let zone = data?.time_zone;
+    if (!zone) {
+      const { error: insertError } = await supabaseClient
+        .from('user_profiles')
+        .insert({ user_id: user.id, time_zone: detected });
+      if (insertError) {
+        msg(insertError.message, true);
+        return;
+      }
+      zone = detected;
+    }
+
+    timezoneDisplay.textContent = zone;
+    timezoneOffset.textContent = utcOffsetLabel(zone);
+    timeZoneOptions(zone);
+    timezoneSelect.value = zone;
+  }
+
+  document.getElementById('change-timezone').addEventListener('click', async () => {
+    const user = await currentUser();
+    if (!user) {
+      document.getElementById('discord-login').click();
+      return;
+    }
+    timezoneEditor.classList.remove('hidden');
+    await loadTimeZoneProfile();
+  });
+
+  document.getElementById('cancel-timezone').addEventListener('click', () => {
+    timezoneEditor.classList.add('hidden');
+  });
+
+  document.getElementById('save-timezone').addEventListener('click', async () => {
+    const user = await currentUser();
+    if (!user) return;
+    const zone = timezoneSelect.value;
+    const { error } = await supabaseClient
+      .from('user_profiles')
+      .upsert({ user_id: user.id, time_zone: zone }, { onConflict: 'user_id' });
+    if (error) return msg(error.message, true);
+    timezoneDisplay.textContent = zone;
+    timezoneOffset.textContent = utcOffsetLabel(zone);
+    timezoneEditor.classList.add('hidden');
+    msg(tr('timezoneUpdated'));
+  });
+
+
+  const adminButton = document.getElementById('admin-panel-button');
+  const adminModal = document.getElementById('admin-modal');
+  const adminEventsSection = document.getElementById('admin-events');
+  const adminAlliancesSection = document.getElementById('admin-alliances');
+  const adminPermissionsSection = document.getElementById('admin-permissions');
+  const adminAnnouncementsSection = document.getElementById('admin-announcements');
+
+  async function amIAdmin() {
+    const user = await currentUser();
+    if (!user) return false;
+
+    const { data, error } = await supabaseClient.rpc('is_admin');
+    if (error) {
+      console.error('Admin role check failed:', error);
+      return false;
+    }
+    return data === true;
+  }
+
+  async function refreshAdminVisibility() {
+    adminButton.classList.remove('hidden');
+  }
+
+  async function ensureAdmin() {
+    const isAdmin = await amIAdmin();
+    if (!isAdmin) {
+      alert(tr('adminAccess'));
+      return false;
+    }
+    return true;
+  }
+
+  function fmtDateUTC(dateStr, offsetDays=0) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr + 'T00:00:00Z');
+    d.setUTCDate(d.getUTCDate() + offsetDays);
+    return d.toISOString().slice(0,10);
+  }
+
+  function localLabelFromUTCDate(dateStr) {
+    try {
+      const tz = timezoneDisplay?.textContent || browserTimeZone();
+      const d = new Date(dateStr + 'T00:00:00Z');
+      return new Intl.DateTimeFormat('en-US', {
+        timeZone: tz,
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      }).format(d);
+    } catch {
+      return '';
+    }
+  }
+
+  function renderEventPreview() {
+    const monday = document.getElementById('prep-monday').value;
+    const box = document.getElementById('event-preview-lines');
+    if (!monday) {
+      box.textContent = tr('chooseMonday');
+      return;
+    }
+    const lines = [
+      [tr('monday'), tr('construction'), fmtDateUTC(monday,0)],
+      [tr('tuesday'), tr('research'), fmtDateUTC(monday,1)],
+      [tr('thursday'), tr('training'), fmtDateUTC(monday,3)],
+      [tr('saturday'), tr('battle'), fmtDateUTC(monday,5)]
+    ];
+    box.innerHTML = lines.map(([day,label,date]) =>
+      `<div><b>${day}</b> ${date} — ${label}<small>${tr('yourTime')}: ${localLabelFromUTCDate(date)}</small></div>`
+    ).join('');
+  }
+
+  document.getElementById('prep-monday').addEventListener('change', renderEventPreview);
+
+  function openPrepMondayPicker(){
+    const input=document.getElementById('prep-monday');
+    if(!input) return;
+    try{
+      if(typeof input.showPicker==='function'){
+        input.showPicker();
+        return;
+      }
+    }catch(_){}
+    input.focus();
+    input.click();
+  }
+
+  document.getElementById('prep-monday-picker')?.addEventListener('click',e=>{
+    e.preventDefault();
+    e.stopPropagation();
+    openPrepMondayPicker();
+  });
+
+  document.getElementById('event-timeline-picker')?.addEventListener('click',e=>{
+    if(e.target.closest('button,input,select,textarea,a')) return;
+    openPrepMondayPicker();
+  });
+
+  document.getElementById('event-timeline-picker')?.addEventListener('keydown',e=>{
+    if(e.key==='Enter' || e.key===' '){
+      e.preventDefault();
+      openPrepMondayPicker();
+    }
+  });
+
+
+  
+  async function getModuleAccess(){
+    const [{data:svs},{data:transfers}] = await Promise.all([
+      supabaseClient.rpc('can_manage_svs'),
+      supabaseClient.rpc('can_manage_transfers')
+    ]);
+    return {svs:svs===true, transfers:transfers===true};
+  }
+
+  async function configureAdminModules(){
+    const access=await getModuleAccess();
+    document.getElementById('open-svs-admin')?.classList.toggle('hidden',!access.svs);
+    document.getElementById('open-transfer-admin')?.classList.toggle('hidden',!access.transfers);
+    document.getElementById('open-event-operations')?.classList.toggle('hidden',!access.svs);
+    document.getElementById('open-administration')?.classList.remove('hidden');
+    document.getElementById('open-announcements')?.classList.remove('hidden');
+    document.getElementById('svs-admin-content')?.classList.add('hidden');
+    document.getElementById('admin-module-chooser')?.classList.remove('hidden');
+  }
+
+  
+  function setUnifiedModuleHeader(mode){
+    const head=document.getElementById('nexa-module-shell-head');
+    const title=document.getElementById('nexa-module-title');
+    const desc=document.getElementById('nexa-module-description');
+    const data={
+      administration:['Administration','Manage alliances, permissions and NEXA access.'],
+      announcements:['Announcements','Create announcements and optionally provide translations for different languages.'],
+      svs:['SvS','Set up SvS events, manage forms, schedules, assignments and event history.'],
+      eventops:['Event Operations','Build reusable forms, manage event types, responses and team organization.'],
+      transfers:['Transfers','Manage transfer cycles, applications, recruiting alliances, rosters and waiting lists.']
+    };
+    if(!data[mode]){ head?.classList.add('hidden'); return; }
+    head?.classList.remove('hidden');
+    if(title) title.textContent=data[mode][0];
+    if(desc) desc.textContent=data[mode][1];
+  }
+
+  
+  
+  function cleanupNativeModule(){
+    document.querySelectorAll('[data-nexa-native-portal="1"]').forEach(x=>x.remove());
+    document.body.classList.remove('nexa-schedule-open');
+    const host=document.getElementById('native-module-host');
+    try{ window._nexaNativeCleanup?.forEach(fn=>{try{fn()}catch(_){}}); }catch(_){}
+    window._nexaNativeCleanup=[];
+    window.NEXA_NATIVE_PARAMS=null;
+    if(host){
+      host.innerHTML='';
+      host.classList.add('hidden');
+      host.dataset.nativePage='';
+      delete host.dataset.nativeSvs;
+    }
+    document.getElementById('admin-modal')?.classList.remove('native-eventops-view','native-svs-view');
+  }
+
+  async function loadNativeEventOpsView(src){
+    cleanupNativeModule();
+    hideInternalModuleFrame();
+
+    const modal=document.getElementById('admin-modal');
+    const host=document.getElementById('native-module-host');
+    if(!host)return;
+
+    const url=new URL(src,location.href);
+    const file=(url.pathname.split('/').pop()||'event-operations.html').toLowerCase();
+    const pageKey=file.replace(/\.html$/,'');
+    window.NEXA_NATIVE_PARAMS=new URLSearchParams(url.search);
+    window.NEXA_NATIVE_OPEN=(next)=>loadNativeEventOpsView(next);
+
+    setUnifiedModuleHeader('eventops');
+    modal?.classList.add('module-view','native-eventops-view');
+    document.getElementById('admin-module-chooser')?.classList.add('hidden');
+    document.getElementById('svs-admin-content')?.classList.remove('hidden');
+    document.getElementById('admin-context-tabs')?.classList.add('hidden');
+    document.querySelectorAll('.svs-context-tab,.administration-context-tab').forEach(x=>x.classList.add('hidden'));
+    ['admin-events','admin-forms','admin-alliances','admin-permissions','admin-announcements'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));
+
+    host.classList.remove('hidden');
+    host.dataset.nativePage=pageKey;
+    host.innerHTML='<div class="muted" style="padding:20px 0">Loading…</div>';
+
+    const res=await fetch(url.pathname+url.search,{cache:'no-store'});
+    if(!res.ok){host.innerHTML=`<div class="form-message">Could not open ${file}.</div>`;return;}
+    const html=await res.text();
+    const parsed=new DOMParser().parseFromString(html,'text/html');
+
+    const clone=parsed.body.cloneNode(true);
+    clone.querySelectorAll('script,header.topbar,.nebula-bg,.starfield').forEach(x=>x.remove());
+    if(file==='event-operations.html'){
+      clone.querySelectorAll('.back,.ops-head').forEach(x=>x.remove());
+    }
+
+    // Preserve page-specific styles when a standalone page is rendered natively
+    // inside the Administration modal. Previously only <body> was cloned, so
+    // template-builder.html lost all of its <head><style> rules.
+    const nativePageStyles=[...parsed.head.querySelectorAll('style')]
+      .map(x=>x.textContent||'')
+      .filter(Boolean)
+      .join('\n');
+    host.innerHTML=(nativePageStyles?`<style data-nexa-native-page-style="1">${nativePageStyles}</style>`:'')+clone.innerHTML;
+
+    // Scripts get a controlled lifecycle so old Team/Formation document listeners
+    // are removed when moving to another native workspace.
+    const cleanup=[];
+    const oldDocAdd=document.addEventListener.bind(document);
+    const oldWinAdd=window.addEventListener.bind(window);
+    const oldSetTimeout=window.setTimeout.bind(window);
+    const oldSetInterval=window.setInterval.bind(window);
+
+    document.addEventListener=function(type,listener,opts){
+      oldDocAdd(type,listener,opts);
+      cleanup.push(()=>document.removeEventListener(type,listener,opts));
+    };
+    window.addEventListener=function(type,listener,opts){
+      oldWinAdd(type,listener,opts);
+      cleanup.push(()=>window.removeEventListener(type,listener,opts));
+    };
+    window.setTimeout=function(fn,ms,...args){
+      const id=oldSetTimeout(fn,ms,...args); cleanup.push(()=>clearTimeout(id)); return id;
+    };
+    window.setInterval=function(fn,ms,...args){
+      const id=oldSetInterval(fn,ms,...args); cleanup.push(()=>clearInterval(id)); return id;
+    };
+
+    try{
+      const scriptParts=[...parsed.body.querySelectorAll('script:not([src])')]
+        .map(x=>x.textContent||'')
+        .filter(code=>code.trim())
+        .filter(code=>!code.includes("parent.postMessage({type:'nexa-embed-scroll'"))
+        .filter(code=>!(code.includes("classList.add('embed-mode')") && code.length<700));
+      const combined=scriptParts.join('\n;\n');
+      if(combined.trim()) (new Function(combined))();
+    }catch(err){
+      console.error('NEXA native workspace error:',err);
+      const msg=document.createElement('div');
+      msg.className='form-message';
+      msg.textContent='This workspace hit a loading error. Refresh and try again.';
+      host.prepend(msg);
+    }finally{
+      document.addEventListener=oldDocAdd;
+      window.addEventListener=oldWinAdd;
+      window.setTimeout=oldSetTimeout;
+      window.setInterval=oldSetInterval;
+      window._nexaNativeCleanup=cleanup;
+    }
+
+    document.querySelector('#admin-modal .admin-modal-card')?.scrollTo({top:0,behavior:'auto'});
+  }
+
+
+  async function loadNativeSvsView(src,activeTab){
+    cleanupNativeModule();
+    hideInternalModuleFrame();
+
+    const modal=document.getElementById('admin-modal');
+    const host=document.getElementById('native-module-host');
+    if(!host)return;
+
+    const url=new URL(src,location.href);
+    const file=(url.pathname.split('/').pop()||'').toLowerCase();
+    const childView=['schedule.html','history-event.html'].includes(file);
+
+    window.NEXA_SVS_NATIVE_OPEN=(next)=>{
+      const n=new URL(next,location.href);
+      const f=(n.pathname.split('/').pop()||'').toLowerCase();
+      const tab=f.startsWith('history')?'history':'schedule';
+      return loadNativeSvsView(next,tab);
+    };
+
+    setUnifiedModuleHeader('svs');
+    modal?.classList.add('module-view','native-svs-view');
+    document.getElementById('admin-module-chooser')?.classList.add('hidden');
+    document.getElementById('svs-admin-content')?.classList.remove('hidden');
+
+    document.querySelectorAll('.svs-context-tab').forEach(x=>x.classList.remove('hidden'));
+    document.querySelectorAll('.administration-context-tab').forEach(x=>x.classList.add('hidden'));
+    document.getElementById('admin-context-tabs')?.classList.remove('hidden');
+    document.querySelectorAll('[data-admin-tab]').forEach(b=>b.classList.toggle('active',b.dataset.adminTab===activeTab));
+
+    ['admin-events','admin-forms','admin-alliances','admin-permissions','admin-announcements'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));
+
+    host.classList.remove('hidden');
+    host.dataset.nativePage=file.replace(/\.html$/,'');
+    host.dataset.nativeSvs='1';
+    host.innerHTML='<div class="muted" style="padding:18px 0">Loading…</div>';
+
+    const res=await fetch(url.pathname+url.search,{cache:'no-store'});
+    if(!res.ok){
+      host.innerHTML='<div class="form-message">Could not open this SvS view.</div>';
+      return;
+    }
+    const html=await res.text();
+    const parsed=new DOMParser().parseFromString(html,'text/html');
+
+    const clone=parsed.body.cloneNode(true);
+    clone.querySelectorAll('script,.nebula-bg,.starfield,header.topbar').forEach(x=>x.remove());
+
+    // Standalone page navigation belongs to the outer SvS shell now.
+    clone.querySelectorAll('a.back,.back-link,a[href*="event.html"],a[href*="index.html?admin=svs"]').forEach(x=>x.remove());
+
+    // For Schedule Setup and History list, remove duplicated page-level heading.
+    if(!childView){
+      const main=clone.querySelector('main');
+      if(main){
+        const firstWrap=main.firstElementChild;
+        if(firstWrap && (firstWrap.querySelector('h1') || firstWrap.matches('h1'))){
+          firstWrap.remove();
+        }else{
+          main.querySelector(':scope > h1')?.remove();
+          main.querySelector(':scope > p.muted')?.remove();
+        }
+      }
+    }else{
+      // Child pages keep their useful title, but not standalone back links.
+      clone.querySelectorAll('a[href*="history.html"],a[href*="event.html"]').forEach(x=>x.remove());
+    }
+
+    host.innerHTML=clone.innerHTML;
+
+    const cleanup=[];
+    const oldDocAdd=document.addEventListener.bind(document);
+    const oldWinAdd=window.addEventListener.bind(window);
+    const oldSetTimeout=window.setTimeout.bind(window);
+    const oldSetInterval=window.setInterval.bind(window);
+
+    document.addEventListener=function(type,listener,opts){
+      oldDocAdd(type,listener,opts);
+      cleanup.push(()=>document.removeEventListener(type,listener,opts));
+    };
+    window.addEventListener=function(type,listener,opts){
+      oldWinAdd(type,listener,opts);
+      cleanup.push(()=>window.removeEventListener(type,listener,opts));
+    };
+    window.setTimeout=function(fn,ms,...args){
+      const id=oldSetTimeout(fn,ms,...args); cleanup.push(()=>clearTimeout(id)); return id;
+    };
+    window.setInterval=function(fn,ms,...args){
+      const id=oldSetInterval(fn,ms,...args); cleanup.push(()=>clearInterval(id)); return id;
+    };
+
+    // Make location-search dependent child scripts see the fetched route's query params.
+    const oldNativeParams=window.NEXA_NATIVE_PARAMS;
+    window.NEXA_NATIVE_PARAMS=new URLSearchParams(url.search);
+
+    try{
+      const scriptParts=[...parsed.body.querySelectorAll('script:not([src])')]
+        .map(x=>x.textContent||'')
+        .filter(code=>code.trim())
+        .filter(code=>!code.includes("classList.add('embed-mode')"))
+        .map(code=>code
+          .replaceAll("new URLSearchParams(location.search)","(window.NEXA_NATIVE_PARAMS||new URLSearchParams(location.search))")
+          .replaceAll("location.href='history-event.html?id='+encodeURIComponent(viewId)",
+                      "window.NEXA_SVS_NATIVE_OPEN?window.NEXA_SVS_NATIVE_OPEN('history-event.html?id='+encodeURIComponent(viewId)):location.href='history-event.html?id='+encodeURIComponent(viewId)")
+        );
+      const combined=scriptParts.join('\n;\n');
+      if(combined.trim()) (new Function(combined))();
+    }catch(err){
+      console.error('NEXA native SvS view error:',err);
+      const msg=document.createElement('div');
+      msg.className='form-message';
+      msg.textContent='This SvS view hit a loading error. Refresh and try again.';
+      host.prepend(msg);
+    }finally{
+      document.addEventListener=oldDocAdd;
+      window.addEventListener=oldWinAdd;
+      window.setTimeout=oldSetTimeout;
+      window.setInterval=oldSetInterval;
+      window._nexaNativeCleanup=(window._nexaNativeCleanup||[]).concat(cleanup);
+      window.NEXA_NATIVE_PARAMS=oldNativeParams;
+    }
+
+    // Generic navigation interception for child links.
+    host.onclick=(e)=>{
+      const a=e.target.closest('a');
+      if(!a)return;
+      const href=a.getAttribute('href')||'';
+      if(/^(schedule\.html|history\.html|history-event\.html|prep-requests\.html)/i.test(href)){
+        e.preventDefault();
+        window.NEXA_SVS_NATIVE_OPEN(href);
+      }
+    };
+
+    document.querySelector('#admin-modal .admin-modal-card')?.scrollTo({top:0,behavior:'auto'});
+  }
+
+function hideInternalModuleFrame(){
+    const wrap=document.getElementById('internal-module-frame-wrap');
+    const frame=document.getElementById('internal-module-frame');
+    wrap?.classList.add('hidden');
+    if(frame) frame.src='about:blank';
+  }
+
+  
+  function syncEmbeddedFrame(){
+    const frame=document.getElementById('internal-module-frame');
+    if(!frame) return;
+    try{
+      const doc=frame.contentDocument || frame.contentWindow?.document;
+      if(!doc) return;
+
+      // Prevent a second vertical scrollbar inside the iframe.
+      doc.documentElement.style.overflowY='hidden';
+      doc.documentElement.style.overflowX='hidden';
+      doc.body.style.overflowY='hidden';
+      doc.body.style.overflowX='hidden';
+      doc.documentElement.style.height='auto';
+      doc.body.style.height='auto';
+
+      const h=Math.max(
+        doc.body?.scrollHeight||0,
+        doc.body?.offsetHeight||0,
+        doc.documentElement?.scrollHeight||0,
+        doc.documentElement?.offsetHeight||0,
+        300
+      );
+      frame.style.height=(h+40)+'px';
+      frame.style.minHeight='0';
+    }catch(_){}
+  }
+
+  
+  window.addEventListener('message',e=>{
+    if(e.origin!==location.origin) return;
+    if(e.data?.type!=='nexa-embed-scroll') return;
+    const scroller=document.querySelector('#admin-modal .admin-modal-card');
+    if(scroller) scroller.scrollTop += Number(e.data.dy||0);
+  });
+
+  document.getElementById('internal-module-frame')?.setAttribute('scrolling','no');
+
+  document.getElementById('internal-module-frame')?.addEventListener('load',()=>{
+    const frame=document.getElementById('internal-module-frame');
+    frame?.setAttribute('scrolling','no');
+    syncEmbeddedFrame();
+
+    try{
+      const doc=frame.contentDocument || frame.contentWindow?.document;
+
+      frame._nexaRO?.disconnect?.();
+      frame._nexaMO?.disconnect?.();
+
+      if(doc && window.ResizeObserver){
+        frame._nexaRO=new ResizeObserver(()=>syncEmbeddedFrame());
+        frame._nexaRO.observe(doc.documentElement);
+        if(doc.body) frame._nexaRO.observe(doc.body);
+      }
+
+      if(doc && window.MutationObserver){
+        frame._nexaMO=new MutationObserver(()=>syncEmbeddedFrame());
+        frame._nexaMO.observe(doc.documentElement,{
+          subtree:true,
+          childList:true,
+          attributes:true,
+          characterData:false
+        });
+      }
+    }catch(_){}
+
+    syncEmbeddedFrame();
+    requestAnimationFrame(syncEmbeddedFrame);
+    setTimeout(syncEmbeddedFrame,40);
+    setTimeout(syncEmbeddedFrame,120);
+    setTimeout(syncEmbeddedFrame,300);
+    setTimeout(syncEmbeddedFrame,800);
+  });
+
+function showInternalModuleFrame(src, mode){
+    document.querySelector('#admin-modal .admin-modal-card')?.scrollTo({top:0,behavior:'auto'});
+    setUnifiedModuleHeader(mode);
+    document.getElementById('admin-modal')?.classList.add('module-view');
+    document.getElementById('admin-module-chooser')?.classList.add('hidden');
+    document.getElementById('svs-admin-content')?.classList.remove('hidden');
+
+    document.querySelectorAll('.svs-context-tab,.administration-context-tab').forEach(x=>x.classList.add('hidden'));
+    document.getElementById('admin-context-tabs')?.classList.add('hidden');
+
+    ['admin-events','admin-forms','admin-alliances','admin-permissions','admin-announcements'].forEach(id=>{
+      document.getElementById(id)?.classList.add('hidden');
+    });
+
+    const wrap=document.getElementById('internal-module-frame-wrap');
+    const frame=document.getElementById('internal-module-frame');
+    wrap?.classList.remove('hidden');
+    if(frame){ frame.style.height='1px'; frame.src=src; }
+    document.querySelector('#admin-modal .admin-modal-card')?.scrollTo({top:0,behavior:'auto'});
+  }
+
+  function showSvsEmbeddedView(src, activeTab){
+    document.querySelector('#admin-modal .admin-modal-card')?.scrollTo({top:0,behavior:'auto'});
+    setUnifiedModuleHeader('svs');
+    document.getElementById('admin-modal')?.classList.add('module-view');
+    document.getElementById('admin-context-tabs')?.classList.remove('hidden');
+    document.querySelectorAll('.svs-context-tab').forEach(x=>x.classList.remove('hidden'));
+    document.querySelectorAll('.administration-context-tab').forEach(x=>x.classList.add('hidden'));
+
+    ['admin-events','admin-forms','admin-alliances','admin-permissions','admin-announcements'].forEach(id=>{
+      document.getElementById(id)?.classList.add('hidden');
+    });
+
+    document.querySelectorAll('[data-admin-tab]').forEach(b=>b.classList.toggle('active',b.dataset.adminTab===activeTab));
+    const wrap=document.getElementById('internal-module-frame-wrap');
+    const frame=document.getElementById('internal-module-frame');
+    wrap?.classList.remove('hidden');
+    if(frame){ frame.style.height='1px'; frame.src=src; }
+    document.querySelector('#admin-modal .admin-modal-card')?.scrollTo({top:0,behavior:'auto'});
+  }
+
+function setAdminContext(mode){
+    cleanupNativeModule();
+    hideInternalModuleFrame();
+    setUnifiedModuleHeader(mode);
+    document.getElementById('admin-modal')?.classList.add('module-view');
+
+    const tabs=document.getElementById('admin-context-tabs');
+    document.querySelectorAll('.svs-context-tab').forEach(x=>x.classList.toggle('hidden',mode!=='svs'));
+    document.querySelectorAll('.administration-context-tab').forEach(x=>x.classList.toggle('hidden',mode!=='administration'));
+    if(tabs) tabs.classList.toggle('hidden',mode==='announcements');
+
+    ['admin-events','admin-forms','admin-alliances','admin-permissions','admin-announcements'].forEach(id=>{
+      document.getElementById(id)?.classList.add('hidden');
+    });
+
+    document.querySelectorAll('[data-admin-tab]').forEach(b=>b.classList.remove('active'));
+
+    if(mode==='svs'){
+      document.getElementById('admin-events')?.classList.remove('hidden');
+      document.querySelector('[data-admin-tab="events"]')?.classList.add('active');
+    }
+    if(mode==='administration'){
+      document.getElementById('admin-alliances')?.classList.remove('hidden');
+      document.querySelector('[data-admin-tab="alliances"]')?.classList.add('active');
+    }
+    if(mode==='announcements'){
+      document.getElementById('admin-announcements')?.classList.remove('hidden');
+    }
+  }
+
+  document.getElementById('nexa-module-back')?.addEventListener('click',async()=>{
+    cleanupNativeModule();
+    hideInternalModuleFrame();
+    document.getElementById('admin-modal')?.classList.remove('module-view');
+    document.getElementById('svs-admin-content')?.classList.add('hidden');
+    document.getElementById('admin-module-chooser')?.classList.remove('hidden');
+    document.getElementById('nexa-module-shell-head')?.classList.add('hidden');
+    await configureAdminModules();
+    await loadHomeVisibilityAdmin();
+  });
+
+  document.getElementById('open-administration')?.addEventListener('click',async()=>{
+    document.getElementById('admin-module-chooser')?.classList.add('hidden');
+    document.getElementById('svs-admin-content')?.classList.remove('hidden');
+    setAdminContext('administration');
+    await loadAdminAlliances();
+  });
+
+  document.getElementById('open-announcements')?.addEventListener('click',async()=>{
+    document.getElementById('admin-module-chooser')?.classList.add('hidden');
+    document.getElementById('svs-admin-content')?.classList.remove('hidden');
+    setAdminContext('announcements');
+    await loadAnnouncementsCenter();
+  });
+
+document.getElementById('open-svs-admin')?.addEventListener('click',async()=>{
+    document.getElementById('admin-module-chooser')?.classList.add('hidden');
+    document.getElementById('svs-admin-content')?.classList.remove('hidden');
+    setAdminContext('svs');
+    showAdminSection('events');
+    await loadAdminEvents();
+    await loadAdminAlliances();
+    await loadEventAllianceSelectors();
+    if(await amIAdmin()) await loadPermissions();
+    renderEventPreview();
+  });
+
+  
+  document.getElementById('open-transfer-admin')?.addEventListener('click',()=>{
+    showInternalModuleFrame('transfer-admin.html?embed=1','transfers');
+  });
+  document.getElementById('open-event-operations')?.addEventListener('click',()=>{
+    loadNativeEventOpsView('event-operations.html');
+  });
+
+  
+  const directAdminModule=new URLSearchParams(location.search).get('admin');
+  if(directAdminModule==='svs'){
+    adminModal.classList.add('open');
+    adminModal.setAttribute('aria-hidden','false');
+    await configureAdminModules();
+    document.getElementById('admin-module-chooser')?.classList.add('hidden');
+    document.getElementById('svs-admin-content')?.classList.remove('hidden');
+    setAdminContext('svs');
+    showAdminSection('events');
+    await loadAdminEvents();
+    await loadEventAllianceSelectors();
+    renderEventPreview();
+  }
+
+  adminButton.addEventListener('click', async () => {
+    const access=await getModuleAccess();
+    if(!access.svs && !access.transfers) return;
+    adminModal.classList.add('open');
+    adminModal.setAttribute('aria-hidden','false');
+    await configureAdminModules();
+      await loadHomeVisibilityAdmin();
+  });
+
+  document.querySelectorAll('[data-close-admin]').forEach(el => el.addEventListener('click', () => {
+    cleanupNativeModule();
+    document.getElementById('admin-modal')?.classList.remove('module-view');
+    adminModal.classList.remove('open');
+    adminModal.setAttribute('aria-hidden','true');
+  }));
+
+  
+  function showAdminSection(target){
+    const sections={
+      events:document.getElementById('admin-events'),
+      alliances:document.getElementById('admin-alliances'),
+      permissions:document.getElementById('admin-permissions'),
+      announcements:document.getElementById('admin-announcements')
+    };
+    Object.entries(sections).forEach(([key,section])=>{
+      if(section) section.classList.toggle('hidden',key!==target);
+    });
+  }
+
+  document.querySelectorAll('[data-admin-tab]').forEach(btn => btn.addEventListener('click', async () => {
+    const target=btn.dataset.adminTab;
+
+    if(target==='schedule'){
+      loadNativeSvsView('prep-requests.html','schedule');
+      return;
+    }
+    if(target==='history'){
+      loadNativeSvsView('history.html','history');
+      return;
+    }
+
+    hideInternalModuleFrame();
+    document.querySelectorAll('[data-admin-tab]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+
+    ['admin-events','admin-forms','admin-alliances','admin-permissions','admin-announcements'].forEach(id=>{
+      document.getElementById(id)?.classList.add('hidden');
+    });
+
+    if(target==='events') document.getElementById('admin-events')?.classList.remove('hidden');
+    if(target==='forms') document.getElementById('admin-forms')?.classList.remove('hidden');
+    if(target==='alliances') document.getElementById('admin-alliances')?.classList.remove('hidden');
+    if(target==='permissions'){
+      document.getElementById('admin-permissions')?.classList.remove('hidden');
+      await loadPermissions();
+    }
+  }));
+
+
+  
+  document.getElementById('open-prep-form-polish')?.addEventListener('click',()=>{
+    window.open('prep-form.html?direct=1','_blank');
+  });
+  document.getElementById('copy-prep-form-polish')?.addEventListener('click',async()=>{
+    const u=new URL('prep-form.html?direct=1',location.href).href;
+    try{await navigator.clipboard.writeText(u);document.getElementById('svs-forms-message').textContent='Prep Form link copied ✓'}
+    catch{document.getElementById('svs-forms-message').textContent=u}
+  });
+  document.getElementById('open-battle-form-polish')?.addEventListener('click',()=>{
+    window.open('battle-form.html?direct=1&event_type=svs','_blank');
+  });
+  document.getElementById('copy-battle-form-polish')?.addEventListener('click',async()=>{
+    const u=new URL('battle-form.html?direct=1&event_type=svs',location.href).href;
+    try{await navigator.clipboard.writeText(u);document.getElementById('svs-forms-message').textContent='Battle Form link copied ✓'}
+    catch{document.getElementById('svs-forms-message').textContent=u}
+  });
+
+async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidency=null) {
+    const { data, error } = await supabaseClient
+      .from('alliances')
+      .select('id,tag')
+      .eq('is_active', true)
+      .order('tag');
+
+    if (error) return;
+
+    const options = '<option value="">Not assigned yet</option>' +
+      (data || []).map(a => `<option value="${a.id}">${a.tag}</option>`).join('');
+
+    const castle = document.getElementById('castle-alliance');
+    const presidency = document.getElementById('presidency-alliance');
+    castle.innerHTML = options;
+    presidency.innerHTML = options;
+
+    castle.value = selectedCastle ? String(selectedCastle) : '';
+    presidency.value = selectedPresidency ? String(selectedPresidency) : '';
+  }
+
+  async function loadAdminEvents() {
+    const list = document.getElementById('events-admin-list');
+    const { data, error } = await supabaseClient
+      .from('svs_events')
+      .select('*')
+      .neq('status','ended')
+      .order('prep_monday', { ascending:false });
+    if (error) {
+      document.getElementById('admin-events-message').textContent = error.message;
+      return;
+    }
+    const rows = data || [];
+    list.innerHTML = rows.length ? rows.map(e => `
+      <article class="admin-row">
+        <div>
+          <b>SvS vs ${e.opponent_state}</b>
+          <small>Prep Monday ${e.prep_monday} UTC • ${(e.status|| (e.is_live?'live':'upcoming')).toUpperCase()}</small>
+        </div>
+        <div class="account-actions">
+          <button type="button" data-event-edit="${e.id}">Edit</button>
+          <button type="button" data-event-delete="${e.id}">Delete</button>
+        </div>
+      </article>
+    `).join('') : '<div class="empty-state">No SvS events created yet.</div>';
+  }
+
+  function resetEventForm() {
+    document.getElementById('event-id').value = '';
+    document.getElementById('opponent-state').value = '';
+    document.getElementById('prep-monday').value = '';
+    document.getElementById('event-description').value = '';
+    document.getElementById('announcement-reads-admin').classList.add('hidden');
+    document.getElementById('castle-alliance').value = '';
+    document.getElementById('presidency-alliance').value = '';
+    document.getElementById('prep-form-open').checked = false;
+    document.getElementById('battle-form-open').checked = false;
+    document.getElementById('schedule-published').checked = false;
+    document.getElementById('event-is-live').checked = false;
+    document.getElementById('event-auto-end-date').value = '';
+    document.getElementById('event-auto-end-time').value = '';
+    document.getElementById('event-lifecycle-actions').classList.add('hidden');
+    document.getElementById('cancel-event-edit').classList.add('hidden');
+    renderEventPreview();
+  }
+
+  document.getElementById('cancel-event-edit').addEventListener('click', resetEventForm);
+
+  document.getElementById('event-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!(await ensureAdmin())) return;
+
+    const id = document.getElementById('event-id').value;
+    const user = await currentUser();
+    const payload = {
+      opponent_state: Number(document.getElementById('opponent-state').value),
+      prep_monday: document.getElementById('prep-monday').value,
+      castle_alliance_id: document.getElementById('castle-alliance').value ? Number(document.getElementById('castle-alliance').value) : null,
+      presidency_alliance_id: document.getElementById('presidency-alliance').value ? Number(document.getElementById('presidency-alliance').value) : null,
+      description: document.getElementById('event-description').value.trim() || null,
+      prep_form_open: document.getElementById('prep-form-open').checked,
+      battle_form_open: document.getElementById('battle-form-open').checked,
+      schedule_published: document.getElementById('schedule-published').checked,
+      is_live: document.getElementById('event-is-live').checked,
+      status: document.getElementById('event-is-live').checked ? 'live' : 'upcoming',
+      auto_end_at: (
+        document.getElementById('event-auto-end-date').value &&
+        document.getElementById('event-auto-end-time').value
+      )
+        ? new Date(
+            document.getElementById('event-auto-end-date').value +
+            'T' +
+            document.getElementById('event-auto-end-time').value +
+            ':00Z'
+          ).toISOString()
+        : null
+    };
+    if (!id) payload.created_by = user.id;
+
+    const q = id
+      ? supabaseClient.from('svs_events').update(payload).eq('id', id)
+      : supabaseClient.from('svs_events').insert(payload);
+    const { error } = await q;
+    const msg = document.getElementById('admin-events-message');
+    if (error) { msg.textContent = error.message; msg.classList.add('error'); return; }
+    msg.textContent = id ? 'Event updated.' : 'Event created.';
+    msg.classList.remove('error');
+    resetEventForm();
+    await loadAdminEvents();
+  });
+
+  document.getElementById('events-admin-list').addEventListener('click', async (e) => {
+    if (!(await ensureAdmin())) return;
+    const editId = e.target.dataset.eventEdit;
+    const deleteId = e.target.dataset.eventDelete;
+    if (deleteId) {
+      if (!confirm(tr('deleteEvent'))) return;
+      const { error } = await supabaseClient.from('svs_events').delete().eq('id', deleteId);
+      if (error) return alert(error.message);
+      await loadAdminEvents(); return;
+    }
+    if (editId) {
+      const { data, error } = await supabaseClient.from('svs_events').select('*').eq('id', editId).single();
+      if (error) return alert(error.message);
+      document.getElementById('event-id').value = data.id;
+      document.getElementById('event-lifecycle-actions').classList.remove('hidden');
+      document.getElementById('opponent-state').value = data.opponent_state;
+      document.getElementById('prep-monday').value = data.prep_monday;
+      document.getElementById('event-description').value = data.description || '';
+      await loadAnnouncementReads(data);
+      await loadEventAllianceSelectors(data.castle_alliance_id, data.presidency_alliance_id);
+      document.getElementById('prep-form-open').checked = !!data.prep_form_open;
+      document.getElementById('battle-form-open').checked = !!data.battle_form_open;
+      document.getElementById('schedule-published').checked = !!data.schedule_published;
+      document.getElementById('event-is-live').checked = !!data.is_live;
+      if (data.auto_end_at) {
+        const autoIso = new Date(data.auto_end_at).toISOString();
+        document.getElementById('event-auto-end-date').value = autoIso.slice(0,10);
+        document.getElementById('event-auto-end-time').value = autoIso.slice(11,16);
+      } else {
+        document.getElementById('event-auto-end-date').value = '';
+        document.getElementById('event-auto-end-time').value = '';
+      }
+      document.getElementById('event-lifecycle-actions').classList.remove('hidden');
+      document.getElementById('activate-event').classList.toggle('hidden', data.status === 'live');
+      document.getElementById('end-event').classList.toggle('hidden', data.status !== 'live');
+      document.getElementById('cancel-event-edit').classList.remove('hidden');
+      renderEventPreview();
+    }
+  });
+
+  async function loadAdminAlliances() {
+    const list = document.getElementById('alliances-admin-list');
+    const { data, error } = await supabaseClient
+      .from('alliances')
+      .select('id,tag,is_active')
+      .order('tag');
+    if (error) {
+      document.getElementById('admin-alliances-message').textContent = error.message;
+      return;
+    }
+    const rows = data || [];
+    list.innerHTML = rows.length ? rows.map(a => `
+      <article class="admin-row">
+        <div>
+          <b>${a.tag}</b>
+          <small>${a.is_active ? tr('active') : tr('inactive')}</small>
+        </div>
+        <div class="account-actions">
+          <button type="button" data-alliance-edit="${a.id}">Edit</button>
+          <button type="button" data-alliance-toggle="${a.id}" data-active="${a.is_active}">
+            ${a.is_active ? tr('deactivate') : tr('activate')}
+          </button>
+          <button type="button" data-alliance-delete-preview="${a.id}" data-alliance-tag="${a.tag}">Delete</button>
+        </div>
+      </article>
+    `).join('') : '<div class="empty-state">No alliances found.</div>';
+  }
+
+  function resetAllianceAdminForm() {
+    document.getElementById('alliance-admin-id').value = '';
+    document.getElementById('alliance-admin-tag').value = '';
+    document.getElementById('cancel-alliance-edit').classList.add('hidden');
+  }
+
+  document.getElementById('cancel-alliance-edit').addEventListener('click', resetAllianceAdminForm);
+
+  document.getElementById('alliance-admin-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!(await ensureAdmin())) return;
+
+    const id = document.getElementById('alliance-admin-id').value;
+    const tag = document.getElementById('alliance-admin-tag').value.trim();
+    const q = id
+      ? supabaseClient.from('alliances').update({ tag }).eq('id', id)
+      : supabaseClient.from('alliances').insert({ tag, is_active:true });
+    const { error } = await q;
+    const msg = document.getElementById('admin-alliances-message');
+    if (error) { msg.textContent = error.message; msg.classList.add('error'); return; }
+    msg.textContent = id ? 'Alliance tag updated.' : 'Alliance tag added.';
+    msg.classList.remove('error');
+    resetAllianceAdminForm();
+    await loadAdminAlliances();
+    await loadAlliances();
+  });
+
+  document.getElementById('alliances-admin-list').addEventListener('click', async (e) => {
+    if (!(await ensureAdmin())) return;
+    const editId = e.target.dataset.allianceEdit;
+    const toggleId = e.target.dataset.allianceToggle;
+    const deletePreviewId = e.target.dataset.allianceDeletePreview;
+
+    if (deletePreviewId) {
+      const tag=e.target.dataset.allianceTag||'this alliance';
+      alert(`Delete ${tag}?\n\nPreview only: final safe delete will verify historical references before removing this alliance. Use Deactivate for now if you only want it hidden.`);
+      return;
+    }
+
+    if (editId) {
+      const { data, error } = await supabaseClient.from('alliances').select('id,tag').eq('id', editId).single();
+      if (error) return alert(error.message);
+      document.getElementById('alliance-admin-id').value = data.id;
+      document.getElementById('alliance-admin-tag').value = data.tag;
+      document.getElementById('cancel-alliance-edit').classList.remove('hidden');
+    }
+
+    if (toggleId) {
+      const active = e.target.dataset.active === 'true';
+      const { error } = await supabaseClient.from('alliances').update({ is_active: !active }).eq('id', toggleId);
+      if (error) return alert(error.message);
+      await loadAdminAlliances();
+      await loadAlliances();
+    }
+  });
+
+  await refreshAdminVisibility();
+
+
+
+  let currentLanguage = 'en';
+  let languagePreference = 'auto';
+
+  function tr(key) { return NEXA_I18N.t(currentLanguage, key); }
+
+  function setText(selector, key) {
+    const el = document.querySelector(selector);
+    if (el) el.textContent = tr(key);
+  }
+
+  function applyIndexLanguage() {
+    NEXA_I18N.setDir(currentLanguage);
+
+    const heroSub=document.querySelector('.hero p'); if(heroSub) heroSub.textContent='STATE 1518 • EVENTS • ACCOUNTS • COORDINATION';
+    setText('.section .head h2','myAccounts');
+    const heads = document.querySelectorAll('.section .head h2');
+    if (heads[1]) heads[1].textContent = tr('events');
+
+    const headSpans = document.querySelectorAll('.section .head span');
+    if (headSpans[0]) headSpans[0].textContent = tr('claimAccount');
+    if (headSpans[1]) headSpans[1].textContent = tr('tapOpen');
+
+    const claimB = document.querySelector('#open-accounts b');
+    const claimSmall = document.querySelector('#open-accounts small');
+    const claimOpen = document.querySelector('#open-accounts .link');
+    if (claimB) claimB.textContent = tr('claimAccount');
+    if (claimSmall) claimSmall.textContent = tr('accountSubtitle');
+    if (claimOpen) claimOpen.textContent = tr('open');
+
+    setText('.badge','live');
+    const view = document.querySelector('.event-actions .btn');
+    if (view) view.textContent = tr('viewEvent') + ' →';
+    const footer = document.querySelector('.footer');
+    if (footer) footer.innerHTML = 'Your state. One hub. Everything connected.<br>NEXA • State 1518';
+
+    setText('#language-label','yourLanguage');
+    setText('#change-language','change');
+    setText('#language-select-label','yourLanguage');
+    setText('#cancel-language','cancel');
+    setText('#save-language','saveLanguage');
+
+    const modalSmall = document.querySelector('#accounts-modal .modal-head small');
+    if (modalSmall) modalSmall.textContent = tr('myAccounts').toUpperCase();
+    const modalH = document.querySelector('#accounts-modal .modal-head h2');
+    if (modalH) modalH.childNodes[0].nodeValue = tr('wosAccounts') + ' ';
+
+    const tzSmall = document.querySelector('.timezone-card small');
+    if (tzSmall) tzSmall.textContent = tr('yourTimeZone').toUpperCase();
+    setText('#change-timezone','change');
+
+    const formLabels = document.querySelectorAll('#account-form label');
+    if (formLabels[0]) formLabels[0].childNodes[0].nodeValue = tr('inGameName') + '\n        ';
+    if (formLabels[1]) formLabels[1].childNodes[0].nodeValue = tr('playerId') + '\n        ';
+    if (formLabels[2]) formLabels[2].childNodes[0].nodeValue = tr('alliance') + '\n        ';
+    if (formLabels[3]) formLabels[3].childNodes[0].nodeValue = tr('allianceTag') + '\n        ';
+    setText('#cancel-edit','cancel');
+
+    setText('#admin-panel-button','admin');
+    setText('#admin-modal .modal-head small','adminPanel');
+    setText('#admin-modal .modal-head h2','controlCenter');
+
+    const tabs = document.querySelectorAll('[data-admin-tab]');
+    tabs.forEach(tab=>{
+      const key=tab.dataset.adminTab;
+      if(key==='events') tab.textContent='Event Setup';
+      if(key==='forms') tab.textContent='Forms';
+      if(key==='schedule') tab.textContent='Schedule Setup';
+      if(key==='history') tab.textContent='History';
+      if(key==='alliances') tab.textContent='Alliances';
+      if(key==='permissions') tab.textContent='Permissions';
+    });
+
+    const eventTitle=document.querySelector('#admin-events h3'); if(eventTitle) eventTitle.textContent='Event Setup';
+    const eventHelp=document.querySelector('#admin-events .admin-section-head p'); if(eventHelp) eventHelp.textContent='Configure the opponent, event dates, castle and presidency assignments for the current SvS.';
+    const allianceTitle=document.querySelector('#admin-alliances h3'); if(allianceTitle) allianceTitle.textContent='Manage Alliances';
+    const allianceHelp=document.querySelector('#admin-alliances .admin-section-head p'); if(allianceHelp) allianceHelp.textContent='Add, edit, activate, deactivate or remove alliance tags.';
+    const permissionsTitle=document.getElementById('permissions-title'); if(permissionsTitle) permissionsTitle.textContent='Permissions';
+    const permissionsHelp=document.getElementById('permissions-help'); if(permissionsHelp) permissionsHelp.textContent='Search users and manage NEXA access. Owner access is protected.';
+
+    document.getElementById('permissions-search').placeholder = tr('searchUser');
+    const psBtn = document.querySelector('#permissions-search-form .btn');
+    if(psBtn) psBtn.textContent=tr('search');
+
+    const eventLabels = document.querySelectorAll('#event-form > label');
+    if(eventLabels[0]) eventLabels[0].childNodes[0].nodeValue=tr('opponentState')+'\n          ';
+    if(eventLabels[1]) eventLabels[1].childNodes[0].nodeValue=tr('prepMonday')+'\n          ';
+    if(eventLabels[2]) eventLabels[2].childNodes[0].nodeValue=tr('castleAlliance')+'\n          ';
+    if(eventLabels[3]) eventLabels[3].childNodes[0].nodeValue=tr('presidencyAlliance')+'\n          ';
+    if(eventLabels[4]) eventLabels[4].childNodes[0].nodeValue=tr('eventNotes')+'\n          ';
+    const previewSmall=document.querySelector('.event-preview > small');
+    if(previewSmall) previewSmall.textContent=tr('timeline');
+    const toggles=document.querySelectorAll('#event-form .toggle-line');
+    const toggleLabels=['Preparation Form','Battle Form','Schedule','Live Event'];
+    toggles.forEach((x,i)=>{ if(toggleLabels[i]) x.lastChild.textContent=' '+toggleLabels[i]; });
+    const saveEvent=document.querySelector('#event-form button[type="submit"]');
+    if(saveEvent) saveEvent.textContent=tr('saveEvent');
+    setText('#cancel-event-edit','cancel');
+    document.getElementById('alliance-admin-tag').placeholder=tr('allianceTag');
+    const saveTag=document.querySelector('#alliance-admin-form button[type="submit"]');
+    if(saveTag) saveTag.textContent=tr('saveTag');
+    setText('#cancel-alliance-edit','cancel');
+
+    const discordLogged = loginButton.dataset.loggedIn === 'true';
+    if(!discordLogged){
+      nameEl.textContent=tr('discordProfile');
+      statusEl.textContent=tr('signInDiscord');
+    } else {
+      statusEl.textContent=tr('discordConnected');
+    }
+
+    renderEventPreview();
+    loadAccounts();
+    loadAdminEvents();
+    loadAdminAlliances();
+    loadPermissions();
+    syncHomeLiveEvent();
+  }
+
+  function languageName(code) {
+    const names = {
+      auto: tr('languageAuto'), en:'English', es:'Español', tr:'Türkçe',
+      ko:'한국어', ar:'العربية', pt:'Português', ru:'Русский',
+      uk:'Українська', fr:'Français', it:'Italiano',
+      zh:'简体中文', ja:'日本語'
+    };
+    return names[code] || code;
+  }
+
+  async function loadLanguageProfile() {
+    const user = await currentUser();
+    const detected = NEXA_I18N.device();
+
+    if(!user){
+      languagePreference='auto';
+      currentLanguage=detected;
+    } else {
+      const {data,error}=await supabaseClient.from('user_profiles')
+        .select('language').eq('user_id',user.id).maybeSingle();
+      if(error) console.error(error);
+      languagePreference=data?.language || 'auto';
+      currentLanguage=NEXA_I18N.resolve(languagePreference);
+    }
+
+    document.getElementById('language-display').textContent=languageName(languagePreference);
+    document.getElementById('language-detected').textContent =
+      languagePreference==='auto' ? `${languageName(currentLanguage)} • ${navigator.language || ''}` : languageName(currentLanguage);
+    document.getElementById('language-select').value=languagePreference;
+    applyIndexLanguage();
+  }
+
+  document.getElementById('change-language').addEventListener('click', ()=>{
+    document.getElementById('language-editor').classList.remove('hidden');
+  });
+  document.getElementById('cancel-language').addEventListener('click', ()=>{
+    document.getElementById('language-editor').classList.add('hidden');
+  });
+  document.getElementById('save-language').addEventListener('click', async ()=>{
+    const user=await currentUser();
+    if(!user){ document.getElementById('discord-login').click(); return; }
+    const pref=document.getElementById('language-select').value;
+    const {error}=await supabaseClient.from('user_profiles')
+      .upsert({user_id:user.id,language:pref},{onConflict:'user_id'});
+    if(error) return msg(error.message,true);
+    languagePreference=pref;
+    currentLanguage=NEXA_I18N.resolve(pref);
+    document.getElementById('language-editor').classList.add('hidden');
+    msg(tr('languageUpdated'));
+    await loadLanguageProfile();
+  });
+
+  async function loadPermissions(search='') {
+    const list=document.getElementById('permissions-list');
+    if(!list) return;
+    const ok=await amIAdmin();
+    if(!ok){ list.innerHTML=`<div class="empty-state">${tr('adminAccess')}</div>`; return; }
+
+    const {data,error}=await supabaseClient.rpc('list_permission_users',{search_text:search || null});
+    if(error){ document.getElementById('permissions-message').textContent=error.message; return; }
+    const rows=data||[];
+    let verification={};
+    if(rows.length){
+      const {data:vrows}=await supabaseClient.rpc('get_state_verification',{target_user_ids:rows.map(x=>x.user_id)});
+      (vrows||[]).forEach(v=>verification[v.user_id]=!!v.state_verified);
+    }
+    const {data:myRole}=await supabaseClient.rpc('current_nexa_role');
+    const canEditRoles=myRole==='owner';
+    const {data:canVerify}=await supabaseClient.rpc('can_verify_state_members');
+    list.innerHTML=rows.length ? rows.map(u=>{
+      const accounts=(u.accounts||[]).map(a=>`${a.in_game_name} • ${a.alliance} • ID ${a.player_id}`).join('<br>');
+      const role=u.role||'player';
+      const isOwner=role==='owner';
+      const verified=isOwner||verification[u.user_id]===true;
+      return `<article class="permission-row">
+        <div class="permission-person">
+          <b>${u.discord_name || 'Discord User'}</b>
+          <small>${accounts || tr('noAccounts')}</small>
+        </div>
+        <div class="permission-role">
+          ${isOwner
+            ? `<span class="owner-badge">Owner</span>`
+            : canEditRoles ? `<select data-role-user="${u.user_id}">
+                <option value="player" ${role==='player'?'selected':''}>Player</option>
+                <option value="scheduler" ${role==='scheduler'?'selected':''}>Scheduler</option>
+                <option value="admin" ${role==='admin'?'selected':''}>Admin</option>
+              </select>` : `<span class="owner-badge">${role}</span>`}
+          ${canVerify && !isOwner ? `<button class="btn secondary" type="button" data-verify-user="${u.user_id}" data-verified="${verified?'1':'0'}">${verified?'Remove Verification':'Verify Member'}</button>` : ''}
+          <small>${verified?'✓ Verified State Member':'External / Unverified'}</small>
+          ${!isOwner ? `<div class="preview-permissions-grid">
+            <span class="preview-permission-chip">Admin</span>
+            <span class="preview-permission-chip">EO</span>
+            <span class="preview-permission-chip">SvS</span>
+            <span class="preview-permission-chip">Transfer</span>
+          </div>` : ''}
+        </div>
+      </article>`;
+    }).join('') : `<div class="empty-state">${tr('noUsers')}</div>`;
+  }
+
+  document.getElementById('permissions-search-form').addEventListener('submit', async e=>{
+    e.preventDefault();
+    await loadPermissions(document.getElementById('permissions-search').value.trim());
+  });
+
+  document.getElementById('permissions-list').addEventListener('click',async e=>{
+    const b=e.target.closest('[data-verify-user]'); if(!b)return;
+    const makeVerified=b.dataset.verified!=='1';
+    const {error}=await supabaseClient.rpc('set_state_member_verification',{target_user_id:b.dataset.verifyUser,new_verified:makeVerified});
+    if(error)return alert(error.message);
+    await loadPermissions(document.getElementById('permissions-search').value.trim());
+  });
+
+  document.getElementById('permissions-list').addEventListener('change', async e=>{
+    const target=e.target.dataset.roleUser;
+    if(!target) return;
+    const newRole=e.target.value;
+    const {error}=await supabaseClient.rpc('set_user_role',{
+      target_user_id:target,
+      new_role:newRole
+    });
+    const m=document.getElementById('permissions-message');
+    if(error){
+      m.textContent=error.message;
+      m.classList.add('error');
+      await loadPermissions(document.getElementById('permissions-search').value.trim());
+      return;
+    }
+    m.textContent=tr('roleUpdated');
+    m.classList.remove('error');
+  });
+
+
+
+
+
+  document.getElementById('activate-event').addEventListener('click', async()=>{
+    const id=document.getElementById('event-id').value;
+    if(!id) return;
+    const {error}=await supabaseClient.rpc('activate_svs_event',{target_event_id:id});
+    if(error) return alert(error.message);
+    await loadAdminEvents();
+    await syncHomeLiveEvent();
+    resetEventForm();
+  });
+
+  document.getElementById('end-event').addEventListener('click', async()=>{
+    const id=document.getElementById('event-id').value;
+    if(!id) return;
+    const ok=confirm('End this SvS event? The final schedule and requests will be archived in History, then cleared from the active SvS cycle.');
+    if(!ok) return;
+    const {error}=await supabaseClient.rpc('end_svs_event_v2',{target_event_id:id});
+    if(error) return alert(error.message);
+    await loadAdminEvents();
+    await syncHomeLiveEvent();
+    resetEventForm();
+  });
+  let currentAckFilter='all';
+
+  async function getLiveEventRecord(){
+    const {data}=await supabaseClient.from('svs_events').select('*')
+      .eq('is_live',true).order('prep_monday',{ascending:false}).limit(1).maybeSingle();
+    return data||null;
+  }
+
+  async function loadAnnouncementsCenter(){
+    const event=await getLiveEventRecord();
+    if(!event) return;
+
+    document.getElementById('ann-main').value=event.announcement_text||'';
+    document.getElementById('announcement-audience').value=event.announcement_audience||'verified';
+    const ats=event.announcement_translations||{};
+    ['es','tr','ko','ar','ja','zh','ru'].forEach(c=>{
+      document.getElementById('ann-'+c).value=ats[c]||'';
+    });
+
+    await loadAnnouncementStatus(event);
+    await loadAnnouncementHistory(event);
+  }
+
+  async function loadAnnouncementStatus(event){
+    const list=document.getElementById('announcement-status-list');
+    const summary=document.getElementById('announcement-summary');
+
+    if(!event.announcement_text || !event.announcement_version){
+      summary.innerHTML='<div><b>0</b><span>Acknowledged</span></div><div><b>0</b><span>Not Acknowledged</span></div><div><b>0</b><span>Total</span></div>';
+      list.innerHTML='<div class="empty-state">No active announcement.</div>';
+      return;
+    }
+
+    const {data,error}=await supabaseClient.rpc('list_announcement_status',{
+      target_event_id:event.id,
+      target_version:event.announcement_version
+    });
+    if(error){list.innerHTML=`<div class="empty-state">${error.message}</div>`;return;}
+
+    const rows=data||[];
+    const yes=rows.filter(x=>x.acknowledged).length;
+    const no=rows.length-yes;
+    summary.innerHTML=`<div><b>${yes}</b><span>Acknowledged</span></div><div><b>${no}</b><span>Not Acknowledged</span></div><div><b>${rows.length}</b><span>Total</span></div>`;
+
+    const shown=rows.filter(x=>currentAckFilter==='all' || (currentAckFilter==='yes'?x.acknowledged:!x.acknowledged));
+    list.innerHTML=shown.length?shown.map(x=>`
+      <article class="admin-row">
+        <div>
+          <b>${x.in_game_names || x.discord_name}</b>
+          <small>${x.alliances || ''} • ${x.discord_name}</small>
+        </div>
+        <div class="${x.acknowledged?'ack-yes':'ack-no'}">
+          ${x.acknowledged?'Acknowledged':'Not Acknowledged'}
+          ${x.acknowledged_at?`<small>${new Date(x.acknowledged_at).toLocaleString()}</small>`:''}
+        </div>
+      </article>`).join(''):'<div class="empty-state">No users in this view.</div>';
+  }
+
+  async function loadAnnouncementHistory(event){
+    const list=document.getElementById('announcement-history-list');
+    const {data,error}=await supabaseClient.from('announcement_history')
+      .select('*').eq('event_id',event.id).order('announcement_version',{ascending:false});
+    if(error){list.innerHTML=`<div class="empty-state">${error.message}</div>`;return;}
+    list.innerHTML=(data||[]).length?(data||[]).map(x=>`
+      <article class="admin-row">
+        <div><b>Version ${x.announcement_version}</b><small>${x.announcement_text}</small></div>
+        <small>${new Date(x.created_at).toLocaleString()}</small>
+      </article>`).join(''):'<div class="empty-state">No announcement history yet.</div>';
+  }
+
+  document.querySelectorAll('[data-ack-filter]').forEach(btn=>btn.addEventListener('click',async()=>{
+    document.querySelectorAll('[data-ack-filter]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentAckFilter=btn.dataset.ackFilter;
+    const event=await getLiveEventRecord();
+    if(event) await loadAnnouncementStatus(event);
+  }));
+
+  document.getElementById('save-announcement').addEventListener('click',async()=>{
+    if(!(await ensureAdmin())) return;
+    const event=await getLiveEventRecord();
+    if(!event) return;
+    const translations={};
+    ['es','tr','ko','ar','ja','zh','ru'].forEach(c=>translations[c]=document.getElementById('ann-'+c).value.trim());
+    const {error}=await supabaseClient.rpc('save_event_announcement',{
+      target_event_id:event.id,
+      new_text:document.getElementById('ann-main').value.trim(),
+      new_translations:translations
+    });
+    let audienceError=null;
+    if(!error){
+      const audience=document.getElementById('announcement-audience').value||'verified';
+      const res=await supabaseClient.rpc('set_event_announcement_audience',{
+        target_event_id:event.id,
+        new_audience:audience
+      });
+      audienceError=res.error||null;
+    }
+    const msg=document.getElementById('announcement-admin-message');
+    msg.textContent=(error||audienceError)?(error?.message||audienceError?.message):'Announcement saved.';
+    if(!error && !audienceError){
+      await loadAnnouncementsCenter();
+      await syncHomeLiveEvent();
+    }
+  });
+
+  document.getElementById('clear-announcement').addEventListener('click',async()=>{
+    if(!(await ensureAdmin())) return;
+    const event=await getLiveEventRecord();
+    if(!event) return;
+    const {error}=await supabaseClient.rpc('save_event_announcement',{
+      target_event_id:event.id,
+      new_text:'',
+      new_translations:{}
+    });
+    document.getElementById('announcement-admin-message').textContent=error?error.message:'Announcement deactivated.';
+    if(!error){
+      await loadAnnouncementsCenter();
+      await syncHomeLiveEvent();
+    }
+  });
+
+  async function loadAnnouncementReads(eventData) {
+    const box = document.getElementById('announcement-reads-admin');
+    const list = document.getElementById('announcement-read-list');
+    const count = document.getElementById('announcement-read-count');
+
+    if (!eventData?.announcement_text || !eventData?.announcement_version) {
+      box.classList.add('hidden');
+      return;
+    }
+
+    const {data,error} = await supabaseClient.rpc('list_announcement_acknowledgements',{
+      target_event_id:eventData.id,
+      target_version:eventData.announcement_version
+    });
+    if(error){ console.error(error); return; }
+
+    box.classList.remove('hidden');
+    count.textContent = `${(data||[]).length} confirmed`;
+    list.innerHTML = (data||[]).length ? (data||[]).map(x=>`
+      <article class="admin-row">
+        <div><b>${x.in_game_names || x.discord_name}</b><small>${x.discord_name}</small></div>
+        <small>${new Date(x.acknowledged_at).toLocaleString()}</small>
+      </article>
+    `).join('') : '<div class="empty-state">No confirmations yet.</div>';
+  }
+
+  async function syncAnnouncement(eventData) {
+    const wrap=document.getElementById('global-announcement');
+    const msgEl=document.getElementById('announcement-message');
+    const ackBtn=document.getElementById('announcement-ack');
+
+    if(!eventData?.announcement_text){
+      wrap.classList.add('hidden');
+      return;
+    }
+
+    let verified=false;
+    let role='';
+    try{
+      const vr=await supabaseClient.rpc('is_verified_state_member');
+      verified=vr.data===true;
+    }catch(_){}
+    try{
+      const rr=await supabaseClient.rpc('current_nexa_role');
+      role=String(rr.data||'').toLowerCase();
+    }catch(_){}
+
+    const staff=['owner','admin','scheduler'].includes(role);
+    const audience=eventData.announcement_audience||'verified';
+    const maySee=(audience==='everyone') || verified || staff;
+
+    if(!maySee){
+      wrap.classList.add('hidden');
+      return;
+    }
+
+    wrap.classList.remove('hidden');
+    wrap.classList.remove('acknowledged');
+    msgEl.textContent=eventData.announcement_translations?.[currentLanguage] || eventData.announcement_text;
+
+    // Guests/public and unverified users can read an Everyone announcement,
+    // but acknowledgement is intentionally only available to verified members.
+    ackBtn.classList.toggle('hidden',!verified);
+    if(!verified){
+      ackBtn.onclick=null;
+      return;
+    }
+
+    ackBtn.textContent=tr('iveRead');
+    ackBtn.disabled=false;
+
+    const user=await currentUser();
+    if(!user) return;
+
+    const {data:existing}=await supabaseClient
+      .from('announcement_acknowledgements')
+      .select('id')
+      .eq('event_id',eventData.id)
+      .eq('announcement_version',eventData.announcement_version)
+      .eq('user_id',user.id)
+      .maybeSingle();
+
+    if(existing){
+      ackBtn.textContent=tr('readConfirmed');
+      ackBtn.disabled=true;
+      wrap.classList.add('acknowledged');
+      wrap.classList.add('hidden');
+      return;
+    }
+
+    ackBtn.onclick=async()=>{
+      const u=await currentUser();
+      if(!u) return;
+      const {error}=await supabaseClient.from('announcement_acknowledgements').insert({
+        event_id:eventData.id,
+        announcement_version:eventData.announcement_version,
+        user_id:u.id
+      });
+      if(!error){
+        ackBtn.textContent=tr('readConfirmed');
+        ackBtn.disabled=true;
+        wrap.classList.add('acknowledged');
+        setTimeout(()=>wrap.classList.add('hidden'),250);
+      }
+    };
+  }
+
+  function utcDateFromPrep(prepMonday, offsetDays=0) {
+    const d = new Date(prepMonday + 'T00:00:00Z');
+    d.setUTCDate(d.getUTCDate() + offsetDays);
+    return d;
+  }
+
+  function shortUTCDate(d) {
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone:'UTC', month:'short', day:'numeric', year:'numeric'
+    }).format(d);
+  }
+
+  function countdownLabel(endDate) {
+    const ms = endDate.getTime() - Date.now();
+    if (ms <= 0) return tr('ended');
+    const totalHours = Math.floor(ms / 3600000);
+    const days = Math.floor(totalHours / 24);
+    const hours = totalHours % 24;
+    return `${days}d ${hours}h`;
+  }
+
+  async function syncHomeLiveEvent() {
+    const titleEl = document.getElementById('home-event-title');
+    const metaEl = document.getElementById('home-event-meta');
+    const countEl = document.getElementById('home-event-countdown');
+    if (!titleEl || !metaEl || !countEl) return;
+
+    const { data, error } = await supabaseClient
+      .from('svs_events')
+      .select('*')
+      .eq('status', 'live')
+      .order('prep_monday', { ascending:false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Live event sync failed:', error);
+      return;
+    }
+    if (!data) {
+      await syncAnnouncement(null);
+      titleEl.textContent = tr('noLive');
+      metaEl.textContent = tr('noLiveText');
+      countEl.textContent = '—';
+      return;
+    }
+
+    const start = utcDateFromPrep(data.prep_monday, 0);
+    const battle = utcDateFromPrep(data.prep_monday, 5);
+    const end = new Date(battle.getTime() + 24 * 3600000);
+
+    titleEl.textContent = currentLanguage==='es' ? `SvS contra ${data.opponent_state}` : `SvS against ${data.opponent_state}`;
+    metaEl.textContent = `${shortUTCDate(start)} – ${shortUTCDate(battle)} • WOS Game Time (UTC)`;
+    countEl.textContent = countdownLabel(end);
+
+    await syncAnnouncement(data);
+    localStorage.setItem('nexa_live_event_id', data.id);
+  }
+
+  await syncHomeLiveEvent();
+
+
+  async function getHomeModuleVisibility(){
+    try{
+      const {data,error}=await supabaseClient.rpc('get_home_module_visibility');
+      if(error) throw error;
+      return {
+        svs:data?.show_svs!==false,
+        transfer:data?.show_transfer!==false
+      };
+    }catch(_){
+      return {svs:true,transfer:true};
+    }
+  }
+
+  async function applyHomeModuleVisibility(){
+    const v=await getHomeModuleVisibility();
+    document.getElementById('home-svs-section')?.classList.toggle('hidden',!v.svs);
+    document.getElementById('home-transfers-section')?.classList.toggle('hidden',!v.transfer);
+    return v;
+  }
+
+  async function loadHomeVisibilityAdmin(){
+    let role='';
+    try{const {data}=await supabaseClient.rpc('current_nexa_role');role=String(data||'').toLowerCase();}catch(_){}
+    const canEdit=['owner','admin'].includes(role);
+    document.querySelectorAll('.module-show-toggle').forEach(x=>x.classList.toggle('hidden',!canEdit));
+    if(!canEdit)return;
+
+    const v=await getHomeModuleVisibility();
+    if(document.getElementById('show-svs-home')) document.getElementById('show-svs-home').checked=v.svs;
+    if(document.getElementById('show-transfer-home')) document.getElementById('show-transfer-home').checked=v.transfer;
+    document.getElementById('preview-show-announcements').checked=localStorage.getItem('nexa_preview_show_announcements')==='1';
+    document.getElementById('preview-show-eo').checked=localStorage.getItem('nexa_preview_show_eo')==='1';
+  }
+
+  async function saveHomeVisibility(){
+    const msg=document.getElementById('home-visibility-message');
+    const {error}=await supabaseClient.rpc('set_home_module_visibility',{
+      new_show_svs:document.getElementById('show-svs-home').checked,
+      new_show_transfer:document.getElementById('show-transfer-home').checked
+    });
+    msg.textContent=error?error.message:'Home visibility updated ✓';
+    if(!error) await applyHomeModuleVisibility();
+  }
+
+  document.getElementById('show-svs-home')?.addEventListener('change',saveHomeVisibility);
+  document.getElementById('show-transfer-home')?.addEventListener('change',saveHomeVisibility);
+  document.getElementById('preview-show-announcements')?.addEventListener('change',e=>{
+    localStorage.setItem('nexa_preview_show_announcements',e.target.checked?'1':'0');
+    document.getElementById('home-visibility-message').textContent='Preview visibility updated ✓';
+  });
+  document.getElementById('preview-show-eo')?.addEventListener('change',e=>{
+    localStorage.setItem('nexa_preview_show_eo',e.target.checked?'1':'0');
+    document.getElementById('home-visibility-message').textContent='Preview visibility updated ✓';
+  });
+
+  async function loadHomeTransfers(){
+    const visible=await getHomeModuleVisibility();
+    const section=document.getElementById('home-transfers-section');
+    const list=document.getElementById('home-transfer-events');
+    if(!section || !list) return;
+    if(!visible.transfer){section.classList.add('hidden');return;}
+    const {data,error}=await supabaseClient.from('transfer_events')
+      .select('id,title,destination_state,source_state_min,source_state_max,public_token,starts_at,ends_at')
+      .eq('status','open').eq('applications_open',true)
+      .order('starts_at',{ascending:true});
+    section.classList.remove('hidden');
+    if(error || !data?.length){
+      list.innerHTML=`<article class="event transfer-home-card">
+        <div class="event-row"><div><span class="badge transfer-badge">Transfers</span>
+        <h3>No live Transfer event</h3>
+        <div class="muted">There is no open transfer cycle right now.</div></div></div>
+
+<div class="nexa-layout-admin-module" role="button" tabindex="0"
+     onclick="(typeof window.NEXA_NATIVE_OPEN==='function' ? window.NEXA_NATIVE_OPEN('layout-management.html') : (location.href='layout-management.html'))"
+     onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+  <div class="nexa-layout-kicker">MODULE</div>
+  <div class="nexa-layout-title">Layout Management</div>
+  <div class="nexa-layout-desc">Assign alliance layout presets, emblems & visual identity.</div>
+</div>
+
+        <div id="home-transfer-staff-actions" class="event-actions hidden">
           <a class="btn" href="transfer-admin.html?tab=events&create=1">Create Transfer Event</a>
         </div>
       </article>`;
@@ -1055,110 +3329,6 @@ body.nexa-schedule-open{
   setTimeout(fixHomeVisibilityLabels,700);
 })();
 </script>
-
-<script>
-(function(){
-  function makeLayoutModule(){
-    const card=document.createElement('div');
-    card.className='nexa-admin-layout-card';
-    card.setAttribute('role','button');
-    card.tabIndex=0;
-    card.innerHTML=`
-      <div class="nexa-admin-module-kicker">MODULE</div>
-      <div class="nexa-admin-module-title">Layout Management</div>
-      <div class="nexa-admin-module-desc">Assign alliance layout presets, emblems & visual identity.</div>`;
-    const open=()=>location.href='layout-management.html';
-    card.addEventListener('click',open);
-    card.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open()}});
-    return card;
-  }
-
-  function placeLayoutModule(){
-    // Admin panel/control center is identified by its visible heading.
-    const nodes=[...document.querySelectorAll('h1,h2,h3,div,span')];
-    const adminHeading=nodes.find(el=>{
-      const t=(el.textContent||'').replace(/\s+/g,'').toLowerCase();
-      return t==='controlcenter';
-    });
-    if(!adminHeading)return;
-
-    // Find the admin modal/panel containing Administration/Announcements/Event Operations.
-    let panel=adminHeading;
-    while(panel && panel!==document.body){
-      const txt=(panel.textContent||'');
-      if(txt.includes('Administration') && txt.includes('Announcements')) break;
-      panel=panel.parentElement;
-    }
-    if(!panel || panel===document.body)return;
-    if(panel.querySelector('.nexa-admin-layout-card'))return;
-
-    // Find actual module cards and insert alphabetically before SvS/Transfers,
-    // preferably after Event Operations.
-    const candidates=[...panel.querySelectorAll('div')];
-    const eventCard=candidates.find(el=>{
-      const t=(el.textContent||'').trim();
-      return t.includes('Event Operations') && el.children.length>0 &&
-             (t.includes('Build reusable forms') || t.includes('team organization'));
-    });
-    const svsCard=candidates.find(el=>{
-      const t=(el.textContent||'').trim();
-      return /^MODULE\s*SvS\b/i.test(t) || (t.includes('Set up SvS events') && el.children.length>0);
-    });
-
-    const card=makeLayoutModule();
-    if(eventCard && eventCard.parentElement){
-      // climb to the closest card-like direct child of its module list
-      let target=eventCard;
-      while(target.parentElement && target.parentElement!==panel &&
-            !/border-radius/.test(target.getAttribute('style')||'') &&
-            target.parentElement.children.length<2){
-        target=target.parentElement;
-      }
-      target.insertAdjacentElement('afterend',card);
-    } else if(svsCard && svsCard.parentElement){
-      svsCard.insertAdjacentElement('beforebegin',card);
-    } else {
-      panel.appendChild(card);
-    }
-  }
-
-  const obs=new MutationObserver(()=>placeLayoutModule());
-  obs.observe(document.documentElement,{childList:true,subtree:true});
-  document.addEventListener('click',()=>setTimeout(placeLayoutModule,50));
-  window.addEventListener('load',()=>setTimeout(placeLayoutModule,100));
-})();
-</script>
-<style>
-/* Layout Management exists ONLY inside Admin Control Center */
-.nexa-admin-layout-card{
-  border:1px solid rgba(133,83,255,.42);
-  border-radius:22px;
-  background:rgba(15,17,47,.78);
-  padding:22px 32px;
-  margin:18px 0;
-  color:#fff;
-  cursor:pointer;
-}
-.nexa-admin-module-kicker{
-  color:#a78bfa;
-  font-size:12px;
-  letter-spacing:.18em;
-  font-weight:900;
-  margin-bottom:10px;
-}
-.nexa-admin-module-title{
-  font-size:28px;
-  line-height:1.08;
-  font-weight:900;
-  margin-bottom:8px;
-}
-.nexa-admin-module-desc{
-  color:#aeb3c8;
-  font-size:13px;
-  line-height:1.4;
-  font-weight:600;
-}
-</style>
 
 </body>
 </html>

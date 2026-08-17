@@ -2521,7 +2521,7 @@ body:after{height:340px!important}
 
     const num=doc.createElement('span');
     num.className='nexa-note-num';
-    num.textContent=number+'.';
+    num.textContent='•';
 
     const body=doc.createElement('span');
     body.className='nexa-note-body';
@@ -2536,8 +2536,8 @@ body:after{height:340px!important}
     const grid=box.querySelector('.nexa-notes-grid');
     if(!grid)return;
 
-    const base=10;
-    const min=7.4;
+    const base=9.6;
+    const min=7.2;
     let px=base;
     grid.style.setProperty('--nexa-note-size',base+'px');
 
@@ -6022,7 +6022,7 @@ window.addEventListener('DOMContentLoaded',()=>{
     if(!name || !time) return;
 
     const base=15;      // generic rally text size
-    const min=7.4;      // minimum readable fallback
+    const min=7.2;      // minimum readable fallback
     let size=base;
 
     name.style.setProperty('font-size',base+'px','important');
@@ -6151,53 +6151,71 @@ window.addEventListener('DOMContentLoaded',()=>{
 
 
 
-<style id="nexa-v36-notes-bullets">
-/* V36 — Notes only. No changes to Teams/Important/Legend/Formations. */
+
+
+
+<style id="nexa-v37-notes-vertical-label">
+/* V37 — NOTES ONLY. Main layout geometry remains untouched. */
+
+/* Restore the complete width assigned to Notes by the existing layout.
+   Do NOT make the Notes block narrower than its grid area. */
 :is(#sheet,.nexa-render-sheet) #sheet-notes{
+  width:100%!important;
+  min-width:0!important;
+  height:132px!important;
+  min-height:132px!important;
   overflow:visible!important;
-  width:56%!important;
-  height:104px!important;
+  position:relative!important;
+  box-sizing:border-box!important;
 }
 
-/* Keep top edge anchored; extra height grows downward toward UTC footer. */
+/* Vertical NOTES label outside the lower-left edge.
+   It identifies the block without consuming content space. */
 :is(#sheet,.nexa-render-sheet) #sheet-notes .sheet-notes-title{
   position:absolute!important;
-  left:8px!important;
-  top:-14px!important;
+  left:-17px!important;
+  bottom:8px!important;
+  top:auto!important;
   margin:0!important;
-  padding:0 5px!important;
-  background:#fff!important;
+  padding:3px 1px!important;
+  background:transparent!important;
   z-index:8!important;
   font-size:8.5px!important;
   line-height:10px!important;
   font-weight:800!important;
-  letter-spacing:.10em!important;
+  letter-spacing:.12em!important;
   text-transform:uppercase!important;
+  writing-mode:vertical-rl!important;
+  transform:rotate(180deg)!important;
+  transform-origin:center!important;
 }
 
+/* Use the full interior. Extra height is downward only. */
 :is(#sheet,.nexa-render-sheet) #sheet-notes-text{
   position:absolute!important;
-  inset:5px 8px 5px 8px!important;
+  inset:7px 9px 7px 9px!important;
   width:auto!important;
   height:auto!important;
   min-width:0!important;
-  padding:0!important;
   margin:0!important;
+  padding:0!important;
   overflow:hidden!important;
   white-space:normal!important;
 }
 
+/* Readable, light notes. */
 :is(#sheet,.nexa-render-sheet) .nexa-notes-grid{
-  --nexa-note-size:10px;
+  --nexa-note-size:9.6px;
   display:grid!important;
   width:100%!important;
   min-width:0!important;
-  gap:2px 15px!important;
+  gap:2px 18px!important;
   align-content:start!important;
   font-size:var(--nexa-note-size)!important;
   line-height:1.10!important;
   color:var(--sheet-text,#14213d)!important;
 }
+
 :is(#sheet,.nexa-render-sheet) .nexa-notes-grid.one-col{
   grid-template-columns:minmax(0,1fr)!important;
 }

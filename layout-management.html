@@ -90,14 +90,31 @@ function drawPresets(){
 }
 function applyPreview(){const p=presets.find(x=>x.id===selected)||presets[0];$('preview').style.setProperty('--accent',p.accent)}
 async function loadAlliances(){
+ const sel=$('alliance');
+ if(!sel)return;
+ sel.innerHTML='<option value="">Select alliance…</option>';
  const {data,error}=await sb.from('alliances').select('id,tag').order('tag');
  if(error){$('status').textContent='Could not load alliances: '+error.message;return}
- (data||[]).forEach(a=>{const o=document.createElement('option');o.value=a.id;o.textContent=a.tag||a.id;$('alliance').appendChild(o)})
+ const groups=new Map();
+ (data||[]).filter(a=>a&&a.id&&a.tag).forEach(a=>{
+   const tag=String(a.tag).trim(); if(!tag)return;
+   const key=tag.toLowerCase();
+   if(!groups.has(key))groups.set(key,{tag,ids:[]});
+   groups.get(key).ids.push(String(a.id));
+ });
+ [...groups.values()].sort((a,b)=>a.tag.localeCompare(b.tag)).forEach(g=>{
+   const o=document.createElement('option');
+   o.value=g.ids[0];o.textContent=g.tag;o.dataset.allianceIds=JSON.stringify(g.ids);
+   sel.appendChild(o);
+ });
 }
 async function loadAssignment(){
- const id=$('alliance').value;if(!id)return;
- const {data}=await sb.from('alliance_layout_settings').select('*').eq('alliance_id',String(id)).maybeSingle();
- if(data){selected=data.preset_key||'forest_green';emblemData=data.emblem_data_url||''}else{selected='forest_green';emblemData=''}
+ const sel=$('alliance'),id=sel?.value;if(!id)return;
+ let ids=[];try{ids=JSON.parse(sel.options[sel.selectedIndex]?.dataset?.allianceIds||'[]')}catch(_){}
+ if(!ids.length)ids=[String(id)];
+ const {data}=await sb.from('alliance_layout_settings').select('*').in('alliance_id',ids).order('updated_at',{ascending:false}).limit(1);
+ const row=(data||[])[0];
+ if(row){selected=row.preset_key||'forest_green';emblemData=row.emblem_data_url||''}else{selected='forest_green';emblemData=''}
  drawPresets();applyPreview();renderEmblem();
 }
 function renderEmblem(){$('emblemPreview').innerHTML=emblemData?`<img src="${emblemData}" alt="">`:'No emblem'}
@@ -170,8 +187,11 @@ $('save').onclick=async()=>{
  const allianceId=String(allianceEl?.value||'').trim();
  if(!allianceId){$('status').textContent='Select an alliance first.';return}
  $('status').textContent='Saving…';
- const payload={alliance_id:allianceId,preset_key:selected,emblem_data_url:emblemData,updated_at:new Date().toISOString()};
- const {data,error}=await sb.from('alliance_layout_settings').upsert(payload,{onConflict:'alliance_id'}).select('alliance_id,preset_key,emblem_data_url').maybeSingle();
+ let allianceIds=[];try{allianceIds=JSON.parse(allianceEl.options[allianceEl.selectedIndex]?.dataset?.allianceIds||'[]')}catch(_){}
+ if(!allianceIds.length)allianceIds=[allianceId];
+ const now=new Date().toISOString();
+ const payload=allianceIds.map(id=>({alliance_id:String(id),preset_key:selected,emblem_data_url:emblemData,updated_at:now}));
+ const {data,error}=await sb.from('alliance_layout_settings').upsert(payload,{onConflict:'alliance_id'}).select('alliance_id,preset_key,emblem_data_url');
  if(error){$('status').textContent='Save failed: '+error.message;return}
  $('status').textContent=data?.alliance_id?'Alliance layout saved.':'Alliance layout saved.';
 };

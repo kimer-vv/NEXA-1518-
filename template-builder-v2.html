@@ -3272,3 +3272,94 @@ window.addEventListener('DOMContentLoaded',()=>{
   background:var(--sheet-bg)!important;
 }
 </style>
+
+
+<script id="nexa-alliance-identity-by-tag-final">
+(async function(){
+  const PRESETS={
+    forest_green:'#315f4b',ice_blue:'#5d88a8',royal_gold:'#a77a2b',ocean_teal:'#287b7b',
+    soft_burgundy:'#884d5c',lavender:'#746b9d',slate_blue:'#536d96',sage:'#6f876b',
+    dusty_rose:'#a66d78',steel:'#596579'
+  };
+
+  async function resolveIdentity(){
+    const client=window.sb || window.supabaseClient;
+    if(!client || typeof client.from!=='function') return null;
+
+    const params=window.NEXA_NATIVE_PARAMS || new URLSearchParams(location.search);
+    const aid=String(window.allianceId || params.get('alliance_id') || '').trim();
+    const tag=String(window.allianceTag || params.get('alliance_tag') || '').trim();
+
+    // 1) Prefer the exact alliance row used by this Team Builder.
+    if(aid){
+      const exact=await client.from('alliance_layout_settings')
+        .select('alliance_id,preset_key,emblem_data_url,updated_at')
+        .eq('alliance_id',aid)
+        .maybeSingle();
+      if(!exact.error && exact.data) return exact.data;
+    }
+
+    // 2) Duplicate alliance rows exist in this NEXA database.
+    // Resolve every database ID with the same visible tag, then use the newest saved identity.
+    if(tag){
+      const aliases=await client.from('alliances')
+        .select('id,tag')
+        .ilike('tag',tag);
+      const ids=(aliases.data||[]).map(x=>String(x.id)).filter(Boolean);
+      if(ids.length){
+        const found=await client.from('alliance_layout_settings')
+          .select('alliance_id,preset_key,emblem_data_url,updated_at')
+          .in('alliance_id',ids)
+          .order('updated_at',{ascending:false})
+          .limit(1);
+        if(!found.error && found.data?.length) return found.data[0];
+      }
+    }
+    return null;
+  }
+
+  function applyIdentity(row){
+    if(!row)return;
+    const accent=PRESETS[row.preset_key]||PRESETS.forest_green;
+    const sheet=document.getElementById('sheet');
+    if(sheet){
+      sheet.style.setProperty('--accent',accent);
+      sheet.style.setProperty('--team-head',accent);
+    }
+    document.querySelectorAll('#sheet .team-title').forEach(el=>el.style.backgroundColor=accent);
+    document.querySelectorAll('#sheet .rally-icon,#sheet .formation-group.rally .formation-title,#sheet .formation-group.rally .formation-group-title')
+      .forEach(el=>el.style.color=accent);
+
+    const img=document.getElementById('sheet-emblem');
+    if(img){
+      if(row.emblem_data_url){
+        img.src=row.emblem_data_url;
+        img.style.display='block';
+      }else{
+        img.removeAttribute('src');
+        img.style.display='none';
+      }
+    }
+
+    // Keep existing builder branding state in sync so later rerenders don't revert it.
+    try{
+      if(typeof branding==='object' && branding){
+        branding.emblem_data_url=row.emblem_data_url||'';
+        branding.colors={...(branding.colors||{}),head:accent};
+      }
+    }catch(_){}
+
+    if(typeof window.fitInlineSheet==='function'){
+      requestAnimationFrame(()=>window.fitInlineSheet());
+    }
+  }
+
+  async function run(){
+    try{ applyIdentity(await resolveIdentity()); }catch(e){ console.warn('NEXA alliance identity resolve',e); }
+  }
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>setTimeout(run,350));
+  else setTimeout(run,350);
+  window.addEventListener('load',()=>setTimeout(run,550));
+})();
+</script>

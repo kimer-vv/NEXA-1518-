@@ -2068,14 +2068,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       };
 
-      const loadStoredIdentity=async(allianceId)=>{
-        if(!allianceId)return;
+      const loadStoredIdentity=async(allianceIds)=>{
+        const ids=(Array.isArray(allianceIds)?allianceIds:[allianceIds]).filter(Boolean).map(String);
+        if(!ids.length)return;
         setStatus('Loading alliance layout…');
         const {data,error}=await supabaseClient
           .from('alliance_layout_settings')
-          .select('alliance_id,preset_key,emblem_data_url')
-          .eq('alliance_id',allianceId)
-          .maybeSingle();
+          .select('alliance_id,preset_key,emblem_data_url,updated_at')
+          .in('alliance_id',ids)
+          .order('updated_at',{ascending:false})
+          .limit(1);
 
         if(error){
           if(String(error.message||'').includes('alliance_layout_settings')){
@@ -2086,9 +2088,10 @@ document.addEventListener('DOMContentLoaded', async () => {
           return;
         }
 
-        currentEmblemData=data?.emblem_data_url || '';
+        const row=(data||[])[0]||null;
+        currentEmblemData=row?.emblem_data_url || '';
         renderEmblem();
-        selectPreset(data?.preset_key || 'forest_green');
+        selectPreset(row?.preset_key || 'forest_green');
         setStatus('');
       };
 
@@ -2102,31 +2105,42 @@ document.addEventListener('DOMContentLoaded', async () => {
           if(layoutAllianceError) throw layoutAllianceError;
 
           allianceSelect.innerHTML='<option value="">Select alliance…</option>';
-          const seenAllianceTags=new Set();
+          const allianceGroups=new Map();
           (layoutAlliances||[])
             .filter(a=>a && a.id && a.tag)
-            .sort((a,b)=>String(a.tag).localeCompare(String(b.tag)))
             .forEach(a=>{
               const tag=String(a.tag).trim();
-              const dedupeKey=tag.toLowerCase();
-              if(!tag || seenAllianceTags.has(dedupeKey)) return;
-              seenAllianceTags.add(dedupeKey);
+              if(!tag)return;
+              const key=tag.toLowerCase();
+              if(!allianceGroups.has(key)) allianceGroups.set(key,{tag,ids:[]});
+              allianceGroups.get(key).ids.push(String(a.id));
+            });
+          [...allianceGroups.values()]
+            .sort((a,b)=>a.tag.localeCompare(b.tag))
+            .forEach(group=>{
               const option=document.createElement('option');
-              option.value=String(a.id);
-              option.textContent=tag;
+              option.value=group.ids[0];
+              option.textContent=group.tag;
+              option.dataset.allianceIds=JSON.stringify(group.ids);
               allianceSelect.appendChild(option);
             });
 
           allianceSelect.onchange=async()=>{
+            const option=allianceSelect.options[allianceSelect.selectedIndex];
             const id=String(allianceSelect.value||'').trim();
+            let ids=[];
+            try{ ids=JSON.parse(option?.dataset?.allianceIds||'[]'); }catch(_){}
+            if(!ids.length && id) ids=[id];
             host.dataset.layoutAllianceId=id;
-            const label=allianceSelect.options[allianceSelect.selectedIndex]?.textContent || '';
+            host.dataset.layoutAllianceIds=JSON.stringify(ids);
+            host.dataset.layoutAllianceTag=String(option?.textContent||'').trim();
+            const label=option?.textContent || '';
             if(!id){
               setStatus('Select an alliance first.');
               return;
             }
             setStatus('Selected: '+label);
-            await loadStoredIdentity(id);
+            await loadStoredIdentity(ids);
           };
         }catch(layoutAllianceErr){
           allianceSelect.innerHTML='<option value="">Alliance load failed</option>';
@@ -2231,18 +2245,21 @@ document.addEventListener('DOMContentLoaded', async () => {
           const presetKey=selectedPresetKey();
           setStatus('Saving…');
 
-          const payload={
-            alliance_id:allianceId,
+          let allianceIds=[];
+          try{ allianceIds=JSON.parse(host.dataset.layoutAllianceIds||'[]'); }catch(_){}
+          if(!allianceIds.length) allianceIds=[allianceId];
+          const now=new Date().toISOString();
+          const payload=allianceIds.map(id=>({
+            alliance_id:String(id),
             preset_key:presetKey,
             emblem_data_url:currentEmblemData,
-            updated_at:new Date().toISOString()
-          };
+            updated_at:now
+          }));
 
           const {data,error}=await supabaseClient
             .from('alliance_layout_settings')
             .upsert(payload,{onConflict:'alliance_id'})
-            .select('alliance_id,preset_key')
-            .maybeSingle();
+            .select('alliance_id,preset_key');
 
           if(error){
             if(String(error.message||'').includes('alliance_layout_settings')){

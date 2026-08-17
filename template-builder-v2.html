@@ -2171,9 +2171,10 @@ body:after{height:340px!important}
         <h3>Preview & Export</h3>
         <button class="btn" id="preview-layout" type="button">Preview Layout</button>
         <div class="row" style="margin-top:8px">
-          <button class="btn primary" id="download-layout" type="button">Download Layout</button>
-          <button class="btn" id="save-preview" type="button">Save Layout</button>
+          <button class="btn primary" id="download-layout" type="button">Download PNG</button>
+          <button class="btn" id="download-pdf" type="button">Download PDF</button>
         </div>
+        <button class="btn" id="save-preview" type="button" style="margin-top:8px">Save Layout</button>
         <div class="muted" id="export-status" style="margin-top:8px;font-size:.82rem"></div>
       </div>
     </div>
@@ -2475,10 +2476,28 @@ function renderFormations(rows){
   const group=(items,scope)=>{
     if(!items.length)return '';
     const label=scope==='joiner'?'JOINERS':'RALLY LEADERS';
-    const icon=scope==='joiner'?`<svg class="joiner-person-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"></circle><path d="M4.5 21c.4-5.1 3.1-8 7.5-8s7.1 2.9 7.5 8H4.5z"></path></svg>`:'♜';
+    const icon=scope==='joiner'
+      ? `<svg class="joiner-person-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"></circle><path d="M4.5 21c.4-5.1 3.1-8 7.5-8s7.1 2.9 7.5 8H4.5z"></path></svg>`
+      : '♜';
+
+    // Keep additional Attack formations under Attack and Defense under Defense,
+    // instead of stretching every formation across a new horizontal slot.
+    const attack=items.filter(x=>x._type==='attack');
+    const defense=items.filter(x=>x._type==='defense');
+    const typeColumn=(typeItems,type)=>{
+      if(!typeItems.length)return '';
+      return `<div class="formation-type-column ${type}">
+        ${typeItems.map(formationCard).join('')}
+      </div>`;
+    };
+
+    const cols=(attack.length && defense.length)?'two-types':'one-type';
     return `<section class="formation-group ${scope}">
       <div class="formation-group-title"><span class="${scope==='joiner'?'joiner-icon':'rally-icon'}">${icon}</span>${label}</div>
-      <div class="formation-cards cards-${Math.min(items.length,4)}">${items.map(formationCard).join('')}</div>
+      <div class="formation-type-columns ${cols}">
+        ${typeColumn(attack,'attack')}
+        ${typeColumn(defense,'defense')}
+      </div>
     </section>`;
   };
 
@@ -2802,60 +2821,141 @@ async function ensureHtml2Canvas(){
   });
 }
 
-async function downloadLayout(){
-  setExportStatus('Preparing download…');
-  if(!(await ensureHtml2Canvas())){
-    setExportStatus('Download tool could not load. Check your connection and try again.','error');
-    return;
-  }
+async function renderLayoutCanvas(){
+  if(!(await ensureHtml2Canvas())) throw new Error('Download tool could not load. Check your connection and try again.');
 
   const source=$('sheet');
-  setExportStatus('Preparing layout…');
+  if(!source) throw new Error('Layout was not found.');
+
+  const exportHost=document.createElement('div');
+  exportHost.dataset.nexaExportHost='1';
+  exportHost.style.cssText='position:fixed;left:-20000px;top:0;width:1400px;z-index:-1;background:#fff;';
+  const exportSheet=source.cloneNode(true);
+  exportSheet.removeAttribute('id');
+  exportSheet.style.transform='none';
+  exportSheet.style.zoom='1';
+  exportSheet.style.position='relative';
+  exportSheet.style.left='0';
+  exportSheet.style.top='0';
+  exportSheet.style.margin='0';
+
+  const exportStyle=getComputedStyle(source);
+  ['--sheet-bg','--sheet-text','--sheet-muted','--team-head','--section-bg','--pet',
+   '--sheet-border','--sheet-font','--title-weight','--body-weight','--accent'].forEach(name=>{
+    const value=exportStyle.getPropertyValue(name).trim();
+    if(value) exportSheet.style.setProperty(name,value);
+  });
+
+  exportHost.appendChild(exportSheet);
+  document.body.appendChild(exportHost);
 
   try{
-    // Export a natural-size clone so mobile preview scaling never shrinks the downloaded image.
-    const exportHost=document.createElement('div');
-    exportHost.style.cssText='position:fixed;left:-20000px;top:0;width:1400px;z-index:-1;background:#fff;';
-    const exportSheet=source.cloneNode(true);
-    exportSheet.removeAttribute('id');
-    exportSheet.style.transform='none';
-    exportSheet.style.margin='0';
-    const exportStyle=getComputedStyle(source);
-    ['--sheet-bg','--sheet-text','--sheet-muted','--team-head','--section-bg','--pet',
-     '--sheet-border','--sheet-font','--title-weight','--body-weight','--accent'].forEach(name=>{
-      const value=exportStyle.getPropertyValue(name).trim();
-      if(value) exportSheet.style.setProperty(name,value);
-    });
-    exportHost.appendChild(exportSheet);
-    document.body.appendChild(exportHost);
+    // Wait for emblem/hero images before capturing.
+    const images=[...exportSheet.querySelectorAll('img')];
+    await Promise.all(images.map(img=>{
+      if(img.complete)return Promise.resolve();
+      return new Promise(resolve=>{
+        img.addEventListener('load',resolve,{once:true});
+        img.addEventListener('error',resolve,{once:true});
+        setTimeout(resolve,2500);
+      });
+    }));
 
-    const canvas=await window.html2canvas(exportSheet,{
+    return await window.html2canvas(exportSheet,{
       backgroundColor:'#ffffff',
-      scale:Math.min(3,Math.max(2,window.devicePixelRatio||2)),
+      scale:2,
       useCORS:true,
       allowTaint:false,
       logging:false,
       scrollX:0,
-      scrollY:-window.scrollY,
-      windowWidth:Math.max(document.documentElement.clientWidth,source.scrollWidth),
-      windowHeight:Math.max(document.documentElement.clientHeight,source.scrollHeight)
+      scrollY:0,
+      width:Math.ceil(exportSheet.scrollWidth||1400),
+      height:Math.ceil(exportSheet.scrollHeight||exportSheet.offsetHeight||900),
+      windowWidth:1600,
+      windowHeight:Math.max(1000,Math.ceil(exportSheet.scrollHeight||900))
     });
-
+  }finally{
     exportHost.remove();
+  }
+}
 
-    const safeAlliance=String(allianceTag||'Alliance').replace(/[^a-z0-9_-]+/gi,'-').replace(/^-+|-+$/g,'')||'Alliance';
-    const safeEvent=String(eventType||'event').replace(/[^a-z0-9_-]+/gi,'-');
-    const link=document.createElement('a');
-    link.download=`${safeAlliance}-${safeEvent}-team-layout.png`;
-    link.href=canvas.toDataURL('image/png',1);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    setExportStatus('Layout downloaded ✓','success');
+function exportFileBase(){
+  const safeAlliance=String(allianceTag||'Alliance').replace(/[^a-z0-9_-]+/gi,'-').replace(/^-+|-+$/g,'')||'Alliance';
+  const safeEvent=String(eventType||'event').replace(/[^a-z0-9_-]+/gi,'-');
+  return `${safeAlliance}-${safeEvent}-team-layout`;
+}
+
+async function saveBlob(blob,filename,mime){
+  // On iPhone/iPad, Share Sheet is substantially more reliable than a hidden
+  // anchor and lets the user Save Image / Save to Files.
+  try{
+    if(typeof File==='function' && navigator.canShare && navigator.share){
+      const file=new File([blob],filename,{type:mime});
+      if(navigator.canShare({files:[file]})){
+        await navigator.share({files:[file],title:filename});
+        return true;
+      }
+    }
+  }catch(err){
+    if(err?.name==='AbortError') return true;
+  }
+
+  const url=URL.createObjectURL(blob);
+  const link=document.createElement('a');
+  link.href=url;
+  link.download=filename;
+  link.rel='noopener';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),15000);
+  return true;
+}
+
+async function downloadLayout(){
+  setExportStatus('Preparing PNG…');
+  try{
+    const canvas=await renderLayoutCanvas();
+    const blob=await new Promise((resolve,reject)=>{
+      canvas.toBlob(b=>b?resolve(b):reject(new Error('Could not create PNG image.')),'image/png',1);
+    });
+    await saveBlob(blob,exportFileBase()+'.png','image/png');
+    setExportStatus('PNG ready ✓','success');
   }catch(error){
-    document.querySelectorAll('body > div[style*="-20000px"]').forEach(el=>el.remove());
-    console.error('Layout download error',error);
-    setExportStatus('Could not download the layout. '+(error?.message||''),'error');
+    document.querySelectorAll('[data-nexa-export-host="1"]').forEach(el=>el.remove());
+    console.error('Layout PNG error',error);
+    setExportStatus('Could not create PNG. '+(error?.message||''),'error');
+  }
+}
+
+async function ensureJsPdf(){
+  if(window.jspdf?.jsPDF)return true;
+  return await new Promise(resolve=>{
+    const script=document.createElement('script');
+    script.src='https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js';
+    script.async=true;
+    script.onload=()=>resolve(!!window.jspdf?.jsPDF);
+    script.onerror=()=>resolve(false);
+    document.head.appendChild(script);
+  });
+}
+
+async function downloadLayoutPdf(){
+  setExportStatus('Preparing PDF…');
+  try{
+    const [canvas,pdfReady]=await Promise.all([renderLayoutCanvas(),ensureJsPdf()]);
+    if(!pdfReady)throw new Error('PDF tool could not load.');
+    const {jsPDF}=window.jspdf;
+    const orientation=canvas.width>=canvas.height?'landscape':'portrait';
+    const pdf=new jsPDF({orientation,unit:'px',format:[canvas.width,canvas.height],hotfixes:['px_scaling']});
+    pdf.addImage(canvas.toDataURL('image/jpeg',0.94),'JPEG',0,0,canvas.width,canvas.height);
+    const blob=pdf.output('blob');
+    await saveBlob(blob,exportFileBase()+'.pdf','application/pdf');
+    setExportStatus('PDF ready ✓','success');
+  }catch(error){
+    document.querySelectorAll('[data-nexa-export-host="1"]').forEach(el=>el.remove());
+    console.error('Layout PDF error',error);
+    setExportStatus('Could not create PDF. '+(error?.message||''),'error');
   }
 }
 
@@ -2880,6 +2980,7 @@ function saveLayoutState(){
 $('preview-layout').onclick=openLayoutPreview;
 $('close-layout-preview').onclick=closeLayoutPreview;
 $('download-layout').onclick=downloadLayout;
+$('download-pdf').onclick=downloadLayoutPdf;
 $('download-layout-preview').onclick=downloadLayout;
 $('save-preview').onclick=saveLayoutState;
 $('layout-preview-overlay').addEventListener('click',e=>{
@@ -3291,7 +3392,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 
       // Open from the top window directly inside the real user click.
       const topWindow=window.top || window;
-      const opened=topWindow.open('layout-preview-v2.html?v=20260817-identity-cache-v4','_blank');
+      const opened=topWindow.open('layout-preview-v2.html?v=20260817-preview-export-v5','_blank');
 
       if(!opened){
         const status=document.getElementById('export-status');
@@ -3460,3 +3561,74 @@ window.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('preview-layout')?.addEventListener('click',()=>setTimeout(reapply,50));
 })();
 </script>
+
+
+<style id="nexa-formations-compact-v5">
+/* Compact Formations: additional Attack/Defense presets stack vertically by type. */
+.formations{margin-top:10px!important}
+.formations-heading{
+  margin:0 0 6px!important;
+  font-size:14px!important;
+  gap:8px!important;
+}
+.formation-groups{gap:8px!important}
+.formation-group{
+  padding:6px!important;
+  border-radius:10px!important;
+}
+.formation-group-title{
+  margin:-15px auto 5px!important;
+  padding:0 7px!important;
+  font-size:9px!important;
+  gap:4px!important;
+}
+.formation-type-columns{
+  display:grid!important;
+  gap:5px!important;
+  align-items:start!important;
+}
+.formation-type-columns.two-types{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+}
+.formation-type-columns.one-type{
+  grid-template-columns:minmax(0,1fr)!important;
+}
+.formation-type-column{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:5px!important;
+  min-width:0!important;
+}
+.formation-card{
+  padding:5px 5px!important;
+  border-radius:8px!important;
+  min-height:0!important;
+}
+.formation-title{
+  font-size:8px!important;
+  line-height:1!important;
+  min-height:0!important;
+}
+.formation-hero-list{
+  min-height:24px!important;
+  margin-top:4px!important;
+  gap:4px!important;
+}
+.formation-hero{max-width:50px!important}
+.formation-hero img{
+  width:24px!important;
+  height:24px!important;
+  margin-bottom:1px!important;
+  border-radius:5px!important;
+}
+.formation-hero-name{
+  font-size:6.5px!important;
+  line-height:1!important;
+}
+.formation-ratio{
+  margin-top:4px!important;
+  padding:3px 3px!important;
+  font-size:9px!important;
+  line-height:1!important;
+}
+</style>

@@ -18,6 +18,11 @@ html,body{margin:0;min-height:100%;background:#080b16;color:#fff;font-family:Int
 <div class="toolbar">
   <button type="button" onclick="history.back()">← Back</button>
   <strong id="preview-title">Layout Preview</strong>
+  <div class="zoom-tools">
+    <button type="button" id="zoom-out">−</button>
+    <button type="button" id="zoom-fit">Fit</button>
+    <button type="button" id="zoom-in">+</button>
+  </div>
 </div>
 <div class="stage"><div class="canvas"><div id="preview-root"></div></div></div>
 <script>
@@ -82,3 +87,80 @@ html,body{background:#080b16!important}
 #preview-root .sheet .sheet-title{font-size:54px!important;line-height:.95!important}
 #preview-root .sheet .sheet-subtitle{font-size:18px!important;letter-spacing:.22em!important}
 </style>
+
+
+<style id="nexa-preview-fit-v5">
+.toolbar{flex-wrap:wrap}
+.zoom-tools{display:flex;gap:6px;margin-left:auto}
+.zoom-tools button{min-width:42px}
+.stage{
+  padding:10px!important;
+  overflow:auto!important;
+  touch-action:pan-x pan-y pinch-zoom!important;
+}
+.canvas{
+  width:100%!important;
+  min-width:0!important;
+  min-height:calc(100vh - 80px)!important;
+  padding:0 0 120px!important;
+  display:flex!important;
+  justify-content:center!important;
+  align-items:flex-start!important;
+}
+#preview-root{
+  width:100%!important;
+  display:flex!important;
+  justify-content:center!important;
+}
+#preview-root .sheet{
+  zoom:1!important;
+  transform-origin:top center!important;
+  margin:0 auto!important;
+}
+</style>
+<script id="nexa-preview-fit-runtime-v5">
+(function(){
+  let scale=1;
+  let naturalW=0,naturalH=0;
+
+  function sheet(){return document.querySelector('#preview-root .sheet')}
+  function stage(){return document.querySelector('.stage')}
+  function canvas(){return document.querySelector('.canvas')}
+
+  function measure(){
+    const s=sheet();if(!s)return;
+    const old=s.style.transform;
+    s.style.transform='none';
+    naturalW=s.scrollWidth||s.offsetWidth||1400;
+    naturalH=s.scrollHeight||s.offsetHeight||900;
+    s.style.transform=old;
+  }
+
+  function apply(next){
+    const s=sheet(),c=canvas();if(!s||!c)return;
+    if(!naturalW)measure();
+    scale=Math.max(.12,Math.min(2.5,next));
+    s.style.transform=`scale(${scale})`;
+    c.style.height=Math.ceil(naturalH*scale+120)+'px';
+    c.style.minWidth=Math.ceil(naturalW*scale)+'px';
+  }
+
+  function fit(){
+    const st=stage(),s=sheet();if(!st||!s)return;
+    measure();
+    const availableW=Math.max(240,st.clientWidth-8);
+    const availableH=Math.max(240,window.innerHeight-document.querySelector('.toolbar').offsetHeight-24);
+    const fitScale=Math.min(1,availableW/naturalW,availableH/naturalH);
+    apply(fitScale);
+    st.scrollTo({left:0,top:0,behavior:'auto'});
+  }
+
+  document.getElementById('zoom-out')?.addEventListener('click',()=>apply(scale*.82));
+  document.getElementById('zoom-in')?.addEventListener('click',()=>apply(scale*1.22));
+  document.getElementById('zoom-fit')?.addEventListener('click',fit);
+  window.addEventListener('resize',fit);
+  window.addEventListener('orientationchange',()=>setTimeout(fit,120));
+  window.addEventListener('load',()=>setTimeout(fit,80));
+  requestAnimationFrame(()=>setTimeout(fit,60));
+})();
+</script>

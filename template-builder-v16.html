@@ -6269,202 +6269,100 @@ window.addEventListener('DOMContentLoaded',()=>{
 </style>
 
 
-<style id="nexa-v42-utc-top-autofit">
-/* V42 — fixed UTC notice + resilient content-driven Team table fitting. */
 
-/* UTC is now a global document rule in the fixed open area
-   between the alliance identity/header and the Team tables.
-   It no longer depends on Notes or Formations height. */
-:is(#sheet,.nexa-render-sheet){
-  position:relative!important;
+
+
+
+
+<style id="nexa-v43-restore-lower-strip-utc">
+/* V43 — restore approved lower strip exactly; add UTC without moving Notes/Formations. */
+
+/* Keep Notes in the approved lowered position from V41. */
+:is(#sheet,.nexa-render-sheet) #sheet-notes{
+  transform:translateY(18px)!important;
 }
-:is(#sheet,.nexa-render-sheet) .sheet-utc-note{
+
+/* Keep Formations at its established lower-strip position. */
+:is(#sheet,.nexa-render-sheet) #formations{
+  transform:none!important;
+}
+
+/* Hide any old footer copies so there is only one UTC label. */
+:is(#sheet,.nexa-render-sheet) .sheet-footer,
+:is(#sheet,.nexa-render-sheet) .sheet-utc{
+  display:none!important;
+}
+
+/* UTC as a real independent label in the open header-to-teams gap.
+   This does not participate in the lower strip and cannot push it upward. */
+:is(#sheet,.nexa-render-sheet)::after{
+  content:"ALL TIMES ARE IN UTC";
   position:absolute!important;
   left:32px!important;
-  right:auto!important;
-  top:190px!important;
-  bottom:auto!important;
-  width:auto!important;
-  margin:0!important;
-  padding:0!important;
-  transform:none!important;
-  text-align:left!important;
-  z-index:45!important;
+  top:205px!important;
+  z-index:50!important;
   font-size:9px!important;
   line-height:1!important;
   font-weight:800!important;
-  letter-spacing:.18em!important;
+  letter-spacing:.16em!important;
   white-space:nowrap!important;
   color:var(--sheet-muted,#53627c)!important;
-}
-
-/* Base Team cards remain content-driven: rows add natural height.
-   Compact classes are used only if a populated card would collide
-   with the fixed lower strip. */
-:is(#sheet,.nexa-render-sheet) .team-card{
-  min-height:0!important;
-  height:auto!important;
-}
-:is(#sheet,.nexa-render-sheet) .rally-list,
-:is(#sheet,.nexa-render-sheet) .joiner-table{
-  min-height:0!important;
-  height:auto!important;
-}
-
-/* Level 1: tighten spacing before reducing text. */
-:is(#sheet,.nexa-render-sheet) .team-card.nexa-fit-1 .team-title{
-  padding-top:5px!important;padding-bottom:5px!important;
-}
-:is(#sheet,.nexa-render-sheet) .team-card.nexa-fit-1 .team-section-title{
-  min-height:25px!important;padding-top:3px!important;padding-bottom:3px!important;
-}
-:is(#sheet,.nexa-render-sheet) .team-card.nexa-fit-1 .rally-entry{
-  min-height:24px!important;padding-top:2px!important;padding-bottom:2px!important;
-}
-:is(#sheet,.nexa-render-sheet) .team-card.nexa-fit-1 .joiner-head{
-  min-height:24px!important;
-}
-:is(#sheet,.nexa-render-sheet) .team-card.nexa-fit-1 .joiner-row{
-  min-height:28px!important;padding-top:2px!important;padding-bottom:2px!important;
-}
-
-/* Level 2: moderately compact, still comfortably readable. */
-:is(#sheet,.nexa-render-sheet) .team-card.nexa-fit-2{
-  font-size:10px!important;
-}
-:is(#sheet,.nexa-render-sheet) .team-card.nexa-fit-2 .team-title{
-  font-size:15px!important;padding:4px 3px!important;
-}
-:is(#sheet,.nexa-render-sheet) .team-card.nexa-fit-2 .team-section-title{
-  min-height:22px!important;font-size:10px!important;padding:2px!important;
-}
-:is(#sheet,.nexa-render-sheet) .team-card.nexa-fit-2 .rally-entry{
-  min-height:21px!important;padding:1px 3px!important;
-}
-:is(#sheet,.nexa-render-sheet) .team-card.nexa-fit-2 .rally-name-line{
-  min-height:19px!important;line-height:19px!important;gap:4px!important;
-}
-:is(#sheet,.nexa-render-sheet) .team-card.nexa-fit-2 .rally-name,
-:is(#sheet,.nexa-render-sheet) .team-card.nexa-fit-2 .rally-time{
-  line-height:19px!important;min-height:19px!important;
-}
-:is(#sheet,.nexa-render-sheet) .team-card.nexa-fit-2 .joiner-head{
-  min-height:20px!important;font-size:8px!important;
-}
-:is(#sheet,.nexa-render-sheet) .team-card.nexa-fit-2 .joiner-row{
-  min-height:23px!important;padding:1px 2px!important;
-}
-:is(#sheet,.nexa-render-sheet) .team-card.nexa-fit-2 .joiner-player span,
-:is(#sheet,.nexa-render-sheet) .team-card.nexa-fit-2 .hero-mini-name{
-  font-size:9px!important;
-}
-
-/* Level 3: stress-test fallback. Never deliberately go microscopic. */
-:is(#sheet,.nexa-render-sheet) .team-card.nexa-fit-3{
-  font-size:9px!important;
-}
-:is(#sheet,.nexa-render-sheet) .team-card.nexa-fit-3 .team-title{
-  font-size:13px!important;padding:3px 2px!important;
-}
-:is(#sheet,.nexa-render-sheet) .team-card.nexa-fit-3 .team-section-title{
-  min-height:19px!important;font-size:9px!important;padding:1px!important;
-}
-:is(#sheet,.nexa-render-sheet) .team-card.nexa-fit-3 .rally-entry{
-  min-height:18px!important;padding:0 2px!important;
-}
-:is(#sheet,.nexa-render-sheet) .team-card.nexa-fit-3 .rally-name-line{
-  min-height:17px!important;line-height:17px!important;gap:3px!important;
-}
-:is(#sheet,.nexa-render-sheet) .team-card.nexa-fit-3 .rally-name,
-:is(#sheet,.nexa-render-sheet) .team-card.nexa-fit-3 .rally-time{
-  line-height:17px!important;min-height:17px!important;
-}
-:is(#sheet,.nexa-render-sheet) .team-card.nexa-fit-3 .joiner-head{
-  min-height:18px!important;font-size:7.5px!important;
-}
-:is(#sheet,.nexa-render-sheet) .team-card.nexa-fit-3 .joiner-row{
-  min-height:20px!important;padding:0 2px!important;
-}
-:is(#sheet,.nexa-render-sheet) .team-card.nexa-fit-3 .joiner-player span,
-:is(#sheet,.nexa-render-sheet) .team-card.nexa-fit-3 .hero-mini-name{
-  font-size:8px!important;
+  pointer-events:none!important;
 }
 </style>
 
-<script id="nexa-v42-table-autofit">
+<script id="nexa-v43-team-autofit">
 (function(){
   const LEVELS=['nexa-fit-1','nexa-fit-2','nexa-fit-3'];
 
-  function clearFit(card){
-    LEVELS.forEach(c=>card.classList.remove(c));
-  }
+  function clear(card){LEVELS.forEach(x=>card.classList.remove(x));}
 
-  function lowerStripTop(root){
-    const notes=root.querySelector('#sheet-notes');
-    const formations=root.querySelector('#formations');
-    const vals=[notes,formations]
-      .filter(Boolean)
-      .filter(el=>getComputedStyle(el).display!=='none')
-      .map(el=>el.getBoundingClientRect().top);
-    return vals.length ? Math.min(...vals) : null;
-  }
-
-  function fitTeamTables(root=document){
+  function fit(root=document){
     const grid=root.querySelector('#teams-grid');
     if(!grid)return;
-
     const cards=[...grid.querySelectorAll('.team-card')];
     if(!cards.length)return;
 
-    cards.forEach(clearFit);
+    cards.forEach(clear);
 
-    // First keep every card at its natural readable size.
-    // Only compact if the tallest populated card would reach the lower strip.
-    const lowerTop=lowerStripTop(root);
-    if(lowerTop==null)return;
+    /* Important: measure against the approved lower strip, but NEVER move it. */
+    const notes=root.querySelector('#sheet-notes');
+    const formations=root.querySelector('#formations');
+    const tops=[notes,formations]
+      .filter(Boolean)
+      .map(el=>el.getBoundingClientRect().top)
+      .filter(Number.isFinite);
+    if(!tops.length)return;
 
-    const gridTop=grid.getBoundingClientRect().top;
-    const safeBottom=lowerTop-18;
-    const available=Math.max(120,safeBottom-gridTop);
+    const available=Math.max(
+      140,
+      Math.min(...tops)-grid.getBoundingClientRect().top-20
+    );
 
-    for(let level=0; level<LEVELS.length; level++){
+    for(let i=0;i<LEVELS.length;i++){
       const tallest=Math.max(...cards.map(c=>c.getBoundingClientRect().height));
       if(tallest<=available+0.5)break;
-      cards.forEach(c=>c.classList.add(LEVELS[level]));
+      cards.forEach(c=>c.classList.add(LEVELS[i]));
     }
 
-    // Preserve existing per-name / rally-pair fitting after global spacing fit.
     if(window.nexaFitLayoutNames) window.nexaFitLayoutNames(root);
     if(window.nexaFitRallyPairs) window.nexaFitRallyPairs(root);
   }
 
-  window.nexaFitTeamTables=fitTeamTables;
-
-  function schedule(root=document){
-    requestAnimationFrame(()=>requestAnimationFrame(()=>fitTeamTables(root)));
-  }
+  window.nexaFitTeamTables=fit;
+  const schedule=(root=document)=>requestAnimationFrame(()=>requestAnimationFrame(()=>fit(root)));
 
   if(document.readyState==='loading'){
     document.addEventListener('DOMContentLoaded',()=>schedule(document));
-  }else{
-    schedule(document);
-  }
+  } else schedule(document);
+
   window.addEventListener('load',()=>schedule(document));
   window.addEventListener('resize',()=>schedule(document));
 
-  const observe=()=>{
-    const grid=document.getElementById('teams-grid');
-    if(grid){
-      new MutationObserver(()=>schedule(document))
-        .observe(grid,{childList:true,subtree:true,characterData:true});
-    }
-    const formations=document.getElementById('formations');
-    if(formations){
-      new MutationObserver(()=>schedule(document))
-        .observe(formations,{childList:true,subtree:true,characterData:true,attributes:true});
-    }
-  };
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',observe);
-  else observe();
+  const grid=document.getElementById('teams-grid');
+  if(grid){
+    new MutationObserver(()=>schedule(document))
+      .observe(grid,{childList:true,subtree:true,characterData:true});
+  }
 })();
 </script>

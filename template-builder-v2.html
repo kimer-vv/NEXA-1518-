@@ -1802,6 +1802,58 @@ body:after{height:280px!important}
 .preview-wrap{margin-bottom:150px!important}
 </style>
 
+
+<style id="nexa-template-v9-layout">
+/* Formations always live BELOW the team row. */
+.sheet.layout-side,
+.sheet.layout-bottom{
+  display:block!important;
+}
+.sheet.layout-side #teams-grid,
+.sheet.layout-bottom #teams-grid{
+  width:100%!important;
+}
+.sheet.layout-side #formations,
+.sheet.layout-bottom #formations{
+  width:100%!important;
+  margin-top:16px!important;
+}
+
+/* Cleaner spacing between the two formation groups */
+.formations-title{
+  margin-bottom:10px!important;
+}
+.formations-grid,
+.formations-body{
+  gap:16px!important;
+}
+.formation-group{
+  padding-top:7px!important;
+}
+.formation-group + .formation-group{
+  margin-left:10px!important;
+}
+
+/* Notes must be the last visible block and have room */
+.sheet-notes{
+  display:block;
+  clear:both!important;
+  width:100%!important;
+  margin-top:18px!important;
+  min-height:62px!important;
+  padding:8px 10px!important;
+  box-sizing:border-box!important;
+}
+.sheet-notes.hidden{display:none!important}
+
+/* Remove UTC footer completely */
+.sheet-utc{display:none!important}
+
+/* Keep mobile preview scrollable with enough space below */
+.preview-wrap{margin-bottom:180px!important}
+body:after{height:320px!important}
+</style>
+
 </head>
 <body data-builder-rev="20260816-menu-restored">
 <main class="shell">
@@ -1859,7 +1911,7 @@ body:after{height:280px!important}
       <div id="teams-grid" class="teams-grid"></div>
       <div id="formations" class="formations"></div>
       <div id="sheet-notes" class="sheet-notes hidden"><b>NOTES</b><span id="sheet-notes-text"></span></div>
-      <div class="sheet-utc">◷ &nbsp; All times in UTC</div>
+      
     </div>
       </div>
     </div>
@@ -2136,7 +2188,7 @@ function renderFormations(rows){
   };
 
   box.innerHTML=`
-    <div class="formations-heading">GLOBAL FORMATIONS</div>
+    <div class="formations-heading">FORMATIONS</div>
     <div class="formation-groups">
       ${group(joiner,'joiner')}
       ${group(rally,'rally')}
@@ -2729,6 +2781,27 @@ window.addEventListener('DOMContentLoaded',()=>{
     syncBuilderText();
     setTimeout(syncBuilderText,120);
   });
+})();
+</script>
+
+
+<script id="nexa-template-v9-notes">
+(function(){
+  function forceNotes(){
+    const input=document.getElementById('layout-notes');
+    const box=document.getElementById('sheet-notes');
+    const text=document.getElementById('sheet-notes-text');
+    if(!input||!box||!text)return;
+    const v=(input.value||'').trim();
+    text.textContent=v;
+    box.classList.toggle('hidden',!v);
+    if(v) box.style.display='block';
+    if(typeof window.fitInlineSheet==='function')window.fitInlineSheet();
+  }
+  document.getElementById('layout-notes')?.addEventListener('input',forceNotes);
+  document.getElementById('preview-layout')?.addEventListener('click',()=>setTimeout(forceNotes,0));
+  document.addEventListener('DOMContentLoaded',()=>{forceNotes();setTimeout(forceNotes,120)});
+  window.addEventListener('load',forceNotes);
 })();
 </script>
 

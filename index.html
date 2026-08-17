@@ -807,6 +807,37 @@ body.nexa-schedule-open{
 }
 </style>
 
+
+<style id="nexa-home-action-unify">
+#home-svs-section .btn,
+#home-transfers-section .btn,
+#home-svs-section a.btn,
+#home-transfers-section a.btn{
+  color:#168cff !important;
+  border-color:rgba(87,112,255,.72) !important;
+  background:linear-gradient(135deg,rgba(103,58,255,.20),rgba(0,174,255,.08)) !important;
+}
+</style>
+
+
+<style id="nexa-home-uniform-actions">
+#home-announcements-module .btn,
+#home-event-operations-module .btn,
+#home-svs-section .btn,
+#home-transfers-section .btn,
+#home-announcements-module button,
+#home-event-operations-module button{
+  color:#168cff !important;
+  border-color:rgba(87,112,255,.72) !important;
+  background:linear-gradient(135deg,rgba(103,58,255,.20),rgba(0,174,255,.08)) !important;
+}
+#home-transfers-section .event-actions{
+  display:flex !important;
+  gap:10px !important;
+  flex-wrap:wrap !important;
+}
+</style>
+
 </head>
 <body>
 <div class="nebula-bg" aria-hidden="true"></div>
@@ -874,13 +905,13 @@ body.nexa-schedule-open{
       <article class="event">
         <div class="event-row">
           <div>
-            <span class="badge">Module</span>
+            
             <h3>Announcements</h3>
             <div class="muted">View and manage state announcements.</div>
           </div>
         </div>
         <div class="event-actions">
-          <button id="home-open-announcements" class="btn" type="button">Open Announcements →</button>
+          <button id="home-open-announcements" class="btn" type="button">Open</button>
         </div>
       </article>
     </div>
@@ -895,13 +926,13 @@ body.nexa-schedule-open{
       <article class="event">
         <div class="event-row">
           <div>
-            <span class="badge">Module</span>
+            
             <h3>Event Operations</h3>
             <div class="muted">Forms, event types, responses and team organization.</div>
           </div>
         </div>
         <div class="event-actions">
-          <button id="home-open-event-operations" class="btn" type="button">Open Event Operations →</button>
+          <button id="home-open-event-operations" class="btn" type="button">Open</button>
         </div>
       </article>
     </div>
@@ -917,7 +948,7 @@ body.nexa-schedule-open{
       <article class="event">
         <div class="event-row">
           <div>
-            <span class="badge">Live</span>
+            
             <h3 id="home-event-title">SvS against XXXX</h3>
             <div id="home-event-meta" class="muted">Prep & Battle Phase</div>
           </div>
@@ -927,7 +958,7 @@ body.nexa-schedule-open{
           </div>
         </div>
         <div class="event-actions">
-          <a class="btn" href="event.html">View Event →</a>
+          <a class="btn" href="event.html">Open</a>
         </div>
       </article>
     </div>
@@ -1924,6 +1955,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     if(!res.ok){host.innerHTML=`<div class="form-message">Could not open ${file}.</div>`;return;}
     const html=await res.text();
     const parsed=new DOMParser().parseFromString(html,'text/html');
+    if(pageKey==='layout-management'){
+      parsed.querySelectorAll('a[href*="admin"], .back, .back-btn, .layout-back, header').forEach(el=>{
+        const txt=(el.textContent||'').trim().toLowerCase();
+        if(el.tagName==='HEADER' || txt==='back' || txt.includes('← back')) el.remove();
+      });
+    }
 
     const clone=parsed.body.cloneNode(true);
     clone.querySelectorAll('script,header.topbar,.nebula-bg,.starfield').forEach(x=>x.remove());
@@ -3466,6 +3503,66 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
   window.addEventListener('load',syncNexaHomeShows);
   document.addEventListener('DOMContentLoaded',syncNexaHomeShows);
   window.syncNexaHomeShows=syncNexaHomeShows;
+})();
+</script>
+
+
+<script id="nexa-layout-management-embedded-fix">
+(function(){
+  document.addEventListener('click',function(ev){
+    const btn=ev.target.closest?.('#open-layout-management');
+    if(!btn)return;
+    ev.preventDefault();
+    ev.stopImmediatePropagation();
+    if(typeof window.loadNativeEventOpsView==='function'){
+      window.loadNativeEventOpsView('layout-management.html');
+    }
+  },true);
+})();
+</script>
+
+
+<script id="nexa-layout-embed-root-fix">
+(function(){
+  document.addEventListener('click', function(ev){
+    const btn = ev.target.closest?.('#open-layout-management');
+    if(!btn) return;
+    ev.preventDefault();
+    ev.stopImmediatePropagation();
+
+    if(typeof window.loadNativeEventOpsView === 'function'){
+      window.loadNativeEventOpsView('layout-management.html');
+    }
+  }, true);
+})();
+</script>
+
+
+<script id="nexa-home-show-hard-sync">
+(function(){
+  function sync(){
+    const ann=localStorage.getItem('nexa_preview_show_announcements')==='1';
+    const eo=localStorage.getItem('nexa_preview_show_eo')==='1';
+    const a=document.getElementById('home-announcements-module');
+    const e=document.getElementById('home-event-operations-module');
+    if(a){ a.classList.toggle('hidden',!ann); a.style.display=ann?'':'none'; }
+    if(e){ e.classList.toggle('hidden',!eo); e.style.display=eo?'':'none'; }
+    const ab=document.getElementById('preview-show-announcements');
+    const eb=document.getElementById('preview-show-eo');
+    if(ab) ab.checked=ann;
+    if(eb) eb.checked=eo;
+  }
+  document.addEventListener('change',e=>{
+    if(e.target?.id==='preview-show-announcements'){
+      localStorage.setItem('nexa_preview_show_announcements',e.target.checked?'1':'0'); sync();
+    }
+    if(e.target?.id==='preview-show-eo'){
+      localStorage.setItem('nexa_preview_show_eo',e.target.checked?'1':'0'); sync();
+    }
+  }, true);
+  window.addEventListener('pageshow',sync);
+  window.addEventListener('load',sync);
+  document.addEventListener('DOMContentLoaded',sync);
 })();
 </script>
 

@@ -3088,6 +3088,7 @@ function cloneLayoutSheet(){
   const source=$('sheet');
   const clone=source.cloneNode(true);
   clone.id='sheet-preview-clone';
+  clone.classList.add('nexa-render-sheet');
   clone.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));
   return clone;
 }
@@ -3190,6 +3191,7 @@ async function renderLayoutCanvas(){
   exportHost.style.cssText='position:fixed;left:-20000px;top:0;z-index:-1;background:#fff;';
   const exportSheet=source.cloneNode(true);
   exportSheet.removeAttribute('id');
+  exportSheet.classList.add('nexa-render-sheet');
   exportSheet.style.transform='none';
   exportSheet.style.zoom='1';
   exportSheet.style.position='relative';
@@ -5450,4 +5452,197 @@ window.addEventListener('DOMContentLoaded',()=>{
 #sheet .sheet-notes{height:104px!important;min-height:104px!important}
 #sheet #formations{min-height:104px!important}
 #sheet .sheet-utc,#sheet .sheet-utc-note{margin:6px auto 0!important}
+</style>
+
+
+<style id="nexa-v24-root-parity-final">
+/* V24 ROOT FIX:
+   Live sheet, Preview clone and Download clone now use the SAME geometry. */
+
+:is(#sheet,.nexa-render-sheet).sheet{
+  display:grid!important;
+  grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr)!important;
+  grid-template-rows:auto auto minmax(0,1fr) auto auto!important;
+  grid-template-areas:
+    "header header"
+    "teams teams"
+    ". ."
+    "notes formations"
+    "utc utc"!important;
+  column-gap:14px!important;
+  row-gap:10px!important;
+  min-height:900px!important;
+}
+
+/* Teams lower in BOTH system and download. */
+:is(#sheet,.nexa-render-sheet) #teams-grid{
+  margin-top:96px!important;
+  margin-bottom:0!important;
+}
+
+/* Important slightly left of the prior position, visually centered. */
+:is(#sheet,.nexa-render-sheet) .sheet-top-right .sheet-important{
+  left:43.5%!important;
+  top:8px!important;
+  transform:translateX(-50%)!important;
+  width:320px!important;
+  max-width:320px!important;
+}
+:is(#sheet,.nexa-render-sheet) .sheet-important b,
+:is(#sheet,.nexa-render-sheet) #sheet-important-text{
+  font-size:15px!important;
+  line-height:1.15!important;
+}
+
+/* Legend uses the same readable text scale as Important; icons larger. */
+:is(#sheet,.nexa-render-sheet) .sheet-top-right .sheet-legend{
+  right:0!important;
+  top:8px!important;
+  width:325px!important;
+  max-width:325px!important;
+  padding:14px 16px!important;
+  gap:9px!important;
+  font-size:15px!important;
+  line-height:1.15!important;
+}
+:is(#sheet,.nexa-render-sheet) .sheet-legend small,
+:is(#sheet,.nexa-render-sheet) .sheet-legend span:not(.legend-icon){
+  font-size:15px!important;
+  line-height:1.15!important;
+}
+:is(#sheet,.nexa-render-sheet) .sheet-legend>div{
+  grid-template-columns:40px minmax(0,1fr)!important;
+  gap:10px!important;
+  min-height:40px!important;
+  align-items:center!important;
+}
+:is(#sheet,.nexa-render-sheet) .sheet-legend .legend-icon{
+  width:36px!important;
+  height:36px!important;
+  min-width:36px!important;
+  font-size:31px!important;
+}
+:is(#sheet,.nexa-render-sheet) .sheet-legend .joiner-person-svg{
+  width:31px!important;
+  height:31px!important;
+}
+:is(#sheet,.nexa-render-sheet) .sheet-legend .pet-icon{font-size:31px!important}
+
+/* Unified readable type size for table content. */
+:is(#sheet,.nexa-render-sheet) .team-title,
+:is(#sheet,.nexa-render-sheet) .team-section-title,
+:is(#sheet,.nexa-render-sheet) .column-labels,
+:is(#sheet,.nexa-render-sheet) .joiner-head,
+:is(#sheet,.nexa-render-sheet) .joiner-row,
+:is(#sheet,.nexa-render-sheet) .joiner-player span,
+:is(#sheet,.nexa-render-sheet) .joiner-name,
+:is(#sheet,.nexa-render-sheet) .hero-mini-name,
+:is(#sheet,.nexa-render-sheet) .rally-name,
+:is(#sheet,.nexa-render-sheet) .rally-time,
+:is(#sheet,.nexa-render-sheet) .formation-group-title,
+:is(#sheet,.nexa-render-sheet) .formation-title,
+:is(#sheet,.nexa-render-sheet) .formation-hero-name,
+:is(#sheet,.nexa-render-sheet) .formation-ratio,
+:is(#sheet,.nexa-render-sheet) .formations-heading{
+  font-size:15px!important;
+  line-height:1.12!important;
+}
+
+/* Rally name + time aligned on one line; pet gets its own space. */
+:is(#sheet,.nexa-render-sheet) .rally-entry{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 28px!important;
+  gap:5px!important;
+  align-items:center!important;
+}
+:is(#sheet,.nexa-render-sheet) .rally-name-line{
+  display:flex!important;
+  flex-flow:row nowrap!important;
+  align-items:center!important;
+  gap:6px!important;
+  min-height:22px!important;
+  white-space:nowrap!important;
+}
+:is(#sheet,.nexa-render-sheet) .rally-name{
+  flex:0 1 auto!important;
+  width:auto!important;
+  max-width:40%!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+:is(#sheet,.nexa-render-sheet) .rally-time{
+  flex:0 0 auto!important;
+  width:auto!important;
+  margin:0!important;
+  white-space:nowrap!important;
+}
+:is(#sheet,.nexa-render-sheet) .rally-pet{
+  width:28px!important;
+  min-width:28px!important;
+  max-width:28px!important;
+  font-size:21px!important;
+  line-height:1!important;
+  align-self:center!important;
+  justify-self:end!important;
+}
+
+/* Identification symbols slightly larger. */
+:is(#sheet,.nexa-render-sheet) .section-icon{font-size:21px!important;min-width:23px!important}
+:is(#sheet,.nexa-render-sheet) .section-icon .joiner-person-svg,
+:is(#sheet,.nexa-render-sheet) .joiners-heading .joiner-person-svg{
+  width:21px!important;
+  height:21px!important;
+}
+
+/* Notes remains the larger flexible block; Formations is the smaller standard block. */
+:is(#sheet,.nexa-render-sheet) .sheet-notes,
+:is(#sheet,.nexa-render-sheet) #formations{
+  align-self:end!important;
+  margin:0!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+}
+:is(#sheet,.nexa-render-sheet) .sheet-notes{
+  width:100%!important;
+  height:104px!important;
+  min-height:104px!important;
+}
+:is(#sheet,.nexa-render-sheet) #formations{
+  width:100%!important;
+  min-height:104px!important;
+}
+:is(#sheet,.nexa-render-sheet) .formation-groups{width:100%!important;gap:7px!important}
+:is(#sheet,.nexa-render-sheet) .formations-heading{color:var(--team-head)!important}
+
+/* Low centered UTC footer. */
+:is(#sheet,.nexa-render-sheet) .sheet-utc,
+:is(#sheet,.nexa-render-sheet) .sheet-utc-note{
+  margin:6px auto 0!important;
+  justify-self:center!important;
+  align-self:end!important;
+  text-align:center!important;
+}
+</style>
+
+<style id="nexa-v25-rally-baseline-final">
+/* V25 — keep the V24 parity/layout fixes and lift the Rally Leader name
+   so the player name, UTC time and pet read on one clean baseline. */
+:is(#sheet,.nexa-render-sheet) .rally-name-line{
+  align-items:center!important;
+}
+:is(#sheet,.nexa-render-sheet) .rally-name-line .rally-name{
+  position:relative!important;
+  top:-1.5px!important;
+  line-height:1!important;
+}
+:is(#sheet,.nexa-render-sheet) .rally-name-line .rally-time{
+  position:relative!important;
+  top:0!important;
+  line-height:1!important;
+}
+:is(#sheet,.nexa-render-sheet) .rally-pet{
+  position:relative!important;
+  top:-1px!important;
+}
 </style>

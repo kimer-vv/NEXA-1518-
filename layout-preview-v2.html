@@ -2333,8 +2333,8 @@ function heroMarkup(value,formation=false){
 function petWindowText(w){
   const start=String(w?.start_utc||'').trim();
   const end=String(w?.end_utc||'').trim();
-  if(start&&end)return `${start}–${end} UTC`;
-  if(start)return `${start} UTC`;
+  if(start&&end)return `${start}–${end}`;
+  if(start)return `${start}`;
   return '';
 }
 function renderTeams(teams,members){
@@ -2358,7 +2358,7 @@ function renderTeams(teams,members){
       const scheduleStart=(m.schedule_start_utc??'');
       const scheduleEnd=(m.schedule_end_utc??'');
       const rallySchedule=(scheduleStart!=='' && scheduleEnd!=='')
-        ? `${String(scheduleStart).padStart(2,'0')}:00–${String(scheduleEnd).padStart(2,'0')}:00 UTC`
+        ? `${String(scheduleStart).padStart(2,'0')}:00–${String(scheduleEnd).padStart(2,'0')}:00`
         : '';
       const fallbackPetSchedule=String(m.pet_schedule||'').trim();
       const timeText=rallySchedule||fallbackPetSchedule;
@@ -2368,9 +2368,9 @@ function renderTeams(teams,members){
         <div class="rally-info">
           <div class="rally-name-line">
             <span class="rally-name">${esc(displayName(m.player_name)||'—')}</span>
-            ${timeText?`<span class="rally-time">⏱ ${esc(timeText)}</span>`:''}
+            ${timeText?`<span class="rally-time">${esc(timeText)}</span>`:''}
           </div>
-          ${petTimes.length?`<div class="rally-pet-times">🐾 ${esc(petTimes.join(', '))}</div>`:''}
+          ${petTimes.length?`<div class="rally-pet-times">${esc(petTimes.join(', '))}</div>`:''}
         </div>
         <div class="rally-pet ${hasPet?'':'empty'}" title="Pet Active">🐾</div>
       </div>`;
@@ -4601,3 +4601,53 @@ window.addEventListener('DOMContentLoaded',()=>{
  };
 })();
 </script>
+\n<style id="nexa-v16-final-polish">
+/* V16 — stable six-column master + refined readable hierarchy */
+#sheet{grid-template-columns:minmax(0,1.72fr) minmax(370px,1.08fr)!important;grid-template-areas:"header header" "teams teams" "notes formations" "utc utc"!important;column-gap:10px!important;row-gap:8px!important}
+#teams-grid,.teams-grid{grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:6px!important}
+.team-card{overflow:hidden!important;min-width:0!important}
+/* Rally leader: compact name + time, dedicated pet column */
+.team-card .rally-entry{display:grid!important;grid-template-columns:minmax(0,1fr) 18px!important;gap:3px!important;align-items:center!important;padding:5px 5px!important;min-height:38px!important;overflow:hidden!important}
+.team-card .rally-info{min-width:0!important;overflow:hidden!important}
+.team-card .rally-name-line{display:block!important;min-width:0!important;overflow:hidden!important}
+.team-card .rally-name{display:block!important;font-size:7px!important;line-height:1.08!important;font-weight:850!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.team-card .rally-time{display:block!important;margin-top:2px!important;font-size:6px!important;line-height:1!important;font-weight:750!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.team-card .rally-pet-times{font-size:5.2px!important;line-height:1!important;margin-top:2px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;color:var(--sheet-muted)!important}
+.team-card .rally-pet{display:flex!important;align-items:center!important;justify-content:center!important;width:18px!important;min-width:18px!important;height:22px!important;font-size:12px!important;line-height:1!important;overflow:visible!important}
+/* Joiner names match the useful hero-name reading size. */
+.team-card .joiner-player,.team-card .joiner-player span{font-size:7px!important;line-height:1.05!important;font-weight:800!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.team-card .hero-mini-name{font-size:7px!important;line-height:1.05!important}
+/* Important: centered, larger, but still elegant. */
+.sheet-header{position:relative!important}
+.sheet-top-right{display:grid!important;grid-template-columns:minmax(260px,1fr) minmax(245px,.82fr)!important;align-items:start!important;gap:18px!important;width:min(690px,64%)!important}
+.sheet-important{justify-self:center!important;width:100%!important;max-width:330px!important;text-align:center!important;padding:9px 12px!important}
+.sheet-important b,.sheet-important .important-title,.important-title{font-size:15px!important;line-height:1.1!important}
+.sheet-important span,.sheet-important .important-text,.important-text{font-size:13.5px!important;line-height:1.25!important}
+/* Legend: slightly larger type and icons. */
+.sheet-legend{font-size:13px!important;line-height:1.25!important;padding:8px 10px!important;min-width:245px!important}
+.sheet-legend>div{grid-template-columns:23px minmax(0,1fr)!important;gap:7px!important;min-height:24px!important}
+.sheet-legend .legend-icon{width:21px!important;height:21px!important;min-width:21px!important;font-size:21px!important;display:flex!important;align-items:center!important;justify-content:center!important}
+.sheet-legend .joiner-person-svg{width:20px!important;height:20px!important}
+.sheet-legend span,.sheet-legend small{font-size:12px!important;line-height:1.15!important}
+/* Bottom balance: Notes shorter, Formations wider. */
+.sheet-notes,.notes-box{min-height:100px!important;height:100px!important;padding:8px 10px!important;font-size:11px!important;overflow:hidden!important}
+.sheet-notes b,.notes-title{font-size:10px!important;margin-bottom:4px!important}
+.sheet-notes span,.notes-text{font-size:11px!important;line-height:1.25!important}
+#formations,.formations{min-height:100px!important;width:100%!important;overflow:visible!important}
+.formations-heading{font-size:13px!important;margin-bottom:5px!important}
+.formation-groups{gap:7px!important;grid-template-columns:1fr 1fr!important}
+.formation-group{padding:6px!important;min-width:0!important}
+.formation-group-title{font-size:8px!important;margin-bottom:4px!important}
+.formation-card{padding:5px 6px!important;min-height:50px!important;overflow:hidden!important}
+.formation-title{font-size:8px!important;white-space:nowrap!important}
+.formation-ratio{font-size:10px!important;white-space:nowrap!important;overflow:visible!important}
+/* Single clean UTC notice instead of repeating UTC in every rally row. */
+.sheet-utc-v16{grid-area:utc!important;text-align:center!important;font-size:8px!important;font-weight:850!important;letter-spacing:.12em!important;color:var(--sheet-muted)!important;padding-top:1px!important}
+</style>
+<script id="nexa-v16-utc-footer">
+(function(){
+ function ensureUtc(){const sheet=document.getElementById('sheet');if(!sheet)return;let el=document.getElementById('sheet-utc-v16');if(!el){el=document.createElement('div');el.id='sheet-utc-v16';el.className='sheet-utc-v16';el.textContent='ALL TIMES ARE IN UTC';sheet.appendChild(el);}}
+ ensureUtc();document.addEventListener('DOMContentLoaded',ensureUtc);setTimeout(ensureUtc,150);
+ const mo=new MutationObserver(ensureUtc);const root=document.getElementById('sheet');if(root)mo.observe(root,{childList:true});
+})();
+</script>\n

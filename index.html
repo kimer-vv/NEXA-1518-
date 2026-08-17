@@ -1960,6 +1960,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         const txt=(el.textContent||'').trim().toLowerCase();
         if(el.tagName==='HEADER' || txt==='back' || txt.includes('← back')) el.remove();
       });
+      // The outer NEXA module shell already renders the Layout Management title/subtitle.
+      // Remove the standalone page heading so it never appears twice.
+      parsed.querySelectorAll('.top').forEach(el=>el.remove());
+      [...parsed.querySelectorAll('h1,h2')].forEach(el=>{
+        if((el.textContent||'').trim()==='Layout Management'){
+          const wrap=el.closest('.title');
+          if(wrap) wrap.remove();
+          else el.remove();
+        }
+      });
     }
 
     const clone=parsed.body.cloneNode(true);
@@ -2008,6 +2018,36 @@ document.addEventListener('DOMContentLoaded', async () => {
         .filter(code=>!(code.includes("classList.add('embed-mode')") && code.length<700));
       const combined=scriptParts.join('\n;\n');
       if(combined.trim()) (new Function(combined))();
+
+      // Layout Management safety layer:
+      // use the same authenticated Supabase client/query already proven elsewhere in NEXA.
+      if(pageKey==='layout-management'){
+        try{
+          const sel=host.querySelector('#alliance');
+          const status=host.querySelector('#status');
+          if(sel){
+            sel.innerHTML='<option value="">Select alliance…</option>';
+            const {data:allianceRows,error:allianceError}=await supabaseClient
+              .from('alliances')
+              .select('id,tag')
+              .eq('is_active',true)
+              .order('tag');
+            if(allianceError){
+              if(status) status.textContent='Could not load alliances: '+allianceError.message;
+            }else{
+              (allianceRows||[]).forEach(a=>{
+                const opt=document.createElement('option');
+                opt.value=String(a.id);
+                opt.textContent=a.tag;
+                sel.appendChild(opt);
+              });
+              if(!(allianceRows||[]).length && status) status.textContent='No active alliances found.';
+            }
+          }
+        }catch(layoutErr){
+          console.error('Layout alliance load error:',layoutErr);
+        }
+      }
     }catch(err){
       console.error('NEXA native workspace error:',err);
       const msg=document.createElement('div');

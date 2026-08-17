@@ -2147,6 +2147,145 @@ body:after{height:340px!important}
 }
 </style>
 
+
+<style id="nexa-v17-download-preview-fix">
+/* V17 — downloaded sheet matches the live sheet proportions */
+.sheet{
+  grid-template-columns:minmax(0,1.08fr) minmax(0,1.62fr)!important;
+  grid-template-areas:
+    "header header"
+    "teams teams"
+    "notes formations"
+    "utc utc"!important;
+  column-gap:12px!important;
+  row-gap:10px!important;
+}
+.sheet-header{grid-area:header!important}
+#teams-grid{grid-area:teams!important}
+.sheet-notes{grid-area:notes!important}
+#formations{grid-area:formations!important}
+.sheet-utc{
+  grid-area:utc!important;
+  text-align:center!important;
+  justify-self:center!important;
+  width:auto!important;
+  margin:10px auto 0!important;
+}
+
+/* Preserve the comfortable vertical spacing seen in the live system sheet. */
+#teams-grid{margin-top:18px!important}
+.sheet-notes,#formations{margin-top:18px!important}
+
+/* Important slightly more centered; legend pushed to the far edge. */
+.sheet-top-right{
+  position:absolute!important;
+  inset:0!important;
+  display:block!important;
+  max-width:none!important;
+  pointer-events:none!important;
+}
+.sheet-top-right .sheet-important{
+  position:absolute!important;
+  top:8px!important;
+  left:50%!important;
+  right:auto!important;
+  transform:translateX(-50%)!important;
+  width:300px!important;
+  max-width:300px!important;
+  padding:9px 11px!important;
+  font-size:12px!important;
+  line-height:1.2!important;
+  pointer-events:auto!important;
+}
+.sheet-important b{font-size:12px!important}
+#sheet-important-text{font-size:12px!important}
+
+.sheet-top-right .sheet-legend{
+  position:absolute!important;
+  top:8px!important;
+  right:0!important;
+  left:auto!important;
+  width:265px!important;
+  max-width:265px!important;
+  padding:9px 11px!important;
+  gap:6px!important;
+  font-size:12px!important;
+  line-height:1.1!important;
+  pointer-events:auto!important;
+}
+.sheet-legend>div{
+  grid-template-columns:24px minmax(0,1fr)!important;
+  gap:7px!important;
+}
+.sheet-legend .legend-icon{
+  width:22px!important;height:22px!important;min-width:22px!important;
+  font-size:18px!important;
+}
+.sheet-legend .joiner-person-svg{width:18px!important;height:18px!important}
+.sheet-legend .pet-icon{font-size:18px!important}
+.sheet-legend small{font-size:9px!important}
+
+/* Team text uses the legend as its readability reference. */
+.team-title{font-size:17px!important}
+.team-section-title{font-size:12px!important}
+.player-row,
+.player-row *{
+  font-size:11.5px!important;
+}
+.player-name{font-size:12px!important}
+.rally-time{
+  display:inline!important;
+  font-size:11.5px!important;
+  white-space:nowrap!important;
+}
+.rally-name-line{
+  display:flex!important;
+  align-items:center!important;
+  gap:6px!important;
+  min-width:0!important;
+  white-space:nowrap!important;
+}
+.joiner-head,.joiner-cell,.joiner-name{font-size:11.5px!important}
+
+/* Give formations its intended share instead of squeezing it. */
+#formations{
+  min-width:0!important;
+  width:100%!important;
+}
+.formations{
+  width:100%!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:8px!important;
+}
+.formation-group{min-width:0!important}
+.formation-card{min-width:0!important;padding:7px!important}
+.formation-title{
+  font-size:11px!important;
+  white-space:nowrap!important;
+}
+.formation-heroes{font-size:10px!important}
+.formation-ratio{
+  font-size:13px!important;
+  white-space:nowrap!important;
+  overflow:visible!important;
+}
+
+/* Notes yields width to formations but stays clean/readable. */
+.sheet-notes{
+  min-width:0!important;
+  font-size:10px!important;
+  min-height:76px!important;
+}
+.sheet-notes b{font-size:9px!important}
+
+/* Six team slots remain a single horizontal row. */
+.teams-grid,.teams-grid.count-1,.teams-grid.count-2,.teams-grid.count-3,
+.teams-grid.count-4,.teams-grid.count-5,.teams-grid.count-6{
+  grid-template-columns:repeat(6,minmax(0,1fr))!important;
+  gap:7px!important;
+}
+</style>
+
 </head>
 <body data-builder-rev="20260817-identity-cache-v4">
 <main class="shell">
@@ -2832,7 +2971,7 @@ async function renderLayoutCanvas(){
 
   const exportHost=document.createElement('div');
   exportHost.dataset.nexaExportHost='1';
-  exportHost.style.cssText='position:fixed;left:-20000px;top:0;width:1400px;z-index:-1;background:#fff;';
+  exportHost.style.cssText='position:fixed;left:-20000px;top:0;z-index:-1;background:#fff;';
   const exportSheet=source.cloneNode(true);
   exportSheet.removeAttribute('id');
   exportSheet.style.transform='none';
@@ -2841,6 +2980,8 @@ async function renderLayoutCanvas(){
   exportSheet.style.left='0';
   exportSheet.style.top='0';
   exportSheet.style.margin='0';
+  exportHost.style.width=Math.ceil(source.scrollWidth||source.offsetWidth||1400)+'px';
+  exportSheet.style.width=Math.ceil(source.scrollWidth||source.offsetWidth||1400)+'px';
 
   const exportStyle=getComputedStyle(source);
   ['--sheet-bg','--sheet-text','--sheet-muted','--team-head','--section-bg','--pet',

@@ -1,8 +1,7 @@
 Replace template-builder-v2.html only.
 
-V6 rebuilds only the inline preview container:
-- removes the blank white preview block problem
-- keeps the actual sheet at the top-left of the preview
-- scales the complete sheet to the available mobile width
-- preserves V4 Notes sizing
-- preserves 1–3 teams with formations beside / 4–6 teams in one row with formations below
+Fixes:
+- Rally Leader schedule/time is shown under each Rally Leader name.
+- Pet window times are kept separately instead of replacing the rally time.
+- Adds substantial bottom scroll space on mobile so the full preview can be viewed above Safari's bottom bar.
+- Keeps the V6 full-sheet preview behavior.

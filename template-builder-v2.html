@@ -1672,6 +1672,13 @@ body.nexa-layout-preview-open{
 .sheet.layout-bottom #formations{margin-top:8px!important}
 </style>
 
+
+<style id="nexa-template-v7-rally-time">
+.rally-time{display:block!important;font-size:7px!important;font-weight:800!important;line-height:1.15!important}
+.rally-pet-times{display:block!important;font-size:6px!important;line-height:1.15!important;color:#596579!important}
+html,body{min-height:100%!important}
+body:after{content:"";display:block;height:220px;width:100%}
+</style>
 </head>
 <body data-builder-rev="20260816-menu-restored">
 <main class="shell">
@@ -1879,14 +1886,16 @@ function renderTeams(teams,members){
     const rallyHtml=rally.length?rally.map(m=>{
       const windows=Array.isArray(m.pet_windows)?m.pet_windows:[];
       const petTimes=windows.map(petWindowText).filter(Boolean);
-      const fallbackSchedule=String(m.pet_schedule||m.schedule||'').trim();
-      const timeText=petTimes.length?petTimes.join(', '):fallbackSchedule;
+      const rallySchedule=String(m.rally_time||m.rally_schedule||m.schedule||m.time||m.start_time||'').trim();
+      const fallbackPetSchedule=String(m.pet_schedule||'').trim();
+      const timeText=rallySchedule||fallbackPetSchedule;
       const hasPet=petTimes.length>0||m.pets_active===true||m.pet_active===true;
 
       return `<div class="rally-entry">
         <div class="rally-info">
           <div class="rally-name">${esc(displayName(m.player_name)||'—')}</div>
-          ${timeText?`<div class="rally-time">${esc(timeText)}</div>`:''}
+          ${timeText?`<div class="rally-time">⏱ ${esc(timeText)}</div>`:''}
+          ${petTimes.length?`<div class="rally-pet-times">🐾 ${esc(petTimes.join(', '))}</div>`:''}
         </div>
         <div class="rally-pet ${hasPet?'':'empty'}" title="Pet Active">🐾</div>
       </div>`;

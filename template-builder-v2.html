@@ -1511,22 +1511,6 @@ body.nexa-layout-preview-open{
 }
 
 
-/* NEXA builder preview correction — controls/menu intentionally untouched */
-#sheet.sheet{
-  width:1400px!important;
-  min-width:1400px!important;
-  max-width:1400px!important;
-  box-sizing:border-box!important;
-}
-.sheet-inline-holder{
-  width:100%!important;
-  overflow:hidden!important;
-}
-.sheet-inline-holder>#sheet{
-  transform-origin:top left!important;
-}
-
-
 /* Mobile builder preview: show the complete sheet directly under the controls */
 #sheet-inline-holder{
   width:100%!important;
@@ -1549,6 +1533,28 @@ body.nexa-layout-preview-open{
 .sheet .tips .box-title::before{content:"ⓘ ";font-weight:900}
 .sheet .tips .box-title{font-size:12px!important}
 .sheet .legend{right:10px!important;width:235px!important}
+
+
+/* ROOT FIX: inline preview always shows the COMPLETE sheet */
+#sheet-inline-holder{
+  position:relative!important;
+  width:100%!important;
+  max-width:100%!important;
+  overflow:hidden!important;
+  padding:0!important;
+}
+#sheet-inline-holder #sheet{
+  width:1400px!important;
+  min-width:1400px!important;
+  max-width:1400px!important;
+  margin:0!important;
+  transform-origin:0 0!important;
+}
+
+
+/* Alliance branding is now controlled by Layout Management */
+#branding-card,#style-card,.branding-card,.style-card,
+[data-section="branding"],[data-section="style"]{display:none!important}
 
 </style>
 </head>
@@ -2302,6 +2308,77 @@ window.addEventListener('DOMContentLoaded',()=>{
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initImportant);
  else initImportant();
+})();
+</script>
+
+
+<script>
+(function(){
+ function forceFit(){
+   const holder=document.getElementById('sheet-inline-holder');
+   const sheet=document.getElementById('sheet');
+   if(!holder||!sheet)return;
+   // reset before measuring
+   sheet.style.zoom='1';
+   sheet.style.transform='none';
+   holder.style.height='auto';
+   const sheetW=1400;
+   const available=Math.max(1,holder.getBoundingClientRect().width);
+   const scale=Math.min(1,available/sheetW);
+   const naturalH=Math.max(sheet.scrollHeight,sheet.offsetHeight);
+   sheet.style.transformOrigin='0 0';
+   sheet.style.transform=`scale(${scale})`;
+   holder.style.height=Math.ceil(naturalH*scale)+'px';
+ }
+ window.fitInlineSheet=forceFit;
+ window.addEventListener('resize',forceFit);
+ window.addEventListener('orientationchange',()=>setTimeout(forceFit,100));
+ window.addEventListener('load',()=>setTimeout(forceFit,50));
+ const oldRender=window.renderSheet;
+ if(typeof oldRender==='function'){
+   window.renderSheet=function(){
+     const r=oldRender.apply(this,arguments);
+     requestAnimationFrame(()=>{forceFit();setTimeout(forceFit,60)});
+     return r;
+   };
+ }
+ document.addEventListener('DOMContentLoaded',()=>{
+   const preview=document.getElementById('preview-layout');
+   if(preview){
+     preview.onclick=()=>{
+       if(typeof window.renderSheet==='function')window.renderSheet();
+       requestAnimationFrame(()=>{
+         forceFit();
+         document.getElementById('sheet-inline-holder')?.scrollIntoView({behavior:'smooth',block:'start'});
+       });
+     };
+   }
+   requestAnimationFrame(()=>{forceFit();setTimeout(forceFit,100)});
+ });
+})();
+</script>
+
+
+<script>
+(async function(){
+ const params=new URLSearchParams(location.search);
+ const aid=params.get('alliance_id');
+ if(!aid||!window.supabase)return;
+ const client=window.sb || window.supabaseClient;
+ if(!client||typeof client.from!=='function')return;
+ const {data}=await client.from('alliance_layout_settings').select('*').eq('alliance_id',String(aid)).maybeSingle();
+ if(!data)return;
+ const colors={forest_green:'#315f4b',ice_blue:'#5d88a8',royal_gold:'#a77a2b',ocean_teal:'#287b7b',soft_burgundy:'#884d5c',lavender:'#746b9d',slate_blue:'#536d96',sage:'#6f876b',dusty_rose:'#a66d78',steel:'#596579'};
+ const accent=colors[data.preset_key]||colors.forest_green;
+ const sheet=document.getElementById('sheet');
+ if(sheet){
+   sheet.style.setProperty('--team-head',accent);
+   sheet.style.setProperty('--accent',accent);
+ }
+ const img=document.getElementById('sheet-emblem');
+ if(img&&data.emblem_data_url){img.src=data.emblem_data_url;img.style.display='block'}
+ if(typeof window.renderSheet==='function')window.renderSheet();
+ if(typeof window.fitInlineSheet==='function')requestAnimationFrame(window.fitInlineSheet);
 })();
 </script>
 

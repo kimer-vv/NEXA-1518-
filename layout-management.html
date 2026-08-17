@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>NEXA • Layout Management</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#050816;--panel:#0b1020;--panel2:#11182b;--line:#26314d;--text:#f7f9ff;--muted:#9ca8c7;--blue:#4b78ff}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% -10%,#182b66 0,#080d1e 35%,#03050d 80%);color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}
+.wrap{max-width:1050px;margin:auto;padding:22px 16px 60px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px}.back{border:1px solid var(--line);background:#0a0f1e;color:#fff;border-radius:12px;padding:10px 14px;font-weight:800}.title h1{margin:0;font-size:26px}.title p{margin:5px 0 0;color:var(--muted);font-size:13px}
+.card{background:rgba(10,15,30,.92);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:16px}.card h2{font-size:17px;margin:0 0 14px}
+label{display:block;color:#cbd3e7;font-size:12px;font-weight:800;margin:12px 0 6px}select,input{width:100%;border:1px solid #35405d;background:#080d1a;color:#fff;border-radius:12px;padding:12px;font:inherit}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.presets{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.preset{border:2px solid transparent;border-radius:15px;background:#fff;color:#14213d;overflow:hidden;cursor:pointer;min-height:105px;position:relative}.preset.selected{border-color:#fff;box-shadow:0 0 0 3px var(--blue)}.swatch{height:38px;background:var(--accent)}.preset-body{padding:10px}.preset-name{font-weight:900;font-size:13px}.preset-sub{font-size:10px;color:#697386;margin-top:3px}
+.preview{background:#fff;color:#14213d;border-radius:15px;padding:15px}.preview-head{height:28px;border-radius:8px;background:var(--accent);margin-bottom:10px}.preview-row{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.mini{border:1px solid #d8deea;border-radius:7px;overflow:hidden}.mini b{display:block;background:var(--accent);color:#fff;padding:5px;text-align:center;font-size:8px}.mini div{height:32px;background:repeating-linear-gradient(#fff 0 9px,#e9edf5 10px)}
+.emblem-row{display:flex;align-items:center;gap:14px}.emblem-preview{width:74px;height:74px;border-radius:14px;border:1px dashed #44506d;display:flex;align-items:center;justify-content:center;overflow:hidden;color:var(--muted);font-size:10px;text-align:center}.emblem-preview img{width:100%;height:100%;object-fit:contain;background:#fff}
+.actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}.btn{border:1px solid #34405f;border-radius:12px;padding:11px 16px;background:#0b1122;color:#fff;font-weight:900}.btn.primary{background:var(--blue);border-color:var(--blue)}
+.status{font-size:12px;color:#aeb9d6;margin-top:10px}.hidden{display:none}
+@media(max-width:720px){.grid,.presets{grid-template-columns:1fr}.presets{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+ <div class="top"><button class="back" onclick="history.back()">← Back</button><div class="title"><h1>Layout Management</h1><p>Assign one NEXA layout identity to each alliance.</p></div></div>
+ <div class="card">
+  <h2>Alliance</h2>
+  <label>Alliance</label><select id="alliance"><option value="">Select alliance…</option></select>
+ </div>
+ <div class="card">
+  <h2>Layout Preset</h2>
+  <div id="presets" class="presets"></div>
+ </div>
+ <div class="card grid">
+  <div>
+   <h2>Alliance Emblem</h2>
+   <div class="emblem-row"><div id="emblemPreview" class="emblem-preview">No emblem</div><div style="flex:1"><label>Upload emblem</label><input id="emblem" type="file" accept="image/*"></div></div>
+  </div>
+  <div>
+   <h2>Preview</h2>
+   <div id="preview" class="preview"><div class="preview-head"></div><div class="preview-row"><div class="mini"><b>TEAM 1</b><div></div></div><div class="mini"><b>TEAM 2</b><div></div></div><div class="mini"><b>FORMATIONS</b><div></div></div></div></div>
+  </div>
+ </div>
+ <div class="card">
+  <div class="actions"><button id="save" class="btn primary">Save Alliance Layout</button></div>
+  <div id="status" class="status"></div>
+ </div>
+</div>
+<script>
+const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
+const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
+const sb=window.supabase.createClient(SB_URL,SB_KEY);
+const presets=[
+ {id:'forest_green',name:'Forest Green',accent:'#315f4b',sub:'Deep green / white'},
+ {id:'ice_blue',name:'Ice Blue',accent:'#5d88a8',sub:'Cool blue / white'},
+ {id:'royal_gold',name:'Royal Gold',accent:'#a77a2b',sub:'Warm gold / white'},
+ {id:'ocean_teal',name:'Ocean Teal',accent:'#287b7b',sub:'Teal / white'},
+ {id:'soft_burgundy',name:'Soft Burgundy',accent:'#884d5c',sub:'Wine / white'},
+ {id:'lavender',name:'Lavender',accent:'#746b9d',sub:'Muted violet / white'},
+ {id:'slate_blue',name:'Slate Blue',accent:'#536d96',sub:'Slate / white'},
+ {id:'sage',name:'Sage',accent:'#6f876b',sub:'Soft sage / white'},
+ {id:'dusty_rose',name:'Dusty Rose',accent:'#a66d78',sub:'Rose / white'},
+ {id:'steel',name:'Steel',accent:'#596579',sub:'Steel / white'}
+];
+let selected='forest_green',emblemData='';
+const $=id=>document.getElementById(id);
+function drawPresets(){
+ $('presets').innerHTML=presets.map(p=>`<div class="preset ${p.id===selected?'selected':''}" data-id="${p.id}" style="--accent:${p.accent}"><div class="swatch"></div><div class="preset-body"><div class="preset-name">${p.name}</div><div class="preset-sub">${p.sub}</div></div></div>`).join('');
+ document.querySelectorAll('.preset').forEach(el=>el.onclick=()=>{selected=el.dataset.id;drawPresets();applyPreview()});
+}
+function applyPreview(){const p=presets.find(x=>x.id===selected)||presets[0];$('preview').style.setProperty('--accent',p.accent)}
+async function loadAlliances(){
+ const {data,error}=await sb.from('alliances').select('*').order('name');
+ if(error){$('status').textContent='Could not load alliances: '+error.message;return}
+ (data||[]).forEach(a=>{const o=document.createElement('option');o.value=a.id;o.textContent=a.tag||a.name||a.id;$('alliance').appendChild(o)})
+}
+async function loadAssignment(){
+ const id=$('alliance').value;if(!id)return;
+ const {data}=await sb.from('alliance_layout_settings').select('*').eq('alliance_id',String(id)).maybeSingle();
+ if(data){selected=data.preset_key||'forest_green';emblemData=data.emblem_data_url||''}else{selected='forest_green';emblemData=''}
+ drawPresets();applyPreview();renderEmblem();
+}
+function renderEmblem(){$('emblemPreview').innerHTML=emblemData?`<img src="${emblemData}" alt="">`:'No emblem'}
+$('emblem').onchange=()=>{const f=$('emblem').files?.[0];if(!f)return;const r=new FileReader();r.onload=()=>{emblemData=r.result;renderEmblem()};r.readAsDataURL(f)}
+$('alliance').onchange=loadAssignment;
+$('save').onclick=async()=>{
+ const allianceId=$('alliance').value;if(!allianceId){$('status').textContent='Select an alliance first.';return}
+ $('status').textContent='Saving…';
+ const payload={alliance_id:String(allianceId),preset_key:selected,emblem_data_url:emblemData,updated_at:new Date().toISOString()};
+ const {error}=await sb.from('alliance_layout_settings').upsert(payload,{onConflict:'alliance_id'});
+ $('status').textContent=error?'Save failed: '+error.message:'Alliance layout saved.';
+};
+drawPresets();applyPreview();loadAlliances();
+</script>
+</body></html>

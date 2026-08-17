@@ -1,8 +1,14 @@
-Upload both HTML files to the GitHub root.
-- alliance-teams.html: replace current
-- template-builder-v2.html: replace current V2
+NEXA Layout Management module
 
-Adds an editable ⓘ Important / Special Instructions field to the Template Builder.
-Its text is saved locally and shown in the former TIPS box as IMPORTANT.
-Legend remains compact beside it; Notes remains below.
-No SQL changes.
+Upload the included HTML files to the GitHub root.
+Run layout-management.sql once in Supabase SQL Editor.
+
+What this adds:
+- Layout Management module
+- 10 clean white-sheet NEXA presets
+- one preset + emblem assignment per alliance
+- Template Builder automatically loads the alliance identity
+- builder branding/style controls are removed from the workflow
+- Important, Notes, Preview, Download and Save remain
+
+This is the first structural patch for the new per-alliance layout system.

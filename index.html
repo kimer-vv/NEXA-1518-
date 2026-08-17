@@ -1867,6 +1867,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       announcements:['Announcements','Create announcements and optionally provide translations for different languages.'],
       svs:['SvS','Set up SvS events, manage forms, schedules, assignments and event history.'],
       eventops:['Event Operations','Build reusable forms, manage event types, responses and team organization.'],
+      layout:['Layout Management','Assign one NEXA layout identity to each alliance.'],
       transfers:['Transfers','Manage transfer cycles, applications, recruiting alliances, rosters and waiting lists.']
     };
     if(!data[mode]){ head?.classList.add('hidden'); return; }
@@ -1907,7 +1908,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.NEXA_NATIVE_PARAMS=new URLSearchParams(url.search);
     window.NEXA_NATIVE_OPEN=(next)=>loadNativeEventOpsView(next);
 
-    setUnifiedModuleHeader('eventops');
+    setUnifiedModuleHeader(pageKey==='layout-management'?'layout':'eventops');
     modal?.classList.add('module-view','native-eventops-view');
     document.getElementById('admin-module-chooser')?.classList.add('hidden');
     document.getElementById('svs-admin-content')?.classList.remove('hidden');
@@ -2316,6 +2317,7 @@ document.getElementById('open-svs-admin')?.addEventListener('click',async()=>{
   document.getElementById('open-transfer-admin')?.addEventListener('click',()=>{
     showInternalModuleFrame('transfer-admin.html?embed=1','transfers');
   });
+  window.loadNativeEventOpsView=loadNativeEventOpsView;
   document.getElementById('open-event-operations')?.addEventListener('click',()=>{
     loadNativeEventOpsView('event-operations.html');
   });
@@ -3388,7 +3390,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
     if(!btn || btn.dataset.bound==='1') return;
     btn.dataset.bound='1';
     btn.addEventListener('click',()=>{
-      location.href='layout-management.html';
+      window.loadNativeEventOpsView?.('layout-management.html');
     });
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bindLayoutManagement);
@@ -3432,7 +3434,38 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
   const b=document.getElementById('open-layout-management');
   if(!b || b.dataset.cleanLayoutBound==='1') return;
   b.dataset.cleanLayoutBound='1';
-  b.addEventListener('click',()=>{ location.href='layout-management.html'; });
+  b.addEventListener('click',()=>{ window.loadNativeEventOpsView?.('layout-management.html'); });
+})();
+</script>
+
+
+<script>
+(function(){
+  function syncNexaHomeShows(){
+    const ann=localStorage.getItem('nexa_preview_show_announcements')==='1';
+    const eo=localStorage.getItem('nexa_preview_show_eo')==='1';
+    const a=document.getElementById('home-announcements-module');
+    const e=document.getElementById('home-event-operations-module');
+    if(a){a.classList.remove('hidden');a.style.display=ann?'':'none';}
+    if(e){e.classList.remove('hidden');e.style.display=eo?'':'none';}
+    const ab=document.getElementById('preview-show-announcements');
+    const eb=document.getElementById('preview-show-eo');
+    if(ab)ab.checked=ann;
+    if(eb)eb.checked=eo;
+  }
+  document.addEventListener('change',function(ev){
+    if(ev.target?.id==='preview-show-announcements'){
+      localStorage.setItem('nexa_preview_show_announcements',ev.target.checked?'1':'0');
+      syncNexaHomeShows();
+    }else if(ev.target?.id==='preview-show-eo'){
+      localStorage.setItem('nexa_preview_show_eo',ev.target.checked?'1':'0');
+      syncNexaHomeShows();
+    }
+  });
+  window.addEventListener('pageshow',syncNexaHomeShows);
+  window.addEventListener('load',syncNexaHomeShows);
+  document.addEventListener('DOMContentLoaded',syncNexaHomeShows);
+  window.syncNexaHomeShows=syncNexaHomeShows;
 })();
 </script>
 

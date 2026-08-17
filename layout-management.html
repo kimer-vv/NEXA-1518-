@@ -15,7 +15,7 @@ label{display:block;color:#cbd3e7;font-size:12px;font-weight:800;margin:12px 0 6
 .preset{border:2px solid transparent;border-radius:15px;background:#fff;color:#14213d;overflow:hidden;cursor:pointer;min-height:105px;position:relative}.preset.selected{border-color:#fff;box-shadow:0 0 0 3px var(--blue)}.swatch{height:38px;background:var(--accent)}.preset-body{padding:10px}.preset-name{font-weight:900;font-size:13px}.preset-sub{font-size:10px;color:#697386;margin-top:3px}
 .preview{background:#fff;color:#14213d;border-radius:15px;padding:15px}.preview-head{height:28px;border-radius:8px;background:var(--accent);margin-bottom:10px}.preview-row{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.mini{border:1px solid #d8deea;border-radius:7px;overflow:hidden}.mini b{display:block;background:var(--accent);color:#fff;padding:5px;text-align:center;font-size:8px}.mini div{height:32px;background:repeating-linear-gradient(#fff 0 9px,#e9edf5 10px)}
 .emblem-row{display:flex;align-items:center;gap:14px}.emblem-preview{width:74px;height:74px;border-radius:14px;border:1px dashed #44506d;display:flex;align-items:center;justify-content:center;overflow:hidden;color:var(--muted);font-size:10px;text-align:center}.emblem-preview img{width:100%;height:100%;object-fit:contain;background:#fff}
-.actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}.btn{border:1px solid #34405f;border-radius:12px;padding:11px 16px;background:#0b1122;color:#fff;font-weight:900}.btn.primary{background:var(--blue);border-color:var(--blue)}
+.emblem-remove{margin-top:10px;padding:8px 12px;font-size:12px}.actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}.btn{border:1px solid #34405f;border-radius:12px;padding:11px 16px;background:#0b1122;color:#fff;font-weight:900}.btn.primary{background:var(--blue);border-color:var(--blue)}
 .status{font-size:12px;color:#aeb9d6;margin-top:10px}.hidden{display:none}
 @media(max-width:720px){.grid,.presets{grid-template-columns:1fr}.presets{grid-template-columns:repeat(2,1fr)}}
 </style>
@@ -34,7 +34,7 @@ label{display:block;color:#cbd3e7;font-size:12px;font-weight:800;margin:12px 0 6
  <div class="card grid">
   <div>
    <h2>Alliance Emblem</h2>
-   <div class="emblem-row"><div id="emblemPreview" class="emblem-preview">No emblem</div><div style="flex:1"><label>Upload emblem</label><input id="emblem" type="file" accept="image/*"></div></div>
+   <div class="emblem-row"><div id="emblemPreview" class="emblem-preview">No emblem</div><div style="flex:1"><label>Upload emblem</label><input id="emblem" type="file" accept="image/*"><button id="removeEmblem" class="btn emblem-remove" type="button">Remove Emblem</button></div></div>
   </div>
   <div>
    <h2>Preview</h2>
@@ -82,6 +82,12 @@ async function loadAssignment(){
 }
 function renderEmblem(){$('emblemPreview').innerHTML=emblemData?`<img src="${emblemData}" alt="">`:'No emblem'}
 $('emblem').onchange=()=>{const f=$('emblem').files?.[0];if(!f)return;const r=new FileReader();r.onload=()=>{emblemData=r.result;renderEmblem()};r.readAsDataURL(f)}
+$('removeEmblem').onclick=()=>{
+ emblemData='';
+ $('emblem').value='';
+ renderEmblem();
+ $('status').textContent='Emblem removed. Save Alliance Layout to confirm.';
+};
 $('alliance').onchange=loadAssignment;
 $('save').onclick=async()=>{
  const allianceId=$('alliance').value;if(!allianceId){$('status').textContent='Select an alliance first.';return}

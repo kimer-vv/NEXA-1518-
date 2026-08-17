@@ -1854,6 +1854,89 @@ body:after{height:280px!important}
 body:after{height:320px!important}
 </style>
 
+
+<style id="nexa-template-v11-layout">
+.rally-name-line{
+  display:flex!important;
+  align-items:center!important;
+  gap:6px!important;
+  min-width:0!important;
+  white-space:nowrap!important;
+}
+.rally-name-line .rally-name{
+  min-width:0!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+.rally-name-line .rally-time{
+  display:inline-block!important;
+  flex:0 0 auto!important;
+  margin:0!important;
+  font-size:7px!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+  color:#697386!important;
+}
+
+/* 1–3 Teams: Formations beside the team row. */
+.sheet.layout-side{
+  display:grid!important;
+  grid-template-columns:minmax(0,2.05fr) minmax(250px,.95fr)!important;
+  column-gap:12px!important;
+  align-items:start!important;
+}
+.sheet.layout-side .sheet-header,
+.sheet.layout-side .sheet-notes{
+  grid-column:1/-1!important;
+}
+.sheet.layout-side #teams-grid{
+  grid-column:1!important;
+}
+.sheet.layout-side #formations{
+  grid-column:2!important;
+  margin-top:0!important;
+}
+
+/* 4–6 Teams: Formations below. */
+.sheet.layout-bottom{
+  display:block!important;
+}
+.sheet.layout-bottom #formations{
+  width:100%!important;
+  margin-top:14px!important;
+}
+
+/* Notes always has a reserved box at the bottom, even when empty. */
+.sheet-notes{
+  display:block!important;
+  width:100%!important;
+  min-height:72px!important;
+  margin-top:18px!important;
+  padding:8px 10px!important;
+  box-sizing:border-box!important;
+  border:1px solid #d7deea!important;
+  border-radius:7px!important;
+  background:#fff!important;
+}
+.sheet-notes.hidden{
+  display:block!important;
+}
+.sheet-notes b{
+  display:block!important;
+  margin-bottom:6px!important;
+}
+.sheet-notes span{
+  display:block!important;
+  min-height:40px!important;
+  white-space:pre-wrap!important;
+}
+
+/* Extra bottom room on mobile */
+.preview-wrap{margin-bottom:190px!important}
+body:after{height:340px!important}
+</style>
+
 </head>
 <body data-builder-rev="20260816-menu-restored">
 <main class="shell">
@@ -2072,8 +2155,10 @@ function renderTeams(teams,members){
 
       return `<div class="rally-entry">
         <div class="rally-info">
-          <div class="rally-name">${esc(displayName(m.player_name)||'—')}</div>
-          ${timeText?`<div class="rally-time">⏱ ${esc(timeText)}</div>`:''}
+          <div class="rally-name-line">
+            <span class="rally-name">${esc(displayName(m.player_name)||'—')}</span>
+            ${timeText?`<span class="rally-time">⏱ ${esc(timeText)}</span>`:''}
+          </div>
           ${petTimes.length?`<div class="rally-pet-times">🐾 ${esc(petTimes.join(', '))}</div>`:''}
         </div>
         <div class="rally-pet ${hasPet?'':'empty'}" title="Pet Active">🐾</div>
@@ -2655,7 +2740,7 @@ window.addEventListener('DOMContentLoaded',()=>{
     const ib=document.getElementById('sheet-important');
     const nb=document.getElementById('sheet-notes');
     if(ib){ib.classList.toggle('hidden',!imp);document.getElementById('sheet-important-text').textContent=imp;}
-    if(nb){nb.classList.toggle('hidden',!notes);document.getElementById('sheet-notes-text').textContent=notes;}
+    if(nb){nb.classList.remove('hidden');document.getElementById('sheet-notes-text').textContent=notes;}
     window.fitInlineSheet?.();
   }
   document.getElementById('important-notes')?.addEventListener('input',syncText);
@@ -2756,7 +2841,7 @@ window.addEventListener('DOMContentLoaded',()=>{
     const nt=document.getElementById('sheet-notes-text');
     if(nb&&nt){
       nt.textContent=notes;
-      nb.classList.toggle('hidden',!notes);
+      nb.classList.remove('hidden');
     }
 
     if(typeof window.fitInlineSheet==='function') window.fitInlineSheet();
@@ -2765,17 +2850,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('important-notes')?.addEventListener('input',syncBuilderText);
   document.getElementById('layout-notes')?.addEventListener('input',syncBuilderText);
 
-  /* Preview button: restore full overlay preview, not inline scrolling */
-  const preview=document.getElementById('preview-layout');
-  if(preview){
-    preview.onclick=function(ev){
-      ev.preventDefault();
-      if(typeof window.openLayoutPreview==='function'){
-        syncBuilderText();
-        window.openLayoutPreview();
-      }
-    };
-  }
+  
 
   document.addEventListener('DOMContentLoaded',()=>{
     syncBuilderText();
@@ -2794,14 +2869,84 @@ window.addEventListener('DOMContentLoaded',()=>{
     if(!input||!box||!text)return;
     const v=(input.value||'').trim();
     text.textContent=v;
-    box.classList.toggle('hidden',!v);
-    if(v) box.style.display='block';
+    box.classList.remove('hidden');
+    box.style.display='block';
     if(typeof window.fitInlineSheet==='function')window.fitInlineSheet();
   }
   document.getElementById('layout-notes')?.addEventListener('input',forceNotes);
   document.getElementById('preview-layout')?.addEventListener('click',()=>setTimeout(forceNotes,0));
   document.addEventListener('DOMContentLoaded',()=>{forceNotes();setTimeout(forceNotes,120)});
   window.addEventListener('load',forceNotes);
+})();
+</script>
+
+
+
+
+
+<script id="nexa-template-v11-preview-page">
+(function(){
+  function syncBuilderTextForPreview(){
+    const imp=(document.getElementById('important-notes')?.value||'').trim();
+    const notes=(document.getElementById('layout-notes')?.value||'').trim();
+
+    const ib=document.getElementById('sheet-important');
+    const it=document.getElementById('sheet-important-text');
+    if(ib&&it){
+      it.textContent=imp;
+      ib.classList.toggle('hidden',!imp);
+    }
+
+    const nb=document.getElementById('sheet-notes');
+    const nt=document.getElementById('sheet-notes-text');
+    if(nb&&nt){
+      nt.textContent=notes;
+      nb.classList.remove('hidden');
+      nb.style.display='block';
+    }
+  }
+
+  function openDedicatedPreview(){
+    syncBuilderTextForPreview();
+
+    const sheet=document.getElementById('sheet');
+    if(!sheet)return;
+
+    const clone=sheet.cloneNode(true);
+    clone.removeAttribute('style');
+    clone.style.transform='none';
+    clone.style.position='relative';
+    clone.style.left='auto';
+    clone.style.top='auto';
+    clone.style.margin='0 auto';
+
+    const styles=[...document.querySelectorAll('style,link[rel="stylesheet"]')]
+      .map(el=>el.outerHTML).join('\n');
+
+    const payload={
+      title:(document.getElementById('sheet-title')?.textContent||'NEXA Layout').trim(),
+      html:clone.outerHTML,
+      styles
+    };
+
+    try{
+      sessionStorage.setItem('nexa_layout_preview_payload',JSON.stringify(payload));
+    }catch(e){
+      document.getElementById('export-status').textContent='Could not prepare preview.';
+      return;
+    }
+
+    // Navigate the top-level page so Safari cannot block it as a popup.
+    window.top.location.href='layout-preview-v2.html';
+  }
+
+  const btn=document.getElementById('preview-layout');
+  if(btn){
+    btn.onclick=function(ev){
+      ev.preventDefault();
+      openDedicatedPreview();
+    };
+  }
 })();
 </script>
 

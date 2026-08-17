@@ -1597,8 +1597,14 @@ body.nexa-layout-preview-open{
 </style>
 
 
-<style id="nexa-template-v4-mobile-preview-fix">
-/* Notes field matches Important / Special Instructions */
+
+
+
+
+
+
+<style id="nexa-template-v6-preview">
+/* Notes matches Important */
 .nexa-important-editor textarea,
 #layout-notes{
   display:block!important;
@@ -1610,41 +1616,60 @@ body.nexa-layout-preview-open{
   resize:vertical!important;
 }
 
-/* Preview must show the WHOLE landscape sheet on mobile.
-   Never crop the right side of Team cards/formations. */
+/* Preview rebuild: transparent holder + sized scaling canvas */
 .preview-wrap{
-  overflow:hidden!important;
   width:100%!important;
+  overflow:hidden!important;
+  box-sizing:border-box!important;
+  padding:14px!important;
+  min-height:0!important;
+}
+.sheet-inline-holder{
+  width:100%!important;
+  max-width:100%!important;
+  overflow:hidden!important;
+  background:transparent!important;
+  margin:0!important;
+  padding:0!important;
+}
+.sheet-scale-canvas{
+  position:relative!important;
+  width:100%!important;
+  height:0;
+  overflow:visible!important;
+  background:transparent!important;
 }
 #sheet{
+  position:absolute!important;
+  top:0!important;
+  left:0!important;
+  margin:0!important;
   transform-origin:top left!important;
-  flex:none!important;
-}
-@media(max-width:760px){
-  .preview-wrap{
-    padding:14px!important;
-    min-height:0!important;
-  }
-  #sheet{
-    margin:0!important;
-  }
 }
 
-/* Do not let one-team layout become a huge full-width card.
-   Reserve the right side for formations, as intended. */
+/* Preserve intended team organization */
+.teams-grid{display:grid!important;gap:7px!important;align-items:start!important}
+.teams-grid.count-1{grid-template-columns:repeat(1,minmax(0,1fr))!important}
+.teams-grid.count-2{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+.teams-grid.count-3{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+.teams-grid.count-4{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+.teams-grid.count-5{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+.teams-grid.count-6{grid-template-columns:repeat(6,minmax(0,1fr))!important}
+
 .sheet.layout-side{
   display:grid!important;
-  grid-template-columns:minmax(0,2.05fr) minmax(190px,.95fr)!important;
+  grid-template-columns:minmax(0,2.05fr) minmax(210px,.95fr)!important;
   column-gap:10px!important;
   align-items:start!important;
 }
+.sheet.layout-side .sheet-header,
+.sheet.layout-side .sheet-info-row,
+.sheet.layout-side .sheet-notes,
+.sheet.layout-side .sheet-utc{grid-column:1/-1!important}
 .sheet.layout-side #teams-grid{grid-column:1!important}
-.sheet.layout-side #formations{grid-column:2!important}
-
-/* All 4–6 team cards stay in one horizontal row. */
-.sheet.layout-bottom .teams-grid.count-4{grid-template-columns:repeat(4,minmax(0,1fr))!important}
-.sheet.layout-bottom .teams-grid.count-5{grid-template-columns:repeat(5,minmax(0,1fr))!important}
-.sheet.layout-bottom .teams-grid.count-6{grid-template-columns:repeat(6,minmax(0,1fr))!important}
+.sheet.layout-side #formations{grid-column:2!important;margin-top:0!important}
+.sheet.layout-bottom{display:block!important}
+.sheet.layout-bottom #formations{margin-top:8px!important}
 </style>
 
 </head>
@@ -1682,6 +1707,7 @@ body.nexa-layout-preview-open{
 
   <section class="panel preview-wrap">
     <div id="sheet-inline-holder" class="sheet-inline-holder">
+      <div id="sheet-scale-canvas" class="sheet-scale-canvas">
     <div id="sheet" class="sheet">
       <div class="sheet-header">
         <div class="sheet-brand-row">
@@ -1705,6 +1731,7 @@ body.nexa-layout-preview-open{
       <div id="sheet-notes" class="sheet-notes hidden"><b>NOTES</b><span id="sheet-notes-text"></span></div>
       <div class="sheet-utc">◷ &nbsp; All times in UTC</div>
     </div>
+      </div>
     </div>
   </section>
 </div>
@@ -2465,46 +2492,47 @@ window.addEventListener('DOMContentLoaded',()=>{
 </script>
 
 
-<script id="nexa-template-v4-fit">
+
+
+
+
+
+
+<script id="nexa-template-v6-fit">
 (function(){
-  function fitWholeSheet(){
-    const wrap=document.querySelector('.preview-wrap');
-    const sheet=document.getElementById('sheet');
-    if(!wrap||!sheet)return;
+  let raf=0;
+  function fitSheet(){
+    cancelAnimationFrame(raf);
+    raf=requestAnimationFrame(()=>{
+      const holder=document.getElementById('sheet-inline-holder');
+      const canvas=document.getElementById('sheet-scale-canvas');
+      const sheet=document.getElementById('sheet');
+      if(!holder||!canvas||!sheet)return;
 
-    // Reset before measuring the natural landscape document.
-    sheet.style.transform='none';
-    sheet.style.width='';
-    sheet.style.height='';
+      // reset
+      sheet.style.transform='none';
+      canvas.style.height='0px';
 
-    const naturalW=sheet.scrollWidth || sheet.offsetWidth;
-    const naturalH=sheet.scrollHeight || sheet.offsetHeight;
-    if(!naturalW||!naturalH)return;
+      const naturalW=Math.max(sheet.scrollWidth,sheet.offsetWidth,1);
+      const naturalH=Math.max(sheet.scrollHeight,sheet.offsetHeight,1);
+      const available=Math.max(holder.clientWidth,1);
+      const scale=Math.min(1,available/naturalW);
 
-    const cs=getComputedStyle(wrap);
-    const pad=(parseFloat(cs.paddingLeft)||0)+(parseFloat(cs.paddingRight)||0);
-    const available=Math.max(1,wrap.clientWidth-pad);
-    const scale=Math.min(1, available/naturalW);
-
-    sheet.style.transformOrigin='top left';
-    sheet.style.transform=`scale(${scale})`;
-    // Preserve layout space after transform so the card hugs the full preview.
-    wrap.style.height=Math.ceil(naturalH*scale + 28)+'px';
+      sheet.style.transform=`scale(${scale})`;
+      canvas.style.height=Math.ceil(naturalH*scale)+'px';
+    });
   }
 
-  // This becomes the authoritative preview fitter used by existing render code.
-  window.fitInlineSheet=fitWholeSheet;
-
-  const rerun=()=>requestAnimationFrame(()=>requestAnimationFrame(fitWholeSheet));
+  window.fitInlineSheet=fitSheet;
+  const rerun=()=>{fitSheet();setTimeout(fitSheet,80);setTimeout(fitSheet,250)};
+  document.addEventListener('DOMContentLoaded',rerun);
   window.addEventListener('load',rerun);
   window.addEventListener('resize',rerun);
   window.addEventListener('orientationchange',rerun);
-  document.addEventListener('DOMContentLoaded',rerun);
+  document.getElementById('preview-layout')?.addEventListener('click',rerun);
 
-  const target=document.getElementById('sheet');
-  if(target){
-    new MutationObserver(rerun).observe(target,{subtree:true,childList:true,characterData:true,attributes:true});
-  }
+  const sheet=document.getElementById('sheet');
+  if(sheet)new MutationObserver(rerun).observe(sheet,{subtree:true,childList:true,characterData:true,attributes:true});
 })();
 </script>
 

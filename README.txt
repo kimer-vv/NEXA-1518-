@@ -1,8 +1,8 @@
 Replace template-builder-v2.html only.
 
-Fixes from the screenshots:
-- Notes box now has the same full width/visual size as Special Instructions.
-- Mobile preview scales the ENTIRE landscape template into the preview card.
-- Right side is no longer cropped.
-- 1–3 Teams keep Formations beside the team row.
-- 4–6 Teams remain in one horizontal row with Formations below.
+V6 rebuilds only the inline preview container:
+- removes the blank white preview block problem
+- keeps the actual sheet at the top-left of the preview
+- scales the complete sheet to the available mobile width
+- preserves V4 Notes sizing
+- preserves 1–3 teams with formations beside / 4–6 teams in one row with formations below

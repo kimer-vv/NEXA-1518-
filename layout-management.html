@@ -69,21 +69,9 @@ function drawPresets(){
 }
 function applyPreview(){const p=presets.find(x=>x.id===selected)||presets[0];$('preview').style.setProperty('--accent',p.accent)}
 async function loadAlliances(){
- const sel=$('alliance');
- if(!sel)return;
- sel.innerHTML='<option value="">Select alliance…</option>';
- const {data,error}=await sb.from('alliances').select('id,tag').eq('is_active',true).order('tag');
- if(error){
-   $('status').textContent='Could not load alliances: '+error.message;
-   return;
- }
- (data||[]).forEach(a=>{
-   const o=document.createElement('option');
-   o.value=String(a.id);
-   o.textContent=a.tag;
-   sel.appendChild(o);
- });
- if(!(data||[]).length)$('status').textContent='No active alliances found.';
+ const {data,error}=await sb.from('alliances').select('id,tag').order('tag');
+ if(error){$('status').textContent='Could not load alliances: '+error.message;return}
+ (data||[]).forEach(a=>{const o=document.createElement('option');o.value=a.id;o.textContent=a.tag||a.id;$('alliance').appendChild(o)})
 }
 async function loadAssignment(){
  const id=$('alliance').value;if(!id)return;

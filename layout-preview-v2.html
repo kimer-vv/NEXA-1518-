@@ -89,78 +89,89 @@ html,body{background:#080b16!important}
 </style>
 
 
-<style id="nexa-preview-fit-v5">
-.toolbar{flex-wrap:wrap}
-.zoom-tools{display:flex;gap:6px;margin-left:auto}
-.zoom-tools button{min-width:42px}
+
+
+<style id="nexa-preview-fit-v6">
+html,body{width:100%;max-width:100%;overflow:hidden}
 .stage{
+  position:fixed!important;
+  left:0!important;right:0!important;
+  top:74px!important;bottom:0!important;
   padding:10px!important;
   overflow:auto!important;
+  -webkit-overflow-scrolling:touch!important;
   touch-action:pan-x pan-y pinch-zoom!important;
 }
 .canvas{
-  width:100%!important;
-  min-width:0!important;
-  min-height:calc(100vh - 80px)!important;
-  padding:0 0 120px!important;
-  display:flex!important;
-  justify-content:center!important;
-  align-items:flex-start!important;
+  width:max-content!important;
+  min-width:100%!important;
+  min-height:100%!important;
+  padding:0 10px 80px!important;
+  box-sizing:border-box!important;
+  display:block!important;
 }
 #preview-root{
-  width:100%!important;
-  display:flex!important;
-  justify-content:center!important;
+  position:relative!important;
+  margin:0 auto!important;
+  overflow:visible!important;
 }
 #preview-root .sheet{
+  position:absolute!important;
+  left:0!important;top:0!important;
+  margin:0!important;
+  transform-origin:top left!important;
   zoom:1!important;
-  transform-origin:top center!important;
-  margin:0 auto!important;
 }
 </style>
-<script id="nexa-preview-fit-runtime-v5">
+<script id="nexa-preview-fit-runtime-v6">
 (function(){
-  let scale=1;
-  let naturalW=0,naturalH=0;
-
-  function sheet(){return document.querySelector('#preview-root .sheet')}
-  function stage(){return document.querySelector('.stage')}
-  function canvas(){return document.querySelector('.canvas')}
+  let scale=1,naturalW=0,naturalH=0;
+  const $s=()=>document.querySelector('#preview-root .sheet');
+  const $r=()=>document.getElementById('preview-root');
+  const $st=()=>document.querySelector('.stage');
 
   function measure(){
-    const s=sheet();if(!s)return;
-    const old=s.style.transform;
+    const s=$s(); if(!s)return false;
+    const prev=s.style.transform;
     s.style.transform='none';
-    naturalW=s.scrollWidth||s.offsetWidth||1400;
-    naturalH=s.scrollHeight||s.offsetHeight||900;
-    s.style.transform=old;
+    naturalW=Math.max(s.scrollWidth,s.offsetWidth,1400);
+    naturalH=Math.max(s.scrollHeight,s.offsetHeight,700);
+    s.style.transform=prev;
+    return true;
   }
-
-  function apply(next){
-    const s=sheet(),c=canvas();if(!s||!c)return;
-    if(!naturalW)measure();
-    scale=Math.max(.12,Math.min(2.5,next));
-    s.style.transform=`scale(${scale})`;
-    c.style.height=Math.ceil(naturalH*scale+120)+'px';
-    c.style.minWidth=Math.ceil(naturalW*scale)+'px';
+  function apply(v){
+    const s=$s(),r=$r(),st=$st(); if(!s||!r||!st)return;
+    if(!naturalW&&!measure())return;
+    scale=Math.max(.12,Math.min(2.5,v));
+    r.style.width=Math.ceil(naturalW*scale)+'px';
+    r.style.height=Math.ceil(naturalH*scale)+'px';
+    s.style.width=naturalW+'px';
+    s.style.transform='scale('+scale+')';
+    const c=document.querySelector('.canvas');
+    if(c)c.style.width=Math.max(st.clientWidth,Math.ceil(naturalW*scale)+20)+'px';
   }
-
   function fit(){
-    const st=stage(),s=sheet();if(!st||!s)return;
-    measure();
-    const availableW=Math.max(240,st.clientWidth-8);
-    const availableH=Math.max(240,window.innerHeight-document.querySelector('.toolbar').offsetHeight-24);
-    const fitScale=Math.min(1,availableW/naturalW,availableH/naturalH);
-    apply(fitScale);
-    st.scrollTo({left:0,top:0,behavior:'auto'});
+    const st=$st(); if(!st||!measure())return;
+    const aw=Math.max(220,st.clientWidth-24);
+    const ah=Math.max(220,st.clientHeight-24);
+    apply(Math.min(1,aw/naturalW,ah/naturalH));
+    requestAnimationFrame(()=>{
+      st.scrollLeft=Math.max(0,(st.scrollWidth-st.clientWidth)/2);
+      st.scrollTop=0;
+    });
   }
-
-  document.getElementById('zoom-out')?.addEventListener('click',()=>apply(scale*.82));
-  document.getElementById('zoom-in')?.addEventListener('click',()=>apply(scale*1.22));
-  document.getElementById('zoom-fit')?.addEventListener('click',fit);
-  window.addEventListener('resize',fit);
-  window.addEventListener('orientationchange',()=>setTimeout(fit,120));
-  window.addEventListener('load',()=>setTimeout(fit,80));
-  requestAnimationFrame(()=>setTimeout(fit,60));
+  function boot(){
+    const s=$s();
+    if(!s){setTimeout(boot,60);return;}
+    fit();
+  }
+  document.getElementById('zoom-out')?.addEventListener('click',e=>{e.preventDefault();apply(scale*.82)});
+  document.getElementById('zoom-in')?.addEventListener('click',e=>{e.preventDefault();apply(scale*1.22)});
+  document.getElementById('zoom-fit')?.addEventListener('click',e=>{e.preventDefault();fit()});
+  window.addEventListener('resize',()=>setTimeout(fit,80));
+  window.addEventListener('orientationchange',()=>setTimeout(fit,180));
+  setTimeout(boot,50);
+  setTimeout(fit,350);
+  setTimeout(fit,900);
 })();
 </script>

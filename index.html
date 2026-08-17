@@ -776,42 +776,6 @@ body.nexa-schedule-open{
 <script src="/human-gate.js"></script>
 
 
-<style>
-/* Compact Layout Management card — same visual weight as the other Control Center modules */
-.nexa-layout-management-card{
-  border:1px solid rgba(133,83,255,.42);
-  border-radius:22px;
-  background:rgba(15,17,47,.78);
-  padding:24px 32px;
-  margin:18px 0;
-  color:#fff;
-  cursor:pointer;
-}
-.nexa-lm-kicker{
-  font-size:12px;
-  letter-spacing:.18em;
-  font-weight:900;
-  color:#a78bfa;
-  margin-bottom:12px;
-}
-.nexa-lm-title{
-  font-size:27px;
-  line-height:1.08;
-  font-weight:900;
-  margin-bottom:10px;
-}
-.nexa-lm-desc{
-  color:#aeb3c8;
-  font-size:13px;
-  line-height:1.4;
-  font-weight:600;
-}
-@media(max-width:600px){
- .nexa-layout-management-card{padding:22px 32px;border-radius:22px}
- .nexa-lm-title{font-size:26px}
-}
-</style>
-
 </head>
 <body>
 <div class="nebula-bg" aria-hidden="true"></div>
@@ -1007,14 +971,7 @@ body.nexa-schedule-open{
       </div>
       <button class="icon-btn" type="button" data-close-admin>×</button>
     </div>
-
-    
-<div class="nexa-layout-management-card" onclick="location.href='layout-management.html'" role="button" tabindex="0">
-  <div class="nexa-lm-kicker">MODULE</div>
-  <div class="nexa-lm-title">Layout Management</div>
-  <div class="nexa-lm-desc">Assign alliance layout presets, emblems & visual identity.</div>
-</div>
-        <div id="home-transfer-staff-actions" class="event-actions hidden">
+<div id="home-transfer-staff-actions" class="event-actions hidden">
           <a class="btn" href="transfer-admin.html?tab=events&create=1">Create Transfer Event</a>
         </div>
       </article>`;
@@ -1098,5 +1055,110 @@ body.nexa-schedule-open{
   setTimeout(fixHomeVisibilityLabels,700);
 })();
 </script>
+
+<script>
+(function(){
+  function makeLayoutModule(){
+    const card=document.createElement('div');
+    card.className='nexa-admin-layout-card';
+    card.setAttribute('role','button');
+    card.tabIndex=0;
+    card.innerHTML=`
+      <div class="nexa-admin-module-kicker">MODULE</div>
+      <div class="nexa-admin-module-title">Layout Management</div>
+      <div class="nexa-admin-module-desc">Assign alliance layout presets, emblems & visual identity.</div>`;
+    const open=()=>location.href='layout-management.html';
+    card.addEventListener('click',open);
+    card.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open()}});
+    return card;
+  }
+
+  function placeLayoutModule(){
+    // Admin panel/control center is identified by its visible heading.
+    const nodes=[...document.querySelectorAll('h1,h2,h3,div,span')];
+    const adminHeading=nodes.find(el=>{
+      const t=(el.textContent||'').replace(/\s+/g,'').toLowerCase();
+      return t==='controlcenter';
+    });
+    if(!adminHeading)return;
+
+    // Find the admin modal/panel containing Administration/Announcements/Event Operations.
+    let panel=adminHeading;
+    while(panel && panel!==document.body){
+      const txt=(panel.textContent||'');
+      if(txt.includes('Administration') && txt.includes('Announcements')) break;
+      panel=panel.parentElement;
+    }
+    if(!panel || panel===document.body)return;
+    if(panel.querySelector('.nexa-admin-layout-card'))return;
+
+    // Find actual module cards and insert alphabetically before SvS/Transfers,
+    // preferably after Event Operations.
+    const candidates=[...panel.querySelectorAll('div')];
+    const eventCard=candidates.find(el=>{
+      const t=(el.textContent||'').trim();
+      return t.includes('Event Operations') && el.children.length>0 &&
+             (t.includes('Build reusable forms') || t.includes('team organization'));
+    });
+    const svsCard=candidates.find(el=>{
+      const t=(el.textContent||'').trim();
+      return /^MODULE\s*SvS\b/i.test(t) || (t.includes('Set up SvS events') && el.children.length>0);
+    });
+
+    const card=makeLayoutModule();
+    if(eventCard && eventCard.parentElement){
+      // climb to the closest card-like direct child of its module list
+      let target=eventCard;
+      while(target.parentElement && target.parentElement!==panel &&
+            !/border-radius/.test(target.getAttribute('style')||'') &&
+            target.parentElement.children.length<2){
+        target=target.parentElement;
+      }
+      target.insertAdjacentElement('afterend',card);
+    } else if(svsCard && svsCard.parentElement){
+      svsCard.insertAdjacentElement('beforebegin',card);
+    } else {
+      panel.appendChild(card);
+    }
+  }
+
+  const obs=new MutationObserver(()=>placeLayoutModule());
+  obs.observe(document.documentElement,{childList:true,subtree:true});
+  document.addEventListener('click',()=>setTimeout(placeLayoutModule,50));
+  window.addEventListener('load',()=>setTimeout(placeLayoutModule,100));
+})();
+</script>
+<style>
+/* Layout Management exists ONLY inside Admin Control Center */
+.nexa-admin-layout-card{
+  border:1px solid rgba(133,83,255,.42);
+  border-radius:22px;
+  background:rgba(15,17,47,.78);
+  padding:22px 32px;
+  margin:18px 0;
+  color:#fff;
+  cursor:pointer;
+}
+.nexa-admin-module-kicker{
+  color:#a78bfa;
+  font-size:12px;
+  letter-spacing:.18em;
+  font-weight:900;
+  margin-bottom:10px;
+}
+.nexa-admin-module-title{
+  font-size:28px;
+  line-height:1.08;
+  font-weight:900;
+  margin-bottom:8px;
+}
+.nexa-admin-module-desc{
+  color:#aeb3c8;
+  font-size:13px;
+  line-height:1.4;
+  font-weight:600;
+}
+</style>
+
 </body>
 </html>

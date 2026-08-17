@@ -1,0 +1,4703 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>NEXA • Template Builder V2</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<style>
+:root{
+  --bg:#070812;--panel:#111321;--panel2:#171a2b;--text:#f6f7ff;--muted:#a9aec7;--line:#2e3246;
+  --accent:#6f52ff;--sheet-bg:#ffffff;--sheet-text:#14213d;--sheet-muted:#677084;--team-head:#173b7a;--section-bg:#eef2f8;--pet:#d89b20;--sheet-border:#cfd5e2;--sheet-font:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;--title-weight:900;--body-weight:400;
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at top,#17132c 0,#090912 42%,#06060b 100%);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.shell{max-width:1500px;margin:0 auto;padding:18px}
+.back{display:inline-block;color:#cbc8ff;text-decoration:none;margin-bottom:12px}
+.builder{display:grid;grid-template-columns:minmax(280px,360px) 1fr;gap:16px}
+.panel{background:rgba(17,19,33,.9);border:1px solid var(--line);border-radius:20px;padding:16px}
+h1,h2,h3{margin:.25rem 0 .6rem}
+.muted{color:var(--muted)}
+.controls{display:grid;gap:14px}
+.control-card{border:1px solid var(--line);border-radius:14px;padding:12px;background:#0e101c}
+label{display:grid;gap:6px}
+select,input{width:100%;background:#090b15;color:#fff;border:1px solid #3c415a;border-radius:11px;padding:10px;font:inherit}
+.btn{width:100%;background:#171425;color:#fff;border:1px solid #4b3a72;border-radius:12px;padding:11px 13px;font-weight:800}
+.btn.primary{background:linear-gradient(135deg,#6b4cff,#8f6dff)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.preview-wrap{overflow:auto}
+.sheet{
+  min-width:920px;background:var(--sheet-bg);color:var(--sheet-text);border-radius:18px;padding:26px;
+  box-shadow:0 24px 70px rgba(0,0,0,.35)
+}
+.sheet-header{text-align:center;margin-bottom:18px}
+.sheet-title{font-size:42px;font-weight:900;letter-spacing:.04em}
+.teams-grid{display:grid;gap:16px}
+.teams-grid.count-1{grid-template-columns:1fr}
+.teams-grid.count-2{grid-template-columns:repeat(2,1fr)}
+.teams-grid.count-3{grid-template-columns:repeat(3,1fr)}
+.teams-grid.count-4{grid-template-columns:repeat(4,1fr)}
+.teams-grid.count-5,.teams-grid.count-6{grid-template-columns:repeat(3,1fr)}
+.team-card{border:1px solid #cfd5e2;border-radius:14px;overflow:hidden;background:#fff}
+.team-title{background:var(--team-head);color:#fff;text-align:center;padding:10px;font-weight:900}
+.team-section-title{background:var(--section-bg);padding:8px 10px;font-weight:900;text-align:center}
+.player-row{display:grid;grid-template-columns:minmax(110px,1fr) minmax(80px,.75fr) minmax(80px,.75fr);gap:8px;padding:8px 10px;border-top:1px solid #e2e6ef;align-items:center;font-size:14px}
+.player-row.rally{grid-template-columns:minmax(120px,1fr) minmax(110px,.85fr)}
+.player-name{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pet{color:var(--pet);font-weight:800}
+.formations{margin-top:18px;border-top:1px solid #dfe3ec;padding-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.formation-card{border:1px solid #d5dae5;border-radius:12px;padding:10px}
+.formation-title{font-weight:900}
+.formation-heroes{font-weight:800;margin-top:4px}
+.formation-ratio{color:#5f6675;margin-top:3px}
+.legend{margin-top:16px;display:flex;gap:16px;justify-content:center;color:#59606f;font-size:13px}
+.compact .player-row{font-size:12px;padding:6px 8px}
+.compact .team-title{padding:8px;font-size:14px}
+.compact .team-section-title{padding:6px 8px;font-size:12px}
+.compact .sheet-title{font-size:34px}
+@media(max-width:900px){
+  .builder{grid-template-columns:1fr}
+  .sheet{min-width:820px}
+}
+
+.color-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.color-grid input[type=color]{height:42px;padding:3px}
+.brand-preview{display:flex;gap:10px;align-items:center}
+.brand-preview img{width:58px;height:58px;object-fit:contain;border-radius:12px;border:1px solid var(--line);background:#090b15;padding:5px}
+.sheet{font-family:var(--sheet-font)!important;font-weight:var(--body-weight)}
+.sheet-title{font-weight:var(--title-weight)!important}
+.sheet-subtitle{color:var(--sheet-muted);font-weight:700}
+.sheet-brand-row{display:flex;justify-content:center;align-items:center;gap:16px}
+.sheet-emblem{width:74px;height:74px;object-fit:contain}
+.team-card{border-color:var(--sheet-border)!important}
+.player-row{border-top-color:var(--sheet-border)!important}
+.formations{border-top-color:var(--sheet-border)!important}
+.formation-card{border-color:var(--sheet-border)!important}
+.legend{color:var(--sheet-muted)!important}
+
+
+.column-labels{
+  background:var(--section-bg);
+  color:var(--sheet-muted);
+  font-size:10px!important;
+  font-weight:900;
+  letter-spacing:.045em;
+  text-transform:uppercase;
+}
+.pet-time{color:var(--sheet-text);font-weight:700}
+.pet-paw{color:var(--pet)!important;font-size:1.12em;filter:saturate(1.2)}
+.player-row.no-defense-row{grid-template-columns:minmax(110px,1fr) minmax(90px,.85fr)}
+
+
+/* NEXA clean layout preview — works on iPhone without relying on Fullscreen API */
+.layout-preview-overlay{
+  position:fixed;
+  inset:0;
+  z-index:2147483000;
+  background:#eef1f6;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+.layout-preview-overlay.hidden{display:none!important}
+.layout-preview-toolbar{
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+  padding:calc(10px + env(safe-area-inset-top)) 12px 10px;
+  background:#fff;
+  border-bottom:1px solid rgba(0,0,0,.1);
+  flex:0 0 auto;
+}
+.layout-preview-stage{
+  flex:1 1 auto;
+  overflow:auto;
+  -webkit-overflow-scrolling:touch;
+  padding:16px;
+}
+#layout-preview-content{
+  width:max-content;
+  min-width:100%;
+  display:flex;
+  justify-content:center;
+}
+#layout-preview-content .sheet{
+  margin:0!important;
+  box-shadow:0 10px 34px rgba(0,0,0,.16)!important;
+}
+body.nexa-layout-preview-open{
+  overflow:hidden!important;
+}
+#export-status.success{color:#59c98a}
+#export-status.error{color:#ff8ca4}
+@media(max-width:700px){
+  .layout-preview-stage{padding:10px}
+  #layout-preview-content{
+    width:100%;
+    min-width:0;
+    justify-content:flex-start;
+  }
+  #layout-preview-content .sheet{
+    transform-origin:top left;
+    max-width:none!important;
+  }
+}
+
+
+/* ===== NEXA FINAL TEAM SHEET — fixed professional layout ===== */
+.sheet{
+  width:1400px!important;
+  min-width:1400px!important;
+  max-width:1400px!important;
+  background:var(--sheet-bg)!important;
+  color:var(--sheet-text)!important;
+  border-radius:18px;
+  padding:26px 28px 20px!important;
+  box-sizing:border-box;
+}
+.sheet-header{
+  position:relative;
+  min-height:100px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin-bottom:18px!important;
+  padding:0 300px 0 210px;
+}
+.sheet-brand-row{justify-content:center!important;gap:14px!important}
+.sheet-title{font-size:52px!important;line-height:1!important}
+.sheet-subtitle{font-size:18px;margin-top:7px;letter-spacing:.08em}
+.sheet-emblem{width:82px!important;height:82px!important}
+
+.sheet-legend{
+  position:absolute;
+  top:0;
+  right:0;
+  min-width:245px;
+  border:1px solid var(--sheet-border);
+  border-radius:13px;
+  padding:10px 14px;
+  display:grid;
+  gap:6px;
+  background:var(--sheet-bg);
+  font-size:13px;
+  font-weight:800;
+}
+.sheet-legend>div{display:grid;grid-template-columns:28px 1fr;gap:8px;align-items:center}
+.sheet-legend small{font-weight:600;color:var(--sheet-muted)}
+.legend-icon{font-size:18px;text-align:center;font-weight:900}
+.rally-icon{color:var(--team-head)}
+.joiner-icon{color:#24783b}
+.pet-icon{color:var(--pet)}
+
+.teams-grid{
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:14px!important;
+  align-items:start;
+}
+.teams-grid.count-1,.teams-grid.count-2,.teams-grid.count-3,
+.teams-grid.count-4,.teams-grid.count-5,.teams-grid.count-6{
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+}
+.team-card{
+  min-width:0!important;
+  border:1px solid var(--sheet-border)!important;
+  border-radius:12px!important;
+  overflow:hidden;
+  background:var(--sheet-bg)!important;
+}
+.team-title{
+  background:var(--team-head)!important;
+  color:#fff!important;
+  text-align:center;
+  padding:9px 8px!important;
+  font-weight:900;
+  font-size:18px;
+  letter-spacing:.015em;
+}
+.team-section-title{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:7px;
+  background:var(--section-bg)!important;
+  padding:8px 8px!important;
+  font-weight:900;
+  text-align:center;
+  color:var(--team-head);
+  font-size:13px;
+}
+.team-section-title.joiners-heading{color:#24783b}
+.section-icon{font-size:16px;line-height:1}
+
+.rally-list{padding:0 10px}
+.rally-entry{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 38px;
+  align-items:center;
+  gap:8px;
+  padding:9px 2px;
+  border-bottom:1px solid var(--sheet-border);
+}
+.rally-entry:last-child{border-bottom:0}
+.rally-info{min-width:0}
+.rally-name{font-weight:900;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rally-time{margin-top:2px;font-size:11px;color:var(--sheet-text);font-weight:650}
+.rally-pet{
+  color:var(--pet);
+  font-size:25px;
+  line-height:1;
+  text-align:center;
+}
+.rally-pet.empty{visibility:hidden}
+.rally-empty{padding:12px;text-align:center;color:var(--sheet-muted);font-size:12px}
+
+.joiner-table{width:100%;display:block}
+.joiner-head,.joiner-row{
+  display:grid;
+  grid-template-columns:minmax(100px,1.25fr) minmax(74px,.8fr) minmax(74px,.8fr);
+  align-items:stretch;
+}
+.joiner-head.no-defense,.joiner-row.no-defense{
+  grid-template-columns:minmax(115px,1.35fr) minmax(95px,1fr);
+}
+.joiner-head{
+  background:var(--section-bg);
+  color:#24783b;
+  font-size:10px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.035em;
+}
+.joiner-head>div,.joiner-row>div{
+  padding:7px 7px;
+  border-right:1px solid var(--sheet-border);
+}
+.joiner-head>div:last-child,.joiner-row>div:last-child{border-right:0}
+.joiner-row{
+  border-top:1px solid var(--sheet-border);
+  min-height:48px;
+  font-size:11px;
+}
+.joiner-player{
+  font-weight:850;
+  display:flex;
+  align-items:center;
+  min-width:0;
+}
+.joiner-player span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hero-cell{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  min-width:0;
+}
+.hero-mini{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  min-width:0;
+  max-width:100%;
+}
+.hero-mini img{
+  width:29px;height:29px;border-radius:7px;object-fit:cover;border:1px solid var(--sheet-border);
+}
+.hero-mini-name{
+  font-size:10px;
+  line-height:1.05;
+  font-weight:800;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.hero-empty{color:var(--sheet-muted)}
+
+.formations{
+  margin-top:20px!important;
+  padding-top:0!important;
+  border-top:0!important;
+  display:block!important;
+}
+.formations[style*="display: none"],.formations.is-empty{display:none!important}
+.formations-heading{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  margin:0 0 10px;
+  color:var(--team-head);
+  font-size:19px;
+  font-weight:950;
+  text-align:center;
+}
+.formations-heading:before,.formations-heading:after{
+  content:"";
+  height:1px;
+  flex:1;
+  background:var(--sheet-border);
+}
+.formation-groups{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+}
+.formation-group{
+  border:1px solid var(--sheet-border);
+  border-radius:12px;
+  padding:10px;
+  min-width:0;
+}
+.formation-group-title{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  margin:-21px auto 8px;
+  width:max-content;
+  max-width:90%;
+  padding:0 10px;
+  background:var(--sheet-bg);
+  font-size:13px;
+  font-weight:950;
+}
+.formation-group.joiner .formation-group-title{color:#24783b}
+.formation-group.rally .formation-group-title{color:var(--team-head)}
+.formation-cards{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:7px;
+}
+.formation-card{
+  border:1px solid var(--sheet-border)!important;
+  border-radius:9px!important;
+  padding:8px 6px!important;
+  min-width:0;
+  text-align:center;
+  background:var(--sheet-bg);
+}
+.formation-title{
+  font-size:10.5px;
+  line-height:1.15;
+  font-weight:950!important;
+  text-transform:uppercase;
+  color:inherit;
+}
+.formation-hero-list{
+  min-height:40px;
+  margin-top:7px;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  gap:6px;
+}
+.formation-hero{
+  min-width:0;
+  max-width:62px;
+  text-align:center;
+}
+.formation-hero img{
+  display:block;
+  width:31px;height:31px;margin:0 auto 2px;border-radius:7px;object-fit:cover;border:1px solid var(--sheet-border);
+}
+.formation-hero-name{
+  display:block;
+  font-size:8.5px;
+  line-height:1.05;
+  font-weight:800;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.formation-ratio{
+  margin-top:7px!important;
+  padding:5px 4px;
+  border-radius:7px;
+  background:var(--section-bg);
+  color:var(--sheet-text)!important;
+  font-size:13px;
+  line-height:1;
+  font-weight:900;
+}
+.sheet-utc{
+  margin-top:12px;
+  text-align:center;
+  color:var(--team-head);
+  font-size:12px;
+  font-weight:800;
+}
+.legend{display:none!important}
+
+/* Keep export layout identical regardless of editor density setting. */
+.compact .player-row,.compact .team-title,.compact .team-section-title,.compact .sheet-title{
+  font-size:inherit;
+  padding:inherit;
+}
+
+
+.empty-sheet-message{
+  grid-column:1/-1;
+  border:1px dashed var(--sheet-border);
+  border-radius:12px;
+  padding:28px;
+  text-align:center;
+  color:var(--sheet-muted);
+  font-weight:750;
+}
+
+
+/* Mobile-safe live preview: show the FULL sheet width inside the phone. */
+.preview-wrap{
+  overflow:hidden!important;
+}
+.sheet-inline-holder{
+  width:100%;
+  position:relative;
+  overflow:hidden;
+}
+.sheet-inline-holder>.sheet{
+  transform-origin:top left;
+  margin:0!important;
+}
+.joiner-person-svg{
+  width:1em;
+  height:1em;
+  display:block;
+  fill:#24783b;
+}
+.legend-icon.joiner-icon,
+.section-icon.joiner-icon{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+.legend-icon.joiner-icon .joiner-person-svg{width:18px;height:18px}
+.section-icon.joiner-icon .joiner-person-svg{width:16px;height:16px}
+
+/* Preview overlay must use all available phone width and scroll vertically only. */
+.layout-preview-stage{
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+}
+#layout-preview-content{
+  width:100%!important;
+  min-width:0!important;
+  display:block!important;
+}
+#layout-preview-content .sheet{
+  transform-origin:top left!important;
+}
+
+
+/* iOS live-sheet fix: CSS zoom keeps the complete scaled document in normal flow. */
+.sheet-inline-holder{
+  width:100%!important;
+  height:auto!important;
+  min-height:0!important;
+  overflow:visible!important;
+  position:relative;
+}
+.sheet-inline-holder>.sheet{
+  transform:none!important;
+  transform-origin:top left!important;
+  margin:0!important;
+}
+@supports not (zoom: 1){
+  .sheet-inline-holder{overflow:auto!important}
+  .sheet-inline-holder>.sheet{zoom:1!important}
+}
+
+
+/* ===== NEXA DYNAMIC TEAM / FORMATION WIDTH FIX =====
+   Use the full Team Sheet width for the teams that actually exist. */
+.teams-grid.count-1{
+  grid-template-columns:minmax(0,1fr)!important;
+}
+.teams-grid.count-2{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+}
+.teams-grid.count-3{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+}
+.teams-grid.count-4{
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+}
+.teams-grid.count-5,
+.teams-grid.count-6{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+}
+
+/* With fewer teams, give rows more breathing room rather than leaving
+   two empty "phantom" team columns on the right. */
+.teams-grid.count-1 .team-card{max-width:760px;width:100%;justify-self:center}
+.teams-grid.count-2 .team-card .rally-name{font-size:15px}
+.teams-grid.count-2 .team-card .rally-time{font-size:12px}
+.teams-grid.count-2 .joiner-row{font-size:13px;min-height:54px}
+.teams-grid.count-2 .hero-mini-name{font-size:11px}
+.teams-grid.count-2 .team-section-title{font-size:14px}
+
+/* Formations use however many cards are actually saved.
+   2 saved formations = 2 wide cards, 4 = 4 compact cards. */
+.formation-cards{
+  grid-template-columns:repeat(auto-fit,minmax(120px,1fr))!important;
+}
+.formation-group:has(.formation-card:nth-child(1):last-child) .formation-cards{
+  grid-template-columns:minmax(0,1fr)!important;
+}
+.formation-group:has(.formation-card:nth-child(2):last-child) .formation-cards{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+}
+.formation-group:has(.formation-card:nth-child(3):last-child) .formation-cards{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+}
+.formation-group:has(.formation-card:nth-child(4):last-child) .formation-cards{
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+}
+.formation-title{
+  white-space:normal!important;
+  overflow-wrap:normal!important;
+  word-break:normal!important;
+}
+.formation-ratio{
+  white-space:nowrap!important;
+}
+
+
+.formation-cards.cards-1{grid-template-columns:minmax(0,1fr)!important}
+.formation-cards.cards-2{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+.formation-cards.cards-3{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+.formation-cards.cards-4{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+
+
+/* ===== NEXA TEAM SHEET VISUAL POLISH ===== */
+/* Keep the approved dynamic-width logic; only refine spacing/type. */
+
+.team-card{
+  overflow:hidden;
+}
+.team-title{
+  font-size:clamp(18px,2.5vw,30px)!important;
+  line-height:1.05!important;
+  padding:10px 8px!important;
+}
+.team-section-title{
+  font-size:12px!important;
+  line-height:1.15!important;
+  letter-spacing:.35px!important;
+  padding:7px 5px!important;
+}
+.rally-row{
+  padding:7px 8px!important;
+  min-height:48px!important;
+}
+.rally-name{
+  font-size:14px!important;
+  line-height:1.12!important;
+}
+.rally-time{
+  font-size:10px!important;
+  line-height:1.1!important;
+  margin-top:2px!important;
+}
+.joiner-head,
+.joiner-row{
+  grid-template-columns:minmax(0,1.35fr) minmax(0,.82fr) minmax(0,.82fr)!important;
+}
+.joiner-head{
+  font-size:10px!important;
+  line-height:1.05!important;
+  letter-spacing:.25px!important;
+}
+.joiner-head > *,
+.joiner-row > *{
+  min-width:0!important;
+  padding-left:5px!important;
+  padding-right:5px!important;
+}
+.joiner-row{
+  font-size:11px!important;
+  line-height:1.1!important;
+  min-height:38px!important;
+}
+.joiner-name{
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+.hero-mini-name{
+  font-size:9px!important;
+  line-height:1.05!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+
+/* Global formations: cleaner hierarchy and more usable card width. */
+.formations-title{
+  font-size:13px!important;
+  line-height:1.1!important;
+  letter-spacing:.3px!important;
+  margin:4px 0 5px!important;
+}
+.formation-group{
+  padding:7px!important;
+}
+.formation-group-title{
+  font-size:11px!important;
+  line-height:1.1!important;
+  letter-spacing:.2px!important;
+  margin-bottom:6px!important;
+}
+.formation-card{
+  padding:7px 5px!important;
+  min-width:0!important;
+}
+.formation-title{
+  font-size:10px!important;
+  line-height:1.08!important;
+  letter-spacing:.15px!important;
+  text-align:center!important;
+}
+.formation-ratio{
+  font-size:12px!important;
+  line-height:1.1!important;
+  margin-top:5px!important;
+  text-align:center!important;
+}
+.formation-heroes{
+  gap:3px!important;
+  justify-content:center!important;
+}
+.formation-hero-name{
+  font-size:8px!important;
+  line-height:1!important;
+}
+
+/* Two-team sheets get comfortable proportions without oversized labels. */
+.teams-grid.count-2{
+  gap:8px!important;
+}
+.teams-grid.count-2 .team-title{
+  font-size:28px!important;
+}
+.teams-grid.count-2 .rally-name{
+  font-size:15px!important;
+}
+.teams-grid.count-2 .joiner-row{
+  font-size:11px!important;
+  min-height:40px!important;
+}
+
+/* Legend stays compact in the top-right and does not crowd Team 2. */
+.sheet-legend{
+  font-size:9px!important;
+  line-height:1.12!important;
+  padding:6px 8px!important;
+  gap:3px!important;
+  max-width:245px!important;
+}
+
+
+/* ===== NEXA MOBILE SHEET OVERFLOW / CLIPPING FIX =====
+   Preserve the dynamic widths, but prevent the legend and oversized row text
+   from covering Team 2 or being vertically clipped in the scaled preview. */
+
+.sheet-header{
+  position:relative!important;
+  min-height:72px!important;
+  padding:10px 12px!important;
+}
+.sheet-brand{
+  max-width:55%!important;
+}
+.sheet-legend{
+  position:absolute!important;
+  top:8px!important;
+  right:8px!important;
+  width:auto!important;
+  max-width:205px!important;
+  padding:5px 7px!important;
+  font-size:8px!important;
+  line-height:1.05!important;
+  z-index:3!important;
+  box-sizing:border-box!important;
+}
+.sheet-legend > *{
+  min-width:0!important;
+}
+.sheet-legend .legend-label,
+.sheet-legend span{
+  white-space:normal!important;
+}
+
+/* Keep all team content inside its own card. */
+.team-card,
+.team-card *{
+  box-sizing:border-box!important;
+}
+.team-card{
+  min-width:0!important;
+}
+.rally-row{
+  overflow:hidden!important;
+}
+.rally-name{
+  font-size:12px!important;
+  line-height:1.05!important;
+  max-width:100%!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+.teams-grid.count-2 .rally-name{
+  font-size:12px!important;
+}
+.rally-time{
+  font-size:9px!important;
+}
+.joiner-head{
+  overflow:hidden!important;
+}
+.joiner-head > *{
+  font-size:9px!important;
+  line-height:1!important;
+  overflow:hidden!important;
+  text-overflow:clip!important;
+  white-space:nowrap!important;
+}
+.joiner-row{
+  overflow:hidden!important;
+}
+.joiner-row > *{
+  overflow:hidden!important;
+}
+
+/* Avoid vertical clipping from large inherited text in the preview. */
+.team-section-title{
+  min-height:25px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+}
+.rally-row{
+  min-height:42px!important;
+  align-items:center!important;
+}
+
+/* Make two-team preview especially stable on narrow phones. */
+.teams-grid.count-2{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:6px!important;
+}
+.teams-grid.count-2 .team-title{
+  font-size:16px!important;
+  padding:7px 5px!important;
+}
+.teams-grid.count-2 .team-section-title{
+  font-size:10px!important;
+  padding:5px 3px!important;
+}
+.teams-grid.count-2 .joiner-head{
+  grid-template-columns:minmax(0,1.45fr) minmax(0,.78fr) minmax(0,.78fr)!important;
+}
+.teams-grid.count-2 .joiner-row{
+  grid-template-columns:minmax(0,1.45fr) minmax(0,.78fr) minmax(0,.78fr)!important;
+  min-height:32px!important;
+  font-size:9px!important;
+}
+
+/* Formation cards remain readable but compact enough to fit the sheet. */
+.formation-group-title{
+  white-space:normal!important;
+}
+.formation-title{
+  font-size:9px!important;
+}
+.formation-ratio{
+  font-size:10px!important;
+}
+
+/* Extra safety for inline preview scaling on iPhone/Safari. */
+.inline-sheet-wrap,
+.sheet-preview,
+.sheet{
+  overflow:visible!important;
+}
+
+
+/* ===== NEXA HEADER / RALLY ROW CLIPPING FIX ===== */
+/* The prior mobile patch exposed overflow from scaled team cards.
+   Lock each card's painting area and give the first rows explicit height. */
+
+.teams-grid{
+  align-items:start!important;
+  overflow:hidden!important;
+}
+.team-card{
+  overflow:hidden!important;
+  contain:paint!important;
+}
+.team-title{
+  position:relative!important;
+  z-index:2!important;
+  height:34px!important;
+  min-height:34px!important;
+  max-height:34px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  overflow:hidden!important;
+  padding:0 6px!important;
+  line-height:1!important;
+}
+.teams-grid.count-2 .team-title{
+  font-size:16px!important;
+  height:34px!important;
+  min-height:34px!important;
+}
+.team-section-title{
+  position:relative!important;
+  z-index:2!important;
+  height:28px!important;
+  min-height:28px!important;
+  max-height:28px!important;
+  overflow:hidden!important;
+  padding:0 4px!important;
+  line-height:1!important;
+}
+.rally-row{
+  position:relative!important;
+  z-index:1!important;
+  height:46px!important;
+  min-height:46px!important;
+  max-height:46px!important;
+  padding:5px 7px!important;
+  overflow:hidden!important;
+  display:flex!important;
+  align-items:center!important;
+}
+.rally-row > *{
+  min-width:0!important;
+  max-height:36px!important;
+  overflow:hidden!important;
+}
+.rally-name{
+  display:block!important;
+  font-size:12px!important;
+  line-height:14px!important;
+  max-height:14px!important;
+  overflow:hidden!important;
+  white-space:nowrap!important;
+  text-overflow:ellipsis!important;
+}
+.rally-time{
+  display:block!important;
+  font-size:9px!important;
+  line-height:11px!important;
+  max-height:11px!important;
+  margin-top:2px!important;
+  overflow:hidden!important;
+  white-space:nowrap!important;
+}
+
+/* Undo the overflow-visible safety rule from the prior patch:
+   the sheet itself may scale, but its internal content must stay clipped. */
+.sheet{
+  overflow:hidden!important;
+}
+.inline-sheet-wrap,
+.sheet-preview{
+  overflow:hidden!important;
+}
+
+/* Keep the legend wholly inside the header and away from Team 2. */
+.sheet-header{
+  min-height:78px!important;
+  overflow:hidden!important;
+}
+.sheet-legend{
+  top:7px!important;
+  right:7px!important;
+  max-width:185px!important;
+  max-height:62px!important;
+  overflow:hidden!important;
+  font-size:7px!important;
+  line-height:1!important;
+}
+
+
+/* ===== NEXA FINAL TEAM CARD STACK FIX ===== */
+.team-card{
+  display:grid!important;
+  grid-template-rows:34px 28px auto 28px auto!important;
+  align-content:start!important;
+  overflow:hidden!important;
+  position:relative!important;
+  transform:none!important;
+}
+.team-card > *{
+  transform:none!important;
+}
+.team-title{
+  grid-row:1!important;
+  position:relative!important;
+  inset:auto!important;
+  margin:0!important;
+  height:34px!important;
+  min-height:34px!important;
+  max-height:34px!important;
+  overflow:hidden!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  line-height:1!important;
+  font-size:16px!important;
+  z-index:5!important;
+}
+.team-card > .team-section-title:first-of-type{
+  grid-row:2!important;
+}
+.rally-list,
+.team-card .rally-list{
+  grid-row:3!important;
+  position:relative!important;
+  inset:auto!important;
+  margin:0!important;
+  overflow:hidden!important;
+  min-height:0!important;
+}
+.rally-row{
+  position:relative!important;
+  inset:auto!important;
+  transform:none!important;
+  margin:0!important;
+  overflow:hidden!important;
+}
+.joiners-title,
+.team-card .joiners-title{
+  grid-row:4!important;
+  position:relative!important;
+  inset:auto!important;
+  transform:none!important;
+  margin:0!important;
+  overflow:hidden!important;
+}
+.joiners-table,
+.team-card .joiners-table{
+  grid-row:5!important;
+  position:relative!important;
+  inset:auto!important;
+  transform:none!important;
+  margin:0!important;
+  overflow:hidden!important;
+}
+
+/* Hard clipping guard for any legacy absolute/scaled descendants */
+.team-card,
+.team-title,
+.team-section-title,
+.rally-list,
+.rally-row,
+.joiners-title,
+.joiners-table{
+  clip-path:inset(0)!important;
+}
+
+/* Two-team mobile preview: keep both columns readable without internal overlap. */
+.teams-grid.count-2{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:6px!important;
+}
+.teams-grid.count-2 .team-card{
+  min-width:0!important;
+}
+
+
+/* ===== NEXA MOBILE PREVIEW FLOW FIX v2 ===== */
+@media (max-width: 768px){
+  .sheet-preview,
+  .preview-sheet,
+  #sheetPreview,
+  #previewSheet{
+    transform-origin:top left!important;
+  }
+
+  .team-card{
+    display:flex!important;
+    flex-direction:column!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow:visible!important;
+  }
+
+  .team-title{
+    flex:0 0 38px!important;
+    height:38px!important;
+    min-height:38px!important;
+    max-height:38px!important;
+    padding:0 6px!important;
+    margin:0!important;
+    line-height:38px!important;
+    font-size:18px!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    position:relative!important;
+    z-index:10!important;
+  }
+
+  .team-section-title{
+    flex:0 0 28px!important;
+    height:28px!important;
+    min-height:28px!important;
+    max-height:28px!important;
+    line-height:28px!important;
+    padding:0 4px!important;
+    margin:0!important;
+    position:relative!important;
+    z-index:8!important;
+  }
+
+  .rally-list{
+    display:block!important;
+    flex:0 0 auto!important;
+    height:auto!important;
+    min-height:36px!important;
+    max-height:none!important;
+    margin:0!important;
+    padding:0!important;
+    position:relative!important;
+    overflow:visible!important;
+    z-index:6!important;
+  }
+
+  .rally-row{
+    display:flex!important;
+    align-items:center!important;
+    min-height:36px!important;
+    height:auto!important;
+    line-height:1.15!important;
+    padding:5px 6px!important;
+    margin:0!important;
+    position:relative!important;
+    overflow:hidden!important;
+  }
+
+  .joiners-title{
+    flex:0 0 28px!important;
+    min-height:28px!important;
+    height:28px!important;
+    line-height:28px!important;
+    margin:0!important;
+    padding:0 4px!important;
+    position:relative!important;
+  }
+
+  .joiners-table{
+    flex:0 0 auto!important;
+    height:auto!important;
+    min-height:0!important;
+    margin:0!important;
+    position:relative!important;
+    overflow:visible!important;
+  }
+
+  /* Remove the clipping guard from prior patch; it was hiding displaced content. */
+  .team-card,
+  .team-title,
+  .team-section-title,
+  .rally-list,
+  .rally-row,
+  .joiners-title,
+  .joiners-table{
+    clip-path:none!important;
+  }
+}
+
+
+/* ===== NEXA ACTUAL-CLASS LAYOUT FIX =====
+   Uses the real renderer classes: rally-entry / joiners-heading / joiner-table. */
+
+.team-card{
+  display:grid!important;
+  grid-template-rows:auto auto auto auto auto!important;
+  align-content:start!important;
+  overflow:hidden!important;
+  min-width:0!important;
+}
+
+.team-card > .team-title{
+  grid-row:1!important;
+  position:static!important;
+  height:auto!important;
+  min-height:38px!important;
+  max-height:none!important;
+  margin:0!important;
+  padding:8px 6px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  overflow:hidden!important;
+  font-size:20px!important;
+  line-height:1.05!important;
+  z-index:auto!important;
+}
+
+.team-card > .team-section-title:not(.joiners-heading){
+  grid-row:2!important;
+  position:static!important;
+  height:auto!important;
+  min-height:30px!important;
+  max-height:none!important;
+  margin:0!important;
+  padding:6px 4px!important;
+  overflow:hidden!important;
+  font-size:11px!important;
+  line-height:1.1!important;
+}
+
+.team-card > .rally-list{
+  grid-row:3!important;
+  position:static!important;
+  display:block!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  margin:0!important;
+  padding:0 8px!important;
+  overflow:hidden!important;
+}
+
+.team-card .rally-entry{
+  position:static!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 30px!important;
+  align-items:center!important;
+  gap:4px!important;
+  height:auto!important;
+  min-height:42px!important;
+  max-height:none!important;
+  padding:6px 2px!important;
+  margin:0!important;
+  overflow:hidden!important;
+  transform:none!important;
+}
+
+.team-card .rally-info{
+  min-width:0!important;
+  overflow:hidden!important;
+}
+.team-card .rally-name{
+  display:block!important;
+  font-size:13px!important;
+  line-height:1.1!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  max-width:100%!important;
+}
+.team-card .rally-time{
+  display:block!important;
+  font-size:9px!important;
+  line-height:1.1!important;
+  margin-top:2px!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+.team-card .rally-pet{
+  font-size:18px!important;
+  line-height:1!important;
+}
+
+.team-card > .team-section-title.joiners-heading{
+  grid-row:4!important;
+  position:static!important;
+  height:auto!important;
+  min-height:30px!important;
+  max-height:none!important;
+  margin:0!important;
+  padding:6px 4px!important;
+  overflow:hidden!important;
+  font-size:11px!important;
+  line-height:1.1!important;
+}
+
+.team-card > .joiner-table{
+  grid-row:5!important;
+  position:static!important;
+  display:block!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  margin:0!important;
+  overflow:hidden!important;
+}
+
+.joiner-head,
+.joiner-row{
+  grid-template-columns:minmax(0,1.35fr) minmax(0,.82fr) minmax(0,.82fr)!important;
+}
+.joiner-head > div,
+.joiner-row > div{
+  min-width:0!important;
+  padding:6px 4px!important;
+  overflow:hidden!important;
+}
+.joiner-head{
+  font-size:9px!important;
+  line-height:1!important;
+}
+.joiner-row{
+  min-height:34px!important;
+  font-size:10px!important;
+  line-height:1.05!important;
+}
+.joiner-player span,
+.hero-mini-name{
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+
+/* Two saved teams use the whole sheet evenly. */
+.teams-grid.count-2{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:8px!important;
+}
+
+/* Header / legend stay out of the team rows. */
+.sheet-header{
+  min-height:88px!important;
+  padding:10px 210px 10px 110px!important;
+  overflow:visible!important;
+}
+.sheet-legend{
+  top:8px!important;
+  right:8px!important;
+  max-width:190px!important;
+  font-size:8px!important;
+  line-height:1.05!important;
+  padding:6px 8px!important;
+}
+
+/* Global formations stay below the teams, never overlap them. */
+.formations{
+  position:static!important;
+  clear:both!important;
+  margin-top:18px!important;
+}
+
+
+/* ===== NEXA FONT SIZE + FULL LEGEND FIX ===== */
+
+/* Smaller typography so the sheet breathes instead of looking boxed-in. */
+.sheet-title{
+  font-size:34px!important;
+}
+.sheet-subtitle{
+  font-size:14px!important;
+}
+.team-title{
+  font-size:15px!important;
+  min-height:32px!important;
+  padding:6px 4px!important;
+}
+.team-section-title{
+  font-size:9px!important;
+  min-height:25px!important;
+  padding:4px 3px!important;
+}
+.rally-name{
+  font-size:10px!important;
+  line-height:1.05!important;
+}
+.rally-time{
+  font-size:8px!important;
+}
+.joiner-head{
+  font-size:8px!important;
+}
+.joiner-row{
+  font-size:9px!important;
+  min-height:30px!important;
+}
+.hero-mini-name{
+  font-size:8px!important;
+}
+.formations-heading{
+  font-size:13px!important;
+}
+.formation-group-title{
+  font-size:9px!important;
+}
+.formation-title{
+  font-size:8.5px!important;
+}
+.formation-ratio{
+  font-size:10px!important;
+}
+.sheet-utc{
+  font-size:9px!important;
+}
+
+/* Full legend: Rally Leader + Joiner + Pet Active, all visible. */
+.sheet-legend{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:4px!important;
+  position:absolute!important;
+  top:8px!important;
+  right:8px!important;
+  width:190px!important;
+  max-width:190px!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:visible!important;
+  padding:6px 8px!important;
+  font-size:8px!important;
+  line-height:1.05!important;
+  box-sizing:border-box!important;
+}
+.sheet-legend > div{
+  display:grid!important;
+  grid-template-columns:22px 1fr!important;
+  align-items:center!important;
+  gap:6px!important;
+  min-height:18px!important;
+  height:auto!important;
+  overflow:visible!important;
+}
+.sheet-legend .legend-icon{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:22px!important;
+  min-width:22px!important;
+  height:18px!important;
+  overflow:visible!important;
+}
+.sheet-legend span,
+.sheet-legend small{
+  display:inline!important;
+  overflow:visible!important;
+  white-space:normal!important;
+  text-overflow:clip!important;
+}
+.sheet-header{
+  min-height:96px!important;
+  padding-top:10px!important;
+  padding-bottom:10px!important;
+}
+
+
+/* ===== NEXA MOBILE SHEET CLEANUP v2 ===== */
+/* Compact, readable preview while preserving the white-sheet concept. */
+
+.sheet-header{
+  min-height:82px!important;
+  padding:8px 10px!important;
+}
+.sheet-title{font-size:27px!important; line-height:1!important;}
+.sheet-subtitle{font-size:12px!important; line-height:1!important;}
+
+.team-title{
+  font-size:12px!important;
+  line-height:1!important;
+  min-height:24px!important;
+  padding:4px 3px!important;
+}
+.team-section-title{
+  font-size:7.5px!important;
+  line-height:1!important;
+  min-height:19px!important;
+  padding:3px 2px!important;
+}
+.rally-name{
+  font-size:8.5px!important;
+  line-height:1!important;
+  padding:2px 4px!important;
+}
+.rally-time{font-size:7px!important; line-height:1!important;}
+.joiner-head{
+  font-size:6.5px!important;
+  line-height:1!important;
+  padding:2px!important;
+}
+.joiner-row{
+  font-size:7.5px!important;
+  line-height:1!important;
+  min-height:23px!important;
+}
+.hero-mini-name{font-size:6.5px!important;}
+.formations-heading{
+  font-size:10px!important;
+  line-height:1!important;
+  margin:3px 0!important;
+}
+.formation-group-title{
+  font-size:7px!important;
+  line-height:1!important;
+}
+.formation-title{
+  font-size:6.5px!important;
+  line-height:1.05!important;
+}
+.formation-ratio{
+  font-size:8.5px!important;
+  line-height:1!important;
+}
+.sheet-utc{
+  font-size:7.5px!important;
+  line-height:1!important;
+}
+
+/* Make the full 3-row legend readable instead of microscopic/clipped. */
+.sheet-legend{
+  top:7px!important;
+  right:8px!important;
+  width:154px!important;
+  max-width:154px!important;
+  padding:5px 7px!important;
+  gap:2px!important;
+  font-size:6.7px!important;
+  line-height:1!important;
+  z-index:50!important;
+}
+.sheet-legend > div{
+  grid-template-columns:18px minmax(0,1fr)!important;
+  gap:4px!important;
+  min-height:14px!important;
+}
+.sheet-legend .legend-icon{
+  width:18px!important;
+  min-width:18px!important;
+  height:14px!important;
+}
+.sheet-legend span,
+.sheet-legend small{
+  font-size:6.7px!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+}
+
+/* Keep content inside cells and avoid the giant chopped lettering seen on mobile. */
+.team-card, .team-card * ,
+.formation-group, .formation-group *{
+  box-sizing:border-box!important;
+}
+.team-card{
+  overflow:hidden!important;
+}
+.rally-name,
+.joiner-row > *,
+.joiner-head > *{
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+  min-width:0!important;
+}
+
+/* Preview should show the whole sheet centered, not crop it. */
+#sheetPreviewViewport,
+.sheet-preview-viewport,
+.preview-viewport,
+.preview-stage{
+  overflow:auto!important;
+  -webkit-overflow-scrolling:touch!important;
+}
+
+
+/* Mobile builder preview: show the complete sheet directly under the controls */
+#sheet-inline-holder{
+  width:100%!important;
+  max-width:100%!important;
+  margin:18px auto 0!important;
+  overflow:hidden!important;
+  background:transparent!important;
+}
+@media(max-width:700px){
+  #sheet-inline-holder{margin-top:14px!important}
+}
+
+
+.nexa-important-editor textarea{
+ width:100%;min-height:110px;resize:vertical;border:1px solid #3a4055;border-radius:14px;
+ background:#090c18;color:#fff;padding:14px 16px;font:inherit;line-height:1.35;
+}
+.nexa-important-editor label{display:block;margin:0 0 8px;font-weight:800}
+.sheet .tips{right:260px!important;width:250px!important}
+.sheet .tips .box-title::before{content:"ⓘ ";font-weight:900}
+.sheet .tips .box-title{font-size:12px!important}
+.sheet .legend{right:10px!important;width:235px!important}
+
+
+/* ROOT FIX: inline preview always shows the COMPLETE sheet */
+#sheet-inline-holder{
+  position:relative!important;
+  width:100%!important;
+  max-width:100%!important;
+  overflow:hidden!important;
+  padding:0!important;
+}
+#sheet-inline-holder #sheet{
+  width:1400px!important;
+  min-width:1400px!important;
+  max-width:1400px!important;
+  margin:0!important;
+  transform-origin:0 0!important;
+}
+
+
+/* Alliance branding is now controlled by Layout Management */
+#branding-card,#style-card,.branding-card,.style-card,
+[data-section="branding"],[data-section="style"]{display:none!important}
+
+</style>
+
+<style id="nexa-template-v3-layout">
+/* Builder controls are intentionally minimal; alliance visual identity comes from Layout Management. */
+.sheet{--accent:#244887}
+.sheet-info-row{display:flex;justify-content:flex-end;margin:4px 0 8px}
+.sheet-important{max-width:44%;border:1px solid #d7deea;border-radius:7px;padding:6px 8px;font-size:8px;line-height:1.25;background:#fff}
+.sheet-important b{display:block;font-size:7px;margin-bottom:2px;color:#14213d}
+.sheet-important span,.sheet-notes span{white-space:pre-wrap}
+.sheet-notes{margin-top:8px;border:1px solid #d7deea;border-radius:7px;padding:7px 9px;font-size:8px;line-height:1.3;background:#fff}
+.sheet-notes b{display:block;font-size:7px;margin-bottom:3px;color:#14213d}
+.hidden{display:none!important}
+
+/* Teams always remain on ONE horizontal row. Never 3+3 or stacked. */
+.teams-grid{display:grid!important;grid-template-rows:1fr!important;gap:7px!important;align-items:start!important}
+.teams-grid.count-1{grid-template-columns:minmax(0,1fr)!important}
+.teams-grid.count-2{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+.teams-grid.count-3{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+.teams-grid.count-4{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+.teams-grid.count-5{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+.teams-grid.count-6{grid-template-columns:repeat(6,minmax(0,1fr))!important}
+.team-card{min-width:0!important}
+
+/* 1–3 teams: sheet becomes teams + formations side-by-side.
+   4–6 teams: formations naturally move below the single team row. */
+.sheet.layout-side{display:grid!important;grid-template-columns:minmax(0,2.2fr) minmax(210px,.8fr)!important;column-gap:10px!important;align-items:start!important}
+.sheet.layout-side .sheet-header,.sheet.layout-side .sheet-info-row,.sheet.layout-side .sheet-notes,.sheet.layout-side .sheet-utc{grid-column:1/-1!important}
+.sheet.layout-side #teams-grid{grid-column:1!important}
+.sheet.layout-side #formations{grid-column:2!important;margin-top:0!important}
+.sheet.layout-bottom{display:block!important}
+.sheet.layout-bottom #formations{margin-top:8px!important}
+
+/* Compact formations with identity colors: rally leader blue, joiner green. */
+.formations{gap:6px!important}
+.formation-group[data-scope="rally"] .formation-title,
+.formation-group.rally .formation-title{color:#244887!important}
+.formation-group[data-scope="joiner"] .formation-title,
+.formation-group.joiner .formation-title{color:#2f7d45!important}
+</style>
+
+
+
+
+
+
+
+
+<style id="nexa-template-v6-preview">
+/* Notes matches Important */
+.nexa-important-editor textarea,
+#layout-notes{
+  display:block!important;
+  width:100%!important;
+  max-width:none!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+  min-height:150px!important;
+  resize:vertical!important;
+}
+
+/* Preview rebuild: transparent holder + sized scaling canvas */
+.preview-wrap{
+  width:100%!important;
+  overflow:hidden!important;
+  box-sizing:border-box!important;
+  padding:14px!important;
+  min-height:0!important;
+}
+.sheet-inline-holder{
+  width:100%!important;
+  max-width:100%!important;
+  overflow:hidden!important;
+  background:transparent!important;
+  margin:0!important;
+  padding:0!important;
+}
+.sheet-scale-canvas{
+  position:relative!important;
+  width:100%!important;
+  height:0;
+  overflow:visible!important;
+  background:transparent!important;
+}
+#sheet{
+  position:absolute!important;
+  top:0!important;
+  left:0!important;
+  margin:0!important;
+  transform-origin:top left!important;
+}
+
+/* Preserve intended team organization */
+.teams-grid{display:grid!important;gap:7px!important;align-items:start!important}
+.teams-grid.count-1{grid-template-columns:repeat(1,minmax(0,1fr))!important}
+.teams-grid.count-2{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+.teams-grid.count-3{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+.teams-grid.count-4{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+.teams-grid.count-5{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+.teams-grid.count-6{grid-template-columns:repeat(6,minmax(0,1fr))!important}
+
+.sheet.layout-side{
+  display:grid!important;
+  grid-template-columns:minmax(0,2.05fr) minmax(210px,.95fr)!important;
+  column-gap:10px!important;
+  align-items:start!important;
+}
+.sheet.layout-side .sheet-header,
+.sheet.layout-side .sheet-info-row,
+.sheet.layout-side .sheet-notes,
+.sheet.layout-side .sheet-utc{grid-column:1/-1!important}
+.sheet.layout-side #teams-grid{grid-column:1!important}
+.sheet.layout-side #formations{grid-column:2!important;margin-top:0!important}
+.sheet.layout-bottom{display:block!important}
+.sheet.layout-bottom #formations{margin-top:8px!important}
+</style>
+
+
+<style id="nexa-template-v7-rally-time">
+.rally-time{display:block!important;font-size:7px!important;font-weight:800!important;line-height:1.15!important}
+.rally-pet-times{display:block!important;font-size:6px!important;line-height:1.15!important;color:#596579!important}
+html,body{min-height:100%!important}
+body:after{content:"";display:block;height:220px;width:100%}
+</style>
+
+<style id="nexa-template-v8-visual-fixes">
+/* IMPORTANT + LEGEND share the top-right cleanly */
+.sheet-header{
+  position:relative!important;
+  padding-right:500px!important;
+}
+.sheet-top-right{
+  position:absolute!important;
+  top:8px!important;
+  right:8px!important;
+  display:flex!important;
+  align-items:flex-start!important;
+  justify-content:flex-end!important;
+  gap:8px!important;
+  max-width:470px!important;
+}
+.sheet-top-right .sheet-important{
+  position:static!important;
+  width:235px!important;
+  max-width:235px!important;
+  min-height:54px!important;
+  box-sizing:border-box!important;
+  padding:7px 9px!important;
+  font-size:8px!important;
+  line-height:1.2!important;
+  margin:0!important;
+}
+.sheet-top-right .sheet-legend{
+  position:static!important;
+  width:205px!important;
+  max-width:205px!important;
+  box-sizing:border-box!important;
+  padding:7px 9px!important;
+  margin:0!important;
+  display:grid!important;
+  gap:5px!important;
+  font-size:8px!important;
+  line-height:1!important;
+}
+.sheet-legend > div{
+  display:grid!important;
+  grid-template-columns:18px minmax(0,1fr)!important;
+  align-items:center!important;
+  gap:5px!important;
+}
+.sheet-legend .legend-icon{
+  width:18px!important;
+  height:18px!important;
+  min-width:18px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  font-size:13px!important;
+  line-height:1!important;
+}
+.sheet-legend .joiner-person-svg{
+  width:13px!important;
+  height:13px!important;
+}
+.sheet-legend .pet-icon{
+  font-size:12px!important;
+}
+.sheet-legend small{
+  font-size:7px!important;
+}
+
+/* Rally schedule must remain visible under name */
+.rally-time{
+  display:block!important;
+  visibility:visible!important;
+  opacity:1!important;
+  color:var(--sheet-muted)!important;
+  font-size:8px!important;
+  font-weight:800!important;
+  line-height:1.15!important;
+  margin-top:2px!important;
+}
+.rally-pet-times{
+  font-size:7px!important;
+  line-height:1.12!important;
+}
+
+/* Notes: always render when text exists and span entire sheet */
+.sheet-notes{
+  display:block;
+  width:100%!important;
+  box-sizing:border-box!important;
+  margin-top:10px!important;
+  min-height:52px!important;
+}
+.sheet-notes.hidden{display:none!important}
+.sheet-notes span{
+  display:block!important;
+  white-space:pre-wrap!important;
+}
+
+/* Rally formation heroes/names must not collapse */
+.formation-hero-list{
+  min-height:42px!important;
+  display:flex!important;
+  visibility:visible!important;
+  opacity:1!important;
+}
+.formation-hero{
+  display:block!important;
+  min-width:48px!important;
+}
+.formation-hero-name{
+  display:block!important;
+  visibility:visible!important;
+  opacity:1!important;
+  color:inherit!important;
+  white-space:normal!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+}
+
+/* More bottom breathing room on iOS */
+body:after{height:280px!important}
+.preview-wrap{margin-bottom:150px!important}
+</style>
+
+
+<style id="nexa-template-v9-layout">
+/* Formations always live BELOW the team row. */
+.sheet.layout-side,
+.sheet.layout-bottom{
+  display:block!important;
+}
+.sheet.layout-side #teams-grid,
+.sheet.layout-bottom #teams-grid{
+  width:100%!important;
+}
+.sheet.layout-side #formations,
+.sheet.layout-bottom #formations{
+  width:100%!important;
+  margin-top:16px!important;
+}
+
+/* Cleaner spacing between the two formation groups */
+.formations-title{
+  margin-bottom:10px!important;
+}
+.formations-grid,
+.formations-body{
+  gap:16px!important;
+}
+.formation-group{
+  padding-top:7px!important;
+}
+.formation-group + .formation-group{
+  margin-left:10px!important;
+}
+
+/* Notes must be the last visible block and have room */
+.sheet-notes{
+  display:block;
+  clear:both!important;
+  width:100%!important;
+  margin-top:18px!important;
+  min-height:62px!important;
+  padding:8px 10px!important;
+  box-sizing:border-box!important;
+}
+.sheet-notes.hidden{display:none!important}
+
+/* Remove UTC footer completely */
+.sheet-utc{display:none!important}
+
+/* Keep mobile preview scrollable with enough space below */
+.preview-wrap{margin-bottom:180px!important}
+body:after{height:320px!important}
+</style>
+
+
+<style id="nexa-template-v11-layout">
+.rally-name-line{
+  display:flex!important;
+  align-items:center!important;
+  gap:6px!important;
+  min-width:0!important;
+  white-space:nowrap!important;
+}
+.rally-name-line .rally-name{
+  min-width:0!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+.rally-name-line .rally-time{
+  display:inline-block!important;
+  flex:0 0 auto!important;
+  margin:0!important;
+  font-size:7px!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+  color:#697386!important;
+}
+
+/* 1–3 Teams: Formations beside the team row. */
+.sheet.layout-side{
+  display:grid!important;
+  grid-template-columns:minmax(0,2.05fr) minmax(250px,.95fr)!important;
+  column-gap:12px!important;
+  align-items:start!important;
+}
+.sheet.layout-side .sheet-header,
+.sheet.layout-side .sheet-notes{
+  grid-column:1/-1!important;
+}
+.sheet.layout-side #teams-grid{
+  grid-column:1!important;
+}
+.sheet.layout-side #formations{
+  grid-column:2!important;
+  margin-top:0!important;
+}
+
+/* 4–6 Teams: Formations below. */
+.sheet.layout-bottom{
+  display:block!important;
+}
+.sheet.layout-bottom #formations{
+  width:100%!important;
+  margin-top:14px!important;
+}
+
+/* Notes always has a reserved box at the bottom, even when empty. */
+.sheet-notes{
+  display:block!important;
+  width:100%!important;
+  min-height:72px!important;
+  margin-top:18px!important;
+  padding:8px 10px!important;
+  box-sizing:border-box!important;
+  border:1px solid #d7deea!important;
+  border-radius:7px!important;
+  background:#fff!important;
+}
+.sheet-notes.hidden{
+  display:block!important;
+}
+.sheet-notes b{
+  display:block!important;
+  margin-bottom:6px!important;
+}
+.sheet-notes span{
+  display:block!important;
+  min-height:40px!important;
+  white-space:pre-wrap!important;
+}
+
+/* Extra bottom room on mobile */
+.preview-wrap{margin-bottom:190px!important}
+body:after{height:340px!important}
+</style>
+
+
+<style id="nexa-template-v12-polish">
+.rally-name-line{gap:4px!important}
+.rally-name-line .rally-time{
+  color:#344054!important;
+  font-weight:800!important;
+  font-size:7.5px!important;
+}
+.rally-pet-times{
+  display:inline-block!important;
+  margin-top:2px!important;
+  color:#344054!important;
+  font-weight:700!important;
+  font-size:7px!important;
+}
+/* Keep formation hierarchy cleaner */
+.formations-title{
+  margin-bottom:8px!important;
+  text-align:center!important;
+}
+.formation-group-title{
+  white-space:nowrap!important;
+}
+/* Notes must read as an intentional section */
+.sheet-notes:before{
+  content:"NOTES";
+  display:block;
+  margin-bottom:6px;
+  font-size:8px;
+  line-height:1;
+  font-weight:900;
+  letter-spacing:.08em;
+  color:#172554;
+}
+</style>
+
+
+<style id="nexa-template-v13-spacing">
+/* Important separated farther left from Legend and made more noticeable */
+.sheet-top-right{
+  gap:20px!important;
+  right:10px!important;
+}
+.sheet-top-right .sheet-important{
+  transform:translateX(-14px)!important;
+}
+.sheet-important b{
+  color:#b42318!important;
+  font-weight:900!important;
+  letter-spacing:.06em!important;
+}
+
+/* Formation hierarchy: main title sits above group labels with more breathing room */
+.formations{
+  margin-top:22px!important;
+}
+.formations-heading{
+  text-align:center!important;
+  margin:0 0 12px!important;
+  transform:translateY(-3px)!important;
+  font-size:11px!important;
+  font-weight:900!important;
+  letter-spacing:.06em!important;
+}
+.formation-groups{
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:22px!important;
+  align-items:start!important;
+}
+.formation-group-title{
+  margin:0 0 8px!important;
+  text-align:center!important;
+  line-height:1.1!important;
+}
+
+/* Keep one clean hierarchy: FORMATIONS > JOINERS / RALLY LEADERS */
+.formation-group.joiner .formation-group-title{color:#2f7d45!important}
+.formation-group.rally .formation-group-title{color:#244887!important}
+</style>
+
+
+<style id="nexa-template-v14-adaptive">
+/* Rally time: darker and crisp */
+.rally-name-line .rally-time{
+  color:#27364f!important;
+  font-weight:900!important;
+  opacity:1!important;
+  text-shadow:none!important;
+}
+.rally-pet-times{
+  color:#27364f!important;
+  font-weight:800!important;
+  opacity:1!important;
+}
+
+/* 2–3 teams: Important more left, Legend right, Formations starts lower on right */
+.sheet.layout-side .sheet-top-right{
+  right:8px!important;
+  gap:18px!important;
+}
+.sheet.layout-side .sheet-important{
+  transform:translateX(-36px)!important;
+}
+.sheet.layout-side .sheet-important b{
+  color:#c2415d!important;
+  font-weight:950!important;
+}
+.sheet.layout-side #formations{
+  margin-top:38px!important;
+  align-self:start!important;
+}
+.sheet.layout-side .formations-heading{
+  margin-top:-18px!important;
+  margin-bottom:10px!important;
+  text-align:center!important;
+}
+
+/* 4–6 teams: teams full width, formations underneath, notes compact at bottom */
+.sheet.layout-bottom #formations{
+  margin-top:16px!important;
+  width:100%!important;
+}
+.sheet.layout-bottom .formations-heading{
+  margin-bottom:10px!important;
+}
+.sheet.layout-bottom .formation-groups{
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:18px!important;
+}
+.sheet.layout-bottom .sheet-notes{
+  min-height:54px!important;
+  margin-top:14px!important;
+  padding:7px 9px!important;
+}
+.sheet.layout-bottom .sheet-notes span{
+  min-height:25px!important;
+}
+
+/* Notes always remains last and intentional */
+.sheet-notes{clear:both!important}
+</style>
+
+
+<style id="nexa-template-v15-positioning">
+/* IMPORTANT farther left, with stronger visual separation from Legend */
+.sheet.layout-side .sheet-top-right,
+.sheet.layout-bottom .sheet-top-right{
+  gap:24px!important;
+}
+.sheet.layout-side .sheet-important,
+.sheet.layout-bottom .sheet-important{
+  transform:translateX(-62px)!important;
+}
+.sheet-important b{
+  color:#c0265e!important;
+  font-weight:950!important;
+  letter-spacing:.08em!important;
+}
+
+/* FORMATIONS starts lower and has its own clear visual zone */
+#formations{
+  padding-top:12px!important;
+}
+.sheet.layout-side #formations{
+  margin-top:56px!important;
+}
+.sheet.layout-bottom #formations{
+  margin-top:28px!important;
+}
+.formations-heading{
+  display:block!important;
+  position:relative!important;
+  z-index:2!important;
+  text-align:center!important;
+  margin:0 0 14px!important;
+  transform:none!important;
+  font-size:11px!important;
+  line-height:1!important;
+  font-weight:950!important;
+  letter-spacing:.08em!important;
+  color:#173b7a!important;
+}
+.formation-groups{
+  margin-top:0!important;
+}
+
+/* NOTES title always visible inside the bottom block */
+.sheet-notes{
+  position:relative!important;
+  display:block!important;
+  padding:22px 10px 9px!important;
+}
+.sheet-notes::before{
+  content:"NOTES";
+  position:absolute;
+  top:7px;
+  left:10px;
+  font-size:8px;
+  line-height:1;
+  font-weight:950;
+  letter-spacing:.08em;
+  color:#173b7a;
+}
+.sheet-notes > b{
+  display:none!important;
+}
+</style>
+
+</head>
+<body data-builder-rev="20260817-identity-cache-v4">
+<main class="shell">
+<a class="back" id="back-link" href="#">← Alliance Workspace</a>
+<div class="builder">
+  <aside class="panel">
+    <h1>Template Builder</h1>
+    <p class="muted">Build the final alliance team plan from your saved NEXA data.</p>
+    <div class="controls">
+      <div class="control-card nexa-important-editor">
+        <h3>ⓘ Important</h3>
+        <label for="important-notes">Special Instructions</label>
+        <textarea id="important-notes" rows="5" placeholder="Example: Joiners 1–4: join at 2:30 remaining. Joiners 5+: join at 2:00 remaining."></textarea>
+      </div>
+
+      <div class="control-card">
+        <h3>Notes</h3>
+        <textarea id="layout-notes" rows="5" placeholder="Add any extra notes for this layout."></textarea>
+      </div>
+
+      <div class="control-card">
+        <h3>Preview & Export</h3>
+        <button class="btn" id="preview-layout" type="button">Preview Layout</button>
+        <div class="row" style="margin-top:8px">
+          <button class="btn primary" id="download-layout" type="button">Download PNG</button>
+          <button class="btn" id="download-pdf" type="button">Download PDF</button>
+        </div>
+        <button class="btn" id="save-preview" type="button" style="margin-top:8px">Save Layout</button>
+        <div class="muted" id="export-status" style="margin-top:8px;font-size:.82rem"></div>
+      </div>
+    </div>
+  <div id="legacy-builder-controls" style="display:none"><img id="brand-emblem-preview" alt=""><span id="brand-alliance-label"></span><input id="emblem-file" type="file"><button id="remove-emblem" type="button"></button><select id="template-style"><option value="auto">auto</option><option value="classic">classic</option><option value="400">400</option></select><input id="c-bg" type="color" value="#ffffff"><input id="c-header" type="color" value="#ffffff"><input id="c-team" type="color" value="#ffffff"><input id="c-section" type="color" value="#ffffff"><input id="c-text" type="color" value="#ffffff"><input id="c-muted" type="color" value="#ffffff"><input id="c-pet" type="color" value="#ffffff"><input id="c-border" type="color" value="#ffffff"><select id="font-family"><option value="auto">auto</option><option value="classic">classic</option><option value="400">400</option></select><select id="title-weight"><option value="auto">auto</option><option value="classic">classic</option><option value="400">400</option></select><select id="body-weight"><option value="auto">auto</option><option value="classic">classic</option><option value="400">400</option></select><select id="density"><option value="auto">auto</option><option value="classic">classic</option><option value="400">400</option></select><button id="save-branding" type="button"></button><button id="reset-branding" type="button"></button></div>
+</aside>
+
+  <section class="panel preview-wrap">
+    <div id="sheet-inline-holder" class="sheet-inline-holder">
+      <div id="sheet-scale-canvas" class="sheet-scale-canvas">
+    <div id="sheet" class="sheet">
+      <div class="sheet-header">
+        <div class="sheet-brand-row">
+          <img id="sheet-emblem" class="sheet-emblem" alt="" style="display:none">
+          <div>
+            <div class="sheet-title" id="sheet-title">Alliance</div>
+            <div id="sheet-subtitle" class="sheet-subtitle"></div>
+          </div>
+        </div>
+        <div class="sheet-top-right">
+          <div id="sheet-important" class="sheet-important hidden"><b>ⓘ IMPORTANT</b><span id="sheet-important-text"></span></div>
+          <div class="sheet-legend" aria-label="Legend">
+            <div><span class="legend-icon rally-icon">♜</span><span>Rally Leader</span></div>
+            <div><span class="legend-icon joiner-icon"><svg class="joiner-person-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"></circle><path d="M4.5 21c.4-5.1 3.1-8 7.5-8s7.1 2.9 7.5 8H4.5z"></path></svg></span><span>Joiner</span></div>
+            <div><span class="legend-icon pet-icon">🐾</span><span>Pet Active <small>(at time shown)</small></span></div>
+          </div>
+        </div>
+      </div>
+      <div id="teams-grid" class="teams-grid"></div>
+      <div id="formations" class="formations"></div>
+      <div id="sheet-notes" class="sheet-notes hidden"><b>NOTES</b><span id="sheet-notes-text"></span></div>
+      <div class="sheet-utc-note">ALL TIMES ARE IN UTC</div>
+      
+    </div>
+      </div>
+    </div>
+  </section>
+</div>
+</main>
+<div id="layout-preview-overlay" class="layout-preview-overlay hidden" aria-hidden="true">
+  <div class="layout-preview-toolbar">
+    <button class="btn" id="close-layout-preview" type="button">Close</button>
+    <button class="btn primary" id="download-layout-preview" type="button">Download Layout</button>
+  </div>
+  <div class="layout-preview-stage">
+    <div id="layout-preview-content"></div>
+  </div>
+</div>
+<script>
+const sb=window.supabase.createClient("https://dfxcxboxrkfmrnsgpyin.supabase.co","sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-");
+const $=id=>document.getElementById(id);
+const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+const p=window.NEXA_NATIVE_PARAMS||new URLSearchParams(location.search);
+const eventType=p.get('event_type')||'svs',eventKey=String(eventType).trim().toLowerCase(),allianceId=p.get('alliance_id')||'',allianceTag=p.get('alliance_tag')||'Alliance';
+
+function displayName(v){
+  let out=String(v??'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[\u200B-\u200D\uFEFF]/g,'');
+  const map={'Α':'A','Β':'B','Ε':'E','Η':'H','Ι':'I','Κ':'K','Μ':'M','Ν':'N','Ο':'O','Ρ':'P','Τ':'T','Υ':'Y','Χ':'X','α':'a','β':'b','ε':'e','ι':'i','κ':'k','μ':'m','ν':'n','ο':'o','ρ':'p','τ':'t','υ':'y','χ':'x','Ɛ':'E','ɛ':'e','Ǝ':'E','Ɩ':'I','Ƙ':'K','ƙ':'k','Ɯ':'M','Ɲ':'N','Ƥ':'P','Ʀ':'R','ʀ':'R','Ƨ':'S','Ƭ':'T','Ʋ':'V','Ƴ':'Y','Ƶ':'Z'};
+  out=[...out].map(ch=>map[ch]??ch).join('').replace(/[ʚɞ꧁꧂༺༻『』【】〖〗《》〈〉❖✦✧★☆•·]+/g,'').replace(/\s+/g,' ').trim();
+  return out;
+}
+$('back-link').href=`alliance-teams.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}`;
+$('sheet-title').textContent=allianceTag;
+$('sheet-subtitle').textContent=eventType.toUpperCase();
+
+async function load(){
+  const teamQuery=sb.from('alliance_teams').select('*')
+    .eq('event_type_key',eventKey)
+    .eq('alliance_id',String(allianceId))
+    .order('sort_order').order('created_at');
+
+  let {data:teams,error:tErr}=await teamQuery;
+
+  // Compatibility fallback for older rows that may have stored event type with different case.
+  if(!tErr && (!teams||!teams.length) && eventType!==eventKey){
+    const fallback=await sb.from('alliance_teams').select('*')
+      .eq('event_type_key',eventType)
+      .eq('alliance_id',String(allianceId))
+      .order('sort_order').order('created_at');
+    if(!fallback.error && fallback.data?.length)teams=fallback.data;
+  }
+
+  if(tErr){
+    $('teams-grid').innerHTML=`<div class="empty-sheet-message">Could not load Teams: ${esc(tErr.message)}</div>`;
+    return;
+  }
+
+  const ids=(teams||[]).map(x=>x.id);
+  let members=[];
+  if(ids.length){
+    const {data,error}=await sb.from('team_members').select('*,pet_windows(*)').in('team_id',ids).order('created_at');
+    if(error){
+      $('teams-grid').innerHTML=`<div class="empty-sheet-message">Teams were found, but Team members could not load: ${esc(error.message)}</div>`;
+      return;
+    }
+    members=data||[];
+  }
+
+  let {data:formations,error:fErr}=await sb.from('alliance_formations').select('*')
+    .eq('event_type_key',eventKey)
+    .eq('alliance_id',String(allianceId))
+    .order('formation_scope').order('sort_order');
+
+  if(!fErr && (!formations||!formations.length) && eventType!==eventKey){
+    const fallback=await sb.from('alliance_formations').select('*')
+      .eq('event_type_key',eventType)
+      .eq('alliance_id',String(allianceId))
+      .order('formation_scope').order('sort_order');
+    if(!fallback.error && fallback.data?.length)formations=fallback.data;
+  }
+
+  if(fErr){
+    $('formations').classList.remove('is-empty');
+    $('formations').innerHTML=`<div class="empty-sheet-message">Could not load Formations: ${esc(fErr.message)}</div>`;
+    formations=[];
+  }
+
+  renderTeams(teams||[],members);
+  renderFormations(formations||[]);
+  autoDensity((teams||[]).length);
+  requestAnimationFrame(()=>{
+    if(typeof fitInlineSheet==='function')fitInlineSheet();
+    setTimeout(()=>{ if(typeof fitInlineSheet==='function')fitInlineSheet(); },80);
+  });
+  requestAnimationFrame(()=>{fitInlineSheet();setTimeout(fitInlineSheet,80);});
+
+  if(!(teams||[]).length){
+    $('teams-grid').innerHTML=`<div class="empty-sheet-message">
+      No Teams were found for ${esc(allianceTag)} / ${esc(String(eventType).toUpperCase())}.
+      Go back to the Alliance Workspace, save the Team, then reopen the layout.
+    </div>`;
+  }
+}
+function heroData(value){
+  if(value==null||value==='')return null;
+  if(typeof value==='object'){
+    return {
+      name:displayName(value.name||value.hero_name||value.label||'Hero'),
+      image:value.image_url||value.image||value.avatar_url||value.portrait_url||''
+    };
+  }
+  return {name:displayName(value),image:''};
+}
+function heroMarkup(value,formation=false){
+  const h=heroData(value);
+  if(!h)return `<span class="hero-empty">—</span>`;
+  if(formation){
+    return `<span class="formation-hero">
+      ${h.image?`<img src="${esc(h.image)}" alt="">`:''}
+      <span class="formation-hero-name">${esc(h.name)}</span>
+    </span>`;
+  }
+  return `<span class="hero-mini">
+    ${h.image?`<img src="${esc(h.image)}" alt="">`:''}
+    <span class="hero-mini-name">${esc(h.name)}</span>
+  </span>`;
+}
+function petWindowText(w){
+  const start=String(w?.start_utc||'').trim();
+  const end=String(w?.end_utc||'').trim();
+  if(start&&end)return `${start}–${end} UTC`;
+  if(start)return `${start} UTC`;
+  return '';
+}
+function renderTeams(teams,members){
+  const sheet=$('sheet');
+  const teamCount=(teams||[]).length;
+  sheet?.classList.toggle('layout-side',teamCount>=1&&teamCount<=3);
+  sheet?.classList.toggle('layout-bottom',teamCount>=4);
+  const grid=$('teams-grid');
+  grid.className='teams-grid count-'+Math.min(Math.max(teams.length,1),6);
+
+  grid.innerHTML=teams.map((t,index)=>{
+    const tm=members.filter(m=>String(m.team_id)===String(t.id));
+    const rally=tm.filter(m=>m.member_role==='rally_lead');
+    const joiners=tm.filter(m=>m.member_role==='joiner');
+    const useDefense=!!t.use_defensive_heroes;
+    const teamName=displayName(t.name)||`Team ${index+1}`;
+
+    const rallyHtml=rally.length?rally.map(m=>{
+      const windows=Array.isArray(m.pet_windows)?m.pet_windows:[];
+      const petTimes=windows.map(petWindowText).filter(Boolean);
+      const scheduleStart=(m.schedule_start_utc??'');
+      const scheduleEnd=(m.schedule_end_utc??'');
+      const rallySchedule=(scheduleStart!=='' && scheduleEnd!=='')
+        ? `${String(scheduleStart).padStart(2,'0')}:00–${String(scheduleEnd).padStart(2,'0')}:00`
+        : '';
+      const fallbackPetSchedule=String(m.pet_schedule||'')
+        .replace(/\s*UTC\b/gi,'')
+        .replace(/^[⏱🕒]\s*/,'')
+        .trim();
+      const timeText=rallySchedule||fallbackPetSchedule;
+      const hasPet=petTimes.length>0||m.pets_active===true||m.pet_active===true;
+
+      return `<div class="rally-entry">
+        <div class="rally-info">
+          <div class="rally-name-line">
+            <span class="rally-name">${esc(displayName(m.player_name)||'—')}</span>
+            ${timeText?`<span class="rally-time">${esc(timeText)}</span>`:''}
+          </div>
+        </div>
+        <div class="rally-pet ${hasPet?'':'empty'}" title="Pet Active">🐾</div>
+      </div>`;
+    }).join(''):`<div class="rally-empty">No Rally Leaders assigned</div>`;
+
+    const joinerHtml=joiners.length?joiners.map(m=>`<div class="joiner-row ${useDefense?'':'no-defense'}">
+      <div class="joiner-player"><span>${esc(displayName(m.player_name)||'—')}</span></div>
+      <div class="hero-cell">${heroMarkup(m.attack_hero)}</div>
+      ${useDefense?`<div class="hero-cell">${heroMarkup(m.defensive_hero)}</div>`:''}
+    </div>`).join(''):`<div class="joiner-row ${useDefense?'':'no-defense'}">
+      <div class="joiner-player"><span>—</span></div><div class="hero-cell"><span class="hero-empty">—</span></div>${useDefense?'<div class="hero-cell"><span class="hero-empty">—</span></div>':''}
+    </div>`;
+
+    return `<section class="team-card">
+      <div class="team-title">${esc(teamName)}</div>
+
+      <div class="team-section-title">
+        <span class="section-icon rally-icon">♜</span>
+        <span>RALLY LEADERS</span>
+      </div>
+      <div class="rally-list">${rallyHtml}</div>
+
+      <div class="team-section-title joiners-heading">
+        <span class="section-icon joiner-icon"><svg class="joiner-person-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"></circle><path d="M4.5 21c.4-5.1 3.1-8 7.5-8s7.1 2.9 7.5 8H4.5z"></path></svg></span>
+        <span>JOINERS</span>
+      </div>
+      <div class="joiner-table">
+        <div class="joiner-head ${useDefense?'':'no-defense'}">
+          <div>JOINER</div><div>ATTACK</div>${useDefense?'<div>DEFENSE</div>':''}
+        </div>
+        ${joinerHtml}
+      </div>
+    </section>`;
+  }).join('');
+}
+
+function normalizedFormationType(x){
+  const raw=String(x.formation_type||'attack').toLowerCase();
+  return raw.includes('def')?'defense':'attack';
+}
+function parseMaybeJSON(v){
+  if(v==null)return v;
+  if(typeof v!=='string')return v;
+  const t=v.trim();
+  if(!t)return null;
+  try{return JSON.parse(t)}catch(_){return v}
+}
+function formationHeroes(x){
+  if(x.formation_scope==='rally'){
+    const cfg=parseMaybeJSON(x.hero_config)||{};
+    const heroes=[
+      cfg.infantry_hero, cfg.lancer_hero, cfg.marksman_hero,
+      cfg.infantry, cfg.lancer, cfg.marksman,
+      cfg.hero1, cfg.hero2, cfg.hero3
+    ].filter(Boolean);
+    return [...new Map(heroes.map(h=>[typeof h==='string'?h:JSON.stringify(h),h])).values()];
+  }
+  const rec=parseMaybeJSON(x.recommended_heroes);
+  if(Array.isArray(rec))return rec.filter(Boolean);
+  if(rec && typeof rec==='object')return Object.values(rec).filter(Boolean);
+  return rec?[rec]:[];
+}
+function assignFormationSlots(rows){
+  const counts={};
+  return rows.map(x=>{
+    const scope=x.formation_scope==='rally'?'rally':'joiner';
+    const type=normalizedFormationType(x);
+    const key=`${scope}:${type}`;
+    counts[key]=(counts[key]||0)+1;
+
+    // Existing saved names can still explicitly say Main or Alt.
+    const n=String(x.name||'').toLowerCase();
+    let variant;
+    if(/\balt\b|alternative/.test(n))variant='Alt';
+    else if(/\bmain\b/.test(n))variant='Main';
+    else variant=counts[key]===1?'Main':'Alt';
+
+    return {...x,_scope:scope,_type:type,_variant:variant};
+  });
+}
+function formationCard(x){
+  const heroes=formationHeroes(x);
+  const title=`${x._variant} ${x._type==='defense'?'Defense':'Attack'}`;
+  return `<div class="formation-card">
+    <div class="formation-title">${esc(title)}</div>
+    ${heroes.length?`<div class="formation-hero-list">${heroes.map(h=>heroMarkup(h,true)).join('')}</div>`:'<div class="formation-hero-list"></div>'}
+    <div class="formation-ratio">${esc(x.infantry_pct)} / ${esc(x.lancer_pct)} / ${esc(x.marksman_pct)}</div>
+  </div>`;
+}
+function renderFormations(rows){
+  const box=$('formations');
+  if(!rows.length){
+    box.classList.add('is-empty');
+    box.innerHTML='';
+    return;
+  }
+  box.classList.remove('is-empty');
+
+  const normalized=assignFormationSlots(rows);
+  const joiner=normalized.filter(x=>x._scope==='joiner');
+  const rally=normalized.filter(x=>x._scope==='rally');
+
+  const group=(items,scope)=>{
+    if(!items.length)return '';
+    const label=scope==='joiner'?'JOINERS':'RALLY LEADERS';
+    const icon=scope==='joiner'
+      ? `<svg class="joiner-person-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"></circle><path d="M4.5 21c.4-5.1 3.1-8 7.5-8s7.1 2.9 7.5 8H4.5z"></path></svg>`
+      : '♜';
+
+    // Keep additional Attack formations under Attack and Defense under Defense,
+    // instead of stretching every formation across a new horizontal slot.
+    const attack=items.filter(x=>x._type==='attack');
+    const defense=items.filter(x=>x._type==='defense');
+    const typeColumn=(typeItems,type)=>{
+      if(!typeItems.length)return '';
+      return `<div class="formation-type-column ${type}">
+        ${typeItems.map(formationCard).join('')}
+      </div>`;
+    };
+
+    const cols=(attack.length && defense.length)?'two-types':'one-type';
+    return `<section class="formation-group ${scope}">
+      <div class="formation-group-title"><span class="${scope==='joiner'?'joiner-icon':'rally-icon'}">${icon}</span>${label}</div>
+      <div class="formation-type-columns ${cols}">
+        ${typeColumn(attack,'attack')}
+        ${typeColumn(defense,'defense')}
+      </div>
+    </section>`;
+  };
+
+  box.innerHTML=`
+    <div class="formations-heading">FORMATIONS</div>
+    <div class="formation-groups">
+      ${group(joiner,'joiner')}
+      ${group(rally,'rally')}
+    </div>`;
+}
+function autoDensity(count){
+  const mode=$('density').value;
+  const compact=mode==='compact'||(mode==='auto'&&count>=5);
+  $('sheet').classList.toggle('compact',compact);
+}
+
+const templateDefaults={
+  classic:{bg:'#ffffff',text:'#14213d',muted:'#677084',head:'#173b7a',section:'#eef2f8',pet:'#d89b20',border:'#cfd5e2'},
+  dark:{bg:'#0d111c',text:'#f4f6ff',muted:'#a8b0c1',head:'#1b243a',section:'#151a26',pet:'#f0a82c',border:'#2d3446'},
+  gold:{bg:'#fffaf0',text:'#2b210d',muted:'#77684c',head:'#8a6719',section:'#f5ead0',pet:'#c89012',border:'#d9c99c'},
+  ice:{bg:'#f4fbff',text:'#103149',muted:'#607c8d',head:'#1976a5',section:'#e3f4fb',pet:'#dc9b20',border:'#b9d8e5'},
+  forest:{bg:'#f6fbf7',text:'#183c29',muted:'#607769',head:'#285f42',section:'#e6f1e9',pet:'#d99b20',border:'#bfd2c5'}
+};
+let branding={
+  emblem_data_url:'',
+  template_style:'classic',
+  colors:{...templateDefaults.classic},
+  font_family:"Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  title_weight:'900',
+  body_weight:'400'
+};
+
+function applyBranding(){
+  const root=document.documentElement;
+  const c=branding.colors||templateDefaults.classic;
+  root.style.setProperty('--sheet-bg',c.bg);
+  root.style.setProperty('--sheet-text',c.text);
+  root.style.setProperty('--sheet-muted',c.muted);
+  root.style.setProperty('--team-head',c.head);
+  root.style.setProperty('--section-bg',c.section);
+  root.style.setProperty('--pet',c.pet);
+  root.style.setProperty('--sheet-border',c.border);
+  root.style.setProperty('--sheet-font',branding.font_family);
+  root.style.setProperty('--title-weight',branding.title_weight);
+  root.style.setProperty('--body-weight',branding.body_weight);
+
+  $('template-style').value=branding.template_style||'classic';
+  $('c-bg').value=c.bg;$('c-header').value=c.head;$('c-team').value=c.head;$('c-section').value=c.section;
+  $('c-text').value=c.text;$('c-muted').value=c.muted;$('c-pet').value=c.pet;$('c-border').value=c.border;
+  $('font-family').value=branding.font_family;
+  $('title-weight').value=branding.title_weight;
+  $('body-weight').value=branding.body_weight;
+
+  const emblem=branding.emblem_data_url||'';
+  $('sheet-emblem').src=emblem;$('sheet-emblem').style.display=emblem?'block':'none';
+  $('brand-emblem-preview').src=emblem;$('brand-emblem-preview').style.display=emblem?'block':'none';
+}
+
+async function loadBranding(){
+  const PRESET_ACCENTS={
+    forest_green:'#315f4b',ice_blue:'#5d88a8',royal_gold:'#a77a2b',ocean_teal:'#287b7b',
+    soft_burgundy:'#884d5c',lavender:'#746b9d',slate_blue:'#536d96',sage:'#6f876b',
+    dusty_rose:'#a66d78',steel:'#596579'
+  };
+
+  async function findLayoutIdentity(){
+    const aid=String(allianceId||'').trim();
+    const tag=String(allianceTag||'').trim();
+
+    // First use the exact alliance_id opened by Team Builder.
+    if(aid){
+      const exact=await sb.from('alliance_layout_settings')
+        .select('alliance_id,preset_key,emblem_data_url,updated_at')
+        .eq('alliance_id',aid)
+        .maybeSingle();
+      if(!exact.error && exact.data) return exact.data;
+    }
+
+    // NEXA currently has duplicate alliance rows for some visible tags.
+    // If the exact row has no identity, find all IDs with the same tag and use the newest saved identity.
+    if(tag){
+      const aliases=await sb.from('alliances')
+        .select('id,tag')
+        .ilike('tag',tag);
+      const ids=(aliases.data||[]).map(a=>String(a.id)).filter(Boolean);
+      if(ids.length){
+        const found=await sb.from('alliance_layout_settings')
+          .select('alliance_id,preset_key,emblem_data_url,updated_at')
+          .in('alliance_id',ids)
+          .order('updated_at',{ascending:false})
+          .limit(1);
+        if(!found.error && found.data?.length) return found.data[0];
+      }
+    }
+    return null;
+  }
+
+  try{
+    const layout=await findLayoutIdentity();
+    if(layout){
+      const accent=PRESET_ACCENTS[layout.preset_key]||PRESET_ACCENTS.forest_green;
+      branding={
+        ...branding,
+        emblem_data_url:layout.emblem_data_url||'',
+        template_style:'classic',
+        colors:{...templateDefaults.classic,head:accent}
+      };
+      applyBranding();
+
+      const sheet=$('sheet');
+      if(sheet){
+        sheet.style.setProperty('--accent',accent);
+        sheet.style.setProperty('--team-head',accent);
+      }
+      document.querySelectorAll('#sheet .team-title').forEach(el=>el.style.backgroundColor=accent);
+
+      const emblem=$('sheet-emblem');
+      if(emblem){
+        if(layout.emblem_data_url){
+          emblem.src=layout.emblem_data_url;
+          emblem.style.display='block';
+        }else{
+          emblem.removeAttribute('src');
+          emblem.style.display='none';
+        }
+      }
+      return;
+    }
+  }catch(layoutErr){
+    console.warn('Alliance layout identity:',layoutErr?.message||layoutErr);
+  }
+
+  // Backward-compatible fallback only when Layout Management has no identity saved.
+  const {data,error}=await sb.from('alliance_branding')
+    .select('*')
+    .eq('alliance_id',String(allianceId))
+    .maybeSingle();
+
+  if(error){
+    console.warn(error.message);
+    applyBranding();
+    return;
+  }
+  if(data){
+    branding={
+      emblem_data_url:data.emblem_data_url||'',
+      template_style:data.template_style||'classic',
+      colors:{...templateDefaults[data.template_style||'classic'],...(data.colors||{})},
+      font_family:data.font_family||branding.font_family,
+      title_weight:String(data.title_weight||900),
+      body_weight:String(data.body_weight||400)
+    };
+  }
+  applyBranding();
+}
+
+function useTemplatePreset(name){
+  branding.template_style=name;
+  branding.colors={...templateDefaults[name]};
+  applyBranding();
+}
+
+function readLiveColors(){
+  branding.colors={
+    bg:$('c-bg').value,
+    text:$('c-text').value,
+    muted:$('c-muted').value,
+    head:$('c-team').value,
+    section:$('c-section').value,
+    pet:$('c-pet').value,
+    border:$('c-border').value
+  };
+  branding.font_family=$('font-family').value;
+  branding.title_weight=$('title-weight').value;
+  branding.body_weight=$('body-weight').value;
+  applyBranding();
+}
+
+$('brand-alliance-label').textContent=allianceTag;
+$('template-style').onchange=e=>useTemplatePreset(e.target.value);
+['c-bg','c-header','c-team','c-section','c-text','c-muted','c-pet','c-border','font-family','title-weight','body-weight']
+  .forEach(id=>$(id).oninput=readLiveColors);
+
+$('emblem-file').onchange=e=>{
+  const file=e.target.files?.[0];if(!file)return;
+  if(file.size>700000){alert('Please use an emblem image smaller than 700 KB.');e.target.value='';return}
+  const reader=new FileReader();
+  reader.onload=()=>{branding.emblem_data_url=String(reader.result||'');applyBranding()};
+  reader.readAsDataURL(file);
+};
+$('remove-emblem').onclick=()=>{branding.emblem_data_url='';$('emblem-file').value='';applyBranding()};
+
+$('save-branding').onclick=async()=>{
+  readLiveColors();
+  const payload={
+    alliance_id:String(allianceId),
+    alliance_tag:allianceTag,
+    emblem_data_url:branding.emblem_data_url||null,
+    template_style:branding.template_style,
+    colors:branding.colors,
+    font_family:branding.font_family,
+    title_weight:Number(branding.title_weight),
+    body_weight:Number(branding.body_weight),
+    updated_at:new Date().toISOString()
+  };
+  const {error}=await sb.from('alliance_branding').upsert(payload,{onConflict:'alliance_id'});
+  if(error){alert(error.message);return}
+  alert('Alliance branding saved ✓');
+};
+
+$('reset-branding').onclick=()=>{
+  branding.template_style=$('template-style').value||'classic';
+  branding.colors={...templateDefaults[branding.template_style]};
+  branding.font_family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+  branding.title_weight='900';branding.body_weight='400';
+  applyBranding();
+};
+
+$('density').onchange=()=>autoDensity(document.querySelectorAll('.team-card').length);
+
+function setExportStatus(message,type=''){
+  const el=$('export-status');
+  if(!el)return;
+  el.textContent=message||'';
+  el.classList.remove('success','error');
+  if(type)el.classList.add(type);
+}
+
+function cloneLayoutSheet(){
+  const source=$('sheet');
+  const clone=source.cloneNode(true);
+  clone.id='sheet-preview-clone';
+  clone.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));
+  return clone;
+}
+
+function naturalSheetSize(sheet){
+  const prevTransform=sheet.style.transform;
+  sheet.style.transform='none';
+  const width=sheet.offsetWidth||sheet.scrollWidth||1400;
+  const height=sheet.offsetHeight||sheet.scrollHeight||900;
+  sheet.style.transform=prevTransform;
+  return {width,height};
+}
+
+function fitInlineSheet(){
+  const holder=$('sheet-inline-holder');
+  const sheet=$('sheet');
+  if(!holder||!sheet)return;
+  sheet.style.zoom='';
+  sheet.style.transform='none';
+  holder.style.height='auto';
+  const naturalWidth=sheet.offsetWidth||1400;
+  const naturalHeight=sheet.scrollHeight||sheet.offsetHeight||900;
+  const available=Math.max(280,holder.clientWidth||window.innerWidth-40);
+  const scale=Math.min(1,available/naturalWidth);
+  sheet.style.transform=`scale(${scale})`;
+  holder.style.height=Math.ceil(naturalHeight*scale)+'px';
+}
+
+function fitPreviewSheet(){
+  const stage=$('layout-preview-stage');
+  const holder=$('layout-preview-content');
+  const sheet=holder?.querySelector('.sheet');
+  if(!stage||!holder||!sheet)return;
+
+  sheet.style.transform='none';
+  holder.style.height='auto';
+
+  const natural=naturalSheetSize(sheet);
+  const available=Math.max(280,stage.clientWidth);
+  const scale=Math.min(1,available/natural.width);
+
+  sheet.style.transform=`scale(${scale})`;
+  holder.style.height=Math.ceil(natural.height*scale)+'px';
+}
+
+function openLayoutPreview(){
+  const overlay=$('layout-preview-overlay');
+  const holder=$('layout-preview-content');
+  holder.innerHTML='';
+  holder.appendChild(cloneLayoutSheet());
+  overlay.classList.remove('hidden');
+  overlay.setAttribute('aria-hidden','false');
+  document.body.classList.add('nexa-layout-preview-open');
+  requestAnimationFrame(()=>{
+    fitPreviewSheet();
+    setTimeout(fitPreviewSheet,80);
+  });
+}
+
+window.openLayoutPreview=openLayoutPreview;
+
+function closeLayoutPreview(){
+  const overlay=$('layout-preview-overlay');
+  overlay.classList.add('hidden');
+  overlay.setAttribute('aria-hidden','true');
+  $('layout-preview-content').innerHTML='';
+  document.body.classList.remove('nexa-layout-preview-open');
+}
+
+async function ensureHtml2Canvas(){
+  if(typeof window.html2canvas==='function')return true;
+  const existing=document.querySelector('script[data-nexa-html2canvas="1"]');
+  if(existing){
+    await new Promise(resolve=>{
+      if(typeof window.html2canvas==='function')return resolve();
+      existing.addEventListener('load',resolve,{once:true});
+      existing.addEventListener('error',resolve,{once:true});
+    });
+    return typeof window.html2canvas==='function';
+  }
+  return await new Promise(resolve=>{
+    const script=document.createElement('script');
+    script.src='https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+    script.async=true;
+    script.dataset.nexaHtml2canvas='1';
+    script.onload=()=>resolve(typeof window.html2canvas==='function');
+    script.onerror=()=>resolve(false);
+    document.head.appendChild(script);
+  });
+}
+
+async function renderLayoutCanvas(){
+  if(!(await ensureHtml2Canvas())) throw new Error('Download tool could not load. Check your connection and try again.');
+
+  const source=$('sheet');
+  if(!source) throw new Error('Layout was not found.');
+
+  const exportHost=document.createElement('div');
+  exportHost.dataset.nexaExportHost='1';
+  exportHost.style.cssText='position:fixed;left:-20000px;top:0;width:1400px;z-index:-1;background:#fff;';
+  const exportSheet=source.cloneNode(true);
+  exportSheet.removeAttribute('id');
+  exportSheet.style.transform='none';
+  exportSheet.style.zoom='1';
+  exportSheet.style.position='relative';
+  exportSheet.style.left='0';
+  exportSheet.style.top='0';
+  exportSheet.style.margin='0';
+
+  const exportStyle=getComputedStyle(source);
+  ['--sheet-bg','--sheet-text','--sheet-muted','--team-head','--section-bg','--pet',
+   '--sheet-border','--sheet-font','--title-weight','--body-weight','--accent'].forEach(name=>{
+    const value=exportStyle.getPropertyValue(name).trim();
+    if(value) exportSheet.style.setProperty(name,value);
+  });
+
+  exportHost.appendChild(exportSheet);
+  document.body.appendChild(exportHost);
+
+  try{
+    // Wait for emblem/hero images before capturing.
+    const images=[...exportSheet.querySelectorAll('img')];
+    await Promise.all(images.map(img=>{
+      if(img.complete)return Promise.resolve();
+      return new Promise(resolve=>{
+        img.addEventListener('load',resolve,{once:true});
+        img.addEventListener('error',resolve,{once:true});
+        setTimeout(resolve,2500);
+      });
+    }));
+
+    return await window.html2canvas(exportSheet,{
+      backgroundColor:'#ffffff',
+      scale:3,
+      useCORS:true,
+      allowTaint:false,
+      logging:false,
+      scrollX:0,
+      scrollY:0,
+      width:Math.ceil(exportSheet.scrollWidth||1400),
+      height:Math.ceil(exportSheet.scrollHeight||exportSheet.offsetHeight||900),
+      windowWidth:1600,
+      windowHeight:Math.max(1000,Math.ceil(exportSheet.scrollHeight||900))
+    });
+  }finally{
+    exportHost.remove();
+  }
+}
+
+function exportFileBase(){
+  const safeAlliance=String(allianceTag||'Alliance').replace(/[^a-z0-9_-]+/gi,'-').replace(/^-+|-+$/g,'')||'Alliance';
+  const safeEvent=String(eventType||'event').replace(/[^a-z0-9_-]+/gi,'-');
+  return `${safeAlliance}-${safeEvent}-team-layout`;
+}
+
+async function saveBlob(blob,filename,mime){
+  // On iPhone/iPad, Share Sheet is substantially more reliable than a hidden
+  // anchor and lets the user Save Image / Save to Files.
+  try{
+    if(typeof File==='function' && navigator.canShare && navigator.share){
+      const file=new File([blob],filename,{type:mime});
+      if(navigator.canShare({files:[file]})){
+        await navigator.share({files:[file],title:filename});
+        return true;
+      }
+    }
+  }catch(err){
+    if(err?.name==='AbortError') return true;
+  }
+
+  const url=URL.createObjectURL(blob);
+  const link=document.createElement('a');
+  link.href=url;
+  link.download=filename;
+  link.rel='noopener';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),15000);
+  return true;
+}
+
+async function downloadLayout(){
+  setExportStatus('Preparing PNG…');
+  try{
+    const canvas=await renderLayoutCanvas();
+    const blob=await new Promise((resolve,reject)=>{
+      canvas.toBlob(b=>b?resolve(b):reject(new Error('Could not create PNG image.')),'image/png',1);
+    });
+    await saveBlob(blob,exportFileBase()+'.png','image/png');
+    setExportStatus('PNG ready ✓','success');
+  }catch(error){
+    document.querySelectorAll('[data-nexa-export-host="1"]').forEach(el=>el.remove());
+    console.error('Layout PNG error',error);
+    setExportStatus('Could not create PNG. '+(error?.message||''),'error');
+  }
+}
+
+async function ensureJsPdf(){
+  if(window.jspdf?.jsPDF)return true;
+  return await new Promise(resolve=>{
+    const script=document.createElement('script');
+    script.src='https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js';
+    script.async=true;
+    script.onload=()=>resolve(!!window.jspdf?.jsPDF);
+    script.onerror=()=>resolve(false);
+    document.head.appendChild(script);
+  });
+}
+
+async function downloadLayoutPdf(){
+  setExportStatus('Preparing PDF…');
+  try{
+    const [canvas,pdfReady]=await Promise.all([renderLayoutCanvas(),ensureJsPdf()]);
+    if(!pdfReady)throw new Error('PDF tool could not load.');
+    const {jsPDF}=window.jspdf;
+    const orientation=canvas.width>=canvas.height?'landscape':'portrait';
+    const pdf=new jsPDF({orientation,unit:'px',format:[canvas.width,canvas.height],hotfixes:['px_scaling']});
+    pdf.addImage(canvas.toDataURL('image/jpeg',0.94),'JPEG',0,0,canvas.width,canvas.height);
+    const blob=pdf.output('blob');
+    await saveBlob(blob,exportFileBase()+'.pdf','application/pdf');
+    setExportStatus('PDF ready ✓','success');
+  }catch(error){
+    document.querySelectorAll('[data-nexa-export-host="1"]').forEach(el=>el.remove());
+    console.error('Layout PDF error',error);
+    setExportStatus('Could not create PDF. '+(error?.message||''),'error');
+  }
+}
+
+function saveLayoutState(){
+  readLiveColors();
+  const state={
+    event_type:eventType,
+    alliance_id:String(allianceId),
+    alliance_tag:allianceTag,
+    density:$('density')?.value||'auto',
+    template_style:$('template-style')?.value||'classic',
+    colors:{...branding.colors},
+    font_family:branding.font_family,
+    title_weight:branding.title_weight,
+    body_weight:branding.body_weight,
+    saved_at:new Date().toISOString()
+  };
+  localStorage.setItem(`nexa_saved_team_layout_${eventType}_${allianceId}`,JSON.stringify(state));
+  setExportStatus('Layout saved on this device ✓','success');
+}
+
+$('preview-layout').onclick=openLayoutPreview;
+$('close-layout-preview').onclick=closeLayoutPreview;
+$('download-layout').onclick=downloadLayout;
+$('download-pdf').onclick=downloadLayoutPdf;
+$('download-layout-preview').onclick=downloadLayout;
+$('save-preview').onclick=saveLayoutState;
+$('layout-preview-overlay').addEventListener('click',e=>{
+  if(e.target.id==='layout-preview-overlay')closeLayoutPreview();
+});
+window.addEventListener('resize',()=>{
+  fitInlineSheet();
+  if(!$('layout-preview-overlay').classList.contains('hidden'))fitPreviewSheet();
+});
+
+(async()=>{
+  await Promise.all([load(),loadBranding()]);
+})();
+</script>
+
+
+<script>
+window.addEventListener('DOMContentLoaded',()=>{
+  const b=document.getElementById('preview-layout');
+  if(b){
+    b.onclick=()=>{
+      if(typeof renderSheet==='function') renderSheet();
+      requestAnimationFrame(()=>{
+        if(typeof fitInlineSheet==='function') fitInlineSheet();
+        const h=document.getElementById('sheet-inline-holder');
+        if(h) h.scrollIntoView({behavior:'smooth',block:'start'});
+      });
+    };
+  }
+});
+</script>
+
+
+<script>
+(function(){
+ const KEY='nexa_template_important_'+(new URLSearchParams(location.search).get('alliance_id')||'default');
+ function field(){return document.getElementById('important-notes')}
+ function syncImportant(){
+   const value=(field()?.value||'').trim();
+   // Current layout calls this box "tips"; repurpose it as editable IMPORTANT.
+   const box=document.querySelector('#sheet .tips, .sheet .tips');
+   if(box){
+     let title=box.querySelector('.box-title');
+     if(title) title.textContent='IMPORTANT';
+     let body=box.querySelector('.nexa-important-body');
+     if(!body){
+       [...box.children].forEach(el=>{if(!el.classList.contains('box-title')) el.style.display='none'});
+       body=document.createElement('div');
+       body.className='nexa-important-body';
+       body.style.cssText='font-size:11px;line-height:1.3;white-space:pre-wrap;text-align:left';
+       box.appendChild(body);
+     }
+     body.textContent=value||'Add special instructions in the builder.';
+   }
+ }
+ function initImportant(){
+   const f=field(); if(!f)return;
+   try{f.value=localStorage.getItem(KEY)||''}catch(e){}
+   f.addEventListener('input',()=>{
+     try{localStorage.setItem(KEY,f.value)}catch(e){}
+     syncImportant();
+   });
+   syncImportant();
+   // keep it synced whenever the sheet rerenders
+   const sheet=document.getElementById('sheet');
+   if(sheet)new MutationObserver(()=>syncImportant()).observe(sheet,{childList:true,subtree:true});
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initImportant);
+ else initImportant();
+})();
+</script>
+
+
+<script>
+(function(){
+ function forceFit(){
+   const holder=document.getElementById('sheet-inline-holder');
+   const sheet=document.getElementById('sheet');
+   if(!holder||!sheet)return;
+   // reset before measuring
+   sheet.style.zoom='1';
+   sheet.style.transform='none';
+   holder.style.height='auto';
+   const sheetW=1400;
+   const available=Math.max(1,holder.getBoundingClientRect().width);
+   const scale=Math.min(1,available/sheetW);
+   const naturalH=Math.max(sheet.scrollHeight,sheet.offsetHeight);
+   sheet.style.transformOrigin='0 0';
+   sheet.style.transform=`scale(${scale})`;
+   holder.style.height=Math.ceil(naturalH*scale)+'px';
+ }
+ window.fitInlineSheet=forceFit;
+ window.addEventListener('resize',forceFit);
+ window.addEventListener('orientationchange',()=>setTimeout(forceFit,100));
+ window.addEventListener('load',()=>setTimeout(forceFit,50));
+ const oldRender=window.renderSheet;
+ if(typeof oldRender==='function'){
+   window.renderSheet=function(){
+     const r=oldRender.apply(this,arguments);
+     requestAnimationFrame(()=>{forceFit();setTimeout(forceFit,60)});
+     return r;
+   };
+ }
+ document.addEventListener('DOMContentLoaded',()=>{
+   const preview=document.getElementById('preview-layout');
+   if(preview){
+     preview.onclick=()=>{
+       if(typeof window.renderSheet==='function')window.renderSheet();
+       requestAnimationFrame(()=>{
+         forceFit();
+         document.getElementById('sheet-inline-holder')?.scrollIntoView({behavior:'smooth',block:'start'});
+       });
+     };
+   }
+   requestAnimationFrame(()=>{forceFit();setTimeout(forceFit,100)});
+ });
+})();
+</script>
+
+
+<script>
+(async function(){
+ const params=new URLSearchParams(location.search);
+ const aid=params.get('alliance_id');
+ if(!aid||!window.supabase)return;
+ const client=(typeof sb!=='undefined' && sb) ? sb : window.supabaseClient;
+ if(!client||typeof client.from!=='function')return;
+ const {data}=await client.from('alliance_layout_settings').select('*').eq('alliance_id',String(aid)).maybeSingle();
+ if(!data)return;
+ const colors={forest_green:'#315f4b',ice_blue:'#5d88a8',royal_gold:'#a77a2b',ocean_teal:'#287b7b',soft_burgundy:'#884d5c',lavender:'#746b9d',slate_blue:'#536d96',sage:'#6f876b',dusty_rose:'#a66d78',steel:'#596579'};
+ const accent=colors[data.preset_key]||colors.forest_green;
+ const sheet=document.getElementById('sheet');
+ if(sheet){
+   sheet.style.setProperty('--team-head',accent);
+   sheet.style.setProperty('--accent',accent);
+ }
+ const img=document.getElementById('sheet-emblem');
+ if(img&&data.emblem_data_url){img.src=data.emblem_data_url;img.style.display='block'}
+ if(typeof window.renderSheet==='function')window.renderSheet();
+ if(typeof window.fitInlineSheet==='function')requestAnimationFrame(window.fitInlineSheet);
+})();
+</script>
+
+
+<script id="nexa-template-v3-behavior">
+(function(){
+  const PRESET_COLORS={
+    forest_green:'#315f4b',ice_blue:'#5d88a8',royal_gold:'#a77a2b',ocean_teal:'#287b7b',
+    soft_burgundy:'#884d5c',lavender:'#746b9d',slate_blue:'#536d96',sage:'#6f876b',
+    dusty_rose:'#a66d78',steel:'#596579'
+  };
+
+  function syncText(){
+    const imp=document.getElementById('important-notes')?.value.trim()||'';
+    const notes=document.getElementById('layout-notes')?.value.trim()||'';
+    const ib=document.getElementById('sheet-important');
+    const nb=document.getElementById('sheet-notes');
+    if(ib){ib.classList.toggle('hidden',!imp);document.getElementById('sheet-important-text').textContent=imp;}
+    if(nb){nb.classList.remove('hidden');document.getElementById('sheet-notes-text').textContent=notes;}
+    window.fitInlineSheet?.();
+  }
+  document.getElementById('important-notes')?.addEventListener('input',syncText);
+  document.getElementById('layout-notes')?.addEventListener('input',syncText);
+
+  const originalRenderTeams=window.renderTeams;
+  if(typeof originalRenderTeams==='function'){
+    window.renderTeams=function(teams,members){
+      originalRenderTeams(teams,members);
+      const sheet=document.getElementById('sheet');
+      const n=(teams||[]).length;
+      sheet?.classList.toggle('layout-side',n>=1&&n<=3);
+      sheet?.classList.toggle('layout-bottom',n>=4);
+    };
+  }
+
+  async function loadAllianceIdentity(){
+    try{
+      if(!window.sb || !window.allianceId)return;
+      const {data}=await window.sb.from('alliance_layout_settings').select('*')
+        .eq('alliance_id',String(window.allianceId)).maybeSingle();
+      if(!data)return;
+      const accent=PRESET_COLORS[data.preset_key]||'#244887';
+      const identitySheet=document.getElementById('sheet');
+      identitySheet?.style.setProperty('--accent',accent);
+      identitySheet?.style.setProperty('--team-head',accent);
+      document.querySelectorAll('.team-title').forEach(x=>x.style.background=accent);
+      const img=document.getElementById('sheet-emblem');
+      if(img){
+        if(data.emblem_data_url){img.src=data.emblem_data_url;img.style.display='block';}
+        else{img.removeAttribute('src');img.style.display='none';}
+      }
+    }catch(e){}
+  }
+  window.addEventListener('load',()=>setTimeout(loadAllianceIdentity,250));
+  document.addEventListener('DOMContentLoaded',()=>{syncText();setTimeout(loadAllianceIdentity,250);});
+})();
+</script>
+
+
+
+
+
+
+
+
+<script id="nexa-template-v6-fit">
+(function(){
+  let raf=0;
+  function fitSheet(){
+    cancelAnimationFrame(raf);
+    raf=requestAnimationFrame(()=>{
+      const holder=document.getElementById('sheet-inline-holder');
+      const canvas=document.getElementById('sheet-scale-canvas');
+      const sheet=document.getElementById('sheet');
+      if(!holder||!canvas||!sheet)return;
+
+      // reset
+      sheet.style.transform='none';
+      canvas.style.height='0px';
+
+      const naturalW=Math.max(sheet.scrollWidth,sheet.offsetWidth,1);
+      const naturalH=Math.max(sheet.scrollHeight,sheet.offsetHeight,1);
+      const available=Math.max(holder.clientWidth,1);
+      const scale=Math.min(1,available/naturalW);
+
+      sheet.style.transform=`scale(${scale})`;
+      canvas.style.height=Math.ceil(naturalH*scale)+'px';
+    });
+  }
+
+  window.fitInlineSheet=fitSheet;
+  const rerun=()=>{fitSheet();setTimeout(fitSheet,80);setTimeout(fitSheet,250)};
+  document.addEventListener('DOMContentLoaded',rerun);
+  window.addEventListener('load',rerun);
+  window.addEventListener('resize',rerun);
+  window.addEventListener('orientationchange',rerun);
+  document.getElementById('preview-layout')?.addEventListener('click',rerun);
+
+  const sheet=document.getElementById('sheet');
+  if(sheet)new MutationObserver(rerun).observe(sheet,{subtree:true,childList:true,characterData:true,attributes:true});
+})();
+</script>
+
+
+<script id="nexa-template-v8-runtime">
+(function(){
+  function syncBuilderText(){
+    const imp=(document.getElementById('important-notes')?.value||'').trim();
+    const notes=(document.getElementById('layout-notes')?.value||'').trim();
+
+    const ib=document.getElementById('sheet-important');
+    const it=document.getElementById('sheet-important-text');
+    if(ib&&it){
+      it.textContent=imp;
+      ib.classList.toggle('hidden',!imp);
+    }
+
+    const nb=document.getElementById('sheet-notes');
+    const nt=document.getElementById('sheet-notes-text');
+    if(nb&&nt){
+      nt.textContent=notes;
+      nb.classList.remove('hidden');
+    }
+
+    if(typeof window.fitInlineSheet==='function') window.fitInlineSheet();
+  }
+
+  document.getElementById('important-notes')?.addEventListener('input',syncBuilderText);
+  document.getElementById('layout-notes')?.addEventListener('input',syncBuilderText);
+
+  
+
+  document.addEventListener('DOMContentLoaded',()=>{
+    syncBuilderText();
+    setTimeout(syncBuilderText,120);
+  });
+})();
+</script>
+
+
+<script id="nexa-template-v9-notes">
+(function(){
+  function forceNotes(){
+    const input=document.getElementById('layout-notes');
+    const box=document.getElementById('sheet-notes');
+    const text=document.getElementById('sheet-notes-text');
+    if(!input||!box||!text)return;
+    const v=(input.value||'').trim();
+    text.textContent=v;
+    box.classList.remove('hidden');
+    box.style.display='block';
+    if(typeof window.fitInlineSheet==='function')window.fitInlineSheet();
+  }
+  document.getElementById('layout-notes')?.addEventListener('input',forceNotes);
+  document.getElementById('preview-layout')?.addEventListener('click',()=>setTimeout(forceNotes,0));
+  document.addEventListener('DOMContentLoaded',()=>{forceNotes();setTimeout(forceNotes,120)});
+  window.addEventListener('load',forceNotes);
+})();
+</script>
+
+
+
+
+
+
+
+
+
+
+
+<script id="nexa-template-v14-adaptive-mode">
+(function(){
+  function applyAdaptiveMode(){
+    const sheet=document.getElementById('sheet');
+    if(!sheet)return;
+    const count=sheet.querySelectorAll('.team-card').length;
+    sheet.classList.remove('layout-side','layout-bottom');
+    if(count>=4) sheet.classList.add('layout-bottom');
+    else sheet.classList.add('layout-side');
+  }
+  const oldRender=window.renderAll;
+  if(typeof oldRender==='function'){
+    window.renderAll=function(){
+      const r=oldRender.apply(this,arguments);
+      requestAnimationFrame(applyAdaptiveMode);
+      return r;
+    };
+  }
+  new MutationObserver(applyAdaptiveMode).observe(document.getElementById('teams-grid'),{childList:true,subtree:true});
+  applyAdaptiveMode();
+})();
+</script>
+
+
+
+
+
+<script id="nexa-template-v15-preview-root-fix">
+(function(){
+  function preparePreviewPayload(){
+    const imp=(document.getElementById('important-notes')?.value||'').trim();
+    const notes=(document.getElementById('layout-notes')?.value||'').trim();
+
+    const ib=document.getElementById('sheet-important');
+    const it=document.getElementById('sheet-important-text');
+    if(ib&&it){
+      it.textContent=imp;
+      ib.classList.toggle('hidden',!imp);
+    }
+
+    const nb=document.getElementById('sheet-notes');
+    const nt=document.getElementById('sheet-notes-text');
+    if(nb&&nt){
+      nt.textContent=notes;
+      nb.classList.remove('hidden');
+      nb.style.display='block';
+    }
+
+    const sheet=document.getElementById('sheet');
+    if(!sheet)return false;
+
+    const clone=sheet.cloneNode(true);
+    // Keep the selected alliance preset/emblem identity in Preview.
+    const sourceStyle=getComputedStyle(sheet);
+    ['--sheet-bg','--sheet-text','--sheet-muted','--team-head','--section-bg','--pet',
+     '--sheet-border','--sheet-font','--title-weight','--body-weight','--accent'].forEach(name=>{
+      const value=sourceStyle.getPropertyValue(name).trim();
+      if(value) clone.style.setProperty(name,value);
+    });
+    clone.style.setProperty('transform','none','important');
+    clone.style.setProperty('position','relative','important');
+    clone.style.setProperty('left','auto','important');
+    clone.style.setProperty('top','auto','important');
+    clone.style.setProperty('margin','0 auto','important');
+
+    const styles=[...document.querySelectorAll('style,link[rel="stylesheet"]')]
+      .map(el=>el.outerHTML).join('\n');
+
+    try{
+      sessionStorage.setItem('nexa_layout_preview_payload',JSON.stringify({
+        title:(document.getElementById('sheet-title')?.textContent||'NEXA Layout').trim(),
+        html:clone.outerHTML,
+        styles
+      }));
+      return true;
+    }catch(_){
+      return false;
+    }
+  }
+
+  function installPreviewButton(){
+    const oldBtn=document.getElementById('preview-layout');
+    if(!oldBtn || oldBtn.dataset.v15==='1')return;
+
+    // Cloning removes ALL prior event listeners that were scrolling to the inline preview.
+    const btn=oldBtn.cloneNode(true);
+    btn.dataset.v15='1';
+    oldBtn.replaceWith(btn);
+
+    btn.addEventListener('click',function(ev){
+      ev.preventDefault();
+      ev.stopPropagation();
+
+      if(!preparePreviewPayload()){
+        const status=document.getElementById('export-status');
+        if(status)status.textContent='Could not prepare the preview.';
+        return;
+      }
+
+      // Open from the top window directly inside the real user click.
+      const topWindow=window.top || window;
+      const opened=topWindow.open('layout-preview-v16.html?v=20260817-v16-newfile','_blank');
+
+      if(!opened){
+        const status=document.getElementById('export-status');
+        if(status)status.textContent='Safari blocked the preview tab. Allow pop-ups for nexa-1518.vercel.app, then tap Preview Layout again.';
+      }
+    });
+  }
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',installPreviewButton);
+  }else{
+    installPreviewButton();
+  }
+  window.addEventListener('load',installPreviewButton);
+})();
+</script>
+
+</body>
+</html>
+
+
+<style id="nexa-final-alliance-brand-fix">
+/* MUST remain at EOF: overrides older mobile cleanup rules declared later in this file. */
+.sheet-header{
+  min-height:170px!important;
+  padding-top:14px!important;
+  padding-bottom:14px!important;
+}
+.sheet-brand-row{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:22px!important;
+}
+.sheet-emblem{
+  width:150px!important;
+  height:150px!important;
+  max-width:150px!important;
+  max-height:150px!important;
+  object-fit:contain!important;
+  flex:0 0 150px!important;
+}
+.sheet-title{
+  font-size:54px!important;
+  line-height:.95!important;
+  font-weight:900!important;
+  letter-spacing:.03em!important;
+}
+.sheet-subtitle{
+  font-size:18px!important;
+  line-height:1!important;
+  margin-top:10px!important;
+  letter-spacing:.22em!important;
+  font-weight:800!important;
+}
+.column-labels,.joiner-head,.team-section-title,.formation-ratio{
+  background:var(--section-bg)!important;
+}
+.sheet-legend,.formation-card{
+  background:var(--sheet-bg)!important;
+}
+</style>
+
+
+<script id="nexa-alliance-identity-by-tag-final">
+(async function(){
+  const PRESETS={
+    forest_green:'#315f4b',ice_blue:'#5d88a8',royal_gold:'#a77a2b',ocean_teal:'#287b7b',
+    soft_burgundy:'#884d5c',lavender:'#746b9d',slate_blue:'#536d96',sage:'#6f876b',
+    dusty_rose:'#a66d78',steel:'#596579'
+  };
+
+  async function resolveIdentity(){
+    const client=(typeof sb!=='undefined' && sb) ? sb : window.supabaseClient;
+    if(!client || typeof client.from!=='function') return null;
+
+    const params=window.NEXA_NATIVE_PARAMS || new URLSearchParams(location.search);
+    const aid=String(window.allianceId || params.get('alliance_id') || '').trim();
+    const tag=String(window.allianceTag || params.get('alliance_tag') || '').trim();
+
+    // 1) Prefer the exact alliance row used by this Team Builder.
+    if(aid){
+      const exact=await client.from('alliance_layout_settings')
+        .select('alliance_id,preset_key,emblem_data_url,updated_at')
+        .eq('alliance_id',aid)
+        .maybeSingle();
+      if(!exact.error && exact.data) return exact.data;
+    }
+
+    // 2) Duplicate alliance rows exist in this NEXA database.
+    // Resolve every database ID with the same visible tag, then use the newest saved identity.
+    if(tag){
+      const aliases=await client.from('alliances')
+        .select('id,tag')
+        .ilike('tag',tag);
+      const ids=(aliases.data||[]).map(x=>String(x.id)).filter(Boolean);
+      if(ids.length){
+        const found=await client.from('alliance_layout_settings')
+          .select('alliance_id,preset_key,emblem_data_url,updated_at')
+          .in('alliance_id',ids)
+          .order('updated_at',{ascending:false})
+          .limit(1);
+        if(!found.error && found.data?.length) return found.data[0];
+      }
+    }
+    return null;
+  }
+
+  function applyIdentity(row){
+    if(!row)return;
+    const accent=PRESETS[row.preset_key]||PRESETS.forest_green;
+    const sheet=document.getElementById('sheet');
+    if(sheet){
+      sheet.style.setProperty('--accent',accent);
+      sheet.style.setProperty('--team-head',accent);
+    }
+    document.querySelectorAll('#sheet .team-title').forEach(el=>el.style.backgroundColor=accent);
+    document.querySelectorAll('#sheet .rally-icon,#sheet .formation-group.rally .formation-title,#sheet .formation-group.rally .formation-group-title')
+      .forEach(el=>el.style.color=accent);
+
+    const img=document.getElementById('sheet-emblem');
+    if(img){
+      if(row.emblem_data_url){
+        img.src=row.emblem_data_url;
+        img.style.display='block';
+      }else{
+        img.removeAttribute('src');
+        img.style.display='none';
+      }
+    }
+
+    // Keep existing builder branding state in sync so later rerenders don't revert it.
+    try{
+      if(typeof branding==='object' && branding){
+        branding.emblem_data_url=row.emblem_data_url||'';
+        branding.colors={...(branding.colors||{}),head:accent};
+      }
+    }catch(_){}
+
+    if(typeof window.fitInlineSheet==='function'){
+      requestAnimationFrame(()=>window.fitInlineSheet());
+    }
+  }
+
+  async function run(){
+    try{ applyIdentity(await resolveIdentity()); }catch(e){ console.warn('NEXA alliance identity resolve',e); }
+  }
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>setTimeout(run,350));
+  else setTimeout(run,350);
+  window.addEventListener('load',()=>setTimeout(run,550));
+})();
+</script>
+
+
+<script id="nexa-identity-reapply-after-render">
+(function(){
+  async function reapply(){
+    try{
+      if(typeof loadBranding==='function') await loadBranding();
+      if(typeof fitInlineSheet==='function') requestAnimationFrame(()=>fitInlineSheet());
+    }catch(e){console.warn('NEXA identity reapply',e);}
+  }
+  window.addEventListener('load',()=>setTimeout(reapply,700));
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(reapply,500));
+  document.getElementById('preview-layout')?.addEventListener('click',()=>setTimeout(reapply,50));
+})();
+</script>
+
+
+<style id="nexa-formations-compact-v5">
+/* Compact Formations: additional Attack/Defense presets stack vertically by type. */
+.formations{margin-top:10px!important}
+.formations-heading{
+  margin:0 0 6px!important;
+  font-size:14px!important;
+  gap:8px!important;
+}
+.formation-groups{gap:8px!important}
+.formation-group{
+  padding:6px!important;
+  border-radius:10px!important;
+}
+.formation-group-title{
+  margin:-15px auto 5px!important;
+  padding:0 7px!important;
+  font-size:9px!important;
+  gap:4px!important;
+}
+.formation-type-columns{
+  display:grid!important;
+  gap:5px!important;
+  align-items:start!important;
+}
+.formation-type-columns.two-types{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+}
+.formation-type-columns.one-type{
+  grid-template-columns:minmax(0,1fr)!important;
+}
+.formation-type-column{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:5px!important;
+  min-width:0!important;
+}
+.formation-card{
+  padding:5px 5px!important;
+  border-radius:8px!important;
+  min-height:0!important;
+}
+.formation-title{
+  font-size:8px!important;
+  line-height:1!important;
+  min-height:0!important;
+}
+.formation-hero-list{
+  min-height:24px!important;
+  margin-top:4px!important;
+  gap:4px!important;
+}
+.formation-hero{max-width:50px!important}
+.formation-hero img{
+  width:24px!important;
+  height:24px!important;
+  margin-bottom:1px!important;
+  border-radius:5px!important;
+}
+.formation-hero-name{
+  font-size:6.5px!important;
+  line-height:1!important;
+}
+.formation-ratio{
+  margin-top:4px!important;
+  padding:3px 3px!important;
+  font-size:9px!important;
+  line-height:1!important;
+}
+</style>
+
+<style id="nexa-formations-compact-v6">
+.formations{margin-top:7px!important}
+.formations-heading{margin-bottom:4px!important}
+.formation-groups{gap:6px!important}
+.formation-group{padding:4px!important}
+.formation-group-title{margin:-13px auto 3px!important}
+.formation-type-columns,.formation-type-column{gap:3px!important}
+.formation-card{padding:4px!important}
+.formation-hero-list{min-height:20px!important;margin-top:2px!important;gap:2px!important}
+.formation-hero img{width:21px!important;height:21px!important}
+.formation-ratio{margin-top:2px!important;padding:2px!important}
+</style>
+
+
+<style id="nexa-readable-layout-v7">
+/* V7 readability: keep team information readable as more teams are added.
+   The sheet grows downward instead of shrinking all team cards into one row. */
+#sheet{
+  width:1400px!important;
+  max-width:none!important;
+  height:auto!important;
+  min-height:760px!important;
+  padding:30px 28px 26px!important;
+  box-sizing:border-box!important;
+}
+
+/* Header uses less dead vertical space while keeping the alliance identity prominent. */
+.sheet-header{
+  min-height:150px!important;
+  padding:10px 18px 14px!important;
+  margin-bottom:14px!important;
+}
+.sheet-brand img,
+#sheet-emblem{
+  width:118px!important;
+  height:118px!important;
+  object-fit:contain!important;
+}
+.sheet-alliance-tag{
+  font-size:50px!important;
+  line-height:1!important;
+}
+.sheet-event-label{
+  font-size:20px!important;
+}
+
+/* Critical rule: no more than two team tables across. Teams 3-4 and 5-6 go below. */
+.teams-grid,
+#teams{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:12px!important;
+  align-items:start!important;
+}
+.team-card{
+  width:auto!important;
+  min-width:0!important;
+  font-size:13px!important;
+}
+.team-title{
+  font-size:19px!important;
+  line-height:1.1!important;
+  padding:10px 12px!important;
+}
+.team-section-title,
+.rally-title,
+.joiners-title{
+  font-size:13px!important;
+  line-height:1.15!important;
+  padding:8px 10px!important;
+}
+.team-card td,
+.team-card th{
+  font-size:12px!important;
+  line-height:1.2!important;
+  padding:8px 8px!important;
+}
+.team-card .player-name,
+.team-card .rally-name{
+  font-size:13px!important;
+  font-weight:800!important;
+}
+.team-card .time,
+.team-card .rally-time{
+  font-size:11px!important;
+}
+.team-card .ratio,
+.team-card .attack,
+.team-card .defense{
+  font-size:11px!important;
+}
+
+/* Formations remain compact, but text is large enough to read in the exported PNG. */
+.formations{
+  margin-top:14px!important;
+}
+.formations-heading{
+  font-size:17px!important;
+  margin-bottom:7px!important;
+}
+.formation-groups{
+  gap:8px!important;
+}
+.formation-group{
+  padding:6px!important;
+}
+.formation-group-title{
+  font-size:10px!important;
+  margin:-14px auto 4px!important;
+}
+.formation-type-columns,
+.formation-type-column{
+  gap:4px!important;
+}
+.formation-card{
+  padding:5px!important;
+}
+.formation-title{
+  font-size:9px!important;
+}
+.formation-hero-list{
+  min-height:22px!important;
+  margin-top:3px!important;
+}
+.formation-hero img{
+  width:23px!important;
+  height:23px!important;
+}
+.formation-hero-name{
+  font-size:7px!important;
+}
+.formation-ratio{
+  font-size:10px!important;
+  margin-top:3px!important;
+  padding:3px!important;
+}
+
+/* Notes should not consume a huge empty block when little text is present. */
+.notes-block,
+.sheet-notes{
+  min-height:72px!important;
+  margin-top:14px!important;
+  padding:10px 12px!important;
+  font-size:11px!important;
+}
+
+/* More teams = more sheet height, never smaller typography. */
+#sheet:has(.team-card:nth-child(3)){min-height:980px!important}
+#sheet:has(.team-card:nth-child(5)){min-height:1200px!important}
+</style>
+
+
+<style id="nexa-header-readable-v8">
+/* V8: use the top of the sheet efficiently.
+   Brand lives on the left, Important moves toward center, Legend stays right. */
+#sheet{
+  padding-top:18px!important;
+}
+.sheet-header{
+  position:relative!important;
+  min-height:118px!important;
+  height:118px!important;
+  padding:0!important;
+  margin:0 0 5px!important;
+  display:block!important;
+}
+
+/* BBC identity: top-left, no longer competing with Important. */
+.sheet-brand-row{
+  position:absolute!important;
+  left:16px!important;
+  top:4px!important;
+  width:390px!important;
+  height:108px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:16px!important;
+  margin:0!important;
+}
+.sheet-emblem,
+#sheet-emblem{
+  width:104px!important;
+  height:104px!important;
+  max-width:104px!important;
+  max-height:104px!important;
+  flex:0 0 104px!important;
+  object-fit:contain!important;
+}
+.sheet-title{
+  font-size:50px!important;
+  line-height:.92!important;
+  letter-spacing:.025em!important;
+  text-align:left!important;
+}
+.sheet-subtitle{
+  font-size:17px!important;
+  line-height:1!important;
+  margin-top:9px!important;
+  letter-spacing:.24em!important;
+  text-align:center!important;
+}
+
+/* IMPORTANT centered more naturally; Legend remains at far right. */
+.sheet-top-right{
+  position:absolute!important;
+  top:10px!important;
+  left:430px!important;
+  right:12px!important;
+  width:auto!important;
+  max-width:none!important;
+  display:grid!important;
+  grid-template-columns:minmax(230px,300px) 275px!important;
+  justify-content:space-between!important;
+  align-items:start!important;
+  gap:26px!important;
+  margin:0!important;
+}
+.sheet-top-right .sheet-important{
+  position:static!important;
+  transform:none!important;
+  width:100%!important;
+  max-width:300px!important;
+  min-height:58px!important;
+  margin:0!important;
+  padding:8px 10px!important;
+  font-size:9px!important;
+  line-height:1.2!important;
+  justify-self:center!important;
+}
+.sheet-important b{
+  font-size:8px!important;
+}
+.sheet-top-right .sheet-legend{
+  position:static!important;
+  width:275px!important;
+  max-width:275px!important;
+  margin:0!important;
+  padding:8px 10px!important;
+  font-size:9px!important;
+  line-height:1.05!important;
+  justify-self:end!important;
+}
+
+/* Pull Teams upward immediately after the compact header. */
+#teams-grid,
+.teams-grid{
+  margin-top:0!important;
+}
+.sheet.layout-side #teams-grid,
+.sheet.layout-bottom #teams-grid{
+  margin-top:0!important;
+}
+
+/* Readability bump: use the available sheet size rather than tiny type. */
+.team-title{
+  font-size:22px!important;
+  padding:11px 12px!important;
+}
+.team-section-title,
+.rally-title,
+.joiners-title{
+  font-size:14px!important;
+  padding:8px 10px!important;
+}
+.rally-name,
+.player-name,
+.team-card .player-name,
+.team-card .rally-name{
+  font-size:15px!important;
+  line-height:1.15!important;
+}
+.rally-time,
+.team-card .rally-time,
+.team-card .time{
+  font-size:12px!important;
+}
+.joiner-head{
+  font-size:11px!important;
+}
+.joiner-row{
+  font-size:12px!important;
+  min-height:34px!important;
+}
+.hero-mini-name{
+  font-size:9px!important;
+}
+
+/* Formations stay compact, but no longer microscopic. */
+.formations-heading{
+  font-size:16px!important;
+}
+.formation-group-title{
+  font-size:10px!important;
+}
+.formation-title{
+  font-size:9.5px!important;
+}
+.formation-ratio{
+  font-size:10.5px!important;
+}
+</style>
+
+
+<style id="nexa-spacing-readability-v9">
+/* V9 — reclaim dead white space and increase practical readability. */
+
+/* Do not reserve a giant side-layout zone before Teams/Formations. */
+.sheet.layout-side{
+  display:grid!important;
+  grid-template-columns:minmax(0,2fr) minmax(300px,.82fr)!important;
+  grid-template-areas:
+    "header header"
+    "teams formations"
+    "notes notes"!important;
+  column-gap:14px!important;
+  row-gap:8px!important;
+  align-items:start!important;
+}
+.sheet.layout-side .sheet-header{
+  grid-area:header!important;
+  min-height:112px!important;
+  height:112px!important;
+  margin:0 0 2px!important;
+}
+.sheet.layout-side #teams-grid{
+  grid-area:teams!important;
+  align-self:start!important;
+  margin-top:0!important;
+}
+.sheet.layout-side #formations{
+  grid-area:formations!important;
+  align-self:start!important;
+  margin-top:4px!important;
+  padding-top:0!important;
+}
+.sheet.layout-side .sheet-notes{
+  grid-area:notes!important;
+  margin-top:4px!important;
+}
+
+/* For 4–6 teams: keep readable two-per-row and formations directly after them. */
+.sheet.layout-bottom{
+  display:block!important;
+}
+.sheet.layout-bottom #teams-grid{
+  margin-top:0!important;
+}
+.sheet.layout-bottom #formations{
+  margin-top:10px!important;
+  padding-top:0!important;
+}
+
+/* Larger, easier-to-read team information. */
+.team-title{
+  font-size:24px!important;
+  padding:12px 12px!important;
+}
+.team-section-title,
+.rally-title,
+.joiners-title{
+  font-size:15px!important;
+  padding:9px 10px!important;
+}
+.rally-name,
+.player-name,
+.team-card .player-name,
+.team-card .rally-name{
+  font-size:16px!important;
+  line-height:1.15!important;
+}
+.rally-time,
+.team-card .rally-time,
+.team-card .time{
+  font-size:13px!important;
+}
+.joiner-head,
+.column-labels{
+  font-size:12px!important;
+  line-height:1!important;
+}
+.joiner-row,
+.player-row{
+  font-size:13px!important;
+  min-height:36px!important;
+}
+.hero-mini-name{
+  font-size:10px!important;
+}
+
+/* Formation headings and ratios readable but still compact. */
+.formations-heading{
+  font-size:18px!important;
+  margin:0 0 6px!important;
+}
+.formation-group-title{
+  font-size:11px!important;
+  margin:-12px auto 4px!important;
+}
+.formation-title{
+  font-size:10px!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+  word-break:keep-all!important;
+  overflow:visible!important;
+}
+.formation-card{
+  min-width:0!important;
+  padding:5px 4px!important;
+}
+.formation-ratio{
+  font-size:11px!important;
+  white-space:nowrap!important;
+}
+
+/* Important/legend stay in the header and do not push content downward. */
+.sheet-top-right{
+  top:6px!important;
+}
+.sheet-top-right .sheet-important,
+.sheet-top-right .sheet-legend{
+  min-height:0!important;
+}
+
+/* Notes remain compact until actual content needs more height. */
+.sheet-notes{
+  min-height:54px!important;
+  padding-bottom:8px!important;
+}
+</style>
+
+
+<style id="nexa-readability-v10-final">
+/* V10 FINAL — preserve BBC/TAL/emblem size; improve readability and reclaim vertical space. */
+
+/* Pull Teams/Formations upward without changing identity sizing. */
+.sheet.layout-side .sheet-header{
+  min-height:86px!important;
+  height:86px!important;
+  margin-bottom:0!important;
+}
+.sheet.layout-side{
+  row-gap:0!important;
+}
+.sheet.layout-side #teams-grid{
+  margin-top:-12px!important;
+}
+.sheet.layout-side #formations{
+  margin-top:-8px!important;
+}
+.sheet.layout-bottom .sheet-header{
+  min-height:86px!important;
+  height:86px!important;
+  margin-bottom:0!important;
+}
+.sheet.layout-bottom #teams-grid{
+  margin-top:-12px!important;
+}
+.sheet.layout-bottom #formations{
+  margin-top:6px!important;
+}
+
+/* IMPORTANT: larger and easier to read. */
+.sheet-important,
+.important-box{
+  font-size:14px!important;
+  line-height:1.25!important;
+  padding:10px 14px!important;
+}
+.sheet-important .important-title,
+.important-title{
+  font-size:15px!important;
+  line-height:1!important;
+  letter-spacing:1.5px!important;
+}
+.sheet-important .important-text,
+.important-text{
+  font-size:15px!important;
+  line-height:1.2!important;
+}
+
+/* Legend: larger and clearer, but still compact. */
+.sheet-legend,
+.legend-box{
+  font-size:14px!important;
+  line-height:1.25!important;
+  padding:10px 14px!important;
+}
+.sheet-legend .legend-row,
+.legend-row{
+  min-height:24px!important;
+  gap:10px!important;
+}
+.sheet-legend svg,
+.sheet-legend .legend-icon,
+.legend-icon{
+  width:18px!important;
+  height:18px!important;
+  font-size:18px!important;
+}
+
+/* Team content: readable in exported PNG without requiring zoom. */
+.team-title{
+  font-size:26px!important;
+  line-height:1!important;
+  padding:11px 12px!important;
+}
+.team-section-title,
+.rally-title,
+.joiners-title{
+  font-size:17px!important;
+  line-height:1.05!important;
+}
+.rally-name,
+.player-name,
+.team-card .player-name,
+.team-card .rally-name{
+  font-size:18px!important;
+  line-height:1.15!important;
+}
+.rally-time,
+.team-card .rally-time,
+.team-card .time{
+  font-size:15px!important;
+}
+.joiner-head,
+.column-labels{
+  font-size:14px!important;
+}
+.joiner-row,
+.player-row{
+  font-size:15px!important;
+  min-height:38px!important;
+}
+
+/* Notes: label and entered text larger. */
+.sheet-notes,
+.notes-box{
+  font-size:15px!important;
+  line-height:1.3!important;
+  min-height:58px!important;
+}
+.sheet-notes .notes-title,
+.notes-title{
+  font-size:14px!important;
+  letter-spacing:1px!important;
+}
+.sheet-notes .notes-text,
+.notes-text{
+  font-size:15px!important;
+  line-height:1.3!important;
+}
+
+/* Formation labels: MAIN DEFENSE stays on one line AND inside its card. */
+.formation-card{
+  box-sizing:border-box!important;
+  min-width:0!important;
+  padding:6px 4px!important;
+  overflow:hidden!important;
+}
+.formation-title{
+  display:block!important;
+  box-sizing:border-box!important;
+  width:100%!important;
+  max-width:100%!important;
+  padding:0 1px!important;
+  font-size:8.5px!important;
+  line-height:1!important;
+  letter-spacing:-0.15px!important;
+  white-space:nowrap!important;
+  word-break:normal!important;
+  overflow:hidden!important;
+  text-overflow:clip!important;
+  text-align:center!important;
+}
+.formation-ratio{
+  font-size:12px!important;
+  white-space:nowrap!important;
+}
+.formations-heading{
+  font-size:20px!important;
+  margin-bottom:5px!important;
+}
+.formation-group-title{
+  font-size:12px!important;
+}
+</style>
+
+
+<style id="nexa-v11-tighter-teams">
+/* V11: move the TEAM TABLES themselves upward.
+   BBC / TAL / emblem sizing intentionally untouched. */
+
+/* The previous fixed header height was preserving too much blank vertical space.
+   Let the header occupy only what its visible content needs, then pull Teams upward. */
+.sheet.layout-side .sheet-header,
+.sheet.layout-bottom .sheet-header{
+  height:auto!important;
+  min-height:0!important;
+  margin-bottom:0!important;
+  padding-bottom:0!important;
+}
+
+/* Move the actual Teams grid substantially closer to the identity/header. */
+.sheet.layout-side #teams-grid,
+.sheet.layout-bottom #teams-grid{
+  position:relative!important;
+  top:-34px!important;
+  margin-top:0!important;
+  margin-bottom:-34px!important;
+}
+
+/* Formations follow the Teams naturally; no fake independent upward shift. */
+.sheet.layout-side #formations{
+  position:relative!important;
+  top:-34px!important;
+  margin-top:0!important;
+  margin-bottom:-34px!important;
+}
+
+/* IMPORTANT box — title + entered text visibly larger. */
+.sheet-important,
+.important-box{
+  font-size:16px!important;
+  line-height:1.25!important;
+}
+.sheet-important .important-title,
+.important-title{
+  font-size:17px!important;
+  line-height:1.05!important;
+  font-weight:800!important;
+}
+.sheet-important .important-text,
+.important-text{
+  font-size:17px!important;
+  line-height:1.25!important;
+  font-weight:600!important;
+}
+
+/* Legend text + icons larger and clearer. */
+.sheet-legend,
+.legend-box{
+  font-size:16px!important;
+  line-height:1.25!important;
+}
+.sheet-legend .legend-row,
+.legend-row{
+  min-height:27px!important;
+  gap:12px!important;
+}
+.sheet-legend svg,
+.sheet-legend img,
+.sheet-legend .legend-icon,
+.legend-icon{
+  width:22px!important;
+  height:22px!important;
+  min-width:22px!important;
+  font-size:22px!important;
+}
+
+/* Notes label + entered note text. */
+.sheet-notes,
+.notes-box{
+  font-size:17px!important;
+  line-height:1.3!important;
+}
+.sheet-notes .notes-title,
+.notes-title{
+  font-size:16px!important;
+  font-weight:800!important;
+}
+.sheet-notes .notes-text,
+.notes-text{
+  font-size:17px!important;
+  line-height:1.3!important;
+}
+
+/* Time must remain fully visible inside rally row. */
+.rally-row,
+.team-card .rally-row{
+  overflow:visible!important;
+  min-height:48px!important;
+}
+.rally-time,
+.team-card .rally-time,
+.team-card .time{
+  display:inline-block!important;
+  font-size:15px!important;
+  line-height:1.15!important;
+  white-space:nowrap!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  padding-top:2px!important;
+  padding-bottom:2px!important;
+}
+
+/* MAIN DEFENSE: one line, but reduce just enough to stay within border. */
+.formation-card{
+  overflow:hidden!important;
+  box-sizing:border-box!important;
+}
+.formation-title{
+  width:100%!important;
+  max-width:100%!important;
+  box-sizing:border-box!important;
+  font-size:8px!important;
+  letter-spacing:-.25px!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-align:center!important;
+}
+</style>
+
+
+<style id="nexa-v13-letter-export">
+/* V13 — more compact "letter landscape" composition.
+   Brand size stays unchanged. Important is centered.
+   Teams are lowered slightly. Formations move BELOW teams so nothing collides. */
+
+.sheet,
+.sheet.layout-side,
+.sheet.layout-bottom{
+  width:1320px!important;
+  min-width:1320px!important;
+  max-width:1320px!important;
+  min-height:900px!important;
+  box-sizing:border-box!important;
+}
+
+/* Header: brand left, Important centered, Legend right. */
+.sheet-header{
+  position:relative!important;
+  min-height:132px!important;
+  height:132px!important;
+  margin:0 0 16px!important;
+  padding:0 300px 0 235px!important;
+  box-sizing:border-box!important;
+}
+.sheet-important,
+.important-box{
+  left:50%!important;
+  right:auto!important;
+  transform:translateX(-50%)!important;
+  width:300px!important;
+  max-width:300px!important;
+}
+.sheet-legend,
+.legend-box{
+  right:18px!important;
+  left:auto!important;
+}
+
+/* Use vertical document flow instead of an extra-wide side-by-side sheet. */
+.sheet.layout-side{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  grid-template-areas:
+    "header"
+    "teams"
+    "formations"
+    "notes"!important;
+  row-gap:12px!important;
+}
+.sheet.layout-side .sheet-header{grid-area:header!important;}
+.sheet.layout-side #teams-grid{grid-area:teams!important;}
+.sheet.layout-side #formations{grid-area:formations!important;}
+.sheet.layout-side .sheet-notes{grid-area:notes!important;}
+
+/* Undo V11's aggressive negative pull. Lower Teams enough to protect emblem/time. */
+.sheet.layout-side #teams-grid,
+.sheet.layout-bottom #teams-grid{
+  position:relative!important;
+  top:0!important;
+  margin-top:0!important;
+  margin-bottom:0!important;
+}
+
+/* Formations BELOW the team tables with clean separation. */
+.sheet.layout-side #formations,
+.sheet.layout-bottom #formations{
+  position:relative!important;
+  top:0!important;
+  width:100%!important;
+  max-width:100%!important;
+  margin:8px 0 0!important;
+  padding:0!important;
+  box-sizing:border-box!important;
+}
+
+/* Keep formation groups compact and readable on one row. */
+#formations .formations-inner,
+.formations-inner{
+  width:100%!important;
+  max-width:100%!important;
+}
+#formations .formation-groups,
+.formation-groups{
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:14px!important;
+  width:100%!important;
+}
+.formations-heading{
+  margin:0 0 8px!important;
+  line-height:1.1!important;
+}
+
+/* Time row: never clip the clock/time text. */
+.rally-row,
+.team-card .rally-row{
+  min-height:58px!important;
+  height:auto!important;
+  overflow:visible!important;
+  padding-top:10px!important;
+  padding-bottom:10px!important;
+  align-items:center!important;
+}
+.rally-time,
+.team-card .rally-time,
+.team-card .time{
+  position:static!important;
+  transform:none!important;
+  line-height:22px!important;
+  min-height:22px!important;
+  overflow:visible!important;
+  white-space:nowrap!important;
+}
+
+/* Notes stay readable but compact. */
+.sheet-notes,
+.notes-box{
+  min-height:86px!important;
+  margin-top:4px!important;
+}
+
+/* Prevent any child from forcing the PNG wider than the intended sheet. */
+.sheet *{box-sizing:border-box;}
+#teams-grid,
+#formations,
+.sheet-header,
+.sheet-notes{
+  max-width:100%!important;
+}
+</style>
+
+
+<style id="nexa-v14-polished-sheet">
+/* V14 — delicate/formal spacing. Keep BBC/TAL/emblem sizing. */
+
+/* Bring content together gently; no aggressive negative positioning. */
+.sheet.layout-side #teams-grid,
+.sheet.layout-bottom #teams-grid{
+  top:0!important;
+  margin-top:0!important;
+  margin-bottom:0!important;
+}
+
+/* Formations closer to Teams, but safely separated. */
+.sheet.layout-side #formations,
+.sheet.layout-bottom #formations{
+  top:0!important;
+  margin-top:-2px!important;
+  margin-bottom:0!important;
+  padding-top:0!important;
+}
+.formations-heading,
+#formations .formations-heading{
+  margin:0 0 7px!important;
+  line-height:1.08!important;
+}
+
+/* Notes follows formations instead of floating far below. */
+.sheet-notes,
+.notes-box{
+  margin-top:0!important;
+  min-height:78px!important;
+}
+
+/* Important: centered and readable, still restrained. */
+.sheet-important .important-title,
+.important-title{
+  font-size:18px!important;
+  letter-spacing:.12em!important;
+  line-height:1.15!important;
+}
+.sheet-important .important-text,
+.important-text{
+  font-size:17px!important;
+  line-height:1.25!important;
+}
+
+/* Legend: readable without becoming oversized. */
+.sheet-legend,
+.legend-box{
+  font-size:16px!important;
+  line-height:1.3!important;
+}
+.sheet-legend svg,
+.sheet-legend img,
+.sheet-legend .legend-icon,
+.legend-icon{
+  width:22px!important;
+  height:22px!important;
+  min-width:22px!important;
+  font-size:22px!important;
+}
+
+/* Formation labels/numbers: slightly larger and balanced. */
+#formations .formation-card,
+.formation-card{
+  min-height:74px!important;
+}
+#formations .formation-title,
+.formation-title{
+  font-size:15px!important;
+  white-space:nowrap!important;
+  line-height:1.1!important;
+}
+#formations .formation-heroes,
+.formation-heroes{
+  font-size:14px!important;
+}
+#formations .formation-ratio,
+.formation-ratio{
+  font-size:18px!important;
+  line-height:1.1!important;
+}
+
+/* Notes text remains legible. */
+.sheet-notes .notes-title,
+.notes-title{font-size:16px!important;}
+.sheet-notes .notes-text,
+.notes-text{font-size:17px!important;line-height:1.3!important;}
+</style>
+<style id="nexa-v15-fixed-six-layout">
+/* V15 — fixed six-team master sheet + compact bottom formations */
+#sheet{max-width:1320px!important;min-height:820px!important;padding:18px!important}
+.sheet-header{height:112px!important;min-height:112px!important;margin-bottom:8px!important}
+#teams-grid,.teams-grid{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:7px!important;width:100%!important;margin:0!important}
+#teams-grid .team-card{min-width:0!important;width:100%!important}
+.team-title{font-size:11px!important}.team-section-title{font-size:7px!important}.rally-name{font-size:7.5px!important}.rally-time{font-size:6.5px!important}.joiner-head{font-size:6px!important}.joiner-row{font-size:7px!important}
+.sheet.layout-side,.sheet.layout-bottom{display:grid!important;grid-template-columns:minmax(0,2fr) minmax(320px,.95fr)!important;grid-template-areas:"header header" "teams teams" "notes formations"!important;column-gap:12px!important;row-gap:10px!important}
+.sheet.layout-side .sheet-header,.sheet.layout-bottom .sheet-header{grid-area:header!important}.sheet.layout-side #teams-grid,.sheet.layout-bottom #teams-grid{grid-area:teams!important}.sheet.layout-side .sheet-notes,.sheet.layout-bottom .sheet-notes{grid-area:notes!important}.sheet.layout-side #formations,.sheet.layout-bottom #formations{grid-area:formations!important}
+.sheet-notes,.notes-box{margin:0!important;min-height:104px!important;height:104px!important}
+#formations,.formations{margin:0!important;padding:0!important;align-self:stretch!important;min-height:104px!important}
+.formations-heading{font-size:12px!important;margin:0 0 5px!important}.formation-groups{gap:6px!important}.formation-group{padding:5px!important}.formation-group-title{font-size:7px!important}.formation-card{min-height:48px!important;padding:5px!important}.formation-title{font-size:7px!important}.formation-ratio{font-size:9px!important}
+.sheet-important .important-title,.important-title{font-size:14px!important}.sheet-important .important-text,.important-text{font-size:13px!important}.sheet-legend,.legend-box{font-size:12px!important}.sheet-legend svg,.sheet-legend img,.sheet-legend .legend-icon,.legend-icon{width:19px!important;height:19px!important;min-width:19px!important;font-size:19px!important}
+</style>
+<script>
+/* V15 labels: compact and scalable: Attack, Defense, Attack 2, Defense 2... */
+(function(){
+ const oldAssign=assignFormationSlots;
+ assignFormationSlots=function(rows){
+   const normalized=oldAssign(rows), counts={};
+   return normalized.map(x=>{const key=x._scope+':'+x._type; counts[key]=(counts[key]||0)+1; return {...x,_compactIndex:counts[key]};});
+ };
+ formationCard=function(x){
+   const heroes=formationHeroes(x); const base=x._type==='defense'?'Defense':'Attack'; const title=base+(x._compactIndex>1?' '+x._compactIndex:'');
+   return `<div class="formation-card"><div class="formation-title">${esc(title)}</div>${heroes.length?`<div class="formation-hero-list">${heroes.map(h=>heroMarkup(h,true)).join('')}</div>`:'<div class="formation-hero-list"></div>'}<div class="formation-ratio">${esc(x.infantry_pct)} / ${esc(x.lancer_pct)} / ${esc(x.marksman_pct)}</div></div>`;
+ };
+ const oldRender=renderTeams;
+ renderTeams=function(teams,members){
+   oldRender(teams,members); const grid=$('teams-grid');
+   for(let i=(teams||[]).length;i<6;i++){const slot=document.createElement('section');slot.className='team-card team-placeholder';slot.setAttribute('aria-hidden','true');slot.style.visibility='hidden';grid.appendChild(slot)}
+   grid.className='teams-grid count-6';
+ };
+})();
+</script>
+
+
+<style id="nexa-v16-forced-route-final">
+/* Six permanent horizontal Team slots */
+#sheet{width:1320px!important;min-width:1320px!important;max-width:1320px!important;padding:18px!important}
+#teams-grid,.teams-grid{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:7px!important;width:100%!important}
+.team-placeholder{visibility:hidden!important;pointer-events:none!important}
+
+/* Stable lower row: Notes smaller, Formations larger */
+.sheet.layout-side,.sheet.layout-bottom{
+ display:grid!important;
+ grid-template-columns:minmax(0,1.45fr) minmax(0,1.20fr)!important;
+ grid-template-areas:"header header" "teams teams" "notes formations" "utc utc"!important;
+ column-gap:12px!important;row-gap:8px!important;align-items:start!important
+}
+.sheet-header{grid-area:header!important}
+#teams-grid{grid-area:teams!important}
+.sheet-notes{grid-area:notes!important}
+#formations{grid-area:formations!important}
+.sheet-utc-note{grid-area:utc!important}
+
+/* IMPORTANT centered more clearly */
+.sheet-top-right{
+ position:absolute!important;top:8px!important;left:420px!important;right:12px!important;
+ display:grid!important;grid-template-columns:minmax(255px,310px) 265px!important;
+ justify-content:space-between!important;gap:22px!important;max-width:none!important
+}
+.sheet-top-right .sheet-important{
+ position:static!important;transform:none!important;width:100%!important;max-width:310px!important;
+ justify-self:center!important;margin:0!important;padding:10px 12px!important;
+ font-size:12px!important;line-height:1.28!important
+}
+.sheet-important b{font-size:11px!important;margin-bottom:4px!important}
+#sheet-important-text{font-size:12px!important;line-height:1.28!important}
+
+/* Legend larger and easier to read */
+.sheet-top-right .sheet-legend{
+ position:static!important;width:265px!important;max-width:265px!important;margin:0!important;
+ padding:10px 12px!important;display:grid!important;gap:7px!important;
+ font-size:11.5px!important;line-height:1.15!important
+}
+.sheet-legend>div{grid-template-columns:25px minmax(0,1fr)!important;gap:8px!important}
+.sheet-legend .legend-icon{width:23px!important;height:23px!important;min-width:23px!important;font-size:19px!important}
+.sheet-legend .joiner-person-svg{width:18px!important;height:18px!important}
+.sheet-legend .pet-icon{font-size:19px!important}
+.sheet-legend small{font-size:9px!important}
+
+/* Rally Leader name + clean compact time + fixed pet slot */
+.rally-list{padding:0 4px!important}
+.rally-entry{
+ display:grid!important;grid-template-columns:minmax(0,1fr) 20px!important;
+ gap:3px!important;align-items:center!important;min-height:40px!important;
+ padding:5px 2px!important;overflow:hidden!important
+}
+.rally-info,.rally-name-line{min-width:0!important}
+.rally-name-line{display:flex!important;flex-direction:column!important;gap:2px!important;align-items:flex-start!important}
+.rally-name{
+ display:block!important;width:100%!important;font-size:8.5px!important;line-height:1.05!important;
+ font-weight:900!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important
+}
+.rally-time{
+ display:block!important;width:100%!important;font-size:7px!important;line-height:1.05!important;
+ font-weight:800!important;color:var(--sheet-muted)!important;white-space:nowrap!important;
+ overflow:hidden!important;margin:0!important
+}
+.rally-pet{
+ width:20px!important;min-width:20px!important;max-width:20px!important;
+ font-size:14px!important;line-height:1!important;text-align:center!important;overflow:visible!important
+}
+.rally-pet-times{display:none!important}
+
+/* Joiner name intentionally same scale as hero names */
+.joiner-head,.joiner-row{grid-template-columns:minmax(0,1.10fr) minmax(0,.95fr) minmax(0,.95fr)!important}
+.joiner-head.no-defense,.joiner-row.no-defense{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)!important}
+.joiner-head{font-size:7px!important}
+.joiner-head>div,.joiner-row>div{padding:5px 3px!important}
+.joiner-row{min-height:34px!important;font-size:10px!important}
+.joiner-player span,.hero-mini-name{font-size:10px!important;line-height:1.05!important}
+
+/* Notes gives more width to Formations */
+.sheet-notes{margin:0!important;height:100px!important;min-height:100px!important;padding:18px 9px 8px!important}
+.sheet-notes::before{font-size:9px!important}
+#sheet-notes-text{font-size:10px!important;line-height:1.25!important}
+
+/* Formations wider and ratios protected */
+#formations,.formations{margin:0!important;padding:0!important;min-width:0!important;min-height:100px!important}
+.formations-heading{font-size:13px!important;margin:0 0 5px!important}
+.formation-groups{grid-template-columns:1fr 1fr!important;gap:7px!important}
+.formation-group{padding:5px!important;min-width:0!important}
+.formation-group-title{font-size:8px!important;margin:-12px auto 5px!important;padding:0 5px!important}
+.formation-card{min-width:0!important;min-height:48px!important;padding:5px 3px!important;overflow:hidden!important}
+.formation-title{font-size:8px!important;white-space:nowrap!important}
+.formation-ratio{display:block!important;width:100%!important;font-size:10px!important;white-space:nowrap!important;overflow:visible!important;padding:3px 1px!important}
+
+/* Single UTC note */
+.sheet-utc-note{text-align:center!important;font-size:8px!important;font-weight:850!important;letter-spacing:.12em!important;color:var(--sheet-muted)!important}
+</style>

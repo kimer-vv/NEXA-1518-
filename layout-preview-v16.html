@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes">
+<title>NEXA Layout Preview</title>
+<style>
+html,body{margin:0;min-height:100%;background:#080b16;color:#fff;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.toolbar{position:sticky;top:0;z-index:9999;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;background:rgba(8,11,22,.96);border-bottom:1px solid rgba(255,255,255,.08)}
+.toolbar button{border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:10px 14px;background:#151a2b;color:#fff;font:800 14px/1 system-ui,-apple-system,sans-serif}
+.stage{padding:18px;overflow:auto;-webkit-overflow-scrolling:touch;min-height:calc(100vh - 70px)}
+.canvas{min-width:max-content;padding:10px 10px 140px}
+#preview-root .sheet{transform:none!important;position:relative!important;left:auto!important;top:auto!important;margin:0 auto!important;zoom:1}
+.empty{padding:30px;text-align:center;color:#aab1c5}
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <button type="button" onclick="history.back()">← Back</button>
+  <strong id="preview-title">Layout Preview</strong>
+  <div class="zoom-tools">
+    <button type="button" id="zoom-out">−</button>
+    <button type="button" id="zoom-fit">Fit</button>
+    <button type="button" id="zoom-in">+</button>
+  </div>
+</div>
+<div class="stage"><div class="canvas"><div id="preview-root"></div></div></div>
+<script>
+(function(){
+  let payload=null;
+  try{payload=JSON.parse(sessionStorage.getItem('nexa_layout_preview_payload')||'null')}catch(e){}
+  const root=document.getElementById('preview-root');
+  if(!payload?.html){
+    root.innerHTML='<div class="empty">Preview data was not found. Go back and tap Preview Layout again.</div>';
+    return;
+  }
+  document.getElementById('preview-title').textContent=payload.title||'Layout Preview';
+  document.title=(payload.title||'NEXA Layout')+' • Preview';
+  document.head.insertAdjacentHTML('beforeend',payload.styles||'');
+  root.innerHTML=payload.html;
+})();
+</script>
+</body>
+</html>
+<style id="nexa-v14-preview-size">
+.stage{padding:16px!important;overflow:auto!important}
+.canvas{min-width:max-content!important;padding-bottom:160px!important}
+#preview-root .sheet{
+  zoom:1.35!important;
+  transform:none!important;
+  transform-origin:top left!important;
+}
+@media(max-width:700px){
+  #preview-root .sheet{zoom:1.2!important}
+}
+</style>
+
+<style id="nexa-v15-preview-display">
+html,body{background:#080b16!important}
+.stage{
+  overflow:auto!important;
+  min-height:calc(100vh - 60px)!important;
+  padding:18px!important;
+  -webkit-overflow-scrolling:touch!important;
+}
+.canvas{
+  min-width:max-content!important;
+  padding:8px 8px 180px!important;
+}
+#preview-root .sheet{
+  transform:none!important;
+  position:relative!important;
+  left:auto!important;
+  top:auto!important;
+  margin:0 auto!important;
+  zoom:1.3!important;
+}
+@media(max-width:700px){
+  #preview-root .sheet{zoom:1.18!important}
+}
+</style>
+
+<style id="nexa-preview-brand-final">
+#preview-root .sheet .sheet-emblem{
+  width:150px!important;height:150px!important;max-width:150px!important;max-height:150px!important;
+}
+#preview-root .sheet .sheet-title{font-size:54px!important;line-height:.95!important}
+#preview-root .sheet .sheet-subtitle{font-size:18px!important;letter-spacing:.22em!important}
+</style>
+
+
+
+
+<style id="nexa-preview-fit-v6">
+html,body{width:100%;max-width:100%;overflow:hidden}
+.stage{
+  position:fixed!important;
+  left:0!important;right:0!important;
+  top:74px!important;bottom:0!important;
+  padding:10px!important;
+  overflow:auto!important;
+  -webkit-overflow-scrolling:touch!important;
+  touch-action:pan-x pan-y pinch-zoom!important;
+}
+.canvas{
+  width:max-content!important;
+  min-width:100%!important;
+  min-height:100%!important;
+  padding:0 10px 80px!important;
+  box-sizing:border-box!important;
+  display:block!important;
+}
+#preview-root{
+  position:relative!important;
+  margin:0 auto!important;
+  overflow:visible!important;
+}
+#preview-root .sheet{
+  position:absolute!important;
+  left:0!important;top:0!important;
+  margin:0!important;
+  transform-origin:top left!important;
+  zoom:1!important;
+}
+</style>
+<script id="nexa-preview-fit-runtime-v6">
+(function(){
+  let scale=1,naturalW=0,naturalH=0;
+  const $s=()=>document.querySelector('#preview-root .sheet');
+  const $r=()=>document.getElementById('preview-root');
+  const $st=()=>document.querySelector('.stage');
+
+  function measure(){
+    const s=$s(); if(!s)return false;
+    const prev=s.style.transform;
+    s.style.transform='none';
+    naturalW=Math.max(s.scrollWidth,s.offsetWidth,1400);
+    naturalH=Math.max(s.scrollHeight,s.offsetHeight,700);
+    s.style.transform=prev;
+    return true;
+  }
+  function apply(v){
+    const s=$s(),r=$r(),st=$st(); if(!s||!r||!st)return;
+    if(!naturalW&&!measure())return;
+    scale=Math.max(.12,Math.min(2.5,v));
+    r.style.width=Math.ceil(naturalW*scale)+'px';
+    r.style.height=Math.ceil(naturalH*scale)+'px';
+    s.style.width=naturalW+'px';
+    s.style.transform='scale('+scale+')';
+    const c=document.querySelector('.canvas');
+    if(c)c.style.width=Math.max(st.clientWidth,Math.ceil(naturalW*scale)+20)+'px';
+  }
+  function fit(){
+    const st=$st(); if(!st||!measure())return;
+    const aw=Math.max(220,st.clientWidth-24);
+    const ah=Math.max(220,st.clientHeight-24);
+    apply(Math.min(1,aw/naturalW,ah/naturalH));
+    requestAnimationFrame(()=>{
+      st.scrollLeft=Math.max(0,(st.scrollWidth-st.clientWidth)/2);
+      st.scrollTop=0;
+    });
+  }
+  function boot(){
+    const s=$s();
+    if(!s){setTimeout(boot,60);return;}
+    fit();
+  }
+  document.getElementById('zoom-out')?.addEventListener('click',e=>{e.preventDefault();apply(scale*.82)});
+  document.getElementById('zoom-in')?.addEventListener('click',e=>{e.preventDefault();apply(scale*1.22)});
+  document.getElementById('zoom-fit')?.addEventListener('click',e=>{e.preventDefault();fit()});
+  window.addEventListener('resize',()=>setTimeout(fit,80));
+  window.addEventListener('orientationchange',()=>setTimeout(fit,180));
+  setTimeout(boot,50);
+  setTimeout(fit,350);
+  setTimeout(fit,900);
+  setTimeout(fit,1400);
+  setTimeout(fit,2000);
+})();
+</script>
+
+
+<style id="nexa-v14-preview-fix">
+html,body{
+  margin:0!important;
+  min-height:100%!important;
+  overflow:hidden!important;
+}
+.preview-stage,
+#previewStage,
+.viewer-stage,
+#viewerStage{
+  position:relative!important;
+  width:100%!important;
+  height:calc(100dvh - 126px)!important;
+  overflow:auto!important;
+  overscroll-behavior:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  touch-action:pan-x pan-y pinch-zoom!important;
+}
+.preview-canvas,
+#previewCanvas,
+.viewer-canvas,
+#viewerCanvas{
+  position:relative!important;
+  min-width:100%!important;
+  min-height:100%!important;
+  display:flex!important;
+  align-items:flex-start!important;
+  justify-content:flex-start!important;
+  padding:24px!important;
+  box-sizing:border-box!important;
+}
+.preview-sheet,
+#previewSheet,
+.sheet-preview,
+#sheetPreview{
+  transform-origin:top left!important;
+  flex:0 0 auto!important;
+  margin:0!important;
+}
+</style>
+<script id="nexa-v14-preview-fit">
+(function(){
+  const SHEET_W = 1320, SHEET_H = 900;
+  let nexaZoom = 1;
+
+  function stage(){
+    return document.querySelector('#previewStage,.preview-stage,#viewerStage,.viewer-stage') || document.scrollingElement;
+  }
+  function sheet(){
+    return document.querySelector('#previewSheet,.preview-sheet,#sheetPreview,.sheet-preview,.sheet');
+  }
+  function canvas(){
+    return document.querySelector('#previewCanvas,.preview-canvas,#viewerCanvas,.viewer-canvas') || (sheet() && sheet().parentElement);
+  }
+  function apply(z){
+    const s=sheet(), c=canvas(), st=stage();
+    if(!s || !c || !st) return;
+    nexaZoom=Math.max(.18,Math.min(2.5,z));
+    s.style.width=SHEET_W+'px';
+    s.style.height=SHEET_H+'px';
+    s.style.transformOrigin='top left';
+    s.style.transform='scale('+nexaZoom+')';
+    c.style.width=Math.max(st.clientWidth, SHEET_W*nexaZoom+48)+'px';
+    c.style.height=Math.max(st.clientHeight, SHEET_H*nexaZoom+48)+'px';
+    requestAnimationFrame(()=>{
+      st.scrollLeft=Math.max(0,(c.scrollWidth-st.clientWidth)/2);
+      st.scrollTop=Math.max(0,(c.scrollHeight-st.clientHeight)/2);
+    });
+  }
+  function fit(){
+    const st=stage();
+    if(!st) return;
+    const zx=(st.clientWidth-48)/SHEET_W;
+    const zy=(st.clientHeight-48)/SHEET_H;
+    apply(Math.min(zx,zy,1));
+  }
+  function bind(){
+    const fitBtn=[...document.querySelectorAll('button')].find(b=>b.textContent.trim().toLowerCase()==='fit');
+    const plus=[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='+');
+    const minus=[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='-');
+    if(fitBtn) fitBtn.onclick=(e)=>{e.preventDefault();fit();};
+    if(plus) plus.onclick=(e)=>{e.preventDefault();apply(nexaZoom+.12);};
+    if(minus) minus.onclick=(e)=>{e.preventDefault();apply(nexaZoom-.12);};
+    setTimeout(fit,120);
+    setTimeout(fit,500);
+  }
+  window.addEventListener('load',bind);
+  window.addEventListener('resize',()=>setTimeout(fit,100));
+  window.addEventListener('orientationchange',()=>setTimeout(fit,250));
+})();
+</script>
+
+<style id="nexa-v16-newfile-preview">
+.stage{height:calc(100dvh - 70px)!important;overflow:auto!important;padding:10px!important;box-sizing:border-box!important}
+.canvas{position:relative!important;width:max-content!important;min-width:100%!important;min-height:100%!important;padding:10px 10px 90px!important;box-sizing:border-box!important}
+#preview-root{position:relative!important;margin:0 auto!important}
+#preview-root .sheet{position:absolute!important;left:0!important;top:0!important;transform-origin:top left!important;margin:0!important;zoom:1!important}
+</style>
+<script id="nexa-v16-newfile-fit">
+(function(){
+ let z=1,w=1320,h=820;
+ const st=()=>document.querySelector('.stage'), s=()=>document.querySelector('#preview-root .sheet'), r=()=>document.getElementById('preview-root'), c=()=>document.querySelector('.canvas');
+ function measure(){const x=s();if(!x)return false;const old=x.style.transform;x.style.transform='none';w=Math.max(1320,x.scrollWidth||x.offsetWidth||1320);h=Math.max(820,x.scrollHeight||x.offsetHeight||820);x.style.transform=old;return true}
+ function apply(v){const x=s(),rr=r(),ss=st(),cc=c();if(!x||!rr||!ss||!cc||!measure())return;z=Math.max(.12,Math.min(2.5,v));x.style.width=w+'px';x.style.transform='scale('+z+')';rr.style.width=Math.ceil(w*z)+'px';rr.style.height=Math.ceil(h*z)+'px';cc.style.width=Math.max(ss.clientWidth,Math.ceil(w*z)+20)+'px';cc.style.height=Math.max(ss.clientHeight,Math.ceil(h*z)+90)+'px'}
+ function fit(){const ss=st();if(!ss||!measure())return;apply(Math.min(1,(ss.clientWidth-24)/w,(ss.clientHeight-24)/h));requestAnimationFrame(()=>{ss.scrollLeft=Math.max(0,(ss.scrollWidth-ss.clientWidth)/2);ss.scrollTop=0})}
+ function boot(){document.getElementById('zoom-out')?.addEventListener('click',e=>{e.preventDefault();apply(z*.82)});document.getElementById('zoom-fit')?.addEventListener('click',e=>{e.preventDefault();fit()});document.getElementById('zoom-in')?.addEventListener('click',e=>{e.preventDefault();apply(z*1.22)});setTimeout(fit,80);setTimeout(fit,350);setTimeout(fit,900)}
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+ window.addEventListener('resize',()=>setTimeout(fit,100));
+})();
+</script>

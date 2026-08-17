@@ -2023,11 +2023,71 @@ document.addEventListener('DOMContentLoaded', async () => {
       window._nexaNativeCleanup=cleanup;
     }
 
-    // Force-hydrate Layout Management from the SAME alliance table used by NEXA.
-    // This runs even if the standalone child script failed, so the dropdown cannot stay empty silently.
+    // Native Layout Management controller.
+    // Important: this owns Alliance selection + Save inside the native module host,
+    // so duplicate IDs elsewhere in NEXA cannot make Save read the wrong select.
     if(pageKey==='layout-management'){
-      const allianceSelect=host.querySelector('#alliance');
-      const layoutStatus=host.querySelector('#status');
+      const q=(sel)=>host.querySelector(sel);
+      const allianceSelect=q('#alliance');
+      const layoutStatus=q('#status');
+      const saveBtn=q('#save');
+      const emblemInput=q('#emblem');
+      const emblemPreview=q('#emblemPreview');
+      const removeEmblemBtn=q('#removeEmblem');
+      const adjustEmblemBtn=q('#adjustEmblem');
+      const cropBox=q('#cropBox');
+      const cropImage=q('#cropImage');
+      const cropStage=q('#cropStage');
+      const cropZoom=q('#cropZoom');
+      const cropX=q('#cropX');
+      const cropY=q('#cropY');
+      const cancelCrop=q('#cancelCrop');
+      const applyCrop=q('#applyCrop');
+
+      let currentEmblemData='';
+      let cropSource='';
+
+      const setStatus=(txt)=>{ if(layoutStatus) layoutStatus.textContent=txt||''; };
+      const selectedAllianceId=()=>String(host.dataset.layoutAllianceId || allianceSelect?.value || '').trim();
+      const selectedPresetKey=()=>q('.preset.selected')?.dataset?.id || 'forest_green';
+
+      const renderEmblem=()=>{
+        if(!emblemPreview)return;
+        emblemPreview.innerHTML=currentEmblemData
+          ? `<img src="${currentEmblemData}" alt="Alliance emblem">`
+          : 'No emblem';
+      };
+
+      const selectPreset=(key)=>{
+        const cards=[...host.querySelectorAll('.preset')];
+        cards.forEach(card=>card.classList.toggle('selected',card.dataset.id===key));
+        const chosen=cards.find(card=>card.dataset.id===key);
+        if(chosen){
+          const accent=getComputedStyle(chosen).getPropertyValue('--accent') || chosen.style.getPropertyValue('--accent');
+          q('#preview')?.style.setProperty('--accent',accent);
+        }
+      };
+
+      const loadStoredIdentity=async(allianceId)=>{
+        if(!allianceId)return;
+        setStatus('Loading alliance layout…');
+        const {data,error}=await supabaseClient
+          .from('alliance_layout_settings')
+          .select('alliance_id,preset_key,emblem_data_url')
+          .eq('alliance_id',allianceId)
+          .maybeSingle();
+
+        if(error){
+          setStatus('Could not load saved layout: '+error.message);
+          return;
+        }
+
+        currentEmblemData=data?.emblem_data_url || '';
+        renderEmblem();
+        selectPreset(data?.preset_key || 'forest_green');
+        setStatus('');
+      };
+
       if(allianceSelect){
         allianceSelect.innerHTML='<option value="">Loading alliances…</option>';
         try{
@@ -2036,6 +2096,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             .select('id,tag')
             .order('tag');
           if(layoutAllianceError) throw layoutAllianceError;
+
           allianceSelect.innerHTML='<option value="">Select alliance…</option>';
           (layoutAlliances||[]).filter(a=>a && a.id && a.tag).forEach(a=>{
             const option=document.createElement('option');
@@ -2043,14 +2104,142 @@ document.addEventListener('DOMContentLoaded', async () => {
             option.textContent=String(a.tag);
             allianceSelect.appendChild(option);
           });
-          if(!(layoutAlliances||[]).length && layoutStatus){
-            layoutStatus.textContent='No alliances were returned from NEXA.';
-          }
+
+          allianceSelect.onchange=async()=>{
+            const id=String(allianceSelect.value||'').trim();
+            host.dataset.layoutAllianceId=id;
+            const label=allianceSelect.options[allianceSelect.selectedIndex]?.textContent || '';
+            if(!id){
+              setStatus('Select an alliance first.');
+              return;
+            }
+            setStatus('Selected: '+label);
+            await loadStoredIdentity(id);
+          };
         }catch(layoutAllianceErr){
           allianceSelect.innerHTML='<option value="">Alliance load failed</option>';
-          if(layoutStatus) layoutStatus.textContent='Alliance load failed: '+(layoutAllianceErr?.message||layoutAllianceErr);
-          console.error('NEXA Layout Management alliance query failed',layoutAllianceErr);
+          setStatus('Alliance load failed: '+(layoutAllianceErr?.message||layoutAllianceErr));
         }
+      }
+
+      // Keep preset selection readable by Save, regardless of the standalone page's internal state.
+      host.addEventListener('click',(ev)=>{
+        const card=ev.target.closest?.('.preset');
+        if(!card || !host.contains(card))return;
+        setTimeout(()=>{
+          [...host.querySelectorAll('.preset')].forEach(x=>x.classList.toggle('selected',x===card));
+        },0);
+      });
+
+      const updateCropPreview=()=>{
+        if(!cropImage?.src || !cropStage)return;
+        const z=Number(cropZoom?.value||1);
+        const x=Number(cropX?.value||0);
+        const y=Number(cropY?.value||0);
+        const iw=cropImage.naturalWidth||1, ih=cropImage.naturalHeight||1;
+        const sw=cropStage.clientWidth||210, sh=cropStage.clientHeight||210;
+        const base=Math.max(sw/iw,sh/ih);
+        cropImage.style.width=(iw*base*z)+'px';
+        cropImage.style.height=(ih*base*z)+'px';
+        cropImage.style.transform=`translate(calc(-50% + ${x}px),calc(-50% + ${y}px))`;
+      };
+
+      const openCrop=(src)=>{
+        if(!src || !cropBox || !cropImage)return;
+        cropSource=src;
+        cropBox.classList.remove('hidden');
+        if(cropZoom)cropZoom.value='1';
+        if(cropX)cropX.value='0';
+        if(cropY)cropY.value='0';
+        cropImage.onload=updateCropPreview;
+        cropImage.src=src;
+      };
+
+      if(emblemInput){
+        emblemInput.onchange=()=>{
+          const file=emblemInput.files?.[0];
+          if(!file)return;
+          const reader=new FileReader();
+          reader.onload=()=>openCrop(String(reader.result||''));
+          reader.readAsDataURL(file);
+        };
+      }
+
+      if(adjustEmblemBtn) adjustEmblemBtn.onclick=()=>openCrop(currentEmblemData);
+      [cropZoom,cropX,cropY].filter(Boolean).forEach(el=>el.oninput=updateCropPreview);
+      if(cancelCrop) cancelCrop.onclick=()=>cropBox?.classList.add('hidden');
+
+      if(applyCrop){
+        applyCrop.onclick=()=>{
+          if(!cropImage?.naturalWidth || !cropStage)return;
+          const sw=cropStage.clientWidth||210, sh=cropStage.clientHeight||210;
+          const z=Number(cropZoom?.value||1);
+          const x=Number(cropX?.value||0);
+          const y=Number(cropY?.value||0);
+          const iw=cropImage.naturalWidth, ih=cropImage.naturalHeight;
+          const base=Math.max(sw/iw,sh/ih);
+          const dw=iw*base*z, dh=ih*base*z;
+          const left=(sw-dw)/2+x, top=(sh-dh)/2+y;
+          const sx=Math.max(0,(-left)*(iw/dw));
+          const sy=Math.max(0,(-top)*(ih/dh));
+          const sourceSize=Math.min(sw*(iw/dw),sh*(ih/dh),iw-sx,ih-sy);
+
+          const canvas=document.createElement('canvas');
+          canvas.width=512; canvas.height=512;
+          const ctx=canvas.getContext('2d');
+          ctx.clearRect(0,0,512,512);
+          ctx.drawImage(cropImage,sx,sy,sourceSize,sourceSize,0,0,512,512);
+          currentEmblemData=canvas.toDataURL('image/png');
+          renderEmblem();
+          cropBox.classList.add('hidden');
+          setStatus('Emblem adjusted. Save Alliance Layout to confirm.');
+        };
+      }
+
+      if(removeEmblemBtn){
+        removeEmblemBtn.onclick=()=>{
+          currentEmblemData='';
+          if(emblemInput)emblemInput.value='';
+          renderEmblem();
+          cropBox?.classList.add('hidden');
+          setStatus('Emblem removed. Save Alliance Layout to confirm.');
+        };
+      }
+
+      if(saveBtn){
+        saveBtn.onclick=async()=>{
+          const allianceId=selectedAllianceId();
+          if(!allianceId){
+            setStatus('Select an alliance first.');
+            return;
+          }
+
+          // Lock the currently visible select into the host before saving.
+          host.dataset.layoutAllianceId=allianceId;
+          const presetKey=selectedPresetKey();
+          setStatus('Saving…');
+
+          const payload={
+            alliance_id:allianceId,
+            preset_key:presetKey,
+            emblem_data_url:currentEmblemData,
+            updated_at:new Date().toISOString()
+          };
+
+          const {data,error}=await supabaseClient
+            .from('alliance_layout_settings')
+            .upsert(payload,{onConflict:'alliance_id'})
+            .select('alliance_id,preset_key')
+            .maybeSingle();
+
+          if(error){
+            setStatus('Save failed: '+error.message);
+            return;
+          }
+
+          const tag=allianceSelect?.options[allianceSelect.selectedIndex]?.textContent || 'Alliance';
+          setStatus(`${tag} layout saved.`);
+        };
       }
     }
 

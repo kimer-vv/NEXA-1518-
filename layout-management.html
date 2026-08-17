@@ -15,7 +15,16 @@ label{display:block;color:#cbd3e7;font-size:12px;font-weight:800;margin:12px 0 6
 .preset{border:2px solid transparent;border-radius:15px;background:#fff;color:#14213d;overflow:hidden;cursor:pointer;min-height:105px;position:relative}.preset.selected{border-color:#fff;box-shadow:0 0 0 3px var(--blue)}.swatch{height:38px;background:var(--accent)}.preset-body{padding:10px}.preset-name{font-weight:900;font-size:13px}.preset-sub{font-size:10px;color:#697386;margin-top:3px}
 .preview{background:#fff;color:#14213d;border-radius:15px;padding:15px}.preview-head{height:28px;border-radius:8px;background:var(--accent);margin-bottom:10px}.preview-row{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.mini{border:1px solid #d8deea;border-radius:7px;overflow:hidden}.mini b{display:block;background:var(--accent);color:#fff;padding:5px;text-align:center;font-size:8px}.mini div{height:32px;background:repeating-linear-gradient(#fff 0 9px,#e9edf5 10px)}
 .emblem-row{display:flex;align-items:center;gap:14px}.emblem-preview{width:74px;height:74px;border-radius:14px;border:1px dashed #44506d;display:flex;align-items:center;justify-content:center;overflow:hidden;color:var(--muted);font-size:10px;text-align:center}.emblem-preview img{width:100%;height:100%;object-fit:contain;background:#fff}
-.emblem-remove{margin-top:10px;padding:8px 12px;font-size:12px}.actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}.btn{border:1px solid #34405f;border-radius:12px;padding:11px 16px;background:#0b1122;color:#fff;font-weight:900}.btn.primary{background:var(--blue);border-color:var(--blue)}
+.emblem-remove{margin-top:10px;padding:8px 12px;font-size:12px}
+.emblem-tools{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.crop-box{margin-top:14px;padding:14px;border:1px solid #35405d;border-radius:14px;background:#080d1a}
+.crop-box.hidden{display:none}
+.crop-stage{width:210px;height:210px;max-width:100%;margin:0 auto 12px;border-radius:16px;overflow:hidden;border:2px solid #fff;background:#111;position:relative}
+.crop-stage img{position:absolute;left:50%;top:50%;max-width:none;transform-origin:center center;user-select:none;pointer-events:none}
+.crop-controls{display:grid;gap:8px}
+.crop-controls label{margin:0;font-size:11px}
+.crop-controls input[type=range]{padding:0;border:0;background:transparent}
+.crop-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}.actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}.btn{border:1px solid #34405f;border-radius:12px;padding:11px 16px;background:#0b1122;color:#fff;font-weight:900}.btn.primary{background:var(--blue);border-color:var(--blue)}
 .status{font-size:12px;color:#aeb9d6;margin-top:10px}.hidden{display:none}
 @media(max-width:720px){.grid,.presets{grid-template-columns:1fr}.presets{grid-template-columns:repeat(2,1fr)}}
 </style>
@@ -33,7 +42,16 @@ label{display:block;color:#cbd3e7;font-size:12px;font-weight:800;margin:12px 0 6
  <div class="card grid">
   <div>
    <h2>Alliance Emblem</h2>
-   <div class="emblem-row"><div id="emblemPreview" class="emblem-preview">No emblem</div><div style="flex:1"><label>Upload emblem</label><input id="emblem" type="file" accept="image/*"><button id="removeEmblem" class="btn emblem-remove" type="button">Remove Emblem</button></div></div>
+   <div class="emblem-row"><div id="emblemPreview" class="emblem-preview">No emblem</div><div style="flex:1"><label>Upload emblem</label><input id="emblem" type="file" accept="image/*"><div class="emblem-tools"><button id="adjustEmblem" class="btn emblem-remove" type="button">Adjust / Crop</button><button id="removeEmblem" class="btn emblem-remove" type="button">Remove Emblem</button></div></div></div>
+   <div id="cropBox" class="crop-box hidden">
+    <div class="crop-stage" id="cropStage"><img id="cropImage" alt=""></div>
+    <div class="crop-controls">
+     <label>Zoom <input id="cropZoom" type="range" min="1" max="3" step="0.01" value="1"></label>
+     <label>Horizontal <input id="cropX" type="range" min="-100" max="100" step="1" value="0"></label>
+     <label>Vertical <input id="cropY" type="range" min="-100" max="100" step="1" value="0"></label>
+    </div>
+    <div class="crop-actions"><button id="cancelCrop" class="btn" type="button">Cancel</button><button id="applyCrop" class="btn primary" type="button">Use Crop</button></div>
+   </div>
   </div>
   <div>
    <h2>Preview</h2>
@@ -62,10 +80,13 @@ const presets=[
  {id:'steel',name:'Steel',accent:'#596579',sub:'Steel / white'}
 ];
 let selected='forest_green',emblemData='';
-const $=id=>document.getElementById(id);
+const $=id=>{
+ const host=document.getElementById('native-module-host');
+ return host?.querySelector('#'+CSS.escape(id)) || document.getElementById(id);
+};
 function drawPresets(){
  $('presets').innerHTML=presets.map(p=>`<div class="preset ${p.id===selected?'selected':''}" data-id="${p.id}" style="--accent:${p.accent}"><div class="swatch"></div><div class="preset-body"><div class="preset-name">${p.name}</div><div class="preset-sub">${p.sub}</div></div></div>`).join('');
- document.querySelectorAll('.preset').forEach(el=>el.onclick=()=>{selected=el.dataset.id;drawPresets();applyPreview()});
+ $('presets').querySelectorAll('.preset').forEach(el=>el.onclick=()=>{selected=el.dataset.id;drawPresets();applyPreview()});
 }
 function applyPreview(){const p=presets.find(x=>x.id===selected)||presets[0];$('preview').style.setProperty('--accent',p.accent)}
 async function loadAlliances(){
@@ -80,7 +101,63 @@ async function loadAssignment(){
  drawPresets();applyPreview();renderEmblem();
 }
 function renderEmblem(){$('emblemPreview').innerHTML=emblemData?`<img src="${emblemData}" alt="">`:'No emblem'}
-$('emblem').onchange=()=>{const f=$('emblem').files?.[0];if(!f)return;const r=new FileReader();r.onload=()=>{emblemData=r.result;renderEmblem()};r.readAsDataURL(f)}
+
+let cropSource='';
+function updateCropPreview(){
+ const img=$('cropImage');
+ if(!img?.src)return;
+ const stage=$('cropStage');
+ const z=Number($('cropZoom').value||1);
+ const x=Number($('cropX').value||0);
+ const y=Number($('cropY').value||0);
+ const iw=img.naturalWidth||1, ih=img.naturalHeight||1;
+ const sw=stage.clientWidth||210, sh=stage.clientHeight||210;
+ const base=Math.max(sw/iw,sh/ih);
+ img.style.width=(iw*base*z)+'px';
+ img.style.height=(ih*base*z)+'px';
+ img.style.transform=`translate(calc(-50% + ${x}px),calc(-50% + ${y}px))`;
+}
+function openCrop(src){
+ cropSource=src||emblemData;
+ if(!cropSource)return;
+ $('cropBox').classList.remove('hidden');
+ $('cropZoom').value='1';$('cropX').value='0';$('cropY').value='0';
+ const img=$('cropImage');
+ img.onload=updateCropPreview;
+ img.src=cropSource;
+}
+$('emblem').onchange=()=>{
+ const f=$('emblem').files?.[0];if(!f)return;
+ const r=new FileReader();
+ r.onload=()=>openCrop(String(r.result||''));
+ r.readAsDataURL(f);
+};
+$('adjustEmblem').onclick=()=>openCrop(emblemData);
+['cropZoom','cropX','cropY'].forEach(id=>$(id).oninput=updateCropPreview);
+$('cancelCrop').onclick=()=>{$('cropBox').classList.add('hidden')};
+$('applyCrop').onclick=()=>{
+ const img=$('cropImage'); if(!img?.naturalWidth)return;
+ const stage=$('cropStage');
+ const sw=stage.clientWidth||210, sh=stage.clientHeight||210;
+ const z=Number($('cropZoom').value||1), x=Number($('cropX').value||0), y=Number($('cropY').value||0);
+ const iw=img.naturalWidth, ih=img.naturalHeight;
+ const base=Math.max(sw/iw,sh/ih);
+ const displayedW=iw*base*z, displayedH=ih*base*z;
+ const left=(sw-displayedW)/2+x, top=(sh-displayedH)/2+y;
+ const scaleX=iw/displayedW, scaleY=ih/displayedH;
+ const sx=Math.max(0,(-left)*scaleX);
+ const sy=Math.max(0,(-top)*scaleY);
+ const sourceSize=Math.min(sw*scaleX,sh*scaleY,iw-sx,ih-sy);
+ const canvas=document.createElement('canvas');
+ canvas.width=512;canvas.height=512;
+ const ctx=canvas.getContext('2d');
+ ctx.clearRect(0,0,512,512);
+ ctx.drawImage(img,sx,sy,sourceSize,sourceSize,0,0,512,512);
+ emblemData=canvas.toDataURL('image/png');
+ renderEmblem();
+ $('cropBox').classList.add('hidden');
+ $('status').textContent='Emblem adjusted. Save Alliance Layout to confirm.';
+};
 $('removeEmblem').onclick=()=>{
  emblemData='';
  $('emblem').value='';
@@ -89,11 +166,14 @@ $('removeEmblem').onclick=()=>{
 };
 $('alliance').onchange=loadAssignment;
 $('save').onclick=async()=>{
- const allianceId=$('alliance').value;if(!allianceId){$('status').textContent='Select an alliance first.';return}
+ const allianceEl=$('alliance');
+ const allianceId=String(allianceEl?.value||'').trim();
+ if(!allianceId){$('status').textContent='Select an alliance first.';return}
  $('status').textContent='Saving…';
- const payload={alliance_id:String(allianceId),preset_key:selected,emblem_data_url:emblemData,updated_at:new Date().toISOString()};
- const {error}=await sb.from('alliance_layout_settings').upsert(payload,{onConflict:'alliance_id'});
- $('status').textContent=error?'Save failed: '+error.message:'Alliance layout saved.';
+ const payload={alliance_id:allianceId,preset_key:selected,emblem_data_url:emblemData,updated_at:new Date().toISOString()};
+ const {data,error}=await sb.from('alliance_layout_settings').upsert(payload,{onConflict:'alliance_id'}).select('alliance_id,preset_key,emblem_data_url').maybeSingle();
+ if(error){$('status').textContent='Save failed: '+error.message;return}
+ $('status').textContent=data?.alliance_id?'Alliance layout saved.':'Alliance layout saved.';
 };
 drawPresets();applyPreview();loadAlliances();
 </script>

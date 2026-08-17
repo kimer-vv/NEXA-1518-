@@ -1937,6 +1937,42 @@ body:after{height:320px!important}
 body:after{height:340px!important}
 </style>
 
+
+<style id="nexa-template-v12-polish">
+.rally-name-line{gap:4px!important}
+.rally-name-line .rally-time{
+  color:#344054!important;
+  font-weight:800!important;
+  font-size:7.5px!important;
+}
+.rally-pet-times{
+  display:inline-block!important;
+  margin-top:2px!important;
+  color:#344054!important;
+  font-weight:700!important;
+  font-size:7px!important;
+}
+/* Keep formation hierarchy cleaner */
+.formations-title{
+  margin-bottom:8px!important;
+  text-align:center!important;
+}
+.formation-group-title{
+  white-space:nowrap!important;
+}
+/* Notes must read as an intentional section */
+.sheet-notes:before{
+  content:"NOTES";
+  display:block;
+  margin-bottom:6px;
+  font-size:8px;
+  line-height:1;
+  font-weight:900;
+  letter-spacing:.08em;
+  color:#172554;
+}
+</style>
+
 </head>
 <body data-builder-rev="20260816-menu-restored">
 <main class="shell">
@@ -2264,7 +2300,7 @@ function renderFormations(rows){
 
   const group=(items,scope)=>{
     if(!items.length)return '';
-    const label=scope==='joiner'?'JOINER FORMATIONS':'RALLY LEADER FORMATIONS';
+    const label=scope==='joiner'?'JOINERS':'RALLY LEADERS';
     const icon=scope==='joiner'?`<svg class="joiner-person-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"></circle><path d="M4.5 21c.4-5.1 3.1-8 7.5-8s7.1 2.9 7.5 8H4.5z"></path></svg>`:'♜';
     return `<section class="formation-group ${scope}">
       <div class="formation-group-title"><span class="${scope==='joiner'?'joiner-icon':'rally-icon'}">${icon}</span>${label}</div>
@@ -2947,6 +2983,42 @@ window.addEventListener('DOMContentLoaded',()=>{
       openDedicatedPreview();
     };
   }
+})();
+</script>
+
+
+<script id="nexa-template-v12-preview-fix">
+(function(){
+  const btn=document.getElementById('preview-layout');
+  if(!btn)return;
+  btn.onclick=function(e){
+    e.preventDefault();
+    e.stopImmediatePropagation();
+
+    const imp=(document.getElementById('important-notes')?.value||'').trim();
+    const notes=(document.getElementById('layout-notes')?.value||'').trim();
+    const it=document.getElementById('sheet-important-text');
+    const ib=document.getElementById('sheet-important');
+    if(it)it.textContent=imp;
+    if(ib)ib.classList.toggle('hidden',!imp);
+    const nt=document.getElementById('sheet-notes-text');
+    const nb=document.getElementById('sheet-notes');
+    if(nt)nt.textContent=notes;
+    if(nb){nb.classList.remove('hidden');nb.style.display='block';}
+
+    const sheet=document.getElementById('sheet');
+    if(!sheet)return;
+    const clone=sheet.cloneNode(true);
+    clone.removeAttribute('style');
+    clone.style.cssText='transform:none!important;position:relative!important;left:auto!important;top:auto!important;margin:0 auto!important;';
+    const styles=[...document.querySelectorAll('style,link[rel="stylesheet"]')].map(x=>x.outerHTML).join('\n');
+    sessionStorage.setItem('nexa_layout_preview_payload',JSON.stringify({
+      title:(document.getElementById('sheet-title')?.textContent||'NEXA Layout').trim(),
+      html:clone.outerHTML,
+      styles:styles
+    }));
+    location.href='layout-preview-v2.html';
+  };
 })();
 </script>
 

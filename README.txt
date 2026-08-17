@@ -1,10 +1,11 @@
-Upload BOTH files to the GitHub root:
-- template-builder-v2.html (replace)
-- layout-preview-v2.html (new)
+Upload BOTH files together:
+1. template-builder-v2.html — replace existing file
+2. layout-preview-v2.html — replace existing file
 
-V11 fixes:
-- Rally Leader time is inline beside the Rally Leader name.
-- 1–3 Teams: Formations beside the Teams.
-- 4–6 Teams: Formations below.
-- Notes always reserves a visible block at the bottom, even before text is entered.
-- Preview Layout no longer uses a popup. It navigates to a dedicated full-size preview page, so Safari cannot block it.
+V12:
+- Preview Layout opens the dedicated full-page preview instead of scrolling to the tiny inline preview.
+- Full-page preview starts larger and remains scrollable/zoomable.
+- FORMATIONS is the single main heading; subgroup labels are JOINERS and RALLY LEADERS.
+- Rally time is darker/bolder.
+- Pet timing is visually closer to rally information.
+- NOTES is visibly labeled.

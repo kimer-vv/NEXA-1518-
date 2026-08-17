@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>NEXA Team Sheet</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<style>
+:root{
+  --navy:#173b7a; --green:#24783b; --line:#d7dce6; --soft:#f4f6fa;
+  --text:#14213d; --muted:#697386; --pet:#d79b20;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:#eef1f6;color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.toolbar{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid #ddd;padding:10px 12px;display:flex;gap:8px;justify-content:flex-end}
+button{border:1px solid #cfd5e2;background:#fff;border-radius:10px;padding:9px 13px;font-weight:800;color:#173b7a}
+button.primary{background:#173b7a;color:#fff}
+.stage{padding:14px;overflow:auto}
+.fit-holder{width:100%;overflow:hidden}
+.sheet{
+  width:1400px;background:#fff;border-radius:16px;padding:24px 28px 22px;transform-origin:top left;
+  box-shadow:0 12px 38px rgba(0,0,0,.12)
+}
+.header{position:relative;min-height:122px;display:flex;align-items:center;justify-content:center;padding:10px 500px 10px 40px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand img{width:64px;height:64px;object-fit:contain}
+.tag{font-size:44px;font-weight:950;line-height:1}
+.tips,.legend{position:absolute;top:10px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff}
+.tips{right:260px;width:250px}
+.legend{right:10px;width:235px}
+.box-title{font-size:13px;font-weight:950;margin-bottom:6px}
+.tips div:not(.box-title),.legend-row{font-size:11px;line-height:1.25;margin:4px 0}
+.legend-row{display:grid;grid-template-columns:24px 1fr;gap:6px;align-items:center}
+.legend-icon{text-align:center;font-size:16px}
+.person{width:16px;height:16px;fill:var(--green);display:block;margin:auto}
+.main{display:grid;gap:16px;align-items:start}
+.main.count-1,.main.count-2,.main.count-3{grid-template-columns:minmax(0,1fr) 320px}
+.main.count-4,.main.count-5,.main.count-6{grid-template-columns:1fr}
+.teams{display:grid;gap:10px;align-items:start}
+.count-1 .teams{grid-template-columns:repeat(1,minmax(0,1fr))}
+.count-2 .teams{grid-template-columns:repeat(2,minmax(0,1fr))}
+.count-3 .teams{grid-template-columns:repeat(3,minmax(0,1fr))}
+.count-4 .teams{grid-template-columns:repeat(4,minmax(0,1fr))}
+.count-5 .teams{grid-template-columns:repeat(5,minmax(0,1fr))}
+.count-6 .teams{grid-template-columns:repeat(6,minmax(0,1fr))}
+.team{border:1px solid var(--line);border-radius:12px;overflow:hidden;min-width:0}
+.team-name{background:var(--navy);color:#fff;text-align:center;font-size:15px;font-weight:950;padding:8px 5px}
+.section{background:var(--soft);color:var(--navy);text-align:center;font-size:9px;font-weight:950;padding:6px 4px;display:flex;align-items:center;justify-content:center;gap:5px}
+.section.joiners{color:var(--green)}
+.rally{display:grid;grid-template-columns:minmax(0,1fr) 28px;gap:5px;align-items:center;min-height:42px;padding:6px 8px;border-top:1px solid var(--line)}
+.rally:first-child{border-top:0}
+.rally-name{font-size:11px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rally-time{font-size:8px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.paw{font-size:18px;text-align:center;color:var(--pet)}
+.jhead,.jrow{display:grid;grid-template-columns:minmax(0,1.28fr) minmax(0,.86fr) minmax(0,.86fr)}
+.jhead{background:#f6f8fb;color:var(--green);font-size:7.5px;font-weight:950;text-transform:uppercase}
+.jhead>div,.jrow>div{padding:6px 5px;min-width:0;overflow:hidden;border-right:1px solid var(--line)}
+.jhead>div:last-child,.jrow>div:last-child{border-right:0}
+.jrow{border-top:1px solid var(--line);min-height:31px;font-size:8.5px}
+.ellipsis{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.formations{border:1px solid var(--line);border-radius:12px;padding:12px;background:#fff}
+.formations h3{font-size:15px;text-align:center;margin:0 0 10px}
+.fgroups{display:grid;grid-template-columns:1fr;gap:10px}
+.count-4 .fgroups,.count-5 .fgroups,.count-6 .fgroups{grid-template-columns:1fr 1fr}
+.fcards{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.fcard{border-radius:9px;padding:8px 6px;color:#fff;text-align:center}
+.fcard.rally-f{background:var(--navy)}
+.fcard.joiner-f{background:var(--green)}
+.ftitle{font-size:9px;font-weight:950;text-transform:uppercase}
+.fratio{font-size:13px;font-weight:950;margin-top:6px}
+.notes{margin-top:16px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-height:72px}
+.notes-title{font-size:12px;font-weight:950;margin-bottom:6px}
+.lines{height:38px;background:repeating-linear-gradient(to bottom,transparent 0,transparent 17px,var(--line) 18px)}
+.empty{padding:22px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:10px}
+@media(max-width:700px){.stage{padding:8px}.toolbar{padding-top:calc(8px + env(safe-area-inset-top))}}
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <button id="back">Back</button>
+  <button id="download" class="primary">Download Layout</button>
+</div>
+<div class="stage"><div id="fit" class="fit-holder"><div id="sheet" class="sheet">
+  <div class="header">
+    <div class="brand"><img id="emblem" style="display:none"><div id="tag" class="tag">Alliance</div></div>
+    <div class="tips"><div class="box-title">TIPS</div><div>Joiners 1–4: join with 2–3 minutes left</div><div>Joiners 5+: join with 2 minutes left</div></div>
+    <div class="legend">
+      <div class="box-title">LEGEND</div>
+      <div class="legend-row"><div class="legend-icon">♜</div><div>Rally Leader</div></div>
+      <div class="legend-row"><div class="legend-icon"><svg class="person" viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M4.5 21c.4-5.1 3.1-8 7.5-8s7.1 2.9 7.5 8H4.5z"/></svg></div><div>Joiner</div></div>
+      <div class="legend-row"><div class="legend-icon">🐾</div><div>Pet Active</div></div>
+    </div>
+  </div>
+  <div id="main" class="main count-1"><div id="teams" class="teams"></div><div id="formations"></div></div>
+  <div class="notes"><div class="notes-title">NOTES</div><div class="lines"></div></div>
+</div></div></div>
+<script>
+const sb=window.supabase.createClient("https://dfxcxboxrkfmrnsgpyin.supabase.co","sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-");
+const q=new URLSearchParams(location.search);
+const eventType=(q.get('event_type')||'svs').toLowerCase();
+const allianceId=q.get('alliance_id')||'';
+const allianceTag=q.get('alliance_tag')||'Alliance';
+const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+document.getElementById('tag').textContent=allianceTag;
+document.getElementById('back').onclick=()=>history.back();
+
+function fit(){
+  const holder=document.getElementById('fit'),sheet=document.getElementById('sheet');
+  sheet.style.transform='none';holder.style.height='auto';
+  const scale=Math.min(1,Math.max(280,holder.clientWidth)/1400);
+  sheet.style.transform=`scale(${scale})`;
+  holder.style.height=Math.ceil(sheet.scrollHeight*scale)+'px';
+}
+addEventListener('resize',fit);
+
+function petText(w){
+  const a=String(w?.start_utc||'').trim(),b=String(w?.end_utc||'').trim();
+  return a&&b?`${a}–${b} UTC`:a?`${a} UTC`:'';
+}
+function normalizeType(x){return String(x.formation_type||'attack').toLowerCase().includes('def')?'Defense':'Attack'}
+function formationCard(x,scope){
+  const role=scope==='rally'?'Rally Leader':'Joiner';
+  const cls=scope==='rally'?'rally-f':'joiner-f';
+  return `<div class="fcard ${cls}"><div class="ftitle">${role} ${normalizeType(x)}</div><div class="fratio">${esc(x.infantry_pct)} / ${esc(x.lancer_pct)} / ${esc(x.marksman_pct)}</div></div>`;
+}
+async function load(){
+  let {data:teams,error}=await sb.from('alliance_teams').select('*').eq('event_type_key',eventType).eq('alliance_id',String(allianceId)).order('sort_order').order('created_at');
+  if(error){document.getElementById('teams').innerHTML=`<div class="empty">${esc(error.message)}</div>`;fit();return}
+  teams=teams||[];
+  const ids=teams.map(x=>x.id);
+  let members=[];
+  if(ids.length){
+    const r=await sb.from('team_members').select('*,pet_windows(*)').in('team_id',ids).order('created_at');
+    if(r.error){document.getElementById('teams').innerHTML=`<div class="empty">${esc(r.error.message)}</div>`;fit();return}
+    members=r.data||[];
+  }
+  const fr=await sb.from('alliance_formations').select('*').eq('event_type_key',eventType).eq('alliance_id',String(allianceId)).order('formation_scope').order('sort_order');
+  const forms=fr.data||[];
+
+  const count=Math.min(Math.max(teams.length,1),6);
+  document.getElementById('main').className=`main count-${count}`;
+  document.getElementById('teams').innerHTML=teams.map((t,i)=>{
+    const tm=members.filter(m=>String(m.team_id)===String(t.id));
+    const rally=tm.filter(m=>m.member_role==='rally_lead');
+    const joiners=tm.filter(m=>m.member_role==='joiner');
+    const rallyHtml=(rally.length?rally:[null]).map(m=>{
+      if(!m)return `<div class="rally"><div class="rally-name">—</div><div></div></div>`;
+      const times=(m.pet_windows||[]).map(petText).filter(Boolean);
+      return `<div class="rally"><div><div class="rally-name">${esc(m.player_name||'—')}</div>${times.length?`<div class="rally-time">${esc(times.join(', '))}</div>`:''}</div><div class="paw">${times.length?'🐾':''}</div></div>`;
+    }).join('');
+    const joinHtml=(joiners.length?joiners:[null]).map(m=>m?`<div class="jrow"><div class="ellipsis">${esc(m.player_name||'—')}</div><div class="ellipsis">${esc(m.attack_hero||'—')}</div><div class="ellipsis">${esc(m.defensive_hero||'—')}</div></div>`:`<div class="jrow"><div>—</div><div>—</div><div>—</div></div>`).join('');
+    return `<section class="team"><div class="team-name">${esc(t.name||`Team ${i+1}`)}</div><div class="section">♜ RALLY LEADERS</div>${rallyHtml}<div class="section joiners">● JOINERS</div><div class="jhead"><div>JOINER</div><div>ATTACK</div><div>DEFENSE</div></div>${joinHtml}</section>`;
+  }).join('');
+
+  const rallyForms=forms.filter(x=>x.formation_scope==='rally');
+  const joinForms=forms.filter(x=>x.formation_scope!=='rally');
+  document.getElementById('formations').innerHTML=forms.length?`<div class="formations"><h3>FORMATIONS</h3><div class="fgroups"><div class="fcards">${rallyForms.map(x=>formationCard(x,'rally')).join('')}</div><div class="fcards">${joinForms.map(x=>formationCard(x,'joiner')).join('')}</div></div></div>`:'';
+
+  const br=await sb.from('alliance_branding').select('*').eq('alliance_id',String(allianceId)).maybeSingle();
+  if(!br.error&&br.data?.emblem_data_url){
+    const img=document.getElementById('emblem');img.src=br.data.emblem_data_url;img.style.display='block';
+  }
+  requestAnimationFrame(()=>{fit();setTimeout(fit,100)});
+}
+document.getElementById('download').onclick=async()=>{
+  const sheet=document.getElementById('sheet'),prev=sheet.style.transform;
+  sheet.style.transform='none';
+  const canvas=await html2canvas(sheet,{backgroundColor:'#fff',scale:2,useCORS:true});
+  sheet.style.transform=prev;
+  const a=document.createElement('a');a.download=`${allianceTag}-${eventType}-team-layout.png`;a.href=canvas.toDataURL('image/png');a.click();
+};
+load();
+</script>
+</body>
+</html>

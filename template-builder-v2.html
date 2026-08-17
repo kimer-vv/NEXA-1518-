@@ -2226,6 +2226,9 @@ const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 const p=window.NEXA_NATIVE_PARAMS||new URLSearchParams(location.search);
 const eventType=p.get('event_type')||'svs',eventKey=String(eventType).trim().toLowerCase(),allianceId=p.get('alliance_id')||'',allianceTag=p.get('alliance_tag')||'Alliance';
+window.sb=sb;
+window.allianceId=allianceId;
+window.allianceTag=allianceTag;
 
 function displayName(v){
   let out=String(v??'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[\u200B-\u200D\uFEFF]/g,'');
@@ -2917,7 +2920,7 @@ window.addEventListener('DOMContentLoaded',()=>{
  const params=new URLSearchParams(location.search);
  const aid=params.get('alliance_id');
  if(!aid||!window.supabase)return;
- const client=window.sb || window.supabaseClient;
+ const client=(typeof sb!=='undefined'&&sb&&typeof sb.from==='function')?sb:(window.sb || window.supabaseClient);
  if(!client||typeof client.from!=='function')return;
  const {data}=await client.from('alliance_layout_settings').select('*').eq('alliance_id',String(aid)).maybeSingle();
  if(!data)return;
@@ -2929,7 +2932,7 @@ window.addEventListener('DOMContentLoaded',()=>{
    sheet.style.setProperty('--accent',accent);
  }
  const img=document.getElementById('sheet-emblem');
- if(img&&data.emblem_data_url){img.src=data.emblem_data_url;img.style.display='block'}
+ if(img){if(data.emblem_data_url){img.src=data.emblem_data_url;img.style.display='block'}else{img.removeAttribute('src');img.style.display='none'}}
  if(typeof window.renderSheet==='function')window.renderSheet();
  if(typeof window.fitInlineSheet==='function')requestAnimationFrame(window.fitInlineSheet);
 })();
@@ -2974,7 +2977,9 @@ window.addEventListener('DOMContentLoaded',()=>{
         .eq('alliance_id',String(window.allianceId)).maybeSingle();
       if(!data)return;
       const accent=PRESET_COLORS[data.preset_key]||'#244887';
-      document.getElementById('sheet')?.style.setProperty('--accent',accent);
+      const identitySheet=document.getElementById('sheet');
+      identitySheet?.style.setProperty('--accent',accent);
+      identitySheet?.style.setProperty('--team-head',accent);
       document.querySelectorAll('.team-title').forEach(x=>x.style.background=accent);
       const img=document.getElementById('sheet-emblem');
       if(img){

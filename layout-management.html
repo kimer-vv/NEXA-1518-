@@ -70,7 +70,7 @@ function drawPresets(){
 }
 function applyPreview(){const p=presets.find(x=>x.id===selected)||presets[0];$('preview').style.setProperty('--accent',p.accent)}
 async function loadAlliances(){
- const {data,error}=await sb.from('alliances').select('*').order('name');
+ const {data,error}=await sb.from('alliances').select('id,tag').eq('is_active',true).order('tag');
  if(error){$('status').textContent='Could not load alliances: '+error.message;return}
  (data||[]).forEach(a=>{const o=document.createElement('option');o.value=a.id;o.textContent=a.tag||a.name||a.id;$('alliance').appendChild(o)})
 }
@@ -93,8 +93,12 @@ $('save').onclick=async()=>{
  const allianceId=$('alliance').value;if(!allianceId){$('status').textContent='Select an alliance first.';return}
  $('status').textContent='Saving…';
  const payload={alliance_id:String(allianceId),preset_key:selected,emblem_data_url:emblemData,updated_at:new Date().toISOString()};
- const {error}=await sb.from('alliance_layout_settings').upsert(payload,{onConflict:'alliance_id'});
- $('status').textContent=error?'Save failed: '+error.message:'Alliance layout saved.';
+ const {data,error}=await sb.from('alliance_layout_settings').upsert(payload,{onConflict:'alliance_id'}).select().maybeSingle();
+ if(error){$('status').textContent='Save failed: '+error.message;return}
+ if(!data){$('status').textContent='Save could not be verified. Please try again.';return}
+ selected=data.preset_key||selected;emblemData=data.emblem_data_url||'';
+ drawPresets();applyPreview();renderEmblem();
+ $('status').textContent='Alliance layout saved.';
 };
 drawPresets();applyPreview();loadAlliances();
 </script>

@@ -2081,6 +2081,72 @@ body:after{height:340px!important}
 .sheet-notes{clear:both!important}
 </style>
 
+
+<style id="nexa-template-v15-positioning">
+/* IMPORTANT farther left, with stronger visual separation from Legend */
+.sheet.layout-side .sheet-top-right,
+.sheet.layout-bottom .sheet-top-right{
+  gap:24px!important;
+}
+.sheet.layout-side .sheet-important,
+.sheet.layout-bottom .sheet-important{
+  transform:translateX(-62px)!important;
+}
+.sheet-important b{
+  color:#c0265e!important;
+  font-weight:950!important;
+  letter-spacing:.08em!important;
+}
+
+/* FORMATIONS starts lower and has its own clear visual zone */
+#formations{
+  padding-top:12px!important;
+}
+.sheet.layout-side #formations{
+  margin-top:56px!important;
+}
+.sheet.layout-bottom #formations{
+  margin-top:28px!important;
+}
+.formations-heading{
+  display:block!important;
+  position:relative!important;
+  z-index:2!important;
+  text-align:center!important;
+  margin:0 0 14px!important;
+  transform:none!important;
+  font-size:11px!important;
+  line-height:1!important;
+  font-weight:950!important;
+  letter-spacing:.08em!important;
+  color:#173b7a!important;
+}
+.formation-groups{
+  margin-top:0!important;
+}
+
+/* NOTES title always visible inside the bottom block */
+.sheet-notes{
+  position:relative!important;
+  display:block!important;
+  padding:22px 10px 9px!important;
+}
+.sheet-notes::before{
+  content:"NOTES";
+  position:absolute;
+  top:7px;
+  left:10px;
+  font-size:8px;
+  line-height:1;
+  font-weight:950;
+  letter-spacing:.08em;
+  color:#173b7a;
+}
+.sheet-notes > b{
+  display:none!important;
+}
+</style>
+
 </head>
 <body data-builder-rev="20260816-menu-restored">
 <main class="shell">
@@ -3028,107 +3094,10 @@ window.addEventListener('DOMContentLoaded',()=>{
 
 
 
-<script id="nexa-template-v11-preview-page">
-(function(){
-  function syncBuilderTextForPreview(){
-    const imp=(document.getElementById('important-notes')?.value||'').trim();
-    const notes=(document.getElementById('layout-notes')?.value||'').trim();
-
-    const ib=document.getElementById('sheet-important');
-    const it=document.getElementById('sheet-important-text');
-    if(ib&&it){
-      it.textContent=imp;
-      ib.classList.toggle('hidden',!imp);
-    }
-
-    const nb=document.getElementById('sheet-notes');
-    const nt=document.getElementById('sheet-notes-text');
-    if(nb&&nt){
-      nt.textContent=notes;
-      nb.classList.remove('hidden');
-      nb.style.display='block';
-    }
-  }
-
-  function openDedicatedPreview(){
-    syncBuilderTextForPreview();
-
-    const sheet=document.getElementById('sheet');
-    if(!sheet)return;
-
-    const clone=sheet.cloneNode(true);
-    clone.removeAttribute('style');
-    clone.style.transform='none';
-    clone.style.position='relative';
-    clone.style.left='auto';
-    clone.style.top='auto';
-    clone.style.margin='0 auto';
-
-    const styles=[...document.querySelectorAll('style,link[rel="stylesheet"]')]
-      .map(el=>el.outerHTML).join('\n');
-
-    const payload={
-      title:(document.getElementById('sheet-title')?.textContent||'NEXA Layout').trim(),
-      html:clone.outerHTML,
-      styles
-    };
-
-    try{
-      sessionStorage.setItem('nexa_layout_preview_payload',JSON.stringify(payload));
-    }catch(e){
-      document.getElementById('export-status').textContent='Could not prepare preview.';
-      return;
-    }
-
-    // Navigate the top-level page so Safari cannot block it as a popup.
-    window.top.location.href='layout-preview-v2.html';
-  }
-
-  const btn=document.getElementById('preview-layout');
-  if(btn){
-    btn.onclick=function(ev){
-      ev.preventDefault();
-      openDedicatedPreview();
-    };
-  }
-})();
-</script>
 
 
-<script id="nexa-template-v12-preview-fix">
-(function(){
-  const btn=document.getElementById('preview-layout');
-  if(!btn)return;
-  btn.onclick=function(e){
-    e.preventDefault();
-    e.stopImmediatePropagation();
 
-    const imp=(document.getElementById('important-notes')?.value||'').trim();
-    const notes=(document.getElementById('layout-notes')?.value||'').trim();
-    const it=document.getElementById('sheet-important-text');
-    const ib=document.getElementById('sheet-important');
-    if(it)it.textContent=imp;
-    if(ib)ib.classList.toggle('hidden',!imp);
-    const nt=document.getElementById('sheet-notes-text');
-    const nb=document.getElementById('sheet-notes');
-    if(nt)nt.textContent=notes;
-    if(nb){nb.classList.remove('hidden');nb.style.display='block';}
 
-    const sheet=document.getElementById('sheet');
-    if(!sheet)return;
-    const clone=sheet.cloneNode(true);
-    clone.removeAttribute('style');
-    clone.style.cssText='transform:none!important;position:relative!important;left:auto!important;top:auto!important;margin:0 auto!important;';
-    const styles=[...document.querySelectorAll('style,link[rel="stylesheet"]')].map(x=>x.outerHTML).join('\n');
-    sessionStorage.setItem('nexa_layout_preview_payload',JSON.stringify({
-      title:(document.getElementById('sheet-title')?.textContent||'NEXA Layout').trim(),
-      html:clone.outerHTML,
-      styles:styles
-    }));
-    location.href='layout-preview-v2.html';
-  };
-})();
-</script>
 
 
 <script id="nexa-template-v14-adaptive-mode">
@@ -3155,48 +3124,88 @@ window.addEventListener('DOMContentLoaded',()=>{
 </script>
 
 
-<script id="nexa-template-v14-newtab-preview">
-(function(){
-  const btn=document.getElementById('preview-layout');
-  if(!btn)return;
 
-  btn.onclick=function(ev){
-    ev.preventDefault();
-    ev.stopImmediatePropagation();
+
+
+<script id="nexa-template-v15-preview-root-fix">
+(function(){
+  function preparePreviewPayload(){
+    const imp=(document.getElementById('important-notes')?.value||'').trim();
+    const notes=(document.getElementById('layout-notes')?.value||'').trim();
+
+    const ib=document.getElementById('sheet-important');
+    const it=document.getElementById('sheet-important-text');
+    if(ib&&it){
+      it.textContent=imp;
+      ib.classList.toggle('hidden',!imp);
+    }
+
+    const nb=document.getElementById('sheet-notes');
+    const nt=document.getElementById('sheet-notes-text');
+    if(nb&&nt){
+      nt.textContent=notes;
+      nb.classList.remove('hidden');
+      nb.style.display='block';
+    }
 
     const sheet=document.getElementById('sheet');
     if(!sheet)return false;
 
-    const imp=(document.getElementById('important-notes')?.value||'').trim();
-    const notes=(document.getElementById('layout-notes')?.value||'').trim();
-    const it=document.getElementById('sheet-important-text');
-    const ib=document.getElementById('sheet-important');
-    if(it)it.textContent=imp;
-    if(ib)ib.classList.toggle('hidden',!imp);
-    const nt=document.getElementById('sheet-notes-text');
-    const nb=document.getElementById('sheet-notes');
-    if(nt)nt.textContent=notes;
-    if(nb){nb.classList.remove('hidden');nb.style.display='block';}
-
     const clone=sheet.cloneNode(true);
     clone.removeAttribute('style');
     clone.style.cssText='transform:none!important;position:relative!important;left:auto!important;top:auto!important;margin:0 auto!important;';
-    const styles=[...document.querySelectorAll('style,link[rel="stylesheet"]')].map(x=>x.outerHTML).join('\n');
-    const payload={
-      title:(document.getElementById('sheet-title')?.textContent||'NEXA Layout').trim(),
-      html:clone.outerHTML,
-      styles
-    };
-    try{sessionStorage.setItem('nexa_layout_preview_payload',JSON.stringify(payload));}catch(e){}
 
-    // Must happen directly inside click for iPhone Safari.
-    const w=window.open('layout-preview-v2.html','_blank');
-    if(!w){
-      const status=document.getElementById('export-status');
-      if(status)status.textContent='Safari blocked the preview tab. Allow pop-ups for this site and tap Preview Layout again.';
+    const styles=[...document.querySelectorAll('style,link[rel="stylesheet"]')]
+      .map(el=>el.outerHTML).join('\n');
+
+    try{
+      sessionStorage.setItem('nexa_layout_preview_payload',JSON.stringify({
+        title:(document.getElementById('sheet-title')?.textContent||'NEXA Layout').trim(),
+        html:clone.outerHTML,
+        styles
+      }));
+      return true;
+    }catch(_){
+      return false;
     }
-    return false;
-  };
+  }
+
+  function installPreviewButton(){
+    const oldBtn=document.getElementById('preview-layout');
+    if(!oldBtn || oldBtn.dataset.v15==='1')return;
+
+    // Cloning removes ALL prior event listeners that were scrolling to the inline preview.
+    const btn=oldBtn.cloneNode(true);
+    btn.dataset.v15='1';
+    oldBtn.replaceWith(btn);
+
+    btn.addEventListener('click',function(ev){
+      ev.preventDefault();
+      ev.stopPropagation();
+
+      if(!preparePreviewPayload()){
+        const status=document.getElementById('export-status');
+        if(status)status.textContent='Could not prepare the preview.';
+        return;
+      }
+
+      // Open from the top window directly inside the real user click.
+      const topWindow=window.top || window;
+      const opened=topWindow.open('layout-preview-v2.html','_blank');
+
+      if(!opened){
+        const status=document.getElementById('export-status');
+        if(status)status.textContent='Safari blocked the preview tab. Allow pop-ups for nexa-1518.vercel.app, then tap Preview Layout again.';
+      }
+    });
+  }
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',installPreviewButton);
+  }else{
+    installPreviewButton();
+  }
+  window.addEventListener('load',installPreviewButton);
 })();
 </script>
 

@@ -3141,6 +3141,7 @@ function openLayoutPreview(){
   const previewClone=cloneLayoutSheet();
   holder.appendChild(previewClone);
   if(window.nexaFitLayoutNames) window.nexaFitLayoutNames(previewClone);
+  if(window.nexaFitRallyPairs) window.nexaFitRallyPairs(previewClone);
   overlay.classList.remove('hidden');
   overlay.setAttribute('aria-hidden','false');
   document.body.classList.add('nexa-layout-preview-open');
@@ -3213,6 +3214,7 @@ async function renderLayoutCanvas(){
   exportHost.appendChild(exportSheet);
   document.body.appendChild(exportHost);
   if(window.nexaFitLayoutNames) window.nexaFitLayoutNames(exportSheet);
+  if(window.nexaFitRallyPairs) window.nexaFitRallyPairs(exportSheet);
 
   try{
     // Wait for emblem/hero images before capturing.
@@ -5816,5 +5818,183 @@ window.addEventListener('DOMContentLoaded',()=>{
   white-space:nowrap!important;
   overflow:hidden!important;
   text-overflow:clip!important;
+}
+</style>
+
+
+<style id="nexa-v29-important-position-team-drop">
+/* V29 root positioning fix:
+   older CSS kept .sheet-important position:static, so left/top never moved it.
+   This gives Important and Legend independent absolute positioning in the full header. */
+
+:is(#sheet,.nexa-render-sheet) .sheet-header{
+  position:relative!important;
+}
+
+:is(#sheet,.nexa-render-sheet) .sheet-top-right{
+  position:absolute!important;
+  inset:0!important;
+  top:0!important;
+  right:0!important;
+  bottom:auto!important;
+  left:0!important;
+  width:100%!important;
+  max-width:none!important;
+  display:block!important;
+  pointer-events:none!important;
+}
+
+/* IMPORTANT centered in the full sheet header, matching system + export. */
+:is(#sheet,.nexa-render-sheet) .sheet-top-right .sheet-important{
+  position:absolute!important;
+  top:8px!important;
+  left:50%!important;
+  right:auto!important;
+  transform:translateX(-50%)!important;
+  width:320px!important;
+  max-width:320px!important;
+  margin:0!important;
+  pointer-events:auto!important;
+}
+
+/* Legend stays fixed at the far right. */
+:is(#sheet,.nexa-render-sheet) .sheet-top-right .sheet-legend{
+  position:absolute!important;
+  top:8px!important;
+  right:0!important;
+  left:auto!important;
+  margin:0!important;
+  pointer-events:auto!important;
+}
+
+/* Lower Teams a little more, leaving safe room for six horizontal cards. */
+:is(#sheet,.nexa-render-sheet) #teams-grid{
+  margin-top:202px!important;
+  margin-bottom:0!important;
+}
+
+/* Preserve the improved leader baseline and no-clipping behavior. */
+:is(#sheet,.nexa-render-sheet) .rally-name-line{
+  align-items:center!important;
+  min-height:25px!important;
+}
+:is(#sheet,.nexa-render-sheet) .rally-name-line .rally-name,
+:is(#sheet,.nexa-render-sheet) .rally-name-line .rally-time,
+:is(#sheet,.nexa-render-sheet) .rally-pet{
+  top:-4px!important;
+}
+</style>
+
+
+<script id="nexa-v30-rally-pair-autofit">
+(function(){
+  function fitPair(row){
+    if(!row) return;
+    const name=row.querySelector('.rally-name');
+    const time=row.querySelector('.rally-time');
+    if(!name || !time) return;
+
+    const base=15;      // generic rally text size
+    const min=8.5;      // minimum readable fallback
+    let size=base;
+
+    name.style.setProperty('font-size',base+'px','important');
+    time.style.setProperty('font-size',base+'px','important');
+
+    // Keep a consistent leader/time baseline and shrink BOTH together if needed.
+    let guard=0;
+    while(guard++ < 30){
+      const available=row.clientWidth;
+      const needed=name.scrollWidth + time.scrollWidth + 8;
+      if(needed <= available + 0.5 || size <= min) break;
+      size=Math.max(min,size-0.5);
+      name.style.setProperty('font-size',size+'px','important');
+      time.style.setProperty('font-size',size+'px','important');
+    }
+
+    row.dataset.rallyFitSize=size.toFixed(1);
+  }
+
+  function fitAll(root=document){
+    root.querySelectorAll('.rally-name-line').forEach(fitPair);
+  }
+
+  window.nexaFitRallyPairs=fitAll;
+
+  function schedule(root=document){
+    requestAnimationFrame(()=>requestAnimationFrame(()=>fitAll(root)));
+  }
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',()=>schedule(document));
+  } else {
+    schedule(document);
+  }
+
+  window.addEventListener('load',()=>schedule(document));
+  window.addEventListener('resize',()=>schedule(document));
+
+  const grid=document.getElementById('teams-grid');
+  if(grid){
+    new MutationObserver(()=>schedule(document)).observe(grid,{
+      childList:true,subtree:true,characterData:true
+    });
+  }
+})();
+</script>
+
+
+<style id="nexa-v30-uniform-rally-autofit">
+/* V30: one generic visual size for every Rally Leader name + time pair. */
+:is(#sheet,.nexa-render-sheet) .rally-name-line{
+  display:flex!important;
+  flex-flow:row nowrap!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:8px!important;
+  width:100%!important;
+  min-width:0!important;
+  min-height:24px!important;
+  line-height:24px!important;
+  overflow:hidden!important;
+}
+
+:is(#sheet,.nexa-render-sheet) .rally-name-line .rally-name,
+:is(#sheet,.nexa-render-sheet) .rally-name-line .rally-time{
+  position:relative!important;
+  top:0!important;
+  display:inline-block!important;
+  vertical-align:middle!important;
+  font-size:15px!important;
+  line-height:24px!important;
+  min-height:24px!important;
+  padding:0!important;
+  margin:0!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:clip!important;
+  transform:none!important;
+}
+
+:is(#sheet,.nexa-render-sheet) .rally-name-line .rally-name{
+  flex:0 1 auto!important;
+  min-width:0!important;
+  max-width:none!important;
+}
+
+:is(#sheet,.nexa-render-sheet) .rally-name-line .rally-time{
+  flex:0 0 auto!important;
+}
+
+/* Pet stays aligned to the same row center. */
+:is(#sheet,.nexa-render-sheet) .rally-entry{
+  align-items:center!important;
+}
+:is(#sheet,.nexa-render-sheet) .rally-pet{
+  position:relative!important;
+  top:0!important;
+  align-self:center!important;
+  line-height:24px!important;
+  transform:none!important;
 }
 </style>

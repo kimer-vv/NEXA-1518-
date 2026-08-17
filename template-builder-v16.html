@@ -3138,7 +3138,9 @@ function openLayoutPreview(){
   const overlay=$('layout-preview-overlay');
   const holder=$('layout-preview-content');
   holder.innerHTML='';
-  holder.appendChild(cloneLayoutSheet());
+  const previewClone=cloneLayoutSheet();
+  holder.appendChild(previewClone);
+  if(window.nexaFitLayoutNames) window.nexaFitLayoutNames(previewClone);
   overlay.classList.remove('hidden');
   overlay.setAttribute('aria-hidden','false');
   document.body.classList.add('nexa-layout-preview-open');
@@ -3210,6 +3212,7 @@ async function renderLayoutCanvas(){
 
   exportHost.appendChild(exportSheet);
   document.body.appendChild(exportHost);
+  if(window.nexaFitLayoutNames) window.nexaFitLayoutNames(exportSheet);
 
   try{
     // Wait for emblem/hero images before capturing.
@@ -5696,5 +5699,122 @@ window.addEventListener('DOMContentLoaded',()=>{
 }
 :is(#sheet,.nexa-render-sheet) .rally-pet{
   top:-3px!important;
+}
+</style>
+
+
+<script id="nexa-v28-auto-fit-names">
+(function(){
+  function fitOne(el, minPx){
+    if(!el) return;
+    el.style.removeProperty('font-size');
+    const cs=getComputedStyle(el);
+    let px=parseFloat(cs.fontSize)||15;
+    const start=px;
+    let guard=0;
+    while(el.scrollWidth > el.clientWidth + 0.5 && px > minPx && guard++ < 30){
+      px=Math.max(minPx,px-0.5);
+      el.style.setProperty('font-size',px+'px','important');
+    }
+    if(el.scrollWidth <= el.clientWidth + 0.5 && px===start){
+      el.style.removeProperty('font-size');
+    }
+  }
+
+  function fitNames(root=document){
+    root.querySelectorAll('.rally-name').forEach(el=>fitOne(el,7.5));
+    root.querySelectorAll('.joiner-player span').forEach(el=>fitOne(el,8));
+    root.querySelectorAll('.hero-mini-name').forEach(el=>fitOne(el,8));
+    root.querySelectorAll('.formation-hero-name').forEach(el=>fitOne(el,8));
+  }
+  window.nexaFitLayoutNames=fitNames;
+
+  function schedule(root=document){
+    requestAnimationFrame(()=>requestAnimationFrame(()=>fitNames(root)));
+  }
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',()=>schedule(document));
+  }else{
+    schedule(document);
+  }
+  window.addEventListener('load',()=>schedule(document));
+  window.addEventListener('resize',()=>schedule(document));
+
+  const grid=document.getElementById('teams-grid');
+  if(grid){
+    new MutationObserver(()=>schedule(document)).observe(grid,{childList:true,subtree:true,characterData:true});
+  }
+})();
+</script>
+
+
+<style id="nexa-v28-final">
+/* V28 — more header clearance for six horizontal Teams. */
+:is(#sheet,.nexa-render-sheet) #teams-grid{
+  margin-top:178px!important;
+  margin-bottom:0!important;
+}
+
+/* IMPORTANT moved visibly left toward the marked center position. */
+:is(#sheet,.nexa-render-sheet) .sheet-top-right .sheet-important{
+  left:44%!important;
+  right:auto!important;
+  transform:translateX(-50%)!important;
+}
+
+/* Rally leader baseline: name/time/pet share one centered line.
+   Name width is allowed to shrink dynamically instead of being cut. */
+:is(#sheet,.nexa-render-sheet) .rally-name-line{
+  display:flex!important;
+  flex-flow:row nowrap!important;
+  align-items:center!important;
+  min-height:25px!important;
+  overflow:visible!important;
+}
+:is(#sheet,.nexa-render-sheet) .rally-name-line .rally-name{
+  position:relative!important;
+  top:-4px!important;
+  flex:1 1 auto!important;
+  width:auto!important;
+  max-width:none!important;
+  min-width:0!important;
+  line-height:18px!important;
+  min-height:18px!important;
+  padding:1px 0!important;
+  overflow:hidden!important;
+  text-overflow:clip!important;
+  white-space:nowrap!important;
+}
+:is(#sheet,.nexa-render-sheet) .rally-name-line .rally-time{
+  position:relative!important;
+  top:-4px!important;
+  flex:0 0 auto!important;
+  line-height:18px!important;
+  min-height:18px!important;
+  white-space:nowrap!important;
+}
+:is(#sheet,.nexa-render-sheet) .rally-pet{
+  position:relative!important;
+  top:-4px!important;
+  flex:0 0 auto!important;
+}
+
+/* Long Joiner/Hero names use their complete cell and auto-fit only when needed. */
+:is(#sheet,.nexa-render-sheet) .joiner-player,
+:is(#sheet,.nexa-render-sheet) .hero-cell{
+  min-width:0!important;
+  overflow:hidden!important;
+}
+:is(#sheet,.nexa-render-sheet) .joiner-player span,
+:is(#sheet,.nexa-render-sheet) .hero-mini-name,
+:is(#sheet,.nexa-render-sheet) .formation-hero-name{
+  display:block!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:clip!important;
 }
 </style>

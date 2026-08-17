@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NEXA • Owner Access</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;font-family:Inter,system-ui,sans-serif;color:#fff;background:radial-gradient(circle at 20% 20%,#27145a 0,transparent 35%),linear-gradient(145deg,#060817,#0b1028)}
+.card{width:min(440px,100%);padding:26px;border-radius:24px;background:rgba(10,14,34,.9);border:1px solid rgba(142,119,255,.38);box-shadow:0 24px 70px rgba(0,0,0,.45)}h1{margin:0 0 7px}.muted{color:#a3accd;line-height:1.5}.btn{width:100%;border:0;border-radius:14px;padding:13px 16px;color:#fff;font-weight:900;background:linear-gradient(135deg,#5865f2,#773dff);cursor:pointer;margin-top:15px}.back{display:block;text-align:center;margin-top:14px;color:#a9b1d2;text-decoration:none;font-size:13px}.msg{margin-top:13px;min-height:20px;color:#aab3d5;font-size:13px}
+</style></head><body>
+<section class="card">
+<h1>🔒 Owner Access</h1>
+<p class="muted">Authorized Owner recovery only. Discord verifies your identity; Owner permission is still checked by NEXA.</p>
+<button id="discord" class="btn">Continue with Discord</button>
+<div id="msg" class="msg"></div>
+<a class="back" href="/maintenance.html">← Back to Maintenance</a>
+</section>
+<script>
+const SUPABASE_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
+const SUPABASE_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const msg=document.getElementById('msg');
+async function finish(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session?.access_token)return;
+  msg.textContent='Verifying Owner access…';
+  const r=await fetch('/api/nexa-owner-bypass',{method:'POST',headers:{Authorization:'Bearer '+session.access_token}});
+  const data=await r.json().catch(()=>({}));
+  if(!r.ok){msg.textContent=data.error||'Owner access was not authorized.';return;}
+  msg.textContent='Owner access verified. Opening NEXA…';
+  location.replace('/');
+}
+document.getElementById('discord').onclick=async()=>{
+  msg.textContent='Opening Discord…';
+  const {error}=await sb.auth.signInWithOAuth({provider:'discord',options:{redirectTo:location.origin+'/owner-access.html'}});
+  if(error)msg.textContent=error.message;
+};
+finish();
+</script></body></html>

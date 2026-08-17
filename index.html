@@ -838,6 +838,20 @@ body.nexa-schedule-open{
 }
 </style>
 
+
+<style id="nexa-v51-system-operations-style">
+.system-ops-card{display:grid;gap:14px;margin-bottom:14px}
+.system-ops-line{display:flex;align-items:center;justify-content:space-between;gap:18px}
+.system-ops-line p{margin:5px 0 0;max-width:720px}
+.system-switch{position:relative;display:inline-flex;flex:0 0 auto;width:58px;height:32px}
+.system-switch input{position:absolute;opacity:0;pointer-events:none}
+.system-switch span{position:absolute;inset:0;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.14);cursor:pointer;transition:.2s}
+.system-switch span:after{content:"";position:absolute;left:4px;top:4px;width:22px;height:22px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 3px 10px rgba(0,0,0,.25)}
+.system-switch input:checked + span{background:linear-gradient(135deg,#6f46ff,#c026d3);border-color:rgba(172,110,255,.7)}
+.system-switch input:checked + span:after{transform:translateX(26px)}
+.system-switch input:disabled + span{opacity:.45;cursor:not-allowed}
+</style>
+
 </head>
 <body>
 <div class="nebula-bg" aria-hidden="true"></div>
@@ -1139,7 +1153,10 @@ body.nexa-schedule-open{
       <button class="admin-tab svs-context-tab" type="button" data-admin-tab="schedule">Schedule Setup</button>
       <button class="admin-tab svs-context-tab" type="button" data-admin-tab="history">History</button>
       <button class="admin-tab administration-context-tab hidden" type="button" data-admin-tab="alliances">Alliances</button>
+      <button class="admin-tab administration-context-tab hidden" type="button" data-admin-tab="roles">Roles</button>
       <button class="admin-tab administration-context-tab hidden" type="button" data-admin-tab="permissions">Permissions</button>
+      <button class="admin-tab administration-context-tab hidden" type="button" data-admin-tab="library">Library</button>
+      <button id="system-operations-tab" class="admin-tab administration-context-tab hidden" type="button" data-admin-tab="system">System Operations</button>
     </div>
     <section id="internal-module-frame-wrap" class="internal-module-frame-wrap hidden">
       <iframe id="internal-module-frame" class="internal-module-frame" title="NEXA module"></iframe>
@@ -1307,6 +1324,70 @@ body.nexa-schedule-open{
 
       <div id="permissions-message" class="form-message"></div>
       <div id="permissions-list" class="admin-list"></div>
+    </section>
+
+    <section id="admin-roles" class="admin-section hidden">
+      <div class="admin-section-head">
+        <div>
+          <h3>Operational Roles</h3>
+          <p>Module roles will live here: SvS, Event Operations, Transfer, Scheduler, R5/R4 helpers and other operational access. These roles do not grant Administration access.</p>
+        </div>
+      </div>
+      <div class="empty-state">
+        <b>Roles workspace reserved.</b><br>
+        This section is ready for the next permissions phase. Maintenance Mode does not depend on these roles.
+      </div>
+    </section>
+
+    <section id="admin-library" class="admin-section hidden">
+      <div class="admin-section-head">
+        <div>
+          <h3>Library</h3>
+          <p>Reusable NEXA data will live here: Heroes, Experts and Troops.</p>
+        </div>
+      </div>
+      <div class="empty-state">
+        <b>Library workspace reserved.</b><br>
+        Hero, Expert and Troop management will be added here without changing the System Operations controls.
+      </div>
+    </section>
+
+    <section id="admin-system" class="admin-section hidden">
+      <div class="admin-section-head">
+        <div>
+          <h3>System Operations</h3>
+          <p>Owner-only website controls. Maintenance Mode protects every public NEXA route while you work.</p>
+        </div>
+      </div>
+
+      <div class="setting-card system-ops-card">
+        <div class="system-ops-line">
+          <div>
+            <b>Maintenance Mode</b>
+            <p class="muted">When ON, public links and forms are redirected to the NEXA Under Maintenance screen. Your Owner bypass remains active.</p>
+          </div>
+          <label class="system-switch">
+            <input id="maintenance-mode-switch" type="checkbox">
+            <span></span>
+          </label>
+        </div>
+        <div id="maintenance-mode-state" class="form-message">Checking status…</div>
+      </div>
+
+      <div class="setting-card system-ops-card">
+        <b>Owner Recovery</b>
+        <p class="muted">Primary recovery: use the discreet lock on the Maintenance screen and authenticate with your linked Owner Discord. Emergency recovery uses your private recovery URL plus the secret stored in Vercel.</p>
+        <div class="module-action-row">
+          <button id="copy-owner-recovery-link" class="btn secondary" type="button">Copy Emergency Owner Link</button>
+          <button id="open-maintenance-preview" class="btn secondary" type="button">Preview Maintenance Screen</button>
+        </div>
+        <div id="system-operations-message" class="form-message"></div>
+      </div>
+
+      <div class="setting-card system-ops-card">
+        <b>Testing / Sandbox</b>
+        <p class="muted">Reserved for the next phase: independent SvS, Event Operations and Transfer test modes.</p>
+      </div>
     </section>
 
     <section id="admin-forms" class="admin-section hidden">
@@ -1778,7 +1859,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   async function refreshAdminVisibility() {
-    adminButton.classList.remove('hidden');
+    const allowed = await amIAdmin();
+    adminButton.classList.toggle('hidden', !allowed);
+  }
+
+  async function amIOwner() {
+    const user = await currentUser();
+    if (!user) return false;
+    try {
+      const { data, error } = await supabaseClient.rpc('current_nexa_role');
+      if (error) throw error;
+      return String(data || '').toLowerCase() === 'owner';
+    } catch (error) {
+      console.error('Owner role check failed:', error);
+      return false;
+    }
   }
 
   async function ensureAdmin() {
@@ -1945,7 +2040,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('svs-admin-content')?.classList.remove('hidden');
     document.getElementById('admin-context-tabs')?.classList.add('hidden');
     document.querySelectorAll('.svs-context-tab,.administration-context-tab').forEach(x=>x.classList.add('hidden'));
-    ['admin-events','admin-forms','admin-alliances','admin-permissions','admin-announcements'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));
+    ['admin-events','admin-forms','admin-alliances','admin-roles','admin-permissions','admin-library','admin-system','admin-announcements'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));
 
     host.classList.remove('hidden');
     host.dataset.nativePage=pageKey;
@@ -1960,7 +2055,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const txt=(el.textContent||'').trim().toLowerCase();
         if(el.tagName==='HEADER' || txt==='back' || txt.includes('← back')) el.remove();
       });
-      parsed.querySelectorAll('.top').forEach(el=>el.remove());
     }
 
     const clone=parsed.body.cloneNode(true);
@@ -2023,259 +2117,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       window._nexaNativeCleanup=cleanup;
     }
 
-    // Native Layout Management controller.
-    // Important: this owns Alliance selection + Save inside the native module host,
-    // so duplicate IDs elsewhere in NEXA cannot make Save read the wrong select.
-    if(pageKey==='layout-management'){
-      const q=(sel)=>host.querySelector(sel);
-      const allianceSelect=q('#alliance');
-      const layoutStatus=q('#status');
-      const saveBtn=q('#save');
-      const emblemInput=q('#emblem');
-      const emblemPreview=q('#emblemPreview');
-      const removeEmblemBtn=q('#removeEmblem');
-      const adjustEmblemBtn=q('#adjustEmblem');
-      const cropBox=q('#cropBox');
-      const cropImage=q('#cropImage');
-      const cropStage=q('#cropStage');
-      const cropZoom=q('#cropZoom');
-      const cropX=q('#cropX');
-      const cropY=q('#cropY');
-      const cancelCrop=q('#cancelCrop');
-      const applyCrop=q('#applyCrop');
-
-      let currentEmblemData='';
-      let cropSource='';
-
-      const setStatus=(txt)=>{ if(layoutStatus) layoutStatus.textContent=txt||''; };
-      const selectedAllianceId=()=>String(host.dataset.layoutAllianceId || allianceSelect?.value || '').trim();
-      const selectedPresetKey=()=>q('.preset.selected')?.dataset?.id || 'forest_green';
-
-      const renderEmblem=()=>{
-        if(!emblemPreview)return;
-        emblemPreview.innerHTML=currentEmblemData
-          ? `<img src="${currentEmblemData}" alt="Alliance emblem">`
-          : 'No emblem';
-      };
-
-      const selectPreset=(key)=>{
-        const cards=[...host.querySelectorAll('.preset')];
-        cards.forEach(card=>card.classList.toggle('selected',card.dataset.id===key));
-        const chosen=cards.find(card=>card.dataset.id===key);
-        if(chosen){
-          const accent=getComputedStyle(chosen).getPropertyValue('--accent') || chosen.style.getPropertyValue('--accent');
-          q('#preview')?.style.setProperty('--accent',accent);
-        }
-      };
-
-      const loadStoredIdentity=async(allianceIds)=>{
-        const ids=(Array.isArray(allianceIds)?allianceIds:[allianceIds]).filter(Boolean).map(String);
-        if(!ids.length)return;
-        setStatus('Loading alliance layout…');
-        const {data,error}=await supabaseClient
-          .from('alliance_layout_settings')
-          .select('alliance_id,preset_key,emblem_data_url,updated_at')
-          .in('alliance_id',ids)
-          .order('updated_at',{ascending:false})
-          .limit(1);
-
-        if(error){
-          if(String(error.message||'').includes('alliance_layout_settings')){
-            setStatus('Layout storage is not installed yet. Run the included Supabase SQL migration once.');
-          }else{
-            setStatus('Could not load saved layout: '+error.message);
-          }
-          return;
-        }
-
-        const row=(data||[])[0]||null;
-        currentEmblemData=row?.emblem_data_url || '';
-        renderEmblem();
-        selectPreset(row?.preset_key || 'forest_green');
-        setStatus('');
-      };
-
-      if(allianceSelect){
-        allianceSelect.innerHTML='<option value="">Loading alliances…</option>';
-        try{
-          const {data:layoutAlliances,error:layoutAllianceError}=await supabaseClient
-            .from('alliances')
-            .select('id,tag')
-            .order('tag');
-          if(layoutAllianceError) throw layoutAllianceError;
-
-          allianceSelect.innerHTML='<option value="">Select alliance…</option>';
-          const allianceGroups=new Map();
-          (layoutAlliances||[])
-            .filter(a=>a && a.id && a.tag)
-            .forEach(a=>{
-              const tag=String(a.tag).trim();
-              if(!tag)return;
-              const key=tag.toLowerCase();
-              if(!allianceGroups.has(key)) allianceGroups.set(key,{tag,ids:[]});
-              allianceGroups.get(key).ids.push(String(a.id));
-            });
-          [...allianceGroups.values()]
-            .sort((a,b)=>a.tag.localeCompare(b.tag))
-            .forEach(group=>{
-              const option=document.createElement('option');
-              option.value=group.ids[0];
-              option.textContent=group.tag;
-              option.dataset.allianceIds=JSON.stringify(group.ids);
-              allianceSelect.appendChild(option);
-            });
-
-          allianceSelect.onchange=async()=>{
-            const option=allianceSelect.options[allianceSelect.selectedIndex];
-            const id=String(allianceSelect.value||'').trim();
-            let ids=[];
-            try{ ids=JSON.parse(option?.dataset?.allianceIds||'[]'); }catch(_){}
-            if(!ids.length && id) ids=[id];
-            host.dataset.layoutAllianceId=id;
-            host.dataset.layoutAllianceIds=JSON.stringify(ids);
-            host.dataset.layoutAllianceTag=String(option?.textContent||'').trim();
-            const label=option?.textContent || '';
-            if(!id){
-              setStatus('Select an alliance first.');
-              return;
-            }
-            setStatus('Selected: '+label);
-            await loadStoredIdentity(ids);
-          };
-        }catch(layoutAllianceErr){
-          allianceSelect.innerHTML='<option value="">Alliance load failed</option>';
-          setStatus('Alliance load failed: '+(layoutAllianceErr?.message||layoutAllianceErr));
-        }
-      }
-
-      // Keep preset selection readable by Save, regardless of the standalone page's internal state.
-      host.addEventListener('click',(ev)=>{
-        const card=ev.target.closest?.('.preset');
-        if(!card || !host.contains(card))return;
-        setTimeout(()=>{
-          [...host.querySelectorAll('.preset')].forEach(x=>x.classList.toggle('selected',x===card));
-        },0);
-      });
-
-      const updateCropPreview=()=>{
-        if(!cropImage?.src || !cropStage)return;
-        const z=Number(cropZoom?.value||1);
-        const x=Number(cropX?.value||0);
-        const y=Number(cropY?.value||0);
-        const iw=cropImage.naturalWidth||1, ih=cropImage.naturalHeight||1;
-        const sw=cropStage.clientWidth||210, sh=cropStage.clientHeight||210;
-        const base=Math.max(sw/iw,sh/ih);
-        cropImage.style.width=(iw*base*z)+'px';
-        cropImage.style.height=(ih*base*z)+'px';
-        cropImage.style.transform=`translate(calc(-50% + ${x}px),calc(-50% + ${y}px))`;
-      };
-
-      const openCrop=(src)=>{
-        if(!src || !cropBox || !cropImage)return;
-        cropSource=src;
-        cropBox.classList.remove('hidden');
-        if(cropZoom)cropZoom.value='1';
-        if(cropX)cropX.value='0';
-        if(cropY)cropY.value='0';
-        cropImage.onload=updateCropPreview;
-        cropImage.src=src;
-      };
-
-      if(emblemInput){
-        emblemInput.onchange=()=>{
-          const file=emblemInput.files?.[0];
-          if(!file)return;
-          const reader=new FileReader();
-          reader.onload=()=>openCrop(String(reader.result||''));
-          reader.readAsDataURL(file);
-        };
-      }
-
-      if(adjustEmblemBtn) adjustEmblemBtn.onclick=()=>openCrop(currentEmblemData);
-      [cropZoom,cropX,cropY].filter(Boolean).forEach(el=>el.oninput=updateCropPreview);
-      if(cancelCrop) cancelCrop.onclick=()=>cropBox?.classList.add('hidden');
-
-      if(applyCrop){
-        applyCrop.onclick=()=>{
-          if(!cropImage?.naturalWidth || !cropStage)return;
-          const sw=cropStage.clientWidth||210, sh=cropStage.clientHeight||210;
-          const z=Number(cropZoom?.value||1);
-          const x=Number(cropX?.value||0);
-          const y=Number(cropY?.value||0);
-          const iw=cropImage.naturalWidth, ih=cropImage.naturalHeight;
-          const base=Math.max(sw/iw,sh/ih);
-          const dw=iw*base*z, dh=ih*base*z;
-          const left=(sw-dw)/2+x, top=(sh-dh)/2+y;
-          const sx=Math.max(0,(-left)*(iw/dw));
-          const sy=Math.max(0,(-top)*(ih/dh));
-          const sourceSize=Math.min(sw*(iw/dw),sh*(ih/dh),iw-sx,ih-sy);
-
-          const canvas=document.createElement('canvas');
-          canvas.width=512; canvas.height=512;
-          const ctx=canvas.getContext('2d');
-          ctx.clearRect(0,0,512,512);
-          ctx.drawImage(cropImage,sx,sy,sourceSize,sourceSize,0,0,512,512);
-          currentEmblemData=canvas.toDataURL('image/png');
-          renderEmblem();
-          cropBox.classList.add('hidden');
-          setStatus('Emblem adjusted. Save Alliance Layout to confirm.');
-        };
-      }
-
-      if(removeEmblemBtn){
-        removeEmblemBtn.onclick=()=>{
-          currentEmblemData='';
-          if(emblemInput)emblemInput.value='';
-          renderEmblem();
-          cropBox?.classList.add('hidden');
-          setStatus('Emblem removed. Save Alliance Layout to confirm.');
-        };
-      }
-
-      if(saveBtn){
-        saveBtn.onclick=async()=>{
-          const allianceId=selectedAllianceId();
-          if(!allianceId){
-            setStatus('Select an alliance first.');
-            return;
-          }
-
-          // Lock the currently visible select into the host before saving.
-          host.dataset.layoutAllianceId=allianceId;
-          const presetKey=selectedPresetKey();
-          setStatus('Saving…');
-
-          let allianceIds=[];
-          try{ allianceIds=JSON.parse(host.dataset.layoutAllianceIds||'[]'); }catch(_){}
-          if(!allianceIds.length) allianceIds=[allianceId];
-          const now=new Date().toISOString();
-          const payload=allianceIds.map(id=>({
-            alliance_id:String(id),
-            preset_key:presetKey,
-            emblem_data_url:currentEmblemData,
-            updated_at:now
-          }));
-
-          const {data,error}=await supabaseClient
-            .from('alliance_layout_settings')
-            .upsert(payload,{onConflict:'alliance_id'})
-            .select('alliance_id,preset_key');
-
-          if(error){
-            if(String(error.message||'').includes('alliance_layout_settings')){
-              setStatus('Layout storage is not installed yet. Run the included Supabase SQL migration once.');
-            }else{
-              setStatus('Save failed: '+error.message);
-            }
-            return;
-          }
-
-          const tag=allianceSelect?.options[allianceSelect.selectedIndex]?.textContent || 'Alliance';
-          setStatus(`${tag} layout saved.`);
-        };
-      }
-    }
-
     document.querySelector('#admin-modal .admin-modal-card')?.scrollTo({top:0,behavior:'auto'});
   }
 
@@ -2309,7 +2150,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('admin-context-tabs')?.classList.remove('hidden');
     document.querySelectorAll('[data-admin-tab]').forEach(b=>b.classList.toggle('active',b.dataset.adminTab===activeTab));
 
-    ['admin-events','admin-forms','admin-alliances','admin-permissions','admin-announcements'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));
+    ['admin-events','admin-forms','admin-alliances','admin-roles','admin-permissions','admin-library','admin-system','admin-announcements'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));
 
     host.classList.remove('hidden');
     host.dataset.nativePage=file.replace(/\.html$/,'');
@@ -2506,7 +2347,7 @@ function showInternalModuleFrame(src, mode){
     document.querySelectorAll('.svs-context-tab,.administration-context-tab').forEach(x=>x.classList.add('hidden'));
     document.getElementById('admin-context-tabs')?.classList.add('hidden');
 
-    ['admin-events','admin-forms','admin-alliances','admin-permissions','admin-announcements'].forEach(id=>{
+    ['admin-events','admin-forms','admin-alliances','admin-roles','admin-permissions','admin-library','admin-system','admin-announcements'].forEach(id=>{
       document.getElementById(id)?.classList.add('hidden');
     });
 
@@ -2525,7 +2366,7 @@ function showInternalModuleFrame(src, mode){
     document.querySelectorAll('.svs-context-tab').forEach(x=>x.classList.remove('hidden'));
     document.querySelectorAll('.administration-context-tab').forEach(x=>x.classList.add('hidden'));
 
-    ['admin-events','admin-forms','admin-alliances','admin-permissions','admin-announcements'].forEach(id=>{
+    ['admin-events','admin-forms','admin-alliances','admin-roles','admin-permissions','admin-library','admin-system','admin-announcements'].forEach(id=>{
       document.getElementById(id)?.classList.add('hidden');
     });
 
@@ -2548,7 +2389,7 @@ function setAdminContext(mode){
     document.querySelectorAll('.administration-context-tab').forEach(x=>x.classList.toggle('hidden',mode!=='administration'));
     if(tabs) tabs.classList.toggle('hidden',mode==='announcements');
 
-    ['admin-events','admin-forms','admin-alliances','admin-permissions','admin-announcements'].forEach(id=>{
+    ['admin-events','admin-forms','admin-alliances','admin-roles','admin-permissions','admin-library','admin-system','admin-announcements'].forEach(id=>{
       document.getElementById(id)?.classList.add('hidden');
     });
 
@@ -2582,6 +2423,8 @@ function setAdminContext(mode){
     document.getElementById('admin-module-chooser')?.classList.add('hidden');
     document.getElementById('svs-admin-content')?.classList.remove('hidden');
     setAdminContext('administration');
+    const owner = await amIOwner();
+    document.getElementById('system-operations-tab')?.classList.toggle('hidden', !owner);
     await loadAdminAlliances();
   });
 
@@ -2649,7 +2492,10 @@ document.getElementById('open-svs-admin')?.addEventListener('click',async()=>{
     const sections={
       events:document.getElementById('admin-events'),
       alliances:document.getElementById('admin-alliances'),
+      roles:document.getElementById('admin-roles'),
       permissions:document.getElementById('admin-permissions'),
+      library:document.getElementById('admin-library'),
+      system:document.getElementById('admin-system'),
       announcements:document.getElementById('admin-announcements')
     };
     Object.entries(sections).forEach(([key,section])=>{
@@ -2673,16 +2519,28 @@ document.getElementById('open-svs-admin')?.addEventListener('click',async()=>{
     document.querySelectorAll('[data-admin-tab]').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
 
-    ['admin-events','admin-forms','admin-alliances','admin-permissions','admin-announcements'].forEach(id=>{
+    ['admin-events','admin-forms','admin-alliances','admin-roles','admin-permissions','admin-library','admin-system','admin-announcements'].forEach(id=>{
       document.getElementById(id)?.classList.add('hidden');
     });
 
     if(target==='events') document.getElementById('admin-events')?.classList.remove('hidden');
     if(target==='forms') document.getElementById('admin-forms')?.classList.remove('hidden');
     if(target==='alliances') document.getElementById('admin-alliances')?.classList.remove('hidden');
+    if(target==='roles') document.getElementById('admin-roles')?.classList.remove('hidden');
     if(target==='permissions'){
       document.getElementById('admin-permissions')?.classList.remove('hidden');
       await loadPermissions();
+    }
+    if(target==='library') document.getElementById('admin-library')?.classList.remove('hidden');
+    if(target==='system'){
+      if(!(await amIOwner())){
+        alert('System Operations is Owner-only.');
+        document.getElementById('admin-alliances')?.classList.remove('hidden');
+        document.querySelector('[data-admin-tab="alliances"]')?.classList.add('active');
+        return;
+      }
+      document.getElementById('admin-system')?.classList.remove('hidden');
+      await loadSystemOperations();
     }
   }));
 
@@ -3842,6 +3700,90 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start);
   else start();
   window.addEventListener('pageshow',fixAnnouncementCTA);
+})();
+</script>
+
+
+<script id="nexa-v51-system-operations-runtime">
+(function(){
+  const recoveryPath = '/owner-recovery-fgpelbgj6g.html';
+
+  async function ownerToken(){
+    const {data:{session}} = await supabaseClient.auth.getSession();
+    return session?.access_token || '';
+  }
+
+  async function systemRequest(method='GET', body=null){
+    const token = await ownerToken();
+    const response = await fetch('/api/nexa-system-settings', {
+      method,
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':`Bearer ${token}`
+      },
+      body:body ? JSON.stringify(body) : undefined,
+      cache:'no-store'
+    });
+    const data = await response.json().catch(()=>({}));
+    if(!response.ok) throw new Error(data.error || 'System Operations request failed.');
+    return data;
+  }
+
+  window.loadSystemOperations = async function(){
+    const sw=document.getElementById('maintenance-mode-switch');
+    const state=document.getElementById('maintenance-mode-state');
+    const msg=document.getElementById('system-operations-message');
+    if(!sw || !state) return;
+    sw.disabled=true;
+    state.textContent='Checking status…';
+    try{
+      const data=await systemRequest('GET');
+      sw.checked=!!data.maintenance_mode;
+      state.textContent=data.maintenance_mode
+        ? 'Maintenance Mode is ON — public NEXA routes are protected.'
+        : 'Maintenance Mode is OFF — NEXA is publicly available.';
+      state.classList.toggle('success', !!data.maintenance_mode);
+      if(msg) msg.textContent='';
+    }catch(error){
+      state.textContent=error.message;
+    }finally{
+      sw.disabled=false;
+    }
+  };
+
+  document.getElementById('maintenance-mode-switch')?.addEventListener('change',async e=>{
+    const sw=e.currentTarget;
+    const wanted=sw.checked;
+    sw.disabled=true;
+    const state=document.getElementById('maintenance-mode-state');
+    try{
+      const data=await systemRequest('POST',{maintenance_mode:wanted});
+      sw.checked=!!data.maintenance_mode;
+      state.textContent=data.maintenance_mode
+        ? 'Maintenance Mode is ON — your Owner bypass cookie is active on this device.'
+        : 'Maintenance Mode is OFF — public NEXA routes are available again.';
+    }catch(error){
+      sw.checked=!wanted;
+      state.textContent=error.message;
+    }finally{
+      sw.disabled=false;
+    }
+  });
+
+  document.getElementById('copy-owner-recovery-link')?.addEventListener('click',async()=>{
+    const url=new URL(recoveryPath,location.origin).href;
+    const msg=document.getElementById('system-operations-message');
+    try{
+      await navigator.clipboard.writeText(url);
+      if(msg) msg.textContent='Emergency Owner link copied. Keep it private.';
+    }catch{
+      if(msg) msg.textContent=url;
+    }
+  });
+
+  document.getElementById('open-maintenance-preview')?.addEventListener('click',()=>{
+    window.open('/maintenance.html?preview=1','_blank');
+  });
 })();
 </script>
 

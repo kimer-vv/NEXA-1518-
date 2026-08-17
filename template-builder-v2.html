@@ -2226,7 +2226,6 @@ const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 const p=window.NEXA_NATIVE_PARAMS||new URLSearchParams(location.search);
 const eventType=p.get('event_type')||'svs',eventKey=String(eventType).trim().toLowerCase(),allianceId=p.get('alliance_id')||'',allianceTag=p.get('alliance_tag')||'Alliance';
-window.sb=sb;
 window.allianceId=allianceId;
 window.allianceTag=allianceTag;
 
@@ -2541,6 +2540,41 @@ function applyBranding(){
 }
 
 async function loadBranding(){
+  // Layout Management is the source of truth for alliance identity.
+  // Read that assignment first so a saved preset/emblem always follows the
+  // selected alliance into Template Builder.
+  const PRESET_ACCENTS={
+    forest_green:'#315f4b',ice_blue:'#5d88a8',royal_gold:'#a77a2b',ocean_teal:'#287b7b',
+    soft_burgundy:'#884d5c',lavender:'#746b9d',slate_blue:'#536d96',sage:'#6f876b',
+    dusty_rose:'#a66d78',steel:'#596579'
+  };
+  try{
+    const {data:layout,error:layoutError}=await sb.from('alliance_layout_settings')
+      .select('alliance_id,preset_key,emblem_data_url')
+      .eq('alliance_id',String(allianceId)).maybeSingle();
+    if(layoutError) throw layoutError;
+    if(layout){
+      const accent=PRESET_ACCENTS[layout.preset_key]||PRESET_ACCENTS.forest_green;
+      branding={
+        ...branding,
+        emblem_data_url:layout.emblem_data_url||'',
+        template_style:'classic',
+        colors:{...templateDefaults.classic,head:accent},
+      };
+      applyBranding();
+      const sheet=$('sheet');
+      if(sheet){
+        sheet.style.setProperty('--accent',accent);
+        sheet.style.setProperty('--team-head',accent);
+      }
+      return;
+    }
+  }catch(layoutErr){
+    console.warn('Alliance layout identity:',layoutErr?.message||layoutErr);
+  }
+
+  // Backward-compatible fallback for alliances that have not yet been assigned
+  // through Layout Management.
   const {data,error}=await sb.from('alliance_branding').select('*').eq('alliance_id',String(allianceId)).maybeSingle();
   if(error){console.warn(error.message);applyBranding();return}
   if(data){
@@ -2920,7 +2954,7 @@ window.addEventListener('DOMContentLoaded',()=>{
  const params=new URLSearchParams(location.search);
  const aid=params.get('alliance_id');
  if(!aid||!window.supabase)return;
- const client=(typeof sb!=='undefined'&&sb&&typeof sb.from==='function')?sb:(window.sb || window.supabaseClient);
+ const client=window.sb || window.supabaseClient;
  if(!client||typeof client.from!=='function')return;
  const {data}=await client.from('alliance_layout_settings').select('*').eq('alliance_id',String(aid)).maybeSingle();
  if(!data)return;
@@ -2932,7 +2966,7 @@ window.addEventListener('DOMContentLoaded',()=>{
    sheet.style.setProperty('--accent',accent);
  }
  const img=document.getElementById('sheet-emblem');
- if(img){if(data.emblem_data_url){img.src=data.emblem_data_url;img.style.display='block'}else{img.removeAttribute('src');img.style.display='none'}}
+ if(img&&data.emblem_data_url){img.src=data.emblem_data_url;img.style.display='block'}
  if(typeof window.renderSheet==='function')window.renderSheet();
  if(typeof window.fitInlineSheet==='function')requestAnimationFrame(window.fitInlineSheet);
 })();
@@ -2977,9 +3011,7 @@ window.addEventListener('DOMContentLoaded',()=>{
         .eq('alliance_id',String(window.allianceId)).maybeSingle();
       if(!data)return;
       const accent=PRESET_COLORS[data.preset_key]||'#244887';
-      const identitySheet=document.getElementById('sheet');
-      identitySheet?.style.setProperty('--accent',accent);
-      identitySheet?.style.setProperty('--team-head',accent);
+      document.getElementById('sheet')?.style.setProperty('--accent',accent);
       document.querySelectorAll('.team-title').forEach(x=>x.style.background=accent);
       const img=document.getElementById('sheet-emblem');
       if(img){

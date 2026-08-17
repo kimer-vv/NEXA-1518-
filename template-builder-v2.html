@@ -2018,6 +2018,69 @@ body:after{height:340px!important}
 .formation-group.rally .formation-group-title{color:#244887!important}
 </style>
 
+
+<style id="nexa-template-v14-adaptive">
+/* Rally time: darker and crisp */
+.rally-name-line .rally-time{
+  color:#27364f!important;
+  font-weight:900!important;
+  opacity:1!important;
+  text-shadow:none!important;
+}
+.rally-pet-times{
+  color:#27364f!important;
+  font-weight:800!important;
+  opacity:1!important;
+}
+
+/* 2–3 teams: Important more left, Legend right, Formations starts lower on right */
+.sheet.layout-side .sheet-top-right{
+  right:8px!important;
+  gap:18px!important;
+}
+.sheet.layout-side .sheet-important{
+  transform:translateX(-36px)!important;
+}
+.sheet.layout-side .sheet-important b{
+  color:#c2415d!important;
+  font-weight:950!important;
+}
+.sheet.layout-side #formations{
+  margin-top:38px!important;
+  align-self:start!important;
+}
+.sheet.layout-side .formations-heading{
+  margin-top:-18px!important;
+  margin-bottom:10px!important;
+  text-align:center!important;
+}
+
+/* 4–6 teams: teams full width, formations underneath, notes compact at bottom */
+.sheet.layout-bottom #formations{
+  margin-top:16px!important;
+  width:100%!important;
+}
+.sheet.layout-bottom .formations-heading{
+  margin-bottom:10px!important;
+}
+.sheet.layout-bottom .formation-groups{
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:18px!important;
+}
+.sheet.layout-bottom .sheet-notes{
+  min-height:54px!important;
+  margin-top:14px!important;
+  padding:7px 9px!important;
+}
+.sheet.layout-bottom .sheet-notes span{
+  min-height:25px!important;
+}
+
+/* Notes always remains last and intentional */
+.sheet-notes{clear:both!important}
+</style>
+
 </head>
 <body data-builder-rev="20260816-menu-restored">
 <main class="shell">
@@ -3063,6 +3126,76 @@ window.addEventListener('DOMContentLoaded',()=>{
       styles:styles
     }));
     location.href='layout-preview-v2.html';
+  };
+})();
+</script>
+
+
+<script id="nexa-template-v14-adaptive-mode">
+(function(){
+  function applyAdaptiveMode(){
+    const sheet=document.getElementById('sheet');
+    if(!sheet)return;
+    const count=sheet.querySelectorAll('.team-card').length;
+    sheet.classList.remove('layout-side','layout-bottom');
+    if(count>=4) sheet.classList.add('layout-bottom');
+    else sheet.classList.add('layout-side');
+  }
+  const oldRender=window.renderAll;
+  if(typeof oldRender==='function'){
+    window.renderAll=function(){
+      const r=oldRender.apply(this,arguments);
+      requestAnimationFrame(applyAdaptiveMode);
+      return r;
+    };
+  }
+  new MutationObserver(applyAdaptiveMode).observe(document.getElementById('teams-grid'),{childList:true,subtree:true});
+  applyAdaptiveMode();
+})();
+</script>
+
+
+<script id="nexa-template-v14-newtab-preview">
+(function(){
+  const btn=document.getElementById('preview-layout');
+  if(!btn)return;
+
+  btn.onclick=function(ev){
+    ev.preventDefault();
+    ev.stopImmediatePropagation();
+
+    const sheet=document.getElementById('sheet');
+    if(!sheet)return false;
+
+    const imp=(document.getElementById('important-notes')?.value||'').trim();
+    const notes=(document.getElementById('layout-notes')?.value||'').trim();
+    const it=document.getElementById('sheet-important-text');
+    const ib=document.getElementById('sheet-important');
+    if(it)it.textContent=imp;
+    if(ib)ib.classList.toggle('hidden',!imp);
+    const nt=document.getElementById('sheet-notes-text');
+    const nb=document.getElementById('sheet-notes');
+    if(nt)nt.textContent=notes;
+    if(nb){nb.classList.remove('hidden');nb.style.display='block';}
+
+    const clone=sheet.cloneNode(true);
+    clone.removeAttribute('style');
+    clone.style.cssText='transform:none!important;position:relative!important;left:auto!important;top:auto!important;margin:0 auto!important;';
+    const styles=[...document.querySelectorAll('style,link[rel="stylesheet"]')].map(x=>x.outerHTML).join('\n');
+    const payload={
+      title:(document.getElementById('sheet-title')?.textContent||'NEXA Layout').trim(),
+      html:clone.outerHTML,
+      styles
+    };
+    try{sessionStorage.setItem('nexa_layout_preview_payload',JSON.stringify(payload));}catch(e){}
+
+    // Must happen directly inside click for iPhone Safari.
+    const w=window.open('layout-preview-v2.html','_blank');
+    if(!w){
+      const status=document.getElementById('export-status');
+      if(status)status.textContent='Safari blocked the preview tab. Allow pop-ups for this site and tap Preview Layout again.';
+    }
+    return false;
   };
 })();
 </script>

@@ -6334,11 +6334,11 @@ window.addEventListener('DOMContentLoaded',()=>{
 
 
 
-<style id="nexa-v46-v44-formations-autofit">
-/* V46 — V44 visual design preserved.
-   Only: remove lower UTC duplicate + give Formations a safe auto-fit zone. */
+<style id="nexa-v47-v44-formations-safe-growth">
+/* V47 — preserve V44 appearance exactly.
+   Only remove lower UTC duplicate + allow Formations to grow upward. */
 
-/* NOTES stays exactly on the approved V44 lower-left baseline. */
+/* Approved V44 Notes position. */
 :is(#sheet,.nexa-render-sheet) #sheet-notes{
   position:absolute!important;
   left:32px!important;
@@ -6348,45 +6348,39 @@ window.addEventListener('DOMContentLoaded',()=>{
   margin:0!important;
 }
 
-/* FORMATIONS keeps the V44 internal design and horizontal title.
-   It owns only the right-side zone, so it can never grow into Notes.
-   Bottom anchored: extra saved formations grow UPWARD naturally. */
+/* Approved V44 Formations position and natural width.
+   No left constraint, no forced narrowing, no flex conversion. */
 :is(#sheet,.nexa-render-sheet) #formations{
   position:absolute!important;
-  left:58%!important;
   right:32px!important;
   bottom:24px!important;
   top:auto!important;
+  left:auto!important;
   width:auto!important;
   height:auto!important;
-  min-height:104px!important;
+  min-height:0!important;
   max-height:none!important;
-  margin:0!important;
   transform:none!important;
-  box-sizing:border-box!important;
+  margin:0!important;
   overflow:visible!important;
 }
 
-/* Preserve V44 formation structure; additional presets stack inside
-   Attack/Defense columns and increase block height instead of width. */
+/* Preserve the original V44 two-group layout. */
 :is(#sheet,.nexa-render-sheet) #formations .formation-groups{
+  grid-template-columns:1fr 1fr!important;
   width:100%!important;
-  grid-template-columns:repeat(2,minmax(0,1fr))!important;
-  gap:7px!important;
-  align-items:start!important;
 }
-:is(#sheet,.nexa-render-sheet) #formations .formation-group,
-:is(#sheet,.nexa-render-sheet) #formations .formation-type-columns,
-:is(#sheet,.nexa-render-sheet) #formations .formation-type-column{
-  min-width:0!important;
-}
+
+/* Extra saved formations stack vertically INSIDE Attack/Defense columns.
+   This increases height upward without changing the base V44 width. */
 :is(#sheet,.nexa-render-sheet) #formations .formation-type-column{
   height:auto!important;
   max-height:none!important;
   overflow:visible!important;
+  grid-auto-rows:max-content!important;
 }
 
-/* Remove every legacy/footer UTC copy, including the one that V44 missed. */
+/* Hide all real footer UTC copies, including the lower-right duplicate. */
 :is(#sheet,.nexa-render-sheet) .sheet-footer,
 :is(#sheet,.nexa-render-sheet) .sheet-utc,
 :is(#sheet,.nexa-render-sheet) .sheet-utc-note{
@@ -6394,7 +6388,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   visibility:hidden!important;
 }
 
-/* Keep the single approved UTC label above Teams. */
+/* Keep one UTC notice only, in the approved upper location. */
 :is(#sheet,.nexa-render-sheet)::after{
   content:"ALL TIMES ARE IN UTC";
   position:absolute!important;

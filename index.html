@@ -2078,7 +2078,11 @@ document.addEventListener('DOMContentLoaded', async () => {
           .maybeSingle();
 
         if(error){
-          setStatus('Could not load saved layout: '+error.message);
+          if(String(error.message||'').includes('alliance_layout_settings')){
+            setStatus('Layout storage is not installed yet. Run the included Supabase SQL migration once.');
+          }else{
+            setStatus('Could not load saved layout: '+error.message);
+          }
           return;
         }
 
@@ -2098,12 +2102,20 @@ document.addEventListener('DOMContentLoaded', async () => {
           if(layoutAllianceError) throw layoutAllianceError;
 
           allianceSelect.innerHTML='<option value="">Select alliance…</option>';
-          (layoutAlliances||[]).filter(a=>a && a.id && a.tag).forEach(a=>{
-            const option=document.createElement('option');
-            option.value=String(a.id);
-            option.textContent=String(a.tag);
-            allianceSelect.appendChild(option);
-          });
+          const seenAllianceTags=new Set();
+          (layoutAlliances||[])
+            .filter(a=>a && a.id && a.tag)
+            .sort((a,b)=>String(a.tag).localeCompare(String(b.tag)))
+            .forEach(a=>{
+              const tag=String(a.tag).trim();
+              const dedupeKey=tag.toLowerCase();
+              if(!tag || seenAllianceTags.has(dedupeKey)) return;
+              seenAllianceTags.add(dedupeKey);
+              const option=document.createElement('option');
+              option.value=String(a.id);
+              option.textContent=tag;
+              allianceSelect.appendChild(option);
+            });
 
           allianceSelect.onchange=async()=>{
             const id=String(allianceSelect.value||'').trim();
@@ -2233,7 +2245,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             .maybeSingle();
 
           if(error){
-            setStatus('Save failed: '+error.message);
+            if(String(error.message||'').includes('alliance_layout_settings')){
+              setStatus('Layout storage is not installed yet. Run the included Supabase SQL migration once.');
+            }else{
+              setStatus('Save failed: '+error.message);
+            }
             return;
           }
 

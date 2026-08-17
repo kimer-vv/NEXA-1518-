@@ -1,2 +1,2 @@
 Replace index.html only.
-Final fix: Announcements action now says Open instead of View Event.
+Fixes the runtime-rendered Announcements CTA so it remains Open instead of reverting to View Event.

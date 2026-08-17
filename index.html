@@ -3566,5 +3566,30 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
 })();
 </script>
 
+
+<script id="nexa-announcements-open-runtime-fix">
+(function(){
+  function fixAnnouncementCTA(){
+    const section=document.getElementById('home-announcements-module');
+    if(!section)return;
+    section.querySelectorAll('a,button').forEach(el=>{
+      const t=(el.textContent||'').trim().toLowerCase();
+      if(t.includes('view event') || t.includes('view announcement') || t.includes('open announcement')){
+        el.textContent='Open';
+      }
+    });
+  }
+  const obs=new MutationObserver(fixAnnouncementCTA);
+  function start(){
+    fixAnnouncementCTA();
+    const section=document.getElementById('home-announcements-module');
+    if(section) obs.observe(section,{childList:true,subtree:true,characterData:true});
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start);
+  else start();
+  window.addEventListener('pageshow',fixAnnouncementCTA);
+})();
+</script>
+
 </body>
 </html>

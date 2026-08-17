@@ -1,1 +1,1 @@
-Replace template-builder.html only. Fixes the remaining Team 1/Team 2 header and rally-row vertical overlap in the mobile preview. No SQL/data changes.
+Replace template-builder.html. Mobile preview v2: restores natural vertical flow inside Team cards and prevents Team/Rally Leaders/player rows from painting over one another. No SQL/data changes.

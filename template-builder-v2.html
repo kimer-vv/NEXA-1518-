@@ -1679,6 +1679,129 @@ body.nexa-layout-preview-open{
 html,body{min-height:100%!important}
 body:after{content:"";display:block;height:220px;width:100%}
 </style>
+
+<style id="nexa-template-v8-visual-fixes">
+/* IMPORTANT + LEGEND share the top-right cleanly */
+.sheet-header{
+  position:relative!important;
+  padding-right:500px!important;
+}
+.sheet-top-right{
+  position:absolute!important;
+  top:8px!important;
+  right:8px!important;
+  display:flex!important;
+  align-items:flex-start!important;
+  justify-content:flex-end!important;
+  gap:8px!important;
+  max-width:470px!important;
+}
+.sheet-top-right .sheet-important{
+  position:static!important;
+  width:235px!important;
+  max-width:235px!important;
+  min-height:54px!important;
+  box-sizing:border-box!important;
+  padding:7px 9px!important;
+  font-size:8px!important;
+  line-height:1.2!important;
+  margin:0!important;
+}
+.sheet-top-right .sheet-legend{
+  position:static!important;
+  width:205px!important;
+  max-width:205px!important;
+  box-sizing:border-box!important;
+  padding:7px 9px!important;
+  margin:0!important;
+  display:grid!important;
+  gap:5px!important;
+  font-size:8px!important;
+  line-height:1!important;
+}
+.sheet-legend > div{
+  display:grid!important;
+  grid-template-columns:18px minmax(0,1fr)!important;
+  align-items:center!important;
+  gap:5px!important;
+}
+.sheet-legend .legend-icon{
+  width:18px!important;
+  height:18px!important;
+  min-width:18px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  font-size:13px!important;
+  line-height:1!important;
+}
+.sheet-legend .joiner-person-svg{
+  width:13px!important;
+  height:13px!important;
+}
+.sheet-legend .pet-icon{
+  font-size:12px!important;
+}
+.sheet-legend small{
+  font-size:7px!important;
+}
+
+/* Rally schedule must remain visible under name */
+.rally-time{
+  display:block!important;
+  visibility:visible!important;
+  opacity:1!important;
+  color:var(--sheet-muted)!important;
+  font-size:8px!important;
+  font-weight:800!important;
+  line-height:1.15!important;
+  margin-top:2px!important;
+}
+.rally-pet-times{
+  font-size:7px!important;
+  line-height:1.12!important;
+}
+
+/* Notes: always render when text exists and span entire sheet */
+.sheet-notes{
+  display:block;
+  width:100%!important;
+  box-sizing:border-box!important;
+  margin-top:10px!important;
+  min-height:52px!important;
+}
+.sheet-notes.hidden{display:none!important}
+.sheet-notes span{
+  display:block!important;
+  white-space:pre-wrap!important;
+}
+
+/* Rally formation heroes/names must not collapse */
+.formation-hero-list{
+  min-height:42px!important;
+  display:flex!important;
+  visibility:visible!important;
+  opacity:1!important;
+}
+.formation-hero{
+  display:block!important;
+  min-width:48px!important;
+}
+.formation-hero-name{
+  display:block!important;
+  visibility:visible!important;
+  opacity:1!important;
+  color:inherit!important;
+  white-space:normal!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+}
+
+/* More bottom breathing room on iOS */
+body:after{height:280px!important}
+.preview-wrap{margin-bottom:150px!important}
+</style>
+
 </head>
 <body data-builder-rev="20260816-menu-restored">
 <main class="shell">
@@ -1724,14 +1847,14 @@ body:after{content:"";display:block;height:220px;width:100%}
             <div id="sheet-subtitle" class="sheet-subtitle"></div>
           </div>
         </div>
-        <div class="sheet-legend" aria-label="Legend">
-          <div><span class="legend-icon rally-icon">♜</span><span>Rally Leader</span></div>
-          <div><span class="legend-icon joiner-icon"><svg class="joiner-person-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"></circle><path d="M4.5 21c.4-5.1 3.1-8 7.5-8s7.1 2.9 7.5 8H4.5z"></path></svg></span><span>Joiner</span></div>
-          <div><span class="legend-icon pet-icon">🐾</span><span>Pet Active <small>(at time shown)</small></span></div>
+        <div class="sheet-top-right">
+          <div id="sheet-important" class="sheet-important hidden"><b>ⓘ IMPORTANT</b><span id="sheet-important-text"></span></div>
+          <div class="sheet-legend" aria-label="Legend">
+            <div><span class="legend-icon rally-icon">♜</span><span>Rally Leader</span></div>
+            <div><span class="legend-icon joiner-icon"><svg class="joiner-person-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"></circle><path d="M4.5 21c.4-5.1 3.1-8 7.5-8s7.1 2.9 7.5 8H4.5z"></path></svg></span><span>Joiner</span></div>
+            <div><span class="legend-icon pet-icon">🐾</span><span>Pet Active <small>(at time shown)</small></span></div>
+          </div>
         </div>
-      </div>
-      <div class="sheet-info-row">
-        <div id="sheet-important" class="sheet-important hidden"><b>ⓘ IMPORTANT</b><span id="sheet-important-text"></span></div>
       </div>
       <div id="teams-grid" class="teams-grid"></div>
       <div id="formations" class="formations"></div>
@@ -1886,7 +2009,11 @@ function renderTeams(teams,members){
     const rallyHtml=rally.length?rally.map(m=>{
       const windows=Array.isArray(m.pet_windows)?m.pet_windows:[];
       const petTimes=windows.map(petWindowText).filter(Boolean);
-      const rallySchedule=String(m.rally_time||m.rally_schedule||m.schedule||m.time||m.start_time||'').trim();
+      const scheduleStart=(m.schedule_start_utc??'');
+      const scheduleEnd=(m.schedule_end_utc??'');
+      const rallySchedule=(scheduleStart!=='' && scheduleEnd!=='')
+        ? `${String(scheduleStart).padStart(2,'0')}:00–${String(scheduleEnd).padStart(2,'0')}:00 UTC`
+        : '';
       const fallbackPetSchedule=String(m.pet_schedule||'').trim();
       const timeText=rallySchedule||fallbackPetSchedule;
       const hasPet=petTimes.length>0||m.pets_active===true||m.pet_active===true;
@@ -1936,15 +2063,27 @@ function normalizedFormationType(x){
   const raw=String(x.formation_type||'attack').toLowerCase();
   return raw.includes('def')?'defense':'attack';
 }
+function parseMaybeJSON(v){
+  if(v==null)return v;
+  if(typeof v!=='string')return v;
+  const t=v.trim();
+  if(!t)return null;
+  try{return JSON.parse(t)}catch(_){return v}
+}
 function formationHeroes(x){
   if(x.formation_scope==='rally'){
-    return [
-      x.hero_config?.infantry_hero,
-      x.hero_config?.lancer_hero,
-      x.hero_config?.marksman_hero
+    const cfg=parseMaybeJSON(x.hero_config)||{};
+    const heroes=[
+      cfg.infantry_hero, cfg.lancer_hero, cfg.marksman_hero,
+      cfg.infantry, cfg.lancer, cfg.marksman,
+      cfg.hero1, cfg.hero2, cfg.hero3
     ].filter(Boolean);
+    return [...new Map(heroes.map(h=>[typeof h==='string'?h:JSON.stringify(h),h])).values()];
   }
-  return Array.isArray(x.recommended_heroes)?x.recommended_heroes.filter(Boolean):[];
+  const rec=parseMaybeJSON(x.recommended_heroes);
+  if(Array.isArray(rec))return rec.filter(Boolean);
+  if(rec && typeof rec==='object')return Object.values(rec).filter(Boolean);
+  return rec?[rec]:[];
 }
 function assignFormationSlots(rows){
   const counts={};
@@ -2201,6 +2340,8 @@ function openLayoutPreview(){
     setTimeout(fitPreviewSheet,80);
   });
 }
+
+window.openLayoutPreview=openLayoutPreview;
 
 function closeLayoutPreview(){
   const overlay=$('layout-preview-overlay');
@@ -2542,6 +2683,52 @@ window.addEventListener('DOMContentLoaded',()=>{
 
   const sheet=document.getElementById('sheet');
   if(sheet)new MutationObserver(rerun).observe(sheet,{subtree:true,childList:true,characterData:true,attributes:true});
+})();
+</script>
+
+
+<script id="nexa-template-v8-runtime">
+(function(){
+  function syncBuilderText(){
+    const imp=(document.getElementById('important-notes')?.value||'').trim();
+    const notes=(document.getElementById('layout-notes')?.value||'').trim();
+
+    const ib=document.getElementById('sheet-important');
+    const it=document.getElementById('sheet-important-text');
+    if(ib&&it){
+      it.textContent=imp;
+      ib.classList.toggle('hidden',!imp);
+    }
+
+    const nb=document.getElementById('sheet-notes');
+    const nt=document.getElementById('sheet-notes-text');
+    if(nb&&nt){
+      nt.textContent=notes;
+      nb.classList.toggle('hidden',!notes);
+    }
+
+    if(typeof window.fitInlineSheet==='function') window.fitInlineSheet();
+  }
+
+  document.getElementById('important-notes')?.addEventListener('input',syncBuilderText);
+  document.getElementById('layout-notes')?.addEventListener('input',syncBuilderText);
+
+  /* Preview button: restore full overlay preview, not inline scrolling */
+  const preview=document.getElementById('preview-layout');
+  if(preview){
+    preview.onclick=function(ev){
+      ev.preventDefault();
+      if(typeof window.openLayoutPreview==='function'){
+        syncBuilderText();
+        window.openLayoutPreview();
+      }
+    };
+  }
+
+  document.addEventListener('DOMContentLoaded',()=>{
+    syncBuilderText();
+    setTimeout(syncBuilderText,120);
+  });
 })();
 </script>
 

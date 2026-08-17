@@ -2205,6 +2205,7 @@ body:after{height:340px!important}
       <div id="teams-grid" class="teams-grid"></div>
       <div id="formations" class="formations"></div>
       <div id="sheet-notes" class="sheet-notes hidden"><b>NOTES</b><span id="sheet-notes-text"></span></div>
+      <div id="sheet-utc-note" class="sheet-utc-note">ALL TIMES ARE IN UTC</div>
       
     </div>
       </div>
@@ -2333,8 +2334,8 @@ function heroMarkup(value,formation=false){
 function petWindowText(w){
   const start=String(w?.start_utc||'').trim();
   const end=String(w?.end_utc||'').trim();
-  if(start&&end)return `${start}–${end}`;
-  if(start)return `${start}`;
+  if(start&&end)return `${start}–${end} UTC`;
+  if(start)return `${start} UTC`;
   return '';
 }
 function renderTeams(teams,members){
@@ -2360,7 +2361,10 @@ function renderTeams(teams,members){
       const rallySchedule=(scheduleStart!=='' && scheduleEnd!=='')
         ? `${String(scheduleStart).padStart(2,'0')}:00–${String(scheduleEnd).padStart(2,'0')}:00`
         : '';
-      const fallbackPetSchedule=String(m.pet_schedule||'').trim();
+      const fallbackPetSchedule=String(m.pet_schedule||'')
+        .replace(/\s*UTC\b/gi,'')
+        .replace(/^[⏱🕒]\s*/,'')
+        .trim();
       const timeText=rallySchedule||fallbackPetSchedule;
       const hasPet=petTimes.length>0||m.pets_active===true||m.pet_active===true;
 
@@ -2370,7 +2374,6 @@ function renderTeams(teams,members){
             <span class="rally-name">${esc(displayName(m.player_name)||'—')}</span>
             ${timeText?`<span class="rally-time">${esc(timeText)}</span>`:''}
           </div>
-          ${petTimes.length?`<div class="rally-pet-times">${esc(petTimes.join(', '))}</div>`:''}
         </div>
         <div class="rally-pet ${hasPet?'':'empty'}" title="Pet Active">🐾</div>
       </div>`;
@@ -3392,7 +3395,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 
       // Open from the top window directly inside the real user click.
       const topWindow=window.top || window;
-      const opened=topWindow.open('layout-preview-v2.html?v=20260817-polished-v14','_blank');
+      const opened=topWindow.open('layout-preview-v2.html?v=20260817-real-v16','_blank');
 
       if(!opened){
         const status=document.getElementById('export-status');
@@ -4601,53 +4604,74 @@ window.addEventListener('DOMContentLoaded',()=>{
  };
 })();
 </script>
-\n<style id="nexa-v16-final-polish">
-/* V16 — stable six-column master + refined readable hierarchy */
-#sheet{grid-template-columns:minmax(0,1.72fr) minmax(370px,1.08fr)!important;grid-template-areas:"header header" "teams teams" "notes formations" "utc utc"!important;column-gap:10px!important;row-gap:8px!important}
-#teams-grid,.teams-grid{grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:6px!important}
-.team-card{overflow:hidden!important;min-width:0!important}
-/* Rally leader: compact name + time, dedicated pet column */
-.team-card .rally-entry{display:grid!important;grid-template-columns:minmax(0,1fr) 18px!important;gap:3px!important;align-items:center!important;padding:5px 5px!important;min-height:38px!important;overflow:hidden!important}
-.team-card .rally-info{min-width:0!important;overflow:hidden!important}
-.team-card .rally-name-line{display:block!important;min-width:0!important;overflow:hidden!important}
-.team-card .rally-name{display:block!important;font-size:7px!important;line-height:1.08!important;font-weight:850!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
-.team-card .rally-time{display:block!important;margin-top:2px!important;font-size:6px!important;line-height:1!important;font-weight:750!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
-.team-card .rally-pet-times{font-size:5.2px!important;line-height:1!important;margin-top:2px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;color:var(--sheet-muted)!important}
-.team-card .rally-pet{display:flex!important;align-items:center!important;justify-content:center!important;width:18px!important;min-width:18px!important;height:22px!important;font-size:12px!important;line-height:1!important;overflow:visible!important}
-/* Joiner names match the useful hero-name reading size. */
-.team-card .joiner-player,.team-card .joiner-player span{font-size:7px!important;line-height:1.05!important;font-weight:800!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
-.team-card .hero-mini-name{font-size:7px!important;line-height:1.05!important}
-/* Important: centered, larger, but still elegant. */
+
+
+<style id="nexa-v16-real-final">
+#sheet{width:1320px!important;min-width:1320px!important;max-width:1320px!important;min-height:820px!important;padding:18px!important}
+#teams-grid,.teams-grid{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:7px!important;width:100%!important;margin:0!important}
+#teams-grid .team-card{min-width:0!important;width:100%!important}.team-placeholder{visibility:hidden!important;pointer-events:none!important}
+
+.sheet.layout-side,.sheet.layout-bottom{
+  display:grid!important;
+  grid-template-columns:minmax(0,1.55fr) minmax(0,1.10fr)!important;
+  grid-template-areas:"header header" "teams teams" "notes formations" "utc utc"!important;
+  column-gap:12px!important;row-gap:8px!important;align-items:start!important
+}
+.sheet.layout-side .sheet-header,.sheet.layout-bottom .sheet-header{grid-area:header!important}
+.sheet.layout-side #teams-grid,.sheet.layout-bottom #teams-grid{grid-area:teams!important}
+.sheet.layout-side .sheet-notes,.sheet.layout-bottom .sheet-notes{grid-area:notes!important}
+.sheet.layout-side #formations,.sheet.layout-bottom #formations{grid-area:formations!important}
+.sheet-utc-note{grid-area:utc!important}
+
 .sheet-header{position:relative!important}
-.sheet-top-right{display:grid!important;grid-template-columns:minmax(260px,1fr) minmax(245px,.82fr)!important;align-items:start!important;gap:18px!important;width:min(690px,64%)!important}
-.sheet-important{justify-self:center!important;width:100%!important;max-width:330px!important;text-align:center!important;padding:9px 12px!important}
-.sheet-important b,.sheet-important .important-title,.important-title{font-size:15px!important;line-height:1.1!important}
-.sheet-important span,.sheet-important .important-text,.important-text{font-size:13.5px!important;line-height:1.25!important}
-/* Legend: slightly larger type and icons. */
-.sheet-legend{font-size:13px!important;line-height:1.25!important;padding:8px 10px!important;min-width:245px!important}
-.sheet-legend>div{grid-template-columns:23px minmax(0,1fr)!important;gap:7px!important;min-height:24px!important}
-.sheet-legend .legend-icon{width:21px!important;height:21px!important;min-width:21px!important;font-size:21px!important;display:flex!important;align-items:center!important;justify-content:center!important}
-.sheet-legend .joiner-person-svg{width:20px!important;height:20px!important}
-.sheet-legend span,.sheet-legend small{font-size:12px!important;line-height:1.15!important}
-/* Bottom balance: Notes shorter, Formations wider. */
-.sheet-notes,.notes-box{min-height:100px!important;height:100px!important;padding:8px 10px!important;font-size:11px!important;overflow:hidden!important}
-.sheet-notes b,.notes-title{font-size:10px!important;margin-bottom:4px!important}
-.sheet-notes span,.notes-text{font-size:11px!important;line-height:1.25!important}
-#formations,.formations{min-height:100px!important;width:100%!important;overflow:visible!important}
-.formations-heading{font-size:13px!important;margin-bottom:5px!important}
-.formation-groups{gap:7px!important;grid-template-columns:1fr 1fr!important}
-.formation-group{padding:6px!important;min-width:0!important}
-.formation-group-title{font-size:8px!important;margin-bottom:4px!important}
-.formation-card{padding:5px 6px!important;min-height:50px!important;overflow:hidden!important}
-.formation-title{font-size:8px!important;white-space:nowrap!important}
-.formation-ratio{font-size:10px!important;white-space:nowrap!important;overflow:visible!important}
-/* Single clean UTC notice instead of repeating UTC in every rally row. */
-.sheet-utc-v16{grid-area:utc!important;text-align:center!important;font-size:8px!important;font-weight:850!important;letter-spacing:.12em!important;color:var(--sheet-muted)!important;padding-top:1px!important}
+.sheet-top-right{
+  position:absolute!important;top:8px!important;left:430px!important;right:10px!important;
+  display:grid!important;grid-template-columns:minmax(250px,300px) minmax(230px,260px)!important;
+  justify-content:space-between!important;align-items:start!important;gap:24px!important;max-width:none!important
+}
+.sheet-top-right .sheet-important{
+  position:static!important;transform:none!important;width:100%!important;max-width:300px!important;
+  min-height:58px!important;margin:0!important;padding:9px 11px!important;justify-self:center!important;
+  font-size:11px!important;line-height:1.25!important
+}
+.sheet-important b{display:block!important;font-size:10px!important;line-height:1!important;margin-bottom:4px!important;letter-spacing:.08em!important}
+#sheet-important-text{display:block!important;font-size:11px!important;line-height:1.25!important}
+
+.sheet-top-right .sheet-legend{
+  position:static!important;width:260px!important;max-width:260px!important;padding:9px 11px!important;margin:0!important;
+  display:grid!important;gap:6px!important;justify-self:end!important;font-size:10.5px!important;line-height:1.1!important
+}
+.sheet-legend>div{display:grid!important;grid-template-columns:24px minmax(0,1fr)!important;gap:7px!important;align-items:center!important}
+.sheet-legend .legend-icon{width:22px!important;height:22px!important;min-width:22px!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:18px!important;line-height:1!important}
+.sheet-legend .joiner-person-svg{width:17px!important;height:17px!important}.sheet-legend .pet-icon{font-size:18px!important}.sheet-legend small{font-size:8.5px!important}
+
+.team-title{font-size:13px!important;line-height:1!important;padding:7px 5px!important}
+.team-section-title{font-size:8.5px!important;line-height:1!important;padding:6px 4px!important;gap:4px!important}.section-icon{font-size:11px!important}
+
+.rally-list{padding:0 5px!important}
+.rally-entry{display:grid!important;grid-template-columns:minmax(0,1fr) 22px!important;gap:4px!important;align-items:center!important;min-height:42px!important;padding:6px 3px!important;overflow:hidden!important}
+.rally-info,.rally-name-line{min-width:0!important}
+.rally-name-line{display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:center!important;gap:2px!important}
+.rally-name{display:block!important;width:100%!important;min-width:0!important;font-size:9px!important;line-height:1.05!important;font-weight:900!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.rally-time{display:block!important;width:100%!important;font-size:7.5px!important;line-height:1.05!important;font-weight:800!important;color:var(--sheet-muted)!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:clip!important;margin:0!important}
+.rally-pet{width:22px!important;min-width:22px!important;max-width:22px!important;font-size:15px!important;line-height:1!important;overflow:visible!important;text-align:center!important;justify-self:end!important}
+.rally-pet-times{display:none!important}
+
+.joiner-head,.joiner-row{grid-template-columns:minmax(0,1.12fr) minmax(0,.94fr) minmax(0,.94fr)!important}
+.joiner-head.no-defense,.joiner-row.no-defense{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)!important}
+.joiner-head{font-size:7.5px!important}.joiner-head>div,.joiner-row>div{padding:5px 4px!important}
+.joiner-row{min-height:34px!important;font-size:10px!important}.joiner-player span{font-size:10px!important;line-height:1.05!important}.hero-mini-name{font-size:10px!important;line-height:1.05!important}
+
+.sheet-notes,.notes-box{margin:0!important;min-height:104px!important;height:104px!important;padding:18px 9px 8px!important;font-size:10px!important;line-height:1.25!important}
+.sheet-notes::before{font-size:9px!important}#sheet-notes-text{font-size:10px!important;line-height:1.25!important}
+
+#formations,.formations{margin:0!important;padding:0!important;align-self:stretch!important;min-height:104px!important;min-width:0!important}
+.formations-heading{font-size:13px!important;margin:0 0 5px!important}.formation-groups{grid-template-columns:1fr 1fr!important;gap:7px!important}
+.formation-group{padding:5px!important;min-width:0!important}.formation-group-title{font-size:8px!important;margin:-12px auto 5px!important;padding:0 5px!important}
+.formation-type-columns,.formation-type-column{min-width:0!important}
+.formation-card{min-width:0!important;min-height:50px!important;padding:5px 4px!important;overflow:hidden!important}
+.formation-title{font-size:8px!important;line-height:1!important;white-space:nowrap!important}
+.formation-ratio{display:block!important;width:100%!important;font-size:10px!important;line-height:1!important;white-space:nowrap!important;overflow:visible!important;padding:3px 2px!important}
+
+.sheet-utc-note{margin-top:0!important;padding-top:2px!important;text-align:center!important;color:var(--sheet-muted)!important;font-size:8px!important;line-height:1!important;font-weight:850!important;letter-spacing:.12em!important}
 </style>
-<script id="nexa-v16-utc-footer">
-(function(){
- function ensureUtc(){const sheet=document.getElementById('sheet');if(!sheet)return;let el=document.getElementById('sheet-utc-v16');if(!el){el=document.createElement('div');el.id='sheet-utc-v16';el.className='sheet-utc-v16';el.textContent='ALL TIMES ARE IN UTC';sheet.appendChild(el);}}
- ensureUtc();document.addEventListener('DOMContentLoaded',ensureUtc);setTimeout(ensureUtc,150);
- const mo=new MutationObserver(ensureUtc);const root=document.getElementById('sheet');if(root)mo.observe(root,{childList:true});
-})();
-</script>\n

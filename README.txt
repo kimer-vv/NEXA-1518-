@@ -1,14 +1,11 @@
-NEXA Layout Management module
+FINAL MODULE PLACEMENT PATCH
 
-Upload the included HTML files to the GitHub root.
-Run layout-management.sql once in Supabase SQL Editor.
+Replace index.html with this version.
+Keep layout-management.html and the other files from the previous Layout Management patch.
 
-What this adds:
-- Layout Management module
-- 10 clean white-sheet NEXA presets
-- one preset + emblem assignment per alliance
-- Template Builder automatically loads the alliance identity
-- builder branding/style controls are removed from the workflow
-- Important, Notes, Preview, Download and Save remain
-
-This is the first structural patch for the new per-alliance layout system.
+Changes:
+- Removes the floating Layout Management button from the bottom-right corner.
+- Adds Layout Management as a normal Administration module card.
+- Places it with the other modules.
+- Opens layout-management.html when tapped.
+- No SQL changes required if layout-management.sql was already run.

@@ -1,11 +1,8 @@
-ROOT SOLUTION — STANDALONE TEAM SHEET
+Upload both HTML files to the GitHub root.
+- alliance-teams.html: replace current
+- template-builder-v2.html: replace current V2
 
-Upload BOTH HTML files to the repository root:
-- alliance-teams.html (replace current)
-- team-sheet-standalone.html (new)
-
-This intentionally bypasses NEXA's native Administration renderer for the final Team Sheet.
-No inherited/native CSS can override this page. It loads the same Supabase team/member/
-formation data itself, scales as one complete sheet on iPhone, and downloads the sheet directly.
-
-No SQL. No database changes.
+Adds an editable ⓘ Important / Special Instructions field to the Template Builder.
+Its text is saved locally and shown in the former TIPS box as IMPORTANT.
+Legend remains compact beside it; Notes remains below.
+No SQL changes.

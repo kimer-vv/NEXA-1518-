@@ -1,6 +1,12 @@
 Replace index.html only.
 
-This version starts from the working Discord-login index and adds Layout Management
-directly inside Admin > Control Center, immediately after Event Operations.
-No public/home changes. No OAuth/login code changes.
-Keep layout-management.html from the previous Layout Management patch.
+Fixes:
+- Layout Management remains visible in Admin > Control Center.
+- Removes stray Layout Management markup from the Transfers template.
+- Announcements "Show" now actually adds/removes an Announcements card on Home.
+- Event Operations "Show" now actually adds/removes an Event Operations card on Home.
+- Home cards open the correct Admin module.
+- Discord login code is untouched.
+- SvS and Transfers Show behavior stays unchanged.
+
+Keep your existing layout-management.html.

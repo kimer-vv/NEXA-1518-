@@ -864,7 +864,50 @@ body.nexa-schedule-open{
     </div>
   </section>
 
-  <section id="home-svs-section" class="section">
+  
+  <section id="home-announcements-module" class="section hidden">
+    <div class="head">
+      <h2>Announcements</h2>
+      <span>Tap to open</span>
+    </div>
+    <div class="glass events">
+      <article class="event">
+        <div class="event-row">
+          <div>
+            <span class="badge">Module</span>
+            <h3>Announcements</h3>
+            <div class="muted">View and manage state announcements.</div>
+          </div>
+        </div>
+        <div class="event-actions">
+          <button id="home-open-announcements" class="btn" type="button">Open Announcements →</button>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section id="home-event-operations-module" class="section hidden">
+    <div class="head">
+      <h2>Event Operations</h2>
+      <span>Tap to open</span>
+    </div>
+    <div class="glass events">
+      <article class="event">
+        <div class="event-row">
+          <div>
+            <span class="badge">Module</span>
+            <h3>Event Operations</h3>
+            <div class="muted">Forms, event types, responses and team organization.</div>
+          </div>
+        </div>
+        <div class="event-actions">
+          <button id="home-open-event-operations" class="btn" type="button">Open Event Operations →</button>
+        </div>
+      </article>
+    </div>
+  </section>
+
+<section id="home-svs-section" class="section">
     <div class="head">
       <h2>Events</h2>
       <span>Tap to open</span>
@@ -1809,6 +1852,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('open-event-operations')?.classList.toggle('hidden',!access.svs);
     document.getElementById('open-administration')?.classList.remove('hidden');
     document.getElementById('open-announcements')?.classList.remove('hidden');
+    document.getElementById('open-layout-management')?.classList.remove('hidden');
     document.getElementById('svs-admin-content')?.classList.add('hidden');
     document.getElementById('admin-module-chooser')?.classList.remove('hidden');
   }
@@ -3221,11 +3265,13 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
   document.getElementById('show-transfer-home')?.addEventListener('change',saveHomeVisibility);
   document.getElementById('preview-show-announcements')?.addEventListener('change',e=>{
     localStorage.setItem('nexa_preview_show_announcements',e.target.checked?'1':'0');
-    document.getElementById('home-visibility-message').textContent='Preview visibility updated ✓';
+    applyExtraHomeModuleVisibility();
+    document.getElementById('home-visibility-message').textContent='Home visibility updated ✓';
   });
   document.getElementById('preview-show-eo')?.addEventListener('change',e=>{
     localStorage.setItem('nexa_preview_show_eo',e.target.checked?'1':'0');
-    document.getElementById('home-visibility-message').textContent='Preview visibility updated ✓';
+    applyExtraHomeModuleVisibility();
+    document.getElementById('home-visibility-message').textContent='Home visibility updated ✓';
   });
 
   async function loadHomeTransfers(){
@@ -3245,10 +3291,6 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
         <h3>No live Transfer event</h3>
         <div class="muted">There is no open transfer cycle right now.</div></div></div>
 
-<div class="nexa-layout-admin-module" role="button" tabindex="0"
-     onclick="(typeof window.NEXA_NATIVE_OPEN==='function' ? window.NEXA_NATIVE_OPEN('layout-management.html') : (location.href='layout-management.html'))"
-     onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
-  <div class="nexa-layout-kicker">MODULE</div>
   <div class="nexa-layout-title">Layout Management</div>
   <div class="nexa-layout-desc">Assign alliance layout presets, emblems & visual identity.</div>
 </div>
@@ -3346,17 +3388,51 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
     if(!btn || btn.dataset.bound==='1') return;
     btn.dataset.bound='1';
     btn.addEventListener('click',()=>{
-      if(typeof window.loadNativeEventOpsView==='function'){
-        window.loadNativeEventOpsView('layout-management.html');
-      }else if(typeof window.NEXA_NATIVE_OPEN==='function'){
-        window.NEXA_NATIVE_OPEN('layout-management.html');
-      }else{
-        location.href='layout-management.html';
-      }
+      location.href='layout-management.html';
     });
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bindLayoutManagement);
   else bindLayoutManagement();
+})();
+</script>
+
+
+<script>
+(function(){
+  function applyExtraHomeModuleVisibility(){
+    const showAnnouncements=localStorage.getItem('nexa_preview_show_announcements')==='1';
+    const showEO=localStorage.getItem('nexa_preview_show_eo')==='1';
+    document.getElementById('home-announcements-module')?.classList.toggle('hidden',!showAnnouncements);
+    document.getElementById('home-event-operations-module')?.classList.toggle('hidden',!showEO);
+  }
+  window.applyExtraHomeModuleVisibility=applyExtraHomeModuleVisibility;
+
+  async function openAdminModule(buttonId){
+    const adminButton=document.getElementById('admin-panel-button');
+    if(!adminButton)return;
+    adminButton.click();
+    // Give the existing async Admin setup time to finish before opening the module.
+    setTimeout(()=>document.getElementById(buttonId)?.click(),220);
+  }
+
+  document.getElementById('home-open-announcements')?.addEventListener('click',()=>openAdminModule('open-announcements'));
+  document.getElementById('home-open-event-operations')?.addEventListener('click',()=>openAdminModule('open-event-operations'));
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',applyExtraHomeModuleVisibility);
+  }else{
+    applyExtraHomeModuleVisibility();
+  }
+})();
+</script>
+
+
+<script>
+(function(){
+  const b=document.getElementById('open-layout-management');
+  if(!b || b.dataset.cleanLayoutBound==='1') return;
+  b.dataset.cleanLayoutBound='1';
+  b.addEventListener('click',()=>{ location.href='layout-management.html'; });
 })();
 </script>
 

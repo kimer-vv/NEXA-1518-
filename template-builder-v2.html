@@ -1557,6 +1557,45 @@ body.nexa-layout-preview-open{
 [data-section="branding"],[data-section="style"]{display:none!important}
 
 </style>
+
+<style id="nexa-template-v3-layout">
+/* Builder controls are intentionally minimal; alliance visual identity comes from Layout Management. */
+.sheet{--accent:#244887}
+.sheet-info-row{display:flex;justify-content:flex-end;margin:4px 0 8px}
+.sheet-important{max-width:44%;border:1px solid #d7deea;border-radius:7px;padding:6px 8px;font-size:8px;line-height:1.25;background:#fff}
+.sheet-important b{display:block;font-size:7px;margin-bottom:2px;color:#14213d}
+.sheet-important span,.sheet-notes span{white-space:pre-wrap}
+.sheet-notes{margin-top:8px;border:1px solid #d7deea;border-radius:7px;padding:7px 9px;font-size:8px;line-height:1.3;background:#fff}
+.sheet-notes b{display:block;font-size:7px;margin-bottom:3px;color:#14213d}
+.hidden{display:none!important}
+
+/* Teams always remain on ONE horizontal row. Never 3+3 or stacked. */
+.teams-grid{display:grid!important;grid-template-rows:1fr!important;gap:7px!important;align-items:start!important}
+.teams-grid.count-1{grid-template-columns:minmax(0,1fr)!important}
+.teams-grid.count-2{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+.teams-grid.count-3{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+.teams-grid.count-4{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+.teams-grid.count-5{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+.teams-grid.count-6{grid-template-columns:repeat(6,minmax(0,1fr))!important}
+.team-card{min-width:0!important}
+
+/* 1–3 teams: sheet becomes teams + formations side-by-side.
+   4–6 teams: formations naturally move below the single team row. */
+.sheet.layout-side{display:grid!important;grid-template-columns:minmax(0,2.2fr) minmax(210px,.8fr)!important;column-gap:10px!important;align-items:start!important}
+.sheet.layout-side .sheet-header,.sheet.layout-side .sheet-info-row,.sheet.layout-side .sheet-notes,.sheet.layout-side .sheet-utc{grid-column:1/-1!important}
+.sheet.layout-side #teams-grid{grid-column:1!important}
+.sheet.layout-side #formations{grid-column:2!important;margin-top:0!important}
+.sheet.layout-bottom{display:block!important}
+.sheet.layout-bottom #formations{margin-top:8px!important}
+
+/* Compact formations with identity colors: rally leader blue, joiner green. */
+.formations{gap:6px!important}
+.formation-group[data-scope="rally"] .formation-title,
+.formation-group.rally .formation-title{color:#244887!important}
+.formation-group[data-scope="joiner"] .formation-title,
+.formation-group.joiner .formation-title{color:#2f7d45!important}
+</style>
+
 </head>
 <body data-builder-rev="20260816-menu-restored">
 <main class="shell">
@@ -1566,89 +1605,19 @@ body.nexa-layout-preview-open{
     <h1>Template Builder</h1>
     <p class="muted">Build the final alliance team plan from your saved NEXA data.</p>
     <div class="controls">
-      <div class="control-card">
-        <h3>1. Alliance Branding</h3>
-        <div class="brand-preview">
-          <img id="brand-emblem-preview" alt="" style="display:none">
-          <div>
-            <b id="brand-alliance-label">Alliance</b>
-            <div class="muted" style="font-size:.8rem">Saved permanently for this alliance.</div>
-          </div>
-        </div>
-        <label style="margin-top:10px">Alliance Emblem
-          <input id="emblem-file" type="file" accept="image/png,image/jpeg,image/webp">
-        </label>
-        <button class="btn" id="remove-emblem" type="button">Remove Emblem</button>
+      <div class="control-card nexa-important-editor">
+        <h3>ⓘ Important</h3>
+        <label for="important-notes">Special Instructions</label>
+        <textarea id="important-notes" rows="5" placeholder="Example: Joiners 1–4: join at 2:30 remaining. Joiners 5+: join at 2:00 remaining."></textarea>
       </div>
 
       <div class="control-card">
-        <h3>2. Select Template</h3>
-        <select id="template-style">
-          <option value="classic">Classic Light</option>
-          <option value="dark">Dark Forge</option>
-          <option value="gold">Royal Gold</option>
-          <option value="ice">Ice Blue</option>
-          <option value="forest">Forest Green</option>
-        </select>
+        <h3>Notes</h3>
+        <textarea id="layout-notes" rows="5" placeholder="Add any extra notes for this layout."></textarea>
       </div>
 
       <div class="control-card">
-        <h3>3. Customize Colors</h3>
-        <div class="color-grid">
-          <label>Background<input id="c-bg" type="color"></label>
-          <label>Title / Header<input id="c-header" type="color"></label>
-          <label>Team Header<input id="c-team" type="color"></label>
-          <label>Section Background<input id="c-section" type="color"></label>
-          <label>Primary Text<input id="c-text" type="color"></label>
-          <label>Secondary Text<input id="c-muted" type="color"></label>
-          <label>Pets Accent<input id="c-pet" type="color"></label>
-          <label>Border / Divider<input id="c-border" type="color"></label>
-        </div>
-      </div>
-
-      <div class="control-card">
-        <h3>4. Text Style</h3>
-        <label>Font Family
-          <select id="font-family">
-            <option value="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">NEXA / System</option>
-            <option value="Arial, Helvetica, sans-serif">Arial</option>
-            <option value="'Trebuchet MS', Arial, sans-serif">Trebuchet</option>
-            <option value="Georgia, 'Times New Roman', serif">Georgia</option>
-          </select>
-        </label>
-        <label style="margin-top:10px">Title Weight
-          <select id="title-weight"><option value="700">Medium</option><option value="900">Bold</option></select>
-        </label>
-        <label style="margin-top:10px">Body Weight
-          <select id="body-weight"><option value="400">Normal</option><option value="600">Medium</option><option value="700">Bold</option></select>
-        </label>
-      </div>
-
-      
-<div class="section-card nexa-important-editor">
-  <h2>ⓘ Important</h2>
-  <label for="important-notes">Special Instructions</label>
-  <textarea id="important-notes" rows="4" placeholder="Write the instructions you want shown on the layout. Example: Joiners 1–4: join at 2:30 remaining. Joiners 5+: join at 2:00 remaining."></textarea>
-</div>
-<div class="control-card">
-        <h3>5. Layout</h3>
-        <label>Scale
-          <select id="density">
-            <option value="auto">Auto</option>
-            <option value="normal">Normal</option>
-            <option value="compact">Compact</option>
-          </select>
-        </label>
-      </div>
-
-      <div class="control-card">
-        <h3>6. Save Branding</h3>
-        <button class="btn primary" id="save-branding" type="button">Save Alliance Branding</button>
-        <button class="btn" id="reset-branding" type="button" style="margin-top:8px">Reset to Template Default</button>
-      </div>
-
-      <div class="control-card">
-        <h3>7. Preview & Export</h3>
+        <h3>Preview & Export</h3>
         <button class="btn" id="preview-layout" type="button">Preview Layout</button>
         <div class="row" style="margin-top:8px">
           <button class="btn primary" id="download-layout" type="button">Download Layout</button>
@@ -1657,7 +1626,8 @@ body.nexa-layout-preview-open{
         <div class="muted" id="export-status" style="margin-top:8px;font-size:.82rem"></div>
       </div>
     </div>
-  </aside>
+  <div id="legacy-builder-controls" style="display:none"><img id="brand-emblem-preview" alt=""><span id="brand-alliance-label"></span><input id="emblem-file" type="file"><button id="remove-emblem" type="button"></button><select id="template-style"><option value="auto">auto</option><option value="classic">classic</option><option value="400">400</option></select><input id="c-bg" type="color" value="#ffffff"><input id="c-header" type="color" value="#ffffff"><input id="c-team" type="color" value="#ffffff"><input id="c-section" type="color" value="#ffffff"><input id="c-text" type="color" value="#ffffff"><input id="c-muted" type="color" value="#ffffff"><input id="c-pet" type="color" value="#ffffff"><input id="c-border" type="color" value="#ffffff"><select id="font-family"><option value="auto">auto</option><option value="classic">classic</option><option value="400">400</option></select><select id="title-weight"><option value="auto">auto</option><option value="classic">classic</option><option value="400">400</option></select><select id="body-weight"><option value="auto">auto</option><option value="classic">classic</option><option value="400">400</option></select><select id="density"><option value="auto">auto</option><option value="classic">classic</option><option value="400">400</option></select><button id="save-branding" type="button"></button><button id="reset-branding" type="button"></button></div>
+</aside>
 
   <section class="panel preview-wrap">
     <div id="sheet-inline-holder" class="sheet-inline-holder">
@@ -1676,8 +1646,12 @@ body.nexa-layout-preview-open{
           <div><span class="legend-icon pet-icon">🐾</span><span>Pet Active <small>(at time shown)</small></span></div>
         </div>
       </div>
+      <div class="sheet-info-row">
+        <div id="sheet-important" class="sheet-important hidden"><b>ⓘ IMPORTANT</b><span id="sheet-important-text"></span></div>
+      </div>
       <div id="teams-grid" class="teams-grid"></div>
       <div id="formations" class="formations"></div>
+      <div id="sheet-notes" class="sheet-notes hidden"><b>NOTES</b><span id="sheet-notes-text"></span></div>
       <div class="sheet-utc">◷ &nbsp; All times in UTC</div>
     </div>
     </div>
@@ -1810,6 +1784,10 @@ function petWindowText(w){
   return '';
 }
 function renderTeams(teams,members){
+  const sheet=$('sheet');
+  const teamCount=(teams||[]).length;
+  sheet?.classList.toggle('layout-side',teamCount>=1&&teamCount<=3);
+  sheet?.classList.toggle('layout-bottom',teamCount>=4);
   const grid=$('teams-grid');
   grid.className='teams-grid count-'+Math.min(Math.max(teams.length,1),6);
 
@@ -2379,6 +2357,59 @@ window.addEventListener('DOMContentLoaded',()=>{
  if(img&&data.emblem_data_url){img.src=data.emblem_data_url;img.style.display='block'}
  if(typeof window.renderSheet==='function')window.renderSheet();
  if(typeof window.fitInlineSheet==='function')requestAnimationFrame(window.fitInlineSheet);
+})();
+</script>
+
+
+<script id="nexa-template-v3-behavior">
+(function(){
+  const PRESET_COLORS={
+    forest_green:'#315f4b',ice_blue:'#5d88a8',royal_gold:'#a77a2b',ocean_teal:'#287b7b',
+    soft_burgundy:'#884d5c',lavender:'#746b9d',slate_blue:'#536d96',sage:'#6f876b',
+    dusty_rose:'#a66d78',steel:'#596579'
+  };
+
+  function syncText(){
+    const imp=document.getElementById('important-notes')?.value.trim()||'';
+    const notes=document.getElementById('layout-notes')?.value.trim()||'';
+    const ib=document.getElementById('sheet-important');
+    const nb=document.getElementById('sheet-notes');
+    if(ib){ib.classList.toggle('hidden',!imp);document.getElementById('sheet-important-text').textContent=imp;}
+    if(nb){nb.classList.toggle('hidden',!notes);document.getElementById('sheet-notes-text').textContent=notes;}
+    window.fitInlineSheet?.();
+  }
+  document.getElementById('important-notes')?.addEventListener('input',syncText);
+  document.getElementById('layout-notes')?.addEventListener('input',syncText);
+
+  const originalRenderTeams=window.renderTeams;
+  if(typeof originalRenderTeams==='function'){
+    window.renderTeams=function(teams,members){
+      originalRenderTeams(teams,members);
+      const sheet=document.getElementById('sheet');
+      const n=(teams||[]).length;
+      sheet?.classList.toggle('layout-side',n>=1&&n<=3);
+      sheet?.classList.toggle('layout-bottom',n>=4);
+    };
+  }
+
+  async function loadAllianceIdentity(){
+    try{
+      if(!window.sb || !window.allianceId)return;
+      const {data}=await window.sb.from('alliance_layout_settings').select('*')
+        .eq('alliance_id',String(window.allianceId)).maybeSingle();
+      if(!data)return;
+      const accent=PRESET_COLORS[data.preset_key]||'#244887';
+      document.getElementById('sheet')?.style.setProperty('--accent',accent);
+      document.querySelectorAll('.team-title').forEach(x=>x.style.background=accent);
+      const img=document.getElementById('sheet-emblem');
+      if(img){
+        if(data.emblem_data_url){img.src=data.emblem_data_url;img.style.display='block';}
+        else{img.removeAttribute('src');img.style.display='none';}
+      }
+    }catch(e){}
+  }
+  window.addEventListener('load',()=>setTimeout(loadAllianceIdentity,250));
+  document.addEventListener('DOMContentLoaded',()=>{syncText();setTimeout(loadAllianceIdentity,250);});
 })();
 </script>
 

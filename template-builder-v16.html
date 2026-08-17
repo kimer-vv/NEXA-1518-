@@ -3267,7 +3267,6 @@ function openLayoutPreview(){
   if(window.nexaFitLayoutNames) window.nexaFitLayoutNames(previewClone);
   if(window.nexaFitRallyPairs) window.nexaFitRallyPairs(previewClone);
   if(window.nexaFitTeamTables) window.nexaFitTeamTables(previewClone);
-  if(window.nexaFitFormations) window.nexaFitFormations(previewClone);
   overlay.classList.remove('hidden');
   overlay.setAttribute('aria-hidden','false');
   document.body.classList.add('nexa-layout-preview-open');
@@ -3343,7 +3342,6 @@ async function renderLayoutCanvas(){
   if(window.nexaFitLayoutNames) window.nexaFitLayoutNames(exportSheet);
   if(window.nexaFitRallyPairs) window.nexaFitRallyPairs(exportSheet);
   if(window.nexaFitTeamTables) window.nexaFitTeamTables(exportSheet);
-  if(window.nexaFitFormations) window.nexaFitFormations(exportSheet);
 
   try{
     // Wait for emblem/hero images before capturing.
@@ -6334,169 +6332,23 @@ window.addEventListener('DOMContentLoaded',()=>{
 })();
 </script>
 
-
-
-
-<style id="nexa-v45-formations-vertical-autofit">
-/* V45 — keep approved base layout, change only Formations presentation + remove duplicate UTC. */
-
-/* Lock Notes exactly where it was approved. */
+<style id="nexa-v44-lock-lower-strip">
 :is(#sheet,.nexa-render-sheet) #sheet-notes{
-  position:absolute!important;
-  left:32px!important;
-  bottom:24px!important;
-  top:auto!important;
-  transform:none!important;
-  margin:0!important;
+  position:absolute!important; left:32px!important; bottom:24px!important;
+  top:auto!important; transform:none!important; margin:0!important;
 }
-
-/* Keep Formations anchored to the lower-right baseline. */
 :is(#sheet,.nexa-render-sheet) #formations{
-  position:absolute!important;
-  right:32px!important;
-  bottom:24px!important;
-  top:auto!important;
-  margin:0!important;
-  transform:none!important;
-  box-sizing:border-box!important;
-  overflow:visible!important;
-
-  /* Dynamic width: compact with few items, grows only as needed. */
-  width:auto!important;
-  min-width:360px!important;
-  max-width:46%!important;
+  position:absolute!important; right:32px!important; bottom:24px!important;
+  top:auto!important; transform:none!important; margin:0!important;
 }
-
-/* Hide the existing horizontal FORMATIONS title if present. */
-:is(#sheet,.nexa-render-sheet) #formations .formations-title,
-:is(#sheet,.nexa-render-sheet) #formations .formation-title,
-:is(#sheet,.nexa-render-sheet) #formations > h2,
-:is(#sheet,.nexa-render-sheet) #formations > h3{
-  display:none!important;
-}
-
-/* Vertical FORMATIONS label, matching NOTES visual language. */
-:is(#sheet,.nexa-render-sheet) #formations::before{
-  content:"FORMATIONS";
-  position:absolute!important;
-  left:-18px!important;
-  top:50%!important;
-  transform:translateY(-50%) rotate(-90deg)!important;
-  transform-origin:center center!important;
-  width:72px!important;
-  height:12px!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-  z-index:30!important;
-  color:var(--sheet-gold,#b78321)!important;
-  font-size:10px!important;
-  line-height:1!important;
-  font-weight:800!important;
-  letter-spacing:.12em!important;
-  white-space:nowrap!important;
-  pointer-events:none!important;
-}
-
-/* Formation groups flow naturally and wrap when more sets are added. */
-:is(#sheet,.nexa-render-sheet) #formations .formations-grid,
-:is(#sheet,.nexa-render-sheet) #formations .formation-grid{
-  display:grid!important;
-  grid-template-columns:repeat(auto-fit,minmax(138px,1fr))!important;
-  gap:8px!important;
-  width:100%!important;
-  align-items:stretch!important;
-}
-
-/* If the implementation uses direct children instead of a grid wrapper,
-   make the container itself flexible without changing card styling. */
-:is(#sheet,.nexa-render-sheet) #formations{
-  display:flex!important;
-  flex-wrap:wrap!important;
-  justify-content:flex-end!important;
-  align-items:flex-end!important;
-  gap:8px!important;
-}
-
-/* Let known formation group/card wrappers grow naturally. */
-:is(#sheet,.nexa-render-sheet) #formations .formation-group,
-:is(#sheet,.nexa-render-sheet) #formations .formation-block,
-:is(#sheet,.nexa-render-sheet) #formations .formation-card{
-  flex:1 1 138px!important;
-  min-width:138px!important;
-  max-width:220px!important;
-}
-
-/* Remove ALL legacy lower-right UTC copies. */
 :is(#sheet,.nexa-render-sheet) .sheet-footer,
-:is(#sheet,.nexa-render-sheet) .sheet-utc,
-:is(#sheet,.nexa-render-sheet) .sheet-utc-note{
-  display:none!important;
-}
-
-/* Keep the ONE approved UTC label above Teams. */
+:is(#sheet,.nexa-render-sheet) .sheet-utc{display:none!important;}
 :is(#sheet,.nexa-render-sheet)::after{
   content:"ALL TIMES ARE IN UTC";
-  position:absolute!important;
-  left:32px!important;
-  top:205px!important;
-  z-index:50!important;
-  font-size:9px!important;
-  line-height:1!important;
-  font-weight:800!important;
-  letter-spacing:.16em!important;
-  white-space:nowrap!important;
-  color:var(--sheet-muted,#53627c)!important;
+  position:absolute!important; left:32px!important; top:205px!important;
+  z-index:50!important; font-size:9px!important; line-height:1!important;
+  font-weight:800!important; letter-spacing:.16em!important;
+  white-space:nowrap!important; color:var(--sheet-muted,#53627c)!important;
   pointer-events:none!important;
 }
 </style>
-
-<script id="nexa-v45-formations-autofit">
-(function(){
-  function fitFormations(root=document){
-    const box=root.querySelector('#formations');
-    if(!box)return;
-
-    // Preserve lower-right anchor while allowing content-driven width.
-    const cards=[...box.querySelectorAll('.formation-group,.formation-block,.formation-card')];
-    if(!cards.length)return;
-
-    // Start compact and widen in measured steps only if cards wrap too tightly.
-    box.style.removeProperty('width');
-
-    const maxWidth=(root.querySelector('#sheet')||root.documentElement||document.documentElement)
-      .getBoundingClientRect().width * 0.46;
-
-    const desired=Math.min(
-      maxWidth,
-      Math.max(
-        360,
-        cards.reduce((sum,c)=>sum+Math.max(138,c.getBoundingClientRect().width),0)
-        + Math.max(0,cards.length-1)*8
-      )
-    );
-
-    box.style.width=Math.round(desired)+'px';
-  }
-
-  window.nexaFitFormations=fitFormations;
-
-  const schedule=(root=document)=>requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    fitFormations(root);
-    if(window.nexaFitTeamTables) window.nexaFitTeamTables(root);
-  }));
-
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',()=>schedule(document));
-  }else schedule(document);
-
-  window.addEventListener('load',()=>schedule(document));
-  window.addEventListener('resize',()=>schedule(document));
-
-  const f=document.getElementById('formations');
-  if(f){
-    new MutationObserver(()=>schedule(document))
-      .observe(f,{childList:true,subtree:true,characterData:true,attributes:true});
-  }
-})();
-</script>

@@ -2386,7 +2386,13 @@ function setAdminContext(mode){
 
     const tabs=document.getElementById('admin-context-tabs');
     document.querySelectorAll('.svs-context-tab').forEach(x=>x.classList.toggle('hidden',mode!=='svs'));
-    document.querySelectorAll('.administration-context-tab').forEach(x=>x.classList.toggle('hidden',mode!=='administration'));
+    document.querySelectorAll('.administration-context-tab').forEach(x=>{
+      if (x.id === 'system-operations-tab') return;
+      x.classList.toggle('hidden',mode!=='administration');
+    });
+    if (mode !== 'administration') {
+      document.getElementById('system-operations-tab')?.classList.add('hidden');
+    }
     if(tabs) tabs.classList.toggle('hidden',mode==='announcements');
 
     ['admin-events','admin-forms','admin-alliances','admin-roles','admin-permissions','admin-library','admin-system','admin-announcements'].forEach(id=>{
@@ -2423,8 +2429,13 @@ function setAdminContext(mode){
     document.getElementById('admin-module-chooser')?.classList.add('hidden');
     document.getElementById('svs-admin-content')?.classList.remove('hidden');
     setAdminContext('administration');
+    // Roles + Library are Administration tabs for authorized staff.
+    document.querySelector('[data-admin-tab="roles"]')?.classList.remove('hidden');
+    document.querySelector('[data-admin-tab="library"]')?.classList.remove('hidden');
     const owner = await amIOwner();
-    document.getElementById('system-operations-tab')?.classList.toggle('hidden', !owner);
+    const systemTab = document.getElementById('system-operations-tab');
+    systemTab?.classList.toggle('hidden', !owner);
+    systemTab?.setAttribute('data-owner-check', owner ? 'owner' : 'not-owner');
     await loadAdminAlliances();
   });
 
@@ -3787,5 +3798,6 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
 })();
 </script>
 
+<!-- NEXA V51.1 Administration/System Operations fix -->
 </body>
 </html>

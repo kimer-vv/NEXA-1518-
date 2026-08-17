@@ -1,11 +1,9 @@
 Replace index.html only.
 
-Final UI corrections:
-- Home action buttons use one consistent blue style.
-- Announcements / Event Operations / SvS use "Open".
-- Decorative LIVE / MODULE badges are removed from Home cards.
-- Transfers keeps separate Open + Apply actions when available.
-- Layout Management is forced to open inside Admin Control Center.
-- Its standalone Back/duplicate title is removed when embedded.
-- Announcements/Event Operations Show toggles are hard-synced with Home.
-- Discord login/auth code is untouched.
+Changes:
+- Announcements home action = Open
+- Transfers home action = Open
+- SvS/Event Operations remain Open
+- Removed decorative Open status/badge text from Home cards
+- Transfer Apply action is preserved
+- Layout Management behavior remains unchanged

@@ -2148,7 +2148,7 @@ body:after{height:340px!important}
 </style>
 
 </head>
-<body data-builder-rev="20260816-menu-restored">
+<body data-builder-rev="20260817-identity-cache-v4">
 <main class="shell">
 <a class="back" id="back-link" href="#">← Alliance Workspace</a>
 <div class="builder">
@@ -2538,8 +2538,90 @@ function applyBranding(){
 }
 
 async function loadBranding(){
-  const {data,error}=await sb.from('alliance_branding').select('*').eq('alliance_id',String(allianceId)).maybeSingle();
-  if(error){console.warn(error.message);applyBranding();return}
+  const PRESET_ACCENTS={
+    forest_green:'#315f4b',ice_blue:'#5d88a8',royal_gold:'#a77a2b',ocean_teal:'#287b7b',
+    soft_burgundy:'#884d5c',lavender:'#746b9d',slate_blue:'#536d96',sage:'#6f876b',
+    dusty_rose:'#a66d78',steel:'#596579'
+  };
+
+  async function findLayoutIdentity(){
+    const aid=String(allianceId||'').trim();
+    const tag=String(allianceTag||'').trim();
+
+    // First use the exact alliance_id opened by Team Builder.
+    if(aid){
+      const exact=await sb.from('alliance_layout_settings')
+        .select('alliance_id,preset_key,emblem_data_url,updated_at')
+        .eq('alliance_id',aid)
+        .maybeSingle();
+      if(!exact.error && exact.data) return exact.data;
+    }
+
+    // NEXA currently has duplicate alliance rows for some visible tags.
+    // If the exact row has no identity, find all IDs with the same tag and use the newest saved identity.
+    if(tag){
+      const aliases=await sb.from('alliances')
+        .select('id,tag')
+        .ilike('tag',tag);
+      const ids=(aliases.data||[]).map(a=>String(a.id)).filter(Boolean);
+      if(ids.length){
+        const found=await sb.from('alliance_layout_settings')
+          .select('alliance_id,preset_key,emblem_data_url,updated_at')
+          .in('alliance_id',ids)
+          .order('updated_at',{ascending:false})
+          .limit(1);
+        if(!found.error && found.data?.length) return found.data[0];
+      }
+    }
+    return null;
+  }
+
+  try{
+    const layout=await findLayoutIdentity();
+    if(layout){
+      const accent=PRESET_ACCENTS[layout.preset_key]||PRESET_ACCENTS.forest_green;
+      branding={
+        ...branding,
+        emblem_data_url:layout.emblem_data_url||'',
+        template_style:'classic',
+        colors:{...templateDefaults.classic,head:accent}
+      };
+      applyBranding();
+
+      const sheet=$('sheet');
+      if(sheet){
+        sheet.style.setProperty('--accent',accent);
+        sheet.style.setProperty('--team-head',accent);
+      }
+      document.querySelectorAll('#sheet .team-title').forEach(el=>el.style.backgroundColor=accent);
+
+      const emblem=$('sheet-emblem');
+      if(emblem){
+        if(layout.emblem_data_url){
+          emblem.src=layout.emblem_data_url;
+          emblem.style.display='block';
+        }else{
+          emblem.removeAttribute('src');
+          emblem.style.display='none';
+        }
+      }
+      return;
+    }
+  }catch(layoutErr){
+    console.warn('Alliance layout identity:',layoutErr?.message||layoutErr);
+  }
+
+  // Backward-compatible fallback only when Layout Management has no identity saved.
+  const {data,error}=await sb.from('alliance_branding')
+    .select('*')
+    .eq('alliance_id',String(allianceId))
+    .maybeSingle();
+
+  if(error){
+    console.warn(error.message);
+    applyBranding();
+    return;
+  }
   if(data){
     branding={
       emblem_data_url:data.emblem_data_url||'',
@@ -2923,7 +3005,7 @@ window.addEventListener('DOMContentLoaded',()=>{
  const params=new URLSearchParams(location.search);
  const aid=params.get('alliance_id');
  if(!aid||!window.supabase)return;
- const client=window.sb || window.supabaseClient;
+ const client=(typeof sb!=='undefined' && sb) ? sb : window.supabaseClient;
  if(!client||typeof client.from!=='function')return;
  const {data}=await client.from('alliance_layout_settings').select('*').eq('alliance_id',String(aid)).maybeSingle();
  if(!data)return;
@@ -3209,7 +3291,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 
       // Open from the top window directly inside the real user click.
       const topWindow=window.top || window;
-      const opened=topWindow.open('layout-preview-v2.html','_blank');
+      const opened=topWindow.open('layout-preview-v2.html?v=20260817-identity-cache-v4','_blank');
 
       if(!opened){
         const status=document.getElementById('export-status');
@@ -3283,7 +3365,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   };
 
   async function resolveIdentity(){
-    const client=window.sb || window.supabaseClient;
+    const client=(typeof sb!=='undefined' && sb) ? sb : window.supabaseClient;
     if(!client || typeof client.from!=='function') return null;
 
     const params=window.NEXA_NATIVE_PARAMS || new URLSearchParams(location.search);
@@ -3361,5 +3443,20 @@ window.addEventListener('DOMContentLoaded',()=>{
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>setTimeout(run,350));
   else setTimeout(run,350);
   window.addEventListener('load',()=>setTimeout(run,550));
+})();
+</script>
+
+
+<script id="nexa-identity-reapply-after-render">
+(function(){
+  async function reapply(){
+    try{
+      if(typeof loadBranding==='function') await loadBranding();
+      if(typeof fitInlineSheet==='function') requestAnimationFrame(()=>fitInlineSheet());
+    }catch(e){console.warn('NEXA identity reapply',e);}
+  }
+  window.addEventListener('load',()=>setTimeout(reapply,700));
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(reapply,500));
+  document.getElementById('preview-layout')?.addEventListener('click',()=>setTimeout(reapply,50));
 })();
 </script>

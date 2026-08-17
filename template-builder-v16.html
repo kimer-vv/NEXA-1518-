@@ -2372,6 +2372,132 @@ body:after{height:340px!important}
 }
 </style>
 
+
+<style id="nexa-v19-final-tuning">
+/* FORMATIONS logical order: Rally Leaders first, Joiners second */
+.formation-groups{display:flex!important;gap:8px!important}
+.formation-group.rally{order:1!important;flex:1 1 0!important}
+.formation-group.joiner{order:2!important;flex:1 1 0!important}
+
+/* Important: actual visible size increase + slightly more centered */
+.sheet-top-right .sheet-important{
+  left:53%!important;
+  width:320px!important;
+  max-width:320px!important;
+  padding:11px 13px!important;
+}
+.sheet-important b{
+  font-size:13.5px!important;
+  line-height:1!important;
+  letter-spacing:.07em!important;
+}
+#sheet-important-text{
+  font-size:13.5px!important;
+  line-height:1.25!important;
+}
+
+/* Legend stays at edge and is clearly readable */
+.sheet-top-right .sheet-legend{
+  right:0!important;
+  width:292px!important;
+  max-width:292px!important;
+  padding:12px 14px!important;
+  font-size:14.5px!important;
+  line-height:1.18!important;
+}
+.sheet-legend>div{
+  grid-template-columns:29px minmax(0,1fr)!important;
+  gap:9px!important;
+  min-height:29px!important;
+}
+.sheet-legend .legend-icon{
+  width:26px!important;height:26px!important;min-width:26px!important;
+  font-size:22px!important;
+}
+.sheet-legend .joiner-person-svg{width:22px!important;height:22px!important}
+.sheet-legend .pet-icon{font-size:22px!important}
+.sheet-legend small{font-size:11.5px!important}
+
+/* Rally leader: name slightly smaller, time beside it, never below */
+.rally-name-line{
+  display:flex!important;
+  flex-direction:row!important;
+  flex-wrap:nowrap!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:4px!important;
+  min-width:0!important;
+  width:100%!important;
+  white-space:nowrap!important;
+}
+.rally-name{
+  display:block!important;
+  flex:1 1 auto!important;
+  min-width:0!important;
+  max-width:46%!important;
+  font-size:10px!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+.rally-time{
+  display:inline-block!important;
+  flex:0 0 auto!important;
+  width:auto!important;
+  font-size:11.5px!important;
+  line-height:1!important;
+  margin:0!important;
+  white-space:nowrap!important;
+  overflow:visible!important;
+}
+
+/* Keep joiners/heroes at the good readable size */
+.joiner-player span,.hero-mini-name{
+  font-size:10px!important;
+  line-height:1.05!important;
+}
+
+/* Bottom blocks lower; Notes narrower, Formations gets more width */
+.sheet.layout-side,.sheet.layout-bottom{
+  grid-template-columns:minmax(0,.95fr) minmax(0,1.75fr)!important;
+}
+.sheet-notes,#formations{
+  margin-bottom:26px!important;
+}
+.sheet-notes{
+  min-height:64px!important;
+}
+#formations{
+  width:100%!important;
+}
+
+/* Footer truly low and centered */
+.sheet-utc,
+.sheet-utc-note{
+  grid-area:utc!important;
+  align-self:end!important;
+  justify-self:center!important;
+  text-align:center!important;
+  margin-top:auto!important;
+  margin-bottom:2px!important;
+  padding-top:0!important;
+  position:relative!important;
+  bottom:-8px!important;
+  width:auto!important;
+  left:auto!important;
+  right:auto!important;
+}
+
+/* Force the sheet to use full vertical area so footer can sit lower */
+.sheet{
+  min-height:900px!important;
+}
+
+/* Future-friendly display-name cleanup: preserve real languages, reject decorative styling visually.
+   This does NOT strip valid Turkish/Korean/Arabic/etc. */
+</style>
+
 </head>
 <body data-builder-rev="20260817-identity-cache-v4">
 <main class="shell">
@@ -2455,9 +2581,13 @@ const p=window.NEXA_NATIVE_PARAMS||new URLSearchParams(location.search);
 const eventType=p.get('event_type')||'svs',eventKey=String(eventType).trim().toLowerCase(),allianceId=p.get('alliance_id')||'',allianceTag=p.get('alliance_tag')||'Alliance';
 
 function displayName(v){
-  let out=String(v??'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[\u200B-\u200D\uFEFF]/g,'');
-  const map={'Α':'A','Β':'B','Ε':'E','Η':'H','Ι':'I','Κ':'K','Μ':'M','Ν':'N','Ο':'O','Ρ':'P','Τ':'T','Υ':'Y','Χ':'X','α':'a','β':'b','ε':'e','ι':'i','κ':'k','μ':'m','ν':'n','ο':'o','ρ':'p','τ':'t','υ':'y','χ':'x','Ɛ':'E','ɛ':'e','Ǝ':'E','Ɩ':'I','Ƙ':'K','ƙ':'k','Ɯ':'M','Ɲ':'N','Ƥ':'P','Ʀ':'R','ʀ':'R','Ƨ':'S','Ƭ':'T','Ʋ':'V','Ƴ':'Y','Ƶ':'Z'};
-  out=[...out].map(ch=>map[ch]??ch).join('').replace(/[ʚɞ꧁꧂༺༻『』【】〖〗《》〈〉❖✦✧★☆•·]+/g,'').replace(/\s+/g,' ').trim();
+  let out=String(v??'')
+    .normalize('NFKC')
+    .replace(/[\u200B-\u200D\u2060\uFEFF]/g,'')
+    .replace(/[ʚɞ꧁꧂༺༻『』【】〖〗《》〈〉❖✦✧★☆•·]+/g,' ')
+    .replace(/[^\p{L}\p{M}\p{N}\p{Pc}\p{Pd}\p{Zs}'’._-]+/gu,' ')
+    .replace(/\s+/g,' ')
+    .trim();
   return out;
 }
 $('back-link').href=`alliance-teams.html?event_type=${encodeURIComponent(eventType)}&alliance_id=${encodeURIComponent(allianceId)}&alliance_tag=${encodeURIComponent(allianceTag)}`;

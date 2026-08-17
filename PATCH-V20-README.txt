@@ -1,0 +1,11 @@
+NEXA PATCH V20
+- Teams restored to the lower/more comfortable distance from the header.
+- Important shifted farther toward visual center.
+- Legend text/icons enlarged substantially.
+- Rally Leader name reduced so time remains on the same line.
+- Pet paws retain their own fixed space.
+- Notes and Formations are forced into the same bottom row/level.
+- FORMATIONS title now follows the selected layout preset color via --team-head.
+- Formation group order remains Rally Leaders first, Joiners second.
+- UTC remains a low centered footer.
+- Joiner/hero sizing preserved.

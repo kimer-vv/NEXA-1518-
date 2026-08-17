@@ -1,12 +1,9 @@
-Upload BOTH files together:
-- template-builder-v2.html
-- layout-preview-v2.html
+NEXA V51.5
+Fixes the System Operations runtime scope error:
+  Can't find variable: sb
 
-V15:
-- IMPORTANT moved farther left from the Legend.
-- IMPORTANT label is more visible.
-- FORMATIONS starts lower and the main title is clearly centered.
-- NOTES title is always visible inside the bottom Notes block.
-- Preview Layout button is rebuilt to remove the old scroll-to-inline-preview listener.
-- Preview Layout opens layout-preview-v2.html in a NEW TAB from the top window.
-- Dedicated preview is large, scrollable and zoomable.
+Upload ONLY index.html to the repository root and replace the current index.html.
+Do not change SQL, /api, middleware.ts, package.json, or Vercel variables.
+Wait for the new Production deployment to show Ready, then reopen:
+Administration > System Operations.
+Do not enable Maintenance Mode until the blue error is gone.

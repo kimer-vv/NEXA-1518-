@@ -1488,7 +1488,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const SUPABASE_URL = "https://dfxcxboxrkfmrnsgpyin.supabase.co";
   const SUPABASE_KEY = "sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-";
-  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const window.nexaSupabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+window.nexaSupabaseClient = supabaseClient;
 
   const loginButton = document.getElementById('discord-login');
   const nameEl = document.getElementById('discord-name');
@@ -1506,7 +1507,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   async function renderSession() {
-    const { data: { session } } = await sb.auth.getSession();
+    const { data: { session } } = await window.nexaSupabaseClient.auth.getSession();
 
     if (!session?.user) {
       nameEl.textContent = 'Discord Profile';
@@ -1529,18 +1530,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   loginButton.addEventListener('click', async () => {
-    const { data: { session } } = await sb.auth.getSession();
+    const { data: { session } } = await window.nexaSupabaseClient.auth.getSession();
 
     if (session?.user) {
       const shouldSignOut = confirm('You are signed in with Discord. Sign out?');
       if (shouldSignOut) {
-        await sb.auth.signOut();
+        await window.nexaSupabaseClient.auth.signOut();
         await renderSession();
       }
       return;
     }
 
-    await sb.auth.signInWithOAuth({
+    await window.nexaSupabaseClient.auth.signInWithOAuth({
       provider: 'discord',
       options: {
         redirectTo: window.location.origin + '/',
@@ -1549,7 +1550,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  sb.auth.onAuthStateChange(async () => {
+  window.nexaSupabaseClient.auth.onAuthStateChange(async () => {
     await renderSession();
     if (typeof loadLanguageProfile === 'function') await loadLanguageProfile();
     if (typeof refreshAdminVisibility === 'function') {
@@ -1576,13 +1577,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   async function currentUser() {
-    const { data: { session } } = await sb.auth.getSession();
+    const { data: { session } } = await window.nexaSupabaseClient.auth.getSession();
     return session?.user || null;
   }
 
   async function loadAlliances() {
-    await sb.rpc('refresh_auto_ended_events');
-    const { data, error } = await sb.from('alliances')
+    await window.nexaSupabaseClient.rpc('refresh_auto_ended_events');
+    const { data, error } = await window.nexaSupabaseClient.from('alliances')
       .select('id,tag').eq('is_active', true).order('tag');
     if (error) throw error;
     allianceRows = data || [];
@@ -1620,7 +1621,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
     accountForm.classList.remove('hidden');
-    const { data, error } = await sb.from('player_accounts')
+    const { data, error } = await window.nexaSupabaseClient.from('player_accounts')
       .select('id,in_game_name,player_id,alliance_id,custom_alliance_tag,alliances(tag)')
       .order('created_at');
     if (error) { msg(error.message, true); return; }
@@ -1681,8 +1682,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const q = editId
-      ? sb.from('player_accounts').update(payload).eq('id', editId)
-      : sb.from('player_accounts').insert(payload);
+      ? window.nexaSupabaseClient.from('player_accounts').update(payload).eq('id', editId)
+      : window.nexaSupabaseClient.from('player_accounts').insert(payload);
     const { error } = await q;
     if (error) return msg(error.message, true);
     msg(editId ? tr('accountUpdated') : tr('accountAdded'));
@@ -1695,12 +1696,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const deleteId = e.target.dataset.delete;
     if (deleteId) {
       if (!confirm(tr('removeAccount'))) return;
-      const { error } = await sb.from('player_accounts').delete().eq('id', deleteId);
+      const { error } = await window.nexaSupabaseClient.from('player_accounts').delete().eq('id', deleteId);
       if (error) return msg(error.message, true);
       resetAccountForm(); await loadAccounts(); return;
     }
     if (editId) {
-      const { data, error } = await sb.from('player_accounts')
+      const { data, error } = await window.nexaSupabaseClient.from('player_accounts')
         .select('id,in_game_name,player_id,alliance_id,custom_alliance_tag').eq('id', editId).single();
       if (error) return msg(error.message, true);
       document.getElementById('edit-account-id').value = data.id;
@@ -1781,7 +1782,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const detected = browserTimeZone();
-    const { data, error } = await sb
+    const { data, error } = await window.nexaSupabaseClient
       .from('user_profiles')
       .select('time_zone')
       .eq('user_id', user.id)
@@ -1794,7 +1795,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let zone = data?.time_zone;
     if (!zone) {
-      const { error: insertError } = await sb
+      const { error: insertError } = await window.nexaSupabaseClient
         .from('user_profiles')
         .insert({ user_id: user.id, time_zone: detected });
       if (insertError) {
@@ -1828,7 +1829,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const user = await currentUser();
     if (!user) return;
     const zone = timezoneSelect.value;
-    const { error } = await sb
+    const { error } = await window.nexaSupabaseClient
       .from('user_profiles')
       .upsert({ user_id: user.id, time_zone: zone }, { onConflict: 'user_id' });
     if (error) return msg(error.message, true);
@@ -1850,7 +1851,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const user = await currentUser();
     if (!user) return false;
 
-    const { data, error } = await sb.rpc('is_admin');
+    const { data, error } = await window.nexaSupabaseClient.rpc('is_admin');
     if (error) {
       console.error('Admin role check failed:', error);
       return false;
@@ -1867,7 +1868,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const user = await currentUser();
     if (!user) return false;
     try {
-      const { data, error } = await sb.rpc('current_nexa_role');
+      const { data, error } = await window.nexaSupabaseClient.rpc('current_nexa_role');
       if (error) throw error;
       return String(data || '').toLowerCase() === 'owner';
     } catch (error) {
@@ -1965,8 +1966,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   async function getModuleAccess(){
     const [{data:svs},{data:transfers}] = await Promise.all([
-      sb.rpc('can_manage_svs'),
-      sb.rpc('can_manage_transfers')
+      window.nexaSupabaseClient.rpc('can_manage_svs'),
+      window.nexaSupabaseClient.rpc('can_manage_transfers')
     ]);
     return {svs:svs===true, transfers:transfers===true};
   }
@@ -2575,7 +2576,7 @@ document.getElementById('open-svs-admin')?.addEventListener('click',async()=>{
   });
 
 async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidency=null) {
-    const { data, error } = await sb
+    const { data, error } = await window.nexaSupabaseClient
       .from('alliances')
       .select('id,tag')
       .eq('is_active', true)
@@ -2597,7 +2598,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
 
   async function loadAdminEvents() {
     const list = document.getElementById('events-admin-list');
-    const { data, error } = await sb
+    const { data, error } = await window.nexaSupabaseClient
       .from('svs_events')
       .select('*')
       .neq('status','ended')
@@ -2674,8 +2675,8 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
     if (!id) payload.created_by = user.id;
 
     const q = id
-      ? sb.from('svs_events').update(payload).eq('id', id)
-      : sb.from('svs_events').insert(payload);
+      ? window.nexaSupabaseClient.from('svs_events').update(payload).eq('id', id)
+      : window.nexaSupabaseClient.from('svs_events').insert(payload);
     const { error } = await q;
     const msg = document.getElementById('admin-events-message');
     if (error) { msg.textContent = error.message; msg.classList.add('error'); return; }
@@ -2691,12 +2692,12 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
     const deleteId = e.target.dataset.eventDelete;
     if (deleteId) {
       if (!confirm(tr('deleteEvent'))) return;
-      const { error } = await sb.from('svs_events').delete().eq('id', deleteId);
+      const { error } = await window.nexaSupabaseClient.from('svs_events').delete().eq('id', deleteId);
       if (error) return alert(error.message);
       await loadAdminEvents(); return;
     }
     if (editId) {
-      const { data, error } = await sb.from('svs_events').select('*').eq('id', editId).single();
+      const { data, error } = await window.nexaSupabaseClient.from('svs_events').select('*').eq('id', editId).single();
       if (error) return alert(error.message);
       document.getElementById('event-id').value = data.id;
       document.getElementById('event-lifecycle-actions').classList.remove('hidden');
@@ -2727,7 +2728,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
 
   async function loadAdminAlliances() {
     const list = document.getElementById('alliances-admin-list');
-    const { data, error } = await sb
+    const { data, error } = await window.nexaSupabaseClient
       .from('alliances')
       .select('id,tag,is_active')
       .order('tag');
@@ -2768,8 +2769,8 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
     const id = document.getElementById('alliance-admin-id').value;
     const tag = document.getElementById('alliance-admin-tag').value.trim();
     const q = id
-      ? sb.from('alliances').update({ tag }).eq('id', id)
-      : sb.from('alliances').insert({ tag, is_active:true });
+      ? window.nexaSupabaseClient.from('alliances').update({ tag }).eq('id', id)
+      : window.nexaSupabaseClient.from('alliances').insert({ tag, is_active:true });
     const { error } = await q;
     const msg = document.getElementById('admin-alliances-message');
     if (error) { msg.textContent = error.message; msg.classList.add('error'); return; }
@@ -2793,7 +2794,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
     }
 
     if (editId) {
-      const { data, error } = await sb.from('alliances').select('id,tag').eq('id', editId).single();
+      const { data, error } = await window.nexaSupabaseClient.from('alliances').select('id,tag').eq('id', editId).single();
       if (error) return alert(error.message);
       document.getElementById('alliance-admin-id').value = data.id;
       document.getElementById('alliance-admin-tag').value = data.tag;
@@ -2802,7 +2803,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
 
     if (toggleId) {
       const active = e.target.dataset.active === 'true';
-      const { error } = await sb.from('alliances').update({ is_active: !active }).eq('id', toggleId);
+      const { error } = await window.nexaSupabaseClient.from('alliances').update({ is_active: !active }).eq('id', toggleId);
       if (error) return alert(error.message);
       await loadAdminAlliances();
       await loadAlliances();
@@ -2949,7 +2950,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
       languagePreference='auto';
       currentLanguage=detected;
     } else {
-      const {data,error}=await sb.from('user_profiles')
+      const {data,error}=await window.nexaSupabaseClient.from('user_profiles')
         .select('language').eq('user_id',user.id).maybeSingle();
       if(error) console.error(error);
       languagePreference=data?.language || 'auto';
@@ -2973,7 +2974,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
     const user=await currentUser();
     if(!user){ document.getElementById('discord-login').click(); return; }
     const pref=document.getElementById('language-select').value;
-    const {error}=await sb.from('user_profiles')
+    const {error}=await window.nexaSupabaseClient.from('user_profiles')
       .upsert({user_id:user.id,language:pref},{onConflict:'user_id'});
     if(error) return msg(error.message,true);
     languagePreference=pref;
@@ -2989,17 +2990,17 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
     const ok=await amIAdmin();
     if(!ok){ list.innerHTML=`<div class="empty-state">${tr('adminAccess')}</div>`; return; }
 
-    const {data,error}=await sb.rpc('list_permission_users',{search_text:search || null});
+    const {data,error}=await window.nexaSupabaseClient.rpc('list_permission_users',{search_text:search || null});
     if(error){ document.getElementById('permissions-message').textContent=error.message; return; }
     const rows=data||[];
     let verification={};
     if(rows.length){
-      const {data:vrows}=await sb.rpc('get_state_verification',{target_user_ids:rows.map(x=>x.user_id)});
+      const {data:vrows}=await window.nexaSupabaseClient.rpc('get_state_verification',{target_user_ids:rows.map(x=>x.user_id)});
       (vrows||[]).forEach(v=>verification[v.user_id]=!!v.state_verified);
     }
-    const {data:myRole}=await sb.rpc('current_nexa_role');
+    const {data:myRole}=await window.nexaSupabaseClient.rpc('current_nexa_role');
     const canEditRoles=myRole==='owner';
-    const {data:canVerify}=await sb.rpc('can_verify_state_members');
+    const {data:canVerify}=await window.nexaSupabaseClient.rpc('can_verify_state_members');
     list.innerHTML=rows.length ? rows.map(u=>{
       const accounts=(u.accounts||[]).map(a=>`${a.in_game_name} • ${a.alliance} • ID ${a.player_id}`).join('<br>');
       const role=u.role||'player';
@@ -3039,7 +3040,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
   document.getElementById('permissions-list').addEventListener('click',async e=>{
     const b=e.target.closest('[data-verify-user]'); if(!b)return;
     const makeVerified=b.dataset.verified!=='1';
-    const {error}=await sb.rpc('set_state_member_verification',{target_user_id:b.dataset.verifyUser,new_verified:makeVerified});
+    const {error}=await window.nexaSupabaseClient.rpc('set_state_member_verification',{target_user_id:b.dataset.verifyUser,new_verified:makeVerified});
     if(error)return alert(error.message);
     await loadPermissions(document.getElementById('permissions-search').value.trim());
   });
@@ -3048,7 +3049,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
     const target=e.target.dataset.roleUser;
     if(!target) return;
     const newRole=e.target.value;
-    const {error}=await sb.rpc('set_user_role',{
+    const {error}=await window.nexaSupabaseClient.rpc('set_user_role',{
       target_user_id:target,
       new_role:newRole
     });
@@ -3070,7 +3071,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
   document.getElementById('activate-event').addEventListener('click', async()=>{
     const id=document.getElementById('event-id').value;
     if(!id) return;
-    const {error}=await sb.rpc('activate_svs_event',{target_event_id:id});
+    const {error}=await window.nexaSupabaseClient.rpc('activate_svs_event',{target_event_id:id});
     if(error) return alert(error.message);
     await loadAdminEvents();
     await syncHomeLiveEvent();
@@ -3082,7 +3083,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
     if(!id) return;
     const ok=confirm('End this SvS event? The final schedule and requests will be archived in History, then cleared from the active SvS cycle.');
     if(!ok) return;
-    const {error}=await sb.rpc('end_svs_event_v2',{target_event_id:id});
+    const {error}=await window.nexaSupabaseClient.rpc('end_svs_event_v2',{target_event_id:id});
     if(error) return alert(error.message);
     await loadAdminEvents();
     await syncHomeLiveEvent();
@@ -3091,7 +3092,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
   let currentAckFilter='all';
 
   async function getLiveEventRecord(){
-    const {data}=await sb.from('svs_events').select('*')
+    const {data}=await window.nexaSupabaseClient.from('svs_events').select('*')
       .eq('is_live',true).order('prep_monday',{ascending:false}).limit(1).maybeSingle();
     return data||null;
   }
@@ -3121,7 +3122,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
       return;
     }
 
-    const {data,error}=await sb.rpc('list_announcement_status',{
+    const {data,error}=await window.nexaSupabaseClient.rpc('list_announcement_status',{
       target_event_id:event.id,
       target_version:event.announcement_version
     });
@@ -3148,7 +3149,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
 
   async function loadAnnouncementHistory(event){
     const list=document.getElementById('announcement-history-list');
-    const {data,error}=await sb.from('announcement_history')
+    const {data,error}=await window.nexaSupabaseClient.from('announcement_history')
       .select('*').eq('event_id',event.id).order('announcement_version',{ascending:false});
     if(error){list.innerHTML=`<div class="empty-state">${error.message}</div>`;return;}
     list.innerHTML=(data||[]).length?(data||[]).map(x=>`
@@ -3172,7 +3173,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
     if(!event) return;
     const translations={};
     ['es','tr','ko','ar','ja','zh','ru'].forEach(c=>translations[c]=document.getElementById('ann-'+c).value.trim());
-    const {error}=await sb.rpc('save_event_announcement',{
+    const {error}=await window.nexaSupabaseClient.rpc('save_event_announcement',{
       target_event_id:event.id,
       new_text:document.getElementById('ann-main').value.trim(),
       new_translations:translations
@@ -3180,7 +3181,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
     let audienceError=null;
     if(!error){
       const audience=document.getElementById('announcement-audience').value||'verified';
-      const res=await sb.rpc('set_event_announcement_audience',{
+      const res=await window.nexaSupabaseClient.rpc('set_event_announcement_audience',{
         target_event_id:event.id,
         new_audience:audience
       });
@@ -3198,7 +3199,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
     if(!(await ensureAdmin())) return;
     const event=await getLiveEventRecord();
     if(!event) return;
-    const {error}=await sb.rpc('save_event_announcement',{
+    const {error}=await window.nexaSupabaseClient.rpc('save_event_announcement',{
       target_event_id:event.id,
       new_text:'',
       new_translations:{}
@@ -3220,7 +3221,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
       return;
     }
 
-    const {data,error} = await sb.rpc('list_announcement_acknowledgements',{
+    const {data,error} = await window.nexaSupabaseClient.rpc('list_announcement_acknowledgements',{
       target_event_id:eventData.id,
       target_version:eventData.announcement_version
     });
@@ -3249,11 +3250,11 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
     let verified=false;
     let role='';
     try{
-      const vr=await sb.rpc('is_verified_state_member');
+      const vr=await window.nexaSupabaseClient.rpc('is_verified_state_member');
       verified=vr.data===true;
     }catch(_){}
     try{
-      const rr=await sb.rpc('current_nexa_role');
+      const rr=await window.nexaSupabaseClient.rpc('current_nexa_role');
       role=String(rr.data||'').toLowerCase();
     }catch(_){}
 
@@ -3284,7 +3285,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
     const user=await currentUser();
     if(!user) return;
 
-    const {data:existing}=await sb
+    const {data:existing}=await window.nexaSupabaseClient
       .from('announcement_acknowledgements')
       .select('id')
       .eq('event_id',eventData.id)
@@ -3303,7 +3304,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
     ackBtn.onclick=async()=>{
       const u=await currentUser();
       if(!u) return;
-      const {error}=await sb.from('announcement_acknowledgements').insert({
+      const {error}=await window.nexaSupabaseClient.from('announcement_acknowledgements').insert({
         event_id:eventData.id,
         announcement_version:eventData.announcement_version,
         user_id:u.id
@@ -3344,7 +3345,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
     const countEl = document.getElementById('home-event-countdown');
     if (!titleEl || !metaEl || !countEl) return;
 
-    const { data, error } = await sb
+    const { data, error } = await window.nexaSupabaseClient
       .from('svs_events')
       .select('*')
       .eq('status', 'live')
@@ -3381,7 +3382,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
 
   async function getHomeModuleVisibility(){
     try{
-      const {data,error}=await sb.rpc('get_home_module_visibility');
+      const {data,error}=await window.nexaSupabaseClient.rpc('get_home_module_visibility');
       if(error) throw error;
       return {
         svs:data?.show_svs!==false,
@@ -3401,7 +3402,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
 
   async function loadHomeVisibilityAdmin(){
     let role='';
-    try{const {data}=await sb.rpc('current_nexa_role');role=String(data||'').toLowerCase();}catch(_){}
+    try{const {data}=await window.nexaSupabaseClient.rpc('current_nexa_role');role=String(data||'').toLowerCase();}catch(_){}
     const canEdit=['owner','admin'].includes(role);
     document.querySelectorAll('.module-show-toggle').forEach(x=>x.classList.toggle('hidden',!canEdit));
     if(!canEdit)return;
@@ -3415,7 +3416,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
 
   async function saveHomeVisibility(){
     const msg=document.getElementById('home-visibility-message');
-    const {error}=await sb.rpc('set_home_module_visibility',{
+    const {error}=await window.nexaSupabaseClient.rpc('set_home_module_visibility',{
       new_show_svs:document.getElementById('show-svs-home').checked,
       new_show_transfer:document.getElementById('show-transfer-home').checked
     });
@@ -3442,7 +3443,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
     const list=document.getElementById('home-transfer-events');
     if(!section || !list) return;
     if(!visible.transfer){section.classList.add('hidden');return;}
-    const {data,error}=await sb.from('transfer_events')
+    const {data,error}=await window.nexaSupabaseClient.from('transfer_events')
       .select('id,title,destination_state,source_state_min,source_state_max,public_token,starts_at,ends_at')
       .eq('status','open').eq('applications_open',true)
       .order('starts_at',{ascending:true});
@@ -3461,7 +3462,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
           <a class="btn" href="transfer-admin.html?tab=events&create=1">Create Transfer Event</a>
         </div>
       </article>`;
-      const {data:canTransfers}=await sb.rpc('can_manage_transfers');
+      const {data:canTransfers}=await window.nexaSupabaseClient.rpc('can_manage_transfers');
       document.getElementById('home-transfer-staff-actions')?.classList.toggle('hidden',canTransfers!==true);
       return;
     }
@@ -3720,7 +3721,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
   const recoveryPath = '/owner-recovery-fgpelbgj6g.html';
 
   async function ownerToken(){
-    const {data:{session}} = await sb.auth.getSession();
+    const {data:{session}} = await window.nexaSupabaseClient.auth.getSession();
     return session?.access_token || '';
   }
 
@@ -3799,6 +3800,5 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
 </script>
 
 <!-- NEXA V51.1 Administration/System Operations fix -->
-<!-- NEXA V51.4 System Operations Supabase client fix -->
 </body>
 </html>

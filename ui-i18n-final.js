@@ -74,12 +74,7 @@
     if(!sb||!user) return [];
 
     try{
-      const {data,error}=await sb
-        .from('player_accounts')
-        .select('*')
-        .eq('user_id',user.id)
-        .order('is_main',{ascending:false})
-        .order('created_at',{ascending:true});
+      const {data,error}=await sb.rpc('get_my_player_accounts');
 
       if(error) throw error;
       return data||[];
@@ -178,11 +173,7 @@
     select.innerHTML='<option value="">Loading alliances...</option>';
 
     try{
-      const {data,error}=await sb
-        .from('alliances')
-        .select('id,tag')
-        .eq('is_active',true)
-        .order('tag');
+      const {data,error}=await sb.rpc('get_public_nexa_alliances');
 
       if(error) throw error;
 

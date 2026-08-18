@@ -22,44 +22,40 @@
  });
 })();
 
-/* ============================================================
-   NEXA v58.5 — DIRECT PROFILE BOOTSTRAP
-   One-file fix. Does NOT depend on another /api file.
-   Reads the existing Supabase auth token directly and calls one
-   authenticated RPC that returns BOTH accounts + alliances.
-   ============================================================ */
+/* NEXA v58.6 — PROFILE / CONSTELLATION DIRECT SESSION FIX */
 (function(){
   'use strict';
 
   const SUPABASE_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
   const SUPABASE_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
+  const STORAGE_KEY='sb-dfxcxboxrkfmrnsgpyin-auth-token';
   const $=id=>document.getElementById(id);
   const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
   }[m]));
 
-  let bootstrapCache=null;
-  let bootstrapAt=0;
+  let cache=null, cacheAt=0;
 
-  function accessToken(){
+  async function accessToken(){
     try{
-      for(let i=0;i<localStorage.length;i++){
-        const key=localStorage.key(i)||'';
-        if(!/^sb-.*-auth-token$/.test(key)) continue;
-        const raw=localStorage.getItem(key);
-        if(!raw) continue;
-        const parsed=JSON.parse(raw);
-        const token=parsed?.access_token || parsed?.currentSession?.access_token;
-        if(token) return token;
+      if(window.supabaseClient?.auth?.getSession){
+        const {data}=await window.supabaseClient.auth.getSession();
+        if(data?.session?.access_token) return data.session.access_token;
+      }
+    }catch(_){}
+    try{
+      const raw=localStorage.getItem(STORAGE_KEY);
+      if(raw){
+        const p=JSON.parse(raw);
+        return p?.access_token || p?.currentSession?.access_token || '';
       }
     }catch(_){}
     return '';
   }
 
   async function bootstrap(force=false){
-    if(!force && bootstrapCache && Date.now()-bootstrapAt<15000) return bootstrapCache;
-
-    const token=accessToken();
+    if(!force && cache && Date.now()-cacheAt<10000) return cache;
+    const token=await accessToken();
     if(!token) throw new Error('NEXA session not found.');
 
     const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/get_nexa_profile_bootstrap',{
@@ -72,18 +68,17 @@
       body:'{}',
       cache:'no-store'
     });
-
     const raw=await r.text();
     let data={};
-    try{data=raw?JSON.parse(raw):{};}catch(_){}
+    try{ data=raw?JSON.parse(raw):{}; }catch(_){}
     if(!r.ok) throw new Error(data?.message||data?.error||raw||'Could not load profile.');
 
-    bootstrapCache={
+    cache={
       accounts:Array.isArray(data?.accounts)?data.accounts:[],
       alliances:Array.isArray(data?.alliances)?data.alliances:[]
     };
-    bootstrapAt=Date.now();
-    return bootstrapCache;
+    cacheAt=Date.now();
+    return cache;
   }
 
   function avatar(a){
@@ -92,173 +87,146 @@
       '&background=111a38&color=cabaff&bold=true&size=256';
   }
 
-  function allianceTag(account, alliances){
-    if(account?.custom_alliance_tag) return account.custom_alliance_tag;
-    if(!account?.alliance_id) return 'Not Listed';
-    return alliances.find(a=>String(a.id)===String(account.alliance_id))?.tag || 'Not Listed';
+  function allianceTag(a,alliances){
+    if(a?.custom_alliance_tag) return a.custom_alliance_tag;
+    if(!a?.alliance_id) return 'Not Listed';
+    return alliances.find(x=>String(x.id)===String(a.alliance_id))?.tag || 'Not Listed';
+  }
+
+  function updateHome(payload){
+    const accounts=payload.accounts||[];
+    const main=accounts.find(a=>a.is_main===true)||accounts[0];
+    const img=$('nexa-profile-launcher-photo');
+    const name=$('nexa-profile-launcher-name');
+    const badge=$('nexa-profile-launcher-badge');
+    const count=$('nexa-profile-launcher-count');
+
+    if(main){
+      if(img){ img.src=avatar(main); img.style.display='block'; }
+      if(name) name.textContent=(main.in_game_name||'MY PROFILE').toUpperCase();
+      if(badge) badge.textContent='MAIN';
+      if(count){
+        count.textContent=String(accounts.length);
+        count.classList.toggle('hidden',accounts.length<2);
+      }
+    }else{
+      if(img){ img.removeAttribute('src'); img.style.display='none'; }
+      if(name) name.textContent='MY PROFILE';
+      if(badge) badge.textContent='MAIN';
+      if(count) count.classList.add('hidden');
+    }
   }
 
   function renderConstellation(payload){
     const system=$('nexa-constellation-system');
     if(!system) return;
-
     const accounts=payload.accounts||[];
     const positions=[[82,32],[82,68],[18,68],[18,32]];
-
-    let html=
-      '<span class="nexa-constellation-orbit one"></span>'+
-      '<span class="nexa-constellation-orbit two"></span>';
+    let html='<span class="nexa-constellation-orbit one"></span><span class="nexa-constellation-orbit two"></span>';
 
     if(accounts.length){
       const main=accounts.find(a=>a.is_main===true)||accounts[0];
       const others=accounts.filter(a=>String(a.id)!==String(main.id));
-
-      html+=
-        '<button type="button" class="nexa-account-planet main" data-nexa-v585-profile="'+esc(main.id)+'">'+
-          '<img src="'+esc(avatar(main))+'" alt="">'+
-          '<span class="nexa-account-planet-name">'+esc(main.in_game_name||'Main Account')+'</span>'+
-          '<span class="nexa-account-planet-type">MAIN</span>'+
-        '</button>';
+      html+='<button type="button" class="nexa-account-planet main" data-nexa-v586-profile="'+esc(main.id)+'">'+
+        '<img src="'+esc(avatar(main))+'" alt=""><span class="nexa-account-planet-name">'+esc(main.in_game_name||'Main Account')+
+        '</span><span class="nexa-account-planet-type">MAIN</span></button>';
 
       others.slice(0,4).forEach((a,i)=>{
         const [left,top]=positions[i];
-        html+=
-          '<button type="button" class="nexa-account-planet alt" style="left:'+left+'%;top:'+top+'%" data-nexa-v585-profile="'+esc(a.id)+'">'+
-            '<img src="'+esc(avatar(a))+'" alt="">'+
-            '<span class="nexa-account-planet-name">'+esc(a.in_game_name||'Account')+'</span>'+
-            '<span class="nexa-account-planet-type">'+
-              (String(a.account_purpose||'full').toLowerCase()==='full'?'FULL':'BASIC')+
-            '</span>'+
-          '</button>';
+        html+='<button type="button" class="nexa-account-planet alt" style="left:'+left+'%;top:'+top+'%" data-nexa-v586-profile="'+esc(a.id)+'">'+
+          '<img src="'+esc(avatar(a))+'" alt=""><span class="nexa-account-planet-name">'+esc(a.in_game_name||'Account')+
+          '</span><span class="nexa-account-planet-type">'+
+          (String(a.account_purpose||'full').toLowerCase()==='full'?'FULL':'BASIC')+'</span></button>';
       });
     }
 
     if(accounts.length<5){
-      const idx=Math.min(accounts.length,3);
-      const p=positions[idx]||[50,14];
-      html+=
-        '<button type="button" id="nexa-v585-add" class="nexa-account-planet alt nexa-add-planet" style="left:'+p[0]+'%;top:'+p[1]+'%">'+
-          '<span class="nexa-add-planet-symbol">+</span>'+
-          '<span class="nexa-account-planet-name">ADD ACCOUNT</span>'+
-        '</button>';
+      const p=positions[Math.min(accounts.length,3)]||[50,14];
+      html+='<button type="button" id="nexa-v586-add" class="nexa-account-planet alt nexa-add-planet" style="left:'+p[0]+'%;top:'+p[1]+'%">'+
+        '<span class="nexa-add-planet-symbol">+</span><span class="nexa-account-planet-name">ADD ACCOUNT</span></button>';
     }
-
     system.innerHTML=html;
-
     const manage=$('nexa-constellation-manage');
     if(manage) manage.style.display='none';
   }
 
-  function showConstellation(){
-    const m=$('nexa-account-constellation');
-    if(!m) return;
-    m.classList.add('open');
-    m.setAttribute('aria-hidden','false');
+  function populateAlliances(payload){
+    const select=$('alliance');
+    if(!select) return;
+    const current=select.value;
+    select.innerHTML='<option value="">Select alliance</option>'+
+      (payload.alliances||[]).map(a=>'<option value="'+esc(a.id)+'">'+esc(a.tag)+'</option>').join('')+
+      '<option value="not-listed">Not Listed</option>';
+    if([...select.options].some(o=>o.value===current)) select.value=current;
+  }
+
+  async function refresh(force=true){
+    const p=await bootstrap(force);
+    updateHome(p);
+    populateAlliances(p);
+    return p;
   }
 
   async function openConstellation(){
-    showConstellation();
-    try{
-      renderConstellation(await bootstrap(true));
-    }catch(e){
-      console.warn('NEXA v58.5 bootstrap:',e?.message||e);
+    const modal=$('nexa-account-constellation');
+    if(modal){ modal.classList.add('open'); modal.setAttribute('aria-hidden','false'); }
+    try{ renderConstellation(await refresh(true)); }
+    catch(e){
+      console.warn('NEXA v58.6:',e);
       const system=$('nexa-constellation-system');
-      if(system) system.innerHTML=
-        '<div style="padding:32px;text-align:center;color:#aeb8d8">Could not load accounts.<br><small>Please refresh NEXA and sign in again.</small></div>';
+      if(system) system.innerHTML='<div style="padding:32px;text-align:center;color:#aeb8d8">Could not load accounts.</div>';
     }
   }
 
-  function populateAllianceSelect(payload){
-    const select=$('alliance') ||
-      document.querySelector('#accounts-modal select[name="alliance_id"]') ||
-      Array.from(document.querySelectorAll('#accounts-modal select')).find(s=>/alliance/i.test((s.id||'')+' '+(s.name||'')));
-    if(!select) return;
-
-    select.innerHTML=
-      '<option value="">Select alliance</option>'+
-      (payload.alliances||[]).map(a=>'<option value="'+esc(a.id)+'">'+esc(a.tag)+'</option>').join('')+
-      '<option value="not-listed">Not Listed</option>';
-  }
-
-  function fixTimezone(){
-    const zone=Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC';
-    if($('timezone-display')) $('timezone-display').textContent=zone;
-    if($('timezone-offset')){
-      try{
-        const part=new Intl.DateTimeFormat('en-US',{
-          timeZone:zone,timeZoneName:'shortOffset',hour:'2-digit'
-        }).formatToParts(new Date()).find(p=>p.type==='timeZoneName');
-        $('timezone-offset').textContent=(part?.value||'').replace('GMT','UTC');
-      }catch(_){}
-    }
-  }
-
-  async function openAddAccount(){
+  async function openAdd(){
     $('nexa-account-constellation')?.classList.remove('open');
     const modal=$('accounts-modal');
-    if(modal){
-      modal.classList.add('open');
-      modal.setAttribute('aria-hidden','false');
-    }
-    fixTimezone();
-    try{populateAllianceSelect(await bootstrap(false));}
-    catch(e){console.warn('NEXA v58.5 alliances:',e?.message||e);}
+    if(modal){ modal.classList.add('open'); modal.setAttribute('aria-hidden','false'); }
+    try{ await refresh(true); }catch(e){ console.warn('NEXA v58.6 alliances:',e); }
   }
 
   async function openProfile(id){
     try{
-      const payload=await bootstrap(false);
-      const a=payload.accounts.find(x=>String(x.id)===String(id));
+      const p=await refresh(false);
+      const a=p.accounts.find(x=>String(x.id)===String(id));
       if(!a) return;
-
       const set=(id,val)=>{const el=$(id);if(el)el.textContent=val;};
       set('nexa-profile-name',(a.in_game_name||'PLAYER').toUpperCase());
       set('nexa-profile-player-id',a.player_id||'');
-      set('nexa-profile-alliance',allianceTag(a,payload.alliances));
+      set('nexa-profile-alliance',allianceTag(a,p.alliances));
       set('nexa-profile-role',a.alliance_role||'R3');
       set('nexa-profile-type',a.is_main?'MAIN':(String(a.account_purpose||'full').toLowerCase()==='full'?'FULL':'BASIC'));
       set('nexa-profile-furnace',a.furnace_level||'—');
       set('nexa-profile-power',a.power?Number(a.power).toLocaleString():'—');
       set('nexa-profile-deployment',a.deployment_capacity?Number(a.deployment_capacity).toLocaleString():'—');
       if($('nexa-profile-photo')) $('nexa-profile-photo').src=avatar(a);
-
       $('nexa-account-constellation')?.classList.remove('open');
-      const modal=$('nexa-profile-modal');
-      if(modal){
-        modal.classList.add('open');
-        modal.setAttribute('aria-hidden','false');
-      }
-    }catch(e){console.warn('NEXA v58.5 profile:',e?.message||e);}
+      const m=$('nexa-profile-modal');
+      if(m){m.classList.add('open');m.setAttribute('aria-hidden','false');}
+    }catch(e){console.warn('NEXA v58.6 profile:',e);}
   }
 
-  /* Capture BEFORE the legacy document click handler. */
-  document.addEventListener('click',function(e){
-    const profileLauncher=e.target.closest?.('#nexa-profile-launcher');
-    if(profileLauncher){
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      openConstellation();
-      return;
+  document.addEventListener('click',e=>{
+    if(e.target.closest?.('#nexa-profile-launcher')){
+      e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+      openConstellation(); return;
     }
-
-    const add=e.target.closest?.('#nexa-v585-add,#nexa-constellation-add');
-    if(add){
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      openAddAccount();
-      return;
+    if(e.target.closest?.('#nexa-v586-add,#nexa-v585-add,#nexa-constellation-add')){
+      e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+      openAdd(); return;
     }
-
-    const planet=e.target.closest?.('[data-nexa-v585-profile]');
+    const planet=e.target.closest?.('[data-nexa-v586-profile]');
     if(planet){
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      openProfile(planet.getAttribute('data-nexa-v585-profile'));
+      e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+      openProfile(planet.getAttribute('data-nexa-v586-profile')); return;
     }
   },true);
 
-  document.addEventListener('DOMContentLoaded',fixTimezone);
+  async function boot(){
+    try{ await refresh(true); }catch(e){ console.warn('NEXA v58.6 boot:',e); }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,250));
+  else setTimeout(boot,250);
+
+  window.addEventListener('pageshow',()=>setTimeout(boot,100));
 })();

@@ -652,7 +652,7 @@
 @media (max-width:800px){#native-module-host[data-native-page="alliance-formations"] .card{min-width:0!important;overflow:hidden!important}
 #native-module-host[data-native-page="alliance-formations"] .hero-toggle{grid-template-columns:28px minmax(0,1fr)!important}}
 
-/* Pet Schedule portal — must sit above the Admin shell */
+/* Pet Schedule portal â must sit above the Admin shell */
 body > #schedule-modal[data-nexa-native-portal="1"]{
   position:fixed!important;
   inset:0!important;
@@ -759,7 +759,7 @@ body.nexa-schedule-open{
 }
 
 
-/* NEXA V53 — GAME ACCOUNT PROFILE + LIVE CLOCK */
+/* NEXA V53 â GAME ACCOUNT PROFILE + LIVE CLOCK */
 .nexa-live-clock{display:flex;align-items:center;gap:8px;margin-left:auto;margin-right:10px;font-variant-numeric:tabular-nums}
 .nexa-clock-chip{padding:7px 10px;border:1px solid rgba(130,145,210,.22);border-radius:12px;background:rgba(10,15,35,.58);backdrop-filter:blur(12px);box-shadow:inset 0 1px rgba(255,255,255,.04)}
 .nexa-clock-chip b{display:block;font-size:9px;letter-spacing:.14em;color:#8f9ac0}
@@ -800,7 +800,7 @@ body.nexa-schedule-open{
 @media(max-width:700px){.nexa-live-clock{position:absolute;right:12px;top:67px;margin:0;gap:5px}.nexa-clock-chip{padding:5px 7px}.nexa-clock-chip b{font-size:7px}.nexa-clock-chip span{font-size:10px}.nexa-profile-sheet{margin:2vh auto;max-height:96vh;border-radius:24px}.nexa-profile-hero{padding:30px 18px 18px}.nexa-profile-main{align-items:flex-start}.nexa-profile-photo{width:82px;height:82px}.nexa-profile-stats{grid-template-columns:1fr 1fr 1fr}.nexa-stat{padding:10px}.nexa-stat strong{font-size:14px}.nexa-profile-content{padding:16px}.nexa-profile-editor-grid{grid-template-columns:1fr}}
 
 
-/* NEXA V53.1 — floating UTC/local clock */
+/* NEXA V53.1 â floating UTC/local clock */
 .nexa-floating-clock{
   position:fixed;
   top:max(10px, env(safe-area-inset-top));
@@ -847,6 +847,374 @@ body.nexa-schedule-open{
   }
   .nexa-floating-clock .nexa-clock-chip b{font-size:7px}
   .nexa-floating-clock .nexa-clock-chip span{font-size:9px}
+}
+
+
+/* ==========================================================
+   NEXA V55.1 â HOME VISUAL RESTRUCTURE
+   Based directly on current GitHub main/index.html
+   ========================================================== */
+
+#home-announcements-module,
+#home-event-operations-module{
+  display:none !important;
+}
+
+.nexa-profile-launcher-section{
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:26px 0 28px;
+}
+.nexa-profile-launcher{
+  position:relative;
+  width:108px;
+  height:108px;
+  border:0;
+  padding:0;
+  border-radius:50%;
+  background:transparent;
+  cursor:pointer;
+  isolation:isolate;
+}
+.nexa-profile-launcher-photo{
+  position:absolute;
+  inset:7px;
+  width:94px;
+  height:94px;
+  border-radius:50%;
+  object-fit:cover;
+  background:radial-gradient(circle at 35% 30%,#283a79,#0e142d 68%);
+  border:2px solid rgba(162,128,255,.92);
+  box-shadow:
+    0 0 0 5px rgba(111,76,255,.07),
+    0 0 34px rgba(97,80,255,.34),
+    0 0 55px rgba(31,157,255,.11);
+  z-index:3;
+}
+.nexa-profile-ring{
+  position:absolute;
+  inset:0;
+  border-radius:50%;
+  border:1px solid rgba(122,105,255,.24);
+  pointer-events:none;
+}
+.nexa-profile-ring.ring-a{animation:nexaProfileOrbit 10s linear infinite}
+.nexa-profile-ring.ring-a:after{
+  content:"";
+  position:absolute;
+  width:6px;height:6px;border-radius:50%;
+  background:#72d9ff;
+  right:7px;top:18px;
+  box-shadow:0 0 12px #72d9ff;
+}
+.nexa-profile-ring.ring-b{
+  inset:-7px;
+  border-color:rgba(69,185,255,.10);
+  border-style:dashed;
+  animation:nexaProfileOrbit 16s linear reverse infinite;
+}
+@keyframes nexaProfileOrbit{to{transform:rotate(360deg)}}
+.nexa-profile-launcher-count{
+  position:absolute;
+  right:-6px;
+  bottom:5px;
+  z-index:4;
+  min-width:26px;
+  height:26px;
+  padding:0 7px;
+  display:grid;
+  place-items:center;
+  border-radius:999px;
+  color:#7ee0ff;
+  background:#0d1533;
+  border:1px solid rgba(92,199,255,.45);
+  box-shadow:0 0 16px rgba(72,179,255,.24);
+  font-size:10px;
+  font-weight:950;
+}
+.nexa-profile-launcher-name{
+  margin-top:11px;
+  font-size:15px;
+  line-height:1;
+  font-weight:950;
+  letter-spacing:.09em;
+  background:linear-gradient(90deg,#f3efff 0%,#b89cff 43%,#70d6ff 100%);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+  text-shadow:0 0 22px rgba(113,88,255,.10);
+}
+.nexa-profile-launcher-badge{
+  margin-top:7px;
+  padding:4px 10px;
+  border-radius:999px;
+  border:1px solid rgba(131,109,255,.25);
+  background:rgba(31,27,72,.36);
+  color:#9f93ff;
+  font-size:8px;
+  font-weight:950;
+  letter-spacing:.18em;
+}
+
+/* Mockup-like Home cards: only Live Event + Transfers remain prominent */
+#home-svs-section,
+#home-transfers-section{
+  position:relative;
+  overflow:hidden;
+  border:1px solid rgba(112,119,191,.18);
+  border-radius:23px;
+  padding:0;
+  background:
+    radial-gradient(circle at 82% 12%,rgba(39,154,255,.09),transparent 29%),
+    radial-gradient(circle at 8% 88%,rgba(116,65,255,.10),transparent 30%),
+    linear-gradient(145deg,rgba(15,21,48,.88),rgba(6,11,29,.82));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.025),
+    0 18px 45px rgba(0,0,0,.20),
+    0 0 28px rgba(85,68,255,.045);
+}
+#home-svs-section > .head,
+#home-transfers-section > .head{padding:17px 18px 0}
+#home-svs-section > .glass,
+#home-transfers-section > .glass{
+  border:0 !important;
+  background:transparent !important;
+  box-shadow:none !important;
+}
+#home-svs-section .head h2,
+#home-transfers-section .head h2{
+  letter-spacing:.04em;
+}
+#home-svs-section .event,
+#home-transfers-section .event{
+  border-color:rgba(255,255,255,.08);
+  background:rgba(9,15,35,.34);
+}
+
+/* HOME floating menu control */
+#nexa-home-menu-toggle{
+  position:fixed;
+  left:14px;
+  top:max(91px,calc(env(safe-area-inset-top) + 57px));
+  z-index:2147482000;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  height:32px;
+  padding:0 11px;
+  border-radius:999px;
+  border:1px solid rgba(112,125,197,.23);
+  background:rgba(5,10,27,.80);
+  color:#b7c2e5;
+  box-shadow:0 8px 26px rgba(0,0,0,.24);
+  backdrop-filter:blur(15px);
+  -webkit-backdrop-filter:blur(15px);
+  font-size:9px;
+  font-weight:950;
+  letter-spacing:.10em;
+}
+#nexa-home-menu-toggle .nexa-menu-chevron{
+  color:#75d9ff;
+  transition:transform .2s ease;
+}
+#nexa-home-menu-toggle.open .nexa-menu-chevron{transform:rotate(180deg)}
+#nexa-home-menu{
+  position:fixed;
+  left:14px;
+  top:max(129px,calc(env(safe-area-inset-top) + 95px));
+  z-index:2147481999;
+  width:min(270px,calc(100vw - 28px));
+  opacity:0;
+  transform:translateY(-7px) scale(.985);
+  pointer-events:none;
+  transition:opacity .18s ease,transform .18s ease;
+}
+#nexa-home-menu.open{
+  opacity:1;
+  transform:none;
+  pointer-events:auto;
+}
+.nexa-home-menu-card{
+  padding:10px;
+  border-radius:18px;
+  border:1px solid rgba(111,125,195,.20);
+  background:rgba(4,8,23,.95);
+  box-shadow:0 24px 65px rgba(0,0,0,.46),0 0 30px rgba(80,68,255,.08);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+}
+.nexa-home-menu-label{
+  padding:7px 10px 5px;
+  color:#59678f;
+  font-size:8px;
+  font-weight:950;
+  letter-spacing:.20em;
+}
+.nexa-home-menu-item{
+  width:100%;
+  border:0;
+  border-radius:12px;
+  background:transparent;
+  color:#b8c4e7;
+  padding:11px 12px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.05em;
+  text-align:left;
+}
+.nexa-home-menu-item:active,
+.nexa-home-menu-item:hover{
+  color:#fff;
+  background:linear-gradient(90deg,rgba(104,70,255,.16),rgba(33,155,255,.08));
+}
+.nexa-home-menu-item .menu-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:#7583aa;
+}
+.nexa-home-menu-item.primary .menu-dot{
+  background:#70d8ff;
+  box-shadow:0 0 10px rgba(112,216,255,.55);
+}
+.nexa-home-menu-separator{
+  height:1px;
+  margin:7px 5px;
+  background:linear-gradient(90deg,transparent,rgba(111,126,193,.20),transparent);
+}
+
+/* Account Constellation overlay */
+#nexa-account-constellation{
+  position:fixed;
+  inset:0;
+  z-index:2147482500;
+  display:none;
+}
+#nexa-account-constellation.open{display:block}
+.nexa-constellation-backdrop{
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(circle at 50% 47%,rgba(81,62,225,.13),transparent 27%),
+    rgba(0,2,11,.93);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+}
+.nexa-constellation-stage{
+  position:relative;
+  z-index:2;
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
+.nexa-constellation-heading{
+  position:absolute;
+  top:max(66px,calc(env(safe-area-inset-top) + 32px));
+  left:0;right:0;
+  text-align:center;
+}
+.nexa-constellation-heading b{
+  display:block;
+  color:#c8d3ef;
+  font-size:10px;
+  letter-spacing:.22em;
+}
+.nexa-constellation-heading span{
+  display:block;
+  margin-top:5px;
+  color:#66739b;
+  font-size:10px;
+}
+#nexa-constellation-system{
+  position:relative;
+  width:min(390px,94vw);
+  height:min(390px,94vw);
+}
+.nexa-constellation-orbit{
+  position:absolute;
+  left:50%;top:50%;
+  transform:translate(-50%,-50%);
+  border-radius:50%;
+  border:1px solid rgba(124,135,200,.12);
+}
+.nexa-constellation-orbit.one{width:225px;height:225px}
+.nexa-constellation-orbit.two{
+  width:330px;height:330px;
+  border-style:dashed;
+  border-color:rgba(102,116,184,.09);
+}
+.nexa-account-planet{
+  position:absolute;
+  transform:translate(-50%,-50%);
+  border:0;
+  background:transparent;
+  padding:0;
+  color:#fff;
+  text-align:center;
+}
+.nexa-account-planet img{
+  display:block;
+  margin:auto;
+  border-radius:50%;
+  object-fit:cover;
+  background:#111832;
+}
+.nexa-account-planet.main{left:50%;top:50%}
+.nexa-account-planet.main img{
+  width:104px;height:104px;
+  border:2px solid rgba(159,126,255,.94);
+  box-shadow:0 0 0 7px rgba(117,82,255,.07),0 0 44px rgba(98,80,255,.35);
+}
+.nexa-account-planet.alt img{
+  width:60px;height:60px;
+  border:1.5px solid rgba(103,206,255,.52);
+  box-shadow:0 0 23px rgba(50,172,255,.18);
+}
+.nexa-account-planet-name{
+  display:block;
+  margin-top:7px;
+  max-width:108px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:#dce6ff;
+  font-size:10px;
+  font-weight:900;
+}
+.nexa-account-planet-type{
+  display:block;
+  margin-top:2px;
+  color:#7481aa;
+  font-size:7px;
+  font-weight:950;
+  letter-spacing:.15em;
+}
+.nexa-account-planet.main .nexa-account-planet-type{color:#ad98ff}
+#nexa-constellation-manage{
+  position:absolute;
+  bottom:max(38px,calc(env(safe-area-inset-bottom) + 22px));
+  border:1px solid rgba(110,132,205,.23);
+  border-radius:13px;
+  padding:10px 14px;
+  background:rgba(11,18,41,.72);
+  color:#84dcff;
+  font-size:9px;
+  font-weight:950;
+  letter-spacing:.08em;
+}
+@media(max-width:430px){
+  .nexa-profile-launcher{width:100px;height:100px}
+  .nexa-profile-launcher-photo{width:86px;height:86px}
+  #nexa-constellation-system{width:360px;height:360px}
+  .nexa-constellation-orbit.one{width:210px;height:210px}
+  .nexa-constellation-orbit.two{width:305px;height:305px}
 }
 
 </style>
@@ -953,6 +1321,14 @@ html.nexa-auth-boot body > #nexa-auth-gate { visibility:visible!important; }
 <script src="/nexa-live-clock-v7.js?v=5370" defer></script>
 </head>
 <body>
+
+<button id="nexa-home-menu-toggle" type="button" aria-expanded="false">
+  <span>HOME</span><span class="nexa-menu-chevron">â</span>
+</button>
+<div id="nexa-home-menu" aria-hidden="true">
+  <div id="nexa-home-menu-card" class="nexa-home-menu-card"></div>
+</div>
+
 <div class="nebula-bg" aria-hidden="true"></div>
 <div class="starfield" aria-hidden="true"></div>
 
@@ -961,7 +1337,7 @@ html.nexa-auth-boot body > #nexa-auth-gate { visibility:visible!important; }
 <header class="topbar">
   <div class="shell nav">
     <a class="logo" href="index.html">
-      <span class="star">✦</span>
+      <span class="star">â¦</span>
       <span>NEXA<small>STATE 1518</small></span>
     </a>
 
@@ -979,42 +1355,35 @@ html.nexa-auth-boot body > #nexa-auth-gate { visibility:visible!important; }
 <main class="shell">
   <section class="hero">
     <h1>NEXA</h1>
-    <p>State 1518 • Events, accounts & coordination</p>
+    <p>State 1518 â¢ Events, accounts & coordination</p>
   </section>
 
   <section id="global-announcement" class="announcement-wrap hidden">
     <div class="announcement-bar">
       <div class="announcement-track">
-        <span class="announcement-label">⚠ IMPORTANT</span>
+        <span class="announcement-label">â  IMPORTANT</span>
         <span id="announcement-message"></span>
       </div>
-      <button id="announcement-ack" class="announcement-ack" type="button">I’ve read this</button>
+      <button id="announcement-ack" class="announcement-ack" type="button">Iâve read this</button>
     </div>
   </section>
 
-  <section class="section">
-    <div class="head">
-      <h2>My Accounts</h2>
-      <span><a class="link" href="my-submissions.html">My Submissions</a></span>
-    </div>
-    <div id="nexa-home-account-list" class="nexa-home-account-list"></div>
-    <div id="open-accounts" class="glass account account-button" role="button" tabindex="0">
-      <div class="account-left">
-        <div class="plus">+</div>
-        <div>
-          <b>Add / Manage Accounts</b>
-          <small>Link another WOS account or manage your existing accounts.</small>
-        </div>
-      </div>
-      <span class="link">Open</span>
-    </div>
+  <section id="nexa-profile-launcher-section" class="nexa-profile-launcher-section">
+    <button id="nexa-profile-launcher" class="nexa-profile-launcher" type="button" aria-label="Open account constellation">
+      <span class="nexa-profile-ring ring-a"></span>
+      <span class="nexa-profile-ring ring-b"></span>
+      <img id="nexa-profile-launcher-photo" class="nexa-profile-launcher-photo" alt="Main account profile">
+      <span id="nexa-profile-launcher-count" class="nexa-profile-launcher-count hidden"></span>
+    </button>
+    <div id="nexa-profile-launcher-name" class="nexa-profile-launcher-name">MY PROFILE</div>
+    <div id="nexa-profile-launcher-badge" class="nexa-profile-launcher-badge">MAIN</div>
   </section>
 
   
   <section id="home-announcements-module" class="section hidden">
     <div class="head">
       <h2>Announcements</h2>
-      <span>Tap to open</span>
+      <span>Now / Upcoming</span>
     </div>
     <div class="glass events">
       <article class="event">
@@ -1055,7 +1424,7 @@ html.nexa-auth-boot body > #nexa-auth-gate { visibility:visible!important; }
 
 <section id="home-svs-section" class="section">
     <div class="head">
-      <h2>Events</h2>
+      <h2>Live Event</h2>
       <span>Tap to open</span>
     </div>
 
@@ -1069,7 +1438,7 @@ html.nexa-auth-boot body > #nexa-auth-gate { visibility:visible!important; }
           </div>
           <div class="count">
             <small>Ends in</small>
-            <b id="home-event-countdown">—</b>
+            <b id="home-event-countdown">â</b>
           </div>
         </div>
         <div class="event-actions">
@@ -1087,23 +1456,33 @@ html.nexa-auth-boot body > #nexa-auth-gate { visibility:visible!important; }
     <div id="home-transfer-events" class="glass events"></div>
   </section>
 
-  <div class="shell" style="margin-top:10px"><div class="build-proof">NEXA BUILD v33.5</div></div>
+  <div class="shell" style="margin-top:10px"><div class="build-proof">NEXA BUILD v55.1</div></div>
   <div class="footer">
     Your state. One hub. Everything connected.<br>
-    NEXA • State 1518
+    NEXA â¢ State 1518
   </div>
 </main>
 
 
+
+<div id="nexa-account-constellation" aria-hidden="true">
+  <div class="nexa-constellation-backdrop" data-close-constellation></div>
+  <div class="nexa-constellation-stage">
+    <div class="nexa-constellation-heading"><b>ACCOUNT CONSTELLATION</b><span>Choose an account</span></div>
+    <div id="nexa-constellation-system"></div>
+    <button id="nexa-constellation-manage" type="button">+ ADD / MANAGE ACCOUNTS</button>
+  </div>
+</div>
+
 <div id="nexa-profile-modal" class="nexa-profile-modal" aria-hidden="true">
   <div class="nexa-profile-backdrop" data-close-nexa-profile></div>
   <section class="nexa-profile-sheet">
-    <button class="nexa-profile-close" type="button" data-close-nexa-profile>×</button>
+    <button class="nexa-profile-close" type="button" data-close-nexa-profile>Ã</button>
     <div class="nexa-profile-hero">
       <div class="nexa-profile-main">
         <div class="nexa-photo-wrap">
           <img id="nexa-profile-photo" class="nexa-profile-photo" alt="Game account profile photo">
-          <button id="nexa-photo-edit" class="nexa-photo-edit" type="button" title="Change photo">✎</button>
+          <button id="nexa-photo-edit" class="nexa-photo-edit" type="button" title="Change photo">â</button>
           <input id="nexa-photo-input" type="file" accept="image/*" hidden>
         </div>
         <div class="nexa-profile-identity">
@@ -1120,24 +1499,24 @@ html.nexa-auth-boot body > #nexa-auth-gate { visibility:visible!important; }
       </div>
 
       <div class="nexa-profile-stats">
-        <div class="nexa-stat furnace"><label>FURNACE</label><strong id="nexa-profile-furnace">—</strong></div>
-        <div class="nexa-stat power"><label>POWER</label><strong id="nexa-profile-power">—</strong></div>
-        <div id="nexa-deployment-stat" class="nexa-stat deployment"><label>DEPLOYMENT ›</label><strong id="nexa-profile-deployment">—</strong></div>
+        <div class="nexa-stat furnace"><label>FURNACE</label><strong id="nexa-profile-furnace">â</strong></div>
+        <div class="nexa-stat power"><label>POWER</label><strong id="nexa-profile-power">â</strong></div>
+        <div id="nexa-deployment-stat" class="nexa-stat deployment"><label>DEPLOYMENT âº</label><strong id="nexa-profile-deployment">â</strong></div>
       </div>
 
       <div id="nexa-deploy-panel" class="nexa-deploy-panel">
         <h4>Deployment Capacity</h4>
         <div class="nexa-deploy-grid">
-          <div class="nexa-deploy-result"><small>Base</small><b id="dep-base">—</b></div>
-          <div class="nexa-deploy-result"><small>+10% only</small><b id="dep-10">—</b></div>
-          <div class="nexa-deploy-result"><small>+20% only</small><b id="dep-20">—</b></div>
+          <div class="nexa-deploy-result"><small>Base</small><b id="dep-base">â</b></div>
+          <div class="nexa-deploy-result"><small>+10% only</small><b id="dep-10">â</b></div>
+          <div class="nexa-deploy-result"><small>+20% only</small><b id="dep-20">â</b></div>
           <div class="nexa-deploy-result"><small>Pet buff</small><b id="dep-pet">Set pet first</b></div>
           <div class="nexa-deploy-result"><small>Pet + 10%</small><b id="dep-pet10">Set pet first</b></div>
           <div class="nexa-deploy-result"><small>Pet + 20%</small><b id="dep-pet20">Set pet first</b></div>
         </div>
       </div>
 
-      <div class="nexa-profile-edit-row"><button id="nexa-profile-edit-btn" class="nexa-profile-edit-btn" type="button">✎ Edit Profile</button></div>
+      <div class="nexa-profile-edit-row"><button id="nexa-profile-edit-btn" class="nexa-profile-edit-btn" type="button">â Edit Profile</button></div>
       <form id="nexa-profile-editor" class="nexa-profile-editor">
         <div class="nexa-profile-editor-grid">
           <label>In-Game Name<input id="nexa-edit-name" maxlength="40"></label>
@@ -1173,14 +1552,14 @@ html.nexa-auth-boot body > #nexa-auth-gate { visibility:visible!important; }
   <section class="modal-card">
     <div class="modal-head">
       <div><small>MY ACCOUNTS</small><h2>WOS Accounts <span id="account-count">0/5</span></h2></div>
-      <button class="icon-btn" type="button" data-close-accounts>×</button>
+      <button class="icon-btn" type="button" data-close-accounts>Ã</button>
     </div>
 
     <div id="accounts-message" class="form-message"></div>
     <div class="timezone-card">
       <div>
         <small>YOUR TIME ZONE</small>
-        <b id="timezone-display">Detecting…</b>
+        <b id="timezone-display">Detectingâ¦</b>
         <span id="timezone-offset"></span>
       </div>
       <button id="change-timezone" class="tz-button" type="button">Change</button>
@@ -1199,17 +1578,17 @@ html.nexa-auth-boot body > #nexa-auth-gate { visibility:visible!important; }
         <select id="language-select">
           <option value="auto">Auto (device)</option>
           <option value="en">English</option>
-          <option value="es">Español</option>
-          <option value="tr">Türkçe</option>
-          <option value="ko">한국어</option>
-          <option value="ar">العربية</option>
-          <option value="pt">Português</option>
-          <option value="ru">Русский</option>
-          <option value="uk">Українська</option>
-          <option value="fr">Français</option>
+          <option value="es">EspaÃ±ol</option>
+          <option value="tr">TÃ¼rkÃ§e</option>
+          <option value="ko">íêµ­ì´</option>
+          <option value="ar">Ø§ÙØ¹Ø±Ø¨ÙØ©</option>
+          <option value="pt">PortuguÃªs</option>
+          <option value="ru">Ð ÑÑÑÐºÐ¸Ð¹</option>
+          <option value="uk">Ð£ÐºÑÐ°ÑÐ½ÑÑÐºÐ°</option>
+          <option value="fr">FranÃ§ais</option>
           <option value="it">Italiano</option>
-          <option value="zh">简体中文</option>
-          <option value="ja">日本語</option>
+          <option value="zh">ç®ä½ä¸­æ</option>
+          <option value="ja">æ¥æ¬èª</option>
         </select>
       </label>
       <div class="form-actions">
@@ -1263,7 +1642,7 @@ html.nexa-auth-boot body > #nexa-auth-gate { visibility:visible!important; }
         <small>ADMIN PANEL</small>
         <h2>NEXA Control Center</h2>
       </div>
-      <button class="icon-btn" type="button" data-close-admin>×</button>
+      <button class="icon-btn" type="button" data-close-admin>Ã</button>
     </div>
 
     <div id="admin-module-chooser" class="module-chooser">
@@ -1318,7 +1697,7 @@ html.nexa-auth-boot body > #nexa-auth-gate { visibility:visible!important; }
     </div>
     <div id="svs-admin-content" class="hidden">
 <div id="nexa-module-shell-head" class="nexa-module-shell-head hidden">
-      <button id="nexa-module-back" class="nexa-module-back" type="button">← Modules</button>
+      <button id="nexa-module-back" class="nexa-module-back" type="button">â Modules</button>
       <h2 id="nexa-module-title" class="nexa-module-title">SvS</h2>
       <p id="nexa-module-description" class="nexa-module-description"></p>
     </div>
@@ -1353,7 +1732,7 @@ html.nexa-auth-boot body > #nexa-auth-gate { visibility:visible!important; }
           <input id="opponent-state" inputmode="numeric" min="1" required placeholder="e.g. 1833">
         </label>
 
-        <label>Prep Monday — Game Date (UTC)
+        <label>Prep Monday â Game Date (UTC)
           <div class="prep-monday-picker-row">
             <input id="prep-monday" type="date" required>
             <button id="prep-monday-picker" class="btn secondary" type="button">Choose Monday</button>
@@ -1546,7 +1925,7 @@ html.nexa-auth-boot body > #nexa-auth-gate { visibility:visible!important; }
             <span></span>
           </label>
         </div>
-        <div id="maintenance-mode-state" class="form-message">Checking status…</div>
+        <div id="maintenance-mode-state" class="form-message">Checking statusâ¦</div>
       </div>
 
       <div class="setting-card system-ops-card">
@@ -1618,16 +1997,16 @@ html.nexa-auth-boot body > #nexa-auth-gate { visibility:visible!important; }
 
           <div class="translation-grid">
             <div class="translation-note">
-        <strong>Translations · Optional</strong>
+        <strong>Translations Â· Optional</strong>
         <span>NEXA does not automatically translate custom announcements. Add translated versions only if you want users to see the announcement in their selected language. You can leave these fields blank.</span>
       </div>
-      <label>Español<textarea id="ann-es" rows="2"></textarea></label>
-            <label>Türkçe<textarea id="ann-tr" rows="2"></textarea></label>
-            <label>한국어<textarea id="ann-ko" rows="2"></textarea></label>
-            <label>العربية<textarea id="ann-ar" rows="2"></textarea></label>
-            <label>日本語<textarea id="ann-ja" rows="2"></textarea></label>
-            <label>中文<textarea id="ann-zh" rows="2"></textarea></label>
-            <label>Русский<textarea id="ann-ru" rows="2"></textarea></label>
+      <label>EspaÃ±ol<textarea id="ann-es" rows="2"></textarea></label>
+            <label>TÃ¼rkÃ§e<textarea id="ann-tr" rows="2"></textarea></label>
+            <label>íêµ­ì´<textarea id="ann-ko" rows="2"></textarea></label>
+            <label>Ø§ÙØ¹Ø±Ø¨ÙØ©<textarea id="ann-ar" rows="2"></textarea></label>
+            <label>æ¥æ¬èª<textarea id="ann-ja" rows="2"></textarea></label>
+            <label>ä¸­æ<textarea id="ann-zh" rows="2"></textarea></label>
+            <label>Ð ÑÑÑÐºÐ¸Ð¹<textarea id="ann-ru" rows="2"></textarea></label>
           </div>
 
           <div class="form-actions">
@@ -1698,7 +2077,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     nameEl.textContent = isDiscord
       ? getDisplayName(user)
       : (user?.user_metadata?.in_game_name || user?.user_metadata?.nexa_game_id || 'NEXA Account');
-    statusEl.textContent = isDiscord ? 'Owner • Discord' : 'NEXA Account';
+    statusEl.textContent = isDiscord ? 'Owner â¢ Discord' : 'NEXA Account';
     const avatarUrl = isDiscord ? getAvatarUrl(user) : null;
     if (avatarUrl) {
       avatarEl.style.backgroundImage = `url("${avatarUrl}")`;
@@ -1808,7 +2187,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     accountsList.innerHTML = rows.length ? rows.map(a => {
       const tag = a.alliances?.tag || a.custom_alliance_tag || 'Not Listed';
       return `<article class="claimed-account">
-        <div><b>${a.in_game_name}</b><small>${tag} • ID ${a.player_id}</small></div>
+        <div><b>${a.in_game_name}</b><small>${tag} â¢ ID ${a.player_id}</small></div>
         <div class="account-actions">
           <button type="button" data-edit="${a.id}">Edit</button>
           <button type="button" data-delete="${a.id}">Delete</button>
@@ -2102,7 +2481,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       [tr('saturday'), tr('battle'), fmtDateUTC(monday,5)]
     ];
     box.innerHTML = lines.map(([day,label,date]) =>
-      `<div><b>${day}</b> ${date} — ${label}<small>${tr('yourTime')}: ${localLabelFromUTCDate(date)}</small></div>`
+      `<div><b>${day}</b> ${date} â ${label}<small>${tr('yourTime')}: ${localLabelFromUTCDate(date)}</small></div>`
     ).join('');
   }
 
@@ -2222,7 +2601,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     host.classList.remove('hidden');
     host.dataset.nativePage=pageKey;
-    host.innerHTML='<div class="muted" style="padding:20px 0">Loading…</div>';
+    host.innerHTML='<div class="muted" style="padding:20px 0">Loadingâ¦</div>';
 
     const res=await fetch(url.pathname+url.search,{cache:'no-store'});
     if(!res.ok){host.innerHTML=`<div class="form-message">Could not open ${file}.</div>`;return;}
@@ -2231,7 +2610,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if(pageKey==='layout-management'){
       parsed.querySelectorAll('a[href*="admin"], .back, .back-btn, .layout-back, header').forEach(el=>{
         const txt=(el.textContent||'').trim().toLowerCase();
-        if(el.tagName==='HEADER' || txt==='back' || txt.includes('← back')) el.remove();
+        if(el.tagName==='HEADER' || txt==='back' || txt.includes('â back')) el.remove();
       });
     }
 
@@ -2333,7 +2712,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     host.classList.remove('hidden');
     host.dataset.nativePage=file.replace(/\.html$/,'');
     host.dataset.nativeSvs='1';
-    host.innerHTML='<div class="muted" style="padding:18px 0">Loading…</div>';
+    host.innerHTML='<div class="muted" style="padding:18px 0">Loadingâ¦</div>';
 
     const res=await fetch(url.pathname+url.search,{cache:'no-store'});
     if(!res.ok){
@@ -2740,7 +3119,7 @@ document.getElementById('open-svs-admin')?.addEventListener('click',async()=>{
   });
   document.getElementById('copy-prep-form-polish')?.addEventListener('click',async()=>{
     const u=new URL('prep-form.html?direct=1',location.href).href;
-    try{await navigator.clipboard.writeText(u);document.getElementById('svs-forms-message').textContent='Prep Form link copied ✓'}
+    try{await navigator.clipboard.writeText(u);document.getElementById('svs-forms-message').textContent='Prep Form link copied â'}
     catch{document.getElementById('svs-forms-message').textContent=u}
   });
   document.getElementById('open-battle-form-polish')?.addEventListener('click',()=>{
@@ -2748,7 +3127,7 @@ document.getElementById('open-svs-admin')?.addEventListener('click',async()=>{
   });
   document.getElementById('copy-battle-form-polish')?.addEventListener('click',async()=>{
     const u=new URL('battle-form.html?direct=1&event_type=svs',location.href).href;
-    try{await navigator.clipboard.writeText(u);document.getElementById('svs-forms-message').textContent='Battle Form link copied ✓'}
+    try{await navigator.clipboard.writeText(u);document.getElementById('svs-forms-message').textContent='Battle Form link copied â'}
     catch{document.getElementById('svs-forms-message').textContent=u}
   });
 
@@ -2789,7 +3168,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
       <article class="admin-row">
         <div>
           <b>SvS vs ${e.opponent_state}</b>
-          <small>Prep Monday ${e.prep_monday} UTC • ${(e.status|| (e.is_live?'live':'upcoming')).toUpperCase()}</small>
+          <small>Prep Monday ${e.prep_monday} UTC â¢ ${(e.status|| (e.is_live?'live':'upcoming')).toUpperCase()}</small>
         </div>
         <div class="account-actions">
           <button type="button" data-event-edit="${e.id}">Edit</button>
@@ -3004,7 +3383,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
   function applyIndexLanguage() {
     NEXA_I18N.setDir(currentLanguage);
 
-    const heroSub=document.querySelector('.hero p'); if(heroSub) heroSub.textContent='STATE 1518 • EVENTS • ACCOUNTS • COORDINATION';
+    const heroSub=document.querySelector('.hero p'); if(heroSub) heroSub.textContent='STATE 1518 â¢ EVENTS â¢ ACCOUNTS â¢ COORDINATION';
     setText('.section .head h2','myAccounts');
     const heads = document.querySelectorAll('.section .head h2');
     if (heads[1]) heads[1].textContent = tr('events');
@@ -3022,9 +3401,9 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
 
     setText('.badge','live');
     const view = document.querySelector('.event-actions .btn');
-    if (view) view.textContent = tr('viewEvent') + ' →';
+    if (view) view.textContent = tr('viewEvent') + ' â';
     const footer = document.querySelector('.footer');
-    if (footer) footer.innerHTML = 'Your state. One hub. Everything connected.<br>NEXA • State 1518';
+    if (footer) footer.innerHTML = 'Your state. One hub. Everything connected.<br>NEXA â¢ State 1518';
 
     setText('#language-label','yourLanguage');
     setText('#change-language','change');
@@ -3111,10 +3490,10 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
 
   function languageName(code) {
     const names = {
-      auto: tr('languageAuto'), en:'English', es:'Español', tr:'Türkçe',
-      ko:'한국어', ar:'العربية', pt:'Português', ru:'Русский',
-      uk:'Українська', fr:'Français', it:'Italiano',
-      zh:'简体中文', ja:'日本語'
+      auto: tr('languageAuto'), en:'English', es:'EspaÃ±ol', tr:'TÃ¼rkÃ§e',
+      ko:'íêµ­ì´', ar:'Ø§ÙØ¹Ø±Ø¨ÙØ©', pt:'PortuguÃªs', ru:'Ð ÑÑÑÐºÐ¸Ð¹',
+      uk:'Ð£ÐºÑÐ°ÑÐ½ÑÑÐºÐ°', fr:'FranÃ§ais', it:'Italiano',
+      zh:'ç®ä½ä¸­æ', ja:'æ¥æ¬èª'
     };
     return names[code] || code;
   }
@@ -3136,7 +3515,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
 
     document.getElementById('language-display').textContent=languageName(languagePreference);
     document.getElementById('language-detected').textContent =
-      languagePreference==='auto' ? `${languageName(currentLanguage)} • ${navigator.language || ''}` : languageName(currentLanguage);
+      languagePreference==='auto' ? `${languageName(currentLanguage)} â¢ ${navigator.language || ''}` : languageName(currentLanguage);
     document.getElementById('language-select').value=languagePreference;
     applyIndexLanguage();
   }
@@ -3179,7 +3558,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
     const canEditRoles=myRole==='owner';
     const {data:canVerify}=await supabaseClient.rpc('can_verify_state_members');
     list.innerHTML=rows.length ? rows.map(u=>{
-      const accounts=(u.accounts||[]).map(a=>`${a.in_game_name} • ${a.alliance} • ID ${a.player_id}`).join('<br>');
+      const accounts=(u.accounts||[]).map(a=>`${a.in_game_name} â¢ ${a.alliance} â¢ ID ${a.player_id}`).join('<br>');
       const role=u.role||'player';
       const isOwner=role==='owner';
       const verified=isOwner||verification[u.user_id]===true;
@@ -3197,7 +3576,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
                 <option value="admin" ${role==='admin'?'selected':''}>Admin</option>
               </select>` : `<span class="owner-badge">${role}</span>`}
           ${canVerify && !isOwner ? `<button class="btn secondary" type="button" data-verify-user="${u.user_id}" data-verified="${verified?'1':'0'}">${verified?'Remove Verification':'Verify Member'}</button>` : ''}
-          <small>${verified?'✓ Verified State Member':'External / Unverified'}</small>
+          <small>${verified?'â Verified State Member':'External / Unverified'}</small>
           ${!isOwner ? `<div class="preview-permissions-grid">
             <span class="preview-permission-chip">Admin</span>
             <span class="preview-permission-chip">EO</span>
@@ -3315,7 +3694,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
       <article class="admin-row">
         <div>
           <b>${x.in_game_names || x.discord_name}</b>
-          <small>${x.alliances || ''} • ${x.discord_name}</small>
+          <small>${x.alliances || ''} â¢ ${x.discord_name}</small>
         </div>
         <div class="${x.acknowledged?'ack-yes':'ack-no'}">
           ${x.acknowledged?'Acknowledged':'Not Acknowledged'}
@@ -3538,7 +3917,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
       await syncAnnouncement(null);
       titleEl.textContent = tr('noLive');
       metaEl.textContent = tr('noLiveText');
-      countEl.textContent = '—';
+      countEl.textContent = 'â';
       return;
     }
 
@@ -3547,7 +3926,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
     const end = new Date(battle.getTime() + 24 * 3600000);
 
     titleEl.textContent = currentLanguage==='es' ? `SvS contra ${data.opponent_state}` : `SvS against ${data.opponent_state}`;
-    metaEl.textContent = `${shortUTCDate(start)} – ${shortUTCDate(battle)} • WOS Game Time (UTC)`;
+    metaEl.textContent = `${shortUTCDate(start)} â ${shortUTCDate(battle)} â¢ WOS Game Time (UTC)`;
     countEl.textContent = countdownLabel(end);
 
     await syncAnnouncement(data);
@@ -3597,7 +3976,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
       new_show_svs:document.getElementById('show-svs-home').checked,
       new_show_transfer:document.getElementById('show-transfer-home').checked
     });
-    msg.textContent=error?error.message:'Home visibility updated ✓';
+    msg.textContent=error?error.message:'Home visibility updated â';
     if(!error) await applyHomeModuleVisibility();
   }
 
@@ -3606,12 +3985,12 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
   document.getElementById('preview-show-announcements')?.addEventListener('change',e=>{
     localStorage.setItem('nexa_preview_show_announcements',e.target.checked?'1':'0');
     applyExtraHomeModuleVisibility();
-    document.getElementById('home-visibility-message').textContent='Home visibility updated ✓';
+    document.getElementById('home-visibility-message').textContent='Home visibility updated â';
   });
   document.getElementById('preview-show-eo')?.addEventListener('change',e=>{
     localStorage.setItem('nexa_preview_show_eo',e.target.checked?'1':'0');
     applyExtraHomeModuleVisibility();
-    document.getElementById('home-visibility-message').textContent='Home visibility updated ✓';
+    document.getElementById('home-visibility-message').textContent='Home visibility updated â';
   });
 
   async function loadHomeTransfers(){
@@ -3645,14 +4024,14 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
     }
     list.innerHTML=data.map(e=>{
       const range=(e.source_state_min||e.source_state_max)
-        ? `States ${e.source_state_min||'—'}–${e.source_state_max||'—'} → ${e.destination_state}`
+        ? `States ${e.source_state_min||'â'}â${e.source_state_max||'â'} â ${e.destination_state}`
         : `Transfer to State ${e.destination_state}`;
       return `<article class="event transfer-home-card">
         <div class="event-row"><div>
         <h3>${e.title}</h3><div class="muted">${range}</div></div></div>
         <div class="event-actions">
           <a class="btn secondary" href="transfer-event.html?token=${e.public_token}">Open</a>
-          <a class="btn" href="transfer-apply.html?token=${e.public_token}">Apply →</a>
+          <a class="btn" href="transfer-apply.html?token=${e.public_token}">Apply â</a>
         </div></article>`;
     }).join('');
   }
@@ -3680,7 +4059,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
       await configureAdminModules();
       await loadHomeVisibilityAdmin();
 
-      // Open the exact same SvS Control Center used by Admin → SvS.
+      // Open the exact same SvS Control Center used by Admin â SvS.
       document.getElementById('open-svs-admin')?.click();
     }
     // Consume the one-time navigation so browser refresh stays on Home.
@@ -3933,13 +4312,13 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
     const msg=document.getElementById('system-operations-message');
     if(!sw || !state) return;
     sw.disabled=true;
-    state.textContent='Checking status…';
+    state.textContent='Checking statusâ¦';
     try{
       const data=await systemRequest('GET');
       sw.checked=!!data.maintenance_mode;
       state.textContent=data.maintenance_mode
-        ? 'Maintenance Mode is ON — public NEXA routes are protected.'
-        : 'Maintenance Mode is OFF — NEXA is publicly available.';
+        ? 'Maintenance Mode is ON â public NEXA routes are protected.'
+        : 'Maintenance Mode is OFF â NEXA is publicly available.';
       state.classList.toggle('success', !!data.maintenance_mode);
       if(msg) msg.textContent='';
     }catch(error){
@@ -3958,8 +4337,8 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
       const data=await systemRequest('POST',{maintenance_mode:wanted});
       sw.checked=!!data.maintenance_mode;
       state.textContent=data.maintenance_mode
-        ? 'Maintenance Mode is ON — your Owner bypass cookie is active on this device.'
-        : 'Maintenance Mode is OFF — public NEXA routes are available again.';
+        ? 'Maintenance Mode is ON â your Owner bypass cookie is active on this device.'
+        : 'Maintenance Mode is OFF â public NEXA routes are available again.';
     }catch(error){
       sw.checked=!wanted;
       state.textContent=error.message;
@@ -4001,7 +4380,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
 
   const fmt=(n)=> {
     const x=Number(n||0);
-    if(!x) return '—';
+    if(!x) return 'â';
     if(x>=1e9) return (x/1e9).toFixed(x>=1e10?1:2).replace(/\.0+$/,'')+'B';
     if(x>=1e6) return (x/1e6).toFixed(x>=1e8?1:2).replace(/\.0+$/,'')+'M';
     return x.toLocaleString();
@@ -4015,24 +4394,74 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
     }catch{return null}
   }
 
+  let nexaAccountsCache=[];
+
+  function nexaAvatar(a){
+    return a?.profile_photo_url ||
+      `https://ui-avatars.com/api/?name=${encodeURIComponent(a?.in_game_name||'NEXA')}&background=111a38&color=cabaff&bold=true&size=256`;
+  }
+
+  function renderNexaConstellation(rows){
+    const system=$('nexa-constellation-system');
+    if(!system) return;
+    if(!rows.length){
+      system.innerHTML='<div class="nexa-profile-empty" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:250px"><b>No accounts yet</b>Add your first WOS account to begin.</div>';
+      return;
+    }
+    const main=rows.find(a=>a.is_main)||rows[0];
+    const others=rows.filter(a=>a.id!==main.id);
+    let out='<span class="nexa-constellation-orbit one"></span><span class="nexa-constellation-orbit two"></span>';
+    const mainType=main.is_main?'MAIN':(String(main.account_purpose||'full').toLowerCase()==='full'?'FULL':'BASIC');
+    out+=`<button type="button" class="nexa-account-planet main" data-nexa-profile="${main.id}">
+      <img src="${escapeHtml(nexaAvatar(main))}" alt="">
+      <span class="nexa-account-planet-name">${escapeHtml(main.in_game_name||'WOS Account')}</span>
+      <span class="nexa-account-planet-type">${mainType}</span>
+    </button>`;
+    const pos=[[50,14],[82,33],[84,67],[50,86],[16,67],[18,33],[69,8],[92,50],[69,92],[31,92],[8,50],[31,8]];
+    others.forEach((a,i)=>{
+      const p=pos[i%pos.length];
+      const type=String(a.account_purpose||'full').toLowerCase()==='full'?'FULL':'BASIC';
+      out+=`<button type="button" class="nexa-account-planet alt" style="left:${p[0]}%;top:${p[1]}%" data-nexa-profile="${a.id}">
+        <img src="${escapeHtml(nexaAvatar(a))}" alt="">
+        <span class="nexa-account-planet-name">${escapeHtml(a.in_game_name||'Account')}</span>
+        <span class="nexa-account-planet-type">${type}</span>
+      </button>`;
+    });
+    system.innerHTML=out;
+  }
+
   async function loadHomeAccountCards(){
-    const box=$('nexa-home-account-list');
-    if(!box) return;
     const user=await nexaUser();
-    if(!user){box.innerHTML='';return;}
+    if(!user) return;
     const {data,error}=await supabaseClient.from('player_accounts')
       .select('id,in_game_name,player_id,alliance_id,custom_alliance_tag,is_main,account_purpose,alliance_role,furnace_level,power,deployment_capacity,profile_photo_url,alliances(tag)')
       .eq('user_id',user.id).order('is_main',{ascending:false}).order('created_at');
-    if(error){ console.warn('NEXA profile cards:',error.message); return; }
+    if(error){ console.warn('NEXA profile launcher:',error.message); return; }
     const rows=data||[];
-    box.innerHTML=rows.map(a=>{
-      const tag=a.alliances?.tag||a.custom_alliance_tag||'Not Listed';
-      const type=a.is_main?'MAIN':(String(a.account_purpose||'full').toLowerCase()==='full'?'FULL':'BASIC');
-      return `<button type="button" class="nexa-home-account-card" data-nexa-profile="${a.id}">
-        <span><strong>${escapeHtml(a.in_game_name||'WOS Account')}<span class="nexa-account-badge">${type}</span></strong>
-        <small>${escapeHtml(tag)} · ${escapeHtml(a.player_id||'')}</small></span><span class="nexa-account-arrow">›</span>
-      </button>`;
-    }).join('');
+    nexaAccountsCache=rows;
+    renderNexaConstellation(rows);
+
+    const main=rows.find(a=>a.is_main)||rows[0];
+    const photo=$('nexa-profile-launcher-photo');
+    const name=$('nexa-profile-launcher-name');
+    const badge=$('nexa-profile-launcher-badge');
+    const count=$('nexa-profile-launcher-count');
+
+    if(!main){
+      if(photo) photo.src='https://ui-avatars.com/api/?name=NEXA&background=111a38&color=cabaff&bold=true&size=256';
+      if(name) name.textContent='ADD ACCOUNT';
+      if(badge) badge.textContent='PROFILE';
+      if(count) count.classList.add('hidden');
+      return;
+    }
+    if(photo) photo.src=nexaAvatar(main);
+    if(name) name.textContent=(main.in_game_name||'MY PROFILE').toUpperCase();
+    if(badge) badge.textContent=main.is_main?'MAIN':'ACCOUNT';
+    if(count){
+      const extra=Math.max(0,rows.length-1);
+      count.textContent='+'+extra;
+      count.classList.toggle('hidden',extra===0);
+    }
   }
 
   function escapeHtml(v){
@@ -4054,9 +4483,9 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
 
   function updateDeployment(){
     const base=Number(activeAccount?.deployment_capacity||0);
-    $('dep-base').textContent=base?whole(base):'—';
-    $('dep-10').textContent=base?whole(Math.round(base*1.10)):'—';
-    $('dep-20').textContent=base?whole(Math.round(base*1.20)):'—';
+    $('dep-base').textContent=base?whole(base):'â';
+    $('dep-10').textContent=base?whole(Math.round(base*1.10)):'â';
+    $('dep-20').textContent=base?whole(Math.round(base*1.20)):'â';
     // Pet calculations intentionally wait for the pet library values.
     $('dep-pet').textContent='Set pet first';
     $('dep-pet10').textContent='Set pet first';
@@ -4076,9 +4505,9 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
     $('nexa-profile-alliance').textContent=tag;
     $('nexa-profile-role').textContent=data.alliance_role||'R3';
     $('nexa-profile-type').textContent=data.is_main?'MAIN':(String(data.account_purpose||'full').toLowerCase()==='full'?'FULL':'BASIC');
-    $('nexa-profile-furnace').textContent=data.furnace_level||'—';
+    $('nexa-profile-furnace').textContent=data.furnace_level||'â';
     $('nexa-profile-power').textContent=fmt(data.power);
-    $('nexa-profile-deployment').textContent=data.deployment_capacity?whole(data.deployment_capacity):'—';
+    $('nexa-profile-deployment').textContent=data.deployment_capacity?whole(data.deployment_capacity):'â';
     $('nexa-profile-photo').src=data.profile_photo_url||`https://ui-avatars.com/api/?name=${encodeURIComponent(data.in_game_name||'NEXA')}&background=111a38&color=cabaff&bold=true&size=256`;
     $('nexa-edit-name').value=data.in_game_name||'';
     $('nexa-edit-role').value=data.alliance_role||'R3';
@@ -4093,8 +4522,33 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
   }
 
   document.addEventListener('click',(e)=>{
+    if(e.target.closest('#nexa-profile-launcher')){
+      if(!nexaAccountsCache.length){
+        $('accounts-modal')?.classList.add('open');
+        $('accounts-modal')?.setAttribute('aria-hidden','false');
+        return;
+      }
+      $('nexa-account-constellation')?.classList.add('open');
+      $('nexa-account-constellation')?.setAttribute('aria-hidden','false');
+      return;
+    }
+    if(e.target.closest('[data-close-constellation]')){
+      $('nexa-account-constellation')?.classList.remove('open');
+      $('nexa-account-constellation')?.setAttribute('aria-hidden','true');
+      return;
+    }
+    if(e.target.closest('#nexa-constellation-manage')){
+      $('nexa-account-constellation')?.classList.remove('open');
+      $('accounts-modal')?.classList.add('open');
+      $('accounts-modal')?.setAttribute('aria-hidden','false');
+      return;
+    }
     const card=e.target.closest('[data-nexa-profile]');
-    if(card){openNexaProfile(card.dataset.nexaProfile);return;}
+    if(card){
+      $('nexa-account-constellation')?.classList.remove('open');
+      openNexaProfile(card.dataset.nexaProfile);
+      return;
+    }
     if(e.target.closest('[data-close-nexa-profile]')){
       $('nexa-profile-modal').classList.remove('open'); $('nexa-profile-modal').setAttribute('aria-hidden','true'); return;
     }
@@ -4122,9 +4576,9 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
     Object.assign(activeAccount,payload);
     $('nexa-profile-name').textContent=(payload.in_game_name||'PLAYER').toUpperCase();
     $('nexa-profile-role').textContent=payload.alliance_role;
-    $('nexa-profile-furnace').textContent=payload.furnace_level||'—';
+    $('nexa-profile-furnace').textContent=payload.furnace_level||'â';
     $('nexa-profile-power').textContent=fmt(payload.power);
-    $('nexa-profile-deployment').textContent=payload.deployment_capacity?whole(payload.deployment_capacity):'—';
+    $('nexa-profile-deployment').textContent=payload.deployment_capacity?whole(payload.deployment_capacity):'â';
     updateDeployment(); $('nexa-profile-editor').classList.remove('open'); await loadHomeAccountCards();
   });
 
@@ -4156,6 +4610,109 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
 <!-- NEXA V51.1 Administration/System Operations fix -->
 <!-- NEXA V51.6 isolated System Operations Supabase client fix -->
 <!-- NEXA V51.8 diagnostic catch-path marker -->
-<!-- NEXA V53.1 floating UTC/local clock + account profile -->
+<!-- NEXA V55.1 Home + Account Constellation built from current GitHub main -->
+
+<script id="nexa-v551-home-runtime">
+(function(){
+  const $=id=>document.getElementById(id);
+  const toggle=$('nexa-home-menu-toggle');
+  const menu=$('nexa-home-menu');
+  const card=$('nexa-home-menu-card');
+
+  function closeMenu(){
+    menu?.classList.remove('open');
+    toggle?.classList.remove('open');
+    menu?.setAttribute('aria-hidden','true');
+    toggle?.setAttribute('aria-expanded','false');
+  }
+
+  async function openAdminTarget(targetId){
+    const admin=$('admin-panel-button');
+    if(!admin) return;
+    admin.click();
+    setTimeout(()=>$(targetId)?.click(),280);
+  }
+
+  function add(label,fn,primary=false){
+    const b=document.createElement('button');
+    b.type='button';
+    b.className='nexa-home-menu-item'+(primary?' primary':'');
+    b.innerHTML=`<span>${label}</span><span class="menu-dot"></span>`;
+    b.addEventListener('click',()=>{closeMenu();fn();});
+    card.appendChild(b);
+  }
+
+  function label(text){
+    const d=document.createElement('div');
+    d.className='nexa-home-menu-label';
+    d.textContent=text;
+    card.appendChild(d);
+  }
+
+  function sep(){
+    const d=document.createElement('div');
+    d.className='nexa-home-menu-separator';
+    card.appendChild(d);
+  }
+
+  async function buildMenu(){
+    if(!card) return;
+    card.innerHTML='';
+
+    label('NAVIGATION');
+    add('Home',()=>window.scrollTo({top:0,behavior:'smooth'}),true);
+    add('Live Event',()=>document.getElementById('home-svs-section')?.scrollIntoView({behavior:'smooth',block:'center'}));
+    add('Transfers',()=>document.getElementById('home-transfers-section')?.scrollIntoView({behavior:'smooth',block:'center'}));
+
+    let canSvs=false, canTransfers=false, role='';
+    try{
+      const [{data:svs},{data:tr},{data:{user}}]=await Promise.all([
+        supabaseClient.rpc('can_manage_svs'),
+        supabaseClient.rpc('can_manage_transfers'),
+        supabaseClient.auth.getUser()
+      ]);
+      canSvs=svs===true;
+      canTransfers=tr===true;
+      if(user?.id){
+        const {data:r}=await supabaseClient.from('user_roles').select('role').eq('user_id',user.id).maybeSingle();
+        role=String(r?.role||'').toLowerCase();
+      }
+    }catch(_){}
+
+    const adminLike=role==='owner'||role==='admin';
+    if(canSvs||canTransfers||adminLike){
+      sep();
+      label('CONTROL PANEL');
+      if(canSvs){
+        add('Event Operations',()=>openAdminTarget('open-event-operations'));
+        add('SVS',()=>openAdminTarget('open-svs-admin'));
+      }
+      if(canTransfers) add('Transfer Management',()=>openAdminTarget('open-transfer-admin'));
+      if(adminLike){
+        add('Administration',()=>openAdminTarget('open-administration'));
+        add('Announcements',()=>openAdminTarget('open-announcements'));
+        add('Layout Management',()=>openAdminTarget('open-layout-management'));
+      }
+    }
+  }
+
+  toggle?.addEventListener('click',async(e)=>{
+    e.stopPropagation();
+    if(menu?.classList.contains('open')){closeMenu();return;}
+    await buildMenu();
+    menu?.classList.add('open');
+    toggle?.classList.add('open');
+    menu?.setAttribute('aria-hidden','false');
+    toggle?.setAttribute('aria-expanded','true');
+  });
+
+  document.addEventListener('click',e=>{
+    if(menu?.classList.contains('open') &&
+       !e.target.closest('#nexa-home-menu') &&
+       !e.target.closest('#nexa-home-menu-toggle')) closeMenu();
+  });
+})();
+</script>
+
 </body>
 </html>

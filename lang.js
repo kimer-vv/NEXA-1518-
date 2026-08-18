@@ -640,3 +640,395 @@ Ukrainian, French, Italian, Simplified Chinese, Japanese.
     start();
   }
 })();
+
+
+/* =========================================================
+   NEXA v58.1 — APPEND TO END OF lang.js
+   Fixes:
+   1) HOME menu always gets TOOLS for signed-in users
+   2) Account Constellation loads MAIN from player_accounts
+   3) + Add Account loads alliance dropdown before opening
+   ========================================================= */
+(function () {
+  'use strict';
+
+  const $ = (id) => document.getElementById(id);
+  const qs = (s, r=document) => r.querySelector(s);
+  const qsa = (s, r=document) => Array.from(r.querySelectorAll(s));
+
+  function esc(v){
+    return String(v ?? '')
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;')
+      .replace(/'/g,'&#39;');
+  }
+
+  async function currentUser(){
+    try{
+      const {data:{user}} = await supabaseClient.auth.getUser();
+      return user || null;
+    }catch(_){
+      return null;
+    }
+  }
+
+  /* ---------------- HOME / TOOLS ---------------- */
+
+  function menuButton(label, click, submenu=false){
+    const b=document.createElement('button');
+    b.type='button';
+    b.className='nexa-home-menu-item'+(submenu?' submenu':'');
+    b.innerHTML='<span>'+esc(label)+'</span>'+
+      (submenu
+        ? '<span style="margin-left:auto;color:#72d8ff;font-size:17px">›</span>'
+        : '<span class="menu-dot"></span>');
+    b.addEventListener('click',function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      click();
+    });
+    return b;
+  }
+
+  function menuLabel(text){
+    const d=document.createElement('div');
+    d.className='nexa-home-menu-label';
+    d.textContent=text;
+    return d;
+  }
+
+  function menuSep(){
+    const d=document.createElement('div');
+    d.className='nexa-home-menu-separator';
+    return d;
+  }
+
+  function showRootAgain(){
+    const toggle=$('nexa-home-menu-toggle');
+    if(toggle){
+      const menu=$('nexa-home-menu');
+      menu?.classList.remove('open');
+      toggle.click();
+    }
+  }
+
+  function showSubmenu(title, items){
+    const card=$('nexa-home-menu-card');
+    if(!card) return;
+    card.innerHTML='';
+
+    const wrap=document.createElement('div');
+    wrap.className='nexa-home-menu-subview';
+
+    const header=document.createElement('div');
+    header.className='nexa-submenu-header';
+
+    const back=document.createElement('button');
+    back.type='button';
+    back.className='nexa-submenu-back';
+    back.textContent='‹';
+    back.onclick=function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      card.innerHTML='';
+      showRootAgain();
+    };
+
+    const t=document.createElement('span');
+    t.textContent=title;
+    header.append(back,t);
+    wrap.appendChild(header);
+
+    items.forEach(([label,action])=>{
+      wrap.appendChild(menuButton(label,action,false));
+    });
+
+    card.appendChild(wrap);
+  }
+
+  function go(url){
+    window.location.href=url;
+  }
+
+  async function forceTools(){
+    const user=await currentUser();
+    if(!user) return;
+
+    const card=$('nexa-home-menu-card');
+    const menu=$('nexa-home-menu');
+    if(!card || !menu || !menu.classList.contains('open')) return;
+
+    // If TOOLS already exists, do nothing.
+    const existingLabels=qsa('.nexa-home-menu-label',card)
+      .map(x=>(x.textContent||'').trim().toUpperCase());
+    if(existingLabels.includes('TOOLS')) return;
+
+    const wrap=qs('.nexa-home-menu-subview',card) || card;
+
+    wrap.appendChild(menuSep());
+    wrap.appendChild(menuLabel('TOOLS'));
+
+    wrap.appendChild(menuButton('Administration',()=>{
+      showSubmenu('ADMINISTRATION',[
+        ['Alliances',()=>go('index.html?admin=administration&tab=alliances')],
+        ['Library',()=>go('index.html?admin=administration&tab=library')],
+        ['Permissions',()=>go('index.html?admin=administration&tab=permissions')],
+        ['Roles',()=>go('index.html?admin=administration&tab=roles')],
+        ['System Operations',()=>go('index.html?admin=administration&tab=system')]
+      ]);
+    },true));
+
+    wrap.appendChild(menuButton('Event Forms',()=>{
+      showSubmenu('EVENT FORMS',[
+        ['Forms',()=>go('event-operations.html?tab=forms')],
+        ['Responses',()=>go('event-operations.html?tab=responses')]
+      ]);
+    },true));
+
+    wrap.appendChild(menuButton('SVS',()=>{
+      showSubmenu('SVS',[
+        ['Event Setup',()=>go('index.html?admin=svs&tab=events')],
+        ['Forms',()=>go('index.html?admin=svs&tab=forms')],
+        ['Schedule Setup',()=>go('index.html?admin=svs&tab=schedule')],
+        ['History',()=>go('index.html?admin=svs&tab=history')]
+      ]);
+    },true));
+
+    wrap.appendChild(menuButton('FDT',()=>{
+      alert('FDT module will be configured in the next event phase.');
+    }));
+
+    wrap.appendChild(menuButton('TAL',()=>{
+      alert('TAL module will be configured in the next event phase.');
+    }));
+
+    wrap.appendChild(menuButton('Team Builder',()=>{
+      showSubmenu('TEAM BUILDER',[
+        ['Build Teams',()=>go('team-builder.html')],
+        ['Manage Teams',()=>go('alliance-teams.html')],
+        ['Team View',()=>go('team-layout.html')]
+      ]);
+    },true));
+
+    wrap.appendChild(menuButton('Transfer Management',()=>{
+      showSubmenu('TRANSFER MANAGEMENT',[
+        ['Event Management',()=>go('transfer-admin.html?tab=events')],
+        ['Applications',()=>go('transfer-admin.html?tab=applications')],
+        ['Transfer Roster',()=>go('transfer-admin.html?tab=roster')],
+        ['Waiting List',()=>go('transfer-admin.html?tab=waiting')],
+        ['Recruiting Alliances',()=>go('transfer-admin.html?tab=alliances')],
+        ['History',()=>go('transfer-admin.html?tab=history')]
+      ]);
+    },true));
+  }
+
+  // Whenever the old HOME menu opens, append TOOLS after its 3 navigation rows.
+  const menuObserver=new MutationObserver(function(){
+    setTimeout(forceTools,20);
+  });
+
+  function observeMenu(){
+    const menu=$('nexa-home-menu');
+    const card=$('nexa-home-menu-card');
+    if(menu) menuObserver.observe(menu,{attributes:true,attributeFilter:['class']});
+    if(card) menuObserver.observe(card,{childList:true,subtree:true});
+  }
+
+  /* ---------------- CONSTELLATION ---------------- */
+
+  function avatar(account){
+    return account?.profile_photo_url ||
+      'https://ui-avatars.com/api/?name='+
+      encodeURIComponent(account?.in_game_name || 'NEXA')+
+      '&background=111a38&color=cabaff&bold=true&size=256';
+  }
+
+  async function loadAccountsForConstellation(){
+    const user=await currentUser();
+    if(!user) return [];
+
+    // Query only columns known to exist in current My Accounts.
+    const {data,error}=await supabaseClient
+      .from('player_accounts')
+      .select('id,in_game_name,player_id,alliance_id,custom_alliance_tag')
+      .eq('user_id',user.id)
+      .order('created_at');
+
+    if(error){
+      console.warn('NEXA v58.1 constellation:',error.message);
+      return [];
+    }
+
+    return (data||[]).map((a,i)=>({
+      ...a,
+      is_main:i===0
+    }));
+  }
+
+  function renderAccounts(rows){
+    const system=$('nexa-constellation-system');
+    if(!system) return;
+
+    const pos=[[50,14],[82,33],[84,67],[50,86],[16,67],[18,33]];
+    let out=
+      '<span class="nexa-constellation-orbit one"></span>'+
+      '<span class="nexa-constellation-orbit two"></span>';
+
+    if(rows.length){
+      const main=rows[0];
+
+      out+=
+        '<button type="button" class="nexa-account-planet main" data-v581-account="'+esc(main.id)+'">'+
+          '<img src="'+esc(avatar(main))+'" alt="">'+
+          '<span class="nexa-account-planet-name">'+esc(main.in_game_name||'Main Account')+'</span>'+
+          '<span class="nexa-account-planet-type">MAIN</span>'+
+        '</button>';
+
+      rows.slice(1).forEach((a,i)=>{
+        const p=pos[i%pos.length];
+        out+=
+          '<button type="button" class="nexa-account-planet alt" '+
+          'style="left:'+p[0]+'%;top:'+p[1]+'%" data-v581-account="'+esc(a.id)+'">'+
+            '<img src="'+esc(avatar(a))+'" alt="">'+
+            '<span class="nexa-account-planet-name">'+esc(a.in_game_name||'Account')+'</span>'+
+            '<span class="nexa-account-planet-type">FULL</span>'+
+          '</button>';
+      });
+    }
+
+    if(rows.length<5){
+      const p=pos[Math.max(0,rows.length-1)%pos.length];
+      out+=
+        '<button type="button" id="nexa-v581-add-account" class="nexa-account-planet alt nexa-add-planet" '+
+        'style="left:'+p[0]+'%;top:'+p[1]+'%">'+
+          '<span class="nexa-add-planet-symbol">+</span>'+
+          '<span class="nexa-account-planet-name">ADD ACCOUNT</span>'+
+        '</button>';
+    }
+
+    system.innerHTML=out;
+  }
+
+  async function forceConstellation(){
+    const modal=$('nexa-account-constellation');
+    if(!modal) return;
+
+    const rows=await loadAccountsForConstellation();
+    renderAccounts(rows);
+
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden','false');
+
+    const oldManage=$('nexa-constellation-manage');
+    if(oldManage) oldManage.style.display='none';
+  }
+
+  /* ---------------- ADD ACCOUNT / ALLIANCES ---------------- */
+
+  async function populateAlliances(){
+    const select=$('alliance-select');
+    if(!select) return;
+
+    select.innerHTML='<option value="">Loading alliances...</option>';
+
+    try{
+      const {data,error}=await supabaseClient
+        .from('alliances')
+        .select('id,tag')
+        .eq('is_active',true)
+        .order('tag');
+
+      if(error) throw error;
+
+      const rows=data||[];
+
+      select.innerHTML=
+        '<option value="">Select alliance</option>'+
+        rows.map(a=>
+          '<option value="'+esc(a.id)+'">'+esc(a.tag)+'</option>'
+        ).join('')+
+        '<option value="not-listed">Not Listed</option>';
+
+    }catch(error){
+      console.warn('NEXA v58.1 alliances:',error?.message||error);
+
+      // Keep account creation usable even if alliance list is temporarily unavailable.
+      select.innerHTML=
+        '<option value="">Alliance unavailable</option>'+
+        '<option value="not-listed">Not Listed</option>';
+    }
+  }
+
+  async function openAddAccount(){
+    const constellation=$('nexa-account-constellation');
+    if(constellation){
+      constellation.classList.remove('open');
+      constellation.setAttribute('aria-hidden','true');
+    }
+
+    await populateAlliances();
+
+    const modal=$('accounts-modal');
+    if(modal){
+      modal.classList.add('open');
+      modal.setAttribute('aria-hidden','false');
+    }
+  }
+
+  /* ---------------- CLICK OVERRIDES ---------------- */
+
+  document.addEventListener('click',function(event){
+    const launcher=event.target.closest?.('#nexa-profile-launcher');
+
+    if(launcher){
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      forceConstellation();
+      return;
+    }
+
+    const add=event.target.closest?.(
+      '#nexa-v581-add-account,#nexa-mobile-add-account,#nexa-constellation-add,#nexa-constellation-manage'
+    );
+
+    if(add){
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      openAddAccount();
+      return;
+    }
+
+    const account=event.target.closest?.('[data-v581-account]');
+
+    if(account){
+      event.preventDefault();
+      event.stopImmediatePropagation();
+
+      const id=account.getAttribute('data-v581-account');
+      $('nexa-account-constellation')?.classList.remove('open');
+
+      // Use existing Player Intelligence Profile if available.
+      if(typeof window.openNexaProfile==='function'){
+        window.openNexaProfile(id);
+      }else{
+        const old=document.querySelector('[data-nexa-profile="'+CSS.escape(id)+'"]');
+        if(old) old.click();
+      }
+
+      return;
+    }
+  },true);
+
+  function start(){
+    observeMenu();
+    setTimeout(forceTools,300);
+  }
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',start);
+  }else{
+    start();
+  }
+})();

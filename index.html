@@ -1845,7 +1845,7 @@ html.nexa-auth-boot body > #nexa-auth-gate { visibility:visible!important; }
     <div class="nexa-transfer-home-actions"><a class="btn nexa-transfer-open-btn" href="transfer-apply.html">Open</a></div>
   </section>
 
-  <div class="shell" style="margin-top:10px"><div class="build-proof">NEXA BUILD v57.6 NAV/CONSTELLATION</div></div>
+  <div class="shell" style="margin-top:10px"><div class="build-proof">NEXA BUILD v57.7 HARD NAV/PROFILE</div></div>
   <div class="footer">
     Your state. One hub. Everything connected.<br>
     NEXA â¢ State 1518
@@ -1866,12 +1866,12 @@ html.nexa-auth-boot body > #nexa-auth-gate { visibility:visible!important; }
 <div id="nexa-profile-modal" class="nexa-profile-modal" aria-hidden="true">
   <div class="nexa-profile-backdrop" data-close-nexa-profile></div>
   <section class="nexa-profile-sheet">
-    <button class="nexa-profile-close" type="button" data-close-nexa-profile>ÃÂ</button>
+    <button class="nexa-profile-close" type="button" data-close-nexa-profile>Ã</button>
     <div class="nexa-profile-hero">
       <div class="nexa-profile-main">
         <div class="nexa-photo-wrap">
           <img id="nexa-profile-photo" class="nexa-profile-photo" alt="Game account profile photo">
-          <button id="nexa-photo-edit" class="nexa-photo-edit" type="button" title="Change photo">Ã¢ÂÂ</button>
+          <button id="nexa-photo-edit" class="nexa-photo-edit" type="button" title="Change photo">â</button>
           <input id="nexa-photo-input" type="file" accept="image/*" hidden>
         </div>
         <div class="nexa-profile-identity">
@@ -1905,7 +1905,7 @@ html.nexa-auth-boot body > #nexa-auth-gate { visibility:visible!important; }
         </div>
       </div>
 
-      <div class="nexa-profile-edit-row"><button id="nexa-profile-edit-btn" class="nexa-profile-edit-btn" type="button">Ã¢ÂÂ Edit Profile</button></div>
+      <div class="nexa-profile-edit-row"><button id="nexa-profile-edit-btn" class="nexa-profile-edit-btn" type="button">â Edit Profile</button></div>
       <form id="nexa-profile-editor" class="nexa-profile-editor">
         <div class="nexa-profile-editor-grid">
           <label>In-Game Name<input id="nexa-edit-name" maxlength="40"></label>
@@ -1941,7 +1941,7 @@ html.nexa-auth-boot body > #nexa-auth-gate { visibility:visible!important; }
   <section class="modal-card">
     <div class="modal-head">
       <div><small>MY ACCOUNTS</small><h2>WOS Accounts <span id="account-count">0/5</span></h2></div>
-      <button class="icon-btn" type="button" data-close-accounts>ÃÂ</button>
+      <button class="icon-btn" type="button" data-close-accounts>Ã</button>
     </div>
 
     <div id="accounts-message" class="form-message"></div>
@@ -2031,7 +2031,7 @@ html.nexa-auth-boot body > #nexa-auth-gate { visibility:visible!important; }
         <small>ADMIN PANEL</small>
         <h2>NEXA Control Center</h2>
       </div>
-      <button class="icon-btn" type="button" data-close-admin>ÃÂ</button>
+      <button class="icon-btn" type="button" data-close-admin>Ã</button>
     </div>
 
     <div id="admin-module-chooser" class="module-chooser">
@@ -4880,7 +4880,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
     if(!user) return;
 
     let {data,error}=await supabaseClient.from('player_accounts')
-      .select('id,in_game_name,player_id,alliance_id,custom_alliance_tag,alliances(tag)')
+      .select('id,in_game_name,player_id,alliance_id,custom_alliance_tag')
       .eq('user_id',user.id)
       .order('created_at');
 
@@ -5106,335 +5106,3 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
   }
 
   function closeMenu(){
-    menu?.classList.remove('open');
-    toggle?.classList.remove('open');
-    menu?.setAttribute('aria-hidden','true');
-    toggle?.setAttribute('aria-expanded','false');
-  }
-
-  function go(url){
-    closeMenu();
-    window.location.href = url;
-  }
-
-  function addButton(parent,label,fn,opts){
-    opts = opts || {};
-    const b=document.createElement('button');
-    b.type='button';
-    b.className='nexa-home-menu-item'+(opts.primary?' primary':'')+(opts.submenu?' submenu':'');
-    b.innerHTML='<span>'+esc(label)+'</span>' +
-      (opts.submenu ? '<span class="nexa-menu-arrow">&gt;</span>' : '<span class="menu-dot"></span>');
-    b.addEventListener('click',function(e){
-      e.preventDefault();
-      e.stopPropagation();
-      fn();
-    });
-    parent.appendChild(b);
-  }
-
-  function label(parent,text){
-    const d=document.createElement('div');
-    d.className='nexa-home-menu-label';
-    d.textContent=text;
-    parent.appendChild(d);
-  }
-
-  function sep(parent){
-    const d=document.createElement('div');
-    d.className='nexa-home-menu-separator';
-    parent.appendChild(d);
-  }
-
-  function makeSubmenu(title){
-    card.innerHTML='';
-    const wrap=document.createElement('div');
-    wrap.className='nexa-home-menu-subview';
-
-    const header=document.createElement('div');
-    header.className='nexa-submenu-header';
-
-    const back=document.createElement('button');
-    back.type='button';
-    back.className='nexa-submenu-back';
-    back.textContent='<';
-    back.addEventListener('click',function(e){
-      e.preventDefault();
-      e.stopPropagation();
-      buildRoot();
-    });
-
-    const t=document.createElement('span');
-    t.textContent=title;
-    header.append(back,t);
-    wrap.appendChild(header);
-    card.appendChild(wrap);
-    return wrap;
-  }
-
-  function buildAdministration(){
-    const wrap=makeSubmenu('ADMINISTRATION');
-    addButton(wrap,'Alliances',()=>go('index.html?admin=administration&tab=alliances'));
-    addButton(wrap,'Library',()=>go('index.html?admin=administration&tab=library'));
-    addButton(wrap,'Permissions',()=>go('index.html?admin=administration&tab=permissions'));
-    addButton(wrap,'Roles',()=>go('index.html?admin=administration&tab=roles'));
-    addButton(wrap,'System Operations',()=>go('index.html?admin=administration&tab=system'));
-  }
-
-  function buildEventForms(){
-    const wrap=makeSubmenu('EVENT FORMS');
-    addButton(wrap,'Forms',()=>go('event-operations.html?tab=forms'));
-    addButton(wrap,'Responses',()=>go('event-operations.html?tab=responses'));
-  }
-
-  function buildSvs(){
-    const wrap=makeSubmenu('SVS');
-    addButton(wrap,'Event Setup',()=>go('index.html?admin=svs&tab=events'));
-    addButton(wrap,'Forms',()=>go('index.html?admin=svs&tab=forms'));
-    addButton(wrap,'Schedule Setup',()=>go('index.html?admin=svs&tab=schedule'));
-    addButton(wrap,'History',()=>go('index.html?admin=svs&tab=history'));
-  }
-
-  function buildTeamBuilder(){
-    const wrap=makeSubmenu('TEAM BUILDER');
-    addButton(wrap,'Build Teams',()=>go('team-builder.html'));
-    addButton(wrap,'Manage Teams',()=>go('alliance-teams.html'));
-    addButton(wrap,'Team View',()=>go('team-layout.html'));
-  }
-
-  function buildTransfer(){
-    const wrap=makeSubmenu('TRANSFER MANAGEMENT');
-    addButton(wrap,'Event Management',()=>go('transfer-admin.html?tab=events'));
-    addButton(wrap,'Applications',()=>go('transfer-admin.html?tab=applications'));
-    addButton(wrap,'Transfer Roster',()=>go('transfer-admin.html?tab=roster'));
-    addButton(wrap,'Waiting List',()=>go('transfer-admin.html?tab=waiting'));
-    addButton(wrap,'Recruiting Alliances',()=>go('transfer-admin.html?tab=alliances'));
-    addButton(wrap,'History',()=>go('transfer-admin.html?tab=history'));
-  }
-
-  async function buildRoot(){
-    if(!card) return;
-    card.innerHTML='';
-    const wrap=document.createElement('div');
-    wrap.className='nexa-home-menu-subview';
-    card.appendChild(wrap);
-
-    label(wrap,'NAVIGATION');
-
-    addButton(wrap,'Home',function(){
-      closeMenu();
-      if(location.pathname.endsWith('/index.html') || location.pathname.endsWith('/')){
-        window.scrollTo({top:0,behavior:'smooth'});
-      }else{
-        window.location.href='index.html';
-      }
-    },{primary:true});
-
-    addButton(wrap,'Live Event',function(){
-      closeMenu();
-      $('home-svs-section')?.scrollIntoView({behavior:'smooth',block:'center'});
-    });
-
-    addButton(wrap,'Transfers',function(){
-      closeMenu();
-      $('home-transfers-section')?.scrollIntoView({behavior:'smooth',block:'center'});
-    });
-
-    let owner=false, admin=false, canSvs=false, canTransfers=false, signedIn=false, hasGameAccount=false;
-    try{
-      const auth=await supabaseClient.auth.getUser();
-      signedIn=!!auth?.data?.user;
-      if(signedIn){
-        try{
-          const rr=await supabaseClient.rpc('current_nexa_role');
-          const role=String(rr?.data||'').toLowerCase();
-          owner=role==='owner';
-          admin=role==='admin' || owner;
-        }catch(_){}
-        if(!admin && typeof window.nexaAmIAdmin==='function') admin=await window.nexaAmIAdmin();
-        if(!owner && typeof window.nexaAmIOwner==='function') owner=await window.nexaAmIOwner();
-      }
-    }catch(_){}
-    try{
-      if(typeof window.nexaGetModuleAccess==='function'){
-        const access=await window.nexaGetModuleAccess();
-        canSvs=access?.svs===true;
-        canTransfers=access?.transfers===true;
-      }
-    }catch(_){}
-    try{
-      if(typeof window.nexaLoadHomeAccountCards==='function') await window.nexaLoadHomeAccountCards();
-      hasGameAccount=Array.isArray(window.nexaAccountsCache) && window.nexaAccountsCache.length>0;
-    }catch(_){}
-    const staff = signedIn && (owner || admin || canSvs || canTransfers || hasGameAccount);
-
-    if(staff){
-      sep(wrap);
-      label(wrap,'TOOLS');
-
-      if(owner || admin){
-        addButton(wrap,'Administration',buildAdministration,{submenu:true});
-      }
-      if(owner || admin || canSvs || hasGameAccount){
-        addButton(wrap,'Event Forms',buildEventForms,{submenu:true});
-        addButton(wrap,'SVS',buildSvs,{submenu:true});
-      }
-      if(owner || admin || hasGameAccount){
-        addButton(wrap,'FDT',function(){ alert('FDT module will be added in the next event phase.'); });
-        addButton(wrap,'TAL',function(){ alert('TAL module will be added in the next event phase.'); });
-        addButton(wrap,'Team Builder',buildTeamBuilder,{submenu:true});
-      }
-      if(owner || admin || canTransfers || hasGameAccount){
-        addButton(wrap,'Transfer Management',buildTransfer,{submenu:true});
-      }
-    }
-
-    try{
-      const auth = await supabaseClient.auth.getUser();
-      const user = auth?.data?.user || null;
-      if(user){
-        const session=document.createElement('div');
-        session.className='nexa-session-block';
-        const sessionName =
-          user.user_metadata?.in_game_name ||
-          user.user_metadata?.name ||
-          user.email ||
-          'NEXA User';
-
-        session.innerHTML='<div class="nexa-session-name">'+esc(sessionName)+'</div>';
-
-        const logout=document.createElement('button');
-        logout.type='button';
-        logout.className='nexa-logout-btn';
-        logout.textContent='LOGOUT';
-        logout.addEventListener('click',async function(){
-          await supabaseClient.auth.signOut();
-          location.reload();
-        });
-        session.appendChild(logout);
-        wrap.appendChild(session);
-      }
-    }catch(_){}
-  }
-
-  toggle?.addEventListener('click',async function(e){
-    e.preventDefault();
-    e.stopPropagation();
-
-    if(menu?.classList.contains('open')){
-      closeMenu();
-      return;
-    }
-
-    await buildRoot();
-    menu?.classList.add('open');
-    toggle?.classList.add('open');
-    menu?.setAttribute('aria-hidden','false');
-    toggle?.setAttribute('aria-expanded','true');
-  });
-
-  document.addEventListener('click',function(e){
-    if(
-      menu?.classList.contains('open') &&
-      !e.target.closest('#nexa-home-menu') &&
-      !e.target.closest('#nexa-home-menu-toggle')
-    ){
-      closeMenu();
-    }
-  });
-
-  // Header clocks
-  function tick(){
-    const now=new Date();
-
-    const ut=$('nexa-v56-utc-time');
-    const ud=$('nexa-v56-utc-date');
-    const lt=$('nexa-v56-local-time');
-    const ld=$('nexa-v56-local-date');
-
-    if(ut) ut.textContent=now.toLocaleTimeString('en-GB',{
-      timeZone:'UTC',hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'
-    });
-    if(ud) ud.textContent=now.toLocaleDateString('en-GB',{
-      timeZone:'UTC',day:'2-digit',month:'short',year:'numeric'
-    }).toUpperCase();
-
-    if(lt) lt.textContent=now.toLocaleTimeString([],{
-      hour:'2-digit',minute:'2-digit',second:'2-digit'
-    });
-    if(ld) ld.textContent=now.toLocaleDateString([],{
-      day:'2-digit',month:'short',year:'numeric'
-    }).toUpperCase();
-  }
-  tick();
-  setInterval(tick,1000);
-})();
-</script>
-
-
-
-
-
-<script>
-(function(){
-  function two(n){return String(n).padStart(2,'0')}
-  function updateNexaClocks(){
-    const d=new Date();
-    const utc=two(d.getUTCHours())+':'+two(d.getUTCMinutes())+':'+two(d.getUTCSeconds());
-    const local=d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true});
-    const udate=d.toLocaleDateString('en-US',{timeZone:'UTC',month:'short',day:'2-digit',year:'numeric'}).toUpperCase();
-    const ldate=d.toLocaleDateString('en-US',{month:'short',day:'2-digit',year:'numeric'}).toUpperCase();
-    const set=(selectors,value)=>selectors.forEach(s=>document.querySelectorAll(s).forEach(e=>e.textContent=value));
-    set(['#utc-time','#utc-clock','#home-utc-time','[data-utc-time]'],utc);
-    set(['#local-time','#local-clock','#home-local-time','[data-local-time]'],local);
-    set(['#utc-date','#home-utc-date','[data-utc-date]'],udate);
-    set(['#local-date','#home-local-date','[data-local-date]'],ldate);
-
-    // Fallback for the current header when IDs differ.
-    document.querySelectorAll('header, .topbar, .nexa-header').forEach(root=>{
-      const labels=[...root.querySelectorAll('*')];
-      for(const el of labels){
-        const t=(el.textContent||'').trim().toUpperCase();
-        if(t==='UTC'){
-          const box=el.parentElement;
-          if(box){
-            const vals=[...box.children].filter(x=>x!==el);
-            if(vals[0] && /--:--|--/.test(vals[0].textContent||'')) vals[0].textContent=utc;
-            if(vals[1] && /--/.test(vals[1].textContent||'')) vals[1].textContent=udate;
-          }
-        }
-        if(t==='LOCAL'){
-          const box=el.parentElement;
-          if(box){
-            const vals=[...box.children].filter(x=>x!==el);
-            if(vals[0] && /--:--|--/.test(vals[0].textContent||'')) vals[0].textContent=local;
-            if(vals[1] && /--/.test(vals[1].textContent||'')) vals[1].textContent=ldate;
-          }
-        }
-      }
-    });
-  }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>{updateNexaClocks();setInterval(updateNexaClocks,1000)});
-  else {updateNexaClocks();setInterval(updateNexaClocks,1000)}
-})();
-</script>
-
-
-<script>
-(function(){
-  async function nexaAccountScreenRepair(){
-    try{
-      const tz=Intl.DateTimeFormat().resolvedOptions().timeZone || 'Local device';
-      const tzEl=document.getElementById('timezone-display');
-      if(tzEl && /Detecting/i.test(tzEl.textContent||'')) tzEl.textContent=tz;
-      document.querySelectorAll('*').forEach(el=>{
-        if(el.children.length===0 && /Detecting\.\.\./.test(el.textContent||'')) el.textContent=tz;
-      });
-    }catch(_){}
-  }
-  document.addEventListener('click',()=>setTimeout(nexaAccountScreenRepair,250));
-  setTimeout(nexaAccountScreenRepair,900);
-})();
-</script>
-
-</body>
-</html>

@@ -1845,7 +1845,7 @@ html.nexa-auth-boot body > #nexa-auth-gate { visibility:visible!important; }
     <div class="nexa-transfer-home-actions"><a class="btn nexa-transfer-open-btn" href="transfer-apply.html">Open</a></div>
   </section>
 
-  <div class="shell" style="margin-top:10px"><div class="build-proof">NEXA BUILD v57.7 HARD NAV/PROFILE</div></div>
+  <div class="shell" style="margin-top:10px"><div class="build-proof">NEXA BUILD v57.8 HARD UI RESET</div></div>
   <div class="footer">
     Your state. One hub. Everything connected.<br>
     NEXA â¢ State 1518
@@ -5106,3 +5106,190 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
   }
 
   function closeMenu(){
+    menu?.classList.remove('open');
+    toggle?.classList.remove('open');
+    menu?.setAttribute('aria-hidden','true');
+    toggle?.setAttribute('aria-expanded','false');
+  }
+
+  function go(url){
+    closeMenu();
+    window.location.href = url;
+  }
+
+  function addButton(parent,label,fn,opts){
+    opts = opts || {};
+    const b=document.createElement('button');
+    b.type='button';
+    b.className='nexa-home-menu-item'+(opts.primary?' primary':'')+(opts.submenu?' submenu':'');
+    b.innerHTML='<span>'+esc(label)+'</span>' +
+      (opts.submenu ? '<span class="nexa-menu-arrow">&gt;</span>' : '<span class="menu-dot"></span>');
+    b.addEventListener('click',function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      fn();
+    });
+    parent.appendChild(b);
+  }
+
+  function label(parent,text){
+    const d=document.createElement('div');
+    d.className='nexa-home-menu-label';
+    d.textContent=text;
+    parent.appendChild(d);
+  }
+
+  function sep(parent){
+    const d=document.createElement('div');
+    d.className='nexa-home-menu-separator';
+    parent.appendChild(d);
+  }
+
+  function makeSubmenu(title){
+    card.innerHTML='';
+    const wrap=document.createElement('div');
+    wrap.className='nexa-home-menu-subview';
+
+    const header=document.createElement('div');
+    header.className='nexa-submenu-header';
+
+    const back=document.createElement('button');
+    back.type='button';
+    back.className='nexa-submenu-back';
+    back.textContent='<';
+    back.addEventListener('click',function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      buildRoot();
+    });
+
+    const t=document.createElement('span');
+    t.textContent=title;
+    header.append(back,t);
+    wrap.appendChild(header);
+    card.appendChild(wrap);
+    return wrap;
+  }
+
+  function buildAdministration(){
+    const wrap=makeSubmenu('ADMINISTRATION');
+    addButton(wrap,'Alliances',()=>go('index.html?admin=administration&tab=alliances'));
+    addButton(wrap,'Library',()=>go('index.html?admin=administration&tab=library'));
+    addButton(wrap,'Permissions',()=>go('index.html?admin=administration&tab=permissions'));
+    addButton(wrap,'Roles',()=>go('index.html?admin=administration&tab=roles'));
+    addButton(wrap,'System Operations',()=>go('index.html?admin=administration&tab=system'));
+  }
+
+  function buildEventForms(){
+    const wrap=makeSubmenu('EVENT FORMS');
+    addButton(wrap,'Forms',()=>go('event-operations.html?tab=forms'));
+    addButton(wrap,'Responses',()=>go('event-operations.html?tab=responses'));
+  }
+
+  function buildSvs(){
+    const wrap=makeSubmenu('SVS');
+    addButton(wrap,'Event Setup',()=>go('index.html?admin=svs&tab=events'));
+    addButton(wrap,'Forms',()=>go('index.html?admin=svs&tab=forms'));
+    addButton(wrap,'Schedule Setup',()=>go('index.html?admin=svs&tab=schedule'));
+    addButton(wrap,'History',()=>go('index.html?admin=svs&tab=history'));
+  }
+
+  function buildTeamBuilder(){
+    const wrap=makeSubmenu('TEAM BUILDER');
+    addButton(wrap,'Build Teams',()=>go('team-builder.html'));
+    addButton(wrap,'Manage Teams',()=>go('alliance-teams.html'));
+    addButton(wrap,'Team View',()=>go('team-layout.html'));
+  }
+
+  function buildTransfer(){
+    const wrap=makeSubmenu('TRANSFER MANAGEMENT');
+    addButton(wrap,'Event Management',()=>go('transfer-admin.html?tab=events'));
+    addButton(wrap,'Applications',()=>go('transfer-admin.html?tab=applications'));
+    addButton(wrap,'Transfer Roster',()=>go('transfer-admin.html?tab=roster'));
+    addButton(wrap,'Waiting List',()=>go('transfer-admin.html?tab=waiting'));
+    addButton(wrap,'Recruiting Alliances',()=>go('transfer-admin.html?tab=alliances'));
+    addButton(wrap,'History',()=>go('transfer-admin.html?tab=history'));
+  }
+
+  async function buildRoot(){
+    if(!card) return;
+    card.innerHTML='';
+    const wrap=document.createElement('div');
+    wrap.className='nexa-home-menu-subview';
+    card.appendChild(wrap);
+
+    label(wrap,'NAVIGATION');
+
+    addButton(wrap,'Home',function(){
+      closeMenu();
+      if(location.pathname.endsWith('/index.html') || location.pathname.endsWith('/')){
+        window.scrollTo({top:0,behavior:'smooth'});
+      }else{
+        window.location.href='index.html';
+      }
+    },{primary:true});
+
+    addButton(wrap,'Live Event',function(){
+      closeMenu();
+      $('home-svs-section')?.scrollIntoView({behavior:'smooth',block:'center'});
+    });
+
+    addButton(wrap,'Transfers',function(){
+      closeMenu();
+      $('home-transfers-section')?.scrollIntoView({behavior:'smooth',block:'center'});
+    });
+
+    let owner=false, admin=false, canSvs=false, canTransfers=false, signedIn=false, hasGameAccount=false;
+    try{
+      const auth=await supabaseClient.auth.getUser();
+      signedIn=!!auth?.data?.user;
+      if(signedIn){
+        try{
+          const rr=await supabaseClient.rpc('current_nexa_role');
+          const role=String(rr?.data||'').toLowerCase();
+          owner=role==='owner';
+          admin=role==='admin' || owner;
+        }catch(_){}
+        if(!admin && typeof window.nexaAmIAdmin==='function') admin=await window.nexaAmIAdmin();
+        if(!owner && typeof window.nexaAmIOwner==='function') owner=await window.nexaAmIOwner();
+      }
+    }catch(_){}
+    try{
+      if(typeof window.nexaGetModuleAccess==='function'){
+        const access=await window.nexaGetModuleAccess();
+        canSvs=access?.svs===true;
+        canTransfers=access?.transfers===true;
+      }
+    }catch(_){}
+    try{
+      if(typeof window.nexaLoadHomeAccountCards==='function') await window.nexaLoadHomeAccountCards();
+      hasGameAccount=Array.isArray(window.nexaAccountsCache) && window.nexaAccountsCache.length>0;
+    }catch(_){}
+    const staff = signedIn;
+
+    if(staff){
+      sep(wrap);
+      label(wrap,'TOOLS');
+
+      if(signedIn){
+        addButton(wrap,'Administration',buildAdministration,{submenu:true});
+      }
+      if(signedIn){
+        addButton(wrap,'Event Forms',buildEventForms,{submenu:true});
+        addButton(wrap,'SVS',buildSvs,{submenu:true});
+      }
+      if(signedIn){
+        addButton(wrap,'FDT',function(){ alert('FDT module will be added in the next event phase.'); });
+        addButton(wrap,'TAL',function(){ alert('TAL module will be added in the next event phase.'); });
+        addButton(wrap,'Team Builder',buildTeamBuilder,{submenu:true});
+      }
+      if(signedIn){
+        addButton(wrap,'Transfer Management',buildTransfer,{submenu:true});
+      }
+    }
+
+    try{
+      const auth = await supabaseClient.auth.getUser();
+      const user = auth?.data?.user || null;
+      if(user){
+        const sessio

@@ -1423,6 +1423,38 @@ body.nexa-schedule-open{
 .nexa-v56-clock-wrap{display:grid!important}
 #nexa-account-constellation.open{display:block!important}
 
+
+/* NEXA V56.2 â clean native brand mark */
+.brand-mark,.logo-mark,.nexa-logo-mark{
+  font-size:0!important;
+  position:relative!important;
+  overflow:hidden!important;
+}
+.brand-mark::before,.logo-mark::before,.nexa-logo-mark::before{
+  content:""!important;
+  position:absolute!important;
+  inset:22%!important;
+  border-radius:50%!important;
+  background:radial-gradient(circle,#fff 0 7%,#d9c9ff 8% 13%,rgba(174,127,255,.30) 14% 35%,transparent 36%)!important;
+  box-shadow:0 0 18px rgba(163,109,255,.8)!important;
+}
+.brand-mark::after,.logo-mark::after,.nexa-logo-mark::after{
+  content:"â¦"!important;
+  position:absolute!important;
+  inset:0!important;
+  display:grid!important;
+  place-items:center!important;
+  color:#fff!important;
+  font-size:18px!important;
+  text-shadow:0 0 10px #c49cff,0 0 22px #765cff!important;
+}
+
+
+#home-transfers-section{display:block!important}
+@media(min-width:701px){
+ #home-svs-section,#home-transfers-section{display:inline-block!important}
+}
+
 </style>
 <style>
 .prep-monday-picker-row{
@@ -1675,7 +1707,7 @@ html.nexa-auth-boot body > #nexa-auth-gate { visibility:visible!important; }
     <div id="home-transfer-events" class="glass events"></div>
   </section>
 
-  <div class="shell" style="margin-top:10px"><div class="build-proof">NEXA BUILD v56.1</div></div>
+  <div class="shell" style="margin-top:10px"><div class="build-proof">NEXA BUILD v56.3</div></div>
   <div class="footer">
     Your state. One hub. Everything connected.<br>
     NEXA â¢ State 1518
@@ -4927,24 +4959,25 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
 
     const owner=role==='owner';
     const admin=role==='admin';
-    const staff=owner||admin||canSvs||canTransfers;
+    const legacyAdminAccess=!!document.getElementById('admin-panel-button');
+    const staff=owner||admin||canSvs||canTransfers||legacyAdminAccess;
 
     if(staff){
       sep(wrap);
       label(wrap,'TOOLS');
-      if(owner||admin){
+      if(owner||admin||legacyAdminAccess){
         addButton(wrap,'Administration',()=>buildAdministration(),{submenu:true});
       }
-      if(canSvs||owner||admin){
+      if(canSvs||owner||admin||legacyAdminAccess){
         addButton(wrap,'Event Operations',()=>openAdminTarget('open-event-operations'));
         addButton(wrap,'SVS',()=>openAdminTarget('open-svs-admin'));
       }
-      if(owner||admin){
+      if(owner||admin||legacyAdminAccess){
         addButton(wrap,'FDT',()=>openAdminTarget('open-fdt'));
         addButton(wrap,'TAL',()=>openAdminTarget('open-tal'));
         addButton(wrap,'Team Builder',()=>openAdminTarget('open-team-builder'));
       }
-      if(canTransfers||owner||admin){
+      if(canTransfers||owner||admin||legacyAdminAccess){
         addButton(wrap,'Transfer Management',()=>openAdminTarget('open-transfer-admin'));
       }
     }

@@ -295,7 +295,7 @@ let questions=[],filter='all',optionDraft=[],eventTypes=[];const roleLabel={join
 function eventName(key){return eventTypes.find(x=>x.key===key)?.name||key}
 function slugify(v){return String(v||'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,50)}
 async function guard(){const {data:{session}}=await sb.auth.getSession();if(!session){location.href='index.html';return false}const {data:role}=await sb.rpc('current_nexa_role');if(!['owner','admin','scheduler'].includes(String(role||'').toLowerCase())){location.href='index.html';return false}return true}
-function showTab(name){document.querySelectorAll('.ops-panel').forEach(x=>x.classList.add('hidden'));$('tab-'+name).classList.remove('hidden');document.querySelectorAll('.ops-tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===name))}document.querySelectorAll('.ops-tab').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+function showTab(name){document.querySelectorAll('.ops-panel').forEach(x=>x.classList.add('hidden'));$('tab-'+name).classList.remove('hidden');document.querySelectorAll('.ops-tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===name))}document.querySelectorAll('.ops-tab').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));const requestedOpsTab=new URLSearchParams(location.search).get('tab');if(requestedOpsTab&&document.getElementById('tab-'+requestedOpsTab))showTab(requestedOpsTab);
 
 async function loadEventTypes(){
   const q=await sb.from('event_operation_types').select('*').order('sort_order',{ascending:true});
@@ -799,23 +799,4 @@ document.addEventListener('DOMContentLoaded',()=>{
   const tab=q.get('tab');
   if(tab && typeof showTab==='function') setTimeout(()=>showTab(tab),50);
 });
-</script>
-<script id="nexa-v57-workspace-mode">
-document.addEventListener('DOMContentLoaded',()=>{
-  const q=window.NEXA_NATIVE_PARAMS||new URLSearchParams(location.search);
-  const workspace=q.get('workspace');
-  const requested=q.get('tab');
-  if(workspace==='eventforms'){
-    document.querySelectorAll('.ops-tab').forEach(b=>{
-      if(!['forms','responses'].includes(b.dataset.tab)) b.classList.add('hidden');
-    });
-    if(typeof showTab==='function') setTimeout(()=>showTab(['forms','responses'].includes(requested)?requested:'forms'),30);
-  }
-  if(workspace==='teams'){
-    document.querySelectorAll('.ops-tab').forEach(b=>b.classList.add('hidden'));
-    if(typeof showTab==='function') setTimeout(()=>showTab('teams'),30);
-  }
-});
-</script>
-
-</body></html>
+</script></body></html>

@@ -1,5 +1,5 @@
 <!doctype html>
-<html>
+<html class="nexa-auth-boot">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -852,6 +852,13 @@ body.nexa-schedule-open{
 .system-switch input:disabled + span{opacity:.45;cursor:not-allowed}
 </style>
 
+
+<style id="nexa-v52-auth-boot">
+html.nexa-auth-boot body > * { visibility:hidden!important; }
+html.nexa-auth-boot body > #nexa-auth-gate { visibility:visible!important; }
+</style>
+<script src="/nexa-auth-v52.js" defer></script>
+
 </head>
 <body>
 <div class="nebula-bg" aria-hidden="true"></div>
@@ -865,11 +872,11 @@ body.nexa-schedule-open{
       <span class="star">✦</span>
       <span>NEXA<small>STATE 1518</small></span>
     </a>
-    <button id="discord-login" class="user user-button" type="button" aria-label="Sign in with Discord">
+    <button id="discord-login" class="user user-button" type="button" aria-label="Sign in to NEXA">
         <span id="discord-avatar" class="avatar"></span>
         <div class="user-copy">
           <b id="discord-name">Discord Profile</b>
-          <span id="discord-status">Sign in with Discord</span>
+          <span id="discord-status">Sign in to NEXA</span>
         </div>
       </button>
       <button id="admin-panel-button" class="admin-pill" type="button">Admin</button>
@@ -1509,8 +1516,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const { data: { session } } = await supabaseClient.auth.getSession();
 
     if (!session?.user) {
-      nameEl.textContent = 'Discord Profile';
-      statusEl.textContent = 'Sign in with Discord';
+      nameEl.textContent = 'NEXA Account';
+      statusEl.textContent = 'Login or Create Account';
       avatarEl.style.backgroundImage = '';
       avatarEl.classList.remove('has-image');
       loginButton.dataset.loggedIn = 'false';
@@ -1518,12 +1525,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const user = session.user;
-    nameEl.textContent = getDisplayName(user);
-    statusEl.textContent = 'Discord Connected';
-    const avatarUrl = getAvatarUrl(user);
+    const provider = String(user?.app_metadata?.provider || '');
+    const isDiscord = provider === 'discord';
+    nameEl.textContent = isDiscord
+      ? getDisplayName(user)
+      : (user?.user_metadata?.in_game_name || user?.user_metadata?.nexa_game_id || 'NEXA Account');
+    statusEl.textContent = isDiscord ? 'Owner • Discord' : 'NEXA Account';
+    const avatarUrl = isDiscord ? getAvatarUrl(user) : null;
     if (avatarUrl) {
       avatarEl.style.backgroundImage = `url("${avatarUrl}")`;
       avatarEl.classList.add('has-image');
+    } else {
+      avatarEl.style.backgroundImage = '';
+      avatarEl.classList.remove('has-image');
     }
     loginButton.dataset.loggedIn = 'true';
   }
@@ -1532,21 +1546,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     const { data: { session } } = await supabaseClient.auth.getSession();
 
     if (session?.user) {
-      const shouldSignOut = confirm('You are signed in with Discord. Sign out?');
+      const shouldSignOut = confirm('Sign out of NEXA?');
       if (shouldSignOut) {
         await supabaseClient.auth.signOut();
         await renderSession();
+        window.NEXAAuth?.show?.('login');
       }
       return;
     }
 
-    await supabaseClient.auth.signInWithOAuth({
-      provider: 'discord',
-      options: {
-        redirectTo: window.location.origin + '/',
-        scopes: 'identify email'
-      }
-    });
+    window.NEXAAuth?.show?.('login');
   });
 
   supabaseClient.auth.onAuthStateChange(async () => {
@@ -1666,7 +1675,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     e.preventDefault();
     msg('');
     const user = await currentUser();
-    if (!user) return msg('Sign in with Discord first.', true);
+    if (!user) return msg('Sign in to NEXA first.', true);
 
     const editId = document.getElementById('edit-account-id').value;
     const notListed = allianceSelect.value === 'not-listed';
@@ -1775,7 +1784,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function loadTimeZoneProfile() {
     const user = await currentUser();
     if (!user) {
-      timezoneDisplay.textContent = 'Sign in with Discord';
+      timezoneDisplay.textContent = 'Sign in to NEXA';
       timezoneOffset.textContent = '';
       return;
     }
@@ -3810,5 +3819,6 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
 <!-- NEXA V51.1 Administration/System Operations fix -->
 <!-- NEXA V51.6 isolated System Operations Supabase client fix -->
 <!-- NEXA V51.8 diagnostic catch-path marker -->
+<!-- NEXA V52 Game ID + Password authentication foundation -->
 </body>
 </html>

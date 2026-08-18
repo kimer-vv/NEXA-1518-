@@ -3,7 +3,7 @@ import {
   json,
   userRole,
   bypassCookie,
-} from './_nexa-maintenance-common.js';
+} from './_nexa-maintenance-common-new.js';
 
 async function getSetting(service) {
   const r = await fetch(

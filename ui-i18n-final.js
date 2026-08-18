@@ -33,7 +33,7 @@
 })();
 
 /* =========================================================
-   NEXA v58.2 — PROFILE / CONSTELLATION / ALLIANCES FIX
+   NEXA v58.4 — SERVER-BRIDGED PROFILE / CONSTELLATION / ALLIANCES FIX
    Loaded after lang.js so this safely overrides the old mobile
    profile handlers without touching the working HOME / TOOLS.
    ========================================================= */
@@ -70,16 +70,25 @@
 
   async function loadMyAccounts(){
     const sb=sbClient();
-    const user=await getUser();
-    if(!sb||!user) return [];
+    if(!sb) return [];
 
     try{
-      const {data,error}=await sb.rpc('get_my_player_accounts');
+      const {data:{session}}=await sb.auth.getSession();
+      const token=session?.access_token||'';
+      if(!token) return [];
 
-      if(error) throw error;
-      return data||[];
+      const response=await fetch('/api/nexa-profile-accounts',{
+        method:'GET',
+        headers:{Authorization:'Bearer '+token},
+        cache:'no-store'
+      });
+
+      const payload=await response.json().catch(()=>({}));
+      if(!response.ok) throw new Error(payload?.error||'Could not load accounts.');
+
+      return Array.isArray(payload?.accounts)?payload.accounts:[];
     }catch(error){
-      console.warn('NEXA v58.2 accounts:',error?.message||error);
+      console.warn('NEXA v58.4 accounts:',error?.message||error);
       return [];
     }
   }
@@ -166,25 +175,30 @@
   }
 
   async function populateAlliances(){
-    const sb=sbClient();
     const select=findAllianceSelect();
-    if(!sb||!select) return;
+    if(!select) return;
 
     select.innerHTML='<option value="">Loading alliances...</option>';
 
     try{
-      const {data,error}=await sb.rpc('get_public_nexa_alliances');
+      const response=await fetch('/api/nexa-auth-alliances',{
+        method:'GET',
+        cache:'no-store'
+      });
+      const payload=await response.json().catch(()=>({}));
+      if(!response.ok) throw new Error(payload?.error||'Could not load alliances.');
 
-      if(error) throw error;
+      const rows=Array.isArray(payload?.alliances)?payload.alliances:[];
+      window.__nexaAllianceRows=rows;
 
       select.innerHTML=
         '<option value="">Select alliance</option>'+
-        (data||[]).map(a=>
+        rows.map(a=>
           '<option value="'+esc(a.id)+'">'+esc(a.tag)+'</option>'
         ).join('')+
         '<option value="not-listed">Not Listed</option>';
     }catch(error){
-      console.warn('NEXA v58.2 alliances:',error?.message||error);
+      console.warn('NEXA v58.4 alliances:',error?.message||error);
       select.innerHTML=
         '<option value="">Alliance unavailable</option>'+
         '<option value="not-listed">Not Listed</option>';
@@ -234,17 +248,15 @@
     if(account?.custom_alliance_tag) return account.custom_alliance_tag;
     if(!account?.alliance_id) return 'Not Listed';
 
-    const sb=sbClient();
-    if(!sb) return 'Not Listed';
-
     try{
-      const {data}=await sb
-        .from('alliances')
-        .select('tag')
-        .eq('id',account.alliance_id)
-        .maybeSingle();
-
-      return data?.tag||'Not Listed';
+      let rows=Array.isArray(window.__nexaAllianceRows)?window.__nexaAllianceRows:null;
+      if(!rows){
+        const response=await fetch('/api/nexa-auth-alliances',{method:'GET',cache:'no-store'});
+        const payload=await response.json().catch(()=>({}));
+        rows=Array.isArray(payload?.alliances)?payload.alliances:[];
+        window.__nexaAllianceRows=rows;
+      }
+      return rows.find(a=>String(a.id)===String(account.alliance_id))?.tag||'Not Listed';
     }catch(_){
       return 'Not Listed';
     }

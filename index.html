@@ -1586,6 +1586,12 @@ body.nexa-schedule-open{
 .nexa-transfer-home-actions{position:relative;z-index:3;padding:0 12px 12px}
 .nexa-transfer-open-btn{width:100%;display:flex!important;align-items:center;justify-content:center;min-height:42px;text-decoration:none!important;border-color:rgba(255,145,65,.50)!important;background:linear-gradient(135deg,rgba(132,66,21,.62),rgba(227,106,23,.74))!important;color:#fff!important;box-shadow:0 0 20px rgba(255,128,35,.15)!important}
 
+
+/* v57.5 surgical stability */
+#nexa-account-constellation .nexa-account-planet.main{
+ left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;z-index:4!important
+}
+
 </style>
 <style>
 .prep-monday-picker-row{
@@ -1839,10 +1845,10 @@ html.nexa-auth-boot body > #nexa-auth-gate { visibility:visible!important; }
     <div class="nexa-transfer-home-actions"><a class="btn nexa-transfer-open-btn" href="transfer-apply.html">Open</a></div>
   </section>
 
-  <div class="shell" style="margin-top:10px"><div class="build-proof">NEXA BUILD v57.4 HOME/CONSTELLATION</div></div>
+  <div class="shell" style="margin-top:10px"><div class="build-proof">NEXA BUILD v57.5 CLOCK/TOOLS/MAIN</div></div>
   <div class="footer">
     Your state. One hub. Everything connected.<br>
-    NEXA &bull; State 1518
+    NEXA â¢ State 1518
   </div>
 </main>
 
@@ -2570,7 +2576,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     accountsList.innerHTML = rows.length ? rows.map(a => {
       const tag = a.alliances?.tag || a.custom_alliance_tag || 'Not Listed';
       return `<article class="claimed-account">
-        <div><b>${a.in_game_name}</b><small>${tag} &bull; ID ${a.player_id}</small></div>
+        <div><b>${a.in_game_name}</b><small>${tag} â¢ ID ${a.player_id}</small></div>
         <div class="account-actions">
           <button type="button" data-edit="${a.id}">Edit</button>
           <button type="button" data-delete="${a.id}">Delete</button>
@@ -3818,7 +3824,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
     const view = document.querySelector('.event-actions .btn');
     if (view) view.textContent = tr('viewEvent') + ' Ã¢ÂÂ';
     const footer = document.querySelector('.footer');
-    if (footer) footer.innerHTML = 'Your state. One hub. Everything connected.<br>NEXA &bull; State 1518';
+    if (footer) footer.innerHTML = 'Your state. One hub. Everything connected.<br>NEXA â¢ State 1518';
 
     setText('#language-label','yourLanguage');
     setText('#change-language','change');
@@ -3930,7 +3936,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
 
     document.getElementById('language-display').textContent=languageName(languagePreference);
     document.getElementById('language-detected').textContent =
-      languagePreference==='auto' ? `${languageName(currentLanguage)} &bull; ${navigator.language || ''}` : languageName(currentLanguage);
+      languagePreference==='auto' ? `${languageName(currentLanguage)} â¢ ${navigator.language || ''}` : languageName(currentLanguage);
     document.getElementById('language-select').value=languagePreference;
     applyIndexLanguage();
   }
@@ -4848,6 +4854,31 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
     system.innerHTML=out;
   }
 
+
+  async function nexaRecoverConstellationAccounts(){
+    try{
+      if(Array.isArray(nexaAccountsCache) && nexaAccountsCache.length) return nexaAccountsCache;
+      const sb=window.supabaseClient;
+      if(!sb) return [];
+      const {data:{user}}=await sb.auth.getUser();
+      if(!user) return [];
+      const attempts=[
+        ['user_id',user.id],['owner_id',user.id],['auth_user_id',user.id]
+      ];
+      for(const [field,value] of attempts){
+        try{
+          const {data,error}=await sb.from('game_accounts').select('*').eq(field,value);
+          if(!error && Array.isArray(data) && data.length){
+            nexaAccountsCache=data;
+            window.nexaAccountsCache=data;
+            return data;
+          }
+        }catch(_){}
+      }
+    }catch(_){}
+    return [];
+  }
+
   async function loadHomeAccountCards(){
     const user=await nexaUser();
     if(!user) return;
@@ -4963,6 +4994,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
       constellation?.setAttribute('aria-hidden','false');
       renderNexaConstellation(nexaAccountsCache||[]);
       await loadHomeAccountCards();
+      if(!nexaAccountsCache?.length) await nexaRecoverConstellationAccounts();
       renderNexaConstellation(nexaAccountsCache||[]);
       return;
     }
@@ -5042,7 +5074,11 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
   // Refresh cards after account modal activity and auth changes.
   setTimeout(loadHomeAccountCards,900);
   try{supabaseClient.auth.onAuthStateChange(()=>setTimeout(loadHomeAccountCards,250));}catch{}
-  window.nexaLoadHomeAccountCards=loadHomeAccountCards;
+  window.nexaLoadHomeAccountCards=async function(){
+      const r=await loadHomeAccountCards();
+      try{ window.nexaAccountsCache=nexaAccountsCache; }catch(_){}
+      return r;
+    };
   window.nexaAmIAdmin=amIAdmin;
   window.nexaAmIOwner=amIOwner;
   window.nexaGetModuleAccess=getModuleAccess;
@@ -5216,7 +5252,12 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
         canTransfers=access?.transfers===true;
       }
     }catch(_){}
-    const staff = owner || admin || canSvs || canTransfers;
+    let hasGameAccount=false;
+    try{
+      if(typeof window.nexaLoadHomeAccountCards==='function') await window.nexaLoadHomeAccountCards();
+      hasGameAccount=Array.isArray(window.nexaAccountsCache) && window.nexaAccountsCache.length>0;
+    }catch(_){}
+    const staff = owner || admin || canSvs || canTransfers || hasGameAccount;
 
     if(staff){
       sep(wrap);
@@ -5252,3 +5293,125 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
           user.user_metadata?.in_game_name ||
           user.user_metadata?.name ||
           user.email ||
+          'NEXA User';
+
+        session.innerHTML='<div class="nexa-session-name">'+esc(sessionName)+'</div>';
+
+        const logout=document.createElement('button');
+        logout.type='button';
+        logout.className='nexa-logout-btn';
+        logout.textContent='LOGOUT';
+        logout.addEventListener('click',async function(){
+          await supabaseClient.auth.signOut();
+          location.reload();
+        });
+        session.appendChild(logout);
+        wrap.appendChild(session);
+      }
+    }catch(_){}
+  }
+
+  toggle?.addEventListener('click',async function(e){
+    e.preventDefault();
+    e.stopPropagation();
+
+    if(menu?.classList.contains('open')){
+      closeMenu();
+      return;
+    }
+
+    await buildRoot();
+    menu?.classList.add('open');
+    toggle?.classList.add('open');
+    menu?.setAttribute('aria-hidden','false');
+    toggle?.setAttribute('aria-expanded','true');
+  });
+
+  document.addEventListener('click',function(e){
+    if(
+      menu?.classList.contains('open') &&
+      !e.target.closest('#nexa-home-menu') &&
+      !e.target.closest('#nexa-home-menu-toggle')
+    ){
+      closeMenu();
+    }
+  });
+
+  // Header clocks
+  function tick(){
+    const now=new Date();
+
+    const ut=$('nexa-v56-utc-time');
+    const ud=$('nexa-v56-utc-date');
+    const lt=$('nexa-v56-local-time');
+    const ld=$('nexa-v56-local-date');
+
+    if(ut) ut.textContent=now.toLocaleTimeString('en-GB',{
+      timeZone:'UTC',hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'
+    });
+    if(ud) ud.textContent=now.toLocaleDateString('en-GB',{
+      timeZone:'UTC',day:'2-digit',month:'short',year:'numeric'
+    }).toUpperCase();
+
+    if(lt) lt.textContent=now.toLocaleTimeString([],{
+      hour:'2-digit',minute:'2-digit',second:'2-digit'
+    });
+    if(ld) ld.textContent=now.toLocaleDateString([],{
+      day:'2-digit',month:'short',year:'numeric'
+    }).toUpperCase();
+  }
+  tick();
+  setInterval(tick,1000);
+})();
+</script>
+
+
+
+
+
+<script>
+(function(){
+  function two(n){return String(n).padStart(2,'0')}
+  function updateNexaClocks(){
+    const d=new Date();
+    const utc=two(d.getUTCHours())+':'+two(d.getUTCMinutes())+':'+two(d.getUTCSeconds());
+    const local=d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true});
+    const udate=d.toLocaleDateString('en-US',{timeZone:'UTC',month:'short',day:'2-digit',year:'numeric'}).toUpperCase();
+    const ldate=d.toLocaleDateString('en-US',{month:'short',day:'2-digit',year:'numeric'}).toUpperCase();
+    const set=(selectors,value)=>selectors.forEach(s=>document.querySelectorAll(s).forEach(e=>e.textContent=value));
+    set(['#utc-time','#utc-clock','#home-utc-time','[data-utc-time]'],utc);
+    set(['#local-time','#local-clock','#home-local-time','[data-local-time]'],local);
+    set(['#utc-date','#home-utc-date','[data-utc-date]'],udate);
+    set(['#local-date','#home-local-date','[data-local-date]'],ldate);
+
+    // Fallback for the current header when IDs differ.
+    document.querySelectorAll('header, .topbar, .nexa-header').forEach(root=>{
+      const labels=[...root.querySelectorAll('*')];
+      for(const el of labels){
+        const t=(el.textContent||'').trim().toUpperCase();
+        if(t==='UTC'){
+          const box=el.parentElement;
+          if(box){
+            const vals=[...box.children].filter(x=>x!==el);
+            if(vals[0] && /--:--|--/.test(vals[0].textContent||'')) vals[0].textContent=utc;
+            if(vals[1] && /--/.test(vals[1].textContent||'')) vals[1].textContent=udate;
+          }
+        }
+        if(t==='LOCAL'){
+          const box=el.parentElement;
+          if(box){
+            const vals=[...box.children].filter(x=>x!==el);
+            if(vals[0] && /--:--|--/.test(vals[0].textContent||'')) vals[0].textContent=local;
+            if(vals[1] && /--/.test(vals[1].textContent||'')) vals[1].textContent=ldate;
+          }
+        }
+      }
+    });
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>{updateNexaClocks();setInterval(updateNexaClocks,1000)});
+  else {updateNexaClocks();setInterval(updateNexaClocks,1000)}
+})();
+</script>
+
+</body>
+</html>

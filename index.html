@@ -1455,6 +1455,83 @@ body.nexa-schedule-open{
  #home-svs-section,#home-transfers-section{display:inline-block!important}
 }
 
+
+/* NEXA V56.4 hard visual + interaction fixes */
+.logo .star.nexa-native-star{
+  width:48px!important;height:48px!important;border-radius:50%!important;
+  border:1px solid rgba(157,102,255,.58)!important;
+  position:relative!important;display:block!important;
+  background:
+    radial-gradient(circle at 50% 50%,rgba(255,255,255,.14),transparent 18%),
+    radial-gradient(circle at 50% 50%,rgba(112,75,210,.24),transparent 62%)!important;
+  box-shadow:0 0 22px rgba(125,75,255,.25),inset 0 0 18px rgba(109,71,208,.18)!important;
+}
+.logo .star.nexa-native-star:before,
+.logo .star.nexa-native-star:after{
+  content:""!important;position:absolute!important;left:50%!important;top:50%!important;
+  background:#fff!important;transform:translate(-50%,-50%) rotate(45deg)!important;
+  box-shadow:0 0 8px rgba(210,190,255,.95),0 0 18px rgba(126,88,255,.85)!important;
+}
+.logo .star.nexa-native-star:before{width:13px!important;height:13px!important}
+.logo .star.nexa-native-star:after{width:4px!important;height:24px!important;border-radius:50%!important}
+
+#nexa-account-constellation{
+  position:fixed!important;inset:0!important;z-index:100000!important;display:none!important;
+}
+#nexa-account-constellation.open{display:block!important}
+#nexa-account-constellation .nexa-constellation-backdrop{
+  position:absolute!important;inset:0!important;background:rgba(1,2,12,.91)!important;
+  backdrop-filter:blur(12px)!important;
+}
+#nexa-account-constellation .nexa-constellation-stage{z-index:2!important}
+
+@media(max-width:700px){
+  main.shell{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+    column-gap:10px!important;
+  }
+  main.shell > .hero,
+  main.shell > #global-announcement,
+  main.shell > #nexa-profile-launcher-section,
+  main.shell > #home-announcements-module,
+  main.shell > #home-event-operations-module,
+  main.shell > .shell,
+  main.shell > .footer{
+    grid-column:1/-1!important;
+  }
+  #home-svs-section,#home-transfers-section{
+    width:auto!important;
+    display:block!important;
+    margin:0!important;
+    grid-column:auto!important;
+    min-width:0!important;
+  }
+  #home-svs-section .head,#home-transfers-section .head{
+    padding:13px 12px 0!important;
+  }
+  #home-svs-section .head h2,#home-transfers-section .head h2{
+    font-size:17px!important;
+  }
+  #home-svs-section .head span,#home-transfers-section .head span{
+    font-size:9px!important;
+  }
+  #home-svs-section > .glass,#home-transfers-section > .glass{
+    margin:9px!important;
+    min-height:150px!important;
+    padding:11px!important;
+    border-radius:18px!important;
+  }
+  #home-svs-section .event{padding:0!important}
+  #home-svs-section .event-row{display:block!important}
+  #home-svs-section .event h3{font-size:16px!important;line-height:1.08!important}
+  #home-svs-section .muted{font-size:10px!important}
+  #home-svs-section .count{margin-top:10px!important;text-align:left!important}
+  #home-svs-section .event-actions{margin-top:10px!important}
+  #home-svs-section .btn{width:100%!important;padding:9px!important}
+  #home-transfers-section{min-height:205px!important}
+}
+
 </style>
 <style>
 .prep-monday-picker-row{
@@ -1574,7 +1651,7 @@ html.nexa-auth-boot body > #nexa-auth-gate { visibility:visible!important; }
 <header class="topbar">
   <div class="shell nav">
     <a class="logo" href="index.html">
-      <span class="star">â¦</span>
+      <span class="star nexa-native-star" aria-hidden="true"></span>
       <span>NEXA<small>STATE 1518</small></span>
     </a>
 
@@ -1606,7 +1683,7 @@ html.nexa-auth-boot body > #nexa-auth-gate { visibility:visible!important; }
 <main class="shell">
   <section class="hero">
     <h1>NEXA</h1>
-    <p>State 1518 â¢ Events, accounts & coordination</p>
+    <p>State 1518 &bull; Events &bull; Accounts &bull; Coordination</p>
   </section>
 
   <section id="global-announcement" class="announcement-wrap hidden">
@@ -1707,10 +1784,10 @@ html.nexa-auth-boot body > #nexa-auth-gate { visibility:visible!important; }
     <div id="home-transfer-events" class="glass events"></div>
   </section>
 
-  <div class="shell" style="margin-top:10px"><div class="build-proof">NEXA BUILD v56.3</div></div>
+  <div class="shell" style="margin-top:10px"><div class="build-proof">NEXA BUILD v56.4</div></div>
   <div class="footer">
     Your state. One hub. Everything connected.<br>
-    NEXA â¢ State 1518
+    NEXA &bull; State 1518
   </div>
 </main>
 
@@ -3654,7 +3731,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
     const view = document.querySelector('.event-actions .btn');
     if (view) view.textContent = tr('viewEvent') + ' â';
     const footer = document.querySelector('.footer');
-    if (footer) footer.innerHTML = 'Your state. One hub. Everything connected.<br>NEXA â¢ State 1518';
+    if (footer) footer.innerHTML = 'Your state. One hub. Everything connected.<br>NEXA &bull; State 1518';
 
     setText('#language-label','yourLanguage');
     setText('#change-language','change');
@@ -4685,22 +4762,31 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
     const user=await nexaUser();
     if(!user) return;
 
-    // Use only the columns already proven by the current account manager.
     let {data,error}=await supabaseClient.from('player_accounts')
-      .select('id,in_game_name,player_id,alliance_id,custom_alliance_tag,is_main,account_purpose,alliance_role,furnace_level,power,deployment_capacity,alliances(tag)')
-      .eq('user_id',user.id)
-      .order('is_main',{ascending:false});
+      .select('id,in_game_name,player_id,alliance_id,custom_alliance_tag,alliances(tag)')
+      .order('created_at');
 
     if(error){
       console.warn('NEXA constellation:',error.message);
-      data=[];
+      nexaAccountsCache=[];
+      return;
     }
 
-    const rows=(data||[]).map(a=>({...a,profile_photo_url:null}));
+    const rows=(data||[]).map((a,i)=>({
+      ...a,
+      is_main:i===0,
+      account_purpose:i===0?'full':'full',
+      alliance_role:'R3',
+      furnace_level:null,
+      power:null,
+      deployment_capacity:null,
+      profile_photo_url:null
+    }));
+
     nexaAccountsCache=rows;
     renderNexaConstellation(rows);
 
-    const main=rows.find(a=>a.is_main)||rows[0];
+    const main=rows[0];
     const photo=$('nexa-profile-launcher-photo');
     const name=$('nexa-profile-launcher-name');
     const badge=$('nexa-profile-launcher-badge');
@@ -4713,10 +4799,9 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
       if(count) count.classList.add('hidden');
       return;
     }
-
     if(photo) photo.src=nexaAvatar(main);
     if(name) name.textContent=(main.in_game_name||'MY PROFILE').toUpperCase();
-    if(badge) badge.textContent=main.is_main?'MAIN':'ACCOUNT';
+    if(badge) badge.textContent='MAIN';
     if(count){
       const extra=Math.max(0,rows.length-1);
       count.textContent='+'+extra;
@@ -4969,13 +5054,13 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
         addButton(wrap,'Administration',()=>buildAdministration(),{submenu:true});
       }
       if(canSvs||owner||admin||legacyAdminAccess){
-        addButton(wrap,'Event Operations',()=>openAdminTarget('open-event-operations'));
+        addButton(wrap,'Event Operations',()=>buildEventOperations(),{submenu:true});
         addButton(wrap,'SVS',()=>openAdminTarget('open-svs-admin'));
       }
       if(owner||admin||legacyAdminAccess){
         addButton(wrap,'FDT',()=>openAdminTarget('open-fdt'));
         addButton(wrap,'TAL',()=>openAdminTarget('open-tal'));
-        addButton(wrap,'Team Builder',()=>openAdminTarget('open-team-builder'));
+        addButton(wrap,'Team Builder',()=>buildTeamBuilder(),{submenu:true});
       }
       if(canTransfers||owner||admin||legacyAdminAccess){
         addButton(wrap,'Transfer Management',()=>openAdminTarget('open-transfer-admin'));
@@ -5016,6 +5101,59 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
       ['Roles','open-roles'],
       ['System Operations','open-system-operations']
     ].sort((a,b)=>a[0].localeCompare(b[0]));
+  }
+
+
+  function submenuHeader(wrap,titleText){
+    const header=document.createElement('div');
+    header.className='nexa-submenu-header';
+    const back=document.createElement('button');
+    back.type='button';
+    back.className='nexa-submenu-back';
+    back.textContent='<';
+    back.addEventListener('click',buildRoot);
+    const title=document.createElement('span');
+    title.textContent=titleText;
+    header.append(back,title);
+    wrap.appendChild(header);
+  }
+
+  function buildEventOperations(){
+    if(!card) return;
+    card.innerHTML='';
+    const wrap=document.createElement('div');
+    wrap.className='nexa-home-menu-subview';
+    card.appendChild(wrap);
+    submenuHeader(wrap,'EVENT OPERATIONS');
+    addButton(wrap,'Open Event Operations',()=>openAdminTarget('open-event-operations'),{primary:true});
+    addButton(wrap,'Forms',()=>openAdminTarget('open-event-operations'));
+    addButton(wrap,'Responses',()=>openAdminTarget('open-event-operations'));
+    addButton(wrap,'Event Types',()=>openAdminTarget('open-event-operations'));
+  }
+
+  function openNativeTool(file){
+    closeMenu();
+    const admin=$('admin-panel-button');
+    if(admin) admin.click();
+    setTimeout(()=>{
+      if(typeof window.loadNativeEventOpsView==='function'){
+        window.loadNativeEventOpsView(file);
+      }else if(typeof loadNativeEventOpsView==='function'){
+        loadNativeEventOpsView(file);
+      }
+    },120);
+  }
+
+  function buildTeamBuilder(){
+    if(!card) return;
+    card.innerHTML='';
+    const wrap=document.createElement('div');
+    wrap.className='nexa-home-menu-subview';
+    card.appendChild(wrap);
+    submenuHeader(wrap,'TEAM BUILDER');
+    addButton(wrap,'Open Team Builder',()=>openNativeTool('team-builder.html'),{primary:true});
+    addButton(wrap,'Alliance Teams',()=>openNativeTool('alliance-teams.html'));
+    addButton(wrap,'Formations',()=>openNativeTool('alliance-formations.html'));
   }
 
   function buildAdministration(){

@@ -1032,3 +1032,606 @@ Ukrainian, French, Italian, Simplified Chinese, Japanese.
     start();
   }
 })();
+
+
+/* =========================================================
+   NEXA v58.1 — MOBILE CONTROL FIX
+   APPEND this block to the END of lang.js
+   Fixes:
+   - HOME shows TOOLS + submenus
+   - Account Constellation loads existing MAIN account
+   - Add Account loads alliances directly
+   - Time Zone fills automatically
+   - Logout available in HOME
+   - Uses its own Supabase client so it does not depend on the
+     broken/truncated index.html runtime.
+   ========================================================= */
+(function () {
+  'use strict';
+
+  const SUPABASE_URL = 'https://dfxcxboxrkfmrnsgpyin.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
+
+  const sb = window.supabase?.createClient
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+    : null;
+
+  const $ = (id) => document.getElementById(id);
+
+  function esc(v) {
+    return String(v ?? '').replace(/[&<>"']/g, (m) => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[m]));
+  }
+
+  function closeHomeMenu() {
+    const t = $('nexa-home-menu-toggle');
+    const m = $('nexa-home-menu');
+    t?.classList.remove('open');
+    t?.setAttribute('aria-expanded','false');
+    m?.classList.remove('open');
+    m?.setAttribute('aria-hidden','true');
+  }
+
+  function menuLabel(parent, text) {
+    const el = document.createElement('div');
+    el.className = 'nexa-home-menu-label';
+    el.textContent = text;
+    parent.appendChild(el);
+  }
+
+  function menuSep(parent) {
+    const el = document.createElement('div');
+    el.className = 'nexa-home-menu-separator';
+    parent.appendChild(el);
+  }
+
+  function menuButton(parent, label, fn, submenu=false, primary=false) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'nexa-home-menu-item' +
+      (submenu ? ' submenu' : '') +
+      (primary ? ' primary' : '');
+
+    b.innerHTML =
+      '<span>' + esc(label) + '</span>' +
+      (submenu
+        ? '<span style="color:#72d8ff;font-size:16px">›</span>'
+        : '<span class="menu-dot"></span>');
+
+    b.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      fn();
+    });
+
+    parent.appendChild(b);
+  }
+
+  function submenu(title) {
+    const card = $('nexa-home-menu-card');
+    if (!card) return null;
+
+    card.innerHTML = '';
+
+    const wrap = document.createElement('div');
+    wrap.className = 'nexa-home-menu-subview';
+
+    const head = document.createElement('div');
+    head.className = 'nexa-submenu-header';
+
+    const back = document.createElement('button');
+    back.type = 'button';
+    back.className = 'nexa-submenu-back';
+    back.textContent = '‹';
+    back.onclick = buildHomeRoot;
+
+    const text = document.createElement('span');
+    text.textContent = title;
+
+    head.append(back, text);
+    wrap.appendChild(head);
+    card.appendChild(wrap);
+
+    return wrap;
+  }
+
+  function openAdminBase() {
+    closeHomeMenu();
+    const modal = $('admin-modal');
+    if (!modal) return;
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden','false');
+    $('admin-module-chooser')?.classList.remove('hidden');
+    $('svs-admin-content')?.classList.add('hidden');
+  }
+
+  function openAdministrationTab(tab) {
+    openAdminBase();
+    setTimeout(() => {
+      $('open-administration')?.click();
+      setTimeout(() => {
+        document.querySelector(`[data-admin-tab="${tab}"]`)?.click();
+      }, 180);
+    }, 80);
+  }
+
+  function openSvsTab(tab) {
+    openAdminBase();
+    setTimeout(() => {
+      $('open-svs-admin')?.click();
+      setTimeout(() => {
+        document.querySelector(`[data-admin-tab="${tab}"]`)?.click();
+      }, 180);
+    }, 80);
+  }
+
+  function buildAdministrationMenu() {
+    const wrap = submenu('ADMINISTRATION');
+    if (!wrap) return;
+    menuButton(wrap,'Alliances',()=>openAdministrationTab('alliances'));
+    menuButton(wrap,'Library',()=>openAdministrationTab('library'));
+    menuButton(wrap,'Permissions',()=>openAdministrationTab('permissions'));
+    menuButton(wrap,'Roles',()=>openAdministrationTab('roles'));
+    menuButton(wrap,'System Operations',()=>openAdministrationTab('system'));
+  }
+
+  function buildEventFormsMenu() {
+    const wrap = submenu('EVENT FORMS');
+    if (!wrap) return;
+    menuButton(wrap,'Forms',()=>location.href='event-operations.html?tab=forms');
+    menuButton(wrap,'Responses',()=>location.href='event-operations.html?tab=responses');
+  }
+
+  function buildSvsMenu() {
+    const wrap = submenu('SVS');
+    if (!wrap) return;
+    menuButton(wrap,'Event Setup',()=>openSvsTab('events'));
+    menuButton(wrap,'Forms',()=>openSvsTab('forms'));
+    menuButton(wrap,'Schedule Setup',()=>openSvsTab('schedule'));
+    menuButton(wrap,'History',()=>openSvsTab('history'));
+  }
+
+  function buildTeamMenu() {
+    const wrap = submenu('TEAM BUILDER');
+    if (!wrap) return;
+    menuButton(wrap,'Build Teams',()=>location.href='team-builder.html');
+    menuButton(wrap,'Manage Teams',()=>location.href='alliance-teams.html');
+    menuButton(wrap,'Team View',()=>location.href='team-layout.html');
+  }
+
+  function buildTransferMenu() {
+    const wrap = submenu('TRANSFER MANAGEMENT');
+    if (!wrap) return;
+    menuButton(wrap,'Event Management',()=>location.href='transfer-admin.html?tab=events');
+    menuButton(wrap,'Applications',()=>location.href='transfer-admin.html?tab=applications');
+    menuButton(wrap,'Transfer Roster',()=>location.href='transfer-admin.html?tab=roster');
+    menuButton(wrap,'Waiting List',()=>location.href='transfer-admin.html?tab=waiting');
+    menuButton(wrap,'Recruiting Alliances',()=>location.href='transfer-admin.html?tab=alliances');
+    menuButton(wrap,'History',()=>location.href='transfer-admin.html?tab=history');
+  }
+
+  async function getAccess() {
+    const result = {
+      signedIn: false,
+      owner: false,
+      admin: false,
+      svs: false,
+      transfers: false
+    };
+
+    if (!sb) return result;
+
+    try {
+      const auth = await sb.auth.getUser();
+      result.signedIn = !!auth?.data?.user;
+      if (!result.signedIn) return result;
+    } catch (_) {
+      return result;
+    }
+
+    try {
+      const role = await sb.rpc('current_nexa_role');
+      const value = String(role?.data || '').toLowerCase();
+      result.owner = value === 'owner';
+      result.admin = value === 'admin' || result.owner;
+    } catch (_) {}
+
+    try {
+      const a = await sb.rpc('is_admin');
+      if (a?.data === true) result.admin = true;
+    } catch (_) {}
+
+    try {
+      const access = await Promise.all([
+        sb.rpc('can_manage_svs'),
+        sb.rpc('can_manage_transfers')
+      ]);
+      result.svs = access[0]?.data === true;
+      result.transfers = access[1]?.data === true;
+    } catch (_) {}
+
+    return result;
+  }
+
+  async function buildHomeRoot() {
+    const card = $('nexa-home-menu-card');
+    if (!card) return;
+
+    card.innerHTML = '';
+
+    const wrap = document.createElement('div');
+    wrap.className = 'nexa-home-menu-subview';
+    card.appendChild(wrap);
+
+    menuLabel(wrap,'NAVIGATION');
+
+    menuButton(wrap,'Home',() => {
+      closeHomeMenu();
+
+      [
+        'accounts-modal',
+        'nexa-account-constellation',
+        'nexa-profile-modal',
+        'admin-modal'
+      ].forEach(id => {
+        const el = $(id);
+        el?.classList.remove('open');
+        el?.setAttribute('aria-hidden','true');
+      });
+
+      window.scrollTo({top:0,behavior:'smooth'});
+    },false,true);
+
+    menuButton(wrap,'Live Event',() => {
+      closeHomeMenu();
+      $('home-svs-section')?.scrollIntoView({
+        behavior:'smooth',
+        block:'center'
+      });
+    });
+
+    menuButton(wrap,'Transfers',() => {
+      closeHomeMenu();
+      $('home-transfers-section')?.scrollIntoView({
+        behavior:'smooth',
+        block:'center'
+      });
+    });
+
+    const access = await getAccess();
+
+    if (access.signedIn) {
+      menuSep(wrap);
+      menuLabel(wrap,'TOOLS');
+
+      if (access.admin || access.owner) {
+        menuButton(wrap,'Administration',buildAdministrationMenu,true);
+      }
+
+      if (access.admin || access.owner || access.svs) {
+        menuButton(wrap,'Event Forms',buildEventFormsMenu,true);
+        menuButton(wrap,'SVS',buildSvsMenu,true);
+      }
+
+      if (access.admin || access.owner) {
+        menuButton(wrap,'FDT',() => alert('FDT module is coming next.'));
+        menuButton(wrap,'TAL',() => alert('TAL module is coming next.'));
+        menuButton(wrap,'Team Builder',buildTeamMenu,true);
+      }
+
+      if (access.admin || access.owner || access.transfers) {
+        menuButton(wrap,'Transfer Management',buildTransferMenu,true);
+      }
+
+      menuSep(wrap);
+      menuButton(wrap,'Logout', async () => {
+        try { await sb.auth.signOut(); } catch (_) {}
+        location.reload();
+      });
+    }
+  }
+
+  async function loadAccountsDirect() {
+    if (!sb) return [];
+
+    try {
+      const {data,error} = await sb
+        .from('player_accounts')
+        .select('*')
+        .order('created_at');
+
+      if (error) throw error;
+      return Array.isArray(data) ? data : [];
+    } catch (e) {
+      console.warn('NEXA v58.1 accounts:', e?.message || e);
+      return [];
+    }
+  }
+
+  async function allianceTagFor(account) {
+    if (!account?.alliance_id || !sb) {
+      return account?.custom_alliance_tag || 'Not Listed';
+    }
+
+    try {
+      const {data,error} = await sb
+        .from('alliances')
+        .select('tag')
+        .eq('id',account.alliance_id)
+        .maybeSingle();
+
+      if (!error && data?.tag) return data.tag;
+    } catch (_) {}
+
+    return account?.custom_alliance_tag || 'Not Listed';
+  }
+
+  function avatar(account) {
+    return account?.profile_photo_url ||
+      'https://ui-avatars.com/api/?name=' +
+      encodeURIComponent(account?.in_game_name || 'NEXA') +
+      '&background=111a38&color=cabaff&bold=true&size=256';
+  }
+
+  async function renderConstellationDirect() {
+    const system = $('nexa-constellation-system');
+    if (!system) return [];
+
+    const rows = await loadAccountsDirect();
+    const pos = [
+      [50,14],[82,33],[84,67],
+      [50,86],[16,67],[18,33]
+    ];
+
+    let out =
+      '<span class="nexa-constellation-orbit one"></span>' +
+      '<span class="nexa-constellation-orbit two"></span>';
+
+    if (rows.length) {
+      const main = rows.find(a => a.is_main === true) || rows[0];
+      const others = rows.filter(a => a.id !== main.id);
+
+      out +=
+        '<button type="button" class="nexa-account-planet main" data-v581-profile="' +
+        esc(main.id) + '">' +
+        '<img src="' + esc(avatar(main)) + '" alt="">' +
+        '<span class="nexa-account-planet-name">' +
+        esc(main.in_game_name || 'Main Account') +
+        '</span>' +
+        '<span class="nexa-account-planet-type">MAIN</span>' +
+        '</button>';
+
+      others.forEach((a,i) => {
+        const p = pos[i % pos.length];
+
+        out +=
+          '<button type="button" class="nexa-account-planet alt" ' +
+          'style="left:' + p[0] + '%;top:' + p[1] + '%" ' +
+          'data-v581-profile="' + esc(a.id) + '">' +
+          '<img src="' + esc(avatar(a)) + '" alt="">' +
+          '<span class="nexa-account-planet-name">' +
+          esc(a.in_game_name || 'Account') +
+          '</span>' +
+          '<span class="nexa-account-planet-type">' +
+          (String(a.account_purpose || 'full').toLowerCase() === 'full'
+            ? 'FULL'
+            : 'BASIC') +
+          '</span>' +
+          '</button>';
+      });
+    }
+
+    if (rows.length < 5) {
+      const p = pos[Math.max(0,rows.length - 1) % pos.length];
+
+      out +=
+        '<button type="button" id="nexa-v581-add-account" ' +
+        'class="nexa-account-planet alt nexa-add-planet" ' +
+        'style="left:' + p[0] + '%;top:' + p[1] + '%">' +
+        '<span class="nexa-add-planet-symbol">+</span>' +
+        '<span class="nexa-account-planet-name">ADD ACCOUNT</span>' +
+        '</button>';
+    }
+
+    system.innerHTML = out;
+    return rows;
+  }
+
+  async function openProfileDirect(id) {
+    const rows = await loadAccountsDirect();
+    const account = rows.find(a => String(a.id) === String(id));
+    if (!account) return;
+
+    const tag = await allianceTagFor(account);
+
+    $('nexa-profile-name').textContent =
+      (account.in_game_name || 'PLAYER').toUpperCase();
+
+    $('nexa-profile-player-id').textContent = account.player_id || '';
+    $('nexa-profile-alliance').textContent = tag;
+    $('nexa-profile-role').textContent = account.alliance_role || 'R3';
+
+    $('nexa-profile-type').textContent =
+      account.is_main
+        ? 'MAIN'
+        : (String(account.account_purpose || 'full').toLowerCase() === 'full'
+          ? 'FULL'
+          : 'BASIC');
+
+    $('nexa-profile-furnace').textContent = account.furnace_level || '—';
+    $('nexa-profile-power').textContent =
+      account.power ? Number(account.power).toLocaleString() : '—';
+
+    $('nexa-profile-deployment').textContent =
+      account.deployment_capacity
+        ? Number(account.deployment_capacity).toLocaleString()
+        : '—';
+
+    $('nexa-profile-photo').src = avatar(account);
+
+    if ($('nexa-edit-name')) $('nexa-edit-name').value = account.in_game_name || '';
+    if ($('nexa-edit-role')) $('nexa-edit-role').value = account.alliance_role || 'R3';
+    if ($('nexa-edit-furnace')) $('nexa-edit-furnace').value = account.furnace_level || '';
+    if ($('nexa-edit-power')) $('nexa-edit-power').value = account.power || '';
+    if ($('nexa-edit-deployment')) $('nexa-edit-deployment').value = account.deployment_capacity || '';
+
+    $('nexa-account-constellation')?.classList.remove('open');
+
+    const modal = $('nexa-profile-modal');
+    modal?.classList.add('open');
+    modal?.setAttribute('aria-hidden','false');
+  }
+
+  async function loadAlliancesDirect() {
+    if (!sb) return;
+
+    const select = $('alliance');
+    if (!select) return;
+
+    try {
+      const {data,error} = await sb
+        .from('alliances')
+        .select('id,tag')
+        .eq('is_active',true)
+        .order('tag');
+
+      if (error) throw error;
+
+      select.innerHTML =
+        '<option value="">Select alliance</option>' +
+        (data || []).map(a =>
+          '<option value="' + esc(a.id) + '">' +
+          esc(a.tag) +
+          '</option>'
+        ).join('') +
+        '<option value="not-listed">Not Listed</option>';
+    } catch (e) {
+      console.warn('NEXA v58.1 alliances:', e?.message || e);
+    }
+  }
+
+  function fixTimeZoneCard() {
+    const display = $('timezone-display');
+    const offset = $('timezone-offset');
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+
+    if (display) display.textContent = zone;
+
+    if (offset) {
+      try {
+        const parts = new Intl.DateTimeFormat('en-US',{
+          timeZone:zone,
+          timeZoneName:'shortOffset',
+          hour:'2-digit'
+        }).formatToParts(new Date());
+
+        const label =
+          parts.find(p => p.type === 'timeZoneName')?.value || '';
+
+        offset.textContent = label.replace('GMT','UTC');
+      } catch (_) {
+        offset.textContent = '';
+      }
+    }
+  }
+
+  function openAddAccountDirect() {
+    $('nexa-account-constellation')?.classList.remove('open');
+
+    const modal = $('accounts-modal');
+    modal?.classList.add('open');
+    modal?.setAttribute('aria-hidden','false');
+
+    fixTimeZoneCard();
+    loadAlliancesDirect();
+  }
+
+  function replaceHomeToggle() {
+    const old = $('nexa-home-menu-toggle');
+    if (!old || old.dataset.v581 === '1') return;
+
+    const fresh = old.cloneNode(true);
+    fresh.dataset.v581 = '1';
+    old.replaceWith(fresh);
+
+    fresh.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      const menu = $('nexa-home-menu');
+      if (!menu) return;
+
+      if (menu.classList.contains('open')) {
+        closeHomeMenu();
+        return;
+      }
+
+      await buildHomeRoot();
+
+      fresh.classList.add('open');
+      fresh.setAttribute('aria-expanded','true');
+
+      menu.classList.add('open');
+      menu.setAttribute('aria-hidden','false');
+    },true);
+  }
+
+  function replaceProfileLauncher() {
+    const old = $('nexa-profile-launcher');
+    if (!old || old.dataset.v581 === '1') return;
+
+    const fresh = old.cloneNode(true);
+    fresh.dataset.v581 = '1';
+    old.replaceWith(fresh);
+
+    fresh.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      const modal = $('nexa-account-constellation');
+      modal?.classList.add('open');
+      modal?.setAttribute('aria-hidden','false');
+
+      await renderConstellationDirect();
+    },true);
+  }
+
+  function installGlobalClicks() {
+    document.addEventListener('click', (e) => {
+      const add = e.target.closest?.('#nexa-v581-add-account');
+      if (add) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        openAddAccountDirect();
+        return;
+      }
+
+      const planet = e.target.closest?.('[data-v581-profile]');
+      if (planet) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        openProfileDirect(planet.dataset.v581Profile);
+        return;
+      }
+    },true);
+  }
+
+  function start() {
+    replaceHomeToggle();
+    replaceProfileLauncher();
+    installGlobalClicks();
+    fixTimeZoneCard();
+
+    setTimeout(replaceHomeToggle,500);
+    setTimeout(replaceProfileLauncher,500);
+    setTimeout(fixTimeZoneCard,700);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded',start);
+  } else {
+    start();
+  }
+})();
+

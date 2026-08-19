@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NEXA • Library</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+body{min-height:100vh;background:#02030b;color:#f7f5ff}.lib-shell{max-width:1050px;margin:auto;padding:24px 16px 90px}.lib-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.lib-kicker{color:#b895ff;letter-spacing:.22em;font-weight:900;font-size:.75rem}.lib-head h1{margin:5px 0;font-size:clamp(2rem,8vw,3.5rem)}.lib-muted{color:#979bb8}.lib-tabs,.gen-row{display:flex;gap:8px;overflow-x:auto;padding:12px 0;scrollbar-width:none}.lib-tabs button,.gen-row button,.lib-btn{white-space:nowrap;border:1px solid rgba(255,255,255,.15);border-radius:999px;background:#11152b;color:#eee;padding:10px 14px;font-weight:800}.lib-tabs button.active,.gen-row button.active,.lib-btn.primary{background:linear-gradient(135deg,#6e40ff,#1fa7ff);border-color:transparent}.lib-toolbar{display:grid;grid-template-columns:1fr auto;gap:10px;margin:12px 0}.lib-toolbar input{width:100%;border:1px solid rgba(255,255,255,.15);border-radius:14px;background:#0b1022;color:#fff;padding:13px}.lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}.lib-card{border:1px solid rgba(130,102,255,.3);border-radius:20px;padding:14px;background:linear-gradient(145deg,rgba(20,24,55,.94),rgba(4,7,20,.96));display:grid;grid-template-columns:64px 1fr;gap:12px;align-items:center}.lib-img{width:64px;height:64px;border-radius:50%;object-fit:cover;background:#111936;border:2px solid #7658ff}.lib-name{font-size:1.05rem;font-weight:900}.lib-meta{color:#9ba5cc;font-size:.82rem;margin-top:4px}.lib-actions{grid-column:1/-1;display:flex;gap:8px}.switch{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:.78rem;color:#b9bfd9}.empty{padding:34px 18px;text-align:center;border:1px dashed rgba(255,255,255,.17);border-radius:18px;color:#9ba1be;grid-column:1/-1}.admin-only{display:none}.is-admin .admin-only{display:flex}.status{font-size:.8rem;color:#70dcff}.back{color:#64bdff;text-decoration:none;font-weight:800}
+@media(max-width:600px){.lib-head{display:block}.lib-toolbar{grid-template-columns:1fr}.lib-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body><div class="nebula-bg"></div><div class="starfield"></div>
+<main class="lib-shell">
+ <a class="back" href="index.html">← Home</a>
+ <header class="lib-head"><div><div class="lib-kicker">NEXA INTELLIGENCE</div><h1>Library</h1><div class="lib-muted">Heroes, Experts, Pets, Chief Gear and Charms from one verified source.</div></div><div id="status" class="status">Connecting…</div></header>
+ <nav id="tabs" class="lib-tabs"></nav><div id="generations" class="gen-row"></div>
+ <div class="lib-toolbar"><input id="search" type="search" placeholder="Search library"><button id="add" class="lib-btn primary admin-only" type="button">+ Add Entry</button></div>
+ <section id="grid" class="lib-grid"><div class="empty">Loading Library…</div></section>
+</main>
+<script>
+const sb=window.supabase.createClient('https://dfxcxboxrkfmrnsgpyin.supabase.co','sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-');
+const types=[['hero','Heroes'],['expert','Experts'],['pet','Pets'],['chief_gear','Chief Gear'],['chief_charm','Charms']];
+let active='hero',generation=null,items=[],isAdmin=false;
+const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+async function boot(){
+ const {data:{session}}=await sb.auth.getSession(); if(!session){location.href='index.html';return}
+ const role=await sb.rpc('current_nexa_role'); isAdmin=['owner','admin'].includes(String(role.data||'').toLowerCase());
+ document.documentElement.classList.toggle('is-admin',isAdmin); document.getElementById('status').textContent=isAdmin?'ADMIN CATALOG':'PLAYER CATALOG';
+ renderTabs(); await load();
+}
+function renderTabs(){document.getElementById('tabs').innerHTML=types.map(([k,n])=>`<button data-type="${k}" class="${active===k?'active':''}">${n}</button>`).join('')}
+async function load(){
+ let q=sb.from('nexa_library_items').select('*').eq('item_type',active).eq('is_active',true).order('sort_order').order('name');
+ if(generation!==null) q=q.eq('generation',generation); const {data,error}=await q; items=data||[];
+ if(error){document.getElementById('grid').innerHTML=`<div class="empty">${esc(error.message)}</div>`;return}
+ await loadGenerations(); render();
+}
+async function loadGenerations(){
+ const box=document.getElementById('generations'); if(!['hero','expert','pet'].includes(active)){box.innerHTML='';return}
+ const {data}=await sb.from('nexa_library_generations').select('*').eq('item_type',active).order('generation');
+ box.innerHTML=`<button data-gen="all" class="${generation===null?'active':''}">All</button>`+(data||[]).map(g=>`<button data-gen="${g.generation}" class="${generation===g.generation?'active':''}">Gen ${g.generation}${isAdmin&&!g.is_visible?' • Hidden':''}</button>`).join('');
+}
+function render(){
+ const term=document.getElementById('search').value.trim().toLowerCase(); const rows=items.filter(x=>!term||x.name.toLowerCase().includes(term));
+ document.getElementById('grid').innerHTML=rows.length?rows.map(x=>`<article class="lib-card"><img class="lib-img" src="${esc(x.image_url||'https://ui-avatars.com/api/?name='+encodeURIComponent(x.name)+'&background=111a38&color=cabaff&bold=true')}" alt=""><div><div class="lib-name">${esc(x.name)}</div><div class="lib-meta">${esc([x.generation!=null?'Gen '+x.generation:'',x.troop_type,x.rarity].filter(Boolean).join(' • '))}</div></div>${isAdmin?`<div class="lib-actions"><label class="switch"><input type="checkbox" data-visible="${x.id}" ${x.is_visible?'checked':''}> Show</label><button class="lib-btn" data-edit="${x.id}">Edit</button></div>`:''}</article>`).join(''):`<div class="empty">No ${types.find(x=>x[0]===active)[1]} have been imported yet.</div>`;
+}
+document.getElementById('tabs').addEventListener('click',e=>{const b=e.target.closest('[data-type]');if(!b)return;active=b.dataset.type;generation=null;renderTabs();load()});
+document.getElementById('generations').addEventListener('click',e=>{const b=e.target.closest('[data-gen]');if(!b)return;generation=b.dataset.gen==='all'?null:Number(b.dataset.gen);load()});
+document.getElementById('search').addEventListener('input',render);
+document.getElementById('grid').addEventListener('change',async e=>{const id=e.target.dataset.visible;if(!id)return;const {error}=await sb.from('nexa_library_items').update({is_visible:e.target.checked,updated_at:new Date().toISOString()}).eq('id',id);if(error){alert(error.message);e.target.checked=!e.target.checked}});
+document.getElementById('add').addEventListener('click',()=>alert('Verified catalog import is the next step. New synced entries will arrive Hidden by default.'));
+boot();
+</script></body></html>

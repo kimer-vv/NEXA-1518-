@@ -136,6 +136,16 @@
     const profile=$('nexa-profile-modal');
     profile?.classList.add('open');
     profile?.setAttribute('aria-hidden','false');
+    const fresh=id=>{const old=$(id);if(!old)return null;const next=old.cloneNode(true);old.replaceWith(next);return next;};
+    const editButton=fresh('nexa-profile-edit-btn');
+    if(editButton)editButton.onclick=event=>{event.preventDefault();$('nexa-profile-editor')?.classList.toggle('open');};
+    const photoInput=fresh('nexa-photo-input');
+    const photoButton=fresh('nexa-photo-edit');
+    if(photoButton)photoButton.onclick=event=>{event.preventDefault();photoInput?.click();};
+    const oldSave=profile?.querySelector('.nexa-profile-save'),saveButton=oldSave?.cloneNode(true);
+    if(oldSave&&saveButton)oldSave.replaceWith(saveButton);
+    if(saveButton){saveButton.type='button';saveButton.onclick=event=>{event.preventDefault();saveSelectedProfile();};}
+    if(photoInput)photoInput.onchange=event=>{const file=event.target.files?.[0];if(file)uploadSelectedPhoto(file);};
   }
 
   function render(){
@@ -145,15 +155,18 @@
     if(main)html+=`<button type="button" class="nexa-account-planet main type-main account-color-1" data-account-constellation-id="${esc(main.id)}"><img src="${esc(avatar(main))}" alt=""><span class="nexa-account-planet-name">${esc(main.in_game_name)}</span><span class="nexa-account-planet-type">MAIN ACCOUNT</span></button>`;
     others.forEach((a,i)=>{const p=positions[i%positions.length],kind=accountKind(a);html+=`<button type="button" class="nexa-account-planet alt type-${kind} account-color-${i+2}" style="left:${p[0]}%;top:${p[1]}%" data-account-constellation-id="${esc(a.id)}"><img src="${esc(avatar(a))}" alt=""><span class="nexa-account-planet-name">${esc(a.in_game_name)}</span><span class="nexa-account-planet-type">${accountLabel(a)}</span></button>`;});
     if(accounts.length<5){const p=positions[Math.min(others.length,positions.length-1)]||[50,14];html+=`<button type="button" id="nexa-constellation-add-account" class="nexa-account-planet alt nexa-add-planet" style="left:${p[0]}%;top:${p[1]}%"><span class="nexa-add-planet-symbol">+</span><span class="nexa-account-planet-name">ADD ACCOUNT</span></button>`;}
+    html+=`<button type="button" id="nexa-constellation-manage-accounts">MANAGE ACCOUNTS</button>`;
     system.innerHTML=html;
     system.querySelectorAll('[data-account-constellation-id]').forEach(planet=>{
-      planet.onpointerup=event=>{
-        event.preventDefault();event.stopPropagation();
+      planet.onclick=event=>{
+        event.preventDefault();event.stopImmediatePropagation();
         passport(accounts.find(a=>String(a.id)===String(planet.dataset.accountConstellationId)));
       };
     });
     const add=$('nexa-constellation-add-account');
-    if(add)add.onpointerup=event=>{event.preventDefault();event.stopPropagation();openAccounts();};
+    if(add)add.onclick=event=>{event.preventDefault();event.stopImmediatePropagation();openAccounts();};
+    const manage=$('nexa-constellation-manage-accounts');
+    if(manage)manage.onclick=event=>{event.preventDefault();event.stopImmediatePropagation();openAccounts();};
   }
 
   function selectedAccount(){return accounts.find(a=>String(a.id)===String(selectedId))||null;}
@@ -258,17 +271,8 @@
   document.addEventListener('click',async event=>{
     if(event.target.closest?.('[data-close-passport]')){event.preventDefault();$('nexa-passport-modal')?.classList.remove('open');$('nexa-passport-modal')?.setAttribute('aria-hidden','true');return;}
     if(event.target.closest?.('[data-open-full-profile]')){event.preventDefault();openFullProfile(accounts.find(a=>a.id===selectedId));return;}
-    if(event.target.closest?.('#nexa-profile-edit-btn')){event.preventDefault();event.stopImmediatePropagation();$('nexa-profile-editor')?.classList.toggle('open');return;}
-    if(event.target.closest?.('#nexa-photo-edit')){event.preventDefault();event.stopImmediatePropagation();$('nexa-photo-input')?.click();return;}
     if(event.target.closest?.('#nexa-profile-launcher')){event.preventDefault();event.stopImmediatePropagation();await openConstellation();return;}
-    if(event.target.closest?.('#nexa-constellation-add-account')){event.preventDefault();event.stopImmediatePropagation();await openAccounts();return;}
-    const planet=event.target.closest?.('[data-account-constellation-id]');if(!planet)return;
-    event.preventDefault();event.stopImmediatePropagation();
-    const id=planet.dataset.accountConstellationId;
-    passport(accounts.find(a=>String(a.id)===String(id)));
   },true);
-  document.addEventListener('submit',async event=>{if(event.target?.id!=='nexa-profile-editor')return;event.preventDefault();event.stopImmediatePropagation();await saveSelectedProfile();},true);
-  document.addEventListener('change',async event=>{if(event.target?.id!=='nexa-photo-input')return;event.stopImmediatePropagation();const file=event.target.files?.[0];if(file)await uploadSelectedPhoto(file);},true);
   document.addEventListener('DOMContentLoaded',async()=>{await load(true);try{db()?.auth?.onAuthStateChange?.(()=>{loaded=false;setTimeout(()=>load(true),100);});}catch(_){}});
   window.NEXA_OPEN_ACCOUNT_CONSTELLATION=openConstellation;
   window.NEXA_OPEN_ACCOUNTS=openAccounts;
@@ -325,6 +329,7 @@
     #nexa-constellation-system .nexa-account-planet.account-color-4 .nexa-account-planet-type{color:#79f3bd}
     #nexa-constellation-system .nexa-account-planet.account-color-5 img{border-color:#ffc85c;box-shadow:0 0 30px rgba(255,190,70,.42)}
     #nexa-constellation-system .nexa-account-planet.account-color-5 .nexa-account-planet-type{color:#ffd77d}
+    #nexa-constellation-manage-accounts{position:absolute;left:50%;bottom:-32px;z-index:12;transform:translateX(-50%);padding:8px 13px;border:1px solid rgba(111,190,255,.38);border-radius:999px;background:rgba(8,18,42,.9);color:#82dcff;font-size:8px;font-weight:950;letter-spacing:.12em;white-space:nowrap;box-shadow:0 0 20px rgba(57,164,255,.14)}
     #nexa-passport-modal{overflow:hidden;padding:max(10px,env(safe-area-inset-top)) 12px max(10px,env(safe-area-inset-bottom));display:none;align-items:center;justify-content:center}
     #nexa-passport-modal.open{display:flex}
     .nexa-passport-backdrop{background:radial-gradient(circle at 16% 22%,rgba(111,63,205,.23),transparent 25%),radial-gradient(circle at 82% 72%,rgba(31,149,210,.18),transparent 28%),rgba(1,3,14,.94)}

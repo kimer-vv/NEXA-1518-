@@ -125,6 +125,8 @@
   },true);
   document.addEventListener('dblclick',async event=>{const planet=event.target.closest?.('[data-account-constellation-id]');if(!planet)return;event.preventDefault();event.stopImmediatePropagation();clearTimeout(tapTimer);await setActive(planet.dataset.accountConstellationId);},true);
   document.addEventListener('DOMContentLoaded',async()=>{await load(true);try{db()?.auth?.onAuthStateChange?.(()=>{loaded=false;setTimeout(()=>load(true),100);});}catch(_){}});
+  window.NEXA_OPEN_ACCOUNT_CONSTELLATION=openConstellation;
+  window.NEXA_OPEN_ACCOUNTS=openAccounts;
   window.nexaLoadHomeAccountCards=async()=>{await load(true);if($('nexa-account-constellation')?.classList.contains('open'))render();return accounts;};
 
   const style=document.createElement('style');style.textContent=`

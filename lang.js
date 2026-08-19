@@ -416,7 +416,10 @@ Ukrainian, French, Italian, Simplified Chinese, Japanese.
   }
 
   async function openConstellation() {
-    if (window.NEXA_CANONICAL_ACCOUNTS) return;
+    if (window.NEXA_CANONICAL_ACCOUNTS) {
+      await window.NEXA_OPEN_ACCOUNT_CONSTELLATION?.();
+      return;
+    }
     const modal = qs('#nexa-account-constellation');
     const system = qs('#nexa-constellation-system');
 
@@ -915,7 +918,10 @@ Ukrainian, French, Italian, Simplified Chinese, Japanese.
   }
 
   async function forceConstellation(){
-    if(window.NEXA_CANONICAL_ACCOUNTS) return;
+    if(window.NEXA_CANONICAL_ACCOUNTS){
+      await window.NEXA_OPEN_ACCOUNT_CONSTELLATION?.();
+      return;
+    }
     const modal=$('nexa-account-constellation');
     if(!modal) return;
 
@@ -966,6 +972,10 @@ Ukrainian, French, Italian, Simplified Chinese, Japanese.
   }
 
   async function openAddAccount(){
+    if(window.NEXA_CANONICAL_ACCOUNTS){
+      await window.NEXA_OPEN_ACCOUNTS?.();
+      return;
+    }
     const constellation=$('nexa-account-constellation');
     if(constellation){
       constellation.classList.remove('open');

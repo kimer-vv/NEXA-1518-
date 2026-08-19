@@ -416,6 +416,7 @@ Ukrainian, French, Italian, Simplified Chinese, Japanese.
   }
 
   async function openConstellation() {
+    if (window.NEXA_CANONICAL_ACCOUNTS) return;
     const modal = qs('#nexa-account-constellation');
     const system = qs('#nexa-constellation-system');
 
@@ -475,6 +476,7 @@ Ukrainian, French, Italian, Simplified Chinese, Japanese.
   }
 
   function renderConstellation(rows) {
+    if (window.NEXA_CANONICAL_ACCOUNTS) return;
     const system = qs('#nexa-constellation-system');
     if (!system) return;
 
@@ -868,6 +870,7 @@ Ukrainian, French, Italian, Simplified Chinese, Japanese.
   }
 
   function renderAccounts(rows){
+    if(window.NEXA_CANONICAL_ACCOUNTS) return;
     const system=$('nexa-constellation-system');
     if(!system) return;
 
@@ -912,6 +915,7 @@ Ukrainian, French, Italian, Simplified Chinese, Japanese.
   }
 
   async function forceConstellation(){
+    if(window.NEXA_CANONICAL_ACCOUNTS) return;
     const modal=$('nexa-account-constellation');
     if(!modal) return;
 
@@ -1375,6 +1379,7 @@ Ukrainian, French, Italian, Simplified Chinese, Japanese.
   }
 
   async function renderConstellationDirect() {
+    if (window.NEXA_CANONICAL_ACCOUNTS) return [];
     const system = $('nexa-constellation-system');
     if (!system) return [];
 
@@ -1484,6 +1489,7 @@ Ukrainian, French, Italian, Simplified Chinese, Japanese.
   }
 
   async function loadAlliancesDirect() {
+    if (window.NEXA_CANONICAL_ACCOUNTS) return;
     if (!sb) return;
 
     const select = $('alliance');
@@ -1578,6 +1584,7 @@ Ukrainian, French, Italian, Simplified Chinese, Japanese.
   }
 
   function replaceProfileLauncher() {
+    if (window.NEXA_CANONICAL_ACCOUNTS) return;
     const old = $('nexa-profile-launcher');
     if (!old || old.dataset.v581 === '1') return;
 
@@ -1634,4 +1641,3 @@ Ukrainian, French, Italian, Simplified Chinese, Japanese.
     start();
   }
 })();
-

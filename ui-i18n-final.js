@@ -9,6 +9,7 @@
 /* Account Constellation: one source of truth = public.player_accounts. */
 (function(){
   'use strict';
+  window.NEXA_CANONICAL_ACCOUNTS=true;
   const $=id=>document.getElementById(id);
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   let accounts=[],loaded=false,loading=null,selectedId=null,tapTimer=null,lastTap={id:null,time:0};
@@ -22,6 +23,18 @@
   const tag=a=>a?.alliances?.tag||a?.custom_alliance_tag||'Not Listed';
   const avatar=a=>a?.profile_photo_url||'https://ui-avatars.com/api/?name='+encodeURIComponent(a?.in_game_name||'NEXA')+'&background=111a38&color=cabaff&bold=true&size=256';
   const active=()=>accounts.find(a=>a.is_main===true)||accounts[0]||null;
+
+  function diagnostic(code,detail){
+    console.error('NEXA '+code,detail||'');
+    let box=$('nexa-account-diagnostic');
+    if(!box){
+      box=document.createElement('div');
+      box.id='nexa-account-diagnostic';
+      box.className='form-message error';
+      ($('nexa-account-constellation')||$('accounts-modal')||document.body).appendChild(box);
+    }
+    box.textContent='NEXA DIAGNOSTIC '+code+(detail?' · '+detail:'');
+  }
 
   async function load(force=false){
     if(loading) return loading;
@@ -39,7 +52,7 @@
         .eq('user_id',user.id).order('is_main',{ascending:false}).order('created_at',{ascending:true});
       if(error) throw error;
       accounts=Array.isArray(data)?data:[];loaded=true;window.nexaAccountsCache=accounts;syncHome();return accounts;
-    })().catch(error=>{console.error('NEXA Account Constellation:',error);accounts=previous;loaded=previous.length>0;return accounts;}).finally(()=>{loading=null;});
+    })().catch(error=>{diagnostic('ACCT-LOAD-01',error?.message||String(error));accounts=previous;loaded=previous.length>0;return accounts;}).finally(()=>{loading=null;});
     return loading;
   }
 
@@ -79,17 +92,32 @@
     await load(!accounts.length);
     render();
   }
-  function openAccounts(){$('nexa-account-constellation')?.classList.remove('open');const button=$('open-accounts');if(button){button.click();return;}const modal=$('accounts-modal');modal?.classList.add('open');modal?.setAttribute('aria-hidden','false');}
+  async function loadAlliances(){
+    const select=$('alliance');if(!select)return;
+    const {data,error}=await db().from('alliances').select('id,tag').eq('is_active',true).order('tag');
+    if(error){diagnostic('ALLY-LOAD-01',error.message);return;}
+    select.innerHTML='<option value="">Select alliance</option>'+
+      (data||[]).map(a=>'<option value="'+esc(a.id)+'">'+esc(a.tag)+'</option>').join('')+
+      '<option value="not-listed">Not Listed</option>';
+    if(!(data||[]).length)diagnostic('ALLY-EMPTY-02','Supabase returned 0 active alliances');
+  }
+  async function openAccounts(){
+    $('nexa-account-constellation')?.classList.remove('open');
+    const button=$('open-accounts');
+    if(button)button.click();
+    else{const modal=$('accounts-modal');modal?.classList.add('open');modal?.setAttribute('aria-hidden','false');}
+    await loadAlliances();
+  }
   async function setActive(id){
     const account=accounts.find(a=>String(a.id)===String(id));if(!account||account.is_main)return;
     const {error}=await db().rpc('set_active_player_account',{p_account_id:account.id});
-    if(error){console.error('NEXA active account:',error);alert(error.message);return;}
+    if(error){diagnostic('ACCT-ACTIVE-03',error.message);return;}
     await load(true);selectedId=account.id;render();
   }
 
   document.addEventListener('click',async event=>{
     if(event.target.closest?.('#nexa-profile-launcher')){event.preventDefault();event.stopImmediatePropagation();await openConstellation();return;}
-    if(event.target.closest?.('#nexa-constellation-add-account')){event.preventDefault();event.stopImmediatePropagation();openAccounts();return;}
+    if(event.target.closest?.('#nexa-constellation-add-account')){event.preventDefault();event.stopImmediatePropagation();await openAccounts();return;}
     const planet=event.target.closest?.('[data-account-constellation-id]');if(!planet)return;
     event.preventDefault();event.stopImmediatePropagation();const id=planet.dataset.accountConstellationId,now=Date.now();
     if(lastTap.id===id&&now-lastTap.time<430){clearTimeout(tapTimer);tapTimer=null;lastTap={id:null,time:0};await setActive(id);return;}

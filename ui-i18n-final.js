@@ -26,16 +26,20 @@
   async function load(force=false){
     if(loading) return loading;
     if(loaded&&!force) return accounts;
+    const previous=accounts;
     loading=(async()=>{
       const client=db(); if(!client) return [];
       const {data:{user},error:userError}=await client.auth.getUser();
-      if(userError||!user){accounts=[];loaded=true;return accounts;}
+      if(userError||!user){
+        if(previous.length) return previous;
+        accounts=[];loaded=true;return accounts;
+      }
       const {data,error}=await client.from('player_accounts')
         .select('id,user_id,in_game_name,player_id,alliance_id,custom_alliance_tag,is_main,account_purpose,alliance_role,furnace_level,power,deployment_capacity,profile_photo_url,created_at,alliances(tag)')
         .eq('user_id',user.id).order('is_main',{ascending:false}).order('created_at',{ascending:true});
       if(error) throw error;
       accounts=Array.isArray(data)?data:[];loaded=true;window.nexaAccountsCache=accounts;syncHome();return accounts;
-    })().catch(error=>{console.error('NEXA Account Constellation:',error);accounts=[];loaded=false;return accounts;}).finally(()=>{loading=null;});
+    })().catch(error=>{console.error('NEXA Account Constellation:',error);accounts=previous;loaded=previous.length>0;return accounts;}).finally(()=>{loading=null;});
     return loading;
   }
 
@@ -66,7 +70,15 @@
     system.innerHTML=html;if(main)passport(accounts.find(a=>a.id===selectedId)||main);
   }
 
-  async function openConstellation(){const modal=$('nexa-account-constellation');modal?.classList.add('open');modal?.setAttribute('aria-hidden','false');selectedId=null;await load(true);render();}
+  async function openConstellation(){
+    const modal=$('nexa-account-constellation');
+    modal?.classList.add('open');
+    modal?.setAttribute('aria-hidden','false');
+    selectedId=null;
+    if(accounts.length) render();
+    await load(!accounts.length);
+    render();
+  }
   function openAccounts(){$('nexa-account-constellation')?.classList.remove('open');const button=$('open-accounts');if(button){button.click();return;}const modal=$('accounts-modal');modal?.classList.add('open');modal?.setAttribute('aria-hidden','false');}
   async function setActive(id){
     const account=accounts.find(a=>String(a.id)===String(id));if(!account||account.is_main)return;

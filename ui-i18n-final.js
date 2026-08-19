@@ -22,63 +22,26 @@
  });
 })();
 
-/* NEXA v58.6 — PROFILE / CONSTELLATION DIRECT SESSION FIX */
+/* NEXA v58.7 — SINGLE SOURCE ACCOUNT CONSTELLATION */
 (function(){
   'use strict';
-
-  const SUPABASE_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
-  const SUPABASE_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
-  const STORAGE_KEY='sb-dfxcxboxrkfmrnsgpyin-auth-token';
   const $=id=>document.getElementById(id);
   const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
   }[m]));
 
-  let cache=null, cacheAt=0;
+  let selectedId=null;
+  let lastSignature='';
 
-  async function accessToken(){
-    try{
-      if(window.supabaseClient?.auth?.getSession){
-        const {data}=await window.supabaseClient.auth.getSession();
-        if(data?.session?.access_token) return data.session.access_token;
-      }
-    }catch(_){}
-    try{
-      const raw=localStorage.getItem(STORAGE_KEY);
-      if(raw){
-        const p=JSON.parse(raw);
-        return p?.access_token || p?.currentSession?.access_token || '';
-      }
-    }catch(_){}
-    return '';
+  function accounts(){
+    const rows=Array.isArray(window.nexaAccountsCache)?window.nexaAccountsCache:[];
+    return rows.filter(Boolean);
   }
 
-  async function bootstrap(force=false){
-    if(!force && cache && Date.now()-cacheAt<10000) return cache;
-    const token=await accessToken();
-    if(!token) throw new Error('NEXA session not found.');
-
-    const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/get_nexa_profile_bootstrap',{
-      method:'POST',
-      headers:{
-        apikey:SUPABASE_KEY,
-        Authorization:'Bearer '+token,
-        'Content-Type':'application/json'
-      },
-      body:'{}',
-      cache:'no-store'
-    });
-    const raw=await r.text();
-    let data={};
-    try{ data=raw?JSON.parse(raw):{}; }catch(_){}
-    if(!r.ok) throw new Error(data?.message||data?.error||raw||'Could not load profile.');
-
-    cache={
-      accounts:Array.isArray(data?.accounts)?data.accounts:[],
-      alliances:Array.isArray(data?.alliances)?data.alliances:[]
-    };
-    cacheAt=Date.now();
-    return cache;
+  function mainAccount(rows){
+    if(!rows.length) return null;
+    const stored=localStorage.getItem('nexa_active_account_id');
+    return rows.find(a=>String(a.id)===String(stored)) || rows.find(a=>a.is_main===true) || rows[0];
   }
 
   function avatar(a){
@@ -87,146 +50,191 @@
       '&background=111a38&color=cabaff&bold=true&size=256';
   }
 
-  function allianceTag(a,alliances){
-    if(a?.custom_alliance_tag) return a.custom_alliance_tag;
-    if(!a?.alliance_id) return 'Not Listed';
-    return alliances.find(x=>String(x.id)===String(a.alliance_id))?.tag || 'Not Listed';
+  function purpose(a,isMain){
+    if(isMain) return 'MAIN';
+    const p=String(a?.account_purpose||'full').toLowerCase();
+    return p==='full'?'FULL':'BASIC';
   }
 
-  function updateHome(payload){
-    const accounts=payload.accounts||[];
-    const main=accounts.find(a=>a.is_main===true)||accounts[0];
+  function syncHome(rows){
+    const active=mainAccount(rows);
+    if(!active) return;
     const img=$('nexa-profile-launcher-photo');
     const name=$('nexa-profile-launcher-name');
     const badge=$('nexa-profile-launcher-badge');
     const count=$('nexa-profile-launcher-count');
-
-    if(main){
-      if(img){ img.src=avatar(main); img.style.display='block'; }
-      if(name) name.textContent=(main.in_game_name||'MY PROFILE').toUpperCase();
-      if(badge) badge.textContent='MAIN';
-      if(count){
-        count.textContent=String(accounts.length);
-        count.classList.toggle('hidden',accounts.length<2);
-      }
-    }else{
-      if(img){ img.removeAttribute('src'); img.style.display='none'; }
-      if(name) name.textContent='MY PROFILE';
-      if(badge) badge.textContent='MAIN';
-      if(count) count.classList.add('hidden');
+    if(img){img.src=avatar(active);img.style.display='block';}
+    if(name) name.textContent=(active.in_game_name||'MY PROFILE').toUpperCase();
+    if(badge) badge.textContent='MAIN';
+    if(count){
+      count.textContent=String(rows.length);
+      count.classList.toggle('hidden',rows.length<2);
     }
   }
 
-  function renderConstellation(payload){
+  function renderPassport(a){
+    selectedId=a?.id||null;
+    $('nexa-v587-passport')?.remove();
+    const host=$('nexa-account-constellation');
+    if(!host || !a) return;
+
+    const alliance=a.custom_alliance_tag || a.alliances?.tag || 'Not Listed';
+    const box=document.createElement('section');
+    box.id='nexa-v587-passport';
+    box.innerHTML=`
+      <div class="nexa-v587-passport-card">
+        <img src="${esc(avatar(a))}" alt="">
+        <div class="nexa-v587-passport-copy">
+          <span>PROFILE PASSPORT</span>
+          <strong>${esc(a.in_game_name||'Account')}</strong>
+          <small>${esc(alliance)}${a.player_id?' • ID '+esc(a.player_id):''}</small>
+        </div>
+        <div class="nexa-v587-passport-hint">Double tap to switch</div>
+      </div>`;
+    host.appendChild(box);
+  }
+
+  function render(){
+    const rows=accounts();
     const system=$('nexa-constellation-system');
     if(!system) return;
-    const accounts=payload.accounts||[];
-    const positions=[[82,32],[82,68],[18,68],[18,32]];
-    let html='<span class="nexa-constellation-orbit one"></span><span class="nexa-constellation-orbit two"></span>';
 
-    if(accounts.length){
-      const main=accounts.find(a=>a.is_main===true)||accounts[0];
-      const others=accounts.filter(a=>String(a.id)!==String(main.id));
-      html+='<button type="button" class="nexa-account-planet main" data-nexa-v586-profile="'+esc(main.id)+'">'+
-        '<img src="'+esc(avatar(main))+'" alt=""><span class="nexa-account-planet-name">'+esc(main.in_game_name||'Main Account')+
-        '</span><span class="nexa-account-planet-type">MAIN</span></button>';
+    const sig=rows.map(a=>[a.id,a.in_game_name,a.is_main,a.profile_photo_url].join(':')).join('|')+'|'+localStorage.getItem('nexa_active_account_id');
+    if(sig===lastSignature && system.querySelector('[data-nexa-v587-account]')) return;
+    lastSignature=sig;
 
-      others.slice(0,4).forEach((a,i)=>{
-        const [left,top]=positions[i];
-        html+='<button type="button" class="nexa-account-planet alt" style="left:'+left+'%;top:'+top+'%" data-nexa-v586-profile="'+esc(a.id)+'">'+
-          '<img src="'+esc(avatar(a))+'" alt=""><span class="nexa-account-planet-name">'+esc(a.in_game_name||'Account')+
-          '</span><span class="nexa-account-planet-type">'+
-          (String(a.account_purpose||'full').toLowerCase()==='full'?'FULL':'BASIC')+'</span></button>';
-      });
+    syncHome(rows);
+
+    const active=mainAccount(rows);
+    const others=active?rows.filter(a=>String(a.id)!==String(active.id)):rows;
+    const pos=[[82,30],[79,72],[21,72],[18,30]];
+
+    let out='<span class="nexa-constellation-orbit one"></span><span class="nexa-constellation-orbit two"></span>';
+
+    if(active){
+      out+=`<button type="button" class="nexa-account-planet main" data-nexa-v587-account="${esc(active.id)}">
+        <img src="${esc(avatar(active))}" alt="">
+        <span class="nexa-account-planet-name">${esc(active.in_game_name||'Account')}</span>
+        <span class="nexa-account-planet-type">MAIN</span>
+      </button>`;
     }
 
-    if(accounts.length<5){
-      const p=positions[Math.min(accounts.length,3)]||[50,14];
-      html+='<button type="button" id="nexa-v586-add" class="nexa-account-planet alt nexa-add-planet" style="left:'+p[0]+'%;top:'+p[1]+'%">'+
-        '<span class="nexa-add-planet-symbol">+</span><span class="nexa-account-planet-name">ADD ACCOUNT</span></button>';
+    others.slice(0,4).forEach((a,i)=>{
+      const p=pos[i];
+      out+=`<button type="button" class="nexa-account-planet alt" style="left:${p[0]}%;top:${p[1]}%" data-nexa-v587-account="${esc(a.id)}">
+        <img src="${esc(avatar(a))}" alt="">
+        <span class="nexa-account-planet-name">${esc(a.in_game_name||'Account')}</span>
+        <span class="nexa-account-planet-type">${purpose(a,false)}</span>
+      </button>`;
+    });
+
+    if(rows.length<5){
+      const p=pos[Math.min(others.length,3)]||[50,14];
+      out+=`<button type="button" id="nexa-v587-add" class="nexa-account-planet alt nexa-add-planet" style="left:${p[0]}%;top:${p[1]}%">
+        <span class="nexa-add-planet-symbol">+</span>
+        <span class="nexa-account-planet-name">ADD ACCOUNT</span>
+      </button>`;
     }
-    system.innerHTML=html;
+
+    system.innerHTML=out;
     const manage=$('nexa-constellation-manage');
     if(manage) manage.style.display='none';
+    if(active && selectedId==null) renderPassport(active);
   }
 
-  function populateAlliances(payload){
-    const select=$('alliance');
-    if(!select) return;
-    const current=select.value;
-    select.innerHTML='<option value="">Select alliance</option>'+
-      (payload.alliances||[]).map(a=>'<option value="'+esc(a.id)+'">'+esc(a.tag)+'</option>').join('')+
-      '<option value="not-listed">Not Listed</option>';
-    if([...select.options].some(o=>o.value===current)) select.value=current;
-  }
-
-  async function refresh(force=true){
-    const p=await bootstrap(force);
-    updateHome(p);
-    populateAlliances(p);
-    return p;
-  }
-
-  async function openConstellation(){
+  function openConstellation(){
     const modal=$('nexa-account-constellation');
-    if(modal){ modal.classList.add('open'); modal.setAttribute('aria-hidden','false'); }
-    try{ renderConstellation(await refresh(true)); }
-    catch(e){
-      console.warn('NEXA v58.6:',e);
-      const system=$('nexa-constellation-system');
-      if(system) system.innerHTML='<div style="padding:32px;text-align:center;color:#aeb8d8">Could not load accounts.</div>';
+    if(modal){
+      modal.classList.add('open');
+      modal.setAttribute('aria-hidden','false');
     }
+    lastSignature='';
+    render();
+    setTimeout(render,120);
+    setTimeout(render,500);
   }
 
-  async function openAdd(){
+  function openAdd(){
     $('nexa-account-constellation')?.classList.remove('open');
     const modal=$('accounts-modal');
-    if(modal){ modal.classList.add('open'); modal.setAttribute('aria-hidden','false'); }
-    try{ await refresh(true); }catch(e){ console.warn('NEXA v58.6 alliances:',e); }
+    if(modal){modal.classList.add('open');modal.setAttribute('aria-hidden','false');}
   }
 
-  async function openProfile(id){
-    try{
-      const p=await refresh(false);
-      const a=p.accounts.find(x=>String(x.id)===String(id));
-      if(!a) return;
-      const set=(id,val)=>{const el=$(id);if(el)el.textContent=val;};
-      set('nexa-profile-name',(a.in_game_name||'PLAYER').toUpperCase());
-      set('nexa-profile-player-id',a.player_id||'');
-      set('nexa-profile-alliance',allianceTag(a,p.alliances));
-      set('nexa-profile-role',a.alliance_role||'R3');
-      set('nexa-profile-type',a.is_main?'MAIN':(String(a.account_purpose||'full').toLowerCase()==='full'?'FULL':'BASIC'));
-      set('nexa-profile-furnace',a.furnace_level||'—');
-      set('nexa-profile-power',a.power?Number(a.power).toLocaleString():'—');
-      set('nexa-profile-deployment',a.deployment_capacity?Number(a.deployment_capacity).toLocaleString():'—');
-      if($('nexa-profile-photo')) $('nexa-profile-photo').src=avatar(a);
-      $('nexa-account-constellation')?.classList.remove('open');
-      const m=$('nexa-profile-modal');
-      if(m){m.classList.add('open');m.setAttribute('aria-hidden','false');}
-    }catch(e){console.warn('NEXA v58.6 profile:',e);}
+  function switchAccount(id){
+    const rows=accounts();
+    const a=rows.find(x=>String(x.id)===String(id));
+    if(!a) return;
+    localStorage.setItem('nexa_active_account_id',String(a.id));
+    selectedId=a.id;
+    lastSignature='';
+    render();
   }
 
-  document.addEventListener('click',e=>{
-    if(e.target.closest?.('#nexa-profile-launcher')){
-      e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
-      openConstellation(); return;
+  let lastTapId=null,lastTapAt=0;
+  document.addEventListener('click',function(e){
+    const launcher=e.target.closest?.('#nexa-profile-launcher');
+    if(launcher){
+      e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+      openConstellation();
+      return;
     }
-    if(e.target.closest?.('#nexa-v586-add,#nexa-v585-add,#nexa-constellation-add')){
-      e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
-      openAdd(); return;
+
+    const add=e.target.closest?.('#nexa-v587-add');
+    if(add){
+      e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+      openAdd();
+      return;
     }
-    const planet=e.target.closest?.('[data-nexa-v586-profile]');
+
+    const planet=e.target.closest?.('[data-nexa-v587-account]');
     if(planet){
-      e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
-      openProfile(planet.getAttribute('data-nexa-v586-profile')); return;
+      e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+      const id=planet.getAttribute('data-nexa-v587-account');
+      const rows=accounts();
+      const a=rows.find(x=>String(x.id)===String(id));
+      const now=Date.now();
+      if(lastTapId===id && now-lastTapAt<430){
+        lastTapId=null;lastTapAt=0;
+        switchAccount(id);
+      }else{
+        lastTapId=id;lastTapAt=now;
+        renderPassport(a);
+      }
+      return;
     }
   },true);
 
-  async function boot(){
-    try{ await refresh(true); }catch(e){ console.warn('NEXA v58.6 boot:',e); }
-  }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,250));
-  else setTimeout(boot,250);
+  document.addEventListener('dblclick',function(e){
+    const planet=e.target.closest?.('[data-nexa-v587-account]');
+    if(!planet) return;
+    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+    switchAccount(planet.getAttribute('data-nexa-v587-account'));
+  },true);
 
-  window.addEventListener('pageshow',()=>setTimeout(boot,100));
+  const style=document.createElement('style');
+  style.textContent=`
+    #nexa-constellation-system .nexa-account-planet{z-index:4}
+    #nexa-constellation-system .nexa-constellation-orbit.one{animation:nexaV587Spin 28s linear infinite}
+    #nexa-constellation-system .nexa-constellation-orbit.two{animation:nexaV587SpinReverse 40s linear infinite}
+    @keyframes nexaV587Spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+    @keyframes nexaV587SpinReverse{to{transform:translate(-50%,-50%) rotate(-360deg)}}
+    #nexa-v587-passport{width:min(520px,calc(100% - 34px));margin:24px auto 80px;position:relative;z-index:5}
+    .nexa-v587-passport-card{display:grid;grid-template-columns:62px 1fr;gap:12px;align-items:center;padding:14px;border:1px solid rgba(119,87,246,.5);border-radius:20px;background:rgba(13,18,42,.82);box-shadow:0 18px 50px rgba(0,0,0,.28)}
+    .nexa-v587-passport-card img{width:62px;height:62px;border-radius:50%;object-fit:cover;border:2px solid rgba(116,198,255,.65)}
+    .nexa-v587-passport-copy{display:grid;gap:3px;min-width:0}
+    .nexa-v587-passport-copy span{font-size:10px;letter-spacing:.18em;color:#a98cff;font-weight:900}
+    .nexa-v587-passport-copy strong{font-size:20px;color:white;overflow:hidden;text-overflow:ellipsis}
+    .nexa-v587-passport-copy small{color:#9ca9c8;overflow:hidden;text-overflow:ellipsis}
+    .nexa-v587-passport-hint{grid-column:1/-1;text-align:center;font-size:11px;color:#6dd8ff;letter-spacing:.08em;text-transform:uppercase}
+  `;
+  document.head.appendChild(style);
+
+  function heartbeat(){
+    const rows=accounts();
+    if(rows.length) syncHome(rows);
+    const modal=$('nexa-account-constellation');
+    if(modal?.classList.contains('open')) render();
+  }
+  setInterval(heartbeat,700);
+  window.addEventListener('pageshow',()=>setTimeout(heartbeat,120));
 })();

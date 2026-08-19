@@ -23,6 +23,8 @@
   const tag=a=>a?.alliances?.tag||a?.custom_alliance_tag||'Not Listed';
   const avatar=a=>a?.profile_photo_url||'https://ui-avatars.com/api/?name='+encodeURIComponent(a?.in_game_name||'NEXA')+'&background=111a38&color=cabaff&bold=true&size=256';
   const active=()=>accounts.find(a=>a.is_main===true)||accounts[0]||null;
+  const accountKind=a=>a?.is_main?'main':String(a?.account_purpose||'full').toLowerCase()==='buff_points'?'points':'full';
+  const accountLabel=a=>accountKind(a)==='main'?'MAIN ACCOUNT':accountKind(a)==='points'?'POINTS ACCOUNT':'FULL ACCOUNT';
 
   function diagnostic(code,detail){
     console.error('NEXA '+code,detail||'');
@@ -75,7 +77,7 @@
       modal.setAttribute('aria-hidden','true');
       document.body.appendChild(modal);
     }
-    const type=a.is_main?'ACTIVE ACCOUNT':String(a.account_purpose||'full').toUpperCase()+' ACCOUNT';
+    const type=accountLabel(a);
     modal.innerHTML=`
       <div class="nexa-passport-backdrop" data-close-passport></div>
       <section class="nexa-passport-book" role="dialog" aria-modal="true" aria-label="NEXA Profile Passport">
@@ -133,9 +135,9 @@
   function render(){
     const system=$('nexa-constellation-system');if(!system)return;
     const main=active(),others=main?accounts.filter(a=>a.id!==main.id):[],positions=[[82,31],[79,72],[21,72],[18,31]];
-    let html='<span class="nexa-constellation-orbit one"></span><span class="nexa-constellation-orbit two"></span>';
-    if(main)html+=`<button type="button" class="nexa-account-planet main" data-account-constellation-id="${esc(main.id)}"><img src="${esc(avatar(main))}" alt=""><span class="nexa-account-planet-name">${esc(main.in_game_name)}</span><span class="nexa-account-planet-type">ACTIVE</span></button>`;
-    others.forEach((a,i)=>{const p=positions[i%positions.length];html+=`<button type="button" class="nexa-account-planet alt" style="left:${p[0]}%;top:${p[1]}%" data-account-constellation-id="${esc(a.id)}"><img src="${esc(avatar(a))}" alt=""><span class="nexa-account-planet-name">${esc(a.in_game_name)}</span><span class="nexa-account-planet-type">ACCOUNT</span></button>`;});
+    let html='<span class="nexa-space-stars"></span><span class="nexa-space-planet planet-a"></span><span class="nexa-space-planet planet-b"></span><span class="nexa-space-planet planet-c"></span><span class="nexa-constellation-orbit orbit-three"></span><span class="nexa-constellation-orbit one"></span><span class="nexa-constellation-orbit two"></span>';
+    if(main)html+=`<button type="button" class="nexa-account-planet main type-main" data-account-constellation-id="${esc(main.id)}"><img src="${esc(avatar(main))}" alt=""><span class="nexa-account-planet-name">${esc(main.in_game_name)}</span><span class="nexa-account-planet-type">MAIN ACCOUNT</span></button>`;
+    others.forEach((a,i)=>{const p=positions[i%positions.length],kind=accountKind(a);html+=`<button type="button" class="nexa-account-planet alt type-${kind}" style="left:${p[0]}%;top:${p[1]}%" data-account-constellation-id="${esc(a.id)}"><img src="${esc(avatar(a))}" alt=""><span class="nexa-account-planet-name">${esc(a.in_game_name)}</span><span class="nexa-account-planet-type">${accountLabel(a)}</span></button>`;});
     if(accounts.length<5){const p=positions[Math.min(others.length,positions.length-1)]||[50,14];html+=`<button type="button" id="nexa-constellation-add-account" class="nexa-account-planet alt nexa-add-planet" style="left:${p[0]}%;top:${p[1]}%"><span class="nexa-add-planet-symbol">+</span><span class="nexa-account-planet-name">ADD ACCOUNT</span></button>`;}
     system.innerHTML=html;
   }
@@ -192,10 +194,26 @@
     #nexa-constellation-system .nexa-account-planet{z-index:5}
     #nexa-constellation-system .nexa-account-planet.main{z-index:7}
     #nexa-constellation-system .nexa-account-planet.main img{object-fit:cover}
+    #nexa-account-constellation .nexa-constellation-stage{background:radial-gradient(circle at 50% 45%,rgba(74,47,148,.17),transparent 34%),radial-gradient(circle at 12% 18%,rgba(35,116,181,.09),transparent 22%),linear-gradient(180deg,rgba(2,4,18,.94),rgba(2,5,20,.985))}
+    #nexa-constellation-system{isolation:isolate}
+    #nexa-constellation-system:before{content:"";position:absolute;inset:-18%;z-index:-3;pointer-events:none;background-image:radial-gradient(circle,rgba(255,255,255,.72) 0 1px,transparent 1.5px),radial-gradient(circle,rgba(119,188,255,.5) 0 1px,transparent 1.6px);background-size:47px 47px,73px 73px;background-position:9px 17px,31px 4px;opacity:.32;animation:nexaStarDrift 28s linear infinite}
+    @keyframes nexaStarDrift{to{background-position:56px 64px,104px 77px}}
+    .nexa-space-stars{position:absolute;inset:0;border-radius:50%;z-index:-2;pointer-events:none;background:radial-gradient(circle at 21% 31%,#fff 0 1px,transparent 2px),radial-gradient(circle at 71% 19%,#69c9ff 0 1px,transparent 2px),radial-gradient(circle at 83% 66%,#d68cff 0 1px,transparent 2px),radial-gradient(circle at 35% 81%,#fff 0 1px,transparent 2px)}
+    .nexa-space-planet{position:absolute;z-index:-1;border-radius:50%;pointer-events:none;box-shadow:inset -7px -5px 12px rgba(0,0,0,.48),0 0 14px currentColor}
+    .nexa-space-planet.planet-a{width:22px;height:22px;left:9%;top:18%;color:#a961ff;background:radial-gradient(circle at 32% 28%,#d9a7ff,#6321a6 64%,#190d3f)}
+    .nexa-space-planet.planet-b{width:34px;height:34px;right:7%;top:9%;color:#436dff;background:radial-gradient(circle at 32% 28%,#8cbaff,#314caa 62%,#111c57)}
+    .nexa-space-planet.planet-c{width:16px;height:16px;right:15%;bottom:12%;color:#50d6c8;background:radial-gradient(circle at 32% 28%,#a5fff1,#218a87 64%,#0a3e4a)}
+    #nexa-constellation-system .nexa-constellation-orbit.orbit-three{width:94%;height:94%;border-style:dashed;opacity:.38;animation:nexaOrbitClockwise 52s linear infinite}
     #nexa-constellation-system .nexa-constellation-orbit.one{animation:nexaOrbitClockwise 24s linear infinite}
     #nexa-constellation-system .nexa-constellation-orbit.two{animation:nexaOrbitCounter 38s linear infinite}
     @keyframes nexaOrbitClockwise{to{transform:translate(-50%,-50%) rotate(360deg)}}
     @keyframes nexaOrbitCounter{to{transform:translate(-50%,-50%) rotate(-360deg)}}
+    #nexa-constellation-system .nexa-account-planet.type-main img{border-color:#ff66dc;box-shadow:0 0 0 5px rgba(255,73,209,.1),0 0 34px rgba(255,73,209,.38)}
+    #nexa-constellation-system .nexa-account-planet.type-main .nexa-account-planet-type{color:#ff86e2;border-color:rgba(255,87,215,.42);background:rgba(160,28,134,.22)}
+    #nexa-constellation-system .nexa-account-planet.type-full img{border-color:#8b79ff;box-shadow:0 0 26px rgba(114,95,255,.3)}
+    #nexa-constellation-system .nexa-account-planet.type-full .nexa-account-planet-type{color:#ad9cff}
+    #nexa-constellation-system .nexa-account-planet.type-points img{border-color:#55e3c4;filter:saturate(.88) hue-rotate(18deg);box-shadow:0 0 28px rgba(57,222,181,.34)}
+    #nexa-constellation-system .nexa-account-planet.type-points .nexa-account-planet-type{color:#6cf0c8}
     #nexa-passport-modal{display:none;position:fixed;inset:0;z-index:10040;overflow:auto;padding:24px 14px 80px}
     #nexa-passport-modal.open{display:block}
     .nexa-passport-backdrop{position:fixed;inset:0;background:rgba(1,3,14,.9);backdrop-filter:blur(12px)}

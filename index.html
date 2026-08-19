@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="lang.js"></script>
-<script src="ui-i18n-final.js?v=6006"></script>
+<script src="ui-i18n-final.js?v=6007"></script>
 <style>
 .module-visibility-card{
   grid-column:1/-1;
@@ -2011,6 +2011,12 @@ html.nexa-auth-boot body > #nexa-auth-gate { visibility:visible!important; }
           <option value="">Select alliance</option>
         </select>
       </label>
+      <label>Account Type
+        <select id="account-purpose" required>
+          <option value="full">Full Account</option>
+          <option value="buff_points">Points Account</option>
+        </select>
+      </label>
       <label id="custom-alliance-wrap" class="hidden">Alliance Tag
         <input id="custom-alliance" maxlength="12" placeholder="Enter alliance tag">
       </label>
@@ -2550,6 +2556,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('player-id').disabled = false;
     allianceSelect.value = '';
     customAlliance.value = '';
+    document.getElementById('account-purpose').value = 'full';
     customAlliance.required = false;
     customAllianceWrap.classList.add('hidden');
     document.getElementById('save-account').textContent = tr('addAccount');
@@ -2619,7 +2626,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const payload = {
       in_game_name: document.getElementById('ign').value.trim(),
       alliance_id: notListed ? null : Number(allianceSelect.value),
-      custom_alliance_tag: notListed ? customAlliance.value.trim() : null
+      custom_alliance_tag: notListed ? customAlliance.value.trim() : null,
+      account_purpose: document.getElementById('account-purpose').value
     };
     if (!editId) {
       payload.user_id = user.id;
@@ -2647,12 +2655,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     if (editId) {
       const { data, error } = await supabaseClient.from('player_accounts')
-        .select('id,in_game_name,player_id,alliance_id,custom_alliance_tag').eq('id', editId).single();
+        .select('id,in_game_name,player_id,alliance_id,custom_alliance_tag,account_purpose').eq('id', editId).single();
       if (error) return msg(error.message, true);
       document.getElementById('edit-account-id').value = data.id;
       document.getElementById('ign').value = data.in_game_name;
       document.getElementById('player-id').value = data.player_id;
       document.getElementById('player-id').disabled = true;
+      document.getElementById('account-purpose').value = data.account_purpose || 'full';
       if (data.alliance_id) allianceSelect.value = String(data.alliance_id);
       else {
         allianceSelect.value = 'not-listed';

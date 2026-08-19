@@ -23,11 +23,9 @@
 })();
 
 /* ==========================================================
-   NEXA v58.9 — ACCOUNT CONSTELLATION GLOBAL CLIENT FIX
-   IMPORTANT:
-   index.html declares `const supabaseClient = ...`.
-   A top-level const is NOT window.supabaseClient.
-   This file now reads that exact global lexical binding.
+   NEXA v59.0 — CONSTELLATION MIRROR FIX
+   Source of truth: the SAME rendered WOS Accounts list that is
+   visibly showing Kimer + Test. No second Supabase query.
    ========================================================== */
 (function(){
   'use strict';
@@ -37,80 +35,70 @@
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
   }[m]));
 
-  let rows=[];
-  let selectedId=null;
-  let tapId=null;
+  let accounts=[];
+  let selectedKey=null;
+  let tapKey=null;
   let tapAt=0;
-  let loading=false;
 
-  function sb(){
-    /* `supabaseClient` lives in index.html as a global lexical const.
-       It does not appear on window, which is why v58.8 saw no client. */
-    try{
-      if(typeof supabaseClient!=='undefined' && supabaseClient?.auth){
-        return supabaseClient;
-      }
-    }catch(_){}
-    if(window.supabaseClient?.auth) return window.supabaseClient;
-    return null;
+  function initials(name){
+    const parts=String(name||'NEXA').trim().split(/\s+/).filter(Boolean);
+    return (parts.length>1 ? parts[0][0]+parts[1][0] : parts[0]?.slice(0,2) || 'NX').toUpperCase();
   }
 
-  async function currentUser(){
-    const client=sb();
-    if(!client?.auth) return null;
-    const {data:{session}}=await client.auth.getSession();
-    return session?.user||null;
+  function avatarData(name){
+    const text=initials(name);
+    const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180">
+      <defs><linearGradient id="g" x1="0" x2="1"><stop stop-color="#24315f"/><stop offset="1" stop-color="#15192f"/></linearGradient></defs>
+      <rect width="100%" height="100%" rx="90" fill="url(#g)"/>
+      <text x="50%" y="57%" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="62" fill="#c9b4ff">${text}</text>
+    </svg>`;
+    return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
   }
 
-  async function loadAccounts(){
-    if(loading) return rows;
-    loading=true;
-    try{
-      const client=sb();
-      const user=await currentUser();
+  function parseCard(card,index){
+    const text=(card.innerText||card.textContent||'').replace(/\s+/g,' ').trim();
+    if(!text) return null;
 
-      if(!client || !user){
-        const cached=Array.isArray(window.nexaAccountsCache)?window.nexaAccountsCache:[];
-        if(cached.length){
-          rows=cached;
-          return rows;
-        }
-        throw new Error('Signed-in NEXA session/client not available.');
-      }
+    const buttons=[...card.querySelectorAll('button')].map(b=>(b.textContent||'').trim().toLowerCase());
+    if(!buttons.some(x=>x==='edit') && !buttons.some(x=>x==='delete')) return null;
 
-      const {data,error}=await client
-        .from('player_accounts')
-        .select('id,user_id,in_game_name,player_id,alliance_id,custom_alliance_tag,is_main,account_purpose,alliance_role,furnace_level,power,deployment_capacity,profile_photo_url,created_at,alliances(tag)')
-        .eq('user_id',user.id)
-        .order('is_main',{ascending:false})
-        .order('created_at',{ascending:true});
+    const lines=(card.innerText||card.textContent||'').split(/\n+/).map(s=>s.trim()).filter(Boolean);
+    const filtered=lines.filter(s=>!/^(edit|delete)$/i.test(s));
+    if(!filtered.length) return null;
 
-      if(error) throw error;
+    const name=filtered[0];
+    const detail=filtered.slice(1).join(' ');
+    const idMatch=detail.match(/\bID\s*([^\s]+)/i);
+    const playerId=idMatch?.[1]||'';
+    const alliance=(detail.split(/[•·]/)[0]||'').replace(/\bID\b.*$/i,'').trim()||'Not Listed';
 
-      rows=Array.isArray(data)?data:[];
-      window.nexaAccountsCache=rows;
-      return rows;
-    }finally{
-      loading=false;
-    }
+    return {
+      key: playerId || `${name}-${index}`,
+      name,
+      playerId,
+      alliance,
+      isMain:index===0
+    };
   }
 
-  function avatar(a){
-    return a?.profile_photo_url ||
-      'https://ui-avatars.com/api/?name='+encodeURIComponent(a?.in_game_name||'NEXA')+
-      '&background=111a38&color=cabaff&bold=true&size=256';
+  function readVisibleAccounts(){
+    const list=$('accounts-list');
+    if(!list) return [];
+
+    const candidates=[...list.children].filter(el=>el.nodeType===1);
+    const parsed=candidates.map(parseCard).filter(Boolean);
+
+    if(parsed.length) return parsed;
+
+    // Fallback for nested card wrappers.
+    const nested=[...list.querySelectorAll('article,.account-card,.card,[data-account-id]')];
+    return nested.map(parseCard).filter(Boolean);
   }
 
   function activeAccount(){
-    if(!rows.length) return null;
-    const stored=localStorage.getItem('nexa_active_account_id');
-    return rows.find(a=>String(a.id)===String(stored)) ||
-      rows.find(a=>a.is_main===true) ||
-      rows[0];
-  }
-
-  function allianceLabel(a){
-    return a?.custom_alliance_tag || a?.alliances?.tag || 'Not Listed';
+    if(!accounts.length) return null;
+    const stored=localStorage.getItem('nexa_active_account_key');
+    return accounts.find(a=>String(a.key)===String(stored)) || accounts[0];
   }
 
   function syncHome(){
@@ -123,40 +111,35 @@
     const count=$('nexa-profile-launcher-count');
 
     if(img){
-      img.src=avatar(a);
+      img.src=avatarData(a.name);
       img.style.display='block';
     }
-    if(name) name.textContent=(a.in_game_name||'MY PROFILE').toUpperCase();
+    if(name) name.textContent=String(a.name||'MY PROFILE').toUpperCase();
     if(badge) badge.textContent='MAIN';
     if(count){
-      count.textContent=String(rows.length);
-      count.classList.toggle('hidden',rows.length<2);
+      count.textContent=String(accounts.length);
+      count.classList.toggle('hidden',accounts.length<2);
     }
-  }
-
-  function accountType(a,isActive){
-    if(isActive) return 'MAIN';
-    return String(a?.account_purpose||'full').toLowerCase()==='full'?'FULL':'BASIC';
   }
 
   function renderPassport(a){
-    selectedId=a?.id||null;
-    $('nexa-v589-passport')?.remove();
+    selectedKey=a?.key||null;
+    $('nexa-v590-passport')?.remove();
 
     const modal=$('nexa-account-constellation');
     if(!modal || !a) return;
 
     const section=document.createElement('section');
-    section.id='nexa-v589-passport';
+    section.id='nexa-v590-passport';
     section.innerHTML=`
-      <div class="nexa-v589-passport-card">
-        <img src="${esc(avatar(a))}" alt="">
-        <div class="nexa-v589-passport-copy">
+      <div class="nexa-v590-passport-card">
+        <img src="${avatarData(a.name)}" alt="">
+        <div class="nexa-v590-passport-copy">
           <span>PROFILE PASSPORT</span>
-          <strong>${esc(a.in_game_name||'Account')}</strong>
-          <small>${esc(allianceLabel(a))}${a.player_id?' • ID '+esc(a.player_id):''}</small>
+          <strong>${esc(a.name)}</strong>
+          <small>${esc(a.alliance)}${a.playerId?' • ID '+esc(a.playerId):''}</small>
         </div>
-        <div class="nexa-v589-passport-hint">Double tap to enter this account</div>
+        <div class="nexa-v590-passport-hint">Double tap to enter this account</div>
       </div>`;
     modal.appendChild(section);
   }
@@ -166,8 +149,8 @@
     if(!system) return;
 
     const active=activeAccount();
-    const orbiting=active?rows.filter(a=>String(a.id)!==String(active.id)):rows;
-    const pos=[[82,30],[78,72],[22,72],[18,30]];
+    const orbiting=active ? accounts.filter(a=>a.key!==active.key) : [];
+    const positions=[[82,31],[79,72],[21,72],[18,31]];
 
     let html=
       '<span class="nexa-constellation-orbit one"></span>'+
@@ -175,102 +158,115 @@
 
     if(active){
       html+=`
-        <button type="button" class="nexa-account-planet main" data-v589-account="${esc(active.id)}">
-          <img src="${esc(avatar(active))}" alt="">
-          <span class="nexa-account-planet-name">${esc(active.in_game_name||'Account')}</span>
+        <button type="button" class="nexa-account-planet main" data-v590-account="${esc(active.key)}">
+          <img src="${avatarData(active.name)}" alt="">
+          <span class="nexa-account-planet-name">${esc(active.name)}</span>
           <span class="nexa-account-planet-type">MAIN</span>
         </button>`;
     }
 
     orbiting.slice(0,4).forEach((a,i)=>{
-      const p=pos[i];
+      const p=positions[i];
       html+=`
-        <button type="button" class="nexa-account-planet alt" style="left:${p[0]}%;top:${p[1]}%" data-v589-account="${esc(a.id)}">
-          <img src="${esc(avatar(a))}" alt="">
-          <span class="nexa-account-planet-name">${esc(a.in_game_name||'Account')}</span>
-          <span class="nexa-account-planet-type">${accountType(a,false)}</span>
+        <button type="button" class="nexa-account-planet alt" style="left:${p[0]}%;top:${p[1]}%" data-v590-account="${esc(a.key)}">
+          <img src="${avatarData(a.name)}" alt="">
+          <span class="nexa-account-planet-name">${esc(a.name)}</span>
+          <span class="nexa-account-planet-type">ACCOUNT</span>
         </button>`;
     });
 
-    if(rows.length<5){
-      /* Keep Add Account as another small object on the orbital field. */
-      const p=pos[Math.min(orbiting.length,3)]||[50,14];
+    if(accounts.length<5){
+      const p=positions[Math.min(orbiting.length,3)]||[50,14];
       html+=`
-        <button type="button" id="nexa-v589-add" class="nexa-account-planet alt nexa-add-planet" style="left:${p[0]}%;top:${p[1]}%">
+        <button type="button" id="nexa-v590-add" class="nexa-account-planet alt nexa-add-planet" style="left:${p[0]}%;top:${p[1]}%">
           <span class="nexa-add-planet-symbol">+</span>
           <span class="nexa-account-planet-name">ADD ACCOUNT</span>
         </button>`;
     }
 
     system.innerHTML=html;
-
     const manage=$('nexa-constellation-manage');
     if(manage) manage.style.display='none';
 
-    if(active && !selectedId) renderPassport(active);
+    if(active && !selectedKey) renderPassport(active);
   }
 
-  async function refreshAndRender(){
-    try{
-      await loadAccounts();
-      syncHome();
-      renderConstellation();
-    }catch(error){
-      console.warn('NEXA v58.9 accounts:',error?.message||error);
+  function refreshFromWosList(){
+    const next=readVisibleAccounts();
+    if(!next.length) return false;
+    accounts=next;
+    syncHome();
 
-      /* Last fallback: reuse the exact rows the legacy WOS Accounts UI already loaded. */
-      const cached=Array.isArray(window.nexaAccountsCache)?window.nexaAccountsCache:[];
-      if(cached.length){
-        rows=cached;
-        syncHome();
-        renderConstellation();
-      }
-    }
+    const constellation=$('nexa-account-constellation');
+    if(constellation?.classList.contains('open')) renderConstellation();
+    return true;
   }
 
-  async function openConstellation(){
+  function openConstellation(){
     const modal=$('nexa-account-constellation');
     if(modal){
       modal.classList.add('open');
       modal.setAttribute('aria-hidden','false');
     }
 
-    const system=$('nexa-constellation-system');
-    if(system){
-      system.innerHTML=
-        '<span class="nexa-constellation-orbit one"></span>'+
-        '<span class="nexa-constellation-orbit two"></span>'+
-        '<div class="nexa-v589-loading">Loading accounts…</div>';
+    selectedKey=null;
+
+    if(refreshFromWosList()){
+      renderConstellation();
+      return;
     }
 
-    selectedId=null;
-    await refreshAndRender();
+    // The legacy Accounts UI already knows how to load the correct accounts.
+    // Open it invisibly for a moment if its list has not populated yet.
+    const accountsModal=$('accounts-modal');
+    const wasOpen=accountsModal?.classList.contains('open');
+    if(accountsModal && !wasOpen){
+      accountsModal.style.visibility='hidden';
+      accountsModal.style.pointerEvents='none';
+      accountsModal.classList.add('open');
+      accountsModal.setAttribute('aria-hidden','false');
+    }
+
+    const wait=()=>{
+      if(refreshFromWosList()){
+        if(accountsModal && !wasOpen){
+          accountsModal.classList.remove('open');
+          accountsModal.setAttribute('aria-hidden','true');
+          accountsModal.style.visibility='';
+          accountsModal.style.pointerEvents='';
+        }
+        renderConstellation();
+        return;
+      }
+      setTimeout(wait,120);
+    };
+    setTimeout(wait,120);
   }
 
-  function openAddAccount(){
+  function openAdd(){
     $('nexa-account-constellation')?.classList.remove('open');
-
     const modal=$('accounts-modal');
     if(modal){
+      modal.style.visibility='';
+      modal.style.pointerEvents='';
       modal.classList.add('open');
       modal.setAttribute('aria-hidden','false');
     }
   }
 
-  function switchAccount(id){
-    const a=rows.find(x=>String(x.id)===String(id));
+  function switchAccount(key){
+    const a=accounts.find(x=>String(x.key)===String(key));
     if(!a) return;
 
-    localStorage.setItem('nexa_active_account_id',String(a.id));
-    selectedId=a.id;
+    localStorage.setItem('nexa_active_account_key',String(a.key));
+    selectedKey=a.key;
     syncHome();
     renderConstellation();
     renderPassport(a);
   }
 
-  document.addEventListener('click',function(e){
-    const launcher=e.target.closest?.('#nexa-profile-launcher');
-    if(launcher){
+  document.addEventListener('click',e=>{
+    if(e.target.closest?.('#nexa-profile-launcher')){
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
@@ -278,163 +274,77 @@
       return;
     }
 
-    const add=e.target.closest?.('#nexa-v589-add');
-    if(add){
+    if(e.target.closest?.('#nexa-v590-add')){
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
-      openAddAccount();
+      openAdd();
       return;
     }
 
-    const planet=e.target.closest?.('[data-v589-account]');
+    const planet=e.target.closest?.('[data-v590-account]');
     if(planet){
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
 
-      const id=planet.getAttribute('data-v589-account');
-      const a=rows.find(x=>String(x.id)===String(id));
+      const key=planet.getAttribute('data-v590-account');
+      const a=accounts.find(x=>String(x.key)===String(key));
       const now=Date.now();
 
-      if(tapId===id && now-tapAt<450){
-        tapId=null;
+      if(tapKey===key && now-tapAt<450){
+        tapKey=null;
         tapAt=0;
-        switchAccount(id);
+        switchAccount(key);
       }else{
-        tapId=id;
+        tapKey=key;
         tapAt=now;
         renderPassport(a);
       }
     }
   },true);
 
-  document.addEventListener('dblclick',function(e){
-    const planet=e.target.closest?.('[data-v589-account]');
+  document.addEventListener('dblclick',e=>{
+    const planet=e.target.closest?.('[data-v590-account]');
     if(!planet) return;
-
     e.preventDefault();
     e.stopPropagation();
     e.stopImmediatePropagation();
-    switchAccount(planet.getAttribute('data-v589-account'));
+    switchAccount(planet.getAttribute('data-v590-account'));
   },true);
 
-  /* When Add Account is closed after a save, requery Supabase so the new
-     account appears in the constellation without a manual refresh. */
-  const modalObserver=new MutationObserver(()=>{
-    const modal=$('accounts-modal');
-    if(modal && !modal.classList.contains('open')){
-      setTimeout(()=>{
-        selectedId=null;
-        refreshAndRender();
-      },180);
-    }
-  });
+  function watchAccountsList(){
+    const list=$('accounts-list');
+    if(!list){ setTimeout(watchAccountsList,250); return; }
 
-  function boot(){
-    const accountModal=$('accounts-modal');
-    if(accountModal){
-      modalObserver.observe(accountModal,{
-        attributes:true,
-        attributeFilter:['class','aria-hidden']
-      });
-    }
+    new MutationObserver(()=>{
+      setTimeout(refreshFromWosList,40);
+    }).observe(list,{childList:true,subtree:true,characterData:true});
 
-    setTimeout(async()=>{
-      try{
-        await loadAccounts();
-        syncHome();
-      }catch(_){}
-    },650);
+    refreshFromWosList();
   }
 
   if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',boot);
+    document.addEventListener('DOMContentLoaded',()=>setTimeout(watchAccountsList,300));
   }else{
-    boot();
+    setTimeout(watchAccountsList,300);
   }
-
-  window.addEventListener('pageshow',()=>{
-    setTimeout(async()=>{
-      try{
-        await loadAccounts();
-        syncHome();
-      }catch(_){}
-    },250);
-  });
 
   const style=document.createElement('style');
   style.textContent=`
-    .nexa-v589-loading{
-      position:absolute;
-      left:50%;top:50%;
-      transform:translate(-50%,-50%);
-      color:#8290b4;
-      font-size:13px;
-      letter-spacing:.08em;
-      text-transform:uppercase
-    }
     #nexa-constellation-system .nexa-account-planet{z-index:5}
-    #nexa-constellation-system .nexa-constellation-orbit.one{
-      animation:nexaV589Spin 30s linear infinite
-    }
-    #nexa-constellation-system .nexa-constellation-orbit.two{
-      animation:nexaV589SpinBack 44s linear infinite
-    }
-    @keyframes nexaV589Spin{
-      to{transform:translate(-50%,-50%) rotate(360deg)}
-    }
-    @keyframes nexaV589SpinBack{
-      to{transform:translate(-50%,-50%) rotate(-360deg)}
-    }
-    #nexa-v589-passport{
-      width:min(520px,calc(100% - 34px));
-      margin:24px auto 80px;
-      position:relative;
-      z-index:8
-    }
-    .nexa-v589-passport-card{
-      display:grid;
-      grid-template-columns:64px 1fr;
-      gap:12px;
-      align-items:center;
-      padding:14px;
-      border:1px solid rgba(119,87,246,.5);
-      border-radius:20px;
-      background:rgba(13,18,42,.84);
-      box-shadow:0 18px 50px rgba(0,0,0,.28)
-    }
-    .nexa-v589-passport-card img{
-      width:64px;height:64px;
-      border-radius:50%;
-      object-fit:cover;
-      border:2px solid rgba(116,198,255,.65)
-    }
-    .nexa-v589-passport-copy{
-      display:grid;gap:3px;min-width:0
-    }
-    .nexa-v589-passport-copy span{
-      font-size:10px;
-      letter-spacing:.18em;
-      color:#a98cff;
-      font-weight:900
-    }
-    .nexa-v589-passport-copy strong{
-      font-size:20px;color:white;
-      overflow:hidden;text-overflow:ellipsis
-    }
-    .nexa-v589-passport-copy small{
-      color:#9ca9c8;
-      overflow:hidden;text-overflow:ellipsis
-    }
-    .nexa-v589-passport-hint{
-      grid-column:1/-1;
-      text-align:center;
-      font-size:11px;
-      color:#6dd8ff;
-      letter-spacing:.08em;
-      text-transform:uppercase
-    }
+    #nexa-constellation-system .nexa-constellation-orbit.one{animation:nexaV590Spin 30s linear infinite}
+    #nexa-constellation-system .nexa-constellation-orbit.two{animation:nexaV590SpinBack 44s linear infinite}
+    @keyframes nexaV590Spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+    @keyframes nexaV590SpinBack{to{transform:translate(-50%,-50%) rotate(-360deg)}}
+    #nexa-v590-passport{width:min(520px,calc(100% - 34px));margin:24px auto 80px;position:relative;z-index:8}
+    .nexa-v590-passport-card{display:grid;grid-template-columns:64px 1fr;gap:12px;align-items:center;padding:14px;border:1px solid rgba(119,87,246,.5);border-radius:20px;background:rgba(13,18,42,.84);box-shadow:0 18px 50px rgba(0,0,0,.28)}
+    .nexa-v590-passport-card img{width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid rgba(116,198,255,.65)}
+    .nexa-v590-passport-copy{display:grid;gap:3px;min-width:0}
+    .nexa-v590-passport-copy span{font-size:10px;letter-spacing:.18em;color:#a98cff;font-weight:900}
+    .nexa-v590-passport-copy strong{font-size:20px;color:white;overflow:hidden;text-overflow:ellipsis}
+    .nexa-v590-passport-copy small{color:#9ca9c8;overflow:hidden;text-overflow:ellipsis}
+    .nexa-v590-passport-hint{grid-column:1/-1;text-align:center;font-size:11px;color:#6dd8ff;letter-spacing:.08em;text-transform:uppercase}
   `;
   document.head.appendChild(style);
 })();

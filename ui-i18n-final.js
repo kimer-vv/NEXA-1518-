@@ -125,6 +125,12 @@
     set('nexa-profile-power',a.power?Number(a.power).toLocaleString():'—');
     set('nexa-profile-deployment',a.deployment_capacity?Number(a.deployment_capacity).toLocaleString():'—');
     const photo=$('nexa-profile-photo');if(photo)photo.src=avatar(a);
+    if($('nexa-edit-name'))$('nexa-edit-name').value=a.in_game_name||'';
+    if($('nexa-edit-role'))$('nexa-edit-role').value=a.alliance_role||'R3';
+    if($('nexa-edit-furnace'))$('nexa-edit-furnace').value=a.furnace_level||'';
+    if($('nexa-edit-power'))$('nexa-edit-power').value=a.power||'';
+    if($('nexa-edit-deployment'))$('nexa-edit-deployment').value=a.deployment_capacity||'';
+    $('nexa-profile-editor')?.classList.remove('open');
     $('nexa-passport-modal')?.classList.remove('open');
     $('nexa-account-constellation')?.classList.remove('open');
     const profile=$('nexa-profile-modal');
@@ -140,6 +146,88 @@
     others.forEach((a,i)=>{const p=positions[i%positions.length],kind=accountKind(a);html+=`<button type="button" class="nexa-account-planet alt type-${kind} account-color-${i+2}" style="left:${p[0]}%;top:${p[1]}%" data-account-constellation-id="${esc(a.id)}"><img src="${esc(avatar(a))}" alt=""><span class="nexa-account-planet-name">${esc(a.in_game_name)}</span><span class="nexa-account-planet-type">${accountLabel(a)}</span></button>`;});
     if(accounts.length<5){const p=positions[Math.min(others.length,positions.length-1)]||[50,14];html+=`<button type="button" id="nexa-constellation-add-account" class="nexa-account-planet alt nexa-add-planet" style="left:${p[0]}%;top:${p[1]}%"><span class="nexa-add-planet-symbol">+</span><span class="nexa-account-planet-name">ADD ACCOUNT</span></button>`;}
     system.innerHTML=html;
+    system.querySelectorAll('[data-account-constellation-id]').forEach(planet=>{
+      planet.onpointerup=event=>{
+        event.preventDefault();event.stopPropagation();
+        passport(accounts.find(a=>String(a.id)===String(planet.dataset.accountConstellationId)));
+      };
+    });
+    const add=$('nexa-constellation-add-account');
+    if(add)add.onpointerup=event=>{event.preventDefault();event.stopPropagation();openAccounts();};
+  }
+
+  function selectedAccount(){return accounts.find(a=>String(a.id)===String(selectedId))||null;}
+  function profileMessage(message,bad=false){
+    let box=$('nexa-profile-message');
+    if(!box){box=document.createElement('div');box.id='nexa-profile-message';box.className='nexa-profile-message';$('nexa-profile-editor')?.appendChild(box);}
+    box.textContent=message||'';box.classList.toggle('error',bad);
+  }
+  function refreshProfileView(a){
+    if(!a)return;
+    const set=(id,value)=>{const el=$(id);if(el)el.textContent=value;};
+    set('nexa-profile-name',(a.in_game_name||'PLAYER').toUpperCase());
+    set('nexa-profile-role',a.alliance_role||'R3');
+    set('nexa-profile-type',a.is_main?'MAIN':accountKind(a)==='points'?'POINTS':'FULL');
+    set('nexa-profile-furnace',a.furnace_level||'—');
+    set('nexa-profile-power',a.power?Number(a.power).toLocaleString():'—');
+    set('nexa-profile-deployment',a.deployment_capacity?Number(a.deployment_capacity).toLocaleString():'—');
+    const photo=$('nexa-profile-photo');if(photo)photo.src=avatar(a);
+  }
+  async function saveSelectedProfile(){
+    const a=selectedAccount();if(!a){profileMessage('No account selected.',true);return;}
+    const payload={
+      in_game_name:$('nexa-edit-name')?.value.trim()||a.in_game_name,
+      alliance_role:$('nexa-edit-role')?.value||'R3',
+      furnace_level:$('nexa-edit-furnace')?.value||null,
+      power:Number(($('nexa-edit-power')?.value||'').replace(/\D/g,''))||null,
+      deployment_capacity:Number(($('nexa-edit-deployment')?.value||'').replace(/\D/g,''))||null
+    };
+    profileMessage('Saving…');
+    const {data,error}=await db().from('player_accounts').update(payload).eq('id',a.id).select().single();
+    if(error){diagnostic('PROFILE-SAVE-04',error.message);profileMessage(error.message,true);return;}
+    Object.assign(a,data||payload);refreshProfileView(a);syncHome();render();
+    $('nexa-profile-editor')?.classList.remove('open');profileMessage('Profile saved.');
+  }
+  function cropPhoto(file){
+    return new Promise((resolve,reject)=>{
+      let modal=$('nexa-photo-cropper');
+      if(!modal){modal=document.createElement('div');modal.id='nexa-photo-cropper';document.body.appendChild(modal);}
+      modal.innerHTML=`<div class="nexa-crop-backdrop"></div><section class="nexa-crop-card" role="dialog" aria-modal="true"><header><div><small>NEXA PHOTO</small><strong>CROP PROFILE PICTURE</strong></div><button type="button" data-crop-cancel>×</button></header><canvas width="420" height="420"></canvas><label>ZOOM<input type="range" min="1" max="3" value="1" step="0.01"></label><p>Drag the photo to position it inside the circle.</p><div class="nexa-crop-actions"><button type="button" data-crop-cancel>CANCEL</button><button type="button" data-crop-use>USE PHOTO</button></div></section>`;
+      modal.classList.add('open');
+      const canvas=modal.querySelector('canvas'),ctx=canvas.getContext('2d'),range=modal.querySelector('input'),img=new Image();
+      let zoom=1,ox=0,oy=0,drag=false,lastX=0,lastY=0;
+      const draw=()=>{
+        const base=Math.max(canvas.width/img.naturalWidth,canvas.height/img.naturalHeight),scale=base*zoom,dw=img.naturalWidth*scale,dh=img.naturalHeight*scale;
+        ox=Math.max((canvas.width-dw)/2,Math.min((dw-canvas.width)/2,ox));oy=Math.max((canvas.height-dh)/2,Math.min((dh-canvas.height)/2,oy));
+        ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,(canvas.width-dw)/2+ox,(canvas.height-dh)/2+oy,dw,dh);
+      };
+      const close=value=>{modal.classList.remove('open');URL.revokeObjectURL(img.src);resolve(value);};
+      img.onload=draw;img.onerror=()=>{modal.classList.remove('open');reject(new Error('Unable to read image.'));};img.src=URL.createObjectURL(file);
+      range.oninput=()=>{zoom=Number(range.value);draw();};
+      canvas.onpointerdown=e=>{drag=true;lastX=e.clientX;lastY=e.clientY;canvas.setPointerCapture(e.pointerId);};
+      canvas.onpointermove=e=>{if(!drag)return;const ratio=canvas.width/canvas.getBoundingClientRect().width;ox+=(e.clientX-lastX)*ratio;oy+=(e.clientY-lastY)*ratio;lastX=e.clientX;lastY=e.clientY;draw();};
+      canvas.onpointerup=()=>{drag=false;};
+      modal.querySelectorAll('[data-crop-cancel]').forEach(x=>x.onclick=()=>close(null));
+      modal.querySelector('[data-crop-use]').onclick=()=>canvas.toBlob(blob=>close(blob),'image/jpeg',.9);
+    });
+  }
+  async function uploadSelectedPhoto(file){
+    const a=selectedAccount();if(!a||!file)return;
+    if(file.size>8*1024*1024){profileMessage('Please choose an image under 8 MB.',true);return;}
+    try{
+      const blob=await cropPhoto(file);if(!blob)return;
+      const {data:{user}}=await db().auth.getUser();if(!user)return;
+      profileMessage('Uploading photo…');
+      const path=`${user.id}/${a.id}-${Date.now()}.jpg`;
+      const {error:uploadError}=await db().storage.from('profile-photos').upload(path,blob,{contentType:'image/jpeg'});
+      if(uploadError)throw uploadError;
+      const {data:publicData}=db().storage.from('profile-photos').getPublicUrl(path);
+      const url=publicData?.publicUrl;if(!url)throw new Error('Photo URL was not created.');
+      const {error}=await db().from('player_accounts').update({profile_photo_url:url}).eq('id',a.id);
+      if(error)throw error;
+      a.profile_photo_url=url;refreshProfileView(a);syncHome();render();profileMessage('Photo updated.');
+    }catch(error){diagnostic('PHOTO-UPLOAD-05',error.message);profileMessage(error.message,true);}
+    finally{if($('nexa-photo-input'))$('nexa-photo-input').value='';}
   }
 
   async function openConstellation(){
@@ -170,6 +258,8 @@
   document.addEventListener('click',async event=>{
     if(event.target.closest?.('[data-close-passport]')){event.preventDefault();$('nexa-passport-modal')?.classList.remove('open');$('nexa-passport-modal')?.setAttribute('aria-hidden','true');return;}
     if(event.target.closest?.('[data-open-full-profile]')){event.preventDefault();openFullProfile(accounts.find(a=>a.id===selectedId));return;}
+    if(event.target.closest?.('#nexa-profile-edit-btn')){event.preventDefault();event.stopImmediatePropagation();$('nexa-profile-editor')?.classList.toggle('open');return;}
+    if(event.target.closest?.('#nexa-photo-edit')){event.preventDefault();event.stopImmediatePropagation();$('nexa-photo-input')?.click();return;}
     if(event.target.closest?.('#nexa-profile-launcher')){event.preventDefault();event.stopImmediatePropagation();await openConstellation();return;}
     if(event.target.closest?.('#nexa-constellation-add-account')){event.preventDefault();event.stopImmediatePropagation();await openAccounts();return;}
     const planet=event.target.closest?.('[data-account-constellation-id]');if(!planet)return;
@@ -177,6 +267,8 @@
     const id=planet.dataset.accountConstellationId;
     passport(accounts.find(a=>String(a.id)===String(id)));
   },true);
+  document.addEventListener('submit',async event=>{if(event.target?.id!=='nexa-profile-editor')return;event.preventDefault();event.stopImmediatePropagation();await saveSelectedProfile();},true);
+  document.addEventListener('change',async event=>{if(event.target?.id!=='nexa-photo-input')return;event.stopImmediatePropagation();const file=event.target.files?.[0];if(file)await uploadSelectedPhoto(file);},true);
   document.addEventListener('DOMContentLoaded',async()=>{await load(true);try{db()?.auth?.onAuthStateChange?.(()=>{loaded=false;setTimeout(()=>load(true),100);});}catch(_){}});
   window.NEXA_OPEN_ACCOUNT_CONSTELLATION=openConstellation;
   window.NEXA_OPEN_ACCOUNTS=openAccounts;
@@ -276,5 +368,13 @@
       #nexa-profile-modal .nexa-profile-item{min-height:78px;padding:8px;border-radius:11px}
       #nexa-profile-modal .nexa-profile-close{right:9px;top:8px;width:31px;height:31px}
     }
+    .nexa-profile-message{margin-top:8px;color:#74e6bd;font-size:10px;font-weight:800}.nexa-profile-message.error{color:#ff8ba1}
+    #nexa-photo-cropper{display:none;position:fixed;inset:0;z-index:100060;align-items:center;justify-content:center;padding:14px}#nexa-photo-cropper.open{display:flex}
+    .nexa-crop-backdrop{position:absolute;inset:0;background:radial-gradient(circle at 50% 30%,rgba(103,67,220,.24),transparent 35%),rgba(1,3,14,.96);backdrop-filter:blur(14px)}
+    .nexa-crop-card{position:relative;width:min(430px,100%);padding:14px;border:1px solid rgba(151,111,255,.58);border-radius:22px;background:linear-gradient(155deg,#111735,#05091c);box-shadow:0 25px 80px rgba(0,0,0,.65);color:white}
+    .nexa-crop-card header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.nexa-crop-card header div{display:grid;gap:3px}.nexa-crop-card header small{color:#a98cff;letter-spacing:.22em;font-weight:900}.nexa-crop-card header strong{font-size:13px;letter-spacing:.08em}.nexa-crop-card header button{width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.16);background:#10162e;color:white;font-size:22px}
+    .nexa-crop-card canvas{display:block;width:min(76vw,360px);height:min(76vw,360px);margin:auto;border-radius:50%;border:3px solid #9b76ff;box-shadow:0 0 0 8px rgba(128,88,255,.09),0 0 40px rgba(82,144,255,.24);touch-action:none;background:#080d22}
+    .nexa-crop-card label{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:10px;margin:14px 3px 0;color:#9da9ca;font-size:9px;letter-spacing:.15em}.nexa-crop-card input{width:100%}.nexa-crop-card p{text-align:center;color:#7f8bad;font-size:9px}
+    .nexa-crop-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.nexa-crop-actions button{padding:10px;border:1px solid rgba(132,111,255,.4);border-radius:11px;background:rgba(24,28,59,.8);color:#cbd4f2;font-weight:900}.nexa-crop-actions [data-crop-use]{background:linear-gradient(135deg,#7449ff,#269fff);color:white}
   `;document.head.appendChild(style);
 })();

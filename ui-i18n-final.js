@@ -66,11 +66,68 @@
   }
 
   function passport(a){
-    selectedId=a?.id||null;$('nexa-account-passport')?.remove();
-    const modal=$('nexa-account-constellation');if(!modal||!a)return;
-    const section=document.createElement('section');section.id='nexa-account-passport';
-    section.innerHTML=`<div class="nexa-account-passport-card"><img src="${esc(avatar(a))}" alt=""><div class="nexa-account-passport-copy"><span>PROFILE PASSPORT</span><strong>${esc(a.in_game_name||'PLAYER')}</strong><small>${esc(tag(a))} • ID ${esc(a.player_id||'')}</small><small>Furnace Level: ${esc(a.furnace_level||'Not set')}</small></div><div class="nexa-account-passport-hint">Double tap to make active</div></div>`;
-    modal.appendChild(section);
+    if(!a)return;
+    selectedId=a.id;
+    let modal=$('nexa-passport-modal');
+    if(!modal){
+      modal=document.createElement('div');
+      modal.id='nexa-passport-modal';
+      modal.setAttribute('aria-hidden','true');
+      document.body.appendChild(modal);
+    }
+    const type=a.is_main?'ACTIVE ACCOUNT':String(a.account_purpose||'full').toUpperCase()+' ACCOUNT';
+    modal.innerHTML=`
+      <div class="nexa-passport-backdrop" data-close-passport></div>
+      <section class="nexa-passport-book" role="dialog" aria-modal="true" aria-label="NEXA Profile Passport">
+        <header class="nexa-passport-header">
+          <div><span>NEXA</span><strong>DIGITAL PROFILE PASSPORT</strong></div>
+          <button type="button" data-close-passport aria-label="Close passport">×</button>
+        </header>
+        <div class="nexa-passport-pages">
+          <div class="nexa-passport-identity">
+            <div class="nexa-passport-seal">NEXA<br><small>1518</small></div>
+            <img src="${esc(avatar(a))}" alt="">
+            <h2>${esc(a.in_game_name||'PLAYER')}</h2>
+            <span class="nexa-passport-type">${esc(type)}</span>
+            <small>ACCOUNT HOLDER</small>
+          </div>
+          <div class="nexa-passport-data">
+            <div class="nexa-passport-code">NX-${esc(String(a.player_id||'').slice(-6)||'000000')}</div>
+            <div class="nexa-passport-field wide"><span>IN-GAME NAME</span><strong>${esc(a.in_game_name||'—')}</strong></div>
+            <div class="nexa-passport-field"><span>GAME ID</span><strong>${esc(a.player_id||'—')}</strong></div>
+            <div class="nexa-passport-field"><span>ALLIANCE</span><strong>${esc(tag(a))}</strong></div>
+            <div class="nexa-passport-field"><span>ROLE</span><strong>${esc(a.alliance_role||'R3')}</strong></div>
+            <div class="nexa-passport-field"><span>FURNACE LEVEL</span><strong>${esc(a.furnace_level||'Not set')}</strong></div>
+            <div class="nexa-passport-field"><span>POWER</span><strong>${a.power?Number(a.power).toLocaleString():'Not set'}</strong></div>
+            <div class="nexa-passport-field"><span>DEPLOYMENT BASE</span><strong>${a.deployment_capacity?Number(a.deployment_capacity).toLocaleString():'Not set'}</strong></div>
+            <div class="nexa-passport-machine">NEXA&lt;${esc(String(a.in_game_name||'PLAYER').toUpperCase().replace(/\s+/g,'&lt;'))}&lt;&lt;${esc(a.player_id||'000000')}</div>
+          </div>
+        </div>
+        <footer class="nexa-passport-actions">
+          <button type="button" data-open-full-profile>OPEN PLAYER INTELLIGENCE PROFILE</button>
+        </footer>
+      </section>`;
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden','false');
+  }
+
+  function openFullProfile(a){
+    if(!a)return;
+    const set=(id,value)=>{const el=$(id);if(el)el.textContent=value;};
+    set('nexa-profile-name',(a.in_game_name||'PLAYER').toUpperCase());
+    set('nexa-profile-player-id',a.player_id||'');
+    set('nexa-profile-alliance',tag(a));
+    set('nexa-profile-role',a.alliance_role||'R3');
+    set('nexa-profile-type',a.is_main?'MAIN':String(a.account_purpose||'full').toUpperCase());
+    set('nexa-profile-furnace',a.furnace_level||'—');
+    set('nexa-profile-power',a.power?Number(a.power).toLocaleString():'—');
+    set('nexa-profile-deployment',a.deployment_capacity?Number(a.deployment_capacity).toLocaleString():'—');
+    const photo=$('nexa-profile-photo');if(photo)photo.src=avatar(a);
+    $('nexa-passport-modal')?.classList.remove('open');
+    $('nexa-account-constellation')?.classList.remove('open');
+    const profile=$('nexa-profile-modal');
+    profile?.classList.add('open');
+    profile?.setAttribute('aria-hidden','false');
   }
 
   function render(){
@@ -80,7 +137,7 @@
     if(main)html+=`<button type="button" class="nexa-account-planet main" data-account-constellation-id="${esc(main.id)}"><img src="${esc(avatar(main))}" alt=""><span class="nexa-account-planet-name">${esc(main.in_game_name)}</span><span class="nexa-account-planet-type">ACTIVE</span></button>`;
     others.forEach((a,i)=>{const p=positions[i%positions.length];html+=`<button type="button" class="nexa-account-planet alt" style="left:${p[0]}%;top:${p[1]}%" data-account-constellation-id="${esc(a.id)}"><img src="${esc(avatar(a))}" alt=""><span class="nexa-account-planet-name">${esc(a.in_game_name)}</span><span class="nexa-account-planet-type">ACCOUNT</span></button>`;});
     if(accounts.length<5){const p=positions[Math.min(others.length,positions.length-1)]||[50,14];html+=`<button type="button" id="nexa-constellation-add-account" class="nexa-account-planet alt nexa-add-planet" style="left:${p[0]}%;top:${p[1]}%"><span class="nexa-add-planet-symbol">+</span><span class="nexa-account-planet-name">ADD ACCOUNT</span></button>`;}
-    system.innerHTML=html;if(main)passport(accounts.find(a=>a.id===selectedId)||main);
+    system.innerHTML=html;
   }
 
   async function openConstellation(){
@@ -116,6 +173,8 @@
   }
 
   document.addEventListener('click',async event=>{
+    if(event.target.closest?.('[data-close-passport]')){event.preventDefault();$('nexa-passport-modal')?.classList.remove('open');$('nexa-passport-modal')?.setAttribute('aria-hidden','true');return;}
+    if(event.target.closest?.('[data-open-full-profile]')){event.preventDefault();openFullProfile(accounts.find(a=>a.id===selectedId));return;}
     if(event.target.closest?.('#nexa-profile-launcher')){event.preventDefault();event.stopImmediatePropagation();await openConstellation();return;}
     if(event.target.closest?.('#nexa-constellation-add-account')){event.preventDefault();event.stopImmediatePropagation();await openAccounts();return;}
     const planet=event.target.closest?.('[data-account-constellation-id]');if(!planet)return;
@@ -137,13 +196,23 @@
     #nexa-constellation-system .nexa-constellation-orbit.two{animation:nexaOrbitCounter 38s linear infinite}
     @keyframes nexaOrbitClockwise{to{transform:translate(-50%,-50%) rotate(360deg)}}
     @keyframes nexaOrbitCounter{to{transform:translate(-50%,-50%) rotate(-360deg)}}
-    #nexa-account-passport{width:min(520px,calc(100% - 34px));margin:24px auto 80px;position:relative;z-index:8}
-    .nexa-account-passport-card{display:grid;grid-template-columns:72px 1fr;gap:14px;align-items:center;padding:16px;border:1px solid rgba(119,87,246,.55);border-radius:22px;background:linear-gradient(145deg,rgba(18,24,56,.96),rgba(9,13,34,.94));box-shadow:0 18px 50px rgba(0,0,0,.32),0 0 28px rgba(111,92,255,.12)}
-    .nexa-account-passport-card img{width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid rgba(116,198,255,.72);box-shadow:0 0 20px rgba(89,190,255,.2)}
-    .nexa-account-passport-copy{display:grid;gap:4px;min-width:0}
-    .nexa-account-passport-copy span{font-size:10px;letter-spacing:.18em;color:#a98cff;font-weight:900}
-    .nexa-account-passport-copy strong{font-size:20px;color:white;overflow:hidden;text-overflow:ellipsis}
-    .nexa-account-passport-copy small{color:#aeb9d5;overflow:hidden;text-overflow:ellipsis}
-    .nexa-account-passport-hint{grid-column:1/-1;text-align:center;font-size:11px;color:#6dd8ff;letter-spacing:.08em;text-transform:uppercase}
+    #nexa-passport-modal{display:none;position:fixed;inset:0;z-index:10040;overflow:auto;padding:24px 14px 80px}
+    #nexa-passport-modal.open{display:block}
+    .nexa-passport-backdrop{position:fixed;inset:0;background:rgba(1,3,14,.9);backdrop-filter:blur(12px)}
+    .nexa-passport-book{position:relative;width:min(760px,100%);margin:6vh auto 0;border:1px solid rgba(153,113,255,.62);border-radius:26px;overflow:hidden;color:#f7f4ff;background:radial-gradient(circle at 18% 14%,rgba(111,73,220,.24),transparent 30%),linear-gradient(145deg,#101631,#070b1c 72%);box-shadow:0 28px 90px rgba(0,0,0,.62),0 0 48px rgba(96,72,255,.18)}
+    .nexa-passport-book:before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.17;background-image:repeating-linear-gradient(45deg,transparent 0 15px,rgba(143,119,255,.16) 16px 17px)}
+    .nexa-passport-header{position:relative;display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid rgba(139,111,255,.28);background:rgba(10,13,35,.72)}
+    .nexa-passport-header div{display:grid;gap:3px}.nexa-passport-header span{font-size:11px;letter-spacing:.3em;color:#a98cff;font-weight:900}.nexa-passport-header strong{font-size:15px;letter-spacing:.1em}.nexa-passport-header button{width:40px;height:40px;border:1px solid rgba(255,255,255,.14);border-radius:50%;background:rgba(255,255,255,.05);color:white;font-size:27px}
+    .nexa-passport-pages{position:relative;display:grid;grid-template-columns:.78fr 1.22fr;min-height:390px}
+    .nexa-passport-identity{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:34px 24px;border-right:1px solid rgba(139,111,255,.28);text-align:center}
+    .nexa-passport-identity img{width:150px;height:150px;border-radius:50%;object-fit:cover;border:3px solid #9d77ff;box-shadow:0 0 0 8px rgba(122,85,255,.1),0 0 42px rgba(86,159,255,.24)}
+    .nexa-passport-identity h2{margin:18px 0 7px;font-size:27px}.nexa-passport-identity>small{margin-top:12px;letter-spacing:.2em;color:#8997ba;font-size:9px}.nexa-passport-type{padding:5px 11px;border:1px solid rgba(94,195,255,.48);border-radius:999px;background:rgba(41,132,209,.18);color:#72d9ff;font-size:10px;letter-spacing:.12em}
+    .nexa-passport-seal{position:absolute;left:20px;top:18px;width:58px;height:58px;display:grid;place-items:center;border:1px solid rgba(169,140,255,.26);border-radius:50%;color:rgba(191,173,255,.38);font-size:10px;letter-spacing:.12em;transform:rotate(-12deg)}.nexa-passport-seal small{font-size:8px}
+    .nexa-passport-data{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:46px 26px 28px;align-content:center}
+    .nexa-passport-code{position:absolute;right:24px;top:18px;color:#8d9ac0;font-family:monospace;letter-spacing:.12em}
+    .nexa-passport-field{display:grid;gap:5px;padding:12px 13px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(255,255,255,.025);min-width:0}.nexa-passport-field.wide{grid-column:1/-1}.nexa-passport-field span{font-size:9px;letter-spacing:.16em;color:#8e9ab8}.nexa-passport-field strong{font-size:15px;overflow:hidden;text-overflow:ellipsis}
+    .nexa-passport-machine{grid-column:1/-1;margin-top:5px;padding-top:15px;border-top:1px dashed rgba(153,125,255,.3);color:#808db0;font-family:monospace;font-size:10px;letter-spacing:.08em;overflow:hidden;white-space:nowrap}
+    .nexa-passport-actions{position:relative;padding:16px 20px 20px;border-top:1px solid rgba(139,111,255,.2);text-align:center}.nexa-passport-actions button{width:min(420px,100%);padding:13px 16px;border:1px solid rgba(127,100,255,.62);border-radius:14px;background:linear-gradient(135deg,rgba(106,67,221,.38),rgba(42,126,206,.2));color:white;font-weight:900;letter-spacing:.06em}
+    @media(max-width:620px){.nexa-passport-book{margin-top:2vh}.nexa-passport-pages{grid-template-columns:1fr}.nexa-passport-identity{border-right:0;border-bottom:1px solid rgba(139,111,255,.28);padding:42px 20px 26px}.nexa-passport-identity img{width:126px;height:126px}.nexa-passport-data{padding:44px 18px 22px}.nexa-passport-header strong{font-size:12px}.nexa-passport-field strong{font-size:13px}}
   `;document.head.appendChild(style);
 })();

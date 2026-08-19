@@ -22,6 +22,12 @@
   }
   const tag=a=>a?.alliances?.tag||a?.custom_alliance_tag||'Not Listed';
   const avatar=a=>a?.profile_photo_url||'https://ui-avatars.com/api/?name='+encodeURIComponent(a?.in_game_name||'NEXA')+'&background=111a38&color=cabaff&bold=true&size=256';
+  const compactNumber=value=>{
+    const number=Number(value||0);if(!Number.isFinite(number)||!number)return 'Not set';
+    const units=[[1e12,'T'],[1e9,'B'],[1e6,'M'],[1e3,'K']];
+    for(const [size,suffix] of units)if(Math.abs(number)>=size){const scaled=number/size;let text=scaled>=100?scaled.toFixed(0):scaled>=10?scaled.toFixed(1):scaled.toFixed(2);text=text.replace(/\.0+$/,'').replace(/(\.\d*[1-9])0+$/,'$1');return text+suffix;}
+    return number.toLocaleString();
+  };
   const active=()=>accounts.find(a=>a.is_main===true)||accounts[0]||null;
   const accountKind=a=>a?.is_main?'main':String(a?.account_purpose||'full').toLowerCase()==='buff_points'?'points':'full';
   const accountLabel=a=>accountKind(a)==='main'?'MAIN ACCOUNT':accountKind(a)==='points'?'POINTS ACCOUNT':'FULL ACCOUNT';
@@ -70,6 +76,8 @@
   function passport(a){
     if(!a)return;
     selectedId=a.id;
+    $('nexa-account-constellation')?.classList.remove('open');
+    $('nexa-account-constellation')?.setAttribute('aria-hidden','true');
     let modal=$('nexa-passport-modal');
     if(!modal){
       modal=document.createElement('div');
@@ -100,7 +108,7 @@
             <div class="nexa-passport-field"><span>ALLIANCE</span><strong>${esc(tag(a))}</strong></div>
             <div class="nexa-passport-field"><span>ROLE</span><strong>${esc(a.alliance_role||'R3')}</strong></div>
             <div class="nexa-passport-field"><span>FURNACE LEVEL</span><strong>${esc(a.furnace_level||'Not set')}</strong></div>
-            <div class="nexa-passport-field"><span>POWER</span><strong>${a.power?Number(a.power).toLocaleString():'Not set'}</strong></div>
+            <div class="nexa-passport-field"><span>POWER</span><strong>${esc(compactNumber(a.power))}</strong></div>
             <div class="nexa-passport-field"><span>DEPLOYMENT BASE</span><strong>${a.deployment_capacity?Number(a.deployment_capacity).toLocaleString():'Not set'}</strong></div>
             <div class="nexa-passport-machine">NEXA&lt;${esc(String(a.in_game_name||'PLAYER').toUpperCase().replace(/\s+/g,'&lt;'))}&lt;&lt;${esc(a.player_id||'000000')}</div>
           </div>
@@ -122,7 +130,7 @@
     set('nexa-profile-role',a.alliance_role||'R3');
     set('nexa-profile-type',a.is_main?'MAIN':String(a.account_purpose||'full').toUpperCase());
     set('nexa-profile-furnace',a.furnace_level||'—');
-    set('nexa-profile-power',a.power?Number(a.power).toLocaleString():'—');
+    set('nexa-profile-power',a.power?compactNumber(a.power):'—');
     set('nexa-profile-deployment',a.deployment_capacity?Number(a.deployment_capacity).toLocaleString():'—');
     const photo=$('nexa-profile-photo');if(photo)photo.src=avatar(a);
     if($('nexa-edit-name'))$('nexa-edit-name').value=a.in_game_name||'';
@@ -182,7 +190,7 @@
     set('nexa-profile-role',a.alliance_role||'R3');
     set('nexa-profile-type',a.is_main?'MAIN':accountKind(a)==='points'?'POINTS':'FULL');
     set('nexa-profile-furnace',a.furnace_level||'—');
-    set('nexa-profile-power',a.power?Number(a.power).toLocaleString():'—');
+    set('nexa-profile-power',a.power?compactNumber(a.power):'—');
     set('nexa-profile-deployment',a.deployment_capacity?Number(a.deployment_capacity).toLocaleString():'—');
     const photo=$('nexa-profile-photo');if(photo)photo.src=avatar(a);
   }
@@ -302,7 +310,7 @@
     #nexa-constellation-system .nexa-account-planet.type-full .nexa-account-planet-type{color:#ad9cff}
     #nexa-constellation-system .nexa-account-planet.type-points img{border-color:#55e3c4;filter:saturate(.88) hue-rotate(18deg);box-shadow:0 0 28px rgba(57,222,181,.34)}
     #nexa-constellation-system .nexa-account-planet.type-points .nexa-account-planet-type{color:#6cf0c8}
-    #nexa-passport-modal{display:none;position:fixed;inset:0;z-index:10040;overflow:auto;padding:24px 14px 80px}
+    #nexa-passport-modal{display:none;position:fixed;inset:0;z-index:2147483200;overflow:auto;padding:24px 14px 80px}
     #nexa-passport-modal.open{display:block}
     .nexa-passport-backdrop{position:fixed;inset:0;background:rgba(1,3,14,.9);backdrop-filter:blur(12px)}
     .nexa-passport-book{position:relative;width:min(760px,100%);margin:6vh auto 0;border:1px solid rgba(153,113,255,.62);border-radius:26px;overflow:hidden;color:#f7f4ff;background:radial-gradient(circle at 18% 14%,rgba(111,73,220,.24),transparent 30%),linear-gradient(145deg,#101631,#070b1c 72%);box-shadow:0 28px 90px rgba(0,0,0,.62),0 0 48px rgba(96,72,255,.18)}
@@ -347,6 +355,7 @@
       .nexa-passport-code{right:13px;top:8px;font-size:9px}.nexa-passport-field{gap:2px;padding:7px 8px;border-radius:9px;min-height:43px}.nexa-passport-field span{font-size:7px}.nexa-passport-field strong{font-size:11px;white-space:nowrap}.nexa-passport-machine{margin-top:0;padding-top:7px;font-size:7px}
       .nexa-passport-actions{padding:8px 12px 10px}.nexa-passport-actions button{padding:9px 10px;font-size:9px}
     }
+    #nexa-profile-modal{z-index:2147483000}
     #nexa-profile-modal .nexa-profile-backdrop{background:radial-gradient(circle at 12% 18%,rgba(113,61,204,.24),transparent 28%),radial-gradient(circle at 85% 78%,rgba(30,146,210,.18),transparent 30%),rgba(1,3,14,.95)}
     #nexa-profile-modal .nexa-profile-backdrop:before{content:"";position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,.7) 0 1px,transparent 1.4px),radial-gradient(circle,rgba(111,196,255,.5) 0 1px,transparent 1.5px);background-size:49px 49px,79px 79px;opacity:.3}
     #nexa-profile-modal .nexa-profile-sheet{border-color:rgba(143,107,255,.48);background:radial-gradient(circle at 18% 10%,rgba(106,65,214,.22),transparent 27%),linear-gradient(155deg,rgba(9,14,35,.98),rgba(3,7,21,.99));box-shadow:0 0 70px rgba(86,68,218,.2),0 30px 90px rgba(0,0,0,.6)}
@@ -374,7 +383,7 @@
       #nexa-profile-modal .nexa-profile-close{right:9px;top:8px;width:31px;height:31px}
     }
     .nexa-profile-message{margin-top:8px;color:#74e6bd;font-size:10px;font-weight:800}.nexa-profile-message.error{color:#ff8ba1}
-    #nexa-photo-cropper{display:none;position:fixed;inset:0;z-index:100060;align-items:center;justify-content:center;padding:14px}#nexa-photo-cropper.open{display:flex}
+    #nexa-photo-cropper{display:none;position:fixed;inset:0;z-index:2147483600;align-items:center;justify-content:center;padding:14px}#nexa-photo-cropper.open{display:flex}
     .nexa-crop-backdrop{position:absolute;inset:0;background:radial-gradient(circle at 50% 30%,rgba(103,67,220,.24),transparent 35%),rgba(1,3,14,.96);backdrop-filter:blur(14px)}
     .nexa-crop-card{position:relative;width:min(430px,100%);padding:14px;border:1px solid rgba(151,111,255,.58);border-radius:22px;background:linear-gradient(155deg,#111735,#05091c);box-shadow:0 25px 80px rgba(0,0,0,.65);color:white}
     .nexa-crop-card header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.nexa-crop-card header div{display:grid;gap:3px}.nexa-crop-card header small{color:#a98cff;letter-spacing:.22em;font-weight:900}.nexa-crop-card header strong{font-size:13px;letter-spacing:.08em}.nexa-crop-card header button{width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.16);background:#10162e;color:white;font-size:22px}

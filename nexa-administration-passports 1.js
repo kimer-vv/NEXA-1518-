@@ -1,127 +1,254 @@
-/* NEXA Administration — Alliance Passports V1 */
+/* NEXA Administration Hub V22 — isolated tabs, guides, alliance constellation, roles, module access */
 (()=>{
-  'use strict';
-  const $=(s,r=document)=>r.querySelector(s);
-  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const fmt=n=>n==null?'—':Intl.NumberFormat(undefined,{notation:'compact',maximumFractionDigits:1}).format(Number(n));
-  const when=v=>v?new Date(v).toLocaleString():'—';
-  const roles=[['scheduler','Scheduler'],['svs','SvS'],['transfers','Transfers'],['event_operations','Event Operations'],['team_builder','Team Builder'],['test_lab','Test Lab']];
-  let alliances=[],opened=null,myNexaRole='player',hasAllianceStaff=false;
+'use strict';
+if(window.__NEXA_ADMIN_V22__) return;
+window.__NEXA_ADMIN_V22__=true;
 
-  function css(){
-    if($('#nexa-passports-style'))return;
-    const s=document.createElement('style');s.id='nexa-passports-style';s.textContent=`
-      .ap-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:18px}.ap-head h3{margin:0 0 6px}.ap-head p{margin:0;color:var(--muted)}
-      .ap-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.ap-planet-card{appearance:none;color:inherit;border:1px solid color-mix(in srgb,var(--planet) 65%,transparent);border-radius:24px;background:radial-gradient(circle at 50% 25%,color-mix(in srgb,var(--planet) 22%,transparent),rgba(5,8,24,.86) 62%);padding:18px 12px;text-align:center;min-width:0;box-shadow:0 0 24px color-mix(in srgb,var(--planet) 20%,transparent)}
-      .ap-orbit{width:116px;height:116px;margin:0 auto 12px;border-radius:50%;display:grid;place-items:center;border:3px solid var(--planet);box-shadow:0 0 22px var(--planet),inset 0 0 24px color-mix(in srgb,var(--planet) 30%,transparent);position:relative;background:rgba(8,15,38,.9)}
-      .ap-orbit:before,.ap-orbit:after{content:"";position:absolute;border-radius:50%;border:1px dotted color-mix(in srgb,var(--planet) 72%,transparent)}.ap-orbit:before{inset:-9px}.ap-orbit:after{inset:8px}.ap-orbit img{width:78px;height:78px;object-fit:contain;border-radius:50%}.ap-tag{font-weight:950;font-size:1.15rem}.ap-meta{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:7px}.ap-chip{border:1px solid rgba(255,255,255,.13);border-radius:999px;padding:5px 8px;font-size:.7rem;color:var(--muted)}.ap-pending{border-color:#ef4444!important;box-shadow:0 0 26px rgba(239,68,68,.28)!important}.ap-pending .ap-orbit{border-color:#ef4444;box-shadow:0 0 22px #ef4444}.ap-empty{grid-column:1/-1;padding:28px;text-align:center;border:1px dashed rgba(255,255,255,.14);border-radius:20px;color:var(--muted)}
-      .ap-detail{display:grid;gap:16px}.ap-back{width:max-content}.ap-banner{border:1px solid color-mix(in srgb,var(--planet) 55%,transparent);border-radius:22px;padding:18px;background:linear-gradient(135deg,color-mix(in srgb,var(--planet) 20%,transparent),rgba(5,8,24,.76))}.ap-banner-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.ap-banner h3{margin:0;font-size:1.7rem}.ap-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:16px}.ap-stat{padding:12px;border:1px solid rgba(255,255,255,.11);border-radius:15px;background:rgba(5,8,24,.45)}.ap-stat small{display:block;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}.ap-stat b{display:block;margin-top:5px}.ap-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.ap-danger{color:#fecaca!important;border-color:#ef4444!important;background:rgba(127,29,29,.28)!important}.ap-warning{border:1px solid #ef4444;border-radius:16px;padding:14px;background:rgba(127,29,29,.19);color:#fecaca}.ap-groups{display:grid;gap:18px}.ap-group h4{margin:0 0 10px}.ap-members{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.ap-member{border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:12px;background:rgba(8,12,29,.62);min-width:0}.ap-member-head{display:flex;align-items:center;gap:10px}.ap-avatar{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--planet);background:rgba(255,255,255,.06);overflow:hidden;font-weight:900}.ap-avatar img{width:100%;height:100%;object-fit:cover}.ap-member-copy{min-width:0;flex:1}.ap-member-copy b,.ap-member-copy small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ap-member-copy small{color:var(--muted);margin-top:3px}.ap-role-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px}.ap-member-actions{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap}.ap-member-actions button{font-size:.76rem;padding:7px 9px}.ap-dialog{border:1px solid rgba(142,92,255,.72);border-radius:22px;background:#080b20;color:#fff;width:min(520px,calc(100vw - 28px));max-height:85dvh;overflow:auto;padding:20px;box-shadow:0 25px 90px #000}.ap-dialog::backdrop{background:rgba(0,0,0,.75);backdrop-filter:blur(4px)}.ap-dialog h3{margin-top:0}.ap-form{display:grid;gap:12px}.ap-form label{display:grid;gap:6px}.ap-checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.ap-check{display:flex!important;grid-template-columns:none!important;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.11);border-radius:12px;padding:9px}.ap-check input{width:auto!important;margin:0}.ap-dialog-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:16px}.ap-permission-card{border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:14px;margin-top:12px;background:rgba(8,12,29,.62)}
-      @media(max-width:430px){.ap-grid,.ap-members{grid-template-columns:1fr 1fr}.ap-orbit{width:102px;height:102px}.ap-stats{grid-template-columns:1fr 1fr}.ap-member{padding:10px}.ap-avatar{width:44px;height:44px}}
-    `;document.head.appendChild(s);
-  }
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const tabs=[
+  {key:'alliances',letter:'A',label:'Alliances',id:'admin-alliances'},
+  {key:'library',letter:'L',label:'Library',id:'admin-library'},
+  {key:'roles',letter:'R',label:'Roles',id:'admin-roles'},
+  {key:'module',letter:'M',label:'Module Access',id:'admin-permissions'},
+  {key:'system',letter:'S',label:'System Operations',id:'admin-system'}
+];
+const guideCopy={
+  alliances:['Alliance Constellation','Create and manage alliances here. Open an alliance planet for its Alliance Passport, password, status, members and rank structure. Owner/Admin can deactivate or schedule deletion; R5 manages ranks and password resets inside their own alliance.'],
+  library:['Library','The verified NEXA catalog lives here: Heroes, Experts, Pets, Troops, Chief Gear and Charms. Generation visibility can be Hidden, Scheduled or Unlocked.'],
+  roles:['Roles','This is the global rank audit. Alliance rank and NEXA module access are separate. R5 can assign R4 or R3–R1 in their alliance; R4 can assign R3–R1.'],
+  module:['Module Access','Owner/Admin assign special NEXA access here, such as SBS, SvS, Transfer, Team Builder, Forms, Events, Library and Administration. Alliance rank never grants these automatically.'],
+  system:['System Operations','System-wide maintenance, recovery and protected operations only. Alliance management and module access do not belong here.']
+};
+let current='alliances', allianceCache=[], nexaRole='player', lastFC=null;
 
-  async function rpc(name,args={}){
-    const {data,error}=await supabaseClient.rpc(name,args);if(error)throw error;return data;
-  }
-  function toast(text,bad=false){const m=$('#admin-alliances-message')||$('#permissions-message');if(!m)return;m.textContent=text;m.classList.toggle('error',bad);}
-  function planet(a){
-    const pending=a.deletionStatus==='pending_deletion';
-    return `<button class="ap-planet-card ${pending?'ap-pending':''}" style="--planet:${esc(a.color||'#8b5cf6')}" data-ap-open="${a.id??'unassigned'}">
-      <span class="ap-orbit">${a.emblemUrl?`<img src="${esc(a.emblemUrl)}" alt="">`:`<b>${esc(a.tag==='UNASSIGNED'?'?':a.tag)}</b>`}</span>
-      <span class="ap-tag">${esc(a.tag)}</span><small>${esc(a.name||'')}</small>
-      <span class="ap-meta"><span class="ap-chip">${a.registeredMembers||0} members</span><span class="ap-chip">${fmt(a.registeredPower)} power</span>${pending?'<span class="ap-chip">DELETING</span>':''}</span>
-    </button>`;
-  }
-  async function load(){
-    const section=$('#admin-alliances');if(!section)return;
-    section.innerHTML=`<div class="ap-head"><div><h3>Alliance Passports</h3><p>Alliance planets, members, ranks and operational access.</p></div></div><div id="admin-alliances-message" class="form-message"></div><div id="ap-root" class="ap-grid"><div class="ap-empty">Loading alliance constellation…</div></div>`;
-    try{
-      const [list,unassigned,role]=await Promise.all([rpc('nexa_list_alliance_passports'),rpc('nexa_list_unassigned_passport'),rpc('current_nexa_role')]);
-      myNexaRole=role||'player';alliances=[...(list||[]),unassigned].filter(Boolean);renderGrid();
-    }catch(e){$('#ap-root').innerHTML=`<div class="ap-empty">${esc(e.message)}</div>`;}
-  }
-  function renderGrid(){
-    opened=null;$('#ap-root').className='ap-grid';$('#ap-root').innerHTML=alliances.length?alliances.map(planet).join(''):'<div class="ap-empty">No alliances found.</div>';
-  }
-  function rankGroup(a,rank){return (a.members||[]).filter(m=>rank==='R3–R1'?['R3','R2','R1',null].includes(m.rank):m.rank===rank);}
-  function member(m,a){
-    const initials=String(m.name||'?').slice(0,2).toUpperCase();
-    return `<article class="ap-member" style="--planet:${esc(a.color)}"><div class="ap-member-head"><span class="ap-avatar">${m.photo?`<img src="${esc(m.photo)}" alt="">`:esc(initials)}</span><div class="ap-member-copy"><b>${esc(m.name)}</b><small>ID ${esc(m.gameId)} · ${esc(m.rank||'No rank')}</small></div></div><div class="ap-role-row">${(m.roles||[]).map(r=>`<span class="ap-chip">${esc(roles.find(x=>x[0]===r)?.[1]||r)}</span>`).join('')}</div>${a.canAssignRanks?`<div class="ap-member-actions"><button class="btn secondary" data-ap-player="${m.accountId}">Manage</button><button class="btn secondary" data-ap-view="${m.accountId}">Passport</button></div>`:''}</article>`;
-  }
-  function renderPassport(a){
-    opened=a;const pending=a.deletionStatus==='pending_deletion';$('#ap-root').className='ap-detail';
-    $('#ap-root').innerHTML=`<button class="btn secondary ap-back" data-ap-back>← Alliance Planets</button>
-      <section class="ap-banner" style="--planet:${esc(a.color)}"><div class="ap-banner-top"><div><small>ALLIANCE PASSPORT</small><h3>${esc(a.tag)} · ${esc(a.name)}</h3></div><span class="ap-chip">${a.active?'ACTIVE':'INACTIVE'}</span></div>
-      <div class="ap-stats"><div class="ap-stat"><small>Game Power</small><b>${fmt(a.gamePower)}</b></div><div class="ap-stat"><small>NEXA Registered Power</small><b>${fmt(a.registeredPower)}</b></div><div class="ap-stat"><small>Server Rank</small><b>${a.serverRank?`#${a.serverRank}`:'—'}</b></div><div class="ap-stat"><small>Registered Members</small><b>${a.registeredMembers||0}</b></div></div>
-      ${a.canManage?`<div class="ap-actions">${a.id!=null?`<button class="btn secondary" data-ap-edit>Edit Alliance</button><button class="btn secondary" data-ap-toggle>${a.active?'Deactivate':'Activate'}</button>${pending?'<button class="btn ap-danger" data-ap-cancel-delete>Cancel Deletion</button>':'<button class="btn ap-danger" data-ap-delete>⚠ Delete Alliance</button>'}`:''}</div>`:''}
-      ${pending?`<div class="ap-warning">⚠ Pending permanent deletion<br><b>${esc(when(a.scheduledDeleteAt))}</b><br>Members will move to Unassigned.</div>`:''}</section>
-      <section class="ap-groups">${['R5','R4','R3–R1'].map(r=>{const ms=rankGroup(a,r);return `<div class="ap-group"><h4>${r} <span class="ap-chip">${ms.length}</span></h4><div class="ap-members">${ms.length?ms.map(m=>member(m,a)).join(''):'<div class="ap-empty">No members</div>'}</div></div>`}).join('')}</section>`;
-  }
-  function dialog(html){let d=$('#ap-dialog');if(!d){d=document.createElement('dialog');d.id='ap-dialog';d.className='ap-dialog';document.body.appendChild(d);}d.innerHTML=html;d.showModal();return d;}
-  function editAlliance(a){
-    const d=dialog(`<h3>Edit ${esc(a.tag)}</h3><form id="ap-edit-form" class="ap-form"><label>Alliance Name<input name="name" value="${esc(a.name)}"></label><label>Alliance Color<input name="color" type="color" value="${esc(a.color||'#8b5cf6')}"></label><label>Server Rank<input name="rank" type="number" min="1" value="${a.serverRank||''}"></label><label>Official Game Power<input name="power" type="number" min="0" value="${a.gamePower||''}"></label><label class="ap-check"><input name="active" type="checkbox" ${a.active?'checked':''}> Active alliance</label><div class="ap-dialog-actions"><button type="button" class="btn secondary" data-ap-close>Cancel</button><button class="btn" type="submit">Save</button></div></form>`);
-    $('#ap-edit-form',d).onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target);try{await rpc('nexa_update_alliance_passport',{p_alliance_id:a.id,p_name:f.get('name'),p_color:f.get('color'),p_server_rank:f.get('rank')?Number(f.get('rank')):null,p_game_power:f.get('power')?Number(f.get('power')):null,p_is_active:f.get('active')==='on'});d.close();await reload(a.id);}catch(x){alert(x.message)}};
-  }
-  function managePlayer(m,a){
-    const allowedRanks=myNexaRole==='owner'||myNexaRole==='admin'?['R1','R2','R3','R4','R5']:(a.canManage?['R1','R2','R3','R4']:['R1','R2','R3']);
-    const d=dialog(`<h3>${esc(m.name)}</h3><p>Game ID ${esc(m.gameId)}</p><form id="ap-player-form" class="ap-form"><label>Alliance Rank<select name="rank">${allowedRanks.map(r=>`<option ${m.rank===r?'selected':''}>${r}</option>`).join('')}</select></label><b>Operational Roles</b><div class="ap-checks">${roles.map(([k,n])=>`<label class="ap-check"><input type="checkbox" name="roles" value="${k}" ${(m.roles||[]).includes(k)?'checked':''}> ${n}</label>`).join('')}</div><div class="ap-dialog-actions"><button type="button" class="btn secondary" data-ap-close>Cancel</button><button class="btn" type="submit">Save</button></div></form>`);
-    $('#ap-player-form',d).onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target);try{if(f.get('rank')!==m.rank)await rpc('nexa_set_alliance_rank',{p_account_id:m.accountId,p_new_rank:f.get('rank')});await rpc('nexa_set_operational_roles',{p_account_id:m.accountId,p_roles:f.getAll('roles')});d.close();await reload(a.id);}catch(x){alert(x.message)}};
-  }
-  async function reload(openId){const [list,u]=await Promise.all([rpc('nexa_list_alliance_passports'),rpc('nexa_list_unassigned_passport')]);alliances=[...(list||[]),u].filter(Boolean);const a=alliances.find(x=>String(x.id??'unassigned')===String(openId));a?renderPassport(a):renderGrid();}
+function css(){
+ if($('#nexa-admin-v22-style')) return;
+ const s=document.createElement('style'); s.id='nexa-admin-v22-style'; s.textContent=`
+ .nexa-admin-v22-nav{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;margin:0 0 14px}
+ .nexa-admin-v22-nav .prev{justify-self:start}.nexa-admin-v22-nav .next{justify-self:end}
+ .nexa-admin-v22-jump{appearance:none;border:1px solid rgba(139,92,246,.55);background:rgba(12,16,40,.86);color:#fff;border-radius:999px;padding:8px 11px;font:inherit;font-weight:800;cursor:pointer;min-width:48px}
+ .nexa-admin-v22-title{display:flex;align-items:center;justify-content:center;gap:8px;min-width:0;text-align:center;font-weight:900;letter-spacing:.02em}
+ .nexa-guide-btn{appearance:none;border:1px solid rgba(64,210,255,.55);background:rgba(9,21,48,.9);color:#7de8ff;border-radius:50%;width:31px;height:31px;display:inline-grid;place-items:center;font-weight:950;cursor:pointer}
+ .nexa-general-guide{position:absolute;right:14px;top:14px;z-index:6}
+ .nexa-admin-v22-section-head{display:flex;align-items:center;gap:8px;margin:0 0 12px}
+ .nexa-admin-v22-section-head h3{margin:0}
+ .nexa-admin-v22-hidden{display:none!important}
+ .nexa-ap-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+ .nexa-ap-planet{appearance:none;min-width:0;border:1px solid color-mix(in srgb,var(--planet,#8b5cf6) 65%,transparent);border-radius:24px;background:radial-gradient(circle at 50% 28%,color-mix(in srgb,var(--planet,#8b5cf6) 22%,transparent),rgba(5,8,24,.9) 65%);padding:16px 10px;color:#fff;text-align:center;cursor:pointer}
+ .nexa-ap-orbit{width:104px;height:104px;border-radius:50%;margin:0 auto 10px;border:3px solid var(--planet,#8b5cf6);display:grid;place-items:center;box-shadow:0 0 20px color-mix(in srgb,var(--planet,#8b5cf6) 45%,transparent);overflow:hidden;background:#080d23}
+ .nexa-ap-orbit img{width:82%;height:82%;object-fit:contain;border-radius:50%}.nexa-ap-tag{display:block;font-size:1.15rem;font-weight:950}.nexa-ap-sub{display:block;color:var(--muted,#aeb4ca);font-size:.82rem;margin-top:3px}
+ .nexa-chip{display:inline-flex;border:1px solid rgba(255,255,255,.13);border-radius:999px;padding:4px 8px;font-size:.72rem;color:var(--muted,#b7bdd2);margin:5px 2px 0}
+ .nexa-admin-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px}.nexa-admin-actions button{min-height:40px}
+ .nexa-passport{border:1px solid rgba(139,92,246,.5);border-radius:22px;padding:16px;background:rgba(7,10,28,.78)}
+ .nexa-passport-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.nexa-passport h3{margin:2px 0 0}
+ .nexa-pass-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}.nexa-pass-stat{border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:10px}.nexa-pass-stat small{display:block;color:var(--muted,#aeb4ca)}.nexa-pass-stat b{display:block;margin-top:4px}
+ .nexa-rank-group{margin-top:18px}.nexa-rank-group h4{margin:0 0 9px}.nexa-member-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .nexa-member{border:1px solid rgba(255,255,255,.11);border-radius:17px;padding:10px;background:rgba(8,12,31,.7);min-width:0}.nexa-member-main{display:flex;gap:9px;align-items:center}.nexa-member-avatar{width:46px;height:46px;border-radius:50%;border:2px solid #8b5cf6;overflow:hidden;display:grid;place-items:center;background:#111735;font-weight:900;flex:0 0 auto}.nexa-member-avatar img{width:100%;height:100%;object-fit:cover}.nexa-member-copy{min-width:0}.nexa-member-copy b,.nexa-member-copy small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nexa-member-copy small{color:var(--muted,#aeb4ca)}
+ .nexa-member-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.nexa-member-actions button{font-size:.75rem;padding:7px 8px}
+ .nexa-module-row{border:1px solid rgba(255,255,255,.11);border-radius:17px;padding:12px;margin:10px 0;background:rgba(8,12,31,.7)}.nexa-module-head{display:flex;justify-content:space-between;gap:8px;align-items:center}.nexa-module-checks{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}.nexa-module-checks label{display:flex;align-items:center;gap:5px;border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:6px 8px;font-size:.75rem}.nexa-module-checks input{width:auto!important;margin:0}
+ .nexa-admin-dialog{border:1px solid rgba(139,92,246,.65);border-radius:22px;background:#080c22;color:#fff;width:min(540px,calc(100vw - 28px));max-height:84dvh;overflow:auto;padding:18px}.nexa-admin-dialog::backdrop{background:rgba(0,0,0,.75);backdrop-filter:blur(4px)}.nexa-admin-dialog h3{margin-top:0}.nexa-admin-dialog label{display:grid;gap:6px;margin:10px 0}.nexa-admin-dialog input,.nexa-admin-dialog select{width:100%;min-width:0}.nexa-dialog-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:14px}
+ .nexa-danger{border-color:#ef4444!important;color:#fecaca!important}.nexa-warning{margin-top:10px;border:1px solid rgba(239,68,68,.6);border-radius:14px;padding:10px;color:#fecaca;background:rgba(127,29,29,.18)}
+ .nexa-empty{padding:18px;border:1px dashed rgba(255,255,255,.15);border-radius:16px;color:var(--muted,#aeb4ca);text-align:center}
+ button[data-nexa-fc-selected="1"]{border-color:#a855f7!important;background:linear-gradient(135deg,rgba(126,34,206,.65),rgba(37,99,235,.35))!important;box-shadow:0 0 0 1px rgba(168,85,247,.35) inset!important;color:#fff!important}
+ img.nexa-troop-fit{object-fit:contain!important;padding:6%!important;box-sizing:border-box!important;transform:scale(.9)!important;transform-origin:center!important}
+ img.nexa-troop-fit-lancer{padding:10%!important;transform:scale(.82)!important}
+ @media(max-width:430px){.nexa-ap-grid,.nexa-member-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.nexa-ap-orbit{width:92px;height:92px}.nexa-admin-v22-title .full{display:none}.nexa-pass-stats{grid-template-columns:1fr 1fr}}
+ @media(min-width:700px){.nexa-admin-v22-jump .long{display:inline}.nexa-ap-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+ `;
+ document.head.appendChild(s);
+}
+function rpc(name,args={}){return window.supabaseClient.rpc(name,args).then(({data,error})=>{if(error)throw error;return data})}
+function fmt(n){return n==null?'—':Intl.NumberFormat(undefined,{notation:'compact',maximumFractionDigits:1}).format(Number(n))}
+function dialog(html){
+ let d=$('#nexa-admin-v22-dialog'); if(!d){d=document.createElement('dialog');d.id='nexa-admin-v22-dialog';d.className='nexa-admin-dialog';document.body.appendChild(d)}
+ d.innerHTML=html; d.showModal(); $$('[data-close]',d).forEach(b=>b.onclick=()=>d.close()); return d;
+}
+function generalGuide(){
+ const d=dialog(`<h3>Administration Quick Guide</h3><p>Use the arrows to move between Administration pages without going back Home.</p>
+ <div class="nexa-module-row"><b>A</b> = Alliances<br><b>L</b> = Library<br><b>R</b> = Roles<br><b>M</b> = Module Access<br><b>S</b> = System Operations</div>
+ <p><b>‹</b> previous section · <b>›</b> next section. The floating <b>Home</b> control remains your shortcut to other NEXA modules.</p>
+ <div class="nexa-dialog-actions"><button class="btn secondary" data-close>Skip</button><button class="btn" id="nexa-guide-gotit">Got it</button></div>`);
+ $('#nexa-guide-gotit',d).onclick=()=>{localStorage.setItem('nexa_admin_guide_v22','seen');d.close()};
+}
+function sectionGuide(key){const [t,c]=guideCopy[key]; dialog(`<h3>${esc(t)} Guide</h3><p>${esc(c)}</p><div class="nexa-dialog-actions"><button class="btn" data-close>Got it</button></div>`)}
 
-  async function permissions(){
-    const s=$('#admin-permissions');if(!s)return;s.innerHTML=`<div class="ap-head"><div><h3>Admin Permissions</h3><p>Only the Owner can assign or remove NEXA Admin access.</p></div></div><form id="ap-admin-search" class="alliance-inline-form"><input id="ap-admin-id" inputmode="numeric" placeholder="Enter Game ID" required><button class="btn">Search</button></form><div id="permissions-message" class="form-message"></div><div id="ap-admin-result"></div><h4>Owner & Admins</h4><div id="permissions-list" class="admin-list"></div>`;
-    try{myNexaRole=await rpc('current_nexa_role');if(myNexaRole!=='owner'){s.innerHTML='<div class="ap-empty">Only the Owner can manage Admin access.</div>';return;}await admins();}catch(e){s.innerHTML=`<div class="ap-empty">${esc(e.message)}</div>`;}
-    $('#ap-admin-search')?.addEventListener('submit',async e=>{e.preventDefault();try{const p=await rpc('nexa_find_admin_candidate',{p_game_id:$('#ap-admin-id').value});$('#ap-admin-result').innerHTML=p?`<article class="ap-permission-card"><b>${esc(p.name)}</b><small>Game ID ${esc(p.gameId)} · ${esc(p.alliance)} · ${esc(p.rank||'No rank')}</small><div class="ap-actions"><button class="btn" data-ap-assign-admin="${esc(p.gameId)}">Assign Admin</button></div></article>`:'<div class="ap-empty">Game ID not found.</div>';}catch(x){toast(x.message,true)}});
-  }
-  function applyTabVisibility(){
-    const owner=myNexaRole==='owner',admin=myNexaRole==='admin';
-    document.querySelectorAll('[data-admin-tab="alliances"]').forEach(x=>x.classList.remove('hidden'));
-    document.querySelectorAll('[data-admin-tab="permissions"]').forEach(x=>x.classList.toggle('hidden',!owner));
-    document.querySelectorAll('[data-admin-tab="library"]').forEach(x=>x.classList.toggle('hidden',!(owner||admin)));
-    document.querySelectorAll('[data-admin-tab="system"]').forEach(x=>x.classList.toggle('hidden',!owner));
-  }
-  function openStaffPassports(){
-    const modal=$('#admin-modal');modal?.classList.add('open','module-view');modal?.setAttribute('aria-hidden','false');
-    $('#admin-module-chooser')?.classList.add('hidden');$('#svs-admin-content')?.classList.remove('hidden');$('#admin-context-tabs')?.classList.remove('hidden');
-    document.querySelectorAll('.svs-context-tab').forEach(x=>x.classList.add('hidden'));
-    document.querySelectorAll('.administration-context-tab').forEach(x=>x.classList.add('hidden'));
-    const tab=$('[data-admin-tab="alliances"]');tab?.classList.remove('hidden');
-    document.querySelectorAll('[data-admin-tab]').forEach(x=>x.classList.toggle('active',x===tab));
-    ['admin-events','admin-forms','admin-roles','admin-permissions','admin-library','admin-system','admin-announcements'].forEach(id=>$('#'+id)?.classList.add('hidden'));
-    $('#admin-alliances')?.classList.remove('hidden');
-    const title=$('#nexa-module-title'),desc=$('#nexa-module-description'),head=$('#nexa-module-shell-head');head?.classList.remove('hidden');if(title)title.textContent='Alliance Passports';if(desc)desc.textContent='Manage your alliance members, ranks and operational access.';
-    load();
-  }
-  async function exposeStaffAccess(){
-    try{myNexaRole=await rpc('current_nexa_role')||'player';hasAllianceStaff=await rpc('nexa_has_alliance_staff_access');const b=$('#admin-panel-button');if(b&&hasAllianceStaff){b.classList.remove('hidden');if(!['owner','admin'].includes(myNexaRole))b.textContent='Operations';}applyTabVisibility();}catch(_){ }
-  }
-  async function admins(){const rows=await rpc('nexa_list_admins');$('#permissions-list').innerHTML=(rows||[]).map(x=>`<article class="ap-permission-card"><b>${esc(x.name||x.role)}</b><small>Game ID ${esc(x.gameId||'—')} · ${esc(x.alliance||'Unassigned')}</small><div class="ap-meta"><span class="ap-chip">${esc(String(x.role).toUpperCase())}</span></div>${x.role==='admin'?`<div class="ap-actions"><button class="btn ap-danger" data-ap-remove-admin="${x.userId}">Remove Admin</button></div>`:''}</article>`).join('')||'<div class="ap-empty">No admins.</div>';}
+function findAdminSections(){
+ return tabs.map(t=>({t,el:document.getElementById(t.id)})).filter(x=>x.el);
+}
+function locateTabButtons(){
+ return $$('.admin-tab, [data-admin-tab], .admin-tabs-scroll button').filter(b=>tabs.some(t=>{
+   const z=(b.textContent||'').trim().toLowerCase();
+   return z===t.label.toLowerCase() || (t.key==='module' && z==='permissions');
+ }));
+}
+function ensureHeader(){
+ const secs=findAdminSections(); if(!secs.length)return;
+ const first=secs[0].el; const parent=first.parentElement; if(!parent)return;
+ if(!$('#nexa-admin-general-guide',parent)){
+   parent.style.position=parent.style.position||'relative';
+   const g=document.createElement('button');g.id='nexa-admin-general-guide';g.className='nexa-guide-btn nexa-general-guide';g.textContent='ⓘ';g.title='Administration Quick Guide';g.onclick=generalGuide;parent.prepend(g);
+ }
+}
+function navFor(key){
+ const i=tabs.findIndex(x=>x.key===key), p=tabs[i-1], n=tabs[i+1], t=tabs[i];
+ return `<div class="nexa-admin-v22-nav">
+ ${p?`<button class="nexa-admin-v22-jump prev" data-admin-v22-go="${p.key}" title="${p.label}">‹ ${p.letter}<span class="long"> · ${p.label}</span></button>`:'<span></span>'}
+ <div class="nexa-admin-v22-title"><span class="full">${t.label}</span><button class="nexa-guide-btn" data-section-guide="${key}" title="${t.label} guide">ⓘ</button></div>
+ ${n?`<button class="nexa-admin-v22-jump next" data-admin-v22-go="${n.key}" title="${n.label}">${n.letter}<span class="long"> · ${n.label}</span> ›</button>`:'<span></span>'}
+ </div>`;
+}
+function activate(key){
+ current=key;
+ const secs=findAdminSections();
+ secs.forEach(({t,el})=>{
+   const on=t.key===key; el.classList.toggle('nexa-admin-v22-hidden',!on); el.hidden=!on;
+ });
+ locateTabButtons().forEach(b=>{
+   const z=(b.textContent||'').trim().toLowerCase();
+   const is=(key==='module' ? ['module access','permissions'].includes(z) : z===tabs.find(t=>t.key===key)?.label.toLowerCase());
+   b.classList.toggle('active',is); b.setAttribute('aria-selected',is?'true':'false');
+ });
+ const el=document.getElementById(tabs.find(t=>t.key===key)?.id||'');
+ if(el){
+   let nav=$('.nexa-admin-v22-nav',el); if(nav)nav.remove();
+   el.insertAdjacentHTML('afterbegin',navFor(key));
+   $$('[data-admin-v22-go]',el).forEach(b=>b.onclick=()=>activate(b.dataset.adminV22Go));
+   $$('[data-section-guide]',el).forEach(b=>b.onclick=()=>sectionGuide(b.dataset.sectionGuide));
+ }
+ if(key==='alliances') loadAlliances();
+ if(key==='roles') renderRoles();
+ if(key==='module') loadModuleAccess();
+ if(key==='library') renderLibraryLauncher();
+}
+function wireTabs(){
+ locateTabButtons().forEach(b=>{
+   if((b.textContent||'').trim().toLowerCase()==='permissions') b.textContent='Module Access';
+   if(b.dataset.nexaV22)return;b.dataset.nexaV22='1';
+   b.addEventListener('click',e=>{
+     const z=(b.textContent||'').trim().toLowerCase();
+     const t=tabs.find(x=>x.label.toLowerCase()===z)||(z==='permissions'?tabs[3]:null);
+     if(t){e.preventDefault();e.stopPropagation();activate(t.key)}
+   },true);
+ });
+}
 
-  document.addEventListener('click',async e=>{
-    const t=e.target.closest('[data-ap-open],[data-ap-back],[data-ap-edit],[data-ap-toggle],[data-ap-delete],[data-ap-cancel-delete],[data-ap-player],[data-ap-view],[data-ap-close],[data-ap-assign-admin],[data-ap-remove-admin]');if(!t)return;
-    if(t.matches('[data-ap-open]')){const a=alliances.find(x=>String(x.id??'unassigned')===t.dataset.apOpen);if(a)renderPassport(a);}
-    else if(t.hasAttribute('data-ap-back'))renderGrid();
-    else if(t.hasAttribute('data-ap-edit'))editAlliance(opened);
-    else if(t.hasAttribute('data-ap-toggle')){try{await rpc('nexa_update_alliance_passport',{p_alliance_id:opened.id,p_name:opened.name,p_color:opened.color,p_server_rank:opened.serverRank,p_game_power:opened.gamePower,p_is_active:!opened.active});await reload(opened.id)}catch(x){alert(x.message)}}
-    else if(t.hasAttribute('data-ap-delete')){if(!confirm(`⚠ Delete ${opened.tag}?\n\nThe alliance will deactivate now and be permanently deleted after 24 hours. Its members will move to Unassigned.`))return;if(prompt(`Type ${opened.tag} to schedule deletion:`)!==opened.tag)return;try{await rpc('nexa_request_alliance_deletion',{p_alliance_id:opened.id});await reload(opened.id)}catch(x){alert(x.message)}}
-    else if(t.hasAttribute('data-ap-cancel-delete')){try{await rpc('nexa_cancel_alliance_deletion',{p_alliance_id:opened.id});await reload(opened.id)}catch(x){alert(x.message)}}
-    else if(t.hasAttribute('data-ap-player')){const m=opened.members.find(x=>x.accountId===t.dataset.apPlayer);if(m)managePlayer(m,opened);}
-    else if(t.hasAttribute('data-ap-view'))alert('Player Passport Support View will open here in the next Administration block.');
-    else if(t.hasAttribute('data-ap-close'))t.closest('dialog')?.close();
-    else if(t.dataset.apAssignAdmin){if(confirm(`Assign NEXA Admin to Game ID ${t.dataset.apAssignAdmin}?`)){try{await rpc('nexa_assign_admin_by_game_id',{p_game_id:t.dataset.apAssignAdmin});await admins();$('#ap-admin-result').innerHTML='';}catch(x){alert(x.message)}}}
-    else if(t.dataset.apRemoveAdmin){if(confirm('Remove this Admin access?')){try{await rpc('nexa_remove_admin',{p_user_id:t.dataset.apRemoveAdmin});await admins()}catch(x){alert(x.message)}}}
-  });
+async function loadAlliances(){
+ const el=$('#admin-alliances'); if(!el)return;
+ const old=$('#nexa-ap-body',el); if(old)old.remove();
+ el.insertAdjacentHTML('beforeend',`<div id="nexa-ap-body"><div class="nexa-admin-actions"><button class="btn" id="nexa-create-alliance">+ Manage Alliances</button></div><div id="nexa-ap-root" class="nexa-ap-grid"><div class="nexa-empty">Loading alliance constellation…</div></div></div>`);
+ $('#nexa-create-alliance',el).onclick=createAlliance;
+ try{allianceCache=await rpc('nexa_list_alliance_passports')||[]; renderAllianceGrid()}catch(e){$('#nexa-ap-root',el).innerHTML=`<div class="nexa-empty">${esc(e.message)}</div>`}
+}
+function renderAllianceGrid(){
+ const root=$('#nexa-ap-root');if(!root)return;root.className='nexa-ap-grid';
+ root.innerHTML=allianceCache.length?allianceCache.map(a=>`<button class="nexa-ap-planet" data-alliance="${a.id}" style="--planet:${esc(a.color||'#8b5cf6')}"><span class="nexa-ap-orbit">${a.emblemUrl?`<img src="${esc(a.emblemUrl)}" alt="">`:`<b>${esc(a.tag)}</b>`}</span><span class="nexa-ap-tag">${esc(a.tag)}</span><span class="nexa-ap-sub">${esc(a.name||'')}</span><span class="nexa-chip">${a.registeredMembers||0} members</span>${a.deletionStatus==='pending_deletion'?'<span class="nexa-chip">DELETING</span>':''}</button>`).join(''):'<div class="nexa-empty">No alliances found.</div>';
+ $$('[data-alliance]',root).forEach(b=>b.onclick=()=>openAlliance(Number(b.dataset.alliance)));
+}
+function rankMembers(a,r){return (a.members||[]).filter(m=>r==='R3–R1'?['R3','R2','R1','',null].includes(m.rank):String(m.rank||'').toUpperCase()===r)}
+function memberCard(m,a){
+ const initials=String(m.name||'?').slice(0,2).toUpperCase();
+ return `<article class="nexa-member"><div class="nexa-member-main"><span class="nexa-member-avatar">${m.photo?`<img src="${esc(m.photo)}" alt="">`:esc(initials)}</span><div class="nexa-member-copy"><b>${esc(m.name)}</b><small>ID ${esc(m.gameId)} · ${esc(m.rank||'R3–R1')}</small></div></div><div class="nexa-member-actions"><button class="btn secondary" data-person="${m.accountId}">Profile</button>${a.canAssignRanks?`<button class="btn secondary" data-rank="${m.accountId}">Role</button>`:''}${a.canManage?`<button class="btn secondary" data-reset="${m.accountId}">Reset Password</button>`:''}</div></article>`;
+}
+function openAlliance(id){
+ const a=allianceCache.find(x=>Number(x.id)===Number(id));if(!a)return;
+ const root=$('#nexa-ap-root');root.className='';
+ const pending=a.deletionStatus==='pending_deletion';
+ root.innerHTML=`<div class="nexa-admin-actions"><button class="btn secondary" id="nexa-alliance-back">← Alliance Planets</button></div><section class="nexa-passport" style="--planet:${esc(a.color||'#8b5cf6')}"><div class="nexa-passport-top"><div><small>ALLIANCE PASSPORT</small><h3>${esc(a.tag)} · ${esc(a.name||'')}</h3></div><span class="nexa-chip">${a.active?'ACTIVE':'INACTIVE'}</span></div><div class="nexa-pass-stats"><div class="nexa-pass-stat"><small>Password</small><b>${a.password?esc(a.password):'••••••••'}</b></div><div class="nexa-pass-stat"><small>Members</small><b>${a.registeredMembers||0}</b></div><div class="nexa-pass-stat"><small>Power</small><b>${fmt(a.registeredPower)}</b></div><div class="nexa-pass-stat"><small>Server Rank</small><b>${a.serverRank?`#${a.serverRank}`:'—'}</b></div></div>
+ ${a.canManage?`<div class="nexa-admin-actions"><button class="btn secondary" id="nexa-edit-alliance">Edit / Password</button>${a.canDelete?(pending?'<button class="btn nexa-danger" id="nexa-cancel-delete">Cancel Deletion</button>':'<button class="btn nexa-danger" id="nexa-delete-alliance">Delete Alliance</button>'):''}</div>`:''}
+ ${pending?`<div class="nexa-warning">Scheduled removal: <b>${new Date(a.scheduledDeleteAt).toLocaleString()}</b>. Members remain intact and become unassigned.</div>`:''}</section>
+ ${['R5','R4','R3–R1'].map(r=>{const ms=rankMembers(a,r);return `<section class="nexa-rank-group"><h4>${r} <span class="nexa-chip">${ms.length}</span></h4><div class="nexa-member-grid">${ms.length?ms.map(m=>memberCard(m,a)).join(''):'<div class="nexa-empty">No members</div>'}</div></section>`}).join('')}`;
+ $('#nexa-alliance-back').onclick=renderAllianceGrid;
+ if($('#nexa-edit-alliance'))$('#nexa-edit-alliance').onclick=()=>editAlliance(a);
+ if($('#nexa-delete-alliance'))$('#nexa-delete-alliance').onclick=()=>deleteAlliance(a);
+ if($('#nexa-cancel-delete'))$('#nexa-cancel-delete').onclick=()=>cancelDelete(a);
+ $$('[data-person]',root).forEach(b=>b.onclick=()=>personDialog(a.members.find(m=>m.accountId===b.dataset.person)));
+ $$('[data-rank]',root).forEach(b=>b.onclick=()=>rankDialog(a,a.members.find(m=>m.accountId===b.dataset.rank)));
+ $$('[data-reset]',root).forEach(b=>b.onclick=()=>resetPassword(a.members.find(m=>m.accountId===b.dataset.reset)));
+}
+function createAlliance(){
+ const d=dialog(`<h3>Manage Alliances</h3><label>Alliance Tag<input id="na-tag" maxlength="8" placeholder="FSU"></label><label>Alliance Name<input id="na-name"></label><label>Alliance Password<input id="na-pass"></label><label>Planet Color<input id="na-color" type="color" value="#8b5cf6"></label><div class="nexa-dialog-actions"><button class="btn secondary" data-close>Cancel</button><button class="btn" id="na-save">Create Alliance</button></div>`);
+ $('#na-save',d).onclick=async()=>{try{await rpc('nexa_create_alliance',{p_tag:$('#na-tag',d).value,p_name:$('#na-name',d).value||null,p_password:$('#na-pass',d).value||null,p_color:$('#na-color',d).value});d.close();await loadAlliances()}catch(e){alert(e.message)}};
+}
+function editAlliance(a){
+ const d=dialog(`<h3>${esc(a.tag)} · Alliance Passport</h3><label>Name<input id="ea-name" value="${esc(a.name||'')}"></label><label>Password<input id="ea-pass" value="${esc(a.password||'')}" autocomplete="off"></label><label>Color<input id="ea-color" type="color" value="${esc(a.color||'#8b5cf6')}"></label><label>Server Rank<input id="ea-rank" type="number" min="1" value="${a.serverRank||''}"></label><label>Official Game Power<input id="ea-power" type="number" min="0" value="${a.gamePower||''}"></label><label><input id="ea-active" type="checkbox" ${a.active?'checked':''}> Active</label><div class="nexa-dialog-actions"><button class="btn secondary" data-close>Cancel</button><button class="btn" id="ea-save">Save</button></div>`);
+ $('#ea-save',d).onclick=async()=>{try{await rpc('nexa_update_alliance_passport',{p_alliance_id:a.id,p_name:$('#ea-name',d).value||null,p_color:$('#ea-color',d).value,p_server_rank:$('#ea-rank',d).value?Number($('#ea-rank',d).value):null,p_game_power:$('#ea-power',d).value?Number($('#ea-power',d).value):null,p_is_active:$('#ea-active',d).checked,p_password:$('#ea-pass',d).value});d.close();await loadAlliances()}catch(e){alert(e.message)}};
+}
+async function deleteAlliance(a){if(!confirm(`Schedule ${a.tag} for removal in 24 hours?`))return;try{await rpc('nexa_request_alliance_deletion',{p_alliance_id:a.id});await loadAlliances()}catch(e){alert(e.message)}}
+async function cancelDelete(a){try{await rpc('nexa_cancel_alliance_deletion',{p_alliance_id:a.id});await loadAlliances()}catch(e){alert(e.message)}}
+function rankDialog(a,m){
+ if(!m)return; const options=nexaRole==='owner'||nexaRole==='admin'?['R5','R4','R3','R2','R1']:['R4','R3','R2','R1'];
+ const d=dialog(`<h3>${esc(m.name)} · Role</h3><p>Alliance role only. Special NEXA access is managed separately under Module Access.</p><label>Alliance Role<select id="mr-rank">${options.map(x=>`<option ${x===m.rank?'selected':''}>${x}</option>`).join('')}</select></label><div class="nexa-dialog-actions"><button class="btn secondary" data-close>Cancel</button><button class="btn" id="mr-save">Save Role</button></div>`);
+ $('#mr-save',d).onclick=async()=>{try{await rpc('nexa_set_alliance_rank',{p_account_id:m.accountId,p_new_rank:$('#mr-rank',d).value});d.close();await loadAlliances()}catch(e){alert(e.message)}};
+}
+function personDialog(m){
+ if(!m)return; const accounts=m.accounts||[];
+ const d=dialog(`<h3>${esc(m.name)}</h3><p>Choose an account to view its Passport.</p>${accounts.map(x=>`<button class="nexa-module-row" style="width:100%;color:inherit;text-align:left" data-account-view="${x.id}"><b>${esc(x.name)}${x.isMain?' · MAIN':''}</b><br><small>ID ${esc(x.gameId)} · ${esc(x.furnace||'—')} · ${fmt(x.power)}</small></button>`).join('')||'<div class="nexa-empty">No linked accounts.</div>'}<div class="nexa-dialog-actions"><button class="btn" data-close>Close</button></div>`);
+ $$('[data-account-view]',d).forEach(b=>b.onclick=()=>{
+   const a=accounts.find(x=>x.id===b.dataset.accountView);
+   if(typeof window.openAccountPassport==='function'){d.close();window.openAccountPassport(a.id);return}
+   dialog(`<h3>${esc(a.name)}${a.isMain?' · MAIN':''}</h3><p>ID ${esc(a.gameId)}</p><div class="nexa-pass-stats"><div class="nexa-pass-stat"><small>Furnace</small><b>${esc(a.furnace||'—')}</b></div><div class="nexa-pass-stat"><small>Power</small><b>${fmt(a.power)}</b></div><div class="nexa-pass-stat"><small>Deployment</small><b>${fmt(a.deployment)}</b></div></div><div class="nexa-dialog-actions"><button class="btn" data-close>Close</button></div>`)
+ });
+}
+function resetPassword(m){
+ const d=dialog(`<h3>Reset NEXA Password</h3><p>${esc(m.name)} · ID ${esc(m.gameId)}</p><label>Temporary Password<input id="rp-pass" type="password" minlength="8" autocomplete="new-password"></label><p><small>The player should change this temporary password after signing in.</small></p><div class="nexa-dialog-actions"><button class="btn secondary" data-close>Cancel</button><button class="btn" id="rp-save">Reset Password</button></div>`);
+ $('#rp-save',d).onclick=async()=>{const password=$('#rp-pass',d).value;if(password.length<8){alert('Use at least 8 characters.');return}try{const {data:{session}}=await window.supabaseClient.auth.getSession();const r=await fetch('/api/nexa-admin-reset-password',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${session?.access_token||''}`},body:JSON.stringify({account_id:m.accountId,password})});const j=await r.json();if(!r.ok)throw new Error(j.error||'Reset failed');d.close();alert('Password reset complete.')}catch(e){alert(e.message)}};
+}
 
-  function boot(){
-    css();const tabs=[...document.querySelectorAll('[data-admin-tab]')];tabs.filter(x=>x.dataset.adminTab==='alliances').forEach(x=>x.textContent='Alliance Passports');tabs.filter(x=>x.dataset.adminTab==='roles').forEach(x=>x.remove());
-    const alliancesTab=tabs.find(x=>x.dataset.adminTab==='alliances');alliancesTab?.addEventListener('click',()=>setTimeout(load,0));
-    const permissionTab=tabs.find(x=>x.dataset.adminTab==='permissions');permissionTab?.addEventListener('click',()=>setTimeout(permissions,0));
-    const openAdmin=$('#open-administration');openAdmin?.addEventListener('click',()=>setTimeout(()=>{applyTabVisibility();const active=$('[data-admin-tab].active');if(active?.dataset.adminTab==='alliances')load();},60));
-    $('#admin-panel-button')?.addEventListener('click',e=>{if(hasAllianceStaff&&!['owner','admin'].includes(myNexaRole)){e.preventDefault();e.stopImmediatePropagation();openStaffPassports();}},true);
-    exposeStaffAccess();setTimeout(exposeStaffAccess,800);setTimeout(exposeStaffAccess,2200);
-    try{supabaseClient.auth.onAuthStateChange(()=>setTimeout(exposeStaffAccess,100));}catch(_){ }
-    const url=new URL(location.href);if(url.searchParams.get('tab')==='alliances')setTimeout(load,300);if(url.searchParams.get('tab')==='permissions')setTimeout(permissions,300);
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+async function renderRoles(){
+ const el=$('#admin-roles');if(!el)return; let body=$('#nexa-roles-body',el);if(body)body.remove();el.insertAdjacentHTML('beforeend','<div id="nexa-roles-body"><div class="nexa-empty">Loading roles…</div></div>');body=$('#nexa-roles-body',el);
+ try{if(!allianceCache.length)allianceCache=await rpc('nexa_list_alliance_passports')||[];body.innerHTML=allianceCache.map(a=>`<section class="nexa-passport" style="margin-bottom:12px"><h3>${esc(a.tag)} · ${esc(a.name||'')}</h3>${['R5','R4','R3–R1'].map(r=>{const ms=rankMembers(a,r);return `<div class="nexa-rank-group"><h4>${r}</h4><div class="nexa-member-grid">${ms.length?ms.map(m=>memberCard(m,a)).join(''):'<div class="nexa-empty">No members</div>'}</div></div>`}).join('')}</section>`).join('')||'<div class="nexa-empty">No alliance roles found.</div>';$$('[data-rank]',body).forEach(b=>b.onclick=()=>{const a=allianceCache.find(a=>(a.members||[]).some(m=>m.accountId===b.dataset.rank));if(a)rankDialog(a,a.members.find(m=>m.accountId===b.dataset.rank))})}catch(e){body.innerHTML=`<div class="nexa-empty">${esc(e.message)}</div>`}
+}
+async function loadModuleAccess(){
+ const el=$('#admin-permissions');if(!el)return;let body=$('#nexa-module-body',el);if(body)body.remove();el.insertAdjacentHTML('beforeend','<div id="nexa-module-body"><div class="nexa-empty">Loading Module Access…</div></div>');body=$('#nexa-module-body',el);
+ try{const rows=await rpc('nexa_list_module_access')||[];const mods=[['svs','SvS'],['sbs','SBS'],['transfer','Transfer'],['team_builder','Team Builder'],['forms','Forms'],['events','Events'],['library','Library'],['administration','Administration']];body.innerHTML=rows.map(p=>`<div class="nexa-module-row"><div class="nexa-module-head"><div><b>${esc(p.name)}</b><small style="display:block;color:var(--muted)">ID ${esc(p.gameId)} · ${esc(p.allianceRole||'R3–R1')}</small></div></div><div class="nexa-module-checks">${mods.map(([k,n])=>`<label><input type="checkbox" data-access-user="${p.userId}" data-access-module="${k}" ${p[k==='team_builder'?'teamBuilder':k]?'checked':''}> ${n}</label>`).join('')}</div></div>`).join('')||'<div class="nexa-empty">No players found.</div>';$$('[data-access-user]',body).forEach(c=>c.onchange=async()=>{c.disabled=true;try{await rpc('nexa_set_module_access',{p_user_id:c.dataset.accessUser,p_module:c.dataset.accessModule,p_enabled:c.checked})}catch(e){c.checked=!c.checked;alert(e.message)}finally{c.disabled=false}})}catch(e){body.innerHTML=`<div class="nexa-empty">${esc(e.message)}</div>`}
+}
+function renderLibraryLauncher(){
+ const el=$('#admin-library');if(!el)return;let body=$('#nexa-library-v22-body',el);if(body)return;
+ el.insertAdjacentHTML('beforeend',`<div id="nexa-library-v22-body"><div class="nexa-passport"><h3>Library Catalog</h3><p>Heroes · Experts · Pets · Troops · Chief Gear · Charms</p><div class="nexa-admin-actions"><button class="btn" id="nexa-open-library">Open Library</button></div></div></div>`);
+ $('#nexa-open-library',el).onclick=()=>{location.href='library.html'};
+}
+
+function troopTuning(){
+ const tune=()=>{
+   $$('img').forEach(img=>{
+     if(img.dataset.nexaTroopFit)return;
+     let p=img.parentElement, hit='';
+     for(let i=0;p&&i<4;i++,p=p.parentElement){
+       const txt=(p.innerText||'').slice(0,500);
+       if(/\bInfantry\b/i.test(txt)&&/\bTroop\b/i.test(txt)){hit='infantry';break}
+       if(/\bLancer\b/i.test(txt)&&/\bTroop\b/i.test(txt)){hit='lancer';break}
+       if(/\bMarksman\b/i.test(txt)&&/\bTroop\b/i.test(txt)){hit='marksman';break}
+     }
+     if(hit){img.dataset.nexaTroopFit=hit;img.classList.add('nexa-troop-fit');if(hit==='lancer')img.classList.add('nexa-troop-fit-lancer')}
+   });
+   if(lastFC){
+    $$('button').filter(b=>/^(NONE|FC\d+)$/i.test((b.textContent||'').trim())).forEach(b=>{
+      let p=b.parentElement,ok=false;for(let i=0;p&&i<3;i++,p=p.parentElement){if(/FIRE CRYSTAL LEVEL/i.test(p.innerText||'')){ok=true;break}}
+      if(ok)b.dataset.nexaFcSelected=((b.textContent||'').trim().toUpperCase()===lastFC)?'1':'0';
+    });
+   }
+ };
+ document.addEventListener('click',e=>{
+   const b=e.target.closest?.('button');if(!b)return;const v=(b.textContent||'').trim().toUpperCase();if(!/^(NONE|FC\d+)$/.test(v))return;
+   let p=b.parentElement,ok=false;for(let i=0;p&&i<4;i++,p=p.parentElement){if(/FIRE CRYSTAL LEVEL/i.test(p.innerText||'')){ok=true;break}} if(!ok)return;
+   lastFC=v;setTimeout(tune,0);setTimeout(tune,120);
+ },true);
+ const mo=new MutationObserver(()=>requestAnimationFrame(tune));mo.observe(document.documentElement,{childList:true,subtree:true});tune();
+}
+
+async function init(){
+ css(); wireTabs(); ensureHeader();
+ try{nexaRole=(await rpc('current_nexa_role'))||'player'}catch{}
+ if(!['owner','admin'].includes(nexaRole)){
+   locateTabButtons().filter(b=>(b.textContent||'').trim()==='Module Access').forEach(b=>b.style.display='none');
+ }
+ activate(current);
+ if(!localStorage.getItem('nexa_admin_guide_v22'))setTimeout(generalGuide,350);
+ troopTuning();
+}
+const boot=new MutationObserver(()=>{if($('#admin-alliances')||$('#admin-library')){wireTabs();ensureHeader();if(!window.__NEXA_ADMIN_V22_INIT__){window.__NEXA_ADMIN_V22_INIT__=true;init()}}});
+boot.observe(document.documentElement,{childList:true,subtree:true});
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>boot.takeRecords());else setTimeout(()=>{if($('#admin-alliances')||$('#admin-library'))init()},50);
 })();

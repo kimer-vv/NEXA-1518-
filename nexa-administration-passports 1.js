@@ -1,8 +1,8 @@
-/* NEXA Administration Hub V22 — isolated tabs, guides, alliance constellation, roles, module access */
+/* NEXA Administration Hub V23 — stable admin navigation, guides, testing framework, profile/troop guards */
 (()=>{
 'use strict';
-if(window.__NEXA_ADMIN_V22__) return;
-window.__NEXA_ADMIN_V22__=true;
+if(window.__NEXA_ADMIN_V23__) return;
+window.__NEXA_ADMIN_V23__=true;
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
@@ -33,7 +33,7 @@ function css(){
  .nexa-guide-btn{appearance:none;border:1px solid rgba(64,210,255,.55);background:rgba(9,21,48,.9);color:#7de8ff;border-radius:50%;width:31px;height:31px;display:inline-grid;place-items:center;font-weight:950;cursor:pointer}
  .nexa-general-guide{position:absolute;right:14px;top:14px;z-index:6}
  .nexa-admin-v22-section-head{display:flex;align-items:center;gap:8px;margin:0 0 12px}
- .nexa-admin-v22-section-head h3{margin:0}
+ .nexa-admin-v22-section-head h3{margin:0}.nexa-v23-legacy-hide{display:none!important}
  .nexa-admin-v22-hidden{display:none!important}
  .nexa-ap-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
  .nexa-ap-planet{appearance:none;min-width:0;border:1px solid color-mix(in srgb,var(--planet,#8b5cf6) 65%,transparent);border-radius:24px;background:radial-gradient(circle at 50% 28%,color-mix(in srgb,var(--planet,#8b5cf6) 22%,transparent),rgba(5,8,24,.9) 65%);padding:16px 10px;color:#fff;text-align:center;cursor:pointer}
@@ -55,7 +55,10 @@ function css(){
  img.nexa-troop-fit{object-fit:contain!important;padding:6%!important;box-sizing:border-box!important;transform:scale(.9)!important;transform-origin:center!important}
  img.nexa-troop-fit-lancer{padding:10%!important;transform:scale(.82)!important}
  @media(max-width:430px){.nexa-ap-grid,.nexa-member-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.nexa-ap-orbit{width:92px;height:92px}.nexa-admin-v22-title .full{display:none}.nexa-pass-stats{grid-template-columns:1fr 1fr}}
- @media(min-width:700px){.nexa-admin-v22-jump .long{display:inline}.nexa-ap-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+ @media(min-width:700px){.nexa-ap-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+ #nexa-profile-modal .nexa-lib-owned,#nexa-profile-modal [data-owned-label],#nexa-profile-modal label:has(input[name="owned"]){display:none!important}
+ #nexa-profile-modal [data-nexa-troop-image],#nexa-profile-modal .nexa-troop-card img,#nexa-profile-modal [data-troop-type] img{object-fit:contain!important;object-position:center!important;transform:none!important;max-width:100%!important;max-height:100%!important}
+ .nexa-testing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:12px}.nexa-testing-card{border:1px solid rgba(255,255,255,.11);border-radius:17px;padding:14px;background:rgba(8,12,31,.7)}.nexa-testing-card h4{margin:0 0 8px}.nexa-testing-card select,.nexa-testing-card input{width:100%;margin-top:6px}.nexa-testing-disabled{opacity:.72}.nexa-framework-badge{display:inline-flex;border:1px solid rgba(125,232,255,.4);color:#7de8ff;border-radius:999px;padding:4px 8px;font-size:.7rem;font-weight:900;margin-left:6px}
  `;
  document.head.appendChild(s);
 }
@@ -69,8 +72,8 @@ function generalGuide(){
  const d=dialog(`<h3>Administration Quick Guide</h3><p>Use the arrows to move between Administration pages without going back Home.</p>
  <div class="nexa-module-row"><b>A</b> = Alliances<br><b>L</b> = Library<br><b>R</b> = Roles<br><b>M</b> = Module Access<br><b>S</b> = System Operations</div>
  <p><b>‹</b> previous section · <b>›</b> next section. The floating <b>Home</b> control remains your shortcut to other NEXA modules.</p>
- <div class="nexa-dialog-actions"><button class="btn secondary" data-close>Skip</button><button class="btn" id="nexa-guide-gotit">Got it</button></div>`);
- $('#nexa-guide-gotit',d).onclick=()=>{localStorage.setItem('nexa_admin_guide_v22','seen');d.close()};
+ <div class="nexa-dialog-actions"><button class="btn secondary" id="nexa-guide-skip">Skip</button><button class="btn" id="nexa-guide-gotit">Got it</button></div>`);
+ const done=()=>{localStorage.setItem('nexa_admin_guide_v23','seen');d.close()};$('#nexa-guide-gotit',d).onclick=done;$('#nexa-guide-skip',d).onclick=done;
 }
 function sectionGuide(key){const [t,c]=guideCopy[key]; dialog(`<h3>${esc(t)} Guide</h3><p>${esc(c)}</p><div class="nexa-dialog-actions"><button class="btn" data-close>Got it</button></div>`)}
 
@@ -94,16 +97,25 @@ function ensureHeader(){
 function navFor(key){
  const i=tabs.findIndex(x=>x.key===key), p=tabs[i-1], n=tabs[i+1], t=tabs[i];
  return `<div class="nexa-admin-v22-nav">
- ${p?`<button class="nexa-admin-v22-jump prev" data-admin-v22-go="${p.key}" title="${p.label}">‹ ${p.letter}<span class="long"> · ${p.label}</span></button>`:'<span></span>'}
+ ${p?`<button class="nexa-admin-v22-jump prev" data-admin-v22-go="${p.key}" title="${p.label}">‹ ${p.letter}</button>`:'<span></span>'}
  <div class="nexa-admin-v22-title"><span class="full">${t.label}</span><button class="nexa-guide-btn" data-section-guide="${key}" title="${t.label} guide">ⓘ</button></div>
- ${n?`<button class="nexa-admin-v22-jump next" data-admin-v22-go="${n.key}" title="${n.label}">${n.letter}<span class="long"> · ${n.label}</span> ›</button>`:'<span></span>'}
+ ${n?`<button class="nexa-admin-v22-jump next" data-admin-v22-go="${n.key}" title="${n.label}">${n.letter} ›</button>`:'<span></span>'}
  </div>`;
+}
+function compactSection(key,el){
+ if(!el||key==='system')return;
+ const keepIds={alliances:['nexa-ap-body'],roles:['nexa-roles-body'],module:['nexa-module-body'],library:['nexa-library-v22-body']}[key]||[];
+ Array.from(el.children).forEach(ch=>{if(ch.classList?.contains('nexa-admin-v22-nav')||keepIds.includes(ch.id))ch.classList.remove('nexa-v23-legacy-hide');else ch.classList.add('nexa-v23-legacy-hide')});
 }
 function activate(key){
  current=key;
  const secs=findAdminSections();
  secs.forEach(({t,el})=>{
-   const on=t.key===key; el.classList.toggle('nexa-admin-v22-hidden',!on); el.hidden=!on;
+   const on=t.key===key;
+   el.classList.toggle('nexa-admin-v22-hidden',!on);
+   el.classList.toggle('hidden',!on);
+   el.hidden=!on;
+   el.setAttribute('aria-hidden',on?'false':'true');
  });
  locateTabButtons().forEach(b=>{
    const z=(b.textContent||'').trim().toLowerCase();
@@ -112,6 +124,7 @@ function activate(key){
  });
  const el=document.getElementById(tabs.find(t=>t.key===key)?.id||'');
  if(el){
+   compactSection(key,el);
    let nav=$('.nexa-admin-v22-nav',el); if(nav)nav.remove();
    el.insertAdjacentHTML('afterbegin',navFor(key));
    $$('[data-admin-v22-go]',el).forEach(b=>b.onclick=()=>activate(b.dataset.adminV22Go));
@@ -121,24 +134,32 @@ function activate(key){
  if(key==='roles') renderRoles();
  if(key==='module') loadModuleAccess();
  if(key==='library') renderLibraryLauncher();
+ if(key==='system') renderTestingFramework();
 }
 function wireTabs(){
- locateTabButtons().forEach(b=>{
+ const buttons=locateTabButtons();
+ buttons.forEach(b=>{
    if((b.textContent||'').trim().toLowerCase()==='permissions') b.textContent='Module Access';
-   if(b.dataset.nexaV22)return;b.dataset.nexaV22='1';
-   b.addEventListener('click',e=>{
+   if(b.dataset.nexaV23)return;b.dataset.nexaV23='1';
+   b.addEventListener('click',()=>{
      const z=(b.textContent||'').trim().toLowerCase();
      const t=tabs.find(x=>x.label.toLowerCase()===z)||(z==='permissions'?tabs[3]:null);
-     if(t){e.preventDefault();e.stopPropagation();activate(t.key)}
-   },true);
+     if(t)setTimeout(()=>activate(t.key),0);
+   });
  });
+ const currentButtons=locateTabButtons(), parent=currentButtons[0]?.parentElement;
+ if(parent&&currentButtons.length>=5&&currentButtons.every(b=>b.parentElement===parent)){
+   const byKey={};currentButtons.forEach(b=>{const z=(b.textContent||'').trim().toLowerCase();const t=tabs.find(x=>x.label.toLowerCase()===z)||(z==='permissions'?tabs[3]:null);if(t)byKey[t.key]=b});
+   tabs.forEach(t=>{if(byKey[t.key])parent.appendChild(byKey[t.key])});
+ }
 }
+
 
 async function loadAlliances(){
  const el=$('#admin-alliances'); if(!el)return;
  const old=$('#nexa-ap-body',el); if(old)old.remove();
- el.insertAdjacentHTML('beforeend',`<div id="nexa-ap-body"><div class="nexa-admin-actions"><button class="btn" id="nexa-create-alliance">+ Manage Alliances</button></div><div id="nexa-ap-root" class="nexa-ap-grid"><div class="nexa-empty">Loading alliance constellation…</div></div></div>`);
- $('#nexa-create-alliance',el).onclick=createAlliance;
+ el.insertAdjacentHTML('beforeend',`<div id="nexa-ap-body"><div class="nexa-admin-actions"><button class="btn" id="nexa-create-alliance">+ Create / Manage Alliance</button></div><div id="nexa-ap-root" class="nexa-ap-grid"><div class="nexa-empty">Loading alliances…</div></div></div>`);
+ compactSection('alliances',el);$('#nexa-create-alliance',el).onclick=createAlliance;
  try{allianceCache=await rpc('nexa_list_alliance_passports')||[]; renderAllianceGrid()}catch(e){$('#nexa-ap-root',el).innerHTML=`<div class="nexa-empty">${esc(e.message)}</div>`}
 }
 function renderAllianceGrid(){
@@ -197,17 +218,83 @@ function resetPassword(m){
 }
 
 async function renderRoles(){
- const el=$('#admin-roles');if(!el)return; let body=$('#nexa-roles-body',el);if(body)body.remove();el.insertAdjacentHTML('beforeend','<div id="nexa-roles-body"><div class="nexa-empty">Loading roles…</div></div>');body=$('#nexa-roles-body',el);
+ const el=$('#admin-roles');if(!el)return; let body=$('#nexa-roles-body',el);if(body)body.remove();el.insertAdjacentHTML('beforeend','<div id="nexa-roles-body"><div class="nexa-empty">Loading roles…</div></div>');body=$('#nexa-roles-body',el);compactSection('roles',el);
  try{if(!allianceCache.length)allianceCache=await rpc('nexa_list_alliance_passports')||[];body.innerHTML=allianceCache.map(a=>`<section class="nexa-passport" style="margin-bottom:12px"><h3>${esc(a.tag)} · ${esc(a.name||'')}</h3>${['R5','R4','R3–R1'].map(r=>{const ms=rankMembers(a,r);return `<div class="nexa-rank-group"><h4>${r}</h4><div class="nexa-member-grid">${ms.length?ms.map(m=>memberCard(m,a)).join(''):'<div class="nexa-empty">No members</div>'}</div></div>`}).join('')}</section>`).join('')||'<div class="nexa-empty">No alliance roles found.</div>';$$('[data-rank]',body).forEach(b=>b.onclick=()=>{const a=allianceCache.find(a=>(a.members||[]).some(m=>m.accountId===b.dataset.rank));if(a)rankDialog(a,a.members.find(m=>m.accountId===b.dataset.rank))})}catch(e){body.innerHTML=`<div class="nexa-empty">${esc(e.message)}</div>`}
 }
 async function loadModuleAccess(){
- const el=$('#admin-permissions');if(!el)return;let body=$('#nexa-module-body',el);if(body)body.remove();el.insertAdjacentHTML('beforeend','<div id="nexa-module-body"><div class="nexa-empty">Loading Module Access…</div></div>');body=$('#nexa-module-body',el);
- try{const rows=await rpc('nexa_list_module_access')||[];const mods=[['svs','SvS'],['sbs','SBS'],['transfer','Transfer'],['team_builder','Team Builder'],['forms','Forms'],['events','Events'],['library','Library'],['administration','Administration']];body.innerHTML=rows.map(p=>`<div class="nexa-module-row"><div class="nexa-module-head"><div><b>${esc(p.name)}</b><small style="display:block;color:var(--muted)">ID ${esc(p.gameId)} · ${esc(p.allianceRole||'R3–R1')}</small></div></div><div class="nexa-module-checks">${mods.map(([k,n])=>`<label><input type="checkbox" data-access-user="${p.userId}" data-access-module="${k}" ${p[k==='team_builder'?'teamBuilder':k]?'checked':''}> ${n}</label>`).join('')}</div></div>`).join('')||'<div class="nexa-empty">No players found.</div>';$$('[data-access-user]',body).forEach(c=>c.onchange=async()=>{c.disabled=true;try{await rpc('nexa_set_module_access',{p_user_id:c.dataset.accessUser,p_module:c.dataset.accessModule,p_enabled:c.checked})}catch(e){c.checked=!c.checked;alert(e.message)}finally{c.disabled=false}})}catch(e){body.innerHTML=`<div class="nexa-empty">${esc(e.message)}</div>`}
+ const el=$('#admin-permissions');if(!el)return;let body=$('#nexa-module-body',el);if(body)body.remove();el.insertAdjacentHTML('beforeend','<div id="nexa-module-body"><input id="nexa-module-search" type="search" placeholder="Search player or Game ID" style="width:100%;margin:0 0 10px"><div id="nexa-module-list"><div class="nexa-empty">Loading Module Access…</div></div></div>');body=$('#nexa-module-body',el);const list=$('#nexa-module-list',body);compactSection('module',el);
+ try{const rows=await rpc('nexa_list_module_access')||[];const mods=[['svs','SvS'],['sbs','SBS'],['transfer','Transfer'],['team_builder','Team Builder'],['forms','Forms'],['events','Events'],['library','Library'],['administration','Administration']];list.innerHTML=rows.map(p=>`<div class="nexa-module-row"><div class="nexa-module-head"><div><b>${esc(p.name)}</b><small style="display:block;color:var(--muted)">ID ${esc(p.gameId)} · ${esc(p.allianceRole||'R3–R1')}</small></div></div><div class="nexa-module-checks">${mods.map(([k,n])=>`<label><input type="checkbox" data-access-user="${p.userId}" data-access-module="${k}" ${p[k==='team_builder'?'teamBuilder':k]?'checked':''}> ${n}</label>`).join('')}</div></div>`).join('')||'<div class="nexa-empty">No players found.</div>';$$('[data-access-user]',list).forEach(c=>c.onchange=async()=>{c.disabled=true;try{await rpc('nexa_set_module_access',{p_user_id:c.dataset.accessUser,p_module:c.dataset.accessModule,p_enabled:c.checked})}catch(e){c.checked=!c.checked;alert(e.message)}finally{c.disabled=false}});const q=$('#nexa-module-search',body);if(q)q.oninput=()=>{const v=q.value.trim().toLowerCase();$$('.nexa-module-row',list).forEach(r=>r.style.display=!v||(r.innerText||'').toLowerCase().includes(v)?'':'none')}}catch(e){list.innerHTML=`<div class="nexa-empty">${esc(e.message)}</div>`}
 }
 function renderLibraryLauncher(){
  const el=$('#admin-library');if(!el)return;let body=$('#nexa-library-v22-body',el);if(body)return;
  el.insertAdjacentHTML('beforeend',`<div id="nexa-library-v22-body"><div class="nexa-passport"><h3>Library Catalog</h3><p>Heroes · Experts · Pets · Troops · Chief Gear · Charms</p><div class="nexa-admin-actions"><button class="btn" id="nexa-open-library">Open Library</button></div></div></div>`);
- $('#nexa-open-library',el).onclick=()=>{location.href='library.html'};
+ compactSection('library',el);$('#nexa-open-library',el).onclick=()=>{location.href='library.html'};
+}
+
+function renderTestingFramework(){
+ const el=$('#admin-system');if(!el)return;
+ let host=$('#nexa-testing-v23',el);if(host)return;
+ host=document.createElement('section');host.id='nexa-testing-v23';host.className='nexa-passport';host.style.marginTop='16px';
+ host.innerHTML=`<div class="nexa-admin-v22-section-head"><h3>Testing</h3><span class="nexa-framework-badge">FRAMEWORK READY</span></div>
+ <p style="color:var(--muted,#aeb4ca)">Preview controls are staged here without changing your real role, permissions or production data.</p>
+ <div class="nexa-testing-grid">
+  <div class="nexa-testing-card"><h4>Test Mode</h4><label>Mode<select id="nexa-test-mode"><option value="off">Test Mode Off</option><option value="manual">Test Mode</option><option value="auto">Test Mode Auto</option></select></label><small>Manual and Auto activation will be enabled in a future phase.</small></div>
+  <div class="nexa-testing-card nexa-testing-disabled"><h4>Permission Preview</h4><label>View as<select><option>Owner</option><option>Admin</option><option>R5</option><option>R4</option><option>R3–R1</option></select></label><div class="nexa-module-checks">${['SBS','SvS','Transfer','Team Builder','Forms','Events','Library','Administration'].map(x=>`<label><input type="checkbox"> ${x}</label>`).join('')}</div><button class="btn secondary" data-test-coming style="margin-top:10px">Start Preview</button></div>
+  <div class="nexa-testing-card nexa-testing-disabled"><h4>Battle Sandbox</h4><label>Teams<input type="number" min="1" max="12" value="6"></label><label>Rally Capacity<input type="number" min="0" placeholder="e.g. 120000"></label><button class="btn secondary" data-test-coming style="margin-top:10px">Open Sandbox</button><small>Battle Form / Team Sheet preview and buff intelligence will be activated later.</small></div>
+ </div>`;
+ el.appendChild(host);
+ $$('[data-test-coming]',host).forEach(b=>b.onclick=()=>alert('Framework ready. This testing feature is not active yet.'));
+ const mode=$('#nexa-test-mode',host);if(mode)mode.onchange=()=>{if(mode.value!=='off'){alert('The testing framework is ready, but activation is intentionally disabled for now.');mode.value='off'}};
+}
+function adminIsOpen(){const m=$('#admin-modal');return !!(m&&m.classList.contains('open'))}
+function maybeShowAdminGuide(){
+ if(!adminIsOpen())return;
+ const q=new URLSearchParams(location.search), admin=q.get('admin'), raw=(q.get('tab')||'').toLowerCase();
+ const visible=findAdminSections().find(({el})=>!el.hidden&&!el.classList.contains('hidden'));
+ const isAdministration=admin==='administration'||!!visible;
+ if(!isAdministration)return;
+ ensureHeader();wireTabs();
+ const key=raw==='permissions'?'module':tabs.some(t=>t.key===raw)?raw:(visible?.t?.key||current);
+ if(key)activate(key);
+ if(!localStorage.getItem('nexa_admin_guide_v23'))setTimeout(()=>{if(adminIsOpen())generalGuide()},180);
+}
+function profileOwnershipGuards(){
+ const modal=$('#nexa-profile-modal');if(!modal)return;
+ // Hide redundant Owned/Own It controls in My Profile only. Library remains untouched.
+ $$('.nexa-lib-owned,[data-owned-label]',modal).forEach(el=>el.style.display='none');
+ $$('label,button,span',modal).forEach(el=>{const t=(el.textContent||'').trim();if(/^(Owned|Own It)$/i.test(t)&&!el.dataset.nexaReset)el.style.display='none'});
+ // Heroes / Experts / Pets get a local per-card reset. It reuses the existing Save path instead of inventing a second DB write path.
+ $$('.nexa-lib-card',modal).forEach(card=>{
+   const txt=(card.innerText||'').toUpperCase();
+   const resetEligible=/HERO LEVEL|AFFINITY|PET LEVEL|SKILL LEVEL/.test(txt)&&!/CURRENT TIER|CHARM [123] LEVEL/.test(txt);
+   if(resetEligible&&!$('[data-nexa-reset]',card)){const b=document.createElement('button');b.type='button';b.className='btn secondary';b.dataset.nexaReset='1';b.textContent='Reset';b.style.cssText='width:100%;margin-top:7px';const save=$('.nexa-lib-save',card);(save?.parentElement||card).insertBefore(b,save?.nextSibling||null)}
+ });
+ // Stable troop framing regardless of selected tier.
+ $$('img',modal).forEach(img=>{let p=img.parentElement,txt='';for(let i=0;p&&i<5;i++,p=p.parentElement)txt+=' '+(p.innerText||'').slice(0,250);if(/Infantry|Lancer|Marksman/i.test(txt)&&/T\d|FC\d|HELIOS|TROOP/i.test(txt)){img.style.objectFit='contain';img.style.objectPosition='center';img.style.transform='none';img.style.padding=/Lancer/i.test(txt)?'12%':'7%';img.style.boxSizing='border-box'}});
+}
+let profileAccountId=window.NEXA_ACTIVE_ACCOUNT_ID||null, profileFurnace=null;
+async function refreshProfileFurnace(){
+ if(!profileAccountId||!window.supabaseClient)return;
+ try{const {data,error}=await window.supabaseClient.from('player_accounts').select('furnace_level').eq('id',profileAccountId).maybeSingle();if(!error)profileFurnace=Number(String(data?.furnace_level||'').replace(/[^0-9]/g,''))||0}catch{}
+}
+function profileTabKey(tab){return tab?.dataset?.libraryTab||tab?.dataset?.nexaTab||''}
+function gateProfileTab(tab){
+ const key=profileTabKey(tab);if(!['gear','charms','pets'].includes(key))return false;
+ if(key==='gear'&&profileFurnace!=null&&profileFurnace<22){alert('🔒 Chief Gear unlocks at Furnace Lv. 22.');return true}
+ if(key==='charms'&&profileFurnace!=null&&profileFurnace<25){alert('🔒 Charms unlock at Furnace Lv. 25.');return true}
+ if(key==='pets'&&profileFurnace!=null&&profileFurnace<18){alert('🔒 Pets require Furnace Lv. 18.');return true}
+ if(key==='pets'&&profileFurnace>=18&&profileAccountId){const k='nexa_pets_unlocked_'+profileAccountId;const v=localStorage.getItem(k);if(v!=='yes'){const yes=confirm('Does your server already have Pets unlocked?\n\nOK = Yes · Cancel = No');if(!yes){localStorage.setItem(k,'no');return true}localStorage.setItem(k,'yes')}}
+ if((key==='gear'||key==='charms')&&profileAccountId){const k='nexa_profile_'+key+'_guide_'+profileAccountId;if(!localStorage.getItem(k)){alert(key==='gear'?'Select only the Chief Gear pieces you currently have. Configuring a piece counts it as owned.':'Select only the Charms you currently have unlocked. You can save 1–3 charms per Chief Gear piece.');localStorage.setItem(k,'seen')}}
+ return false;
+}
+function installProfileBehavior(){
+ if(window.__NEXA_PROFILE_V23_WIRED__)return;window.__NEXA_PROFILE_V23_WIRED__=true;
+ document.addEventListener('click',e=>{
+   const planet=e.target.closest?.('[data-nexa-profile]');if(planet){profileAccountId=planet.dataset.nexaProfile||profileAccountId;window.__NEXA_V23_PROFILE_ACCOUNT__=profileAccountId;setTimeout(refreshProfileFurnace,0)}
+   const tab=e.target.closest?.('#nexa-profile-modal [data-library-tab],#nexa-profile-modal [data-nexa-tab]');if(tab&&gateProfileTab(tab)){e.preventDefault();e.stopImmediatePropagation();return}
+   const reset=e.target.closest?.('#nexa-profile-modal [data-nexa-reset]');if(reset){e.preventDefault();const card=reset.closest('.nexa-lib-card');if(!card)return;if(!confirm('Reset this item? This will clear its saved profile selections.'))return;$$('input[data-f],select[data-f]',card).forEach(x=>{x.value=''});const owned=$('[data-owned]',card);if(owned)owned.checked=false;const save=$('.nexa-lib-save',card);if(save)save.click();return}
+   const save=e.target.closest?.('#nexa-profile-modal .nexa-lib-save');if(save){const card=save.closest('.nexa-lib-card');const owned=$('[data-owned]',card);if(owned){const any=$$('[data-f]',card).some(x=>String(x.value??'').trim()!==''&&String(x.value)!=='0');owned.checked=any}}
+ },true);
 }
 
 function troopTuning(){
@@ -244,11 +331,13 @@ async function init(){
  if(!['owner','admin'].includes(nexaRole)){
    locateTabButtons().filter(b=>(b.textContent||'').trim()==='Module Access').forEach(b=>b.style.display='none');
  }
- activate(current);
- if(!localStorage.getItem('nexa_admin_guide_v22'))setTimeout(generalGuide,350);
- troopTuning();
+ troopTuning();profileOwnershipGuards();installProfileBehavior();
 }
-const boot=new MutationObserver(()=>{if($('#admin-alliances')||$('#admin-library')){wireTabs();ensureHeader();if(!window.__NEXA_ADMIN_V22_INIT__){window.__NEXA_ADMIN_V22_INIT__=true;init()}}});
-boot.observe(document.documentElement,{childList:true,subtree:true});
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>boot.takeRecords());else setTimeout(()=>{if($('#admin-alliances')||$('#admin-library'))init()},50);
+const boot=new MutationObserver(()=>{
+ wireTabs();profileOwnershipGuards();
+ if(adminIsOpen())maybeShowAdminGuide();
+ if(!window.__NEXA_ADMIN_V23_INIT__&&($('#admin-alliances')||$('#admin-library'))){window.__NEXA_ADMIN_V23_INIT__=true;init()}
+});
+boot.observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{init();setTimeout(maybeShowAdminGuide,100)});else setTimeout(()=>{init();maybeShowAdminGuide()},50);
 })();

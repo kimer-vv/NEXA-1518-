@@ -1,11 +1,11 @@
-/* NEXA Administration V24.1 — consolidated stability correction
+/* NEXA Administration V24.2 — profile image safety hotfix
    Safe boot: no document-wide attribute/class MutationObserver loops.
    Scope: isolated Administration pages, Alliance Passports, Roles/NEXA Access,
    global navigation escape, close controls, testing framework, troop portrait framing. */
 (()=>{
 'use strict';
-if(window.__NEXA_ADMIN_V241__) return;
-window.__NEXA_ADMIN_V241__=true;
+if(window.__NEXA_ADMIN_V242__) return;
+window.__NEXA_ADMIN_V242__=true;
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
@@ -31,11 +31,6 @@ const MODULES=[
  ['svs','SvS'],['sbs','SBS'],['transfer','Transfer'],['team_builder','Team Builder'],
  ['forms','Forms'],['events','Events'],['library','Library'],['administration','Administration']
 ];
-const TROOP_ART={
- infantry:'https://onechilledgamer.com/wp-content/uploads/2024/12/whiteout-survival-infantry.jpg',
- lancer:'https://onechilledgamer.com/wp-content/uploads/2024/12/whiteout-survival-lancer-817x1024.jpg',
- marksman:'https://onechilledgamer.com/wp-content/uploads/2024/12/whiteout-survival-marksman-819x1024.jpg'
-};
 
 let current='alliances', nexaRole='player', callerAllianceRank='', allianceCache=[], opRoleRows=[];
 let profileObserver=null, rootObserver=null;
@@ -90,7 +85,6 @@ function addStyles(){
  .nexa-v24-checks{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.nexa-v24-checks label{display:flex;align-items:center;gap:5px;border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:6px 8px;font-size:.72rem}.nexa-v24-checks input{width:auto!important}
  .nexa-v24-testing{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}.nexa-v24-testing>div{border:1px solid rgba(255,255,255,.1);border-radius:15px;padding:12px;background:#081027}
  .nexa-v24-framework{display:inline-flex;border:1px solid rgba(99,220,255,.42);color:#70dcff;border-radius:999px;padding:3px 7px;font-size:.65rem;font-weight:900}
- #nexa-profile-modal img[data-nexa-v24-troop]{object-fit:cover!important;object-position:50% 24%!important;transform:scale(1.58)!important;transform-origin:50% 30%!important;padding:0!important}
  #nexa-profile-modal .nexa-v24-close{position:absolute;right:14px;top:14px;float:none}
  @media(min-width:720px){.nexa-v24-planets{grid-template-columns:repeat(3,minmax(0,1fr))}}
  @media(max-width:430px){.nexa-v24-planets,.nexa-v24-members{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.nexa-v24-orbit{width:78px;height:78px}.nexa-v24-title{font-size:.92rem}}
@@ -240,15 +234,12 @@ function ensureCloseControls(){
   }
  }
 }
-function troopTypeFrom(el){const txt=(el?.innerText||el?.textContent||'');if(/\bInfantry\b/i.test(txt))return'infantry';if(/\bLancer\b/i.test(txt))return'lancer';if(/\bMarksman\b/i.test(txt))return'marksman';return''}
-function tuneTroops(){
- const pm=$('#nexa-profile-modal');if(!pm)return;
- $$('.nexa-lib-card,[data-troop-type],article,button',pm).forEach(card=>{const type=troopTypeFrom(card);if(!type)return;const img=$('img',card);if(!img)return;if(!img.dataset.nexaV24Original)img.dataset.nexaV24Original=img.src;img.dataset.nexaV24Troop=type;if(img.src!==TROOP_ART[type]){const fallback=img.dataset.nexaV24Original;img.onerror=()=>{img.onerror=null;if(fallback)img.src=fallback};img.src=TROOP_ART[type]}})
-}
+// IMPORTANT: Administration must never rewrite My Profile item image src values.
 function watchProfile(){
  const pm=$('#nexa-profile-modal');if(!pm||profileObserver)return;
- profileObserver=new MutationObserver(()=>{requestAnimationFrame(()=>{ensureCloseControls();tuneTroops()})});
- profileObserver.observe(pm,{childList:true,subtree:true});tuneTroops();ensureCloseControls();
+ profileObserver=new MutationObserver(()=>{requestAnimationFrame(ensureCloseControls)});
+ profileObserver.observe(pm,{childList:true,subtree:true});
+ ensureCloseControls();
 }
 function preNavigate(e){
  const control=e.target.closest?.('button,a,[role="button"]');if(!control)return;
@@ -291,7 +282,6 @@ function bind(){
   if(e.target.closest?.('[data-v24-coming]')){alert('Framework ready. This feature is intentionally not active yet.');return}
   const tab=e.target.closest?.('.admin-tab,[data-admin-tab],.admin-tabs-scroll button');if(tab){const raw=clean(tab.dataset.adminTab||tab.textContent).trim().toLowerCase();const map={alliances:'alliances',roles:'roles',permissions:'access','module access':'access','nexa access':'access',library:'library','system operations':'system',system:'system'};if(map[raw]){e.preventDefault();e.stopImmediatePropagation();await activate(map[raw]);return}}
   const mode=e.target.closest?.('#nexa-v24-test-mode');if(mode&&mode.value!=='off'){alert('Testing framework is ready, but activation is intentionally disabled for now.');mode.value='off'}
-  if(e.target.closest?.('#nexa-profile-modal [data-library-tab],#nexa-profile-modal [data-nexa-tab],#nexa-profile-modal button'))setTimeout(tuneTroops,120);
  },true);
  document.addEventListener('input',e=>{if(e.target.id==='nexa-v24-access-search'){const q=e.target.value.toLowerCase().trim();$$('[data-v24-access-card]').forEach(c=>{const match=clean(c.innerText).toLowerCase().includes(q);c.style.display=q?(match?'':''):(c.dataset.v24Assigned==='1'?'':'none')})}});
  watchProfile();ensureCloseControls();

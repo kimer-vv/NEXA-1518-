@@ -176,8 +176,8 @@ function currentAdminKey(){
 function closeAdmin(){
  const modal=$('#admin-modal');if(!modal)return;
  const existing=modal.querySelector('[data-close-admin]');
- if(existing){existing.click();return}
- modal.style.display='none';modal.classList.remove('active','open','show');modal.setAttribute('aria-hidden','true');
+ if(existing&&!existing.classList.contains('nexa-v27-admin-close')){try{existing.click()}catch(_){}}
+ modal.style.display='none';modal.classList.remove('active','open','show');modal.setAttribute('aria-hidden','true');document.body.classList.remove('nexa-v28-admin-open');
 }
 function patchRolesReadOnly(){
  const sec=$('#admin-roles');if(!sec)return;
@@ -402,8 +402,8 @@ document.addEventListener('click',e=>{
 function ensureDailySignal(){
  if(!/index\.html$|\/$/.test(location.pathname)||$('.nexa-v28-signal'))return;
  const anchor=$('#nexa-profile-launcher-section');if(!anchor)return;
- const quotes=['Strong teams are built one clear move at a time.','Clarity turns coordination into momentum.','Small improvements compound into strong systems.','Plan clearly. Move together. Adapt fast.','Good coordination makes difficult battles feel simple.'];
- const day=Math.floor(Date.now()/86400000);const el=document.createElement('div');el.className='nexa-v28-signal';el.innerHTML=`<b>NEXA SIGNAL</b>${esc(quotes[day%quotes.length])}`;anchor.insertAdjacentElement('afterend',el);
+ const quotes=['Every orbit finds its rhythm when the whole constellation moves together.','Clear signals turn scattered stars into one constellation.','Small course corrections can change the path of an entire orbit.','Chart the course. Move together. Adjust with the stars.','Strong constellations are built from stars that move with purpose.'];
+ const day=Math.floor(Date.now()/86400000);const el=document.createElement('div');el.className='nexa-v28-signal';el.innerHTML=`<b>STELLAR SIGNAL</b>${esc(quotes[day%quotes.length])}`;anchor.insertAdjacentElement('afterend',el);
 }
 
 function patchLibraryProfileStyle(){
@@ -422,8 +422,9 @@ document.addEventListener('pointerdown',closeVisibleHomeMenuFromOutside,{capture
 const ADMIN_TARGET={alliances:'alliances','nexa access':'access',permissions:'access',roles:'roles','system operations':'system'};
 async function openAdminTarget(key){
  const modal=$('#admin-modal');if(!modal?.classList.contains('open')){$('#admin-panel-button')?.click();await new Promise(r=>setTimeout(r,120));$('#open-administration')?.click();await new Promise(r=>setTimeout(r,420))}
- const go=$(`[data-v25-go="${key}"]`);if(go){go.click();return}
+ const go=$(`[data-v25-go="${key}"]`);if(go)go.click();
  const legacy=key==='access'?'permissions':key;const tab=$(`[data-admin-tab="${legacy}"]`);if(tab)tab.click();
+ setTimeout(()=>{try{forceAdminSection(key)}catch(_){}},90);setTimeout(()=>{try{forceAdminSection(key)}catch(_){}},320);
 }
 document.addEventListener('click',e=>{
  const item=e.target.closest('.nexa-home-menu-item');if(!item)return;const menu=$('#nexa-home-menu-card');if(!menu||!/ADMINISTRATION/i.test(menu.textContent||''))return;
@@ -468,5 +469,130 @@ function v28Cycle(){
 }
 setInterval(v28Cycle,1200);setTimeout(applyDirectAdminTarget,350);
 /* =================== END V28 CORRECTION PASS =================== */
+
+
+/* ===================== V29 INTEGRATION PASS ===================== */
+function addV29Style(){
+ if($('#nexa-v29-fixes'))return;
+ const st=document.createElement('style');st.id='nexa-v29-fixes';st.textContent=`
+ /* Home: tighter hierarchy + integrated event cards. */
+ .logo small{display:none!important}
+ #nexa-profile-launcher-section{margin-top:6px!important}
+ .nexa-v28-signal{position:relative!important;overflow:hidden!important;margin:12px 0 10px!important;padding:13px 16px!important;border-color:rgba(118,157,255,.38)!important;background:radial-gradient(circle at 18% 20%,rgba(80,196,255,.10),transparent 28%),radial-gradient(circle at 82% 70%,rgba(151,77,255,.11),transparent 30%),linear-gradient(145deg,rgba(8,15,39,.86),rgba(4,8,25,.86))!important;box-shadow:0 0 22px rgba(83,109,255,.11),inset 0 0 18px rgba(92,199,255,.025)!important}
+ .nexa-v28-signal::before,.nexa-v28-signal::after{content:"✦";position:absolute;color:#dff7ff;text-shadow:0 0 7px #77dfff,0 0 14px #8b6dff;pointer-events:none;animation:nexaV29Twinkle 2.8s ease-in-out infinite}
+ .nexa-v28-signal::before{left:9%;top:23%;font-size:7px}.nexa-v28-signal::after{right:10%;bottom:20%;font-size:6px;animation-delay:1.15s}
+ .nexa-v29-star{position:absolute;width:2px;height:2px;border-radius:50%;background:#fff;box-shadow:0 0 7px #7fe5ff;pointer-events:none;animation:nexaV29Twinkle var(--d,2.4s) ease-in-out infinite var(--delay,0s)}
+ @keyframes nexaV29Twinkle{0%,100%{opacity:.18;transform:scale(.75)}45%{opacity:1;transform:scale(1.45)}65%{opacity:.45;transform:scale(.95)}}
+ .nexa-v28-signal b{color:#9beaff!important;text-shadow:0 0 10px rgba(92,213,255,.38)!important}
+ #home-svs-section .event-card,#home-svs-section .svs-card,#home-svs-section [class*="event-card"],#home-event-operations-module .event-card{background:transparent!important;border:0!important;box-shadow:none!important;padding-left:0!important;padding-right:0!important}
+
+ /* Administration: centered breathing room; X is a true layer close. */
+ #admin-modal.nexa-v25-admin{inset:max(8px,env(safe-area-inset-top)) 10px max(8px,env(safe-area-inset-bottom))!important}
+ #admin-modal.nexa-v25-admin .admin-modal-card{width:calc(100% - 18px)!important;margin-left:auto!important;margin-right:auto!important}
+ #admin-modal.nexa-v25-admin>.nexa-v27-admin-close{right:16px!important;top:14px!important}
+ body.nexa-v28-admin-open #nexa-home-menu-toggle{left:24px!important}
+ /* The large Quick Guide is the single source of help; suppress legacy duplicate explanatory cards. */
+ #admin-modal .nexa-v29-legacy-help-hidden{display:none!important}
+
+ /* Profile is part of NEXA, not a floating foreign sheet. One usable vertical scroller. */
+ #nexa-profile-modal{overflow:hidden!important;overscroll-behavior:contain!important}
+ #nexa-profile-modal .modal-card,#nexa-profile-modal [class*="profile-modal"],#nexa-profile-modal [class*="profile-card"]{max-height:calc(100dvh - 18px)!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch!important;touch-action:pan-y!important;overscroll-behavior:contain!important;background:radial-gradient(circle at 16% 8%,rgba(66,127,255,.10),transparent 30%),radial-gradient(circle at 85% 70%,rgba(151,67,255,.08),transparent 34%),rgba(4,8,23,.96)!important}
+ #nexa-profile-content{overflow:visible!important;max-height:none!important;height:auto!important;touch-action:pan-y!important}
+ #nexa-profile-modal input,#nexa-profile-modal select,#nexa-profile-modal textarea{font-size:16px!important}
+ #nexa-profile-modal [class*="identity"],#nexa-profile-modal [class*="account-title"]{font-size:clamp(.9rem,4vw,1.18rem)!important;line-height:1.15!important;overflow-wrap:anywhere!important}
+
+ /* Horizontal tab rows: do not let rerenders force the strip back to zero. */
+ .lib-tabs,.gen-row,#nexa-profile-content [class*="gen"],#nexa-profile-content [class*="tabs"]{scroll-snap-type:none!important;scroll-behavior:auto!important;-webkit-overflow-scrolling:touch!important}
+
+ /* Troops: remove V28's artificial plate/hex overlay. Let the original game hex float and blend its screenshot background. */
+ #nexa-profile-content img[src*="nexa-troop-"],.lib-grid img[src*="nexa-troop-"],#nexa-profile-modal img[src*="nexa-troop-"]{clip-path:none!important;mix-blend-mode:screen!important;object-fit:contain!important;object-position:center!important;background:transparent!important;filter:contrast(1.08) saturate(1.03) drop-shadow(0 0 8px rgba(112,220,255,.30))!important;transform:none!important}
+ #nexa-profile-content .nexa-v27-troop-hex,.lib-grid .nexa-v27-troop-hex,#nexa-profile-modal .nexa-v27-troop-hex{background:transparent!important;border:0!important;box-shadow:none!important;overflow:visible!important}
+ #nexa-profile-content .nexa-v27-troop-hex::before,#nexa-profile-content .nexa-v27-troop-hex::after,.lib-grid .nexa-v27-troop-hex::before,.lib-grid .nexa-v27-troop-hex::after,#nexa-profile-modal .nexa-v27-troop-hex::before,#nexa-profile-modal .nexa-v27-troop-hex::after{display:none!important}
+ .nexa-v25-troop-orbit{position:relative!important}
+ .nexa-v25-troop-orbit::before{display:block!important;content:""!important;position:absolute!important;inset:-7px!important;border-radius:50%!important;border:1px solid rgba(111,211,255,.28)!important;box-shadow:0 0 12px rgba(88,207,255,.22),0 0 24px rgba(116,76,255,.16)!important;animation:nexaV29Orbit 6.5s linear infinite!important;pointer-events:none!important}
+ @keyframes nexaV29Orbit{to{transform:rotate(360deg)}}
+ .nexa-v28-hide-owned{display:none!important}
+
+ /* Library: closer to My Profile's visual rhythm rather than a separate admin table. */
+ body.nexa-v28-library .lib-shell{max-width:none!important;width:100%!important;padding:10px 14px calc(30px + env(safe-area-inset-bottom))!important;background:radial-gradient(circle at 14% 6%,rgba(70,130,255,.09),transparent 28%),radial-gradient(circle at 86% 66%,rgba(150,70,255,.07),transparent 30%)!important}
+ body.nexa-v28-library .lib-card{border:1px solid rgba(115,106,255,.20)!important;background:radial-gradient(circle at 50% 18%,rgba(88,80,255,.10),rgba(4,8,23,.88) 66%)!important}
+ `;document.head.appendChild(st);
+}
+
+const v29Scroll=new Map();
+function v29Key(row){
+ const label=(row.getAttribute('aria-label')||row.id||row.className||'row').toString();
+ const active=row.querySelector('.active,[aria-selected="true"]');
+ return label+'|'+((active?.textContent||'').trim().slice(0,28));
+}
+function rememberRows(){
+ document.querySelectorAll('.lib-tabs,.gen-row,#nexa-profile-content *').forEach(row=>{
+  if(!isHorizontalRow(row))return;
+  const key=v29Key(row);const old=v29Scroll.get(key);
+  if(old!=null&&Math.abs(row.scrollLeft-old)>20&&row.scrollLeft<8)row.scrollLeft=old;
+  if(!row.dataset.nexaV29Scroll){row.dataset.nexaV29Scroll='1';let touching=false;
+   row.addEventListener('touchstart',()=>{touching=true},{passive:true});
+   row.addEventListener('scroll',()=>{if(touching||row.scrollLeft>8)v29Scroll.set(v29Key(row),row.scrollLeft)},{passive:true});
+   row.addEventListener('touchend',()=>{touching=false;v29Scroll.set(v29Key(row),row.scrollLeft);setTimeout(()=>{const v=v29Scroll.get(v29Key(row));if(v!=null)row.scrollLeft=v},80)},{passive:true});
+  }
+ });
+}
+
+function renameSignal(){
+ const el=$('.nexa-v28-signal');if(!el)return;const b=$('b',el);if(b)b.textContent='STELLAR SIGNAL';
+ if(!el.dataset.v29Stars){el.dataset.v29Stars='1';for(let i=0;i<7;i++){const s=document.createElement('i');s.className='nexa-v29-star';s.style.left=(12+i*12)+'%';s.style.top=(i%2?24:70)+'%';s.style.setProperty('--d',(2+i*.23)+'s');s.style.setProperty('--delay',(-i*.31)+'s');el.appendChild(s)}}
+}
+
+function removeTestingBugDuplicate(){
+ const sys=$('#admin-system');if(!sys)return;
+ $$('button,a,div',sys).forEach(el=>{
+  if(!/bug reports?/i.test((el.textContent||'').trim()))return;
+  if(el.closest('#nexa-v27-bug-admin'))return;
+  const testing=el.closest('[id*="testing"],[class*="testing"],.nexa-v25-panel');
+  if(testing&&/testing sandbox/i.test(testing.textContent||'')){if(el.matches('button,a'))el.remove()}
+ });
+}
+
+function hideLegacyGuideCopies(){
+ const modal=$('#admin-modal');if(!modal)return;
+ // Small descriptive cards that appear after closing the full Quick Guide are redundant.
+ $$('.nexa-v25-help,.nexa-v25-helpbox,.nexa-v25-guide-copy,[data-guide-copy]',modal).forEach(x=>x.classList.add('nexa-v29-legacy-help-hidden'));
+}
+
+function forceAdminSection(key){
+ const map={alliances:'#admin-alliances',access:'#admin-permissions',roles:'#admin-roles',system:'#admin-system'};
+ const target=$(map[key]);if(!target)return false;
+ const sections=$$('#admin-modal .admin-section');sections.forEach(s=>{s.classList.toggle('nexa-v25-active',s===target);s.hidden=s!==target});
+ target.hidden=false;target.classList.add('nexa-v25-active');
+ const legacy=key==='access'?'permissions':key;
+ $$('[data-admin-tab]').forEach(t=>t.classList.toggle('active',t.dataset.adminTab===legacy));
+ return true;
+}
+async function v29OpenAdmin(key){
+ await openAdminTarget(key);setTimeout(()=>forceAdminSection(key),80);setTimeout(()=>forceAdminSection(key),350);
+}
+document.addEventListener('click',e=>{
+ const item=e.target.closest('.nexa-home-menu-item');if(!item)return;
+ const raw=(item.textContent||'').toLowerCase();let key=null;
+ if(raw.includes('system operation'))key='system';else if(raw.includes('nexa access'))key='access';else if(/\broles?\b/.test(raw))key='roles';else if(raw.includes('alliances'))key='alliances';
+ if(!key)return;e.preventDefault();e.stopImmediatePropagation();history.replaceState(null,'',`index.html?admin=administration&tab=${key==='access'?'permissions':key}`);closeVisibleHomeMenuFromOutside({target:document.body});v29OpenAdmin(key);
+},{capture:true});
+
+function hardenAdminClose(){
+ const modal=$('#admin-modal');if(!modal)return;const x=$('.nexa-v27-admin-close',modal);if(!x||x.dataset.v29Close)return;x.dataset.v29Close='1';
+ const fn=e=>{e.preventDefault();e.stopImmediatePropagation();closeAdmin()};x.addEventListener('pointerup',fn,{capture:true});x.addEventListener('click',fn,{capture:true});
+}
+
+function unlockProfileScroll(){
+ const m=$('#nexa-profile-modal');if(!m||!visible(m))return;
+ document.documentElement.style.overflowX='hidden';
+ const candidates=$$('.modal-card,[class*="profile-modal"],[class*="profile-card"]',m).filter(visible);const sc=candidates.sort((a,b)=>b.getBoundingClientRect().height-a.getBoundingClientRect().height)[0];
+ if(sc){sc.style.overflowY='auto';sc.style.webkitOverflowScrolling='touch';sc.style.touchAction='pan-y'}
+}
+
+function hideFixedStateCopy(){if(/^NEXA\s*1518$/i.test(document.title.trim()))document.title='NEXA';$$('small,span,div',document).forEach(el=>{if(el.children.length===0&&/^STATE\s*1518$/i.test((el.textContent||'').trim()))el.classList.add('nexa-v27-hide')})}
+function v29Cycle(){addV29Style();renameSignal();rememberRows();removeTestingBugDuplicate();hideLegacyGuideCopies();hardenAdminClose();unlockProfileScroll();hideFixedStateCopy();}
+setInterval(v29Cycle,700);setTimeout(v29Cycle,100);
+/* =================== END V29 INTEGRATION PASS =================== */
 
 })();

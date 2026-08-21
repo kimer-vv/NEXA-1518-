@@ -1,11 +1,11 @@
-/* NEXA Administration V24 — consolidated functional pass
+/* NEXA Administration V24.1 — consolidated stability correction
    Safe boot: no document-wide attribute/class MutationObserver loops.
    Scope: isolated Administration pages, Alliance Passports, Roles/NEXA Access,
    global navigation escape, close controls, testing framework, troop portrait framing. */
 (()=>{
 'use strict';
-if(window.__NEXA_ADMIN_V24__) return;
-window.__NEXA_ADMIN_V24__=true;
+if(window.__NEXA_ADMIN_V241__) return;
+window.__NEXA_ADMIN_V241__=true;
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
@@ -16,9 +16,9 @@ const clean=v=>String(v??'')
 
 const TABS=[
  {key:'alliances',letter:'A',label:'Alliances',id:'admin-alliances'},
- {key:'roles',letter:'R',label:'Roles',id:'admin-roles'},
- {key:'access',letter:'N',label:'NEXA Access',id:'admin-permissions'},
  {key:'library',letter:'L',label:'Library',id:'admin-library'},
+ {key:'access',letter:'N',label:'NEXA Access',id:'admin-permissions'},
+ {key:'roles',letter:'R',label:'Roles',id:'admin-roles'},
  {key:'system',letter:'S',label:'System Operations',id:'admin-system'}
 ];
 const OPS=[
@@ -40,7 +40,18 @@ const TROOP_ART={
 let current='alliances', nexaRole='player', callerAllianceRank='', allianceCache=[], opRoleRows=[];
 let profileObserver=null, rootObserver=null;
 
-function sb(){return window.supabaseClient||null}
+let localSb=null;
+function sb(){
+ if(window.supabaseClient) return window.supabaseClient;
+ if(window.sb && typeof window.sb.from==='function' && typeof window.sb.rpc==='function') return window.sb;
+ if(!localSb && window.supabase?.createClient){
+  localSb=window.supabase.createClient(
+   'https://dfxcxboxrkfmrnsgpyin.supabase.co',
+   'sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-'
+  );
+ }
+ return localSb;
+}
 async function rpc(name,args={}){
  const c=sb(); if(!c) throw new Error('Supabase is not ready.');
  const {data,error}=await c.rpc(name,args); if(error)throw error; return data;
@@ -121,7 +132,7 @@ function guide(key){
 function maybeFirstGuide(){
  if(!adminOpen()||localStorage.getItem('nexa_admin_guide_v24'))return;
  localStorage.setItem('nexa_admin_guide_v24','seen');
- alert('Administration Quick Guide\n\nUse the arrows to move between Administration pages.\n\nA = Alliances\nR = Roles\nN = NEXA Access\nL = Library\nS = System Operations\n\nTap ⓘ on any page for its guide.');
+ alert('Administration Quick Guide\n\nUse the arrows to move between Administration pages.\n\nA = Alliances\nL = Library\nN = NEXA Access\nR = Roles\nS = System Operations\n\nTap ⓘ on any page for its guide.');
 }
 async function getRole(){
  try{nexaRole=String(await rpc('current_nexa_role')||'player').toLowerCase()}catch{nexaRole='player'}
@@ -208,9 +219,26 @@ function closeLayer(el){
 }
 function ensureCloseControls(){
  const pm=$('#nexa-profile-modal');
- if(pm&&!$('#nexa-v24-profile-close',pm)){const b=document.createElement('button');b.id='nexa-v24-profile-close';b.className='nexa-v24-close';b.textContent='×';b.title='Close My Profile';b.onclick=()=>closeLayer(pm);pm.prepend(b)}
- const candidates=$$('h1,h2,h3,.eyebrow,.kicker,.section-kicker').filter(x=>/ACCOUNT CONSTELLATION/i.test(x.textContent||''));
- candidates.forEach(h=>{let box=h.closest('[id],.modal,.overlay,.screen,.page');if(!box)return;if($('#nexa-v24-constellation-close',box))return;const b=document.createElement('button');b.id='nexa-v24-constellation-close';b.className='nexa-v24-close';b.style.cssText='position:absolute;right:18px;top:18px;float:none';b.textContent='×';b.title='Close Account Constellation';b.onclick=()=>{location.href='index.html'};box.style.position=box.style.position||'relative';box.prepend(b)})
+ if(pm&&!$('#nexa-v24-profile-close',pm)){
+  const b=document.createElement('button');b.id='nexa-v24-profile-close';b.className='nexa-v24-close';b.textContent='×';b.title='Close My Profile';
+  b.onclick=e=>{e.preventDefault();e.stopPropagation();closeLayer(pm)};pm.prepend(b)
+ }
+ const sys=$('#nexa-constellation-system');
+ if(sys){
+  let box=sys;
+  while(box.parentElement && box.parentElement!==document.body){
+   const p=box.parentElement,cs=getComputedStyle(p);box=p;
+   if((cs.position==='fixed'||cs.position==='absolute')&&box.offsetWidth>260&&box.offsetHeight>320)break;
+  }
+  if(!$('#nexa-v24-constellation-close',box)){
+   const b=document.createElement('button');b.id='nexa-v24-constellation-close';b.className='nexa-v24-close';
+   b.style.cssText='position:absolute;right:18px;top:18px;float:none;z-index:2147483600';
+   b.textContent='×';b.title='Close Account Constellation';
+   b.onclick=e=>{e.preventDefault();e.stopPropagation();location.href='index.html'};
+   if(getComputedStyle(box).position==='static')box.style.position='relative';
+   box.prepend(b)
+  }
+ }
 }
 function troopTypeFrom(el){const txt=(el?.innerText||el?.textContent||'');if(/\bInfantry\b/i.test(txt))return'infantry';if(/\bLancer\b/i.test(txt))return'lancer';if(/\bMarksman\b/i.test(txt))return'marksman';return''}
 function tuneTroops(){
@@ -230,6 +258,13 @@ function preNavigate(e){
  // Escape any large overlay before the existing NEXA navigation handler runs.
  ['#nexa-profile-modal','#admin-modal'].forEach(s=>{const el=$(s);if(el&&!/Administration/i.test(txt))closeLayer(el)});
  $$('[aria-modal="true"],.modal.open,.overlay.open,.screen.active').forEach(el=>{if(el!==$('#admin-modal')&&el!==$('#nexa-profile-modal'))closeLayer(el)});
+ const constellation=$('#nexa-constellation-system');
+ if(constellation&&/^(Administration|SBS|SvS|Team Builder|Transfers?|Transfer|Library|Events?|Forms?)$/i.test(txt)){
+  const routes={'team builder':'team-builder.html','transfer':'transfer-admin.html','transfers':'transfer-admin.html','library':'library.html?admin=1'};
+  const k=txt.toLowerCase();
+  if(/^Administration$/i.test(txt)){e.preventDefault();setTimeout(()=>openAdministration(current),0);return}
+  if(routes[k]){e.preventDefault();location.href=routes[k];return}
+ }
  if(/^Administration$/i.test(txt))setTimeout(()=>openAdministration(current),30);
 }
 function bind(){

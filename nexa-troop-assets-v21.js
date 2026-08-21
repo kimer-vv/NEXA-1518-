@@ -1,8 +1,8 @@
-/* NEXA V25 — TIER-SPECIFIC TROOP ART
+/* NEXA V26 — TIER-SPECIFIC TROOP ART
    Exact replacement for nexa-troop-assets-v21.js.
    Uses only the user-approved Infantry/Lancer/Marksman T1-T12 files.
 */
-window.NEXA_TROOP_PORTRAITS={"infantry":{"t1":"/assets/nexa-v25/troops/infantry/t1.webp","t2":"/assets/nexa-v25/troops/infantry/t2.webp","t3":"/assets/nexa-v25/troops/infantry/t3.webp","t4":"/assets/nexa-v25/troops/infantry/t4.webp","t5":"/assets/nexa-v25/troops/infantry/t5.webp","t6":"/assets/nexa-v25/troops/infantry/t6.webp","t7":"/assets/nexa-v25/troops/infantry/t7.webp","t8":"/assets/nexa-v25/troops/infantry/t8.webp","t9":"/assets/nexa-v25/troops/infantry/t9.webp","t10":"/assets/nexa-v25/troops/infantry/t10.webp","t11":"/assets/nexa-v25/troops/infantry/t11.webp","t12":"/assets/nexa-v25/troops/infantry/t12.webp"},"lancer":{"t1":"/assets/nexa-v25/troops/lancer/t1.webp","t2":"/assets/nexa-v25/troops/lancer/t2.webp","t3":"/assets/nexa-v25/troops/lancer/t3.webp","t4":"/assets/nexa-v25/troops/lancer/t4.webp","t5":"/assets/nexa-v25/troops/lancer/t5.webp","t6":"/assets/nexa-v25/troops/lancer/t6.webp","t7":"/assets/nexa-v25/troops/lancer/t7.webp","t8":"/assets/nexa-v25/troops/lancer/t8.webp","t9":"/assets/nexa-v25/troops/lancer/t9.webp","t10":"/assets/nexa-v25/troops/lancer/t10.webp","t11":"/assets/nexa-v25/troops/lancer/t11.webp","t12":"/assets/nexa-v25/troops/lancer/t12.webp"},"marksman":{"t1":"/assets/nexa-v25/troops/marksman/t1.webp","t2":"/assets/nexa-v25/troops/marksman/t2.webp","t3":"/assets/nexa-v25/troops/marksman/t3.webp","t4":"/assets/nexa-v25/troops/marksman/t4.webp","t5":"/assets/nexa-v25/troops/marksman/t5.webp","t6":"/assets/nexa-v25/troops/marksman/t6.webp","t7":"/assets/nexa-v25/troops/marksman/t7.webp","t8":"/assets/nexa-v25/troops/marksman/t8.webp","t9":"/assets/nexa-v25/troops/marksman/t9.webp","t10":"/assets/nexa-v25/troops/marksman/t10.webp","t11":"/assets/nexa-v25/troops/marksman/t11.webp","t12":"/assets/nexa-v25/troops/marksman/t12.webp"}};
+window.NEXA_TROOP_PORTRAITS={"infantry":{"t1":"/nexa-troop-infantry-t1.webp","t2":"/nexa-troop-infantry-t2.webp","t3":"/nexa-troop-infantry-t3.webp","t4":"/nexa-troop-infantry-t4.webp","t5":"/nexa-troop-infantry-t5.webp","t6":"/nexa-troop-infantry-t6.webp","t7":"/nexa-troop-infantry-t7.webp","t8":"/nexa-troop-infantry-t8.webp","t9":"/nexa-troop-infantry-t9.webp","t10":"/nexa-troop-infantry-t10.webp","t11":"/nexa-troop-infantry-t11.webp","t12":"/nexa-troop-infantry-t12.webp"},"lancer":{"t1":"/nexa-troop-lancer-t1.webp","t2":"/nexa-troop-lancer-t2.webp","t3":"/nexa-troop-lancer-t3.webp","t4":"/nexa-troop-lancer-t4.webp","t5":"/nexa-troop-lancer-t5.webp","t6":"/nexa-troop-lancer-t6.webp","t7":"/nexa-troop-lancer-t7.webp","t8":"/nexa-troop-lancer-t8.webp","t9":"/nexa-troop-lancer-t9.webp","t10":"/nexa-troop-lancer-t10.webp","t11":"/nexa-troop-lancer-t11.webp","t12":"/nexa-troop-lancer-t12.webp"},"marksman":{"t1":"/nexa-troop-marksman-t1.webp","t2":"/nexa-troop-marksman-t2.webp","t3":"/nexa-troop-marksman-t3.webp","t4":"/nexa-troop-marksman-t4.webp","t5":"/nexa-troop-marksman-t5.webp","t6":"/nexa-troop-marksman-t6.webp","t7":"/nexa-troop-marksman-t7.webp","t8":"/nexa-troop-marksman-t8.webp","t9":"/nexa-troop-marksman-t9.webp","t10":"/nexa-troop-marksman-t10.webp","t11":"/nexa-troop-marksman-t11.webp","t12":"/nexa-troop-marksman-t12.webp"}};
 
 (function(){
   'use strict';
@@ -12,7 +12,7 @@ window.NEXA_TROOP_PORTRAITS={"infantry":{"t1":"/assets/nexa-v25/troops/infantry/
   const style=document.createElement('style');
   style.id='nexa-v25-troop-style';
   style.textContent=`
-    img[src*="/assets/nexa-v25/troops/"]{
+    img[src*="nexa-troop-"]{
       object-fit:contain!important;
       object-position:center!important;
       transform:none!important;
@@ -51,7 +51,7 @@ window.NEXA_TROOP_PORTRAITS={"infantry":{"t1":"/assets/nexa-v25/troops/infantry/
   document.head.appendChild(style);
 
   function decorate(root=document){
-    root.querySelectorAll?.('img[src*="/assets/nexa-v25/troops/"]').forEach(img=>{
+    root.querySelectorAll?.('img[src*="nexa-troop-"]').forEach(img=>{
       const parent=img.parentElement;
       if(parent) parent.classList.add('nexa-v25-troop-orbit');
     });

@@ -1,452 +1,464 @@
-/* NEXA V35 — HARD UI CONSOLIDATION
-   Purpose: one authoritative late runtime layer for the current production index.
-   Does not change Supabase data, Account Constellation logic, or troop artwork.
+/* NEXA V36 — HARD ROOT UI FIX
+   Replaces V35. Targets the exact production DOM from index.html.
+   No Supabase schema/data changes. No troop artwork changes.
 */
 (()=>{'use strict';
-if(window.__NEXA_V35__) return;
-window.__NEXA_V35__=true;
+if(window.__NEXA_V36__) return;
+window.__NEXA_V36__=true;
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
-const tx=e=>(e?.textContent||'').replace(/\s+/g,' ').trim();
-const isEl=e=>e instanceof HTMLElement;
+const text=e=>(e?.textContent||'').replace(/\s+/g,' ').trim();
 
-function installCSS(){
-  $('#nexa-v35-hard-css')?.remove();
+function css(){
+  $('#nexa-v36-css')?.remove();
   const s=document.createElement('style');
-  s.id='nexa-v35-hard-css';
+  s.id='nexa-v36-css';
   s.textContent=`
-/* ---------- GLOBAL MOBILE SAFETY ---------- */
 html,body{max-width:100%!important;overflow-x:hidden!important;-webkit-text-size-adjust:100%!important}
 *,*:before,*:after{box-sizing:border-box!important}
-body{overscroll-behavior-x:none!important}
 
-/* ---------- TOP BRAND: proportional, not giant ---------- */
+/* HOME SHELL */
+main.shell{
+  width:min(680px,calc(100% - 24px))!important;
+  max-width:calc(100% - 24px)!important;
+  margin:0 auto!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  gap:10px!important;
+}
+main.shell>*{grid-column:1!important;min-width:0!important;max-width:100%!important}
+
+/* NEXA title only — remove old subtitle/build proof */
 main.shell>.hero{
-  grid-column:1/-1!important;
-  padding:14px 8px 8px!important;
-  min-height:0!important;
+  padding:16px 0 4px!important;
   margin:0!important;
+  min-height:0!important;
+  background:transparent!important;border:0!important;box-shadow:none!important;
 }
 main.shell>.hero h1{
-  font-size:clamp(38px,12vw,64px)!important;
-  line-height:.92!important;
-  margin:0 0 6px!important;
-  letter-spacing:-.045em!important;
+  font-size:clamp(42px,12vw,62px)!important;line-height:.95!important;
+  margin:0!important;letter-spacing:-.045em!important;
 }
-main.shell>.hero p{
-  font-size:10px!important;
-  line-height:1.3!important;
-  letter-spacing:.13em!important;
-  margin:0!important;
+main.shell>.hero p{display:none!important}
+main.shell>.shell:has(.build-proof),.build-proof{display:none!important}
+
+/* PROFILE LAUNCHER = orbit/profile only, never a rectangle/card */
+#nexa-profile-launcher-section{
+  width:100%!important;max-width:100%!important;
+  padding:10px 0 12px!important;margin:0!important;
+  min-height:0!important;height:auto!important;
+  background:transparent!important;border:0!important;border-radius:0!important;
+  box-shadow:none!important;outline:0!important;
+}
+#nexa-profile-launcher-section:before,#nexa-profile-launcher-section:after{display:none!important}
+#nexa-profile-launcher{width:100px!important;height:100px!important}
+#nexa-profile-launcher-photo{width:86px!important;height:86px!important;inset:7px!important}
+#nexa-profile-launcher-name{
+  max-width:96%!important;text-align:center!important;white-space:normal!important;
+  overflow-wrap:anywhere!important;font-size:14px!important;line-height:1.15!important;margin-top:8px!important
+}
+#nexa-profile-launcher-badge{margin-top:6px!important}
+
+/* COMMON HOME SIGNAL STRIP */
+#nexa-v36-stellar,#nexa-v36-pulse,#nexa-v36-alliance,
+#home-svs-section,#home-transfers-section{
+  width:100%!important;max-width:100%!important;min-width:0!important;
+  min-height:0!important;height:auto!important;margin:0!important;
+  border-radius:18px!important;overflow:hidden!important;
+}
+#nexa-v36-stellar{
+  padding:10px 13px!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  gap:9px!important;text-align:center!important;
+  border:1px solid rgba(74,185,255,.44)!important;
+  background:linear-gradient(145deg,rgba(10,24,49,.92),rgba(6,9,29,.96))!important;
+}
+#nexa-v36-stellar b{color:#84e8ff!important;font-size:9px!important;letter-spacing:.16em!important;white-space:nowrap!important}
+#nexa-v36-stellar span{font-size:11px!important;line-height:1.25!important;color:#c4cee7!important}
+
+#nexa-v36-pulse,#nexa-v36-alliance{padding:10px 13px!important}
+#nexa-v36-pulse{
+  border:1px solid rgba(48,211,255,.44)!important;
+  background:linear-gradient(145deg,rgba(5,34,53,.92),rgba(4,12,31,.97))!important;
+}
+#nexa-v36-alliance{
+  border:1px solid rgba(220,64,255,.45)!important;
+  background:linear-gradient(145deg,rgba(38,8,52,.92),rgba(13,6,31,.97))!important;
+}
+.nexa-v36-kicker{font-size:8px!important;line-height:1!important;letter-spacing:.17em!important;font-weight:950!important;margin-bottom:4px!important}
+#nexa-v36-pulse .nexa-v36-kicker{color:#67eaff!important}
+#nexa-v36-alliance .nexa-v36-kicker{color:#ed8cff!important}
+#nexa-v36-pulse h3,#nexa-v36-alliance h3{
+  margin:0 0 2px!important;font-size:14px!important;line-height:1.1!important
+}
+#nexa-v36-pulse p,#nexa-v36-alliance p{
+  margin:0!important;font-size:10px!important;line-height:1.25!important;color:#aeb8d1!important
 }
 
-/* ---------- HOME: ONE COLUMN, COMPACT WHEN EMPTY ---------- */
-@media(max-width:700px){
-  main.shell{
-    display:grid!important;
-    grid-template-columns:minmax(0,1fr)!important;
-    gap:10px!important;
-  }
-  main.shell>*{min-width:0!important;grid-column:1!important}
-}
-#home-svs-section,#home-transfers-section,
-#nexa-v35-stellar,#nexa-v35-pulse,#nexa-v35-alliance{
-  grid-column:1/-1!important;
-  width:100%!important;
-  max-width:100%!important;
-  min-width:0!important;
-  min-height:0!important;
-  height:auto!important;
-  margin:0 0 10px!important;
-  border-radius:20px!important;
-  overflow:hidden!important;
-}
+/* LIVE EVENT + TRANSFERS become compact strips when inactive */
 #home-svs-section,#home-transfers-section{
-  padding:0!important;
+  padding:10px 13px!important;
+  background:linear-gradient(145deg,rgba(13,18,43,.93),rgba(6,10,28,.97))!important;
 }
+#home-svs-section{border:1px solid rgba(126,105,255,.36)!important}
+#home-transfers-section{border:1px solid rgba(255,137,76,.34)!important}
 #home-svs-section>.head,#home-transfers-section>.head{
-  padding:12px 14px 5px!important;
-  min-height:0!important;
+  padding:0!important;margin:0 0 5px!important;display:block!important;min-height:0!important
 }
 #home-svs-section>.head h2,#home-transfers-section>.head h2{
-  font-size:17px!important;line-height:1.1!important;margin:0!important
+  margin:0!important;font-size:15px!important;line-height:1.1!important
 }
-#home-svs-section>.head span,#home-transfers-section>.head span{
-  font-size:9px!important
-}
-/* Kill card-inside-card appearance */
+#home-svs-section>.head span,#home-transfers-section>.head span{display:none!important}
 #home-svs-section>.glass,#home-transfers-section>.glass{
-  border:0!important;
-  background:transparent!important;
-  box-shadow:none!important;
-  border-radius:0!important;
-  margin:0!important;
-  padding:7px 14px 12px!important;
-  min-height:0!important;
-  height:auto!important;
+  padding:0!important;margin:0!important;min-height:0!important;height:auto!important;
+  background:transparent!important;border:0!important;border-radius:0!important;
+  box-shadow:none!important;outline:0!important;
 }
 #home-svs-section .event{
-  border:0!important;background:transparent!important;box-shadow:none!important;
   padding:0!important;margin:0!important;min-height:0!important;
+  background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;
 }
-#home-svs-section .event-row{gap:8px!important}
-#home-svs-section .event h3{font-size:15px!important;line-height:1.15!important;margin:0 0 3px!important}
-#home-svs-section .muted{font-size:10px!important}
-#home-svs-section .count{margin:0!important}
+#home-svs-section .event-row{display:block!important}
+#home-svs-section .event h3{margin:0 0 2px!important;font-size:12px!important;line-height:1.2!important}
+#home-svs-section .muted{font-size:10px!important;line-height:1.25!important}
+#home-svs-section .count{margin:4px 0 0!important;text-align:left!important}
 #home-svs-section .count small{font-size:8px!important}
-#home-svs-section .count b{font-size:12px!important}
-#home-svs-section .event-actions{margin-top:8px!important}
+#home-svs-section .count b{font-size:11px!important}
+#home-svs-section .event-actions,
+#home-transfers-section .nexa-transfer-home-actions{margin-top:7px!important;padding:0!important}
 #home-svs-section .btn,#home-transfers-section .btn{
-  min-height:34px!important;height:auto!important;padding:7px 12px!important;
-  font-size:12px!important;width:auto!important;min-width:92px!important;
+  min-height:32px!important;width:auto!important;min-width:78px!important;
+  padding:6px 11px!important;font-size:11px!important;border-radius:999px!important
 }
-/* Empty Transfers must collapse instead of reserving a giant card */
-#home-transfer-events:empty{
-  display:none!important;min-height:0!important;height:0!important;padding:0!important;margin:0!important;
-}
-#home-transfer-events:empty:before{display:none!important;content:none!important}
-#home-transfers-section:has(#home-transfer-events:empty){
-  min-height:0!important;
-}
-#home-transfers-section .nexa-transfer-home-actions{
-  padding:5px 14px 12px!important;
-}
-#home-transfers-section .nexa-transfer-open-btn{
-  width:auto!important;min-width:92px!important;min-height:34px!important;
-}
+.nexa-v36-empty-copy{font-size:10px!important;line-height:1.3!important;color:#aeb8d1!important;margin:0!important}
 
-/* ---------- STELLAR: exactly one, directly above profile ---------- */
-#nexa-v35-stellar{
-  min-height:56px!important;padding:10px 14px!important;
-  display:flex!important;align-items:center!important;justify-content:center!important;gap:10px!important;
-  text-align:center!important;position:relative!important;
-  border:1px solid rgba(92,168,255,.44)!important;
-  background:radial-gradient(circle at 12% 0%,rgba(73,217,255,.12),transparent 36%),linear-gradient(145deg,rgba(11,19,49,.95),rgba(5,8,27,.98))!important;
-  box-shadow:0 0 22px rgba(55,150,255,.09)!important;
-}
-#nexa-v35-stellar b{font-size:10px!important;letter-spacing:.18em!important;color:#8de9ff!important;white-space:nowrap}
-#nexa-v35-stellar span{font-size:12px!important;line-height:1.3!important;color:#cbd5ef!important}
-
-/* ---------- PULSE / ALLIANCE: intentionally different colors ---------- */
-#nexa-v35-pulse,#nexa-v35-alliance{
-  min-height:58px!important;padding:11px 14px!important;
-}
-#nexa-v35-pulse{
-  border:1px solid rgba(65,210,255,.42)!important;
-  background:radial-gradient(circle at 10% 10%,rgba(41,205,255,.13),transparent 34%),linear-gradient(145deg,rgba(7,25,48,.96),rgba(5,9,28,.98))!important;
-  box-shadow:0 0 22px rgba(35,185,255,.08)!important;
-}
-#nexa-v35-alliance{
-  border:1px solid rgba(211,83,255,.42)!important;
-  background:radial-gradient(circle at 10% 10%,rgba(218,66,255,.12),transparent 34%),linear-gradient(145deg,rgba(28,11,48,.96),rgba(8,7,28,.98))!important;
-  box-shadow:0 0 22px rgba(195,55,255,.08)!important;
-}
-.nexa-v35-kicker{font-size:9px!important;letter-spacing:.18em!important;font-weight:900!important;margin-bottom:3px!important}
-#nexa-v35-pulse .nexa-v35-kicker{color:#66e7ff!important}
-#nexa-v35-alliance .nexa-v35-kicker{color:#e78cff!important}
-#nexa-v35-pulse h3,#nexa-v35-alliance h3{font-size:15px!important;line-height:1.15!important;margin:0 0 2px!important}
-#nexa-v35-pulse p,#nexa-v35-alliance p{font-size:11px!important;line-height:1.3!important;margin:0!important;color:#aeb8d2!important}
-
-/* ---------- HOME PROFILE LAUNCHER ---------- */
-#nexa-profile-launcher-section{
-  grid-column:1/-1!important;
-  margin:4px auto 12px!important;
-  padding:0!important;
-  min-height:0!important;
-}
-
-/* ---------- DIGITAL / PLAYER PROFILE: exact native classes ---------- */
-#nexa-profile-modal{
-  overflow:hidden!important;
-}
+/* PLAYER PASSPORT: keep everything inside viewport, give top breathing room */
+#nexa-profile-modal{padding:8px!important;overflow:hidden!important}
 #nexa-profile-modal .nexa-profile-sheet{
-  width:min(720px,calc(100vw - 12px))!important;
-  max-width:calc(100vw - 12px)!important;
-  max-height:calc(100dvh - 12px)!important;
-  height:auto!important;
-  margin:6px auto!important;
-  overflow-y:auto!important;
-  overflow-x:hidden!important;
-  -webkit-overflow-scrolling:touch!important;
-  overscroll-behavior:contain!important;
+  width:min(680px,calc(100vw - 16px))!important;max-width:calc(100vw - 16px)!important;
+  max-height:calc(100dvh - 16px)!important;margin:0 auto!important;
+  overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch!important;
   border-radius:22px!important;
 }
 #nexa-profile-modal .nexa-profile-hero{
-  padding:20px 16px 14px!important;
-  min-height:0!important;
+  padding:52px 14px 14px!important;min-height:0!important;overflow:visible!important;
 }
-#nexa-profile-modal .nexa-profile-main{
-  gap:12px!important;min-width:0!important;align-items:center!important
-}
-#nexa-profile-modal .nexa-profile-photo{width:70px!important;height:70px!important;flex:0 0 70px!important}
-#nexa-profile-modal .nexa-profile-identity{min-width:0!important;flex:1 1 auto!important}
+#nexa-profile-modal .nexa-profile-close{top:10px!important;right:10px!important}
+#nexa-profile-modal .nexa-profile-main{gap:10px!important;align-items:center!important;min-width:0!important}
+#nexa-profile-modal .nexa-photo-wrap{flex:0 0 64px!important}
+#nexa-profile-modal .nexa-profile-photo{width:64px!important;height:64px!important}
+#nexa-profile-modal .nexa-profile-identity{min-width:0!important;max-width:calc(100% - 74px)!important}
 #nexa-profile-modal .nexa-profile-name-line{
-  min-width:0!important;display:flex!important;flex-wrap:wrap!important;align-items:baseline!important;gap:4px 8px!important
+  display:block!important;min-width:0!important;max-width:100%!important
 }
-#nexa-profile-modal .nexa-profile-name{
-  font-size:clamp(21px,6.2vw,31px)!important;
-  line-height:1.02!important;margin:0!important;letter-spacing:-.025em!important;
-  max-width:100%!important;overflow-wrap:anywhere!important
+#nexa-profile-modal #nexa-profile-name{
+  display:block!important;max-width:100%!important;
+  font-size:clamp(20px,5.7vw,27px)!important;line-height:1.05!important;
+  letter-spacing:-.02em!important;margin:0 0 4px!important;
+  overflow-wrap:anywhere!important;word-break:break-word!important
 }
-#nexa-profile-modal .nexa-profile-id{
-  font-size:11px!important;line-height:1.2!important;letter-spacing:.03em!important;
-  max-width:100%!important;overflow-wrap:anywhere!important
+#nexa-profile-modal #nexa-profile-player-id{
+  display:block!important;max-width:100%!important;
+  font-size:10px!important;line-height:1.2!important;overflow-wrap:anywhere!important
 }
-#nexa-profile-modal .nexa-profile-sub{gap:5px!important;flex-wrap:wrap!important}
-#nexa-profile-modal .nexa-glass-tag{font-size:9px!important;padding:4px 7px!important}
-#nexa-profile-modal .nexa-profile-stats{margin-top:12px!important;gap:7px!important}
-#nexa-profile-modal .nexa-stat{padding:9px 7px!important;min-width:0!important}
-#nexa-profile-modal .nexa-stat label{font-size:8px!important}
-#nexa-profile-modal .nexa-stat strong{font-size:13px!important;overflow-wrap:anywhere!important}
-#nexa-profile-modal .nexa-profile-edit-row{margin-top:8px!important}
+#nexa-profile-modal .nexa-profile-sub{margin-top:6px!important;gap:5px!important}
+#nexa-profile-modal .nexa-glass-tag{font-size:8px!important;padding:3px 6px!important}
+#nexa-profile-modal .nexa-profile-stats{margin-top:10px!important;gap:6px!important}
+#nexa-profile-modal .nexa-stat{padding:8px 6px!important;min-width:0!important}
+#nexa-profile-modal .nexa-stat label{font-size:7px!important}
+#nexa-profile-modal .nexa-stat strong{font-size:12px!important;overflow-wrap:anywhere!important}
+#nexa-profile-modal .nexa-profile-edit-row{margin-top:7px!important}
 #nexa-profile-modal .nexa-profile-tabs{
-  position:sticky!important;top:0!important;z-index:5!important;
-  display:flex!important;flex-wrap:nowrap!important;overflow-x:auto!important;overflow-y:hidden!important;
-  -webkit-overflow-scrolling:touch!important;scroll-snap-type:none!important;touch-action:pan-x!important;
-  scrollbar-width:none!important;max-width:100%!important;
+  position:sticky!important;top:0!important;z-index:20!important;
+  display:flex!important;grid-template-columns:none!important;flex-wrap:nowrap!important;
+  overflow-x:auto!important;overflow-y:hidden!important;-webkit-overflow-scrolling:touch!important;
+  scroll-snap-type:none!important;scroll-behavior:auto!important;touch-action:pan-x!important;
+  gap:5px!important;padding:8px 10px!important;scrollbar-width:none!important;
 }
 #nexa-profile-modal .nexa-profile-tabs::-webkit-scrollbar{display:none!important}
-#nexa-profile-modal .nexa-profile-tab{flex:0 0 auto!important;white-space:nowrap!important;scroll-snap-align:none!important}
-#nexa-profile-modal .nexa-profile-content{
-  padding:14px!important;min-width:0!important;overflow-x:hidden!important;
-}
+#nexa-profile-modal .nexa-profile-tab{flex:0 0 auto!important;white-space:nowrap!important;min-width:90px!important}
+#nexa-profile-modal .nexa-profile-content{padding:10px!important;overflow-x:hidden!important;min-width:0!important}
 
-/* ---------- ALL DYNAMIC LIBRARY RAILS: native horizontal scroll, never vertical columns ---------- */
-.nexa-v35-rail{
-  display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;
+/* Configuration card must be IN profile flow, not floating over the passport */
+.nexa-v36-config{
+  position:relative!important;inset:auto!important;top:auto!important;left:auto!important;right:auto!important;
+  transform:none!important;z-index:auto!important;
   width:100%!important;max-width:100%!important;min-width:0!important;
-  overflow-x:auto!important;overflow-y:hidden!important;
-  -webkit-overflow-scrolling:touch!important;
-  scroll-snap-type:none!important;scroll-behavior:auto!important;
-  overscroll-behavior-x:contain!important;touch-action:pan-x!important;
-  scrollbar-width:none!important;gap:8px!important;
+  max-height:none!important;height:auto!important;margin:0!important;
+  overflow:visible!important;border-radius:18px!important;
 }
-.nexa-v35-rail::-webkit-scrollbar{display:none!important}
-.nexa-v35-rail>*{
-  flex:0 0 auto!important;width:auto!important;max-width:none!important;
-  scroll-snap-align:none!important;scroll-snap-stop:normal!important;
+.nexa-v36-config input[type=number],.nexa-v36-config select{
+  max-width:100%!important;font-size:16px!important
 }
 
-/* Dynamic profile configuration modal/card */
-.nexa-v35-config-root{
-  max-width:calc(100vw - 14px)!important;width:min(680px,calc(100vw - 14px))!important;
-  max-height:calc(100dvh - 16px)!important;
-  overflow-y:auto!important;overflow-x:hidden!important;
-  -webkit-overflow-scrolling:touch!important;
-  margin:auto!important;
-}
-.nexa-v35-config-root h1,.nexa-v35-config-root h2,.nexa-v35-config-root h3{
-  overflow-wrap:anywhere!important;max-width:100%!important
-}
-/* Keep ordinary field text readable; only number/chip controls are compact */
-.nexa-v35-config-root input[type=number],.nexa-v35-config-root select{
-  font-size:16px!important;max-width:100%!important
-}
-.nexa-v35-level{
-  min-width:40px!important;min-height:36px!important;
-  padding:5px 8px!important;font-size:13px!important;line-height:1!important;
+/* OWNED: hide whole checkbox row */
+.nexa-v36-owned-row{display:none!important}
+
+/* Compact numerical controls only */
+.nexa-v36-num{
+  min-width:38px!important;min-height:34px!important;height:auto!important;
+  width:auto!important;padding:5px 8px!important;font-size:13px!important;line-height:1!important
 }
 
-/* OWNED should never display */
-.nexa-v35-owned{display:none!important}
+/* True horizontal rails. Their scroll position is preserved by JS. */
+.nexa-v36-rail{
+  display:flex!important;grid-template-columns:none!important;flex-direction:row!important;
+  flex-wrap:nowrap!important;width:100%!important;max-width:100%!important;min-width:0!important;
+  overflow-x:auto!important;overflow-y:hidden!important;-webkit-overflow-scrolling:touch!important;
+  scroll-snap-type:none!important;scroll-behavior:auto!important;overscroll-behavior-x:contain!important;
+  touch-action:pan-x!important;gap:8px!important;scrollbar-width:none!important;
+}
+.nexa-v36-rail::-webkit-scrollbar{display:none!important}
+.nexa-v36-rail>*{
+  flex:0 0 auto!important;scroll-snap-align:none!important;scroll-snap-stop:normal!important;
+}
 
-/* Reset/help belong INSIDE the configuration card, never fixed at viewport top */
-#nexa-v35-config-tools{
+/* Reset + help live inside configuration, not at viewport top */
+#nexa-v36-tools{
+  position:static!important;inset:auto!important;transform:none!important;z-index:auto!important;
+  display:flex!important;gap:7px!important;align-items:center!important;
+  width:auto!important;height:auto!important;margin:0 0 10px!important;padding:0!important;
+  background:transparent!important;border:0!important;box-shadow:none!important
+}
+#nexa-v36-tools button{
   position:static!important;inset:auto!important;transform:none!important;
-  display:flex!important;align-items:center!important;justify-content:flex-start!important;
-  gap:8px!important;width:auto!important;height:auto!important;
-  margin:8px 0 12px!important;padding:0!important;z-index:auto!important;
-  background:transparent!important;border:0!important;box-shadow:none!important;
+  min-height:32px!important;border-radius:999px!important;font-size:11px!important;font-weight:900!important;
+  border:1px solid rgba(102,105,255,.55)!important;background:#111630!important;color:#eef3ff!important
 }
-#nexa-v35-config-tools button{
-  position:static!important;inset:auto!important;transform:none!important;
-  min-height:34px!important;border-radius:999px!important;
-  border:1px solid rgba(101,101,255,.58)!important;
-  background:linear-gradient(145deg,rgba(25,25,67,.98),rgba(7,10,30,.99))!important;
-  color:#eef3ff!important;font-weight:850!important;
-}
-#nexa-v35-reset{padding:6px 14px!important}
-#nexa-v35-help{width:34px!important;min-width:34px!important;padding:0!important;color:#8feaff!important;border-color:rgba(74,204,255,.64)!important}
+#nexa-v36-reset{padding:5px 12px!important}
+#nexa-v36-help{width:32px!important;min-width:32px!important;padding:0!important;color:#83e8ff!important;border-color:rgba(60,205,255,.55)!important}
 
-/* Kill old injected V34 controls/nodes if any survive cache */
-.nexa-v34-tools,.nexa-v33-tools{display:none!important}
-#nexa-v34-stellar,#nexa-v33-stellar,#nexa-v34-pulse,#nexa-v34-alliance,#nexa-v33-signal-wrap{display:none!important}
+/* Old runtime leftovers */
+.nexa-v34-tools,.nexa-v33-tools,#nexa-v35-config-tools{display:none!important}
+#nexa-v34-stellar,#nexa-v33-stellar,#nexa-v35-stellar,
+#nexa-v34-pulse,#nexa-v35-pulse,#nexa-v34-alliance,#nexa-v35-alliance,
+#nexa-v33-signal-wrap{display:none!important}
 
-/* Help card */
-#nexa-v35-help-card{
-  position:fixed!important;left:16px!important;right:16px!important;top:50%!important;
-  transform:translateY(-50%)!important;z-index:2147483640!important;
-  max-width:500px!important;margin:auto!important;padding:20px!important;border-radius:20px!important;
-  color:#eef4ff!important;background:radial-gradient(circle at 12% 0%,rgba(79,194,255,.14),transparent 34%),linear-gradient(145deg,#090d26,#050714)!important;
-  border:1px solid rgba(126,92,255,.65)!important;box-shadow:0 0 34px rgba(92,65,255,.34)!important;
+/* Admin/Alliance modal mobile containment */
+#admin-modal .admin-modal-card{
+  width:min(680px,calc(100vw - 16px))!important;max-width:calc(100vw - 16px)!important;
+  max-height:calc(100dvh - 16px)!important;margin:8px auto!important;
+  overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch!important;
 }
+#admin-modal .admin-modal-card *{max-width:100%}
 `;
   document.head.appendChild(s);
 }
 
-function removeOldRuntimeNodes(){
-  ['nexa-v34-stellar','nexa-v34-pulse','nexa-v34-alliance','nexa-v33-signal-wrap'].forEach(id=>$('#'+id)?.remove());
+function cleanOld(){
+  ['nexa-v34-stellar','nexa-v33-stellar','nexa-v35-stellar','nexa-v34-pulse','nexa-v35-pulse','nexa-v34-alliance','nexa-v35-alliance','nexa-v33-signal-wrap','nexa-v35-config-tools']
+    .forEach(id=>$('#'+id)?.remove());
   $$('.nexa-v34-tools,.nexa-v33-tools').forEach(e=>e.remove());
 }
 
-function ensureHome(){
-  const main=$('main.shell');
-  const profile=$('#nexa-profile-launcher-section');
-  if(!main||!profile) return;
+function forceHomeOnBoot(){
+  if(window.__NEXA_V36_BOOT_CLOSED__) return;
+  // Direct/deep links are respected. Plain home always starts clean.
+  const p=new URLSearchParams(location.search);
+  if(p.has('direct')||p.has('admin')||p.has('module')) return;
+  window.__NEXA_V36_BOOT_CLOSED__=true;
+  ['#admin-modal','#accounts-modal','#nexa-account-constellation','#nexa-profile-modal'].forEach(sel=>{
+    const e=$(sel); if(!e)return;
+    e.classList.remove('open','module-view','native-eventops-view','native-svs-view');
+    e.setAttribute('aria-hidden','true');
+  });
+  $('#nexa-home-menu')?.setAttribute('aria-hidden','true');
+  $('#nexa-home-menu-toggle')?.setAttribute('aria-expanded','false');
+  window.scrollTo({top:0,left:0,behavior:'auto'});
+}
 
-  // Remove duplicate Stellar cards from any previous runtime layer.
-  $$('section,article,div',main).filter(e=>{
-    if(e.id==='nexa-v35-stellar') return false;
-    const t=tx(e);
-    return t.includes('STELLAR SIGNAL') && t.length<400;
-  }).forEach(e=>e.remove());
+function home(){
+  const main=$('main.shell'), profile=$('#nexa-profile-launcher-section');
+  if(!main||!profile)return;
 
-  let stellar=$('#nexa-v35-stellar');
+  // One Stellar only.
+  $$('section,article,div',main).forEach(e=>{
+    if(e.id==='nexa-v36-stellar')return;
+    const t=text(e);
+    if(/\bSTELLAR SIGNAL\b/i.test(t) && t.length<420) e.remove();
+  });
+  let stellar=$('#nexa-v36-stellar');
   if(!stellar){
     stellar=document.createElement('section');
-    stellar.id='nexa-v35-stellar';
+    stellar.id='nexa-v36-stellar';
     stellar.innerHTML='<b>STELLAR SIGNAL</b><span>Small course corrections can change the path of an entire orbit.</span>';
   }
-  if(stellar.parentElement!==main || stellar.nextElementSibling!==profile) main.insertBefore(stellar,profile);
+  main.insertBefore(stellar,profile);
 
-  let pulse=$('#nexa-v35-pulse');
-  if(!pulse){
-    pulse=document.createElement('section');
-    pulse.id='nexa-v35-pulse';
-    pulse.innerHTML='<div class="nexa-v35-kicker">NEXA PULSE</div><h3>Signals & response requests</h3><p>Forms, surveys and requests appear here when leadership publishes them.</p>';
-  }
-  let alliance=$('#nexa-v35-alliance');
-  if(!alliance){
-    alliance=document.createElement('section');
-    alliance.id='nexa-v35-alliance';
-    alliance.innerHTML='<div class="nexa-v35-kicker">ALLIANCE SIGNAL</div><h3>No alliance event published</h3><p>Foundry, Canyon and alliance strategy updates will appear here.</p>';
-  }
-  const transfer=$('#home-transfers-section'), live=$('#home-svs-section');
-  const anchor=transfer||live;
-  if(anchor){
-    if(pulse.parentElement!==main || pulse.previousElementSibling!==anchor) anchor.after(pulse);
-    if(alliance.parentElement!==main || alliance.previousElementSibling!==pulse) pulse.after(alliance);
-  }
-}
-
-function markOwned(root=document){
-  $$('label,span,strong,b,div,p',root).forEach(e=>{
-    if(e.children.length===0 && /^OWNED$/i.test(tx(e))) e.classList.add('nexa-v35-owned');
-  });
-}
-
-function markLevels(root){
-  $$('button,[role=button]',root).forEach(b=>{
-    const t=tx(b);
-    if(/^(?:T|FC|GEN)?\s*(?:[0-9]{1,2}|NONE|MAX|MAXED)$/i.test(t) || /^[0-9]{1,2}$/.test(t)){
-      b.classList.add('nexa-v35-level');
-    }
-  });
-}
-
-function markRails(root=document){
-  $$('div,nav,section',root).forEach(e=>{
-    if(!isEl(e)||e.children.length<2) return;
-    const t=tx(e), c=String(e.className||'');
-    const r=e.getBoundingClientRect();
-    if(r.width<180 || r.height>180) return;
-    const semantic=
-      /generation|tier|tabs|chips|carousel|filter-row|level-row|selector-row/i.test(c) ||
-      ((/\bGEN\s*1\b/i.test(t)&&/\bGEN\s*2\b/i.test(t)) ||
-       (/\bT1\b/i.test(t)&&/\bT2\b/i.test(t)) ||
-       (/\bHEROES\b/i.test(t)&&/\bEXPERTS\b/i.test(t)&&/\bTROOPS\b/i.test(t)));
-    if(semantic) e.classList.add('nexa-v35-rail');
-  });
-}
-
-function configRoot(){
-  const leaves=$$('h1,h2,h3,strong,b,div,span').filter(e=>e.children.length===0 && /PROFILE CONFIGURATION/i.test(tx(e)));
-  for(const leaf of leaves){
-    let p=leaf;
-    for(let i=0;i<8&&p;i++,p=p.parentElement){
-      if(!isEl(p)) continue;
-      const r=p.getBoundingClientRect(), t=tx(p);
-      if(r.width>260 && r.height>280 && t.length<8000 && (/HERO|EXPERT|TROOP|PET/i.test(t))){
-        return p;
+  // Live Event placeholder -> explanation only, no nested card/button.
+  const live=$('#home-svs-section');
+  if(live){
+    const title=text($('#home-event-title'));
+    const countdown=text($('#home-event-countdown'));
+    const inactive=!title || /XXXX|TBD|NO\s+EVENT/i.test(title) || !countdown || /^[—–-]+$/.test(countdown);
+    live.classList.toggle('nexa-v36-inactive',inactive);
+    let empty=$('#nexa-v36-live-empty',live);
+    if(inactive){
+      $('.glass',live)?.setAttribute('hidden','');
+      $('.event-actions',live)?.setAttribute('hidden','');
+      if(!empty){
+        empty=document.createElement('p');empty.id='nexa-v36-live-empty';empty.className='nexa-v36-empty-copy';
+        empty.textContent='Server events and current SvS information will appear here when published.';
+        live.appendChild(empty);
       }
+    }else{
+      $('.glass',live)?.removeAttribute('hidden');
+      $('.event-actions',live)?.removeAttribute('hidden');
+      empty?.remove();
     }
+  }
+
+  // Transfer placeholder -> explanation only, no Open until actual cycle info exists.
+  const transfer=$('#home-transfers-section');
+  if(transfer){
+    const data=$('#home-transfer-events');
+    const t=text(data);
+    const inactive=!t || /Transfer Center|Applications stay available|No .*transfer|next transfer cycle/i.test(t);
+    data?.toggleAttribute('hidden',inactive);
+    $('.nexa-transfer-home-actions',transfer)?.toggleAttribute('hidden',inactive);
+    let empty=$('#nexa-v36-transfer-empty',transfer);
+    if(inactive && !empty){
+      empty=document.createElement('p');empty.id='nexa-v36-transfer-empty';empty.className='nexa-v36-empty-copy';
+      empty.textContent='Transfer cycle information will appear here when a cycle is published.';
+      transfer.appendChild(empty);
+    }
+    if(!inactive) empty?.remove();
+  }
+
+  let pulse=$('#nexa-v36-pulse');
+  if(!pulse){
+    pulse=document.createElement('section');pulse.id='nexa-v36-pulse';
+    pulse.innerHTML='<div class="nexa-v36-kicker">NEXA PULSE</div><h3>Signals & response requests</h3><p>Forms, surveys and requests appear here when leadership publishes them.</p>';
+  }
+  let alliance=$('#nexa-v36-alliance');
+  if(!alliance){
+    alliance=document.createElement('section');alliance.id='nexa-v36-alliance';
+    alliance.innerHTML='<div class="nexa-v36-kicker">ALLIANCE SIGNAL</div><h3>No alliance event published</h3><p>Foundry, Canyon and alliance strategy updates will appear here.</p>';
+  }
+  const anchor=transfer||live||profile;
+  anchor.after(pulse); pulse.after(alliance);
+}
+
+const railMemory=new Map();
+let railNo=0;
+function railKey(e){
+  if(!e.dataset.nexaV36RailKey)e.dataset.nexaV36RailKey='r'+(++railNo);
+  return e.dataset.nexaV36RailKey;
+}
+function identifyRails(root=document){
+  $$('nav,div,section',root).forEach(e=>{
+    if(e.children.length<2)return;
+    const c=String(e.className||''),t=text(e);
+    const semantic=
+      /generation|generations|tier|tabs|chips|carousel|filter|selector|rarity/i.test(c) ||
+      (/\bGEN\s*1\b/i.test(t)&&/\bGEN\s*(?:2|3)\b/i.test(t)) ||
+      (/\bT1\b/i.test(t)&&/\bT2\b/i.test(t)) ||
+      (/\bHEROES\b/i.test(t)&&/\bEXPERTS\b/i.test(t)&&/\bTROOPS\b/i.test(t));
+    if(!semantic)return;
+    e.classList.add('nexa-v36-rail');
+    const k=railKey(e);
+    if(!e.dataset.nexaV36Bound){
+      e.dataset.nexaV36Bound='1';
+      e.addEventListener('scroll',()=>railMemory.set(k,e.scrollLeft),{passive:true});
+      e.addEventListener('touchend',()=>railMemory.set(k,e.scrollLeft),{passive:true});
+    }
+    const saved=railMemory.get(k);
+    if(Number.isFinite(saved) && Math.abs(e.scrollLeft-saved)>8){
+      requestAnimationFrame(()=>{e.scrollLeft=saved});
+    }
+  });
+}
+
+function configurationRoot(){
+  const title=$$('h1,h2,h3,div,span,strong,b').find(e=>e.children.length===0 && /PROFILE CONFIGURATION/i.test(text(e)));
+  if(!title)return null;
+  let p=title;
+  for(let i=0;i<8&&p;i++,p=p.parentElement){
+    const r=p.getBoundingClientRect(),t=text(p);
+    if(r.width>270 && r.height>250 && t.length<10000 && /HERO|EXPERT|TROOP|PET|CHIEF/i.test(t)) return p;
   }
   return null;
 }
-
+function owned(root=document){
+  $$('label,div,span,strong,b,p',root).forEach(e=>{
+    if(!/\bOWNED\b/i.test(text(e)))return;
+    if(e.children.length===0){
+      let row=e.parentElement;
+      for(let i=0;i<3&&row;i++,row=row.parentElement){
+        if(row.querySelector?.('input[type="checkbox"]') && row.getBoundingClientRect().height<120){
+          row.classList.add('nexa-v36-owned-row');break;
+        }
+      }
+      if(!row)e.classList.add('nexa-v36-owned-row');
+    }
+  });
+}
+function compactNums(root=document){
+  $$('button,input[type=number],select',root).forEach(e=>{
+    const t=text(e)||e.value||'';
+    if(/^(?:T|FC|GEN)?\s*(?:[0-9]{1,2}|MAX|MAXED|NONE)$/i.test(t))e.classList.add('nexa-v36-num');
+  });
+}
 function resetConfig(root){
-  if(!root) return;
   $$('input,select',root).forEach(el=>{
-    if(el.type==='checkbox'||el.type==='radio') el.checked=false;
-    else if(el.tagName==='SELECT') el.selectedIndex=0;
-    else if(el.type==='number') el.value=el.min||'0';
-    else if(!['button','submit','hidden','file'].includes(el.type)) el.value='';
+    if(el.type==='checkbox'||el.type==='radio')el.checked=false;
+    else if(el.tagName==='SELECT')el.selectedIndex=0;
+    else if(el.type==='number')el.value=el.min||'0';
     el.dispatchEvent(new Event('input',{bubbles:true}));
     el.dispatchEvent(new Event('change',{bubbles:true}));
   });
 }
-
-function showHelp(){
-  $('#nexa-v35-help-card')?.remove();
-  const d=document.createElement('div');
-  d.id='nexa-v35-help-card';
-  d.innerHTML='<div style="font-size:10px;letter-spacing:.18em;font-weight:900;color:#8eeaff;margin-bottom:7px">NEXA GUIDE</div><div style="font-size:18px;font-weight:900;margin-bottom:7px">Profile configuration</div><div style="font-size:13px;line-height:1.45;color:#cbd5ef;margin-bottom:14px">Choose the levels that match this account. Reset clears the current configuration so you can enter it again.</div><button type="button" style="width:100%;padding:10px;border-radius:999px;border:1px solid #675cff;background:#12173b;color:white;font-weight:850">Close</button>';
-  d.querySelector('button').onclick=()=>d.remove();
-  document.body.appendChild(d);
+function help(){
+  $('#nexa-v36-helpbox')?.remove();
+  const d=document.createElement('div');d.id='nexa-v36-helpbox';
+  Object.assign(d.style,{position:'fixed',left:'16px',right:'16px',top:'50%',transform:'translateY(-50%)',zIndex:'2147483640',maxWidth:'480px',margin:'auto',padding:'18px',borderRadius:'18px',background:'#080d24',border:'1px solid rgba(113,91,255,.7)',boxShadow:'0 0 36px rgba(90,68,255,.35)',color:'#eef4ff'});
+  d.innerHTML='<b style="color:#83e8ff;letter-spacing:.12em">NEXA GUIDE</b><p style="font-size:13px;line-height:1.45;color:#c4cee7">Set the levels that match this account. Reset clears the current configuration so you can enter it again.</p><button type="button" style="width:100%;padding:9px;border-radius:999px;border:1px solid #675cff;background:#121735;color:white;font-weight:900">Close</button>';
+  d.querySelector('button').onclick=()=>d.remove();document.body.appendChild(d);
 }
+function config(){
+  const root=configurationRoot();if(!root)return;
+  root.classList.add('nexa-v36-config');
+  owned(root);compactNums(root);identifyRails(root);
 
-function ensureConfig(){
-  const root=configRoot();
-  if(!root) return;
-  root.classList.add('nexa-v35-config-root');
-  markOwned(root); markLevels(root); markRails(root);
+  // Remove old floating Reset / ? controls near the viewport top.
+  $$('button',document).forEach(b=>{
+    if(b.closest('#nexa-v36-tools'))return;
+    const t=text(b),r=b.getBoundingClientRect(),pos=getComputedStyle(b).position;
+    if((t==='Reset'||t==='?') && r.top<190 && (pos==='fixed'||pos==='absolute')) b.remove();
+  });
 
-  // Remove any Reset/? pair injected by older patches that escaped known class names.
-  $$('button',document).filter(b=>{
-    if(b.closest('#nexa-v35-config-tools')) return false;
-    const t=tx(b);
-    const cs=getComputedStyle(b);
-    return (t==='Reset'||t==='?') && (cs.position==='fixed'||cs.position==='absolute') && b.getBoundingClientRect().top<180;
-  }).forEach(b=>b.remove());
-
-  let tools=$('#nexa-v35-config-tools');
+  let tools=$('#nexa-v36-tools');
   if(!tools){
-    tools=document.createElement('div');
-    tools.id='nexa-v35-config-tools';
-    tools.innerHTML='<button id="nexa-v35-reset" type="button">Reset</button><button id="nexa-v35-help" type="button" aria-label="Help">?</button>';
-    tools.querySelector('#nexa-v35-reset').onclick=()=>resetConfig(root);
-    tools.querySelector('#nexa-v35-help').onclick=showHelp;
-
-    const title=$$('h1,h2,h3,strong,b,div,span',root).find(e=>e.children.length===0 && /PROFILE CONFIGURATION/i.test(tx(e)));
-    if(title){
-      const titleBlock=title.parentElement;
-      if(titleBlock && titleBlock.parentElement) titleBlock.after(tools);
-      else root.prepend(tools);
-    }else root.prepend(tools);
-  }else if(!root.contains(tools)){
+    tools=document.createElement('div');tools.id='nexa-v36-tools';
+    tools.innerHTML='<button id="nexa-v36-reset" type="button">Reset</button><button id="nexa-v36-help" type="button">?</button>';
+    tools.querySelector('#nexa-v36-reset').onclick=()=>resetConfig(root);
+    tools.querySelector('#nexa-v36-help').onclick=help;
     root.prepend(tools);
-  }
+  }else if(!root.contains(tools))root.prepend(tools);
 }
 
 function run(){
-  installCSS();
-  removeOldRuntimeNodes();
-  ensureHome();
-  markOwned();
-  markRails();
-  const pm=$('#nexa-profile-modal');
-  if(pm){ markRails(pm); markLevels(pm); }
-  ensureConfig();
+  css();cleanOld();home();
+  identifyRails();owned();compactNums();
+  const pm=$('#nexa-profile-modal');if(pm){identifyRails(pm);owned(pm);compactNums(pm)}
+  config();
 }
 
-run();
-let q=false;
+function boot(){
+  run();
+  setTimeout(forceHomeOnBoot,450);
+  setTimeout(forceHomeOnBoot,1000);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+
+let pending=false;
 new MutationObserver(()=>{
-  if(q)return;q=true;
-  requestAnimationFrame(()=>{q=false;run()});
+  if(pending)return;pending=true;
+  setTimeout(()=>{pending=false;run()},100);
 }).observe(document.documentElement,{subtree:true,childList:true});
 
-// Low-frequency safety pass only; no scrollLeft writes and no reparenting of native profile content.
-setInterval(run,3000);
+// Re-assert layout after async Supabase/profile renders, without polling scrollLeft to zero.
+window.addEventListener('pageshow',()=>setTimeout(run,80));
+window.addEventListener('load',()=>setTimeout(run,100));
 })();

@@ -1,4 +1,4 @@
-/* NEXA V36 — HARD ROOT UI FIX
+l/* NEXA V36 — HARD ROOT UI FIX
    Replaces V35. Targets the exact production DOM from index.html.
    No Supabase schema/data changes. No troop artwork changes.
 */

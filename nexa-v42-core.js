@@ -1,11 +1,11 @@
-/* NEXA V42.5 — CLEAN SINGLE OWNER CORE
+/* NEXA V42.6 — ROUTE + LEGACY SHELL CLEANUP
    Home polish, stable Administration shell, embedded Library, My Alliance management,
    Profile helpers and event-aware themes. No global MutationObserver. No manual scrollLeft.
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V425__)return;
-window.__NEXA_V425__=true;
+if(window.__NEXA_V426__)return;
+window.__NEXA_V426__=true;
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
@@ -18,8 +18,8 @@ const LABEL={alliances:'Alliances',library:'Library',permissions:'NEXA Access',r
 function sb(){if(window.supabaseClient?.from)return window.supabaseClient;if(window.sb?.from)return window.sb;if(!localSb&&window.supabase?.createClient)localSb=window.supabase.createClient(SB_URL,SB_KEY);return localSb}
 
 function addCSS(){
- if($('#nexa-v425-css'))return;
- const s=document.createElement('style');s.id='nexa-v425-css';s.textContent=`
+ if($('#nexa-v426-css'))return;
+ const s=document.createElement('style');s.id='nexa-v426-css';s.textContent=`
  :root{--nexa-event-primary:#9b79ff;--nexa-event-secondary:#55cfff;--nexa-event-deep:#24154c}
  html,body{max-width:100%!important;overflow-x:hidden!important}
  body.nexa-workspace-open #nexa-home-menu-toggle,body.nexa-workspace-open #nexa-home-menu{display:none!important}
@@ -40,17 +40,16 @@ function addCSS(){
  @keyframes nexa425Blink{0%,100%{opacity:.42;transform:scale(.92);box-shadow:0 0 9px color-mix(in srgb,var(--nexa-event-primary) 10%,transparent)}50%{opacity:1;transform:scale(1.05);box-shadow:0 0 20px color-mix(in srgb,var(--nexa-event-secondary) 64%,transparent),0 0 36px color-mix(in srgb,var(--nexa-event-primary) 38%,transparent)}}
 
  #home-svs-section,#home-transfers-section,#nexa-v425-pulse,#nexa-v425-alliance{width:100%!important;max-width:100%!important;margin:0!important;min-height:0!important;height:auto!important;border-radius:18px!important;box-sizing:border-box!important}
- #home-svs-section.nexa-v425-empty,#home-transfers-section.nexa-v425-empty,#nexa-v425-pulse,#nexa-v425-alliance{padding:12px 14px!important}
+ #home-svs-section.nexa-v425-empty,#home-transfers-section.nexa-v425-empty,#nexa-v425-pulse,#nexa-v425-alliance{padding:12px 14px!important;min-height:0!important;height:auto!important;max-height:none!important;aspect-ratio:auto!important;overflow:hidden!important}
  #home-svs-section.nexa-v425-empty{border:1px solid color-mix(in srgb,var(--nexa-event-primary) 38%,transparent)!important;background:linear-gradient(145deg,rgba(20,19,50,.88),rgba(5,9,27,.97))!important;text-align:left!important}
  #home-transfers-section.nexa-v425-empty{border:1px solid rgba(255,138,61,.36)!important;background:linear-gradient(145deg,rgba(55,28,14,.62),rgba(12,9,24,.96))!important;text-align:left!important}
  #home-svs-section.nexa-v425-empty>*:not(.nexa-v425-empty-copy){display:none!important}
- #home-transfers-section.nexa-v425-empty>*:not(.nexa-v425-empty-copy):not(.nexa-v425-transfer-open){display:none!important}
+ #home-transfers-section.nexa-v425-empty>*:not(.nexa-v425-empty-copy){display:none!important}
  .nexa-v425-empty-copy{display:block!important;width:100%!important;text-align:left!important}
  .nexa-v425-empty-copy .kicker,#nexa-v425-pulse .kicker,#nexa-v425-alliance .kicker{font-size:8px!important;letter-spacing:.17em!important;font-weight:950!important;margin:0 0 4px!important}
  .nexa-v425-empty-copy h3,#nexa-v425-pulse h3,#nexa-v425-alliance h3{margin:0 0 3px!important;font-size:15px!important;line-height:1.12!important;color:#fff!important;text-align:left!important}
  .nexa-v425-empty-copy p,#nexa-v425-pulse p,#nexa-v425-alliance p{margin:0!important;font-size:10px!important;line-height:1.38!important;color:#adb7cf!important;text-align:left!important;white-space:normal!important}
  #home-svs-section .kicker{color:#bc9cff!important}#home-transfers-section .kicker{color:#ff9c5c!important}
- .nexa-v425-transfer-open{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:auto!important;min-width:86px!important;min-height:34px!important;margin:9px 0 0!important;padding:7px 14px!important;border-radius:999px!important}
  #nexa-v425-pulse{border:1px solid rgba(48,211,255,.34)!important;background:linear-gradient(145deg,rgba(4,34,53,.91),rgba(4,11,30,.97))!important}
  #nexa-v425-pulse .kicker{color:#66eaff!important}
  #nexa-v425-alliance{border:1px solid rgba(219,66,255,.34)!important;background:linear-gradient(145deg,rgba(37,8,52,.91),rgba(13,6,30,.97))!important}
@@ -74,6 +73,13 @@ function addCSS(){
  #admin-modal .nexa-v25-nav{display:none!important}
  #admin-modal .admin-section{width:100%!important;max-width:680px!important;margin:0 auto!important;position:static!important}
  #admin-modal .admin-section-head{position:static!important}
+ /* V42.6: never expose the obsolete native Administration bodies behind the new shell. */
+ #admin-modal.open #admin-alliances>:not(.nexa-v25-nav):not(.nexa-v25-host),
+ #admin-modal.open #admin-permissions>:not(.nexa-v25-nav):not(.nexa-v25-host),
+ #admin-modal.open #admin-roles>:not(.nexa-v25-nav):not(.nexa-v25-host){display:none!important}
+ #admin-modal.open #admin-alliances>.nexa-v25-host,
+ #admin-modal.open #admin-permissions>.nexa-v25-host,
+ #admin-modal.open #admin-roles>.nexa-v25-host{display:block!important}
  #nexa-v425-admin-close{position:fixed!important;top:calc(10px + env(safe-area-inset-top))!important;right:14px!important;z-index:2147483590!important;width:42px!important;height:42px!important;border-radius:50%!important;border:1px solid rgba(255,72,173,.65)!important;background:rgba(33,7,38,.94)!important;color:#ff8fc8!important;font-size:27px!important;font-weight:950!important;display:grid!important;place-items:center!important}
  #nexa-v425-admin-shell{position:static!important;width:100%!important;max-width:680px!important;margin:0 auto 12px!important;padding:36px 54px 0!important;text-align:center!important;box-sizing:border-box!important}
  #nexa-v425-admin-shell .guide{width:34px!important;height:34px!important;border-radius:50%!important;border:1px solid #ff4fd8!important;background:#0d1129!important;color:#ff4fd8!important;font-weight:950!important}
@@ -133,11 +139,14 @@ function compactTransfers(){
  const inactive=/Applications stay available for the next transfer cycle|no open transfer|Transfer Center/i.test(t)&&!/applications open|active transfer|live cycle/i.test(t);
  section.classList.toggle('nexa-v425-empty',inactive);
  let copy=$('.nexa-v425-empty-copy',section);
- const open=$$('button,a',section).find(x=>/^Open$/i.test(txt(x)));
+ const actions=$$('button,a',section).filter(x=>/^(Open|View)$/i.test(txt(x)));
  if(inactive){
-  if(!copy){copy=document.createElement('div');copy.className='nexa-v425-empty-copy';copy.innerHTML='<div class="kicker">TRANSFERS</div><h3>Transfer Center</h3><p>Transfer applications and recruiting information are available here between transfer cycles.</p>';section.prepend(copy)}
-  if(open){open.classList.add('nexa-v425-transfer-open');section.appendChild(open)}
- }else{copy?.remove();open?.classList.remove('nexa-v425-transfer-open')}
+  if(!copy){copy=document.createElement('div');copy.className='nexa-v425-empty-copy';copy.innerHTML='<div class="kicker">TRANSFERS</div><h3>Transfer Center</h3><p>Transfer cycles and recruiting information will appear here when a transfer cycle is active.</p>';section.prepend(copy)}
+  actions.forEach(x=>x.style.setProperty('display','none','important'));
+ }else{
+  copy?.remove();
+  actions.forEach(x=>x.style.removeProperty('display'));
+ }
 }
 function ensureSignals(){
  const tr=$('#home-transfers-section'),live=$('#home-svs-section');
@@ -187,7 +196,7 @@ function polishMenu(){
 }
 async function reportBug(){
  const d=overlay('nexa-v425-bug','Report Bugs','<form id="nexa-v425-bug-form"><label>Module<input name="module" placeholder="Home, Profile, Administration..."></label><label>What happened?<textarea name="description" rows="5" required></textarea></label><button type="submit">Send Report</button><div id="nexa-v425-bug-status"></div></form>','#ff6ea9','BUG REPORT');
- const f=$('#nexa-v425-bug-form',d);if(!f)return;f.onsubmit=async e=>{e.preventDefault();const st=$('#nexa-v425-bug-status');st.textContent='Sending…';try{const c=sb(),{data:{user}}=await c.auth.getUser();if(!user)throw new Error('Sign in required.');const fd=new FormData(f);const {error}=await c.rpc('nexa_submit_bug_report',{p_module:String(fd.get('module')||''),p_description:String(fd.get('description')||''),p_expected_behavior:null,p_actual_behavior:null,p_page_path:location.pathname+location.search,p_build_label:'V42.5',p_user_agent:navigator.userAgent,p_viewport:`${innerWidth}x${innerHeight}`,p_client_errors:[],p_screenshot_paths:[]});if(error)throw error;st.textContent='Report sent ✓'}catch(err){st.textContent=err?.message||err}};
+ const f=$('#nexa-v425-bug-form',d);if(!f)return;f.onsubmit=async e=>{e.preventDefault();const st=$('#nexa-v425-bug-status');st.textContent='Sending…';try{const c=sb(),{data:{user}}=await c.auth.getUser();if(!user)throw new Error('Sign in required.');const fd=new FormData(f);const {error}=await c.rpc('nexa_submit_bug_report',{p_module:String(fd.get('module')||''),p_description:String(fd.get('description')||''),p_expected_behavior:null,p_actual_behavior:null,p_page_path:location.pathname+location.search,p_build_label:'V42.6',p_user_agent:navigator.userAgent,p_viewport:`${innerWidth}x${innerHeight}`,p_client_errors:[],p_screenshot_paths:[]});if(error)throw error;st.textContent='Report sent ✓'}catch(err){st.textContent=err?.message||err}};
 }
 
 /* ADMIN */
@@ -222,7 +231,7 @@ function showLibrary(){
  hideNativeWorkspaces();const modal=$('#admin-modal'),content=$('#svs-admin-content'),sec=$('#admin-library');if(!modal||!content||!sec)return;
  modal.classList.add('open','module-view','nexa-v25-admin');modal.setAttribute('aria-hidden','false');$('#admin-module-chooser')?.classList.add('hidden');content.classList.remove('hidden');
  $$('.admin-section').forEach(s=>{s.classList.add('hidden');s.classList.remove('nexa-v25-active')});sec.classList.remove('hidden');sec.classList.add('nexa-v25-active','nexa-v425-library');
- if(!$('#nexa-v425-library-frame',sec)){sec.innerHTML='<iframe id="nexa-v425-library-frame" title="NEXA Library" src="library.html?admin=1&embed=1&v=425"></iframe>';const f=$('#nexa-v425-library-frame',sec);f.addEventListener('load',()=>patchLibraryFrame(f))}
+ if(!$('#nexa-v425-library-frame',sec)){sec.innerHTML='<iframe id="nexa-v425-library-frame" title="NEXA Library" src="library.html?admin=1&embed=1&v=426"></iframe>';const f=$('#nexa-v425-library-frame',sec);f.addEventListener('load',()=>patchLibraryFrame(f))}
  else patchLibraryFrame($('#nexa-v425-library-frame',sec));
 }
 async function activateAdmin(target){
@@ -236,6 +245,26 @@ function openAdminFromExisting(){
  setTimeout(()=>{const m=$('#admin-modal');if(!m?.classList.contains('open'))return;document.body.classList.add('nexa-workspace-open');ensureAdminShell();activateAdmin('alliances')},260);
 }
 function initAdminURL(){const u=new URL(location.href);if(u.searchParams.get('admin')==='administration'){const t=u.searchParams.get('tab');setTimeout(()=>activateAdmin(ADMIN.includes(t)?t:'alliances'),700)}}
+
+function openAdminTarget(target='alliances'){
+ target=ADMIN.includes(target)?target:'alliances';
+ closeMenu();cleanAdminURL();
+ const modal=$('#admin-modal'),content=$('#svs-admin-content');if(!modal||!content)return;
+ document.body.classList.add('nexa-workspace-open');
+ modal.classList.add('open','module-view','nexa-v25-admin');modal.setAttribute('aria-hidden','false');
+ $('#admin-module-chooser')?.classList.add('hidden');content.classList.remove('hidden');
+ ensureAdminShell();activateAdmin(target);
+}
+function adminMenuTarget(button){
+ if(!button?.closest?.('#nexa-home-menu'))return null;
+ const label=txt(button).replace(/[•›>→←]/g,' ').replace(/\s+/g,' ').trim().toLowerCase();
+ if(/^alliances?$/.test(label))return'alliances';
+ if(/^library$/.test(label))return'library';
+ if(/^(nexa access|permissions?)$/.test(label))return'permissions';
+ if(/^(operational roles?|roles?)$/.test(label))return'roles';
+ if(/^system operations?$/.test(label))return'system';
+ return null;
+}
 
 /* MY ALLIANCE */
 async function loadAllianceContext(){
@@ -282,12 +311,14 @@ async function memberAction(id,action,button){
 /* EVENTS */
 document.addEventListener('click',e=>{
  const b=e.target.closest?.('button,a');if(!b)return;
+ const adminTarget=adminMenuTarget(b);
+ if(adminTarget){e.preventDefault();e.stopImmediatePropagation();openAdminTarget(adminTarget);return}
  if(b.id==='nexa-home-menu-toggle'){[80,220,520].forEach(ms=>setTimeout(polishMenu,ms));return}
  if(b.id==='nexa-v425-my-alliance'){e.preventDefault();e.stopImmediatePropagation();openAllianceHub();return}
  if(b.id==='nexa-v425-report'){e.preventDefault();e.stopImmediatePropagation();closeMenu();reportBug();return}
  if(b.matches('.nexa-v425-guide')){e.preventDefault();profileGuide();return}
  if(b.matches('.nexa-v425-ministry')){e.preventDefault();ministry();return}
- if(b.id==='open-administration'){openAdminFromExisting();return}
+ if(b.id==='open-administration'){e.preventDefault();e.stopImmediatePropagation();openAdminTarget('alliances');return}
  if(b.closest('#nexa-v425-admin-shell .guide')){e.preventDefault();overlay('nexa-v425-admin-help','Administration','One Administration workspace owns the page. Use the arrows below the title to move between Alliances, Library, NEXA Access, Operational Roles and System Operations. The pink × closes Administration.','#ff4fd8');return}
  if(b.closest('#nexa-v425-admin-arrows')){e.preventDefault();e.stopImmediatePropagation();const i=ADMIN.indexOf(currentAdmin),n=i+Number(b.dataset.dir||0);if(n>=0&&n<ADMIN.length)activateAdmin(ADMIN[n]);return}
  if(b.matches('.nexa-v425-tabs button')){renderAllianceTab(b.dataset.tab);return}

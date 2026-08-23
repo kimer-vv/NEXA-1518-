@@ -1,25 +1,25 @@
-/* NEXA V42.7 — CONSOLIDATED STABILIZATION
+/* NEXA V42.8 — STRUCTURAL OWNER CLEANUP
    Home polish, stable Administration shell, embedded Library, My Alliance management,
    Profile helpers and event-aware themes. No global MutationObserver. No manual scrollLeft.
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V427__)return;
-window.__NEXA_V427__=true;
+if(window.__NEXA_V428__)return;
+window.__NEXA_V428__=true;
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
 const txt=e=>(e?.textContent||'').replace(/\s+/g,' ').trim();
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co',SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
-let localSb=null,currentAdmin='alliances',allianceCtx=null;
+let localSb=null,currentAdmin='alliances',allianceCtx=null,allianceTargetTag=null;
 const ADMIN=['alliances','library','permissions','roles','system'];
 const LABEL={alliances:'Alliances',library:'Library',permissions:'NEXA Access',roles:'Operational Roles',system:'System Operations'};
 function sb(){if(window.supabaseClient?.from)return window.supabaseClient;if(window.sb?.from)return window.sb;if(!localSb&&window.supabase?.createClient)localSb=window.supabase.createClient(SB_URL,SB_KEY);return localSb}
 
 function addCSS(){
- if($('#nexa-v427-css'))return;
- const s=document.createElement('style');s.id='nexa-v427-css';s.textContent=`
+ if($('#nexa-v428-css'))return;
+ const s=document.createElement('style');s.id='nexa-v428-css';s.textContent=`
  :root{--nexa-event-primary:#9b79ff;--nexa-event-secondary:#55cfff;--nexa-event-deep:#24154c}
  html,body{max-width:100%!important;overflow-x:hidden!important}
  body.nexa-workspace-open #nexa-home-menu-toggle,body.nexa-workspace-open #nexa-home-menu{display:none!important}
@@ -39,33 +39,33 @@ function addCSS(){
  #nexa-v425-stellar p{width:100%!important;height:auto!important;white-space:normal!important;overflow:visible!important;overflow-wrap:anywhere!important;margin:5px 0 0!important;color:#d5d0e5!important;font-size:10px!important;line-height:1.42!important}
  @keyframes nexa425Blink{0%,100%{opacity:.42;transform:scale(.92);box-shadow:0 0 9px color-mix(in srgb,var(--nexa-event-primary) 10%,transparent)}50%{opacity:1;transform:scale(1.05);box-shadow:0 0 20px color-mix(in srgb,var(--nexa-event-secondary) 64%,transparent),0 0 36px color-mix(in srgb,var(--nexa-event-primary) 38%,transparent)}}
 
- #home-svs-section,#home-transfers-section,#nexa-v425-pulse,#nexa-v425-alliance{width:100%!important;max-width:100%!important;margin:0!important;min-height:0!important;height:auto!important;border-radius:18px!important;box-sizing:border-box!important}
- #home-svs-section.nexa-v425-empty,#home-transfers-section.nexa-v425-empty,#nexa-v425-pulse,#nexa-v425-alliance{padding:12px 14px!important;min-height:0!important;height:auto!important;max-height:none!important;aspect-ratio:auto!important;overflow:hidden!important}
+ #home-svs-section,#home-transfers-section,#nexa-v428-transfer-card,#nexa-v425-pulse,#nexa-v425-alliance{width:100%!important;max-width:100%!important;margin:0!important;min-height:0!important;height:auto!important;border-radius:18px!important;box-sizing:border-box!important}
+ #home-svs-section.nexa-v425-empty,#home-transfers-section.nexa-v425-empty,#nexa-v428-transfer-card,#nexa-v425-pulse,#nexa-v425-alliance{padding:12px 14px!important;min-height:0!important;height:auto!important;max-height:none!important;aspect-ratio:auto!important;overflow:hidden!important}
  #home-svs-section.nexa-v425-empty{border:1px solid color-mix(in srgb,var(--nexa-event-primary) 38%,transparent)!important;background:linear-gradient(145deg,rgba(20,19,50,.88),rgba(5,9,27,.97))!important;text-align:left!important}
- #home-transfers-section.nexa-v425-empty{border:1px solid rgba(255,138,61,.36)!important;background:linear-gradient(145deg,rgba(55,28,14,.62),rgba(12,9,24,.96))!important;text-align:left!important}
+ #home-transfers-section.nexa-v425-empty,#nexa-v428-transfer-card{border:1px solid rgba(255,138,61,.36)!important;background:linear-gradient(145deg,rgba(55,28,14,.62),rgba(12,9,24,.96))!important;text-align:left!important}
  #home-svs-section.nexa-v425-empty>*:not(.nexa-v425-empty-copy){display:none!important}
- #home-transfers-section.nexa-v425-empty>*:not(.nexa-v425-empty-copy){display:none!important}
+ #home-transfers-section.nexa-v425-empty>*:not(.nexa-v425-empty-copy),#nexa-v428-transfer-card>*:not(.nexa-v425-empty-copy){display:none!important}
  .nexa-v425-empty-copy{display:block!important;width:100%!important;text-align:left!important}
  .nexa-v425-empty-copy .kicker,#nexa-v425-pulse .kicker,#nexa-v425-alliance .kicker{font-size:8px!important;letter-spacing:.17em!important;font-weight:950!important;margin:0 0 4px!important}
  .nexa-v425-empty-copy h3,#nexa-v425-pulse h3,#nexa-v425-alliance h3{margin:0 0 3px!important;font-size:15px!important;line-height:1.12!important;color:#fff!important;text-align:left!important}
  .nexa-v425-empty-copy p,#nexa-v425-pulse p,#nexa-v425-alliance p{margin:0!important;font-size:10px!important;line-height:1.38!important;color:#adb7cf!important;text-align:left!important;white-space:normal!important}
- #home-svs-section .kicker{color:#bc9cff!important}#home-transfers-section .kicker{color:#ff9c5c!important}
+ #home-svs-section .kicker{color:#bc9cff!important}#home-transfers-section .kicker,#nexa-v428-transfer-card .kicker{color:#ff9c5c!important}
  #nexa-v425-pulse{border:1px solid rgba(48,211,255,.34)!important;background:linear-gradient(145deg,rgba(4,34,53,.91),rgba(4,11,30,.97))!important}
  #nexa-v425-pulse .kicker{color:#66eaff!important}
  #nexa-v425-alliance{border:1px solid rgba(219,66,255,.34)!important;background:linear-gradient(145deg,rgba(37,8,52,.91),rgba(13,6,30,.97))!important}
  #nexa-v425-alliance .kicker{color:#ec8cff!important}
 
- #nexa-home-menu-toggle{top:max(142px,calc(env(safe-area-inset-top) + 108px))!important}
+ #nexa-home-menu-toggle{top:calc(env(safe-area-inset-top) + 70px)!important}
 
  /* UNIFIED ADMIN INTRO + BUG REPORTS */
- .nexa-v427-admin-intro{margin:0 0 14px!important;padding:13px 15px!important;border:1px solid rgba(134,105,255,.28)!important;border-radius:18px!important;background:linear-gradient(145deg,rgba(14,19,46,.88),rgba(5,9,24,.94))!important;color:#aeb8d3!important;font-size:12px!important;line-height:1.48!important}
- .nexa-v427-admin-intro h2,.nexa-v427-admin-intro h3,.nexa-v427-admin-intro h4{display:none!important}
- .nexa-v427-admin-intro p,.nexa-v427-admin-intro div{margin:0!important;color:#aeb8d3!important}
+ .nexa-v428-admin-intro{margin:0 0 14px!important;padding:13px 15px!important;border:1px solid rgba(134,105,255,.28)!important;border-radius:18px!important;background:linear-gradient(145deg,rgba(14,19,46,.88),rgba(5,9,24,.94))!important;color:#aeb8d3!important;font-size:12px!important;line-height:1.48!important}
+ .nexa-v428-admin-intro h2,.nexa-v428-admin-intro h3,.nexa-v428-admin-intro h4{display:none!important}
+ .nexa-v428-admin-intro p,.nexa-v428-admin-intro div{margin:0!important;color:#aeb8d3!important}
  #admin-system>.admin-section-head{display:none!important}
- #nexa-v427-bugs{margin-top:16px!important;padding-top:4px!important}
- .nexa-v427-bug-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;margin-bottom:10px!important}
- .nexa-v427-bug-head h3{margin:0!important;font-size:18px!important}.nexa-v427-bug-refresh{border:1px solid rgba(103,210,255,.35)!important;border-radius:999px!important;background:#0a1430!important;color:#7ee5ff!important;padding:8px 12px!important;font-weight:900!important}
- .nexa-v427-bug{border:1px solid rgba(132,101,255,.24)!important;border-radius:16px!important;background:#081027!important;padding:12px!important;margin:8px 0!important}.nexa-v427-bug b{display:block!important}.nexa-v427-bug small{display:block!important;color:#8f9ab8!important;margin:3px 0 8px!important}.nexa-v427-bug p{margin:5px 0!important;color:#c3c9dc!important;font-size:12px!important;line-height:1.4!important}.nexa-v427-bug-controls{display:flex!important;gap:7px!important;flex-wrap:wrap!important;margin-top:9px!important}.nexa-v427-bug-controls select,.nexa-v427-bug-controls button{border:1px solid rgba(255,255,255,.14)!important;border-radius:10px!important;background:#0d1430!important;color:#fff!important;padding:8px!important;font-weight:800!important}
+ #nexa-v428-bugs{margin-top:16px!important;padding-top:4px!important}
+ .nexa-v428-bug-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;margin-bottom:10px!important}
+ .nexa-v428-bug-head h3{margin:0!important;font-size:18px!important}.nexa-v428-bug-refresh{border:1px solid rgba(103,210,255,.35)!important;border-radius:999px!important;background:#0a1430!important;color:#7ee5ff!important;padding:8px 12px!important;font-weight:900!important}
+ .nexa-v428-bug{border:1px solid rgba(132,101,255,.24)!important;border-radius:16px!important;background:#081027!important;padding:12px!important;margin:8px 0!important}.nexa-v428-bug b{display:block!important}.nexa-v428-bug small{display:block!important;color:#8f9ab8!important;margin:3px 0 8px!important}.nexa-v428-bug p{margin:5px 0!important;color:#c3c9dc!important;font-size:12px!important;line-height:1.4!important}.nexa-v428-bug-controls{display:flex!important;gap:7px!important;flex-wrap:wrap!important;margin-top:9px!important}.nexa-v428-bug-controls select,.nexa-v428-bug-controls button{border:1px solid rgba(255,255,255,.14)!important;border-radius:10px!important;background:#0d1430!important;color:#fff!important;padding:8px!important;font-weight:800!important}
 
  /* PROFILE */
  #nexa-profile-modal{overflow:hidden!important;padding:6px!important}
@@ -86,9 +86,9 @@ function addCSS(){
  #admin-modal .admin-section{width:100%!important;max-width:680px!important;margin:0 auto!important;position:static!important}
  #admin-modal .admin-section-head{position:static!important}
  /* V42.6: never expose the obsolete native Administration bodies behind the new shell. */
- #admin-modal.open #admin-alliances>:not(.nexa-v25-nav):not(.nexa-v25-host):not(.nexa-v427-admin-intro),
- #admin-modal.open #admin-permissions>:not(.nexa-v25-nav):not(.nexa-v25-host):not(.nexa-v427-admin-intro),
- #admin-modal.open #admin-roles>:not(.nexa-v25-nav):not(.nexa-v25-host):not(.nexa-v427-admin-intro){display:none!important}
+ #admin-modal.open #admin-alliances>:not(.nexa-v25-nav):not(.nexa-v25-host):not(.nexa-v428-admin-intro),
+ #admin-modal.open #admin-permissions>:not(.nexa-v25-nav):not(.nexa-v25-host):not(.nexa-v428-admin-intro),
+ #admin-modal.open #admin-roles>:not(.nexa-v25-nav):not(.nexa-v25-host):not(.nexa-v428-admin-intro){display:none!important}
  #admin-modal.open #admin-alliances>.nexa-v25-host,
  #admin-modal.open #admin-permissions>.nexa-v25-host,
  #admin-modal.open #admin-roles>.nexa-v25-host{display:block!important}
@@ -149,16 +149,23 @@ function compactLive(){
 function compactTransfers(){
  const section=$('#home-transfers-section');if(!section)return;const t=txt(section);
  const inactive=/Applications stay available for the next transfer cycle|Transfer cycles and recruiting information will appear here|no open transfer/i.test(t)&&!/applications open|active transfer|live cycle|now recruiting|transfer event active/i.test(t);
- section.classList.toggle('nexa-v425-empty',inactive);
+ let proxy=$('#nexa-v428-transfer-card');
  if(inactive){
   section.setAttribute('data-nexa-empty','1');
-  section.style.setProperty('height','auto','important');section.style.setProperty('min-height','0','important');section.style.setProperty('max-height','none','important');section.style.setProperty('aspect-ratio','auto','important');
-  section.innerHTML='<div class="nexa-v425-empty-copy"><div class="kicker">TRANSFERS</div><h3>Transfer Center</h3><p>Transfer cycles and recruiting information will appear here when a transfer cycle is active.</p></div>';
- }else{section.removeAttribute('data-nexa-empty')}
+  section.style.setProperty('display','none','important');
+  if(!proxy){
+   proxy=document.createElement('section');proxy.id='nexa-v428-transfer-card';proxy.className='nexa-v425-empty';
+   section.after(proxy);
+  }
+  proxy.innerHTML='<div class="nexa-v425-empty-copy"><div class="kicker">TRANSFERS</div><h3>Transfer Center</h3><p>Transfer cycles and recruiting information will appear here when a transfer cycle is active.</p></div>';
+  proxy.style.removeProperty('display');
+ }else{
+  section.removeAttribute('data-nexa-empty');section.style.removeProperty('display');proxy?.remove();
+ }
 }
 
 function ensureSignals(){
- const tr=$('#home-transfers-section'),live=$('#home-svs-section');
+ const tr=$('#nexa-v428-transfer-card')||$('#home-transfers-section'),live=$('#home-svs-section');
  let pulse=$('#nexa-v425-pulse');if(!pulse){pulse=document.createElement('section');pulse.id='nexa-v425-pulse';pulse.innerHTML='<div class="kicker">NEXA PULSE</div><h3>Signals & response requests</h3><p>Forms, surveys and requests appear here when leadership publishes them.</p>'}
  let alliance=$('#nexa-v425-alliance');if(!alliance){alliance=document.createElement('section');alliance.id='nexa-v425-alliance';alliance.innerHTML='<div class="kicker">ALLIANCE SIGNAL</div><h3>No alliance event published</h3><p>Foundry, Canyon and alliance strategy updates will appear here.</p>'}
  if(tr){tr.after(pulse);pulse.after(alliance)}else if(live){live.after(pulse);pulse.after(alliance)}
@@ -205,7 +212,7 @@ function polishMenu(){
 }
 async function reportBug(){
  const d=overlay('nexa-v425-bug','Report Bugs','<form id="nexa-v425-bug-form"><label>Module<input name="module" placeholder="Home, Profile, Administration..."></label><label>What happened?<textarea name="description" rows="5" required></textarea></label><button type="submit">Send Report</button><div id="nexa-v425-bug-status"></div></form>','#ff6ea9','BUG REPORT');
- const f=$('#nexa-v425-bug-form',d);if(!f)return;f.onsubmit=async e=>{e.preventDefault();const st=$('#nexa-v425-bug-status');st.textContent='Sending…';try{const c=sb(),{data:{user}}=await c.auth.getUser();if(!user)throw new Error('Sign in required.');const fd=new FormData(f);const {error}=await c.rpc('nexa_submit_bug_report',{p_module:String(fd.get('module')||''),p_description:String(fd.get('description')||''),p_expected_behavior:null,p_actual_behavior:null,p_page_path:location.pathname+location.search,p_build_label:'V42.7',p_user_agent:navigator.userAgent,p_viewport:`${innerWidth}x${innerHeight}`,p_client_errors:[],p_screenshot_paths:[]});if(error)throw error;st.textContent='Report sent ✓'}catch(err){st.textContent=err?.message||err}};
+ const f=$('#nexa-v425-bug-form',d);if(!f)return;f.onsubmit=async e=>{e.preventDefault();const st=$('#nexa-v425-bug-status');st.textContent='Sending…';try{const c=sb(),{data:{user}}=await c.auth.getUser();if(!user)throw new Error('Sign in required.');const fd=new FormData(f);const {error}=await c.rpc('nexa_submit_bug_report',{p_module:String(fd.get('module')||''),p_description:String(fd.get('description')||''),p_expected_behavior:null,p_actual_behavior:null,p_page_path:location.pathname+location.search,p_build_label:'V42.8',p_user_agent:navigator.userAgent,p_viewport:`${innerWidth}x${innerHeight}`,p_client_errors:[],p_screenshot_paths:[]});if(error)throw error;st.textContent='Report sent ✓'}catch(err){st.textContent=err?.message||err}};
 }
 
 /* ADMIN */
@@ -237,7 +244,7 @@ function patchLibraryFrame(frame){
  }catch(e){console.warn('Library embed',e?.message||e)}
 }
 const ADMIN_COPY={
- alliances:'Create, activate and manage alliance passports, emblems, access codes and member leadership.',
+ alliances:'Create, activate and manage alliance passports, emblems, access codes, members and alliance operations.',
  library:'Verified NEXA master catalog. Control the Heroes, Experts, Pets, Troops, Chief Gear and Charms players can see.',
  permissions:'Find a player and manage Operational Roles and module access from one place.',
  roles:"Alliance Rank is managed inside each Alliance Passport. Operational Roles describe a person's work in NEXA and never grant module access automatically.",
@@ -246,7 +253,7 @@ const ADMIN_COPY={
 function adminSection(target){return $({alliances:'#admin-alliances',library:'#admin-library',permissions:'#admin-permissions',roles:'#admin-roles',system:'#admin-system'}[target]||'')}
 function normalizeAdminSection(target){
  const sec=adminSection(target);if(!sec)return;
- $$('.nexa-v427-admin-intro',sec).forEach(x=>x.remove());
+ $$('.nexa-v428-admin-intro',sec).forEach(x=>x.remove());
  if(target==='roles'){
   const first=$('.nexa-v25-host>.nexa-v25-panel',sec);
   if(first&&/Alliance Rank is managed inside each Alliance Passport|Operational Roles describe/i.test(txt(first)))first.style.display='none';
@@ -255,23 +262,27 @@ function normalizeAdminSection(target){
   $(':scope>.admin-section-head',sec)?.style.setProperty('display','none','important');
   $$('h2,h3',sec).filter(x=>/^System Operations$/i.test(txt(x))).forEach(x=>x.style.display='none');
  }
- const intro=document.createElement('div');intro.className='nexa-v427-admin-intro';intro.textContent=ADMIN_COPY[target]||'';
+ if(target==='permissions'){
+  $$('p,small,div',sec).filter(x=>/Find a player, then manage Operational Roles and Module Access in one ficha\.?/i.test(txt(x))).forEach(x=>{if(!x.classList.contains('nexa-v428-admin-intro'))x.style.display='none'});
+ }
+ const intro=document.createElement('div');intro.className='nexa-v428-admin-intro';intro.textContent=ADMIN_COPY[target]||'';
  sec.prepend(intro);
+ if(target==='alliances')setTimeout(decorateAlliancePassports,60);
 }
 async function loadBugReports(){
- const sec=$('#admin-system');if(!sec)return;let wrap=$('#nexa-v427-bugs',sec);if(!wrap){wrap=document.createElement('section');wrap.id='nexa-v427-bugs';sec.appendChild(wrap)}
- wrap.innerHTML='<div class="nexa-v427-bug-head"><h3>Bug Reports</h3><button class="nexa-v427-bug-refresh" type="button">Refresh</button></div><div class="nexa-v425-empty">Loading bug reports…</div>';
+ const sec=$('#admin-system');if(!sec)return;let wrap=$('#nexa-v428-bugs',sec);if(!wrap){wrap=document.createElement('section');wrap.id='nexa-v428-bugs';sec.appendChild(wrap)}
+ wrap.innerHTML='<div class="nexa-v428-bug-head"><h3>Bug Reports</h3><button class="nexa-v428-bug-refresh" type="button">Refresh</button></div><div class="nexa-v425-empty">Loading bug reports…</div>';
  try{const {data,error}=await sb().rpc('nexa_list_bug_reports');if(error)throw error;const rows=Array.isArray(data)?data:[];
-  wrap.innerHTML='<div class="nexa-v427-bug-head"><h3>Bug Reports</h3><button class="nexa-v427-bug-refresh" type="button">Refresh</button></div>'+(rows.length?rows.map(r=>`<article class="nexa-v427-bug" data-bug-id="${esc(r.id)}"><b>${esc(r.module||'General')} · ${esc(r.reporter_name||'Player')}</b><small>${esc(r.game_id||'—')} ${r.alliance_tag?'· '+esc(r.alliance_tag):''} · ${r.created_at?esc(new Date(r.created_at).toLocaleString()):''}</small><p>${esc(r.description||'No description')}</p><div class="nexa-v427-bug-controls"><select data-bug-status><option ${r.status==='new'?'selected':''}>new</option><option ${r.status==='reviewing'?'selected':''}>reviewing</option><option ${r.status==='resolved'?'selected':''}>resolved</option><option ${r.status==='closed'?'selected':''}>closed</option></select><select data-bug-severity><option value="">severity</option>${['low','medium','high','critical'].map(v=>`<option ${r.severity===v?'selected':''}>${v}</option>`).join('')}</select><button type="button" data-save-bug>Save</button></div></article>`).join(''):'<div class="nexa-v425-empty">No bug reports yet.</div>');
- }catch(e){wrap.innerHTML='<div class="nexa-v427-bug-head"><h3>Bug Reports</h3><button class="nexa-v427-bug-refresh" type="button">Refresh</button></div><div class="nexa-v425-empty">'+esc(e?.message||e)+'</div>'}
+  wrap.innerHTML='<div class="nexa-v428-bug-head"><h3>Bug Reports</h3><button class="nexa-v428-bug-refresh" type="button">Refresh</button></div>'+(rows.length?rows.map(r=>`<article class="nexa-v428-bug" data-bug-id="${esc(r.id)}"><b>${esc(r.module||'General')} · ${esc(r.reporter_name||'Player')}</b><small>${esc(r.game_id||'—')} ${r.alliance_tag?'· '+esc(r.alliance_tag):''} · ${r.created_at?esc(new Date(r.created_at).toLocaleString()):''}</small><p>${esc(r.description||'No description')}</p><div class="nexa-v428-bug-controls"><select data-bug-status><option ${r.status==='new'?'selected':''}>new</option><option ${r.status==='reviewing'?'selected':''}>reviewing</option><option ${r.status==='resolved'?'selected':''}>resolved</option><option ${r.status==='closed'?'selected':''}>closed</option></select><select data-bug-severity><option value="">severity</option>${['low','medium','high','critical'].map(v=>`<option ${r.severity===v?'selected':''}>${v}</option>`).join('')}</select><button type="button" data-save-bug>Save</button></div></article>`).join(''):'<div class="nexa-v425-empty">No bug reports yet.</div>');
+ }catch(e){wrap.innerHTML='<div class="nexa-v428-bug-head"><h3>Bug Reports</h3><button class="nexa-v428-bug-refresh" type="button">Refresh</button></div><div class="nexa-v425-empty">'+esc(e?.message||e)+'</div>'}
 }
-async function saveBugReport(card){if(!card)return;const status=$('[data-bug-status]',card)?.value||null,severity=$('[data-bug-severity]',card)?.value||null;try{const {error}=await sb().rpc('nexa_update_bug_report',{p_id:card.dataset.bugId,p_status:status,p_severity:severity||null,p_diagnostic_summary:null,p_likely_cause:null,p_reproduction_steps:null,p_suggested_review:null});if(error)throw error;await loadBugReports()}catch(e){overlay('nexa-v427-bug-error','Bug Report',esc(e?.message||e),'#ff6ea9','ERROR')}}
+async function saveBugReport(card){if(!card)return;const status=$('[data-bug-status]',card)?.value||null,severity=$('[data-bug-severity]',card)?.value||null;try{const {error}=await sb().rpc('nexa_update_bug_report',{p_id:card.dataset.bugId,p_status:status,p_severity:severity||null,p_diagnostic_summary:null,p_likely_cause:null,p_reproduction_steps:null,p_suggested_review:null});if(error)throw error;await loadBugReports()}catch(e){overlay('nexa-v428-bug-error','Bug Report',esc(e?.message||e),'#ff6ea9','ERROR')}}
 
 function showLibrary(){
  hideNativeWorkspaces();const modal=$('#admin-modal'),content=$('#svs-admin-content'),sec=$('#admin-library');if(!modal||!content||!sec)return;
  modal.classList.add('open','module-view','nexa-v25-admin');modal.setAttribute('aria-hidden','false');$('#admin-module-chooser')?.classList.add('hidden');content.classList.remove('hidden');
  $$('.admin-section').forEach(s=>{s.classList.add('hidden');s.classList.remove('nexa-v25-active')});sec.classList.remove('hidden');sec.classList.add('nexa-v25-active','nexa-v425-library');
- if(!$('#nexa-v425-library-frame',sec)){sec.innerHTML='<div class="nexa-v427-admin-intro">'+ADMIN_COPY.library+'</div><iframe id="nexa-v425-library-frame" title="NEXA Library" src="library.html?admin=1&embed=1&v=427"></iframe>';const f=$('#nexa-v425-library-frame',sec);f.addEventListener('load',()=>patchLibraryFrame(f))}
+ if(!$('#nexa-v425-library-frame',sec)){sec.innerHTML='<div class="nexa-v428-admin-intro">'+ADMIN_COPY.library+'</div><iframe id="nexa-v425-library-frame" title="NEXA Library" src="library.html?admin=1&embed=1&v=428"></iframe>';const f=$('#nexa-v425-library-frame',sec);f.addEventListener('load',()=>patchLibraryFrame(f))}
  else{normalizeAdminSection('library');patchLibraryFrame($('#nexa-v425-library-frame',sec))}
 }
 async function activateAdmin(target){
@@ -307,10 +318,24 @@ function adminMenuTarget(button){
 }
 
 /* MY ALLIANCE */
-async function loadAllianceContext(){
+function decorateAlliancePassports(){
+ const sec=$('#admin-alliances');if(!sec)return;
+ $$('button',sec).filter(b=>/^Choose Alliance Emblem$/i.test(txt(b))).forEach(choose=>{
+  if(choose.parentElement?.querySelector?.('[data-v428-manage-alliance]'))return;
+  const card=choose.closest('[data-alliance-id],article,section,.nexa-v25-panel,.card')||choose.parentElement;
+  if(!card)return;
+  const heads=$$('h1,h2,h3,h4,strong,b',card).map(txt);
+  const tag=heads.find(v=>/^[A-Z0-9]{2,8}$/.test(v)&&!/^R[1-5]$/.test(v));
+  if(!tag)return;
+  const b=document.createElement('button');b.type='button';b.dataset.v428ManageAlliance=tag;b.textContent='Manage Alliance';
+  b.style.cssText='margin-left:8px;border:1px solid rgba(94,212,255,.46);border-radius:12px;background:#0b1730;color:#7ee6ff;padding:10px 14px;font-weight:900';
+  choose.after(b);
+ });
+}
+async function loadAllianceContext(targetTag=null){
  const c=sb(),a=await mainAccount();if(!c||!a)return null;
  const {data,error}=await c.rpc('nexa_list_alliance_passports');if(error)throw error;const rows=Array.isArray(data)?data:[];
- let alliance=rows.find(x=>String(x.id)===String(a.alliance_id));if(!alliance&&a.alliances?.tag)alliance=rows.find(x=>String(x.tag)===String(a.alliances.tag));
+ let alliance=targetTag?rows.find(x=>String(x.tag||'').toUpperCase()===String(targetTag).toUpperCase()):rows.find(x=>String(x.id)===String(a.alliance_id));if(!alliance&&!targetTag&&a.alliances?.tag)alliance=rows.find(x=>String(x.tag)===String(a.alliances.tag));
  const {data:publicRows}=await c.rpc('get_public_nexa_alliances');
  return {account:a,rows,alliance,publicAlliances:Array.isArray(publicRows)?publicRows:[]};
 }
@@ -326,14 +351,14 @@ function renderAllianceTab(type){
  const copy={pulse:'Active NEXA Pulse requests and response progress will appear here when published.',history:'Closed NEXA Pulse history will appear here.',events:'Foundry, Canyon and alliance strategy events will appear here when leadership publishes them.'};body.innerHTML=`<div class="nexa-v425-empty">${copy[type]||'Nothing published here yet.'}</div>`;
 }
 async function refreshAllianceHub(active='members'){
- try{allianceCtx=await loadAllianceContext();const hub=$('#nexa-v425-alliance-hub');if(!hub)return;const a=allianceCtx?.alliance;if(!a){$('.nexa-v425-passport',hub).innerHTML='<h1>No Alliance</h1><p>No alliance is linked to this account.</p>';$('#nexa-v425-hub-body').innerHTML='<div class="nexa-v425-empty">No alliance found.</div>';return}
+ try{allianceCtx=await loadAllianceContext(allianceTargetTag);const hub=$('#nexa-v425-alliance-hub');if(!hub)return;const a=allianceCtx?.alliance;if(!a){$('.nexa-v425-passport',hub).innerHTML='<h1>No Alliance</h1><p>No alliance is linked to this account.</p>';$('#nexa-v425-hub-body').innerHTML='<div class="nexa-v425-empty">No alliance found.</div>';return}
   const em=a.emblemUrl?`<img src="${esc(a.emblemUrl)}" alt="${esc(a.tag)} emblem">`:`<span>${esc(a.tag||'?')}</span>`;$('.nexa-v425-passport',hub).style.setProperty('--ac',a.color||'#8b6cff');$('.nexa-v425-passport',hub).innerHTML=`<div class="nexa-v425-emblem">${em}</div><h1>${esc(a.tag||a.name||'Alliance')}</h1><p>Alliance Passport • ${(a.members||[]).length} members</p>`;renderAllianceTab(active);
  }catch(e){const b=$('#nexa-v425-hub-body');if(b)b.innerHTML=`<div class="nexa-v425-empty">${esc(e?.message||e)}</div>`}
 }
-async function openAllianceHub(){
- closeMenu();document.body.classList.add('nexa-workspace-open');$('#nexa-v425-alliance-hub')?.remove();const h=document.createElement('section');h.id='nexa-v425-alliance-hub';h.innerHTML='<div class="nexa-v425-hub-head"><button class="nexa-v425-hub-guide" type="button">ⓘ</button><h2>My Alliance</h2><button class="nexa-v425-hub-close" type="button">×</button></div><div class="nexa-v425-passport"><h1>Loading…</h1><p>Alliance Passport</p></div><nav class="nexa-v425-tabs"><button class="active" data-tab="members">Members</button><button data-tab="pending">Pending Members</button><button data-tab="pulse">NEXA Pulse</button><button data-tab="history">Pulse History</button><button data-tab="events">Alliance Events</button></nav><div id="nexa-v425-hub-body"><div class="nexa-v425-empty">Loading alliance…</div></div>';document.body.appendChild(h);
- $('.nexa-v425-hub-close',h).onclick=()=>{h.remove();document.body.classList.remove('nexa-workspace-open')};$('.nexa-v425-hub-guide',h).onclick=()=>overlay('nexa-v425-alliance-guide','My Alliance','Members opens the alliance roster. Authorized R4/R5 leadership can tap a member to change rank, remove them, or move them to another active alliance. Pending Members contains approval actions.','#ff4fd8');
- await refreshAllianceHub();
+async function openAllianceHub(targetTag=null){
+ allianceTargetTag=targetTag||null;closeMenu();document.body.classList.add('nexa-workspace-open');$('#nexa-v425-alliance-hub')?.remove();const h=document.createElement('section');h.id='nexa-v425-alliance-hub';h.innerHTML='<div class="nexa-v425-hub-head"><button class="nexa-v425-hub-guide" type="button">ⓘ</button><h2>My Alliance</h2><button class="nexa-v425-hub-close" type="button">×</button></div><div class="nexa-v425-passport"><h1>Loading…</h1><p>Alliance Passport</p></div><nav class="nexa-v425-tabs"><button class="active" data-tab="members">Members</button><button data-tab="pending">Pending Members</button><button data-tab="pulse">NEXA Pulse</button><button data-tab="history">Pulse History</button><button data-tab="events">Alliance Events</button></nav><div id="nexa-v425-hub-body"><div class="nexa-v425-empty">Loading alliance…</div></div>';document.body.appendChild(h);
+ $('.nexa-v425-hub-close',h).onclick=()=>{allianceTargetTag=null;h.remove();document.body.classList.remove('nexa-workspace-open')};$('.nexa-v425-hub-guide',h).onclick=()=>overlay('nexa-v425-alliance-guide','My Alliance','Members opens the alliance roster. Authorized R4/R5 leadership can tap a member to change rank, remove them, or move them to another active alliance. Pending Members contains approval actions.','#ff4fd8');
+ if(targetTag){try{allianceCtx=await loadAllianceContext(targetTag);const a=allianceCtx?.alliance;if(a){const em=a.emblemUrl?`<img src="${esc(a.emblemUrl)}" alt="${esc(a.tag)} emblem">`:`<span>${esc(a.tag||'?')}</span>`;$('.nexa-v425-passport',h).style.setProperty('--ac',a.color||'#8b6cff');$('.nexa-v425-passport',h).innerHTML=`<div class="nexa-v425-emblem">${em}</div><h1>${esc(a.tag||a.name||'Alliance')}</h1><p>Alliance Passport • ${(a.members||[]).length} members</p>`;renderAllianceTab('members')}else await refreshAllianceHub()}catch{await refreshAllianceHub()}}else await refreshAllianceHub();
 }
 function findMember(id){return allianceCtx?.alliance?.members?.find(m=>String(m.accountId)===String(id))}
 function openMemberManager(id){
@@ -355,6 +380,7 @@ document.addEventListener('click',e=>{
  if(adminTarget){e.preventDefault();e.stopImmediatePropagation();openAdminTarget(adminTarget);return}
  if(b.id==='nexa-home-menu-toggle'){[80,220,520].forEach(ms=>setTimeout(polishMenu,ms));return}
  if(b.id==='nexa-v425-my-alliance'){e.preventDefault();e.stopImmediatePropagation();openAllianceHub();return}
+ if(b.matches('[data-v428-manage-alliance]')){e.preventDefault();e.stopImmediatePropagation();openAllianceHub(b.dataset.v428ManageAlliance);return}
  if(b.id==='nexa-v425-report'){e.preventDefault();e.stopImmediatePropagation();closeMenu();reportBug();return}
  if(b.matches('.nexa-v425-guide')){e.preventDefault();profileGuide();return}
  if(b.matches('.nexa-v425-ministry')){e.preventDefault();ministry();return}
@@ -366,15 +392,15 @@ document.addEventListener('click',e=>{
  if(b.matches('[data-approve]')){e.preventDefault();memberAction(b.dataset.approve,'approve',b);return}
  if(b.matches('[data-reject]')){e.preventDefault();if(confirm('Reject this pending member?'))memberAction(b.dataset.reject,'remove',b);return}
  if(b.matches('[data-member-action]')){e.preventDefault();memberAction(b.dataset.id,b.dataset.memberAction,b);return}
- if(b.matches('.nexa-v427-bug-refresh')){e.preventDefault();loadBugReports();return}
- if(b.matches('[data-save-bug]')){e.preventDefault();saveBugReport(b.closest('.nexa-v427-bug'));return}
+ if(b.matches('.nexa-v428-bug-refresh')){e.preventDefault();loadBugReports();return}
+ if(b.matches('[data-save-bug]')){e.preventDefault();saveBugReport(b.closest('.nexa-v428-bug'));return}
  if(b.matches('[data-close-admin]'))setTimeout(()=>document.body.classList.remove('nexa-workspace-open'),30);
  if(b.matches('[data-nexa-profile],#nexa-profile-launcher,#nexa-profile-launcher-section')){[120,380].forEach(ms=>setTimeout(ensureProfileActions,ms))}
 },true);
 
 function boot(){
  addCSS();ensureStellar();ensureSignals();ensureProfileActions();polishMenu();homePass();initAdminURL();
- [350,950,1800,3200,5200].forEach(ms=>setTimeout(()=>{homePass();ensureProfileActions();polishMenu();if($('#admin-modal')?.classList.contains('open'))ensureAdminShell()},ms));
+ [350,950,1800,3200,5200].forEach(ms=>setTimeout(()=>{homePass();ensureProfileActions();polishMenu();if($('#admin-modal')?.classList.contains('open')){ensureAdminShell();if(currentAdmin==='alliances')decorateAlliancePassports()}},ms));
  let n=0;const homeTimer=setInterval(()=>{homePass();if(++n>=16)clearInterval(homeTimer)},250);
  // Legacy Home code may repaint cards later. Keep only the lightweight visual normalization alive; no DOM observer and no database polling here.
  setInterval(()=>{compactLive();compactTransfers();ensureSignals();hideBuild();applyTheme();},1800);

@@ -1,11 +1,11 @@
-/* NEXA Player Library V27 — hard-mounted Profile library owner
+/* NEXA Player Library V28 — autonomous Profile owner
    Native iOS rails. Resolves the active account from the visible Profile or Main account.
    No MutationObserver. No manual scrollLeft.
 */
 (()=>{
 'use strict';
-if(window.__NEXA_PLAYER_LIBRARY_V27__) return;
-window.__NEXA_PLAYER_LIBRARY_V27__=true;
+if(window.__NEXA_PLAYER_LIBRARY_V28__) return;
+window.__NEXA_PLAYER_LIBRARY_V28__=true;
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
@@ -17,7 +17,15 @@ const types={
  gear:['chief_gear'],charms:['chief_charm']
 };
 
-function sb(){return window.supabaseClient?.from?window.supabaseClient:(window.sb?.from?window.sb:null)}
+let localSb=null;
+function sb(){
+ if(window.supabaseClient?.from)return window.supabaseClient;
+ if(window.sb?.from)return window.sb;
+ if(!localSb&&window.supabase?.createClient){
+   localSb=window.supabase.createClient('https://dfxcxboxrkfmrnsgpyin.supabase.co','sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-');
+ }
+ return localSb;
+}
 function root(){return $('#nexa-pl-owned-root')}
 function addCSS(){
  if($('#nexa-player-library-v25-css'))return;
@@ -217,6 +225,18 @@ document.addEventListener('change',e=>{
 },true);
 document.addEventListener('nexa:profile-opened',e=>scheduleOpen(e.detail?.accountId));
 window.NEXA_RENDER_PROFILE_LIBRARY=(id)=>scheduleOpen(id||null);
-function boot(){addCSS();installTabs();[250,700,1400,2600].forEach(ms=>setTimeout(installTabs,ms));if($('#nexa-profile-modal')?.classList.contains('open'))scheduleOpen()}
+let profileWatch=null;
+function startProfileWatch(){
+ if(profileWatch)return;
+ let wasOpen=false;
+ profileWatch=setInterval(()=>{
+   const modal=$('#nexa-profile-modal');
+   const open=!!modal?.classList.contains('open');
+   if(open&&!wasOpen)scheduleOpen();
+   if(open){installTabs();const r=root();if(r&&!r.querySelector('.nexa-pl-grid,.nexa-pl-empty'))render(activeCategory,true)}
+   wasOpen=open;
+ },500);
+}
+function boot(){addCSS();installTabs();startProfileWatch();[250,700,1400,2600].forEach(ms=>setTimeout(installTabs,ms));if($('#nexa-profile-modal')?.classList.contains('open'))scheduleOpen()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();

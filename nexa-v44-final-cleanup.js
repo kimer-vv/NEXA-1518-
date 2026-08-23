@@ -1,12 +1,13 @@
-/* NEXA V44.1 — PROFILE UNSTACK + STABLE HOME
+/* NEXA V44.2 — PROFILE UNSTACK CLEAN FIX
    Keeps the Transfer fix and Troop V25.
-   Removes the accidental V31/V29 overlay layer so the established Profile underneath is visible.
+   Removes only the accidental V31/V29 overlay shells.
+   Leaves the established Profile renderer visible and untouched.
    My Alliance is intentionally untouched.
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V441_FINAL__) return;
-window.__NEXA_V441_FINAL__=true;
+if(window.__NEXA_V442_FINAL__) return;
+window.__NEXA_V442_FINAL__=true;
 
 const $=(s,r=document)=>r.querySelector(s);
 
@@ -39,19 +40,23 @@ function css(){
    body #nexa-v430-transfer-card .nexa-v430-actions{margin-top:8px!important;gap:7px!important}
    body #nexa-v430-transfer-card .nexa-v430-actions a{min-height:30px!important;padding:6px 11px!important;font-size:10px!important}
 
-   /* Kill every known legacy Profile content surface. V31 is the only visible owner. */
-   #nexa-profile-modal #nexa-p29-shell,
-   #nexa-profile-modal #nexa-player-gen-rail,
-   #nexa-profile-modal #nexa-pl-owned-root,
-   #nexa-profile-modal #nexa-profile-content,
-   #nexa-profile-modal .nexa-profile-content{display:none!important}
-
    #nexa-v425-ministry{font-size:0!important;overflow:hidden!important}
    #nexa-v425-ministry svg{display:block!important;width:19px!important;height:19px!important}
 
-   /* V44.1: accidental second Profile owners stay hidden. */
+   /* V44.2: only accidental second-owner shells stay hidden. */
    #nexa-profile-modal #nexa-v30-shell,
    #nexa-profile-modal #nexa-p29-shell{display:none!important}
+
+   /* Explicitly restore the established Profile surfaces. */
+   #nexa-profile-modal .nexa-profile-tabs,
+   #nexa-profile-modal #nexa-profile-content,
+   #nexa-profile-modal .nexa-profile-content,
+   #nexa-profile-modal #nexa-player-gen-rail,
+   #nexa-profile-modal #nexa-pl-owned-root{
+     display:revert!important;
+     visibility:visible!important;
+     opacity:1!important;
+   }
  `;
  document.head.appendChild(s);
 }
@@ -86,7 +91,7 @@ function unstackProfile(){
  if(window.__NEXA_PROFILE_OWNER__==='V31' ||
     window.__NEXA_PROFILE_OWNER__==='V30' ||
     window.__NEXA_PROFILE_OWNER__==='V29'){
-   window.__NEXA_PROFILE_OWNER__='ESTABLISHED';
+   window.__NEXA_PROFILE_OWNER__='ESTABLISHED-V442';
  }
 }
 

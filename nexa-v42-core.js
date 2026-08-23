@@ -1,11 +1,11 @@
-/* NEXA V42.9 — ROOT OWNER TAKEOVER
+/* NEXA V43.0 — ROOT OWNER TAKEOVER II
    Home polish, stable Administration shell, embedded Library, My Alliance management,
    Profile helpers and event-aware themes. No global MutationObserver. No manual scrollLeft.
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V429__)return;
-window.__NEXA_V429__=true;
+if(window.__NEXA_V430__)return;
+window.__NEXA_V430__=true;
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
@@ -30,6 +30,14 @@ function addCSS(){
  main.shell>.hero{padding:14px 0 8px!important;margin:0!important;min-height:0!important;background:transparent!important;border:0!important;box-shadow:none!important}
  main.shell>.hero p{display:none!important}
  #nexa-profile-launcher-section{background:transparent!important;border:0!important;box-shadow:none!important;padding:18px 0 10px!important}
+ #home-transfers-section{display:none!important}
+ #nexa-v430-transfer-card{width:100%!important;max-width:100%!important;min-height:0!important;height:auto!important;margin:0!important;padding:14px 16px!important;border-radius:22px!important;border:1px solid rgba(255,137,76,.34)!important;background:linear-gradient(145deg,rgba(32,18,35,.92),rgba(10,10,29,.98))!important;box-shadow:none!important;overflow:hidden!important}
+ #nexa-v430-transfer-card .kicker{color:#ff9a5f!important;font-size:10px!important;letter-spacing:.16em!important;font-weight:950!important}
+ #nexa-v430-transfer-card h3{margin:4px 0 4px!important;font-size:20px!important;line-height:1.15!important}
+ #nexa-v430-transfer-card p{margin:0!important;color:#c7bfd0!important;font-size:12px!important;line-height:1.4!important}
+ #nexa-v430-transfer-card .nexa-v430-actions{display:flex!important;gap:8px!important;flex-wrap:wrap!important;margin-top:10px!important}
+ #nexa-v430-transfer-card .nexa-v430-actions a{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:34px!important;padding:7px 13px!important;border-radius:999px!important;border:1px solid rgba(87,111,255,.64)!important;background:rgba(52,66,190,.16)!important;color:#73baff!important;text-decoration:none!important;font-weight:900!important}
+
  #nexa-profile-launcher-name{margin-top:12px!important;font-size:13px!important;line-height:1.3!important;letter-spacing:.07em!important;text-align:center!important;color:#ece6ff!important;background:none!important;-webkit-text-fill-color:currentColor!important}
  #nexa-v425-stellar{width:100%!important;height:auto!important;padding:8px 8px 12px!important;text-align:center!important;background:transparent!important;border:0!important}
  #nexa-v425-stellar .line{display:flex!important;align-items:center!important;justify-content:center!important;gap:18px!important}
@@ -140,8 +148,10 @@ function ensureStellar(){
 }
 function normalizeIOSZoom(){
  const meta=document.querySelector('meta[name="viewport"]');if(!meta)return;
- const base='width=device-width,initial-scale=1';
- try{if(window.visualViewport&&window.visualViewport.scale>1.01){meta.setAttribute('content',base+',maximum-scale=1,user-scalable=no');setTimeout(()=>meta.setAttribute('content',base),450)}}catch{}
+ // Keep the app viewport locked to 1 after the external Verify Human page returns.
+ // Safari can otherwise preserve the challenge zoom level into NEXA.
+ meta.setAttribute('content','width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover');
+ try{document.activeElement?.blur?.();window.scrollTo({left:0,top:window.scrollY,behavior:'auto'})}catch{}
 }
 
 function compactLive(){
@@ -152,38 +162,44 @@ function compactLive(){
  if(inactive&&!copy){copy=document.createElement('div');copy.className='nexa-v425-empty-copy';copy.innerHTML='<div class="kicker">LIVE EVENT</div><h3>No Live Event</h3><p>Upcoming state events, schedules and forms will appear here when leadership publishes them.</p>';section.appendChild(copy)}
  if(!inactive)copy?.remove();
 }
+function transferOwnedCard(){
+ let owned=$('#nexa-v430-transfer-card');
+ const legacy=$('#home-transfers-section');
+ if(legacy){
+  legacy.style.setProperty('display','none','important');
+  legacy.setAttribute('aria-hidden','true');
+ }
+ if(!owned){
+  owned=document.createElement('section');owned.id='nexa-v430-transfer-card';
+  if(legacy)legacy.after(owned);
+  else $('#home-svs-section')?.after(owned);
+ }
+ return owned;
+}
 function renderTransferOwned(rows=[]){
- const section=$('#home-transfers-section');if(!section)return;
- section.dataset.nexaTransferOwner='429';
- section.classList.add('nexa-v425-empty');
- section.style.setProperty('display','block','important');
- section.style.setProperty('height','auto','important');section.style.setProperty('min-height','0','important');section.style.setProperty('max-height','none','important');section.style.setProperty('aspect-ratio','auto','important');
+ const section=transferOwnedCard();if(!section)return;
+ section.dataset.nexaTransferOwner='430';
  if(!rows.length){
-  section.innerHTML='<div class="nexa-v425-empty-copy"><div class="kicker">TRANSFERS</div><h3>Transfer Center</h3><p>Transfer cycles and recruiting information will appear here when a transfer cycle is active.</p></div>';
+  section.innerHTML='<div class="kicker">TRANSFERS</div><h3>Transfer Center</h3><p>Transfer cycles and recruiting information will appear here when a transfer cycle is active.</p>';
   return;
  }
- section.classList.remove('nexa-v425-empty');
- section.innerHTML='<div class="nexa-v425-empty-copy"><div class="kicker">TRANSFERS</div><h3>'+esc(rows[0].title||'Transfer Event')+'</h3><p>'+esc(rows[0].destination_state?('Transfer to State '+rows[0].destination_state):'Applications are open.')+'</p><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">'+(rows[0].public_token?'<a class="btn" href="transfer-event.html?token='+encodeURIComponent(rows[0].public_token)+'">Open</a><a class="btn" href="transfer-apply.html?token='+encodeURIComponent(rows[0].public_token)+'">Apply</a>':'')+'</div></div>';
+ const r=rows[0]||{};
+ const actions=r.public_token?'<div class="nexa-v430-actions"><a href="transfer-event.html?token='+encodeURIComponent(r.public_token)+'">Open</a><a href="transfer-apply.html?token='+encodeURIComponent(r.public_token)+'">Apply</a></div>':'';
+ section.innerHTML='<div class="kicker">TRANSFERS</div><h3>'+esc(r.title||'Transfer Event')+'</h3><p>'+esc(r.destination_state?('Transfer to State '+r.destination_state):'Applications are open.')+'</p>'+actions;
 }
 async function refreshTransferOwner(){
- const section=$('#home-transfers-section');if(!section)return;
  try{
   const c=sb();if(!c)throw new Error('No Supabase');
   const {data,error}=await c.from('transfer_events').select('id,title,destination_state,public_token,starts_at,ends_at').eq('status','open').eq('applications_open',true).order('starts_at',{ascending:true});
   if(error)throw error;renderTransferOwned(Array.isArray(data)?data:[]);
- }catch(e){
-  const t=txt(section);const inactive=/Applications stay available for the next transfer cycle|There is no open transfer cycle|No live Transfer event|no open transfer/i.test(t);
-  if(inactive||section.dataset.nexaTransferOwner==='429')renderTransferOwned([]);
- }
+ }catch(e){renderTransferOwned([])}
 }
 function compactTransfers(){
- const section=$('#home-transfers-section');if(!section)return;
- if(section.dataset.nexaTransferOwner==='429'&&section.querySelector('.nexa-transfer-open-btn,.event-actions'))renderTransferOwned([]);
+ transferOwnedCard();
 }
 
-
 function ensureSignals(){
- const tr=$('#home-transfers-section'),live=$('#home-svs-section');
+ const tr=$('#nexa-v430-transfer-card')||transferOwnedCard(),live=$('#home-svs-section');
  let pulse=$('#nexa-v425-pulse');if(!pulse){pulse=document.createElement('section');pulse.id='nexa-v425-pulse';pulse.innerHTML='<div class="kicker">NEXA PULSE</div><h3>Signals & response requests</h3><p>Forms, surveys and requests appear here when leadership publishes them.</p>'}
  let alliance=$('#nexa-v425-alliance');if(!alliance){alliance=document.createElement('section');alliance.id='nexa-v425-alliance';alliance.innerHTML='<div class="kicker">ALLIANCE SIGNAL</div><h3>No alliance event published</h3><p>Foundry, Canyon and alliance strategy updates will appear here.</p>'}
  if(tr){tr.after(pulse);pulse.after(alliance)}else if(live){live.after(pulse);pulse.after(alliance)}
@@ -353,7 +369,7 @@ function decorateAlliancePassports(){
 async function loadAllianceContext(targetTag=null){
  const c=sb(),a=await mainAccount();if(!c||!a)return null;
  const {data,error}=await c.rpc('nexa_list_alliance_passports');if(error)throw error;const rows=Array.isArray(data)?data:[];
- let alliance=targetTag?rows.find(x=>String(x.tag||'').toUpperCase()===String(targetTag).toUpperCase()):rows.find(x=>String(x.id)===String(a.alliance_id));if(!alliance&&!targetTag&&a.alliances?.tag)alliance=rows.find(x=>String(x.tag)===String(a.alliances.tag));
+ let alliance=targetTag?rows.find(x=>String(x.id)===String(targetTag)||String(x.tag||'').toUpperCase()===String(targetTag).toUpperCase()):rows.find(x=>String(x.id)===String(a.alliance_id));if(!alliance&&!targetTag&&a.alliances?.tag)alliance=rows.find(x=>String(x.tag)===String(a.alliances.tag));
  const {data:publicRows}=await c.rpc('get_public_nexa_alliances');
  return {account:a,rows,alliance,publicAlliances:Array.isArray(publicRows)?publicRows:[]};
 }
@@ -374,7 +390,7 @@ async function refreshAllianceHub(active='members'){
  }catch(e){const b=$('#nexa-v425-hub-body');if(b)b.innerHTML=`<div class="nexa-v425-empty">${esc(e?.message||e)}</div>`}
 }
 async function openAllianceHub(targetTag=null){
- allianceTargetTag=targetTag||null;closeMenu();document.body.classList.add('nexa-workspace-open');$('#nexa-v425-alliance-hub')?.remove();const h=document.createElement('section');h.id='nexa-v425-alliance-hub';h.innerHTML='<div class="nexa-v425-hub-head"><button class="nexa-v425-hub-guide" type="button">ⓘ</button><h2>My Alliance</h2><button class="nexa-v425-hub-close" type="button">×</button></div><div class="nexa-v425-passport"><h1>Loading…</h1><p>Alliance Passport</p></div><nav class="nexa-v425-tabs"><button class="active" data-tab="members">Members</button><button data-tab="pending">Pending Members</button><button data-tab="pulse">NEXA Pulse</button><button data-tab="history">Pulse History</button><button data-tab="events">Alliance Events</button></nav><div id="nexa-v425-hub-body"><div class="nexa-v425-empty">Loading alliance…</div></div>';document.body.appendChild(h);
+ allianceTargetTag=targetTag||null;closeMenu();document.body.classList.add('nexa-workspace-open');$('#nexa-v425-alliance-hub')?.remove();const h=document.createElement('section');h.id='nexa-v425-alliance-hub';h.innerHTML='<div class="nexa-v425-hub-head"><button class="nexa-v425-hub-guide" type="button">ⓘ</button><h2>'+(targetTag?'Alliance Management':'My Alliance')+'</h2><button class="nexa-v425-hub-close" type="button">×</button></div><div class="nexa-v425-passport"><h1>Loading…</h1><p>Alliance Passport</p></div><nav class="nexa-v425-tabs"><button class="active" data-tab="members">Members</button><button data-tab="pending">Pending Members</button><button data-tab="pulse">NEXA Pulse</button><button data-tab="history">Pulse History</button><button data-tab="events">Alliance Events</button></nav><div id="nexa-v425-hub-body"><div class="nexa-v425-empty">Loading alliance…</div></div>';document.body.appendChild(h);
  $('.nexa-v425-hub-close',h).onclick=()=>{allianceTargetTag=null;h.remove();document.body.classList.remove('nexa-workspace-open')};$('.nexa-v425-hub-guide',h).onclick=()=>overlay('nexa-v425-alliance-guide','My Alliance','Members opens the alliance roster. Authorized R4/R5 leadership can tap a member to change rank, remove them, or move them to another active alliance. Pending Members contains approval actions.','#ff4fd8');
  if(targetTag){try{allianceCtx=await loadAllianceContext(targetTag);const a=allianceCtx?.alliance;if(a){const em=a.emblemUrl?`<img src="${esc(a.emblemUrl)}" alt="${esc(a.tag)} emblem">`:`<span>${esc(a.tag||'?')}</span>`;$('.nexa-v425-passport',h).style.setProperty('--ac',a.color||'#8b6cff');$('.nexa-v425-passport',h).innerHTML=`<div class="nexa-v425-emblem">${em}</div><h1>${esc(a.tag||a.name||'Alliance')}</h1><p>Alliance Passport • ${(a.members||[]).length} members</p>`;renderAllianceTab('members')}else await refreshAllianceHub()}catch{await refreshAllianceHub()}}else await refreshAllianceHub('members',forcedAllianceId);
 }

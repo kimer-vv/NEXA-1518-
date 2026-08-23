@@ -1,11 +1,11 @@
-/* NEXA V42 — SINGLE OWNER CORE
+/* NEXA V42.1 — SINGLE OWNER CORE
    Replaces the runtime duties previously split between V40/V41.2.
    IMPORTANT: load this file INSTEAD OF nexa-v30-stabilization.js and nexa-v41-review-fixes.js.
    No schema migration. No troop-art integration. No Charms data mutation.
 */
 (()=>{'use strict';
-if(window.__NEXA_V42__) return;
-window.__NEXA_V42__=true;
+if(window.__NEXA_V421__) return;
+window.__NEXA_V421__=true;
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
@@ -30,6 +30,21 @@ function addCSS(){
  const s=document.createElement('style');s.id='nexa-v42-css';s.textContent=`
 html,body{max-width:100%!important;overflow-x:hidden!important}
 .nexa-v42-hidden{display:none!important}
+
+/* V42.1 mobile home = one clean vertical course */
+main.shell{width:min(680px,calc(100% - 24px))!important;max-width:calc(100% - 24px)!important;margin:0 auto!important;display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:10px!important}
+main.shell>*{grid-column:1/-1!important;width:100%!important;max-width:100%!important;min-width:0!important}
+main.shell>.hero{padding:14px 0 8px!important;margin:0!important;min-height:0!important;background:transparent!important;border:0!important;box-shadow:none!important}
+main.shell>.hero p{display:none!important}
+#nexa-profile-launcher-section,#nexa-v42-stellar,#home-svs-section,#home-transfers-section,#nexa-v42-pulse,#nexa-v42-alliance{grid-column:1/-1!important;width:100%!important;max-width:100%!important;min-width:0!important;margin:0!important;float:none!important}
+#home-svs-section,#home-transfers-section{display:block!important;min-height:0!important;height:auto!important}
+#nexa-v42-pulse,#nexa-v42-alliance{padding:11px 14px!important;border-radius:18px!important}
+#nexa-v42-pulse{border:1px solid rgba(48,211,255,.34)!important;background:linear-gradient(145deg,rgba(4,34,53,.91),rgba(4,11,30,.97))!important}
+#nexa-v42-alliance{border:1px solid rgba(219,66,255,.34)!important;background:linear-gradient(145deg,rgba(37,8,52,.91),rgba(13,6,30,.97))!important}
+#nexa-v42-pulse .kicker,#nexa-v42-alliance .kicker{font-size:8px!important;letter-spacing:.17em!important;font-weight:950!important;margin-bottom:4px!important}
+#nexa-v42-pulse .kicker{color:#66eaff!important}#nexa-v42-alliance .kicker{color:#ec8cff!important}
+#nexa-v42-pulse h3,#nexa-v42-alliance h3{margin:0 0 3px!important;font-size:15px!important}
+#nexa-v42-pulse p,#nexa-v42-alliance p{margin:0!important;font-size:10px!important;line-height:1.3!important;color:#acb7d0!important}
 
 /* ---------- HOME / STELLAR ---------- */
 #nexa-v42-stellar{width:100%!important;margin:0!important;padding:5px 10px 8px!important;text-align:center!important;background:transparent!important;border:0!important;box-shadow:none!important}
@@ -62,6 +77,7 @@ html,body{max-width:100%!important;overflow-x:hidden!important}
 #nexa-v42-my-alliance small{margin-top:4px;font-size:12px!important;color:#f09cff!important;letter-spacing:.08em!important}
 #nexa-v42-report-bugs{display:flex!important;width:100%!important;align-items:center!important;justify-content:space-between!important;min-height:54px!important;padding:10px 20px!important;border:0!important;background:transparent!important;color:#f1ecff!important;font:inherit!important;font-weight:850!important;text-align:left!important}
 #nexa-v42-report-bugs span:last-child{color:#6fdcff!important}
+#nexa-home-menu .nexa-v42-nav-label-hide{display:none!important}
 
 /* ---------- ADMINISTRATION ---------- */
 #admin-modal.open{overflow:hidden!important}
@@ -107,18 +123,52 @@ function overlay(id,title,body,accent='#ff4fd8'){
  d.addEventListener('click',e=>{if(e.target===d)d.remove()});d.querySelector('button').onclick=()=>d.remove();document.body.appendChild(d);
 }
 
-function ensureStellar(){
+function ensureHomeCourse(){
  const main=$('main.shell'),profile=$('#nexa-profile-launcher-section');if(!main||!profile)return;
- /* Delete every previous Stellar implementation so only V42 owns it. */
- $$('section,div,article').forEach(el=>{if(el.id==='nexa-v42-stellar')return;const t=text(el);if(/STELLAR SIGNAL/i.test(t)&&(el.id?.includes('stellar')||/Chart the course|Small course corrections|Adjust with the stars|Move together/i.test(t)))el.remove()});
- let st=$('#nexa-v42-stellar');if(!st){st=document.createElement('section');st.id='nexa-v42-stellar';st.innerHTML='<div class="k"><span class="star">✦</span> STELLAR SIGNAL <span class="star">✦</span></div><span class="c">Small course corrections can change the path of an entire orbit.</span>'}
- const live=$('#home-svs-section');if(live)main.insertBefore(st,live);else profile.after(st);
+ /* Remove every legacy boxed Stellar; V42.1 owns the only Stellar shown. */
+ $$('section,div,article').forEach(el=>{
+   if(el.id==='nexa-v42-stellar'||el.closest?.('#nexa-v42-stellar'))return;
+   const t=text(el);
+   if(/STELLAR SIGNAL/i.test(t)&&/Chart the course|Move together|Adjust with the stars/i.test(t)){
+     const parent=el.closest('section,article')||el;
+     if(parent!==main&&parent!==profile)parent.remove();
+   }
+ });
+ let st=$('#nexa-v42-stellar');
+ if(!st){st=document.createElement('section');st.id='nexa-v42-stellar';st.innerHTML='<div class="k"><span class="star">✦</span> STELLAR SIGNAL <span class="star">✦</span></div><span class="c">Small course corrections can change the path of an entire orbit.</span>'}
+ const live=$('#home-svs-section'),tr=$('#home-transfers-section');
+ let pulse=$('#nexa-v42-pulse');if(!pulse){pulse=document.createElement('section');pulse.id='nexa-v42-pulse';pulse.innerHTML='<div class="kicker">NEXA PULSE</div><h3>Signals & response requests</h3><p>Forms, surveys and requests appear here when leadership publishes them.</p>'}
+ let alliance=$('#nexa-v42-alliance');if(!alliance){alliance=document.createElement('section');alliance.id='nexa-v42-alliance';alliance.innerHTML='<div class="kicker">ALLIANCE SIGNAL</div><h3>No alliance event published</h3><p>Foundry, Canyon and alliance strategy updates will appear here.</p>'}
+ /* Force the intended mobile order without changing native card internals. */
+ profile.after(st);
+ if(live)st.after(live);
+ if(tr)(live||st).after(tr);
+ (tr||live||st).after(pulse);pulse.after(alliance);
 }
-
 function profileGuide(){overlay('nexa-v42-profile-guide','Player Profile','Maintain the selected account here. Update identity, Furnace, Power and Deployment, then use the horizontal rails for Heroes, Experts, Troops, Pets, Chief Gear and Charms. Gold Guide buttons explain one item.','#ff4fd8')}
 function ministry(){overlay('nexa-v42-ministry-guide','Ministry Schedule','Your Ministry appointments and live status appear here when schedule data is available. This shortcut stays attached to the active account profile.','#bca7ff')}
 function resetCard(card){$$('input,select,textarea',card).forEach(el=>{if(el.type==='checkbox'||el.type==='radio')el.checked=false;else if(el.tagName==='SELECT')el.selectedIndex=0;else if(el.type==='number')el.value=el.min||'0';else if(el.type!=='file')el.value='';el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}))})}
 function isItemCard(el){return el?.matches?.('.nexa-lib-card,[class*="hero-card" i],[class*="hero-item" i],[class*="expert-card" i],[class*="expert-item" i],[class*="pet-card" i],[class*="pet-item" i],[class*="troop-card" i],[class*="gear-card" i],[class*="charm-card" i]')}
+function isProfileRail(el){
+ return !!el?.closest?.('#nexa-profile-modal .nexa-profile-tabs,#nexa-profile-modal [class*="generation" i],#nexa-profile-modal [class*="gen-tabs" i],#nexa-profile-modal [class*="gen-row" i],#nexa-profile-modal [class*="filter-row" i]');
+}
+let railTouchUntil=0;
+function guardProfileRails(e){
+ const rail=e.target?.closest?.('.nexa-profile-tabs,[class*="generation" i],[class*="gen-tabs" i],[class*="gen-row" i],[class*="filter-row" i]');
+ if(!rail||!rail.closest('#nexa-profile-modal'))return;
+ railTouchUntil=Date.now()+700;
+ /* Do not preventDefault: Safari keeps native horizontal scrolling. We only stop old JS gesture handlers. */
+ e.stopPropagation();
+}
+if(!window.__NEXA_V421_SCROLL_GUARD__){
+ window.__NEXA_V421_SCROLL_GUARD__=true;
+ ['touchstart','touchmove','touchend','pointerdown','pointermove','pointerup'].forEach(type=>document.addEventListener(type,guardProfileRails,true));
+ const nativeSIV=Element.prototype.scrollIntoView;
+ Element.prototype.scrollIntoView=function(...args){
+   if(Date.now()<railTouchUntil&&this?.closest?.('#nexa-profile-modal')&&isProfileRail(this))return;
+   return nativeSIV.apply(this,args);
+ };
+}
 function ensureProfile(){
  const root=$('#nexa-profile-modal');if(!root)return;
  /* remove obsolete V40 rows only; V42 rows are stable and do not get recreated */
@@ -155,7 +205,7 @@ function ensureAdminNav(target=adminSection){
 }
 function adminChrome(){
  const modal=$('#admin-modal');if(!modal)return;
- $$('button,a,div,span',modal).forEach(el=>{const t=text(el).toUpperCase();if(t==='MENU')el.classList.add('nexa-v42-hidden');if(t==='CLOSE'&&!el.matches('[data-close-admin]')&&!el.closest('[data-close-admin]'))el.classList.add('nexa-v42-hidden')});
+ $$('button,a,div,span',modal).forEach(el=>{const t=text(el).toUpperCase();if(/^MENU\b/.test(t))el.classList.add('nexa-v42-hidden');if(t==='CLOSE'&&!el.matches('[data-close-admin]')&&!el.closest('[data-close-admin]'))el.classList.add('nexa-v42-hidden')});
  const card=$('.admin-modal-card',modal);if(card&&!$('#nexa-v42-admin-guide',card)){const g=document.createElement('button');g.id='nexa-v42-admin-guide';g.className='nexa-v42-guide-general';g.type='button';g.textContent='ⓘ';g.onclick=()=>overlay('nexa-v42-admin-help','Administration','Use the arrows to move between Alliances, Library, NEXA Access, Operational Roles and System Operations.','#ff4fd8');card.prepend(g)}
  if(modal.classList.contains('open'))ensureAdminNav(libraryOpen?'library':adminSection);
 }
@@ -170,8 +220,13 @@ function hideAdminSections(){['admin-events','admin-forms','admin-alliances','ad
 function sizeLibraryFrame(frame){try{const d=frame.contentDocument;if(!d)return;const h=Math.max(d.documentElement?.scrollHeight||0,d.body?.scrollHeight||0,900);frame.style.height=Math.min(Math.max(h+12,900),5200)+'px'}catch(_){}}
 function patchLibraryDoc(d){
  if(!d)return;let st=d.getElementById('nexa-v42-embedded');if(!st){st=d.createElement('style');st.id='nexa-v42-embedded';d.head.appendChild(st)}
- st.textContent='html,body{background:transparent!important;min-height:0!important}.nebula-bg,.starfield,.admin-nav,.back{display:none!important}.lib-shell{width:100%!important;max-width:100%!important;margin:0!important;padding:2px 0 70px!important}.lib-head{margin-top:0!important}.lib-head .lib-kicker{display:none!important}.lib-head h1{font-size:28px!important}.lib-head>div>.lib-muted{font-size:11px!important}body>button[title="Library Guide"]{display:none!important}';
- $$('button,div,h1,h2,h3,strong,b',d).forEach(el=>{const t=text(el);if(/^Gen 0\s*[•·-]\s*Unlocked$/i.test(t))el.textContent='Epic • Unlocked';if(/HERO\s*[•·-]\s*GEN 0 VISIBILITY/i.test(t))el.textContent='HERO • EPIC VISIBILITY'});
+ st.textContent='html,body{background:transparent!important;min-height:0!important}.nebula-bg,.starfield,.admin-nav,.back,.nexa-v27-library-tools{display:none!important}.lib-shell{width:100%!important;max-width:100%!important;margin:0!important;padding:2px 0 70px!important}.lib-head{margin-top:0!important}.lib-head .lib-kicker{display:none!important}.lib-head h1{font-size:28px!important}.lib-head>div>.lib-muted{font-size:11px!important}body>button[title="Library Guide"]{display:none!important}';
+ $$('button,a,div,h1,h2,h3,strong,b',d).forEach(el=>{
+   const t=text(el);
+   if(/^Gen 0\s*[•·-]\s*Unlocked$/i.test(t))el.textContent='Epic • Unlocked';
+   if(/HERO\s*[•·-]\s*GEN 0 VISIBILITY/i.test(t))el.textContent='HERO • EPIC VISIBILITY';
+   if((/^MENU\b/i.test(t)||/^CLOSE$/i.test(t))&&el.getBoundingClientRect().top<190)el.style.setProperty('display','none','important');
+ });
  sizeLibraryFrame($('#internal-module-frame'));
 }
 function styleEmbeddedLibrary(frame){try{const d=frame.contentDocument;if(!d)return;patchLibraryDoc(d);if(window.ResizeObserver&&!frame._nexa42RO){frame._nexa42RO=new ResizeObserver(()=>sizeLibraryFrame(frame));frame._nexa42RO.observe(d.documentElement);if(d.body)frame._nexa42RO.observe(d.body)}if(!frame._nexa42Click){frame._nexa42Click=1;d.addEventListener('click',e=>{const a=e.target.closest('a');if(!a)return;const href=a.getAttribute('href')||'';if(/index\.html/i.test(href)){e.preventDefault();openAdminSection(/tab=([^&]+)/.exec(href)?.[1]||'alliances')}},true)}}catch(_){}}
@@ -180,9 +235,16 @@ async function openLibraryEmbed(){
  const wrap=$('#internal-module-frame-wrap'),frame=$('#internal-module-frame');if(!wrap||!frame)return;wrap.classList.remove('hidden');wrap.classList.add('nexa-v42-library');frame.onload=()=>{styleEmbeddedLibrary(frame);setTimeout(()=>styleEmbeddedLibrary(frame),250)};frame.src='library.html?admin=1&embed=1&v=42';ensureAdminNav('library');$('.admin-modal-card',$('#admin-modal'))?.scrollTo({top:0,behavior:'auto'});
 }
 async function openAdminSection(target){
- if(target==='library')return openLibraryEmbed();libraryOpen=false;adminSection=target;await openAdminBase();const wrap=$('#internal-module-frame-wrap'),frame=$('#internal-module-frame');wrap?.classList.add('hidden');wrap?.classList.remove('nexa-v42-library');if(frame)frame.src='about:blank';
- hideAdminSections();const sec=$('#admin-'+target);sec?.classList.remove('hidden');$$('[data-admin-tab]').forEach(b=>b.classList.toggle('active',b.dataset.adminTab===target));
- if(target==='permissions')$('[data-admin-tab="permissions"]')?.click();if(target==='system')$('[data-admin-tab="system"]')?.click();
+ if(target==='library')return openLibraryEmbed();
+ libraryOpen=false;adminSection=target;await openAdminBase();
+ const wrap=$('#internal-module-frame-wrap'),frame=$('#internal-module-frame');wrap?.classList.add('hidden');wrap?.classList.remove('nexa-v42-library');if(frame)frame.src='about:blank';
+ /* Let the native Administration controller render/populate the section FIRST. */
+ const tab=$(`[data-admin-tab="${target}"]`);
+ if(tab){tab.click();await new Promise(r=>setTimeout(r,90))}
+ const ids=['events','forms','alliances','roles','permissions','library','system','announcements'];
+ ids.forEach(id=>{const sec=$('#admin-'+id);if(sec)sec.classList.toggle('hidden',id!==target)});
+ $('#native-module-host')?.classList.add('hidden');
+ $$('[data-admin-tab]').forEach(b=>b.classList.toggle('active',b.dataset.adminTab===target));
  ensureAdminNav(target);adminChrome();$('.admin-modal-card',$('#admin-modal'))?.scrollTo({top:0,behavior:'auto'});
 }
 
@@ -216,8 +278,11 @@ async function approvePending(playerId,button){
 async function currentAllianceTag(){try{const ctx=await allianceContext();return ctx?.alliance?.tag||ctx?.alliance?.name||ctx?.acct?.alliance_tag||''}catch(_){return ''}}
 async function ensureMenu(){
  const menu=$('#nexa-home-menu'),card=$('#nexa-home-menu-card')||menu;if(!menu||!card)return;
- /* remove obsolete navigation rows instead of letting them remain active */
  $$('button,a',card).forEach(el=>{const t=text(el).toUpperCase();if(['HOME','LIVE EVENT','TRANSFERS'].includes(t))el.remove()});
+ $$('*',card).forEach(el=>{
+   const own=Array.from(el.childNodes).filter(n=>n.nodeType===3).map(n=>n.textContent).join(' ').replace(/\s+/g,' ').trim().toUpperCase();
+   if(own==='NAVIGATION'||text(el).toUpperCase()==='NAVIGATION')el.classList.add('nexa-v42-nav-label-hide');
+ });
  let mine=$('#nexa-v42-my-alliance',card);if(!mine){mine=document.createElement('button');mine.id='nexa-v42-my-alliance';mine.type='button';mine.innerHTML='<span>My Alliance</span><small>Loading…</small>';mine.onclick=()=>{menu.setAttribute('aria-hidden','true');openAllianceHub()};card.prepend(mine);const tag=await currentAllianceTag();mine.querySelector('small').textContent=tag||'Alliance'}
  if(!$('#nexa-v42-report-bugs',card)){const logout=$$('button,a',card).find(x=>/^LOGOUT$/i.test(text(x)));const b=document.createElement('button');b.id='nexa-v42-report-bugs';b.type='button';b.innerHTML='<span>Report Bugs</span><span>›</span>';b.onclick=()=>openAdminSection('system');if(logout)logout.before(b);else card.appendChild(b)}
 }
@@ -230,16 +295,24 @@ function intercept(e){
  if(el.matches('[data-admin-tab="alliances"],[data-admin-tab="permissions"],[data-admin-tab="roles"],[data-admin-tab="system"]')){adminSection=el.dataset.adminTab;libraryOpen=false;setTimeout(()=>ensureAdminNav(adminSection),0)}
 }
 
+document.addEventListener('click',e=>{
+ const t=e.target?.closest?.('button,a');
+ if(!t)return;
+ if(/MY PROFILE|PROFILE/i.test(text(t))||t.matches?.('[data-open-profile],#nexa-profile-launcher-section button')){
+   setTimeout(ensureProfile,80);setTimeout(ensureProfile,420);
+ }
+},true);
+
 function observeTargets(){
  const menu=$('#nexa-home-menu-card')||$('#nexa-home-menu');if(menu&&!menuObserver){menuObserver=new MutationObserver(()=>requestAnimationFrame(ensureMenu));menuObserver.observe(menu,{childList:true,subtree:true})}
- const profile=$('#nexa-profile-modal');if(profile&&!profileObserver){profileObserver=new MutationObserver(()=>requestAnimationFrame(ensureProfile));profileObserver.observe(profile,{childList:true,subtree:true})}
+ /* No Profile MutationObserver: it was unnecessary churn while the user swiped rails. */
  const admin=$('#admin-modal');if(admin&&!adminObserver){adminObserver=new MutationObserver(()=>requestAnimationFrame(adminChrome));adminObserver.observe(admin,{childList:true,subtree:true,attributes:true,attributeFilter:['class','aria-hidden']})}
 }
 
 function boot(){
- addCSS();cleanAdminURL();closeResurrectedAdmin();ensureStellar();ensureProfile();ensureMenu();adminChrome();observeTargets();
- setTimeout(()=>{ensureStellar();ensureProfile();ensureMenu();adminChrome();observeTargets()},400);
- setTimeout(()=>{ensureStellar();ensureProfile();ensureMenu();adminChrome()},1400);
+ addCSS();cleanAdminURL();closeResurrectedAdmin();ensureHomeCourse();ensureProfile();ensureMenu();adminChrome();observeTargets();
+ setTimeout(()=>{ensureHomeCourse();ensureProfile();ensureMenu();adminChrome();observeTargets()},400);
+ setTimeout(()=>{ensureHomeCourse();ensureProfile();ensureMenu();adminChrome()},1400);
 }
 document.addEventListener('click',intercept,true);
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();

@@ -1,11 +1,11 @@
-/* NEXA Player Library V24 — deterministic Profile owner
+/* NEXA Player Library V25 — isolated Profile library owner
    Native iOS rails. Resolves the active account from the visible Profile or Main account.
    No MutationObserver. No manual scrollLeft.
 */
 (()=>{
 'use strict';
-if(window.__NEXA_PLAYER_LIBRARY_V24__) return;
-window.__NEXA_PLAYER_LIBRARY_V24__=true;
+if(window.__NEXA_PLAYER_LIBRARY_V25__) return;
+window.__NEXA_PLAYER_LIBRARY_V25__=true;
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
@@ -18,9 +18,10 @@ const types={
 };
 
 function sb(){return window.supabaseClient?.from?window.supabaseClient:(window.sb?.from?window.sb:null)}
+function root(){return $('#nexa-pl-owned-root')}
 function addCSS(){
- if($('#nexa-player-library-v24-css'))return;
- const s=document.createElement('style');s.id='nexa-player-library-v24-css';s.textContent=`
+ if($('#nexa-player-library-v25-css'))return;
+ const s=document.createElement('style');s.id='nexa-player-library-v25-css';s.textContent=`
  #nexa-profile-modal .nexa-profile-tabs,#nexa-player-gen-rail{
    display:flex!important;flex-flow:row nowrap!important;gap:7px!important;width:100%!important;max-width:100%!important;
    overflow-x:auto!important;overflow-y:hidden!important;-webkit-overflow-scrolling:touch!important;touch-action:auto!important;
@@ -31,7 +32,7 @@ function addCSS(){
  #nexa-player-gen-rail{padding:9px 15px 6px!important;background:rgba(6,10,25,.82)!important}
  .nexa-player-gen{flex:0 0 auto!important;border:1px solid rgba(132,145,204,.22)!important;border-radius:999px!important;background:#0b1128!important;color:#909cc0!important;padding:8px 12px!important;font-size:10px!important;font-weight:900!important;white-space:nowrap!important}
  .nexa-player-gen.active{color:#fff!important;border-color:#a97cff!important;background:rgba(103,66,190,.28)!important}
- #nexa-profile-modal .nexa-profile-content{padding:12px!important;overflow-x:hidden!important;min-height:220px!important}
+ #nexa-profile-modal .nexa-profile-content{display:none!important}#nexa-pl-owned-root{padding:12px!important;overflow-x:hidden!important;min-height:220px!important;display:block!important}
  .nexa-pl-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
  .nexa-pl-card{min-width:0!important;border:1px solid rgba(131,111,222,.27)!important;border-radius:18px!important;padding:10px!important;background:linear-gradient(150deg,rgba(19,24,53,.94),rgba(5,10,26,.98))!important}
  .nexa-pl-top{display:grid!important;grid-template-columns:54px minmax(0,1fr)!important;gap:9px!important;align-items:center!important}
@@ -62,7 +63,9 @@ function installTabs(){
  for(const [k,label] of [['gear','CHIEF GEAR'],['charms','CHARMS']]){
   if(!bar.querySelector(`[data-library-tab="${k}"]`)){const b=document.createElement('button');b.type='button';b.className='nexa-profile-tab';b.dataset.libraryTab=k;b.textContent=label;bar.appendChild(b)}
  }
- if(!$('#nexa-player-gen-rail')){const r=document.createElement('nav');r.id='nexa-player-gen-rail';r.setAttribute('aria-label','Generation');content.before(r)}
+ content.style.setProperty('display','none','important');
+ let owned=root();if(!owned){owned=document.createElement('div');owned.id='nexa-pl-owned-root';content.after(owned)}
+ if(!$('#nexa-player-gen-rail')){const r=document.createElement('nav');r.id='nexa-player-gen-rail';r.setAttribute('aria-label','Generation');owned.before(r)}
  return true;
 }
 async function resolveAccount(preferred=null){
@@ -137,7 +140,7 @@ async function load(){
 }
 async function render(cat=activeCategory,reload=true){
  activeCategory=types[cat]?cat:'heroes';activeGeneration='all';addCSS();installTabs();
- const content=$('#nexa-profile-content');if(!content)return;
+ const content=root();if(!content)return;
  await resolveAccount();
  if(!accountId){content.innerHTML='<div class="nexa-pl-empty"><b>Select an account</b>Open My Profile again.</div>';return}
  if(reload){content.innerHTML='<div class="nexa-pl-empty"><b>Loading Library…</b>Preparing this account.</div>';try{await load()}catch(e){content.innerHTML=`<div class="nexa-pl-empty"><b>Could not load Library</b>${esc(e?.message||e)}</div>`;return}}
@@ -168,7 +171,7 @@ async function scheduleOpen(preferred=null){
  if(preferred)await resolveAccount(preferred);else await resolveAccount();
  const attempt=async(force=false)=>{
   if(run!==openRun)return;
-  const modal=$('#nexa-profile-modal'),content=$('#nexa-profile-content');
+  const modal=$('#nexa-profile-modal'),content=root();
   if(!modal||!content)return;
   if(!modal.classList.contains('open')&&!force)return;
   const owned=content.querySelector('.nexa-pl-grid,.nexa-pl-empty');

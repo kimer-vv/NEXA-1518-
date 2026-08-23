@@ -1,11 +1,11 @@
-/* NEXA V42.6 — ROUTE + LEGACY SHELL CLEANUP
+/* NEXA V42.7 — CONSOLIDATED STABILIZATION
    Home polish, stable Administration shell, embedded Library, My Alliance management,
    Profile helpers and event-aware themes. No global MutationObserver. No manual scrollLeft.
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V426__)return;
-window.__NEXA_V426__=true;
+if(window.__NEXA_V427__)return;
+window.__NEXA_V427__=true;
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
@@ -18,8 +18,8 @@ const LABEL={alliances:'Alliances',library:'Library',permissions:'NEXA Access',r
 function sb(){if(window.supabaseClient?.from)return window.supabaseClient;if(window.sb?.from)return window.sb;if(!localSb&&window.supabase?.createClient)localSb=window.supabase.createClient(SB_URL,SB_KEY);return localSb}
 
 function addCSS(){
- if($('#nexa-v426-css'))return;
- const s=document.createElement('style');s.id='nexa-v426-css';s.textContent=`
+ if($('#nexa-v427-css'))return;
+ const s=document.createElement('style');s.id='nexa-v427-css';s.textContent=`
  :root{--nexa-event-primary:#9b79ff;--nexa-event-secondary:#55cfff;--nexa-event-deep:#24154c}
  html,body{max-width:100%!important;overflow-x:hidden!important}
  body.nexa-workspace-open #nexa-home-menu-toggle,body.nexa-workspace-open #nexa-home-menu{display:none!important}
@@ -55,6 +55,18 @@ function addCSS(){
  #nexa-v425-alliance{border:1px solid rgba(219,66,255,.34)!important;background:linear-gradient(145deg,rgba(37,8,52,.91),rgba(13,6,30,.97))!important}
  #nexa-v425-alliance .kicker{color:#ec8cff!important}
 
+ #nexa-home-menu-toggle{top:max(142px,calc(env(safe-area-inset-top) + 108px))!important}
+
+ /* UNIFIED ADMIN INTRO + BUG REPORTS */
+ .nexa-v427-admin-intro{margin:0 0 14px!important;padding:13px 15px!important;border:1px solid rgba(134,105,255,.28)!important;border-radius:18px!important;background:linear-gradient(145deg,rgba(14,19,46,.88),rgba(5,9,24,.94))!important;color:#aeb8d3!important;font-size:12px!important;line-height:1.48!important}
+ .nexa-v427-admin-intro h2,.nexa-v427-admin-intro h3,.nexa-v427-admin-intro h4{display:none!important}
+ .nexa-v427-admin-intro p,.nexa-v427-admin-intro div{margin:0!important;color:#aeb8d3!important}
+ #admin-system>.admin-section-head{display:none!important}
+ #nexa-v427-bugs{margin-top:16px!important;padding-top:4px!important}
+ .nexa-v427-bug-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;margin-bottom:10px!important}
+ .nexa-v427-bug-head h3{margin:0!important;font-size:18px!important}.nexa-v427-bug-refresh{border:1px solid rgba(103,210,255,.35)!important;border-radius:999px!important;background:#0a1430!important;color:#7ee5ff!important;padding:8px 12px!important;font-weight:900!important}
+ .nexa-v427-bug{border:1px solid rgba(132,101,255,.24)!important;border-radius:16px!important;background:#081027!important;padding:12px!important;margin:8px 0!important}.nexa-v427-bug b{display:block!important}.nexa-v427-bug small{display:block!important;color:#8f9ab8!important;margin:3px 0 8px!important}.nexa-v427-bug p{margin:5px 0!important;color:#c3c9dc!important;font-size:12px!important;line-height:1.4!important}.nexa-v427-bug-controls{display:flex!important;gap:7px!important;flex-wrap:wrap!important;margin-top:9px!important}.nexa-v427-bug-controls select,.nexa-v427-bug-controls button{border:1px solid rgba(255,255,255,.14)!important;border-radius:10px!important;background:#0d1430!important;color:#fff!important;padding:8px!important;font-weight:800!important}
+
  /* PROFILE */
  #nexa-profile-modal{overflow:hidden!important;padding:6px!important}
  #nexa-profile-modal .nexa-profile-sheet{width:min(680px,calc(100vw - 12px))!important;max-width:calc(100vw - 12px)!important;max-height:calc(100dvh - 12px)!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch!important;touch-action:auto!important}
@@ -74,9 +86,9 @@ function addCSS(){
  #admin-modal .admin-section{width:100%!important;max-width:680px!important;margin:0 auto!important;position:static!important}
  #admin-modal .admin-section-head{position:static!important}
  /* V42.6: never expose the obsolete native Administration bodies behind the new shell. */
- #admin-modal.open #admin-alliances>:not(.nexa-v25-nav):not(.nexa-v25-host),
- #admin-modal.open #admin-permissions>:not(.nexa-v25-nav):not(.nexa-v25-host),
- #admin-modal.open #admin-roles>:not(.nexa-v25-nav):not(.nexa-v25-host){display:none!important}
+ #admin-modal.open #admin-alliances>:not(.nexa-v25-nav):not(.nexa-v25-host):not(.nexa-v427-admin-intro),
+ #admin-modal.open #admin-permissions>:not(.nexa-v25-nav):not(.nexa-v25-host):not(.nexa-v427-admin-intro),
+ #admin-modal.open #admin-roles>:not(.nexa-v25-nav):not(.nexa-v25-host):not(.nexa-v427-admin-intro){display:none!important}
  #admin-modal.open #admin-alliances>.nexa-v25-host,
  #admin-modal.open #admin-permissions>.nexa-v25-host,
  #admin-modal.open #admin-roles>.nexa-v25-host{display:block!important}
@@ -136,18 +148,15 @@ function compactLive(){
 }
 function compactTransfers(){
  const section=$('#home-transfers-section');if(!section)return;const t=txt(section);
- const inactive=/Applications stay available for the next transfer cycle|no open transfer|Transfer Center/i.test(t)&&!/applications open|active transfer|live cycle/i.test(t);
+ const inactive=/Applications stay available for the next transfer cycle|Transfer cycles and recruiting information will appear here|no open transfer/i.test(t)&&!/applications open|active transfer|live cycle|now recruiting|transfer event active/i.test(t);
  section.classList.toggle('nexa-v425-empty',inactive);
- let copy=$('.nexa-v425-empty-copy',section);
- const actions=$$('button,a',section).filter(x=>/^(Open|View)$/i.test(txt(x)));
  if(inactive){
-  if(!copy){copy=document.createElement('div');copy.className='nexa-v425-empty-copy';copy.innerHTML='<div class="kicker">TRANSFERS</div><h3>Transfer Center</h3><p>Transfer cycles and recruiting information will appear here when a transfer cycle is active.</p>';section.prepend(copy)}
-  actions.forEach(x=>x.style.setProperty('display','none','important'));
- }else{
-  copy?.remove();
-  actions.forEach(x=>x.style.removeProperty('display'));
- }
+  section.setAttribute('data-nexa-empty','1');
+  section.style.setProperty('height','auto','important');section.style.setProperty('min-height','0','important');section.style.setProperty('max-height','none','important');section.style.setProperty('aspect-ratio','auto','important');
+  section.innerHTML='<div class="nexa-v425-empty-copy"><div class="kicker">TRANSFERS</div><h3>Transfer Center</h3><p>Transfer cycles and recruiting information will appear here when a transfer cycle is active.</p></div>';
+ }else{section.removeAttribute('data-nexa-empty')}
 }
+
 function ensureSignals(){
  const tr=$('#home-transfers-section'),live=$('#home-svs-section');
  let pulse=$('#nexa-v425-pulse');if(!pulse){pulse=document.createElement('section');pulse.id='nexa-v425-pulse';pulse.innerHTML='<div class="kicker">NEXA PULSE</div><h3>Signals & response requests</h3><p>Forms, surveys and requests appear here when leadership publishes them.</p>'}
@@ -196,7 +205,7 @@ function polishMenu(){
 }
 async function reportBug(){
  const d=overlay('nexa-v425-bug','Report Bugs','<form id="nexa-v425-bug-form"><label>Module<input name="module" placeholder="Home, Profile, Administration..."></label><label>What happened?<textarea name="description" rows="5" required></textarea></label><button type="submit">Send Report</button><div id="nexa-v425-bug-status"></div></form>','#ff6ea9','BUG REPORT');
- const f=$('#nexa-v425-bug-form',d);if(!f)return;f.onsubmit=async e=>{e.preventDefault();const st=$('#nexa-v425-bug-status');st.textContent='Sending…';try{const c=sb(),{data:{user}}=await c.auth.getUser();if(!user)throw new Error('Sign in required.');const fd=new FormData(f);const {error}=await c.rpc('nexa_submit_bug_report',{p_module:String(fd.get('module')||''),p_description:String(fd.get('description')||''),p_expected_behavior:null,p_actual_behavior:null,p_page_path:location.pathname+location.search,p_build_label:'V42.6',p_user_agent:navigator.userAgent,p_viewport:`${innerWidth}x${innerHeight}`,p_client_errors:[],p_screenshot_paths:[]});if(error)throw error;st.textContent='Report sent ✓'}catch(err){st.textContent=err?.message||err}};
+ const f=$('#nexa-v425-bug-form',d);if(!f)return;f.onsubmit=async e=>{e.preventDefault();const st=$('#nexa-v425-bug-status');st.textContent='Sending…';try{const c=sb(),{data:{user}}=await c.auth.getUser();if(!user)throw new Error('Sign in required.');const fd=new FormData(f);const {error}=await c.rpc('nexa_submit_bug_report',{p_module:String(fd.get('module')||''),p_description:String(fd.get('description')||''),p_expected_behavior:null,p_actual_behavior:null,p_page_path:location.pathname+location.search,p_build_label:'V42.7',p_user_agent:navigator.userAgent,p_viewport:`${innerWidth}x${innerHeight}`,p_client_errors:[],p_screenshot_paths:[]});if(error)throw error;st.textContent='Report sent ✓'}catch(err){st.textContent=err?.message||err}};
 }
 
 /* ADMIN */
@@ -227,19 +236,50 @@ function patchLibraryFrame(frame){
   if(window.ResizeObserver&&!frame._nexa425RO){frame._nexa425RO=new ResizeObserver(size);frame._nexa425RO.observe(d.documentElement)}
  }catch(e){console.warn('Library embed',e?.message||e)}
 }
+const ADMIN_COPY={
+ alliances:'Create, activate and manage alliance passports, emblems, access codes and member leadership.',
+ library:'Verified NEXA master catalog. Control the Heroes, Experts, Pets, Troops, Chief Gear and Charms players can see.',
+ permissions:'Find a player and manage Operational Roles and module access from one place.',
+ roles:"Alliance Rank is managed inside each Alliance Passport. Operational Roles describe a person's work in NEXA and never grant module access automatically.",
+ system:'Owner-only website controls. Maintenance Mode protects every public NEXA route while you work.'
+};
+function adminSection(target){return $({alliances:'#admin-alliances',library:'#admin-library',permissions:'#admin-permissions',roles:'#admin-roles',system:'#admin-system'}[target]||'')}
+function normalizeAdminSection(target){
+ const sec=adminSection(target);if(!sec)return;
+ $$('.nexa-v427-admin-intro',sec).forEach(x=>x.remove());
+ if(target==='roles'){
+  const first=$('.nexa-v25-host>.nexa-v25-panel',sec);
+  if(first&&/Alliance Rank is managed inside each Alliance Passport|Operational Roles describe/i.test(txt(first)))first.style.display='none';
+ }
+ if(target==='system'){
+  $(':scope>.admin-section-head',sec)?.style.setProperty('display','none','important');
+  $$('h2,h3',sec).filter(x=>/^System Operations$/i.test(txt(x))).forEach(x=>x.style.display='none');
+ }
+ const intro=document.createElement('div');intro.className='nexa-v427-admin-intro';intro.textContent=ADMIN_COPY[target]||'';
+ sec.prepend(intro);
+}
+async function loadBugReports(){
+ const sec=$('#admin-system');if(!sec)return;let wrap=$('#nexa-v427-bugs',sec);if(!wrap){wrap=document.createElement('section');wrap.id='nexa-v427-bugs';sec.appendChild(wrap)}
+ wrap.innerHTML='<div class="nexa-v427-bug-head"><h3>Bug Reports</h3><button class="nexa-v427-bug-refresh" type="button">Refresh</button></div><div class="nexa-v425-empty">Loading bug reports…</div>';
+ try{const {data,error}=await sb().rpc('nexa_list_bug_reports');if(error)throw error;const rows=Array.isArray(data)?data:[];
+  wrap.innerHTML='<div class="nexa-v427-bug-head"><h3>Bug Reports</h3><button class="nexa-v427-bug-refresh" type="button">Refresh</button></div>'+(rows.length?rows.map(r=>`<article class="nexa-v427-bug" data-bug-id="${esc(r.id)}"><b>${esc(r.module||'General')} · ${esc(r.reporter_name||'Player')}</b><small>${esc(r.game_id||'—')} ${r.alliance_tag?'· '+esc(r.alliance_tag):''} · ${r.created_at?esc(new Date(r.created_at).toLocaleString()):''}</small><p>${esc(r.description||'No description')}</p><div class="nexa-v427-bug-controls"><select data-bug-status><option ${r.status==='new'?'selected':''}>new</option><option ${r.status==='reviewing'?'selected':''}>reviewing</option><option ${r.status==='resolved'?'selected':''}>resolved</option><option ${r.status==='closed'?'selected':''}>closed</option></select><select data-bug-severity><option value="">severity</option>${['low','medium','high','critical'].map(v=>`<option ${r.severity===v?'selected':''}>${v}</option>`).join('')}</select><button type="button" data-save-bug>Save</button></div></article>`).join(''):'<div class="nexa-v425-empty">No bug reports yet.</div>');
+ }catch(e){wrap.innerHTML='<div class="nexa-v427-bug-head"><h3>Bug Reports</h3><button class="nexa-v427-bug-refresh" type="button">Refresh</button></div><div class="nexa-v425-empty">'+esc(e?.message||e)+'</div>'}
+}
+async function saveBugReport(card){if(!card)return;const status=$('[data-bug-status]',card)?.value||null,severity=$('[data-bug-severity]',card)?.value||null;try{const {error}=await sb().rpc('nexa_update_bug_report',{p_id:card.dataset.bugId,p_status:status,p_severity:severity||null,p_diagnostic_summary:null,p_likely_cause:null,p_reproduction_steps:null,p_suggested_review:null});if(error)throw error;await loadBugReports()}catch(e){overlay('nexa-v427-bug-error','Bug Report',esc(e?.message||e),'#ff6ea9','ERROR')}}
+
 function showLibrary(){
  hideNativeWorkspaces();const modal=$('#admin-modal'),content=$('#svs-admin-content'),sec=$('#admin-library');if(!modal||!content||!sec)return;
  modal.classList.add('open','module-view','nexa-v25-admin');modal.setAttribute('aria-hidden','false');$('#admin-module-chooser')?.classList.add('hidden');content.classList.remove('hidden');
  $$('.admin-section').forEach(s=>{s.classList.add('hidden');s.classList.remove('nexa-v25-active')});sec.classList.remove('hidden');sec.classList.add('nexa-v25-active','nexa-v425-library');
- if(!$('#nexa-v425-library-frame',sec)){sec.innerHTML='<iframe id="nexa-v425-library-frame" title="NEXA Library" src="library.html?admin=1&embed=1&v=426"></iframe>';const f=$('#nexa-v425-library-frame',sec);f.addEventListener('load',()=>patchLibraryFrame(f))}
- else patchLibraryFrame($('#nexa-v425-library-frame',sec));
+ if(!$('#nexa-v425-library-frame',sec)){sec.innerHTML='<div class="nexa-v427-admin-intro">'+ADMIN_COPY.library+'</div><iframe id="nexa-v425-library-frame" title="NEXA Library" src="library.html?admin=1&embed=1&v=427"></iframe>';const f=$('#nexa-v425-library-frame',sec);f.addEventListener('load',()=>patchLibraryFrame(f))}
+ else{normalizeAdminSection('library');patchLibraryFrame($('#nexa-v425-library-frame',sec))}
 }
 async function activateAdmin(target){
  target=ADMIN.includes(target)?target:'alliances';currentAdmin=target;document.body.classList.add('nexa-workspace-open');closeMenu();ensureAdminShell();hideNativeWorkspaces();
  if(target==='library'){showLibrary();updateAdminShell();return}
  $('#admin-library')?.classList.add('hidden');$('#admin-library')?.classList.remove('nexa-v25-active');
  if(target==='system'){try{const {data}=await sb().rpc('is_nexa_owner');if(data!==true){overlay('nexa-v425-system-denied','System Operations','System Operations is Owner-only.','#ff6ea9','ACCESS');currentAdmin='roles';updateAdminShell();triggerPassport('roles');return}}catch{}}
- const key=target==='permissions'?'access':target;triggerPassport(key);updateAdminShell();setTimeout(()=>$('.admin-modal-card',$('#admin-modal'))?.scrollTo({top:0,behavior:'auto'}),30);
+ const key=target==='permissions'?'access':target;triggerPassport(key);updateAdminShell();[80,240,600,1200].forEach(ms=>setTimeout(()=>normalizeAdminSection(target),ms));if(target==='system'){setTimeout(loadBugReports,520);setTimeout(loadBugReports,1400);}setTimeout(()=>$('.admin-modal-card',$('#admin-modal'))?.scrollTo({top:0,behavior:'auto'}),30);
 }
 function openAdminFromExisting(){
  setTimeout(()=>{const m=$('#admin-modal');if(!m?.classList.contains('open'))return;document.body.classList.add('nexa-workspace-open');ensureAdminShell();activateAdmin('alliances')},260);
@@ -326,13 +366,18 @@ document.addEventListener('click',e=>{
  if(b.matches('[data-approve]')){e.preventDefault();memberAction(b.dataset.approve,'approve',b);return}
  if(b.matches('[data-reject]')){e.preventDefault();if(confirm('Reject this pending member?'))memberAction(b.dataset.reject,'remove',b);return}
  if(b.matches('[data-member-action]')){e.preventDefault();memberAction(b.dataset.id,b.dataset.memberAction,b);return}
+ if(b.matches('.nexa-v427-bug-refresh')){e.preventDefault();loadBugReports();return}
+ if(b.matches('[data-save-bug]')){e.preventDefault();saveBugReport(b.closest('.nexa-v427-bug'));return}
  if(b.matches('[data-close-admin]'))setTimeout(()=>document.body.classList.remove('nexa-workspace-open'),30);
  if(b.matches('[data-nexa-profile],#nexa-profile-launcher,#nexa-profile-launcher-section')){[120,380].forEach(ms=>setTimeout(ensureProfileActions,ms))}
 },true);
 
 function boot(){
  addCSS();ensureStellar();ensureSignals();ensureProfileActions();polishMenu();homePass();initAdminURL();
- [350,950,1800].forEach(ms=>setTimeout(()=>{homePass();ensureProfileActions();polishMenu();if($('#admin-modal')?.classList.contains('open'))ensureAdminShell()},ms));
+ [350,950,1800,3200,5200].forEach(ms=>setTimeout(()=>{homePass();ensureProfileActions();polishMenu();if($('#admin-modal')?.classList.contains('open'))ensureAdminShell()},ms));
+ let n=0;const homeTimer=setInterval(()=>{homePass();if(++n>=16)clearInterval(homeTimer)},250);
+ // Legacy Home code may repaint cards later. Keep only the lightweight visual normalization alive; no DOM observer and no database polling here.
+ setInterval(()=>{compactLive();compactTransfers();ensureSignals();hideBuild();applyTheme();},1800);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 window.addEventListener('pageshow',()=>setTimeout(()=>{homePass();ensureProfileActions()},80));

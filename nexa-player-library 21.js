@@ -1,11 +1,11 @@
-/* NEXA Player Library V26 — root Profile library owner
+/* NEXA Player Library V27 — hard-mounted Profile library owner
    Native iOS rails. Resolves the active account from the visible Profile or Main account.
    No MutationObserver. No manual scrollLeft.
 */
 (()=>{
 'use strict';
-if(window.__NEXA_PLAYER_LIBRARY_V26__) return;
-window.__NEXA_PLAYER_LIBRARY_V26__=true;
+if(window.__NEXA_PLAYER_LIBRARY_V27__) return;
+window.__NEXA_PLAYER_LIBRARY_V27__=true;
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
@@ -57,15 +57,25 @@ function addCSS(){
  document.head.appendChild(s);
 }
 function installTabs(){
- const bar=$('#nexa-profile-modal .nexa-profile-tabs'),content=$('#nexa-profile-content');if(!bar||!content)return false;
+ const modal=$('#nexa-profile-modal'),bar=$('#nexa-profile-modal .nexa-profile-tabs');if(!modal||!bar)return false;
+ const sheet=bar.closest('.nexa-profile-sheet')||modal.querySelector('.nexa-profile-sheet')||modal;
  const map={heroes:'HEROES',experts:'EXPERTS',troops:'TROOPS',pets:'PETS'};
  for(const [k,label] of Object.entries(map)){const b=bar.querySelector(`[data-nexa-tab="${k}"]`);if(b){b.dataset.libraryTab=k;b.textContent=label}}
  for(const [k,label] of [['gear','CHIEF GEAR'],['charms','CHARMS']]){
   if(!bar.querySelector(`[data-library-tab="${k}"]`)){const b=document.createElement('button');b.type='button';b.className='nexa-profile-tab';b.dataset.libraryTab=k;b.textContent=label;bar.appendChild(b)}
  }
- content.style.setProperty('display','none','important');
- let owned=root();if(!owned){owned=document.createElement('div');owned.id='nexa-pl-owned-root';content.after(owned)}owned.style.setProperty('display','block','important');
- if(!$('#nexa-player-gen-rail')){const r=document.createElement('nav');r.id='nexa-player-gen-rail';r.setAttribute('aria-label','Generation');owned.before(r)}
+ $$('.nexa-profile-content,#nexa-profile-content',modal).forEach(x=>x.style.setProperty('display','none','important'));
+ let rail=$('#nexa-player-gen-rail');
+ let owned=root();
+ if(!rail){rail=document.createElement('nav');rail.id='nexa-player-gen-rail';rail.setAttribute('aria-label','Generation')}
+ if(!owned){owned=document.createElement('div');owned.id='nexa-pl-owned-root'}
+ // Mount directly after the tab rail, outside the native content node that index.html rewrites.
+ if(bar.nextElementSibling!==rail)bar.after(rail);
+ if(rail.nextElementSibling!==owned)rail.after(owned);
+ owned.style.setProperty('display','block','important');
+ owned.style.setProperty('position','relative','important');
+ owned.style.setProperty('z-index','5','important');
+ owned.style.setProperty('width','100%','important');
  return true;
 }
 async function resolveAccount(preferred=null){
@@ -171,7 +181,7 @@ async function scheduleOpen(preferred=null){
  if(preferred)await resolveAccount(preferred);else await resolveAccount();
  const attempt=async(force=false)=>{
   if(run!==openRun)return;
-  const modal=$('#nexa-profile-modal'),content=root();
+  const modal=$('#nexa-profile-modal');installTabs();const content=root();
   if(!modal||!content)return;
   if(!modal.classList.contains('open')&&!force)return;
   const owned=content.querySelector('.nexa-pl-grid,.nexa-pl-empty');
@@ -207,6 +217,6 @@ document.addEventListener('change',e=>{
 },true);
 document.addEventListener('nexa:profile-opened',e=>scheduleOpen(e.detail?.accountId));
 window.NEXA_RENDER_PROFILE_LIBRARY=(id)=>scheduleOpen(id||null);
-function boot(){addCSS();installTabs();if($('#nexa-profile-modal')?.classList.contains('open'))scheduleOpen()}
+function boot(){addCSS();installTabs();[250,700,1400,2600].forEach(ms=>setTimeout(installTabs,ms));if($('#nexa-profile-modal')?.classList.contains('open'))scheduleOpen()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();

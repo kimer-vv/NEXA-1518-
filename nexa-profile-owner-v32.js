@@ -1,4 +1,4 @@
-/* NEXA PROFILE OWNER V32 — FUNCTIONAL REBUILD
+/* NEXA PROFILE OWNER V32.1 — FUNCTIONAL REBUILD + MINISTRY CLEANUP
    Single Profile owner for Heroes / Experts / Troops / Pets / Chief Gear / Charms.
    Uses nexa_library_items + player_library_inventory.
    No MutationObserver. No manual scrollLeft. No touchmove preventDefault.
@@ -19,9 +19,19 @@ const TYPES={heroes:'hero',experts:'expert',troops:'troop',pets:'pet',gear:'chie
 const COLORS=['#a967ff','#43dff2','#ff55c7','#4f87ff','#4bd694','#ffae4d','#e55bff','#4ad5b2','#f06686','#68a9ff','#b682ff','#f1d45e'];
 
 let activeCat='heroes', activeGen='all', selectedId=null, accountId=null;
-let items=[], inventory=[];
+let items=[], inventory=[], localSb=null;
 
-function sb(){return window.supabaseClient?.from?window.supabaseClient:window.sb?.from?window.sb:null}
+function sb(){
+  if(window.supabaseClient?.from) return window.supabaseClient;
+  if(window.sb?.from) return window.sb;
+  if(!localSb && window.supabase?.createClient){
+    localSb=window.supabase.createClient(
+      'https://dfxcxboxrkfmrnsgpyin.supabase.co',
+      'sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-'
+    );
+  }
+  return localSb;
+}
 function genOf(i){return Number(i.generation||0)}
 function colorFor(i,idx=0){
   if(i.item_type==='hero'||i.item_type==='expert'||i.item_type==='pet') return COLORS[Math.max(0,genOf(i))%COLORS.length];
@@ -219,24 +229,43 @@ function ensureShell(){
  return shell;
 }
 async function resolveAccount(){
- if(window.NEXA_ACTIVE_ACCOUNT_ID)return String(window.NEXA_ACTIVE_ACCOUNT_ID);
+ if(window.NEXA_ACTIVE_ACCOUNT_ID){
+   accountId=String(window.NEXA_ACTIVE_ACCOUNT_ID);
+   return accountId;
+ }
  const c=sb();if(!c)return null;
- const playerId=$('#nexa-profile-player-id')?.textContent?.trim();
- const {data:{user}}=await c.auth.getUser();if(!user)return null;
- let q=c.from('player_accounts').select('id').eq('user_id',user.id);
- if(playerId)q=q.eq('player_id',playerId);
- const r=await q.order('is_main',{ascending:false}).limit(1).maybeSingle();
- return r.data?.id?String(r.data.id):null;
+ try{
+   const {data:{user}}=await c.auth.getUser();if(!user)return null;
+   const playerId=String($('#nexa-profile-player-id')?.textContent||'').trim();
+   let r=null;
+   if(playerId && playerId!=='—'){
+     r=await c.from('player_accounts').select('id').eq('user_id',user.id).eq('player_id',playerId).maybeSingle();
+   }
+   if(!r?.data?.id){
+     r=await c.from('player_accounts').select('id').eq('user_id',user.id).order('is_main',{ascending:false}).order('created_at').limit(1).maybeSingle();
+   }
+   if(r?.data?.id){
+     accountId=String(r.data.id);
+     window.NEXA_ACTIVE_ACCOUNT_ID=accountId;
+   }
+ }catch(e){console.warn('V32 account',e?.message||e)}
+ return accountId;
 }
 async function load(){
- const c=sb();if(!c)return;
- accountId=await resolveAccount();if(!accountId)return;
- const [a,b]=await Promise.all([
-   c.from('nexa_library_items').select('*').eq('is_active',true).order('sort_order').order('name'),
-   c.from('player_library_inventory').select('*').eq('player_account_id',accountId)
- ]);
- if(!a.error)items=a.data||[]; if(!b.error)inventory=b.data||[];
+ const c=sb();
  render();
+ if(!c)return;
+ try{
+   accountId=await resolveAccount();
+   const a=await c.from('nexa_library_items').select('*').eq('is_active',true).eq('is_visible',true).order('generation').order('sort_order').order('name');
+   if(!a.error)items=a.data||[];
+   if(accountId){
+     const b=await c.from('player_library_inventory').select('*').eq('player_account_id',accountId);
+     if(!b.error)inventory=b.data||[];
+   }else inventory=[];
+ }catch(e){console.warn('V32 load',e?.message||e)}
+ render();
+ await refreshMinistryState();
 }
 function catItems(){
  if(activeCat==='charms') return items.filter(i=>i.item_type==='chief_gear');
@@ -452,6 +481,14 @@ async function reset(){
 }
 
 document.addEventListener('click',e=>{
+ const ministry=e.target.closest?.('#nexa-v425-ministry');
+ if(ministry){
+   e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+   (async()=>{await refreshMinistryState();ministryOverlay(ministryState)})();
+   return;
+ }
+ const closeMin=e.target.closest?.('[data-v32-close-ministry]');
+ if(closeMin){e.preventDefault();$('#nexa-v32-ministry-overlay')?.remove();return}
  const cat=e.target.closest?.('[data-v32-cat]');if(cat){activeCat=cat.dataset.v32Cat;activeGen='all';selectedId=null;render();return}
  const gen=e.target.closest?.('[data-v32-gen]');if(gen){activeGen=gen.dataset.v32Gen;selectedId=null;renderFilters();renderGrid();renderDetail();return}
  const item=e.target.closest?.('[data-v32-item]');if(item){selectedId=item.dataset.v32Item;renderGrid();renderDetail();return}
@@ -475,7 +512,70 @@ document.addEventListener('input',e=>{
  if(e.target.matches?.('[data-expert-skill]')){const box=e.target.closest('.v32-skill'),res=$('.v32-result',box);if(res){const i=items.find(x=>String(x.id)===String(selectedId)),s=i?.metadata?.skills?.[Number(e.target.dataset.expertSkill)];res.textContent=`Level ${e.target.value} • ${s?.effect||''}`}}
 },true);
 
-function boot(){css();ensureShell();load();[100,300,700].forEach(ms=>setTimeout(()=>{ensureShell();placeEdit()},ms))}
+
+function ministrySVG(){
+ return `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+   <path d="M6 4h12v3l-2 2v8h2v3H6v-3h2V9L6 7V4zm4 5v8h4V9h-4z"
+     fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+   <path d="M8 4V2m4 2V2m4 2V2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+ </svg>`;
+}
+function ministryButton(){
+ return $('#nexa-v425-ministry');
+}
+function paintMinistryButton(active=false,label=''){
+ const b=ministryButton();if(!b)return;
+ b.innerHTML=ministrySVG();
+ b.setAttribute('aria-label',active?`Ministry appointment: ${label||'active'}`:'No active Ministry appointment');
+ b.title=active?(label||'Ministry appointment'):'No active Ministry appointment';
+ b.dataset.v32MinistryActive=active?'1':'0';
+ b.style.color=active?'#e1c8ff':'#b79cff';
+ b.style.borderColor=active?'rgba(209,151,255,.85)':'rgba(183,156,255,.52)';
+ b.style.boxShadow=active?'0 0 10px rgba(198,128,255,.45),0 0 22px rgba(154,83,255,.22)':'0 0 8px rgba(169,116,255,.18)';
+ b.style.background='radial-gradient(circle at 50% 45%,rgba(156,91,255,.20),rgba(10,14,36,.92) 70%)';
+}
+async function activeMinistryAppointment(){
+ const c=sb();if(!c)return null;
+ await resolveAccount();if(!accountId)return null;
+ try{
+   const ev=await c.from('svs_events').select('id,prep_monday,is_live,auto_end_at').eq('is_live',true).order('prep_monday',{ascending:false}).limit(1).maybeSingle();
+   if(ev.error||!ev.data?.id)return null;
+   const now=new Date().toISOString();
+   const ap=await c.from('ministry_appointments')
+     .select('id,event_id,player_account_id,day_type,ministry_position,appointment_time,notes')
+     .eq('event_id',ev.data.id)
+     .eq('player_account_id',accountId)
+     .gte('appointment_time',now)
+     .order('appointment_time',{ascending:true})
+     .limit(1)
+     .maybeSingle();
+   return ap.error?null:(ap.data||null);
+ }catch(e){console.warn('V32 ministry',e?.message||e);return null}
+}
+let ministryState=null;
+async function refreshMinistryState(){
+ ministryState=await activeMinistryAppointment();
+ paintMinistryButton(!!ministryState,ministryState?`${ministryState.ministry_position||''} ${ministryState.day_type||''}`.trim():'');
+}
+function ministryOverlay(ap){
+ $('#nexa-v32-ministry-overlay')?.remove();
+ const o=document.createElement('div');o.id='nexa-v32-ministry-overlay';
+ o.style.cssText='position:fixed;inset:0;z-index:2147483647;background:rgba(1,3,12,.78);backdrop-filter:blur(8px);display:grid;place-items:center;padding:18px';
+ const when=ap?.appointment_time?new Date(ap.appointment_time).toLocaleString([], {dateStyle:'medium',timeStyle:'short'}):'';
+ o.innerHTML=`<section style="width:min(430px,100%);border:1px solid rgba(190,149,255,.68);border-radius:24px;background:linear-gradient(160deg,#111632,#070b1d);padding:20px;box-shadow:0 0 32px rgba(148,83,255,.18)">
+   <div style="color:#caa7ff;font-size:10px;font-weight:950;letter-spacing:.18em">MINISTRY</div>
+   <h3 style="margin:8px 0 12px;color:#fff;font-size:23px">${ap?'Ministry Appointment':'No active Ministry appointment'}</h3>
+   ${ap?`<div style="color:#c8cce0;font-size:13px;line-height:1.55"><b style="color:#fff">${esc(ap.ministry_position||'')}</b><br>${esc(ap.day_type||'')} • ${esc(when)}</div>`:
+   `<p style="margin:0;color:#aeb6cf;font-size:13px;line-height:1.55">There is no current Ministry appointment for this account.</p>`}
+   <button type="button" data-v32-close-ministry style="margin-top:18px;border:1px solid rgba(190,149,255,.65);border-radius:999px;background:#0d1230;color:#fff;padding:9px 16px;font-weight:900">Close</button>
+ </section>`;
+ document.body.appendChild(o);
+}
+
+function boot(){
+ css();ensureShell();render();paintMinistryButton(false);load();
+ [100,300,700,1400].forEach(ms=>setTimeout(()=>{ensureShell();placeEdit();paintMinistryButton(!!ministryState,ministryState?`${ministryState.ministry_position||''} ${ministryState.day_type||''}`.trim():'')},ms));
+}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 window.addEventListener('pageshow',()=>setTimeout(()=>{ensureShell();load()},100));
 })();

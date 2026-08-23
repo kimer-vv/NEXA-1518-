@@ -1,11 +1,11 @@
-/* NEXA Player Library V23 — reliable Profile renderer
+/* NEXA Player Library V24 — deterministic Profile owner
    Native iOS rails. Resolves the active account from the visible Profile or Main account.
    No MutationObserver. No manual scrollLeft.
 */
 (()=>{
 'use strict';
-if(window.__NEXA_PLAYER_LIBRARY_V23__) return;
-window.__NEXA_PLAYER_LIBRARY_V23__=true;
+if(window.__NEXA_PLAYER_LIBRARY_V24__) return;
+window.__NEXA_PLAYER_LIBRARY_V24__=true;
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
@@ -19,8 +19,8 @@ const types={
 
 function sb(){return window.supabaseClient?.from?window.supabaseClient:(window.sb?.from?window.sb:null)}
 function addCSS(){
- if($('#nexa-player-library-v23-css'))return;
- const s=document.createElement('style');s.id='nexa-player-library-v23-css';s.textContent=`
+ if($('#nexa-player-library-v24-css'))return;
+ const s=document.createElement('style');s.id='nexa-player-library-v24-css';s.textContent=`
  #nexa-profile-modal .nexa-profile-tabs,#nexa-player-gen-rail{
    display:flex!important;flex-flow:row nowrap!important;gap:7px!important;width:100%!important;max-width:100%!important;
    overflow-x:auto!important;overflow-y:hidden!important;-webkit-overflow-scrolling:touch!important;touch-action:auto!important;
@@ -162,10 +162,28 @@ function showGuide(x){
  d.innerHTML=`<div><b style="color:#ffbf47">${esc(x.name||'Item')}</b><p>${copy}</p><button type="button">Close</button></div>`;d.onclick=e=>{if(e.target===d||e.target.tagName==='BUTTON')d.remove()};document.body.appendChild(d);
 }
 function itemFor(card){return items.find(x=>String(x.id)===String(card.dataset.libraryItem))}
+let openRun=0;
 async function scheduleOpen(preferred=null){
+ const run=++openRun;
  if(preferred)await resolveAccount(preferred);else await resolveAccount();
- [180,520,1050].forEach((ms,i)=>setTimeout(()=>render(i?activeCategory:'heroes',i===0),ms));
+ const attempt=async(force=false)=>{
+  if(run!==openRun)return;
+  const modal=$('#nexa-profile-modal'),content=$('#nexa-profile-content');
+  if(!modal||!content)return;
+  if(!modal.classList.contains('open')&&!force)return;
+  const owned=content.querySelector('.nexa-pl-grid,.nexa-pl-empty');
+  if(!owned||force)await render(activeCategory,true);
+ };
+ // The native Passport loader is asynchronous and can finish late on iPhone/Safari. Reclaim the content after it settles without using a MutationObserver.
+ [120,260,480,760,1100,1500,2100,2800,4200,6500,9000].forEach((ms,i)=>setTimeout(()=>attempt(i===2||i===5||i===8||i===10),ms));
+ let ticks=0;const timer=setInterval(async()=>{
+  if(run!==openRun){clearInterval(timer);return}
+  const modal=$('#nexa-profile-modal');
+  if(modal?.classList.contains('open'))await attempt(false);
+  if(++ticks>=48)clearInterval(timer)
+ },250);
 }
+
 
 document.addEventListener('click',e=>{
  const planet=e.target.closest?.('[data-nexa-profile],[data-account-constellation-id]');
@@ -185,6 +203,6 @@ document.addEventListener('change',e=>{
  const old=$('.nexa-pl-fc',card);if(old)old.remove();if(fcsrc){const ni=document.createElement('img');ni.className='nexa-pl-fc';ni.src=fcsrc;ni.alt='FC'+fc;$('.nexa-pl-name',card)?.append(' ',ni)}
 },true);
 document.addEventListener('nexa:profile-opened',e=>scheduleOpen(e.detail?.accountId));
-function boot(){addCSS();installTabs()}
+function boot(){addCSS();installTabs();if($('#nexa-profile-modal')?.classList.contains('open'))scheduleOpen()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();

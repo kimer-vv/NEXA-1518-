@@ -1,11 +1,11 @@
-/* NEXA V43.1 — CACHE OWNER + HOME POLISH
+/* NEXA V43.2 — ROOT CLEANUP + PROFILE OWNER
    Home polish, stable Administration shell, embedded Library, My Alliance management,
    Profile helpers and event-aware themes. No global MutationObserver. No manual scrollLeft.
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V431__)return;
-window.__NEXA_V431__=true;
+if(window.__NEXA_V432__)return;
+window.__NEXA_V432__=true;
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
@@ -19,7 +19,7 @@ function forceFreshOwners(){
  };
  // index.html still requests historical ?v=21 URLs. Load the current owners with unique URLs so Safari/Vercel cannot serve the stale copies.
  load('nexa-fresh-troop-owner','nexa-troop-assets-v21.js?v=24-431');
- load('nexa-fresh-profile-owner','nexa-player-library%2021.js?v=28-431');
+ load('nexa-fresh-profile-owner','nexa-profile-owner-v29.js?v=29-432');
 }
 
 let localSb=null,currentAdmin='alliances',allianceCtx=null,allianceTargetTag=null;
@@ -235,7 +235,7 @@ function homePass(){ensureStellar();compactLive();compactTransfers();ensureSigna
 /* PROFILE HELPERS */
 function ensureProfileActions(){
  const stats=$('#nexa-profile-modal .nexa-profile-stats');if(!stats||$('#nexa-v425-profile-actions'))return;
- const r=document.createElement('div');r.id='nexa-v425-profile-actions';r.innerHTML='<button class="nexa-v425-guide" type="button">ⓘ</button><button class="nexa-v425-ministry" type="button">♜</button>';stats.after(r);
+ const r=document.createElement('div');r.id='nexa-v425-profile-actions';r.innerHTML='<button class="nexa-v425-guide" type="button" aria-label="Profile guide">ⓘ</button><button class="nexa-v425-ministry" type="button" aria-label="Ministry Schedule"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9h14v10H5zM7 5v4M17 5v4M8 13h3v3H8zM13 13h3v3h-3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 5h8M6 9h12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>';stats.after(r);
 }
 function profileGuide(){overlay('nexa-v425-profile-guide','My Profile','Swipe categories and generations naturally. Each Library card has its own <b>Reset</b>, gold <b>Guide</b> and <b>Save</b>. Troop tier and Fire Crystal choices update their artwork.','#ff4fd8')}
 async function ministry(){
@@ -256,7 +256,7 @@ function polishMenu(){
 }
 async function reportBug(){
  const d=overlay('nexa-v425-bug','Report Bugs','<form id="nexa-v425-bug-form"><label>Module<input name="module" placeholder="Home, Profile, Administration..."></label><label>What happened?<textarea name="description" rows="5" required></textarea></label><button type="submit">Send Report</button><div id="nexa-v425-bug-status"></div></form>','#ff6ea9','BUG REPORT');
- const f=$('#nexa-v425-bug-form',d);if(!f)return;f.onsubmit=async e=>{e.preventDefault();const st=$('#nexa-v425-bug-status');st.textContent='Sending…';try{const c=sb(),{data:{user}}=await c.auth.getUser();if(!user)throw new Error('Sign in required.');const fd=new FormData(f);const {error}=await c.rpc('nexa_submit_bug_report',{p_module:String(fd.get('module')||''),p_description:String(fd.get('description')||''),p_expected_behavior:null,p_actual_behavior:null,p_page_path:location.pathname+location.search,p_build_label:'V42.8',p_user_agent:navigator.userAgent,p_viewport:`${innerWidth}x${innerHeight}`,p_client_errors:[],p_screenshot_paths:[]});if(error)throw error;st.textContent='Report sent ✓'}catch(err){st.textContent=err?.message||err}};
+ const f=$('#nexa-v425-bug-form',d);if(!f)return;f.onsubmit=async e=>{e.preventDefault();const st=$('#nexa-v425-bug-status');st.textContent='Sending…';try{const c=sb(),{data:{user}}=await c.auth.getUser();if(!user)throw new Error('Sign in required.');const fd=new FormData(f);const {error}=await c.rpc('nexa_submit_bug_report',{p_module:String(fd.get('module')||''),p_description:String(fd.get('description')||''),p_expected_behavior:null,p_actual_behavior:null,p_page_path:location.pathname+location.search,p_build_label:'V43.2',p_user_agent:navigator.userAgent,p_viewport:`${innerWidth}x${innerHeight}`,p_client_errors:[],p_screenshot_paths:[]});if(error)throw error;st.textContent='Report sent ✓'}catch(err){st.textContent=err?.message||err}};
 }
 
 /* ADMIN */
@@ -402,7 +402,7 @@ async function refreshAllianceHub(active='members'){
 async function openAllianceHub(targetTag=null){
  allianceTargetTag=targetTag||null;closeMenu();document.body.classList.add('nexa-workspace-open');$('#nexa-v425-alliance-hub')?.remove();const h=document.createElement('section');h.id='nexa-v425-alliance-hub';h.innerHTML='<div class="nexa-v425-hub-head"><button class="nexa-v425-hub-guide" type="button">ⓘ</button><h2>'+(targetTag?'Alliance Management':'My Alliance')+'</h2><button class="nexa-v425-hub-close" type="button">×</button></div><div class="nexa-v425-passport"><h1>Loading…</h1><p>Alliance Passport</p></div><nav class="nexa-v425-tabs"><button class="active" data-tab="members">Members</button><button data-tab="pending">Pending Members</button><button data-tab="pulse">NEXA Pulse</button><button data-tab="history">Pulse History</button><button data-tab="events">Alliance Events</button></nav><div id="nexa-v425-hub-body"><div class="nexa-v425-empty">Loading alliance…</div></div>';document.body.appendChild(h);
  $('.nexa-v425-hub-close',h).onclick=()=>{allianceTargetTag=null;h.remove();document.body.classList.remove('nexa-workspace-open')};$('.nexa-v425-hub-guide',h).onclick=()=>overlay('nexa-v425-alliance-guide','My Alliance','Members opens the alliance roster. Authorized R4/R5 leadership can tap a member to change rank, remove them, or move them to another active alliance. Pending Members contains approval actions.','#ff4fd8');
- if(targetTag){try{allianceCtx=await loadAllianceContext(targetTag);const a=allianceCtx?.alliance;if(a){const em=a.emblemUrl?`<img src="${esc(a.emblemUrl)}" alt="${esc(a.tag)} emblem">`:`<span>${esc(a.tag||'?')}</span>`;$('.nexa-v425-passport',h).style.setProperty('--ac',a.color||'#8b6cff');$('.nexa-v425-passport',h).innerHTML=`<div class="nexa-v425-emblem">${em}</div><h1>${esc(a.tag||a.name||'Alliance')}</h1><p>Alliance Passport • ${(a.members||[]).length} members</p>`;renderAllianceTab('members')}else await refreshAllianceHub()}catch{await refreshAllianceHub()}}else await refreshAllianceHub('members',forcedAllianceId);
+ if(targetTag){try{allianceCtx=await loadAllianceContext(targetTag);const a=allianceCtx?.alliance;if(a){const em=a.emblemUrl?`<img src="${esc(a.emblemUrl)}" alt="${esc(a.tag)} emblem">`:`<span>${esc(a.tag||'?')}</span>`;$('.nexa-v425-passport',h).style.setProperty('--ac',a.color||'#8b6cff');$('.nexa-v425-passport',h).innerHTML=`<div class="nexa-v425-emblem">${em}</div><h1>${esc(a.tag||a.name||'Alliance')}</h1><p>Alliance Passport • ${(a.members||[]).length} members</p>`;renderAllianceTab('members')}else await refreshAllianceHub()}catch{await refreshAllianceHub()}}else await refreshAllianceHub('members');
 }
 function findMember(id){return allianceCtx?.alliance?.members?.find(m=>String(m.accountId)===String(id))}
 function openMemberManager(id){
@@ -455,16 +455,24 @@ document.addEventListener('click',e=>{
  if(b.matches('[data-nexa-profile],#nexa-profile-launcher,#nexa-profile-launcher-section')){[120,380].forEach(ms=>setTimeout(ensureProfileActions,ms))}
 },true);
 
-function add431Polish(){
- if($('#nexa-v431-polish'))return;
- const st=document.createElement('style');st.id='nexa-v431-polish';st.textContent=`
- #nexa-v430-transfer-card h2,#nexa-v429-transfer-card h2,#nexa-v431-transfer-card h2{font-size:clamp(1.35rem,5vw,1.7rem)!important;line-height:1.08!important;margin:4px 0 5px!important}
- #nexa-v430-transfer-card p,#nexa-v429-transfer-card p,#nexa-v431-transfer-card p{font-size:.96rem!important;line-height:1.35!important;margin:0!important}
- #nexa-v430-transfer-card,#nexa-v429-transfer-card,#nexa-v431-transfer-card{padding-top:16px!important;padding-bottom:16px!important}
+function add432Polish(){
+ if($('#nexa-v432-polish'))return;
+ const st=document.createElement('style');st.id='nexa-v432-polish';st.textContent=`
+ #nexa-v430-transfer-card{padding:12px 14px!important;border-radius:18px!important}
+ #nexa-v430-transfer-card .kicker{font-size:8px!important;letter-spacing:.17em!important;margin:0 0 4px!important}
+ #nexa-v430-transfer-card h2,#nexa-v430-transfer-card h3{font-size:15px!important;line-height:1.12!important;margin:0 0 3px!important}
+ #nexa-v430-transfer-card p{font-size:10px!important;line-height:1.38!important;margin:0!important;color:#adb7cf!important}
+ #nexa-v430-transfer-card .nexa-v430-actions{margin-top:8px!important}
+ #nexa-v425-ministry svg{width:19px!important;height:19px!important;display:block!important}
+ #nexa-profile-modal.nexa-p29-owned .nexa-profile-tabs,
+ #nexa-profile-modal.nexa-p29-owned #nexa-profile-content,
+ #nexa-profile-modal.nexa-p29-owned .nexa-profile-content,
+ #nexa-profile-modal.nexa-p29-owned #nexa-player-gen-rail,
+ #nexa-profile-modal.nexa-p29-owned #nexa-pl-owned-root{display:none!important}
  `;document.head.appendChild(st);
 }
 function boot(){
- forceFreshOwners();add431Polish();
+ forceFreshOwners();add432Polish();
  addCSS();normalizeIOSZoom();ensureStellar();ensureSignals();ensureProfileActions();polishMenu();homePass();refreshTransferOwner();initAdminURL();
  [350,950,1800,3200,5200].forEach(ms=>setTimeout(()=>{homePass();ensureProfileActions();polishMenu();if($('#admin-modal')?.classList.contains('open')){ensureAdminShell();if(currentAdmin==='alliances')decorateAlliancePassports()}},ms));
  let n=0;const homeTimer=setInterval(()=>{homePass();if(++n>=16)clearInterval(homeTimer)},250);

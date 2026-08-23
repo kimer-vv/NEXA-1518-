@@ -1,11 +1,11 @@
-/* NEXA Player Library V25 — isolated Profile library owner
+/* NEXA Player Library V26 — root Profile library owner
    Native iOS rails. Resolves the active account from the visible Profile or Main account.
    No MutationObserver. No manual scrollLeft.
 */
 (()=>{
 'use strict';
-if(window.__NEXA_PLAYER_LIBRARY_V25__) return;
-window.__NEXA_PLAYER_LIBRARY_V25__=true;
+if(window.__NEXA_PLAYER_LIBRARY_V26__) return;
+window.__NEXA_PLAYER_LIBRARY_V26__=true;
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
@@ -64,7 +64,7 @@ function installTabs(){
   if(!bar.querySelector(`[data-library-tab="${k}"]`)){const b=document.createElement('button');b.type='button';b.className='nexa-profile-tab';b.dataset.libraryTab=k;b.textContent=label;bar.appendChild(b)}
  }
  content.style.setProperty('display','none','important');
- let owned=root();if(!owned){owned=document.createElement('div');owned.id='nexa-pl-owned-root';content.after(owned)}
+ let owned=root();if(!owned){owned=document.createElement('div');owned.id='nexa-pl-owned-root';content.after(owned)}owned.style.setProperty('display','block','important');
  if(!$('#nexa-player-gen-rail')){const r=document.createElement('nav');r.id='nexa-player-gen-rail';r.setAttribute('aria-label','Generation');owned.before(r)}
  return true;
 }
@@ -122,7 +122,7 @@ function cards(list){
  return `<article class="nexa-pl-card" data-library-item="${esc(x.id)}"><div class="nexa-pl-top">${pic}<div><h4 class="nexa-pl-name">${esc(x.name||'Item')}${fcsrc?` <img class="nexa-pl-fc" src="${esc(fcsrc)}" alt="FC${fc}">`:''}</h4><div class="nexa-pl-meta">${esc(meta(x,p))}</div></div></div><div class="nexa-pl-fields">${fields(x,p)}</div><div class="nexa-pl-actions"><button class="nexa-pl-reset" type="button">Reset</button><button class="nexa-pl-guide" type="button">ⓘ</button><button class="nexa-pl-save" type="button">Save</button></div><div class="nexa-pl-status"></div></article>`}).join('')}</div>`;
 }
 function paint(){
- installTabs();const content=$('#nexa-profile-content');if(!content)return;
+ installTabs();const content=root();if(!content)return;
  const byCat=items.filter(x=>typeMatches(x,activeCategory));genRail(byCat);
  const list=activeGeneration==='all'?byCat:byCat.filter(x=>generationOf(x)===Number(activeGeneration));
  $$('#nexa-profile-modal .nexa-profile-tab').forEach(b=>b.classList.toggle('active',(b.dataset.libraryTab||b.dataset.nexaTab)===activeCategory));
@@ -206,6 +206,7 @@ document.addEventListener('change',e=>{
  const old=$('.nexa-pl-fc',card);if(old)old.remove();if(fcsrc){const ni=document.createElement('img');ni.className='nexa-pl-fc';ni.src=fcsrc;ni.alt='FC'+fc;$('.nexa-pl-name',card)?.append(' ',ni)}
 },true);
 document.addEventListener('nexa:profile-opened',e=>scheduleOpen(e.detail?.accountId));
+window.NEXA_RENDER_PROFILE_LIBRARY=(id)=>scheduleOpen(id||null);
 function boot(){addCSS();installTabs();if($('#nexa-profile-modal')?.classList.contains('open'))scheduleOpen()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();

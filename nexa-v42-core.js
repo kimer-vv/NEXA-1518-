@@ -1,17 +1,27 @@
-/* NEXA V43.0 — ROOT OWNER TAKEOVER II
+/* NEXA V43.1 — CACHE OWNER + HOME POLISH
    Home polish, stable Administration shell, embedded Library, My Alliance management,
    Profile helpers and event-aware themes. No global MutationObserver. No manual scrollLeft.
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V430__)return;
-window.__NEXA_V430__=true;
+if(window.__NEXA_V431__)return;
+window.__NEXA_V431__=true;
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
 const txt=e=>(e?.textContent||'').replace(/\s+/g,' ').trim();
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co',SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
+function forceFreshOwners(){
+ const load=(id,src)=>{
+  document.getElementById(id)?.remove();
+  const el=document.createElement('script');el.id=id;el.src=src;el.defer=false;document.head.appendChild(el);
+ };
+ // index.html still requests historical ?v=21 URLs. Load the current owners with unique URLs so Safari/Vercel cannot serve the stale copies.
+ load('nexa-fresh-troop-owner','nexa-troop-assets-v21.js?v=24-431');
+ load('nexa-fresh-profile-owner','nexa-player-library%2021.js?v=28-431');
+}
+
 let localSb=null,currentAdmin='alliances',allianceCtx=null,allianceTargetTag=null;
 const ADMIN=['alliances','library','permissions','roles','system'];
 const LABEL={alliances:'Alliances',library:'Library',permissions:'NEXA Access',roles:'Operational Roles',system:'System Operations'};
@@ -445,7 +455,16 @@ document.addEventListener('click',e=>{
  if(b.matches('[data-nexa-profile],#nexa-profile-launcher,#nexa-profile-launcher-section')){[120,380].forEach(ms=>setTimeout(ensureProfileActions,ms))}
 },true);
 
+function add431Polish(){
+ if($('#nexa-v431-polish'))return;
+ const st=document.createElement('style');st.id='nexa-v431-polish';st.textContent=`
+ #nexa-v430-transfer-card h2,#nexa-v429-transfer-card h2,#nexa-v431-transfer-card h2{font-size:clamp(1.35rem,5vw,1.7rem)!important;line-height:1.08!important;margin:4px 0 5px!important}
+ #nexa-v430-transfer-card p,#nexa-v429-transfer-card p,#nexa-v431-transfer-card p{font-size:.96rem!important;line-height:1.35!important;margin:0!important}
+ #nexa-v430-transfer-card,#nexa-v429-transfer-card,#nexa-v431-transfer-card{padding-top:16px!important;padding-bottom:16px!important}
+ `;document.head.appendChild(st);
+}
 function boot(){
+ forceFreshOwners();add431Polish();
  addCSS();normalizeIOSZoom();ensureStellar();ensureSignals();ensureProfileActions();polishMenu();homePass();refreshTransferOwner();initAdminURL();
  [350,950,1800,3200,5200].forEach(ms=>setTimeout(()=>{homePass();ensureProfileActions();polishMenu();if($('#admin-modal')?.classList.contains('open')){ensureAdminShell();if(currentAdmin==='alliances')decorateAlliancePassports()}},ms));
  let n=0;const homeTimer=setInterval(()=>{homePass();if(++n>=16)clearInterval(homeTimer)},250);

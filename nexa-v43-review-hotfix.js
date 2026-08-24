@@ -1,4 +1,4 @@
-/* NEXA V43.7 — STABLE OWNER RUNTIME — 2026-08-24
+/* NEXA V43.8 — RESTORE WORKING PROFILE CONTROLS — 2026-08-24
    Single focused runtime for the remaining Profile/Admin conflicts.
    Does NOT modify Heroes, Experts, Troops, or Library data.
    Fixes: Pets, Ministry visual ownership, legacy Ministry card cleanup,
@@ -7,8 +7,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V437_STABLE_RUNTIME__)return;
-window.__NEXA_V437_STABLE_RUNTIME__=true;
+if(window.__NEXA_V438_STABLE_RUNTIME__)return;
+window.__NEXA_V438_STABLE_RUNTIME__=true;
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
@@ -67,13 +67,58 @@ function css(){
  .nexa-v437-main{display:inline-flex!important;width:max-content!important;max-width:100%!important;padding:5px 9px!important;border:1px solid rgba(255,211,96,.35)!important;border-radius:999px!important;background:rgba(72,51,13,.22)!important;color:#ffd879!important;font-size:8px!important;font-weight:950!important;letter-spacing:.08em!important;white-space:nowrap!important}
  .nexa-v437-alliance-note{display:grid;gap:2px;margin:3px 0 6px}.nexa-v437-alliance-note b{color:#75e7ff;font-size:9px}.nexa-v437-alliance-note small{color:#8e99b9;font-size:8px;line-height:1.3}
 
- #nexa-v437-owner-manager{display:grid;gap:13px;margin:12px 0 16px;padding:14px;border:1px solid rgba(78,213,255,.32);border-radius:18px;background:linear-gradient(145deg,rgba(7,29,50,.92),rgba(7,10,31,.97));box-shadow:0 0 25px rgba(57,188,255,.08)}
- #nexa-v437-owner-manager .v437-title{color:#82eaff;font-size:9px;font-weight:950;letter-spacing:.13em}
- #nexa-v437-owner-manager label{display:grid;gap:5px;color:#9ba7c5;font-size:8px;font-weight:950;letter-spacing:.08em}
- #nexa-v437-owner-manager select{width:100%;padding:10px;border:1px solid rgba(112,136,201,.28);border-radius:11px;background:#071027;color:#fff;font-size:16px}
+ #nexa-v437-owner-manager,.nexa-v438-owner-manager{display:grid;gap:13px;margin:12px 0 16px;padding:14px;border:1px solid rgba(78,213,255,.32);border-radius:18px;background:linear-gradient(145deg,rgba(7,29,50,.92),rgba(7,10,31,.97));box-shadow:0 0 25px rgba(57,188,255,.08)}
+ #nexa-v437-owner-manager .v437-title,.nexa-v438-owner-manager .v437-title{color:#82eaff;font-size:9px;font-weight:950;letter-spacing:.13em}
+ #nexa-v437-owner-manager label,.nexa-v438-owner-manager label{display:grid;gap:5px;color:#9ba7c5;font-size:8px;font-weight:950;letter-spacing:.08em}
+ #nexa-v437-owner-manager select,.nexa-v438-owner-manager select{width:100%;padding:10px;border:1px solid rgba(112,136,201,.28);border-radius:11px;background:#071027;color:#fff;font-size:16px}
  .v437-badges{display:flex;gap:6px;flex-wrap:wrap}.v437-badge{border:1px solid rgba(72,209,255,.36);border-radius:999px;padding:6px 9px;background:rgba(13,51,72,.62);color:#d4f8ff;font-size:8px;font-weight:900}.v437-badge.mod{border-color:rgba(166,107,255,.38);background:rgba(48,28,83,.58);color:#eadfff}
  .v437-add{width:max-content;border:0;background:transparent;color:#72e3ff;padding:0;font-size:9px;font-weight:900}.v437-msg{min-height:14px;color:#8debc7;font-size:9px}
  .v437-check-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.v437-check-grid label{display:flex!important;flex-direction:row!important;align-items:center!important;gap:7px!important;padding:8px;border:1px solid rgba(255,255,255,.10);border-radius:11px;background:rgba(5,11,29,.52);font-size:9px!important;letter-spacing:0!important;color:#cbd3e7!important}.v437-check-grid input{width:18px!important;height:18px!important}
+
+/* V43.8 — restore the working widget table + compact Transfer heading. */
+.nexa-v438-widget-table .v33-skills{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:8px!important;
+}
+.nexa-v438-widget-table .v33-skill{
+  display:grid!important;
+  grid-template-columns:minmax(115px,.85fr) minmax(0,1.7fr) minmax(92px,.62fr)!important;
+  gap:10px!important;
+  align-items:center!important;
+  padding:11px 12px!important;
+  min-height:0!important;
+}
+.nexa-v438-widget-name b{display:block!important;color:#fff!important;font-size:12px!important;line-height:1.25!important}
+.nexa-v438-widget-name span{display:block!important;margin-top:3px!important;color:#77e9ff!important;font-size:8px!important;font-weight:950!important;letter-spacing:.12em!important}
+.nexa-v438-widget-desc{color:#c8cfe2!important;font-size:10px!important;line-height:1.4!important}
+.nexa-v438-widget-buff{padding:8px 9px!important;border:1px solid rgba(152,93,255,.40)!important;border-radius:10px!important;background:rgba(79,40,143,.22)!important;color:#fff!important;font-size:11px!important;font-weight:900!important;text-align:center!important}
+.nexa-v438-widget-buff small{display:block!important;margin-top:3px!important;color:#aeb7d1!important;font-size:8px!important;font-weight:700!important}
+@media(max-width:520px){
+  .nexa-v438-widget-table .v33-skill{
+    grid-template-columns:minmax(92px,.75fr) minmax(0,1.5fr) minmax(84px,.65fr)!important;
+    gap:7px!important;
+  }
+  .nexa-v438-widget-desc{font-size:9px!important}
+}
+#nexa-v430-transfer-card h3,
+#nexa-transfer-card h3,
+[data-nexa-transfer] h3,
+#home-transfers-section h2,
+#home-transfers-section h3{
+  font-size:16px!important;
+  line-height:1.15!important;
+  margin:3px 0 4px!important;
+}
+.v33-charm-img{
+  width:76px!important;height:76px!important;
+  object-fit:contain!important;
+  display:block!important;
+  background:transparent!important;
+  opacity:1!important;
+  visibility:visible!important;
+}
+
  `;document.head.appendChild(s);
 }
 
@@ -186,4 +231,370 @@ window.addEventListener('nexa:profile-open',defer);
 window.addEventListener('nexa:profile-updated',defer);
 window.addEventListener('nexa:auth-ready',defer);
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',defer,{once:true});else defer();
+
+/* =========================================================
+   V43.8 RESTORE ONLY — do not touch Pets/Heroes/Experts art.
+   ========================================================= */
+
+/* Known widget table behavior that was working before V43.7.
+   Widget effects advance independently:
+   Exploration at 1/3/5/7/9; Expedition at 2/4/6/8/10. */
+const V438_EXP=[0,3,5,7,10,15];
+const V438_WIDGETS={
+ jeronimo:['Dawnbreak','Shield of Swords',['Damage Taken -30%','Damage Taken -30%','Damage Taken -30%','Damage Taken -30%','Damage Taken -30%'],'Discernment','Rally Troop Attack'],
+ natalia:['Ursus Strength','Polar Rampage',['Effect Lv 1','Effect Lv 2','Effect Lv 3','Effect Lv 4','Effect Lv 5'],'Ursus Might','Rally Troop Attack']
+};
+function v438Norm(s=''){return String(s).toLowerCase().replace(/[^a-z0-9]/g,'')}
+function v438EffectLv(widgetLevel,kind){
+  return kind==='explore'
+    ? clamp(Math.ceil(widgetLevel/2),0,5)
+    : clamp(Math.floor(widgetLevel/2),0,5);
+}
+function v438WidgetData(name){
+  const direct=V438_WIDGETS[v438Norm(name)];
+  if(direct)return direct;
+
+  /* Read the current V33-rendered skills so heroes already working are not replaced
+     with invented data. We only change layout/progression presentation. */
+  const root=$('#nexa-v33-detail');
+  const sec=$$('.v33-section',root).find(x=>/EXCLUSIVE GEAR|WIDGET/i.test($('.v33-kicker span',x)?.textContent||''));
+  if(!sec)return null;
+  const gear=($('.v33-kicker strong',sec)?.textContent||'Widget').split('•')[0].trim();
+  const cards=$$('.v33-skill',sec);
+  if(cards.length<2)return null;
+  return [
+    gear,
+    $('h4',cards[0])?.textContent?.trim()||'Exploration Effect',
+    [],
+    $('h4',cards[1])?.textContent?.trim()||'Expedition Effect',
+    (($('small',cards[1])?.textContent||'').split('•')[0].trim()||'Expedition Buff')
+  ];
+}
+function v438Widget(){
+  const root=$('#nexa-v33-detail');
+  if(!root?.classList.contains('open'))return;
+  const sec=$$('.v33-section',root).find(x=>/EXCLUSIVE GEAR|WIDGET/i.test($('.v33-kicker span',x)?.textContent||''));
+  if(!sec)return;
+
+  const hero=($('.v33-title h3',root)?.textContent||'').trim();
+  const d=v438WidgetData(hero);
+  if(!d)return;
+
+  const lv=Number($('[data-v33-widget].active',sec)?.dataset.v33Widget
+               || $('[data-v33-widget-level].active',sec)?.dataset.v33WidgetLevel
+               || root.dataset.widgetLevel || 0);
+  const explore=v438EffectLv(lv,'explore');
+  const expedition=v438EffectLv(lv,'exp');
+
+  const originalCards=$$('.v33-skill',sec);
+  const originalExplore=originalCards[0] ? $('.v33-result',originalCards[0])?.textContent?.trim() : '';
+  const originalExpedition=originalCards[1] ? $('.v33-result',originalCards[1])?.textContent?.trim() : '';
+  const originalExploreDesc=originalCards[0] ? $('small',originalCards[0])?.textContent?.trim() : '';
+  const originalExpeditionDesc=originalCards[1] ? $('small',originalCards[1])?.textContent?.trim() : '';
+
+  const k=$('.v33-kicker strong',sec);
+  if(k)k.textContent=`${d[0]} • LV ${lv}`;
+
+  let skills=$('.v33-skills',sec);
+  if(!skills){skills=document.createElement('div');skills.className='v33-skills';sec.appendChild(skills)}
+  sec.classList.add('nexa-v438-widget-table');
+
+  let aVal='Unlocks at Widget Lv 1';
+  if(explore){
+    aVal=(d[2]?.[explore-1] && !/^Effect Lv/i.test(d[2][explore-1]))
+      ? d[2][explore-1]
+      : (originalExplore && !/Not active|Locked/i.test(originalExplore) ? originalExplore : `Effect Lv ${explore}/5`);
+  }
+  let bVal='Unlocks at Widget Lv 2';
+  if(expedition){
+    const known=d[4] && !/^Expedition Buff$/i.test(d[4])
+      ? `${d[4]} +${V438_EXP[expedition]}%`
+      : '';
+    bVal=known || (originalExpedition && !/Not active|Locked/i.test(originalExpedition) ? originalExpedition : `Effect Lv ${expedition}/5`);
+  }
+
+  skills.innerHTML=`
+    <article class="v33-skill">
+      <div class="nexa-v438-widget-name"><b>${esc(d[1])}</b><span>EXPLORATION</span></div>
+      <div class="nexa-v438-widget-desc">${esc(originalExploreDesc||'Exclusive Gear effect • upgrades at Widget Lv 1/3/5/7/9.')}</div>
+      <div class="nexa-v438-widget-buff"><b>${esc(aVal)}</b>${explore?`<small>Effect Lv ${explore}/5</small>`:''}</div>
+    </article>
+    <article class="v33-skill">
+      <div class="nexa-v438-widget-name"><b>${esc(d[3])}</b><span>EXPEDITION</span></div>
+      <div class="nexa-v438-widget-desc">${esc(originalExpeditionDesc||`${d[4]} • upgrades at Widget Lv 2/4/6/8/10.`)}</div>
+      <div class="nexa-v438-widget-buff"><b>${esc(bVal)}</b>${expedition?`<small>Effect Lv ${expedition}/5</small>`:''}</div>
+    </article>`;
+
+  window.NEXA_ACTIVE_WIDGET_BUFFS={
+    hero,widgetLevel:lv,
+    explorationLevel:explore,
+    expeditionLevel:expedition,
+    exploration:aVal,
+    expedition:bVal
+  };
+}
+
+/* Troop summary must change immediately when Tier/FC/T11/T12 changes.
+   Preserve V33's existing visual/cards; only restore cumulative passive summary. */
+const V438_TROOP_SKILLS={
+ infantry:[
+  ['T1','Master Brawler','Attack Damage to Lancers +10%',(t,f)=>t>=1],
+  ['T7','Bands of Steel','Defense against Lancers +10%',(t,f)=>t>=7],
+  ['FC3','Crystal Shield I','25% chance to offset 36% damage',(t,f)=>f>=3],
+  ['FC5','Crystal Shield II','37.5% chance to offset 36% damage',(t,f)=>f>=5],
+  ['FC8','Body of Light I','Infantry Defense +4% • Crystal Shield active: extra 10% damage reduction',(t,f)=>f>=8],
+  ['FC10','Body of Light II','Infantry Defense +6% • Crystal Shield active: extra 15% damage reduction',(t,f)=>f>=10]
+ ],
+ lancer:[
+  ['T1','Charge','Attack Damage to Marksmen +10%',(t,f)=>t>=1],
+  ['T7','Ambusher','20% chance to strike Marksmen behind Infantry',(t,f)=>t>=7],
+  ['FC3','Crystal Lance I','10% chance to deal double damage',(t,f)=>f>=3],
+  ['FC5','Crystal Lance II','15% chance to deal double damage',(t,f)=>f>=5],
+  ['FC8','Incandescent Field I','10% chance to take half damage when attacked',(t,f)=>f>=8],
+  ['FC10','Incandescent Field II','15% chance to take half damage when attacked',(t,f)=>f>=10]
+ ],
+ marksman:[
+  ['T1','Ranged Strike','Attack Damage to Infantry +10%',(t,f)=>t>=1],
+  ['T7','Volley','10% chance for attacks to strike twice',(t,f)=>t>=7],
+  ['FC3','Crystal Gunpowder I','20% chance to deal 50% more damage',(t,f)=>f>=3],
+  ['FC5','Crystal Gunpowder II','30% chance to deal 50% more damage',(t,f)=>f>=5],
+  ['FC8','Flame Charge I','Marksman basic attack +4% • proc adds +25% damage',(t,f)=>f>=8],
+  ['FC10','Flame Charge II','Marksman basic attack +6% • proc adds +37.5% damage',(t,f)=>f>=10]
+ ]
+};
+function v438TroopType(){
+  const root=$('#nexa-v33-detail');if(!root)return'';
+  const s=(($('.v33-title h3',root)?.textContent||'')+' '+($('.v33-title small',root)?.textContent||'')).toLowerCase();
+  return s.includes('infantry')?'infantry':s.includes('lancer')?'lancer':s.includes('marksman')?'marksman':'';
+}
+function v438Troop(){
+  const root=$('#nexa-v33-detail');if(!root?.classList.contains('open'))return;
+  const type=v438TroopType();if(!type)return;
+
+  const tier=Number($('[data-v33-troop-tier].active',root)?.dataset.v33TroopTier||root.dataset.troopTier||1);
+  const fc=Number($('[data-v33-troop-fc].active',root)?.dataset.v33TroopFc||root.dataset.troopFc||0);
+  const sec=$$('.v33-section',root).find(x=>/ACTIVE TROOP SUMMARY/i.test($('.v33-kicker span',x)?.textContent||''));
+  if(!sec)return;
+
+  let box=$('.nexa-v438-passives',sec);
+  if(!box){
+    box=document.createElement('div');
+    box.className='nexa-v438-passives';
+    box.style.cssText='display:grid;gap:7px;margin-top:10px';
+    sec.appendChild(box);
+  }
+  const unlocked=V438_TROOP_SKILLS[type].filter(x=>x[3](tier,fc));
+  box.innerHTML=unlocked.map(x=>`
+    <div style="display:grid;grid-template-columns:42px 1fr;gap:8px;padding:8px 9px;border:1px solid rgba(88,199,255,.18);border-radius:11px;background:rgba(6,22,43,.42)">
+      <span style="font-size:8px;font-weight:950;color:#70e9ff">${x[0]}</span>
+      <div><b style="display:block;font-size:10px">${x[1]}</b><small style="display:block;color:#acb7d0;font-size:9px">${x[2]}</small></div>
+    </div>`).join('');
+
+  window.NEXA_ACTIVE_TROOP_BUFFS={type,tier,fc,skills:unlocked.map(x=>({name:x[1],effect:x[2]}))};
+}
+
+/* Charms: V33 still points to /assets/charms/<type>/lv-N.png.
+   The real files in this project use /lv01-infantry.png etc.
+   Repair the exact charm row, not a generic ancestor. */
+function v438CharmType(){
+  const root=$('#nexa-v33-detail');if(!root)return'';
+  const head=($('.v33-charm-gear-head',root)?.textContent||'')+' '+($('.v33-title h3',root)?.textContent||'');
+  const s=head.toLowerCase();
+  if(/infantry|coat|pants/.test(s))return'infantry';
+  if(/lancer|helmet|watch/.test(s))return'lancer';
+  if(/marksman|ring|short\s*staff|shortstaff/.test(s))return'marksman';
+  return'';
+}
+function v438Charms(){
+  const root=$('#nexa-v33-detail');if(!root?.classList.contains('open'))return;
+  const type=v438CharmType();if(!type)return;
+
+  $$('.v33-charm-row',root).forEach(row=>{
+    const sel=$('[data-v33-charm-level]',row);if(!sel)return;
+    const lv=clamp(Number(sel.value||0),0,18);
+    const body=$('.v33-charm-body',row);if(!body)return;
+
+    let img=$('.v33-charm-img',row);
+    let ph=$('.v33-charm-placeholder',row);
+    if(!lv){
+      img?.remove();
+      if(!ph){
+        ph=document.createElement('div');ph.className='v33-charm-placeholder';ph.textContent='◇';
+        body.prepend(ph);
+      }
+      return;
+    }
+
+    if(!img){
+      img=document.createElement('img');
+      img.className='v33-charm-img';
+      if(ph)ph.replaceWith(img); else body.prepend(img);
+    }
+    img.onerror=null;
+    img.src=`/lv${pad(lv)}-${type}.png`;
+    img.alt=`${type} Charm Lv ${lv}`;
+    img.style.opacity='1';
+    img.style.visibility='visible';
+    img.style.display='block';
+    img.style.background='transparent';
+  });
+}
+
+/* Keep the Ministry pill clickable.
+   Do NOT hide any ancestor that contains the new Ministry button. */
+function v438MinistrySafety(){
+  const root=$('#nexa-profile-modal');if(!root)return;
+  $$('section,article,.card,.panel,div',root).forEach(el=>{
+    if(el.id==='nexa-v425-ministry'||el.querySelector?.('#nexa-v425-ministry'))return;
+    if(el.closest('#nexa-v425-ministry,#nexa-v33-ministry-overlay'))return;
+    const t=(el.textContent||'').replace(/\s+/g,' ').trim();
+    if(t.length>0&&t.length<650&&/Ministry Schedule/i.test(t)){
+      el.style.display='none';
+      el.setAttribute('aria-hidden','true');
+    }
+  });
+}
+
+/* Main Account / Alliance: target the actual profile identity/editor,
+   without changing account data. */
+function v438ProfileIdentity(){
+  const root=$('#nexa-profile-modal');if(!root)return;
+  $$('*',root).forEach(el=>{
+    if(el.children.length)return;
+    const t=(el.textContent||'').replace(/\s+/g,' ').trim();
+    if(/This is your main account/i.test(t)){
+      el.textContent='★ MAIN ACCOUNT';
+      el.classList.add('nexa-v437-main');
+    }
+  });
+  $$('select',root).forEach(sel=>{
+    if(sel.dataset.v438Alliance==='1')return;
+    const wrap=sel.closest('label,.form-group,.profile-field,.nexa-profile-field,.nexa-profile-editor,div');
+    if(!wrap)return;
+    const t=(wrap.textContent||'').replace(/\s+/g,' ').trim();
+    if(!/alliance/i.test(t))return;
+    const note=document.createElement('div');
+    note.className='nexa-v437-alliance-note';
+    note.innerHTML='<b>Change Alliance</b><small>Select the alliance, then Save Profile.</small>';
+    sel.before(note);
+    sel.dataset.v438Alliance='1';
+  });
+}
+
+/* Render Owner controls in BOTH Roles and NEXA Access.
+   This avoids depending on which admin panel V26 happens to render first. */
+async function v438OwnerManagers(){
+  const c=sb();if(!c)return;
+  let user,role='';
+  try{
+    ({data:{user}}=await c.auth.getUser());
+    if(!user)return;
+    role=String((await c.rpc('current_nexa_role')).data||'').toLowerCase();
+  }catch{return}
+  if(role!=='owner')return;
+
+  let accounts=[],roles=[],access={};
+  try{
+    const [a,r,m]=await Promise.all([
+      c.from('player_accounts').select('id,in_game_name,player_id,is_main').eq('user_id',user.id).order('is_main',{ascending:false}).order('created_at',{ascending:true}),
+      c.from('nexa_operational_roles').select('role').eq('user_id',user.id),
+      c.from('staff_module_access').select('*').eq('user_id',user.id).maybeSingle()
+    ]);
+    accounts=a.data||[];
+    roles=(r.data||[]).map(x=>x.role);
+    access=m.data||{};
+  }catch{}
+
+  const hosts=[
+    $('#admin-roles .nexa-v25-host')||$('#admin-roles'),
+    $('#admin-permissions .nexa-v25-host')||$('#admin-permissions')
+  ].filter(Boolean);
+
+  for(const host of hosts){
+    const key=host.closest('#admin-permissions')?'access':'roles';
+    let box=$(`[data-v438-owner-manager="${key}"]`,host);
+    if(!box){
+      box=document.createElement('section');
+      box.className='nexa-v438-owner-manager';
+      box.dataset.v438OwnerManager=key;
+      box.id=key==='roles'?'nexa-v437-owner-manager':'nexa-v438-owner-access-manager';
+      host.prepend(box);
+    }
+    const accountOptions=accounts.map(a=>`<option value="${esc(a.id)}">${esc(a.in_game_name||'Account')} • ID ${esc(a.player_id||'—')}${a.is_main?' • MAIN':''}</option>`).join('');
+    const roleOptions=OPS.filter(([k])=>!roles.includes(k)).map(([k,n])=>`<option value="${k}">${n}</option>`).join('');
+
+    box.innerHTML=`<div class="v437-title">MY NEXA WORK ACCESS</div>
+      <label>ACCOUNT<select data-v438-account>${accountOptions||'<option>My NEXA account</option>'}</select></label>
+      <label>OPERATIONAL ROLE<select data-v438-role><option value="">Add operational role…</option>${roleOptions}</select></label>
+      <div class="v437-badges">${roles.map(k=>`<button type="button" class="v437-badge" data-v438-remove-role="${k}">${esc(OPS.find(x=>x[0]===k)?.[1]||k)} ×</button>`).join('')||'<small>No operational roles selected.</small>'}</div>
+      <button type="button" class="v437-add" data-v438-focus-role>+ Add another operational role</button>
+      <div><label style="margin-bottom:6px">MODULE ACCESS</label><div class="v437-check-grid">${MODULES.map(([k,n])=>`<label><input type="checkbox" data-v438-module="${k}" ${access[k]?'checked':''}>${n}</label>`).join('')}</div></div>
+      <div class="v437-msg" data-v438-msg></div>`;
+
+    const msg=$('[data-v438-msg]',box);
+    $('[data-v438-role]',box).onchange=async e=>{
+      const v=e.target.value;if(!v)return;
+      msg.textContent='Saving…';
+      const q=await c.rpc('nexa_owner_add_my_operational_role',{new_role:v});
+      msg.textContent=q.error?(q.error.message||'Could not add role.'):'Role added ✓';
+      if(!q.error)v438Schedule();
+    };
+    $$('[data-v438-remove-role]',box).forEach(b=>b.onclick=async()=>{
+      msg.textContent='Saving…';
+      const q=await c.rpc('nexa_owner_remove_my_operational_role',{old_role:b.dataset.v438RemoveRole});
+      msg.textContent=q.error?(q.error.message||'Could not remove role.'):'Role removed ✓';
+      if(!q.error)v438Schedule();
+    });
+    $('[data-v438-focus-role]',box).onclick=()=> $('[data-v438-role]',box)?.focus();
+    $$('[data-v438-module]',box).forEach(ch=>ch.onchange=async()=>{
+      msg.textContent='Saving module access…';
+      const state=Object.fromEntries(MODULES.map(([k])=>[k,!!$(`[data-v438-module="${k}"]`,box)?.checked]));
+      const q=await c.rpc('nexa_owner_set_my_module_access',{
+        new_svs:state.svs_access,
+        new_transfer:state.transfer_access,
+        new_sbs:state.sbs_access,
+        new_team_builder:state.team_builder_access,
+        new_forms:state.forms_access,
+        new_events:state.events_access,
+        new_library:state.library_access,
+        new_administration:state.administration_access
+      });
+      msg.textContent=q.error?(q.error.message||'Could not save module access.'):'Module access updated ✓';
+    });
+  }
+}
+
+function v438Apply(){
+  v438Widget();
+  v438Troop();
+  v438Charms();
+  v438MinistrySafety();
+  v438ProfileIdentity();
+  v438OwnerManagers();
+}
+function v438Schedule(){
+  requestAnimationFrame(v438Apply);
+  [30,100,220,450,800,1400].forEach(ms=>setTimeout(v438Apply,ms));
+}
+
+document.addEventListener('click',e=>{
+  if(e.target.closest?.(
+    '[data-v33-widget],[data-v33-widget-level],'+
+    '[data-v33-troop-tier],[data-v33-troop-fc],[data-v33-t11],[data-v33-t12],[data-v33-troop-skill],'+
+    '[data-v33-charm-sub],[data-v33-item],[data-v33-save],'+
+    '#admin-roles,#admin-permissions,.nexa-v25-arrow,[data-v25-manage-access]'
+  ))v438Schedule();
+},true);
+document.addEventListener('change',e=>{
+  if(e.target.matches?.(
+    '[data-v33-charm-level],'+
+    '[data-v33-troop-tier],[data-v33-troop-fc],'+
+    '#admin-roles select,#admin-permissions select'
+  ))v438Schedule();
+},true);
+window.addEventListener('nexa:profile-open',v438Schedule);
+window.addEventListener('nexa:profile-updated',v438Schedule);
+window.addEventListener('nexa:auth-ready',v438Schedule);
+v438Schedule();
+
 })();

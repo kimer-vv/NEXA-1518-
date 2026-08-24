@@ -1,4 +1,4 @@
-/* NEXA V43.8 — RESTORE WORKING PROFILE CONTROLS — 2026-08-24
+/* NEXA V43.9 — WIDGETS + CHARMS + PROFILE CLEANUP — 2026-08-24
    Single focused runtime for the remaining Profile/Admin conflicts.
    Does NOT modify Heroes, Experts, Troops, or Library data.
    Fixes: Pets, Ministry visual ownership, legacy Ministry card cleanup,
@@ -7,8 +7,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V438_STABLE_RUNTIME__)return;
-window.__NEXA_V438_STABLE_RUNTIME__=true;
+if(window.__NEXA_V439_STABLE_RUNTIME__)return;
+window.__NEXA_V439_STABLE_RUNTIME__=true;
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
@@ -273,67 +273,116 @@ function v438WidgetData(name){
 function v438Widget(){
   const root=$('#nexa-v33-detail');
   if(!root?.classList.contains('open'))return;
+
   const sec=$$('.v33-section',root).find(x=>/EXCLUSIVE GEAR|WIDGET/i.test($('.v33-kicker span',x)?.textContent||''));
   if(!sec)return;
 
-  const hero=($('.v33-title h3',root)?.textContent||'').trim();
-  const d=v438WidgetData(hero);
-  if(!d)return;
-
+  const hero=(($('.v33-title h3',root)?.textContent)||'').trim();
+  const key=v438Norm(hero);
   const lv=Number($('[data-v33-widget].active',sec)?.dataset.v33Widget
                || $('[data-v33-widget-level].active',sec)?.dataset.v33WidgetLevel
                || root.dataset.widgetLevel || 0);
-  const explore=v438EffectLv(lv,'explore');
-  const expedition=v438EffectLv(lv,'exp');
+  const exploreLv=v438EffectLv(lv,'explore');
+  const expeditionLv=v438EffectLv(lv,'exp');
 
-  const originalCards=$$('.v33-skill',sec);
-  const originalExplore=originalCards[0] ? $('.v33-result',originalCards[0])?.textContent?.trim() : '';
-  const originalExpedition=originalCards[1] ? $('.v33-result',originalCards[1])?.textContent?.trim() : '';
-  const originalExploreDesc=originalCards[0] ? $('small',originalCards[0])?.textContent?.trim() : '';
-  const originalExpeditionDesc=originalCards[1] ? $('small',originalCards[1])?.textContent?.trim() : '';
+  const EXACT={
+    natalia:{
+      gear:'Ursus Strength',
+      a:'Polar Rampage',
+      ad:'Natalia channels the ferocity of her polar bear to strengthen her combat presence.',
+      b:'Ursus Might',
+      bd:'Strengthens allied rally troops through Natalia’s exclusive gear.'
+    },
+    jeronimo:{
+      gear:'Dawnbreak',
+      a:'Shield of Swords',
+      ad:'When attacking, Jeronimo forms a sword-energy shield that reduces damage taken by 30%.',
+      b:'Discernment',
+      bd:'Jeronimo attacks with a sword formation, increasing the Attack of rallied Troops by 15%.'
+    },
+    molly:{
+      gear:'Yeti Spirit',
+      a:'Modified Launcher',
+      ad:'Molly wields a modified launcher, increasing damage dealt.',
+      av:['Damage Dealt +10%','Damage Dealt +15%','Damage Dealt +20%','Damage Dealt +25%','Damage Dealt +30%'],
+      b:'Snowy Blessing',
+      bd:'The blessing of the snow increases Defender Troops’ Lethality.',
+      bv:['Defender Troop Lethality +5%','Defender Troop Lethality +7.5%','Defender Troop Lethality +10%','Defender Troop Lethality +12.5%','Defender Troop Lethality +15%']
+    },
+    alonso:{
+      gear:'Captain Ahab',
+      a:"Ocean's Bounty",
+      ad:"Alonso shares the spoils of success, healing the weakest hero with each basic attack.",
+      av:['Healing effect active','Healing effect active','Healing effect active','Healing effect active','Heals weakest hero by 15%'],
+      b:'Harpoon Enhancement',
+      bd:"Alonso modifies the troops’ weapons, increasing rallied Troop Lethality.",
+      bv:['Rally Troop Lethality +5%','Rally Troop Lethality +7.5%','Rally Troop Lethality +10%','Rally Troop Lethality +12.5%','Rally Troop Lethality +15%']
+    }
+  };
+
+  const cards=$$('.v33-skill',sec);
+  const oldA=cards[0];
+  const oldB=cards[1];
+  const oldAName=$('h4',oldA)?.textContent?.trim()||'Exploration Effect';
+  const oldBName=$('h4',oldB)?.textContent?.trim()||'Expedition Effect';
+  const oldADesc=$('small',oldA)?.textContent?.trim()||'';
+  const oldBDesc=$('small',oldB)?.textContent?.trim()||'';
+  const oldAResult=$('.v33-result',oldA)?.textContent?.trim()||'';
+  const oldBResult=$('.v33-result',oldB)?.textContent?.trim()||'';
+
+  const d=EXACT[key]||{
+    gear:($('.v33-kicker strong',sec)?.textContent||'Widget').split('•')[0].trim(),
+    a:/^Exploration Effect$/i.test(oldAName)?'Exploration Effect':oldAName,
+    ad:oldADesc,
+    b:/^Expedition Effect$/i.test(oldBName)?'Expedition Effect':oldBName,
+    bd:oldBDesc
+  };
 
   const k=$('.v33-kicker strong',sec);
-  if(k)k.textContent=`${d[0]} • LV ${lv}`;
+  if(k)k.textContent=`${d.gear} • LV ${lv}`;
 
   let skills=$('.v33-skills',sec);
   if(!skills){skills=document.createElement('div');skills.className='v33-skills';sec.appendChild(skills)}
   sec.classList.add('nexa-v438-widget-table');
 
-  let aVal='Unlocks at Widget Lv 1';
-  if(explore){
-    aVal=(d[2]?.[explore-1] && !/^Effect Lv/i.test(d[2][explore-1]))
-      ? d[2][explore-1]
-      : (originalExplore && !/Not active|Locked/i.test(originalExplore) ? originalExplore : `Effect Lv ${explore}/5`);
+  function cleanResult(v){
+    v=String(v||'').replace(/Effect\s*Lv\s*\d+\s*\/\s*5/ig,'').replace(/\s+/g,' ').trim();
+    return /^(Not active|Locked)$/i.test(v)?'':v;
   }
-  let bVal='Unlocks at Widget Lv 2';
-  if(expedition){
-    const known=d[4] && !/^Expedition Buff$/i.test(d[4])
-      ? `${d[4]} +${V438_EXP[expedition]}%`
-      : '';
-    bVal=known || (originalExpedition && !/Not active|Locked/i.test(originalExpedition) ? originalExpedition : `Effect Lv ${expedition}/5`);
+  const aResult=cleanResult(oldAResult);
+  const bResult=cleanResult(oldBResult);
+
+  let aBuff=lv<1?'Unlocks at Widget Lv 1':
+    (d.av?.[Math.max(0,exploreLv-1)] || aResult || 'Active');
+  let bBuff=lv<2?'Unlocks at Widget Lv 2':
+    (d.bv?.[Math.max(0,expeditionLv-1)] || bResult || 'Active');
+
+  /* Natalia's existing V33 calculation is already correct for the buff box.
+     Keep that numeric result if present; only remove the unwanted Effect Lv label. */
+  if(key==='natalia'){
+    if(aResult)aBuff=aResult;
+    if(bResult)bBuff=bResult;
   }
 
   skills.innerHTML=`
     <article class="v33-skill">
-      <div class="nexa-v438-widget-name"><b>${esc(d[1])}</b><span>EXPLORATION</span></div>
-      <div class="nexa-v438-widget-desc">${esc(originalExploreDesc||'Exclusive Gear effect • upgrades at Widget Lv 1/3/5/7/9.')}</div>
-      <div class="nexa-v438-widget-buff"><b>${esc(aVal)}</b>${explore?`<small>Effect Lv ${explore}/5</small>`:''}</div>
+      <div class="nexa-v438-widget-name"><b>${esc(d.a)}</b><span>EXPLORATION</span></div>
+      <div class="nexa-v438-widget-desc">${esc(d.ad||oldADesc||'Exclusive Gear exploration effect.')}</div>
+      <div class="nexa-v438-widget-buff"><b>${esc(aBuff)}</b></div>
     </article>
     <article class="v33-skill">
-      <div class="nexa-v438-widget-name"><b>${esc(d[3])}</b><span>EXPEDITION</span></div>
-      <div class="nexa-v438-widget-desc">${esc(originalExpeditionDesc||`${d[4]} • upgrades at Widget Lv 2/4/6/8/10.`)}</div>
-      <div class="nexa-v438-widget-buff"><b>${esc(bVal)}</b>${expedition?`<small>Effect Lv ${expedition}/5</small>`:''}</div>
+      <div class="nexa-v438-widget-name"><b>${esc(d.b)}</b><span>EXPEDITION</span></div>
+      <div class="nexa-v438-widget-desc">${esc(d.bd||oldBDesc||'Exclusive Gear expedition effect.')}</div>
+      <div class="nexa-v438-widget-buff"><b>${esc(bBuff)}</b></div>
     </article>`;
 
-  window.NEXA_ACTIVE_WIDGET_BUFFS={
-    hero,widgetLevel:lv,
-    explorationLevel:explore,
-    expeditionLevel:expedition,
-    exploration:aVal,
-    expedition:bVal
-  };
+  /* Kill any leftover Effect Lv text outside the rebuilt cards. */
+  $$('*',sec).forEach(el=>{
+    if(el.children.length)return;
+    const t=(el.textContent||'').trim();
+    if(/^Effect\s*Lv\s*\d+\s*\/\s*5$/i.test(t))el.remove();
+  });
 }
-
 /* Troop summary must change immediately when Tier/FC/T11/T12 changes.
    Preserve V33's existing visual/cards; only restore cumulative passive summary. */
 const V438_TROOP_SKILLS={
@@ -596,5 +645,136 @@ window.addEventListener('nexa:profile-open',v438Schedule);
 window.addEventListener('nexa:profile-updated',v438Schedule);
 window.addEventListener('nexa:auth-ready',v438Schedule);
 v438Schedule();
+
+
+/* =========================
+   V43.9 focused cleanup
+   ========================= */
+
+function v439CharmMiniatures(){
+  const root=$('#nexa-profile-modal');if(!root)return;
+  $$('.v33-charm-mini-row img',root).forEach(img=>{
+    const src=img.getAttribute('src')||'';
+    const m=src.match(/\/assets\/charms\/(infantry|lancer|marksman)\/lv-(\d+)\.png/i);
+    if(!m)return;
+    const type=m[1].toLowerCase(),lv=Number(m[2]);
+    img.onerror=null;
+    img.src=`/lv${pad(lv)}-${type}.png`;
+    img.style.opacity='1';
+    img.style.visibility='visible';
+    img.style.display='block';
+  });
+  $$('.v33-charm-mini-row i',root).forEach(i=>{
+    const txt=(i.textContent||'').trim();
+    if(txt==='?'||txt==='◇')i.style.opacity='.35';
+  });
+}
+
+function v439Ministry(){
+  const b=$('#nexa-v425-ministry');if(!b)return;
+  b.setAttribute('aria-label','Ministry Appointments');
+  b.setAttribute('title','Ministry Appointments');
+  b.innerHTML='';
+  b.style.removeProperty('font-size');
+  /* CSS pseudo-label owns the visible text/icon. */
+  b.style.fontSize='0';
+  const parent=b.parentElement;
+  if(parent){
+    Array.from(parent.children).forEach(el=>{
+      if(el===b)return;
+      const t=(el.textContent||'').replace(/\s+/g,' ').trim();
+      if(/Ministry Schedule/i.test(t) || (el.tagName==='DIV' && !t && el.getBoundingClientRect?.().width<60)){
+        el.style.display='none';
+      }
+    });
+  }
+}
+
+function v439MainBadge(){
+  const root=$('#nexa-profile-modal');if(!root)return;
+  let badge=null;
+  $$('*',root).forEach(el=>{
+    if(el.children.length)return;
+    const t=(el.textContent||'').replace(/\s+/g,' ').trim();
+    if(/This is your\s*Main\s*account/i.test(t)||t==='★ MAIN ACCOUNT')badge=el;
+  });
+  if(!badge)return;
+  badge.textContent='★ MAIN ACCOUNT';
+  badge.className='nexa-v437-main';
+  badge.style.position='static';
+  badge.style.transform='none';
+  badge.style.margin='10px 0 0';
+  badge.style.float='none';
+
+  const allianceSelect=$$('select',root).find(s=>{
+    const p=s.closest('label,.form-group,.profile-field,.nexa-profile-field,div');
+    return /alliance/i.test((p?.textContent||''));
+  });
+  const host=allianceSelect?.closest('label,.form-group,.profile-field,.nexa-profile-field,div');
+  if(host && !host.contains(badge))host.appendChild(badge);
+}
+
+function v439AccountType(){
+  const sel=$('#account-purpose');
+  if(!sel)return;
+  const opts=Array.from(sel.options);
+  opts.forEach(o=>{
+    const v=(o.value||'').toLowerCase();
+    const t=(o.textContent||'').toLowerCase();
+    if(v==='main'||/main/.test(t))o.textContent='Main Account';
+    else if(v==='points'||v==='point'||v==='full'||/point|full|alternate|alt/.test(t))o.textContent='Alternate Account';
+  });
+  /* If legacy Point + Full both exist, keep the current stored values but present one clean choice. */
+  const alt=opts.filter(o=>/^(points?|full|alternate|alt)$/i.test(o.value||''));
+  if(alt.length>1){
+    const keep=alt.find(o=>o.selected)||alt[0];
+    alt.forEach(o=>{ if(o!==keep)o.hidden=true; });
+    keep.textContent='Alternate Account';
+  }
+  const label=sel.closest('label');
+  if(label){
+    const first=Array.from(label.childNodes).find(n=>n.nodeType===3 && /account|purpose/i.test(n.textContent||''));
+    if(first)first.textContent='Account Type ';
+  }
+}
+
+function v439RoleIdentity(){
+  $$('.nexa-v438-owner-manager,#nexa-v437-owner-manager').forEach(box=>{
+    const account=$('[data-v438-account]',box);if(!account)return;
+    const opts=Array.from(account.options);
+    if(!opts.length)return;
+    const main=opts.find(o=>/\bMAIN\b/i.test(o.textContent||''))||opts[0];
+    const linked=opts.filter(o=>o!==main).map(o=>(o.textContent||'').replace(/\s*•\s*ID.*$/i,'').replace(/\s*•\s*MAIN.*$/i,'').trim()).filter(Boolean);
+    let id=$('.v439-user-identity',box);
+    if(!id){id=document.createElement('div');id.className='v439-user-identity';box.insertBefore(id,box.children[1]||null);}
+    const mainName=(main.textContent||'').replace(/\s*•\s*ID.*$/i,'').replace(/\s*•\s*MAIN.*$/i,'').trim();
+    id.innerHTML=`<b style="display:block;color:#fff;font-size:11px">Main Account: ${esc(mainName)}</b>
+      <small style="display:block;margin-top:4px;color:#95a3c4;font-size:9px">${linked.length?`Linked accounts: ${esc(linked.join(', '))}`:'No linked alternate accounts'}</small>
+      <small style="display:block;margin-top:4px;color:#6edfff;font-size:8px">Operational Roles and Module Access belong to this NEXA user.</small>`;
+  });
+}
+
+function v439Apply(){
+  v438Widget();
+  v439CharmMiniatures();
+  v439Ministry();
+  v439MainBadge();
+  v439AccountType();
+  v439RoleIdentity();
+}
+function v439Schedule(){
+  requestAnimationFrame(v439Apply);
+  [40,120,280,600,1100].forEach(ms=>setTimeout(v439Apply,ms));
+}
+document.addEventListener('click',e=>{
+  if(e.target.closest?.('[data-v33-widget],[data-v33-item],[data-v33-save],#nexa-profile-edit-btn,#admin-roles,#admin-permissions,[data-v25-manage-access]'))v439Schedule();
+},true);
+document.addEventListener('change',e=>{
+  if(e.target.matches?.('[data-v33-widget],[data-v33-charm-level],#account-purpose,[data-v438-account]'))v439Schedule();
+},true);
+window.addEventListener('nexa:profile-open',v439Schedule);
+window.addEventListener('nexa:profile-updated',v439Schedule);
+window.addEventListener('pageshow',v439Schedule);
+v439Schedule();
 
 })();

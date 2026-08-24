@@ -1,4 +1,4 @@
-/*NEXA V44.0 — CLEAN PROFILE STABILITY RUNTIME — 2026-08-24
+/* NEXA V44.2 — PETS + CHARMS + PROFILE CLEANUP — 2026-08-24
    CLEAN REPLACEMENT. Not cumulative.
    Owns only:
    - Home menu outside-tap close
@@ -14,8 +14,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V44_CLEAN__) return;
-window.__NEXA_V44_CLEAN__=true;
+if(window.__NEXA_V442_CLEAN__) return;
+window.__NEXA_V442_CLEAN__=true;
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
@@ -333,16 +333,31 @@ function repairPet(){
   if(!root?.classList.contains('open')) return;
   const name=petName(), d=PETS[name];
   if(!d) return;
-  const body=$('.v33-detail-body',root)||$('.v33-sheet',root);
-  if(!body) return;
-  let host=$('.v44-pet',body);
-  const currentSel=$('[data-v33-pet-skill]',root);
-  const lv=clamp(Number(currentSel?.value||root.dataset.petSkill||1),1,d[2].length);
+  const sheet=$('.v33-sheet',root), head=$('.v33-detail-head',root);
+  if(!sheet||!head) return;
+
+  $$('.v33-section',sheet).forEach(sec=>{
+    if(sec.classList.contains('v44-pet')) return;
+    const txt=(sec.textContent||'').replace(/\s+/g,' ').toUpperCase();
+    if(txt.includes('PET LEVEL') || txt.includes('PET SKILL')) sec.style.setProperty('display','none','important');
+  });
+
+  let host=$('.v44-pet',sheet);
   if(!host){
-    host=document.createElement('section');host.className='v33-section v44-pet';body.prepend(host);
+    host=document.createElement('section');
+    host.className='v33-section v44-pet';
+    head.insertAdjacentElement('afterend',host);
+  }else if(host.previousElementSibling!==head){
+    head.insertAdjacentElement('afterend',host);
   }
-  host.style.setProperty('--pet',d[5]);host.style.setProperty('--petbg',d[6]);
-  const cooldown=d[3]?.[lv-1]||'—';
+
+  const nativeSkill=$('[data-v33-pet-skill]',root);
+  const savedLv=clamp(Number(nativeSkill?.value||root.dataset.petSkill||1),1,d[2].length);
+  const current=clamp(Number($('[data-v44-pet-level]',host)?.value||savedLv),1,d[2].length);
+  host.style.setProperty('--pet',d[5]);
+  host.style.setProperty('--petbg',d[6]);
+  const cooldown=d[3]?.[current-1]||'—';
+
   host.innerHTML=`
     <button type="button" class="v44-pet-head" data-v44-pet-details>
       <span class="v44-pet-orb">${d[1]}</span>
@@ -350,9 +365,9 @@ function repairPet(){
     </button>
     <div class="v44-pet-desc" hidden>${esc(d[4])}</div>
     <label style="display:block;margin-top:8px;color:#92a0c3;font-size:8px;font-weight:900">PET SKILL LEVEL
-      <select data-v44-pet-level>${d[2].map((_,i)=>`<option value="${i+1}" ${i+1===lv?'selected':''}>Lv ${i+1}</option>`).join('')}</select>
+      <select data-v44-pet-level>${d[2].map((_,i)=>`<option value="${i+1}" ${i+1===current?'selected':''}>Lv ${i+1}</option>`).join('')}</select>
     </label>
-    <div class="v44-pet-result"><small>PET BUFF</small><strong>${esc(d[2][lv-1])}</strong><span>Cooldown: ${esc(cooldown)}</span></div>`;
+    <div class="v44-pet-result"><small>PET BUFF</small><strong>${esc(d[2][current-1])}</strong><span>Cooldown: ${esc(cooldown)}</span></div>`;
 }
 
 function charmTypeFromText(s){
@@ -364,7 +379,6 @@ function charmTypeFromText(s){
 function charmSrc(type,lv){ return lv?`/lv${pad(lv)}-${type}.png`:''; }
 function repairCharms(){
   const root=$('#nexa-profile-modal'); if(!root) return;
-  // Inside detail
   const detail=$('#nexa-v33-detail');
   if(detail?.classList.contains('open')){
     const type=charmTypeFromText(($('.v33-title h3',detail)?.textContent||'')+' '+($('.v33-charm-gear-head',detail)?.textContent||''));
@@ -373,49 +387,91 @@ function repairCharms(){
       const lv=clamp(Number(sel.value||0),0,18);
       const body=$('.v33-charm-body',row); if(!body) return;
       let img=$('.v33-charm-img',row), ph=$('.v33-charm-placeholder',row);
-      if(!lv){ img?.remove(); return; }
+      if(!lv){img?.remove();return}
       if(!img){img=document.createElement('img');img.className='v33-charm-img';if(ph)ph.replaceWith(img);else body.prepend(img)}
       img.onerror=null;img.src=charmSrc(type,lv);img.alt=`${type} Charm Lv ${lv}`;
     });
   }
-  // Outside grid — derive saved level from old src if present, and fix root path.
-  $$('.v33-charm-mini-row',root).forEach(row=>{
-    const card=row.closest('.v33-item');
-    const type=charmTypeFromText((card?.textContent||''));
-    Array.from(row.children).forEach(node=>{
-      if(node.tagName!=='IMG') return;
-      const m=(node.getAttribute('src')||'').match(/lv[-_]?0*(\d+)/i);
-      const lv=clamp(Number(m?.[1]||0),0,18);
-      if(lv){node.onerror=null;node.src=charmSrc(type,lv);node.style.opacity='1';}
+  refreshCharmGridFromSaved();
+}
+
+let v442CharmBusy=false, v442CharmLast=0;
+async function refreshCharmGridFromSaved(){
+  const root=$('#nexa-profile-modal'); if(!root) return;
+  if(!$$('.v33-charm-mini-row',root).length) return;
+  const now=Date.now(); if(v442CharmBusy || now-v442CharmLast<450) return;
+  const c=sb(), accountId=window.NEXA_ACTIVE_ACCOUNT_ID; if(!c||!accountId) return;
+  v442CharmBusy=true;v442CharmLast=now;
+  try{
+    const {data,error}=await c.from('player_library_inventory').select('library_item_id,progress').eq('player_account_id',accountId);
+    if(error)return;
+    const map=new Map((data||[]).map(x=>[String(x.library_item_id),x.progress||{}]));
+    $$('.v33-item[data-v33-item]',root).forEach(card=>{
+      const row=$('.v33-charm-mini-row',card); if(!row)return;
+      const p=map.get(String(card.dataset.v33Item))||{};
+      const levels=Array.isArray(p.charm_levels)?p.charm_levels:[p.charm_1||0,p.charm_2||0,p.charm_3||0];
+      const type=charmTypeFromText(card.textContent||'');
+      row.innerHTML=levels.slice(0,3).map(raw=>{
+        const lv=clamp(Number(raw||0),0,18);
+        return lv?`<img src="${charmSrc(type,lv)}" alt="${type} Charm Lv ${lv}">`:'<i>◇</i>';
+      }).join('');
     });
-  });
+  }finally{v442CharmBusy=false}
 }
 
 function installMinistry(){
-  const old=$('#nexa-v425-ministry'); if(old){old.style.setProperty('display','none','important');old.setAttribute('aria-hidden','true')}
+  const old=$('#nexa-v425-ministry');
   const line=$('.nexa-profile-name-line'); if(!line) return;
+  if(old){
+    old.style.setProperty('display','none','important');
+    old.setAttribute('aria-hidden','true');
+    const legacyRow=old.parentElement;
+    if(legacyRow && legacyRow!==line && legacyRow.children.length<=5) legacyRow.style.setProperty('display','none','important');
+  }
   let btn=$('#nexa-v44-ministry');
   if(!btn){
-    btn=document.createElement('button');btn.id='nexa-v44-ministry';btn.type='button';btn.title='Ministry Appointments';btn.setAttribute('aria-label','Ministry Appointments');btn.textContent='▣';
+    btn=document.createElement('button');btn.id='nexa-v44-ministry';btn.type='button';
+    btn.title='Ministry Appointments';btn.setAttribute('aria-label','Ministry Appointments');
+    btn.innerHTML=`<svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
+      <rect x="4" y="5.5" width="16" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <path d="M8 3.5v4M16 3.5v4M4.5 9.5h15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M8 13h3M13.5 13h2.5M8 16h3M13.5 16h2.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+    </svg>`;
     line.appendChild(btn);
     btn.addEventListener('click',()=>{
-      const legacy=$('#nexa-v425-ministry');
-      if(!legacy) return;
-      legacy.style.removeProperty('display');legacy.click();legacy.style.setProperty('display','none','important');
+      const legacy=$('#nexa-v425-ministry');if(!legacy)return;
+      const row=legacy.parentElement;if(row)row.style.removeProperty('display');
+      legacy.style.removeProperty('display');legacy.click();
+      legacy.style.setProperty('display','none','important');
+      if(row&&row!==line)row.style.setProperty('display','none','important');
     });
   }
 }
 
 function repairProfileIdentity(){
   const root=$('#nexa-profile-modal'); if(!root) return;
+
   $$('*',root).forEach(el=>{
-    if(el.children.length) return;
-    const t=(el.textContent||'').replace(/\s+/g,' ').trim();
-    if(/This is your main account/i.test(t)) el.remove();
-    if(/Select your new alliance below, then use the existing Save Profile button/i.test(t)){
-      const wrap=el.closest('.nexa-v437-alliance-note,p,small,div'); if(wrap&&wrap!==root) wrap.remove(); else el.remove();
+    if(el.children.length)return;
+    const txt=(el.textContent||'').replace(/\s+/g,' ').trim();
+    if(/This is your main account/i.test(txt)){
+      let card=el;
+      for(let i=0;i<5 && card && card!==root;i++,card=card.parentElement){
+        if(card.querySelector?.('select') && /Alliance/i.test(card.textContent||'')){card.remove();return}
+      }
+      el.remove();
     }
   });
+
+  $$('*',root).forEach(el=>{
+    if(el.children.length)return;
+    const txt=(el.textContent||'').replace(/\s+/g,' ').trim();
+    if(/Select your new alliance below, then use the existing Save Profile button/i.test(txt)){
+      const wrap=el.closest('.nexa-v437-alliance-note,p,small,div');
+      if(wrap&&wrap!==root)wrap.remove();else el.remove();
+    }
+  });
+
   const editor=$('#nexa-profile-editor',root); if(!editor) return;
   const allianceSel=$$('select',editor).find(sel=>/alliance/i.test(sel.closest('label,.form-group,.profile-field,.nexa-profile-field,div')?.textContent||''));
   if(allianceSel){
@@ -423,12 +479,6 @@ function repairProfileIdentity(){
     $$('.v44-alliance-note,.nexa-v437-alliance-note,.v44-main-badge,.nexa-v437-main',host).forEach(x=>x.remove());
     const note=document.createElement('div');note.className='v44-alliance-note';note.innerHTML='<b>Change Alliance</b><small>Select the alliance, then Save Profile.</small>';allianceSel.before(note);
     const badge=document.createElement('span');badge.className='v44-main-badge';badge.textContent='★ MAIN ACCOUNT';host.appendChild(badge);
-  }
-  const purpose=$('#account-purpose');
-  if(purpose && !purpose.dataset.v44Clean){
-    const wasMain=/main/i.test(purpose.value)||/main/i.test(purpose.options[purpose.selectedIndex]?.textContent||'');
-    purpose.innerHTML=`<option value="main" ${wasMain?'selected':''}>Main Account</option><option value="alternate" ${!wasMain?'selected':''}>Alternate Account</option>`;
-    purpose.dataset.v44Clean='1';
   }
 }
 

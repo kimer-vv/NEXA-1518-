@@ -1,4 +1,4 @@
-/* NEXA PROFILE OWNER V33 — PROFILE / CHIEF GEAR / CHARMS REBUILD
+/* NEXA PROFILE OWNER V33.3 — CONSOLIDATED PROFILE DATA + STATE FIX
    Replaces V32 as the single Profile owner.
    Goals:
    - richer galaxy Profile surface
@@ -230,6 +230,12 @@ function injectCSS(){
     border-radius:24px!important;background:linear-gradient(160deg,#111833,#060a1b)!important;border:1px solid rgba(139,98,255,.55)!important;padding:16px!important;box-shadow:0 0 32px rgba(90,54,230,.22)!important
   }
   #nexa-v430-transfer-card .kicker{font-size:8px!important}#nexa-v430-transfer-card h3{font-size:14px!important;line-height:1.15!important}
+  .v33-widget-levels{grid-template-columns:repeat(6,minmax(42px,1fr))!important}
+  .v33-charm-stack{display:grid;grid-template-columns:1fr;gap:12px}
+  .v33-charm{display:grid;gap:9px;padding:14px!important}
+  .v33-charm-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .v33-field-label{font-size:9px;font-weight:900;letter-spacing:.15em;color:#8f9cc7}
+  #nexa-v425-ministry{color:#d4b6ff!important;box-shadow:0 0 0 1px rgba(205,171,255,.2),0 0 18px rgba(183,126,255,.2)!important}
 
   @media(max-width:390px){#v33-grid{gap:17px 4px;padding-inline:6px}.v33-skills{grid-template-columns:1fr}.v33-gear-hero{grid-template-columns:76px minmax(0,1fr)}.v33-gear-img{width:74px;height:74px}}
   `;
@@ -307,29 +313,38 @@ function renderGrid(){
 function fmtNum(n){return Number.isInteger(n)?n.toLocaleString():Number(n.toFixed(2)).toLocaleString()}
 function exactSkillValue(skill,lv){
   if(!lv)return 'Not active';
-  const vals=skill.level_values||skill.values||skill.levels;
+  const vals=skill?.level_values||skill?.values||skill?.levels||skill?.level_data;
   if(Array.isArray(vals)&&vals[lv-1]!=null)return String(vals[lv-1]);
   if(vals&&typeof vals==='object'&&vals[lv]!=null)return String(vals[lv]);
+  const text=String(skill?.effect||skill?.description||skill?.value_text||'').trim();
+  if(!text)return `Level ${lv}`;
+  const max=Math.max(1,Number(skill?.max_level||10));
 
-  const text=String(skill.effect||skill.description||'');
-  const max=Number(skill.max_level||10);
+  const rangeMatches=[...text.matchAll(/([+-]?\d[\d,.]*)\s*(%|\/min|h|hours?)?\s*[–-]\s*([+-]?\d[\d,.]*)\s*(%|\/min|h|hours?)?/g)];
+  if(rangeMatches.length){
+    const values=rangeMatches.map(m=>{
+      const a=Number(String(m[1]).replace(/,/g,'')),b=Number(String(m[3]).replace(/,/g,'')),unit=m[4]||m[2]||'';
+      const val=max===1?b:(a+((b-a)*(lv-1)/(max-1)));
+      return `${fmtNum(val)}${unit}`;
+    });
+    return `Current buff: ${values.join(' • ')}`;
+  }
 
-  // Explicit "per level" values from verified source text.
-  const per=[...text.matchAll(/([+-]?\d[\d,]*(?:\.\d+)?)\s*(%|hours?|h|\/min)?\s+per level/gi)];
+  const upTo=[...text.matchAll(/up to\s*([+-]?\d[\d,.]*)\s*(%|\/min|h|hours?)?/gi)];
+  if(upTo.length){
+    const values=upTo.map(m=>`${fmtNum(Number(String(m[1]).replace(/,/g,''))*lv/max)}${m[2]||''}`);
+    return `Current buff: ${values.join(' • ')}`;
+  }
+
+  const per=[...text.matchAll(/([+-]?\d[\d,.]*)\s*(%|\/min|h|hours?)?\s+per level/gi)];
   if(per.length){
-    return per.map(m=>`${fmtNum(Number(m[1].replace(/,/g,''))*lv)}${m[2]||''}`).join(' • ');
+    const values=per.map(m=>`${fmtNum(Number(String(m[1]).replace(/,/g,''))*lv)}${m[2]||''}`);
+    return `Current buff: ${values.join(' • ')}`;
   }
 
-  // WOS Tools "up to" skills are linear active-skill progressions.
-  // Render CURRENT value, never the max-only description.
-  const nums=[...text.matchAll(/([+-]?\d[\d,]*(?:\.\d+)?)\s*(%|hours?|h)?/g)]
-    .map(m=>({v:Number(m[1].replace(/,/g,'')),u:m[2]||'',raw:m[0]}))
-    .filter(x=>Number.isFinite(x.v));
-  if(/up to/i.test(text)&&nums.length){
-    const current=nums.map(x=>`${x.v<0?'-':x.raw.trim().startsWith('+')?'+':''}${fmtNum(Math.abs(x.v)*lv/max)}${x.u}`).join(' • ');
-    return `Current buff: ${current}`;
-  }
-  return text||`Level ${lv}`;
+  const singles=[...text.matchAll(/([+-]?\d[\d,.]*)\s*(%|\/min|h|hours?)/g)];
+  if(singles.length===1)return `Current buff: ${fmtNum(Number(String(singles[0][1]).replace(/,/g,'')))}${singles[0][2]||''}`;
+  return text;
 }
 const SPECIAL={
  Natalia:{name:'Ursus Strength',icon:'✹',stats:['Attack','Defense'],vals:[0,2,4,6,8,10]},
@@ -368,11 +383,9 @@ function heroWidgetDetail(i,p){
   if(String(i.rarity||'').toLowerCase()!=='legendary')return '';
   const md=i.metadata?.widget||i.metadata?.exclusive_gear||HERO_WIDGETS[i.name]||{};
   const level=clamp(p.widget_level||0,0,10),skills=md.skills||md.effects||[];
-  const widgetValue=level*5;
   return `<div class="v33-section"><div class="v33-kicker"><span>EXCLUSIVE GEAR / WIDGET</span><strong>${esc(md.gear||md.name||'Widget')} • LV ${level}</strong></div>
-    <select class="v33-select" data-v33-widget-level>${optionRange(10,level)}</select>
-    <div class="v33-result">Widget upgrade value: ${widgetValue}${level?'':' • Not active'}</div>
-    <div class="v33-skills" style="margin-top:8px">${[0,1].map(n=>{const w=skills[n]||{};return `<article class="v33-skill"><div class="v33-skill-top"><span class="v33-skill-icon">${w.icon?imgTag(w.icon,''):'✦'}</span><div><h4>${esc(w.name||`Widget Buff ${n+1}`)}</h4><small>Exclusive Gear Effect</small></div></div><div class="v33-result">${level?esc(exactSkillValue({...w,max_level:10},level)):'Not active'}</div></article>`}).join('')}</div>
+    <div class="v33-levels v33-widget-levels">${Array.from({length:11},(_,x)=>`<button class="v33-level ${x===level?'active':''}" data-v33-widget-level="${x}">${x}</button>`).join('')}</div>
+    <div class="v33-skills" style="margin-top:10px">${[0,1].map(n=>{const w=skills[n]||{};return `<article class="v33-skill"><div class="v33-skill-top"><span class="v33-skill-icon">${w.icon?imgTag(w.icon,''):'✦'}</span><div><h4>${esc(w.name||`Widget Effect ${n+1}`)}</h4><small>${esc(w.description||w.effect_description||'Exclusive Gear Effect')}</small></div></div><div class="v33-result">${level?esc(exactSkillValue({...w,max_level:10},level)):'Not active'}</div></article>`}).join('')}</div>
   </div>`;
 }
 function expertStatus(a){
@@ -483,18 +496,22 @@ function charmTypeForPiece(i){
   const k=pieceKey(i);if(['coat','pants'].includes(k))return 'infantry';if(['helmet','watch'].includes(k))return 'lancer';return 'marksman';
 }
 function charmImg(type,lv){if(!lv)return '';return `/assets/charms/${type}/lv-${lv}.png`}
+function charmProgressSteps(lv){return lv<4?0:(lv>=12?5:4)}
 function charmDetail(i,p){
   const levels=Array.isArray(p.charm_levels)?p.charm_levels:[p.charm_1||0,p.charm_2||0,p.charm_3||0];
-  const type=charmTypeForPiece(i),piece=(i.name==='Belt'?'Ring':i.name);
-  return `<div class="v33-section"><div class="v33-kicker"><span>${esc(piece)} CHARMS</span><strong>3 LINKED CHARMS</strong></div>
-    <div class="v33-charm-grid">${[0,1,2].map(n=>{
-      const lv=clamp(levels[n]||0,0,18),src=charmImg(type,lv),stat=CHARM_STATS[lv]||0;
-      return `<article class="v33-charm"><b>CHARM ${n+1}</b>${src?`<img class="v33-charm-img" src="${esc(src)}" alt="Charm Lv ${lv}" onerror="this.style.visibility='hidden'">`:'<span class="v33-charm-img"></span>'}
-        <select class="v33-select" data-v33-charm-level="${n}">${optionRange(18,lv)}</select>
-        <div class="v33-result">${lv?`Lv ${lv} • Stat total +${stat}%`:'Not active'}</div></article>`;
+  const subs=Array.isArray(p.charm_substeps)?p.charm_substeps:[0,0,0];
+  const type=charmTypeForPiece(i),piece=(i.name==='Belt'?'Ring':i.name),statName=type==='lancer'?'Lancer':type==='infantry'?'Infantry':'Marksman';
+  const total=levels.reduce((a,lv)=>a+(CHARM_STATS[clamp(lv,0,18)]||0),0);
+  return `<div class="v33-section"><div class="v33-kicker"><span>${esc(piece)} CHARMS</span><strong>${statName} • LETHALITY + HEALTH</strong></div>
+    <div class="v33-result">3 linked charms • Combined selected stat total +${fmtNum(total)}%</div>
+    <div class="v33-charm-stack">${[0,1,2].map(n=>{
+      const lv=clamp(levels[n]||0,0,18),src=charmImg(type,lv),stat=CHARM_STATS[lv]||0,steps=charmProgressSteps(lv),sub=clamp(subs[n]||0,0,steps||0);
+      return `<article class="v33-charm"><div class="v33-charm-head"><b>CHARM ${n+1}</b><strong>${lv?`Lv ${lv}`:'Not active'}</strong></div>${src?`<img class="v33-charm-img" src="${esc(src)}" alt="Charm Lv ${lv}" onerror="this.style.visibility='hidden'">`:'<span class="v33-charm-img"></span>'}
+        <label class="v33-field-label">LEVEL 0–18</label><select class="v33-select" data-v33-charm-level="${n}">${optionRange(18,lv)}</select>
+        ${steps?`<label class="v33-field-label">ENHANCEMENT</label><div class="v33-segments">${Array.from({length:steps},(_,x)=>x+1).map(x=>`<button class="v33-segment ${x<=sub?'on':''}" data-v33-charm-sub="${n}:${x}" aria-label="Charm ${n+1} enhancement ${x}"></button>`).join('')}</div>`:''}
+        <div class="v33-result">${lv?`${statName} Lethality +${stat}% • ${statName} Health +${stat}%${steps?` • Enhancement ${sub}/${steps}`:''}`:'Not active'}</div></article>`;
     }).join('')}</div></div>`;
 }
-
 function detailBody(i,p){
   if(activeCat==='heroes')return heroDetail(i,p);
   if(activeCat==='experts')return expertDetail(i,p);
@@ -518,7 +535,32 @@ function renderDetail(){
     <div class="v33-actions"><button class="v33-reset" data-v33-reset>RESET</button><button class="v33-save" data-v33-save>SAVE</button></div><div class="v33-msg"></div></section>`;
 }
 function render(){ensureShell();renderCats();renderFilters();renderGrid()}
-function currentDraft(){const i=items.find(x=>String(x.id)===String(selectedId));return i?structuredClone(progOf(i)||{}):null}
+function currentDraft(){
+  const i=items.find(x=>String(x.id)===String(selectedId));if(!i)return null;
+  const root=$('#nexa-v33-detail'),d=structuredClone(progOf(i)||{});if(!root)return d;
+  if(activeCat==='heroes'){
+    if(root.dataset.starStep!=null)d.star_step=Number(root.dataset.starStep||0);
+    if(root.dataset.widgetLevel!=null)d.widget_level=Number(root.dataset.widgetLevel||0);
+  }
+  if(activeCat==='troops'){
+    if(root.dataset.troopTier!=null)d.tier=Number(root.dataset.troopTier||d.tier||1);
+    if(root.dataset.troopFc!=null)d.fc_level=Number(root.dataset.troopFc||d.fc_level||0);
+    if(root.dataset.t11!=null)d.t11_unlocked=root.dataset.t11==='1';
+    if(root.dataset.t12!=null)d.t12_unlocked=root.dataset.t12==='1';
+    if(root.dataset.troopSkill!=null)d.advanced_skill=Number(root.dataset.troopSkill||d.advanced_skill||0);
+  }
+  if(activeCat==='gear'){
+    if(root.dataset.gearQ!=null)d.gear_quality=root.dataset.gearQ||d.gear_quality||'Green';
+    if(root.dataset.gearTier!=null)d.gear_tier=Number(root.dataset.gearTier||d.gear_tier||0);
+    if(root.dataset.gearStar!=null)d.gear_stars=Number(root.dataset.gearStar||d.gear_stars||0);
+    if(root.dataset.gearSub!=null)d.gear_substep=Number(root.dataset.gearSub||d.gear_substep||0);
+  }
+  if(activeCat==='charms'){
+    d.charm_levels=[0,1,2].map(n=>Number($(`[data-v33-charm-level="${n}"]`,root)?.value||d?.charm_levels?.[n]||0));
+    d.charm_substeps=[0,1,2].map(n=>Number(root.dataset[`charmSub${n}`]||d?.charm_substeps?.[n]||0));
+  }
+  return d;
+}
 function rerenderBody(draft){
   const i=items.find(x=>String(x.id)===String(selectedId)),b=$('#v33-detail-body');if(!i||!b)return;
   b.innerHTML=detailBody(i,draft);
@@ -527,7 +569,7 @@ async function save(){
   const i=items.find(x=>String(x.id)===String(selectedId)),c=sb();if(!i||!c||!accountId)return;
   const d=currentDraft()||{},root=$('#nexa-v33-detail');
   if(activeCat==='heroes'){
-    d.star_step=Number(root.dataset.starStep||d.star_step||0);d.stars=d.star_step/6;d.widget_level=Number($('[data-v33-widget-level]',root)?.value||d.widget_level||0);d.hero_skills={};
+    d.star_step=Number(root.dataset.starStep||d.star_step||0);d.stars=d.star_step/6;d.widget_level=Number(root.dataset.widgetLevel||d.widget_level||0);d.hero_skills={};
     $$('[data-v33-hero-skill-box]',root).forEach(box=>{d.hero_skills[box.dataset.v33HeroSkillBox]=Number($('.v33-level.active[data-v33-hero-skill]',box)?.dataset.level||0)});
   }else if(activeCat==='experts'){
     d.affinity=Number($('[data-v33-affinity]',root)?.value||0);d.expert_skills={};
@@ -542,7 +584,7 @@ async function save(){
     d.gear_stars=Number(root.dataset.gearStar??d.gear_stars??0);d.gear_substep=Number(root.dataset.gearSub??d.gear_substep??0);
   }else{
     d.charm_levels=[0,1,2].map(n=>Number($(`[data-v33-charm-level="${n}"]`,root)?.value||0));
-    d.charm_substeps=[0,0,0];
+    d.charm_substeps=[0,1,2].map(n=>Number(root.dataset[`charmSub${n}`]||d?.charm_substeps?.[n]||0));
     [d.charm_1,d.charm_2,d.charm_3]=d.charm_levels;
   }
   const {data:{user}}=await c.auth.getUser();if(!user)return;
@@ -556,7 +598,7 @@ async function reset(){
   const row=invOf(i);if(row){const q=await c.from('player_library_inventory').update({owned:false,progress:{},updated_at:new Date().toISOString()}).eq('id',row.id).select().single();if(!q.error){const p=inventory.findIndex(x=>x.id===row.id);inventory[p]=q.data}}
   renderGrid();renderDetail();
 }
-function ministrySVG(){return `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 4h12v3l-2 2v8h2v3H6v-3h2V9L6 7V4zm4 5v8h4V9h-4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 4V2m4 2V2m4 2V2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`}
+function ministrySVG(){return `<svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M12 2.5l7 3v5.5c0 4.6-2.9 8.5-7 10-4.1-1.5-7-5.4-7-10V5.5l7-3z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.7 11.6l2.1 2.1 4.6-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`}
 function paintMinistryButton(active=false,label=''){
   const b=$('#nexa-v425-ministry');if(!b)return;b.innerHTML=ministrySVG();b.dataset.v33MinistryActive=active?'1':'0';b.title=active?label:'No active Ministry appointment';
 }
@@ -592,6 +634,7 @@ document.addEventListener('click',e=>{
   const d=currentDraft()||{};
   const flower=e.target.closest?.('[data-v33-star]');if(flower){const s=Number(flower.dataset.v33Star),cur=Number(root.dataset.starStep||d.star_step||0),base=s*6,within=clamp(cur-base,0,6);root.dataset.starStep=String(within>=6?base:base+6);d.star_step=Number(root.dataset.starStep);rerenderBody(d);return}
   const hs=e.target.closest?.('[data-v33-hero-skill]');if(hs){const box=hs.closest('.v33-skill');$$('[data-v33-hero-skill]',box).forEach(x=>x.classList.toggle('active',x===hs));const s=i.metadata?.expedition_skills?.[Number(hs.dataset.v33HeroSkill)],res=$('.v33-result',box);if(res&&s)res.textContent=exactSkillValue(s,Number(hs.dataset.level));return}
+  const wl=e.target.closest?.('[data-v33-widget-level]');if(wl){root.dataset.widgetLevel=wl.dataset.v33WidgetLevel;d.widget_level=Number(wl.dataset.v33WidgetLevel);rerenderBody(d);return}
   const tt=e.target.closest?.('[data-v33-troop-tier]');if(tt){root.dataset.troopTier=tt.dataset.v33TroopTier;d.tier=Number(tt.dataset.v33TroopTier);rerenderBody(d);return}
   const tf=e.target.closest?.('[data-v33-troop-fc]');if(tf){root.dataset.troopFc=tf.dataset.v33TroopFc;d.fc_level=Number(tf.dataset.v33TroopFc);if(d.fc_level<5){root.dataset.t11='0';root.dataset.t12='0';d.t11_unlocked=false;d.t12_unlocked=false}if(d.fc_level<10){root.dataset.t12='0';d.t12_unlocked=false}rerenderBody(d);return}
   const t11=e.target.closest?.('[data-v33-t11]');if(t11){root.dataset.t11=t11.dataset.v33T11;d.t11_unlocked=t11.dataset.v33T11==='1';if(!d.t11_unlocked){root.dataset.t12='0';d.t12_unlocked=false}rerenderBody(d);return}
@@ -611,7 +654,7 @@ document.addEventListener('change',e=>{
   const i=items.find(x=>String(x.id)===String(selectedId));if(!i)return;
   if(e.target.matches?.('[data-v33-affinity]')){const badge=$('.v33-status',e.target.closest('.v33-section'));if(badge)badge.textContent=expertStatus(e.target.value);const k=$('.v33-kicker strong',e.target.closest('.v33-section'));if(k)k.textContent=`${e.target.value}/100`}
   if(e.target.matches?.('[data-v33-expert-skill]')){const box=e.target.closest('.v33-skill'),s=i.metadata?.skills?.[Number(e.target.dataset.v33ExpertSkill)],res=$('.v33-result',box);if(res&&s)res.textContent=`Level ${e.target.value} • ${exactSkillValue(s,Number(e.target.value))}`}
-  if(e.target.matches?.('[data-v33-pet-level],[data-v33-pet-skill],[data-v33-charm-level],[data-v33-widget-level]')){const d=currentDraft()||{};if(e.target.matches('[data-v33-pet-level]'))d.level=Number(e.target.value);if(e.target.matches('[data-v33-pet-skill]'))d.pet_skill=Number(e.target.value);if(e.target.matches('[data-v33-charm-level]')){d.charm_levels=[0,1,2].map(n=>Number($(`[data-v33-charm-level="${n}"]`,root)?.value||0));d.charm_substeps=[0,0,0]}if(e.target.matches('[data-v33-widget-level]'))d.widget_level=Number(e.target.value);rerenderBody(d)}
+  if(e.target.matches?.('[data-v33-pet-level],[data-v33-pet-skill],[data-v33-charm-level]')){const d=currentDraft()||{};if(e.target.matches('[data-v33-pet-level]'))d.level=Number(e.target.value);if(e.target.matches('[data-v33-pet-skill]'))d.pet_skill=Number(e.target.value);if(e.target.matches('[data-v33-charm-level]')){d.charm_levels=[0,1,2].map(n=>Number($(`[data-v33-charm-level="${n}"]`,root)?.value||0));d.charm_substeps=[0,1,2].map(n=>Number(root.dataset[`charmSub${n}`]||d?.charm_substeps?.[n]||0))}rerenderBody(d)}
 },true);
 
 function boot(){

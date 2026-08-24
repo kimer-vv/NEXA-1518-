@@ -1,5 +1,7 @@
-/* NEXA V43 REVIEW HOTFIX — 2026-08-24
-   Consolidated structural fixes from Profile review.
+/* NEXA V43.4 — PROFILE + ROLES CONSOLIDATED FIX — 2026-08-24
+   Multiple Owner operational roles + module badges.
+   Hero/Expert/Pet visual polish + Ministry Appointments pill.
+   Main Account chip + anti-flash/profile fixes.
    No global MutationObserver. No polling.
 */
 (()=>{
@@ -337,7 +339,7 @@ setTimeout(applyAll,1100);
 
 
 /* ==========================================================
-   NEXA V43.3 CONSOLIDATED FIX
+   NEXA V43.4 PROFILE + ROLES CONSOLIDATED FIX
    Loaded after the V43 base above. This layer owns the fixes
    requested in the Aug 24 review without changing Chief Gear.
    ========================================================== */
@@ -507,27 +509,35 @@ const P={
  'Frost Gorilla':['Earthbound Vigor','gorilla',['Troop Health +2.5%','Troop Health +3%','Troop Health +3.5%','Troop Health +4%','Troop Health +5%','Troop Health +6%','Troop Health +7%','Troop Health +8%','Troop Health +9%','Troop Health +10%'],null,'Earthbound Vigor increases Troop Health.'],
  'Frostscale Chameleon':['Icy Shroud','lizard',['Enemy Defense -2.5%','Enemy Defense -3%','Enemy Defense -3.5%','Enemy Defense -4%','Enemy Defense -5%','Enemy Defense -6%','Enemy Defense -7%','Enemy Defense -8%','Enemy Defense -9%','Enemy Defense -10%'],null,'Icy Shroud lowers Enemy Defense.']
 };
+const PET_GLOW={
+ 'Cave Hyena':['#67dfff','#17384a'],'Arctic Wolf':['#8be8ff','#1b3c65'],'Musk Ox':['#d0a46b','#51351f'],
+ 'Giant Tapir':['#b59b7c','#3f3227'],'Titan Roc':['#c3a4ff','#32265b'],'Snow Leopard':['#aeeeff','#24446f'],
+ 'Giant Elk':['#7bd9c7','#21473f'],'Cave Lion':['#ffb24e','#5d3416'],'Snow Ape':['#f2fbff','#486175'],
+ 'Iron Rhino':['#aeb7c2','#3d444c'],'Saber-tooth Tiger':['#ff8438','#612910'],'Mammoth':['#d7bd93','#533f2d'],
+ 'Frost Gorilla':['#508bff','#192c63'],'Frostscale Chameleon':['#5de9c0','#174f45']
+};
 function animalSVG(kind){
  const glyphs={
   hyena:'🐕',wolf:'🐺',ox:'🐂',tapir:'🐗',bird:'🦅',elk:'🦌',
   cat:'🐆',lion:'🦁',ape:'🦍',gorilla:'🦍',rhino:'🦏',mammoth:'🐘',lizard:'🦎'
  };
  const g=glyphs[kind]||'🐾';
- return `<span aria-hidden="true" style="font-size:29px;line-height:1;display:block;filter:grayscale(1) brightness(2.25) sepia(.08) hue-rotate(145deg) saturate(5) drop-shadow(0 0 5px #65e9ff)">${g}</span>`;
+ return `<span aria-hidden="true" class="nexa-v434-animal-glyph">${g}</span>`;
 }
 function petV432(){
  const root=$('#nexa-v33-detail');if(!root)return;
- const p=P[currentHero()];if(!p)return;
+ const petName=currentHero(),p=P[petName];if(!p)return;
  const sec=$$('.v33-section',root).find(x=>/PET SKILL/i.test($('.v33-kicker span',x)?.textContent||''));
  if(!sec)return;
  const old=$('[data-v33-pet-skill]',sec);
  const lv=clamp(Number(old?.value||0),0,p[2].length);
+ const glow=PET_GLOW[petName]||['#74ecff','#173d54'];
  sec.innerHTML=`
   <div class="v33-kicker"><span>PET SKILL</span><strong>LEVEL ${lv}</strong></div>
-  <div class="nexa-v432-pet" style="padding:10px;border:1px solid rgba(84,218,255,.22);border-radius:16px;background:rgba(4,21,42,.46)">
+  <div class="nexa-v432-pet" style="padding:10px;border:1px solid color-mix(in srgb,${glow[0]} 35%,transparent);border-radius:16px;background:rgba(4,21,42,.46)">
    <div class="nexa-v432-pet-head" style="display:grid;grid-template-columns:48px 1fr;gap:10px;align-items:center;cursor:pointer">
-    <span style="width:46px;height:46px;border-radius:50%;display:grid;place-items:center;color:#74ecff;border:1px solid rgba(98,226,255,.5);box-shadow:0 0 12px rgba(76,224,255,.48),0 0 30px rgba(78,92,255,.22)">${animalSVG(p[1])}</span>
-    <div><b>${p[0]}</b><small style="display:block;color:#73e4ff;margin-top:3px">TAP FOR SKILL DETAILS</small></div>
+    <span class="nexa-v434-pet-orb" style="--pet:${glow[0]};--petbg:${glow[1]}">${animalSVG(p[1])}</span>
+    <div><b>${p[0]}</b><small style="display:block;color:${glow[0]};margin-top:3px">TAP FOR SKILL DETAILS</small></div>
    </div>
    <p class="nexa-v432-pet-desc" style="display:none;color:#c5cde2;font-size:10px">${p[4]}</p>
    <select class="v33-select" style="margin-top:9px" data-v33-pet-skill>
@@ -568,23 +578,30 @@ function charmsV432(root=document){
  });
 }
 
-/* Ministry: force a self-contained inline calendar/star icon even if old image is broken. */
+/* Ministry Appointments: readable action pill with self-contained calendar glyph. */
 function ministryV432(){
  const b=$('#nexa-v425-ministry');if(!b)return;
- b.innerHTML=`<svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
-  <rect x="4.5" y="5.5" width="15" height="14" rx="2.4" fill="none" stroke="#5be7ff" stroke-width="1.8"/>
-  <path d="M8 3.7v3.4M16 3.7v3.4M4.8 9.3h14.4" fill="none" stroke="#5be7ff" stroke-width="1.8" stroke-linecap="round"/>
-  <path d="M12 12.1l1.05 1.55 1.82.46-1.17 1.43.12 1.88L12 16.78l-1.82.65.12-1.88-1.17-1.43 1.82-.46L12 12.1z" fill="#5be7ff"/>
- </svg>`;
- b.style.background='radial-gradient(circle,rgba(46,205,255,.20),rgba(7,17,37,.95) 70%)';
- b.style.borderColor='rgba(76,218,255,.72)';
- b.style.boxShadow='0 0 12px rgba(61,215,255,.34)';
+ b.classList.add('nexa-v434-ministry-pill');
+ b.innerHTML=`<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+  <rect x="4.5" y="5.5" width="15" height="14" rx="2.4" fill="none" stroke="currentColor" stroke-width="1.8"/>
+  <path d="M8 3.7v3.4M16 3.7v3.4M4.8 9.3h14.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M12 12.1l1.05 1.55 1.82.46-1.17 1.43.12 1.88L12 16.78l-1.82.65.12-1.88-1.17-1.43 1.82-.46L12 12.1z" fill="currentColor"/>
+ </svg><span>MINISTRY APPOINTMENTS</span>`;
+ b.setAttribute('aria-label','Ministry Appointments');
+ b.title='Ministry Appointments';
 }
 
 /* Main-account / Alliance line overflow fix. */
 function profileFitV432(){
  const p=$('#nexa-profile-modal');if(!p)return;
  $$('.nexa-profile-sub,.nexa-profile-identity,.nexa-profile-main,.nexa-profile-hero',p).forEach(x=>{x.style.minWidth='0';x.style.maxWidth='100%'});
+ $$('span,small,p,div',p).filter(x=>x.children.length===0).forEach(x=>{
+   const t=(x.textContent||'').trim();
+   if(/^this is your main account\.?$/i.test(t)){
+     x.textContent='★ MAIN ACCOUNT';
+     x.classList.add('nexa-v434-main-chip');
+   }
+ });
  $$('.nexa-glass-tag,[class*="main-account"],[class*="main-note"]',p).forEach(x=>{
   x.style.maxWidth='100%';x.style.minWidth='0';x.style.whiteSpace='normal';x.style.overflowWrap='anywhere';x.style.boxSizing='border-box';
  });
@@ -610,36 +627,112 @@ function signalV432(){
 }
 function nextSignal(){const now=new Date(),next=new Date(now);next.setUTCHours(24,0,2,0);setTimeout(()=>{signalV432();nextSignal()},Math.max(1000,next-now))}
 
-/* Owner working role + module badges. RPCs are installed in Supabase. */
+/* Owner working roles + module badges. Multiple operational roles are supported. */
 const RL={battle_strategist:'Battle Strategist',event_operator:'Event Operator',scheduler:'Scheduler',transfer_coordinator:'Transfer Coordinator'};
+const MODS={svs_access:'SVS',transfer_access:'Transfers',sbs_access:'SBS',team_builder_access:'Team Builder',forms_access:'Forms',events_access:'Events',library_access:'Library',administration_access:'Administration'};
 function sb(){return window.supabaseClient||window.sb||null}
+function roleChip(v,label,type='role'){
+ return `<span class="nexa-v434-role-chip" data-chip-${type}="${v}"><span>${label}</span><button type="button" aria-label="Remove ${label}" data-remove-${type}="${v}">×</button></span>`;
+}
 async function rolePanelV432(){
- const host=$('#admin-roles')||$('#admin-manage-access')||$('[data-admin-panel="roles"]')||$('[data-admin-content="roles"]')||$('#admin-modal .admin-modal-card');if(!host||$('#nexa-v432-role-panel',host))return;
+ const host=$('#admin-roles')||$('#admin-manage-access')||$('[data-admin-panel="roles"]')||$('[data-admin-content="roles"]')||$('#admin-modal .admin-modal-card');
+ if(!host)return;
  const c=sb();if(!c)return;
  let role='';try{role=String((await c.rpc('current_nexa_role')).data||'').toLowerCase()}catch{}
  if(role!=='owner')return;
  let user=null;try{user=(await c.auth.getUser()).data?.user}catch{}if(!user)return;
- let work='',access={};
- try{work=(await c.from('nexa_operational_roles').select('role').eq('user_id',user.id).limit(1).maybeSingle()).data?.role||''}catch{}
+
+ let roles=[],access={};
+ try{roles=((await c.from('nexa_operational_roles').select('role').eq('user_id',user.id)).data||[]).map(x=>x.role)}catch{}
  try{access=(await c.from('staff_module_access').select('*').eq('user_id',user.id).maybeSingle()).data||{}}catch{}
- const d=document.createElement('div');d.id='nexa-v432-role-panel';d.style.cssText='margin:12px 0;padding:13px;border:1px solid rgba(94,222,255,.28);border-radius:16px;background:rgba(7,20,45,.86)';
- d.innerHTML=`<b>MY WORKING ROLE & MODULE BADGES</b><p class="muted">Owner access stays protected. These only describe what you actively do.</p>
- <select id="nexa-v432-role" style="width:100%;margin:8px 0;padding:10px;background:#091329;color:#fff;border-radius:10px">
-  <option value="">No working-role badge</option>${Object.entries(RL).map(([v,l])=>`<option value="${v}" ${work===v?'selected':''}>${l}</option>`).join('')}
- </select>
- <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
- ${[['svs_access','SVS'],['transfer_access','Transfers'],['sbs_access','SBS'],['team_builder_access','Team Builder'],['forms_access','Forms'],['events_access','Events'],['library_access','Library'],['administration_access','Administration']].map(([k,l])=>`<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-v432-module="${k}" ${access[k]?'checked':''}>${l}</label>`).join('')}
- </div><button class="btn" id="nexa-v432-role-save" style="margin-top:10px">SAVE MY WORKING ROLE</button><div class="form-message" id="nexa-v432-role-msg"></div>`;
- host.appendChild(d);
- $('#nexa-v432-role-save',d).onclick=async()=>{
-  const msg=$('#nexa-v432-role-msg',d);msg.textContent='Saving…';
-  const vals={};$$('[data-v432-module]',d).forEach(x=>vals[x.dataset.v432Module]=x.checked);
-  try{
-   let q=await c.rpc('nexa_owner_set_my_operational_role',{new_role:$('#nexa-v432-role',d).value||null});if(q.error)throw q.error;
-   q=await c.rpc('nexa_owner_set_my_module_access',{new_svs:!!vals.svs_access,new_transfer:!!vals.transfer_access,new_sbs:!!vals.sbs_access,new_team_builder:!!vals.team_builder_access,new_forms:!!vals.forms_access,new_events:!!vals.events_access,new_library:!!vals.library_access,new_administration:!!vals.administration_access});if(q.error)throw q.error;
-   msg.textContent='Working role updated ✓';
-  }catch(e){msg.textContent=e?.message||'Could not save working role.'}
+
+ let d=$('#nexa-v432-role-panel',host);
+ if(!d){d=document.createElement('div');d.id='nexa-v432-role-panel';host.appendChild(d)}
+ d.className='nexa-v434-role-panel';
+ d.innerHTML=`
+ <div class="nexa-v434-panel-title"><b>MY OPERATIONAL ROLES</b><small>Owner permissions stay protected. Add every working role you want shown on your profile.</small></div>
+ <div id="nexa-v434-role-chips" class="nexa-v434-chip-wrap">${roles.map(v=>roleChip(v,RL[v]||v)).join('')||'<span class="muted">No operational roles added yet.</span>'}</div>
+ <div class="nexa-v434-add-row">
+   <select id="nexa-v434-role-select"><option value="">Choose operational role…</option>${Object.entries(RL).filter(([v])=>!roles.includes(v)).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select>
+   <button class="btn" type="button" id="nexa-v434-role-add">ADD</button>
+ </div>
+ <button type="button" class="nexa-v434-add-another" id="nexa-v434-role-another">＋ Add another operational role</button>
+
+ <div class="nexa-v434-panel-title modules"><b>MY MODULE ACCESS BADGES</b><small>Select the modules you actively work with. Owner access itself is never removed.</small></div>
+ <div id="nexa-v434-module-chips" class="nexa-v434-chip-wrap">${Object.entries(MODS).filter(([k])=>access[k]).map(([k,l])=>roleChip(k,l,'module')).join('')||'<span class="muted">No module badges selected yet.</span>'}</div>
+ <div class="nexa-v434-add-row">
+   <select id="nexa-v434-module-select"><option value="">Choose module…</option>${Object.entries(MODS).filter(([k])=>!access[k]).map(([k,l])=>`<option value="${k}">${l}</option>`).join('')}</select>
+   <button class="btn" type="button" id="nexa-v434-module-add">ADD</button>
+ </div>
+ <button type="button" class="nexa-v434-add-another" id="nexa-v434-module-another">＋ Add another module badge</button>
+ <div id="nexa-v432-role-msg" class="form-message"></div>`;
+
+ const msg=$('#nexa-v432-role-msg',d);
+ const refresh=()=>{d.remove();rolePanelV432()};
+
+ $('#nexa-v434-role-add',d).onclick=async()=>{
+   const wanted=$('#nexa-v434-role-select',d).value;if(!wanted)return;
+   msg.textContent='Adding…';
+   const q=await c.rpc('nexa_owner_add_my_operational_role',{new_role:wanted});
+   if(q.error){msg.textContent=q.error.message||'Could not add role.';return}
+   msg.textContent='Role added ✓';refresh();
  };
+ $$('[data-remove-role]',d).forEach(btn=>btn.onclick=async()=>{
+   msg.textContent='Removing…';
+   const q=await c.rpc('nexa_owner_remove_my_operational_role',{old_role:btn.dataset.removeRole});
+   if(q.error){msg.textContent=q.error.message||'Could not remove role.';return}
+   refresh();
+ });
+
+ async function saveModules(next){
+   const vals={};Object.keys(MODS).forEach(k=>vals[k]=!!next[k]);
+   const q=await c.rpc('nexa_owner_set_my_module_access',{
+     new_svs:vals.svs_access,new_transfer:vals.transfer_access,new_sbs:vals.sbs_access,
+     new_team_builder:vals.team_builder_access,new_forms:vals.forms_access,new_events:vals.events_access,
+     new_library:vals.library_access,new_administration:vals.administration_access
+   });
+   if(q.error)throw q.error;
+ }
+ $('#nexa-v434-module-add',d).onclick=async()=>{
+   const wanted=$('#nexa-v434-module-select',d).value;if(!wanted)return;
+   msg.textContent='Adding…';try{await saveModules({...access,[wanted]:true});refresh()}catch(e){msg.textContent=e?.message||'Could not add module.'}
+ };
+ $$('[data-remove-module]',d).forEach(btn=>btn.onclick=async()=>{
+   msg.textContent='Removing…';try{await saveModules({...access,[btn.dataset.removeModule]:false});refresh()}catch(e){msg.textContent=e?.message||'Could not remove module.'}
+ });
+ $('#nexa-v434-role-another',d).onclick=()=>$('#nexa-v434-role-select',d)?.focus();
+ $('#nexa-v434-module-another',d).onclick=()=>$('#nexa-v434-module-select',d)?.focus();
+}
+
+
+function svgBear(){
+ return `<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="9" cy="9" r="4" fill="currentColor"/><circle cx="23" cy="9" r="4" fill="currentColor"/><path d="M7.5 17c0-6 3.8-10 8.5-10s8.5 4 8.5 10-3.8 9-8.5 9-8.5-3-8.5-9z" fill="currentColor"/><ellipse cx="16" cy="20" rx="4.5" ry="3.5" fill="#071327"/><circle cx="13" cy="15" r="1.2" fill="#071327"/><circle cx="19" cy="15" r="1.2" fill="#071327"/><circle cx="16" cy="19" r="1.2" fill="currentColor"/></svg>`;
+}
+function svgSword(){
+ return `<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M22.8 4.5 27 3l-1.5 4.2-11 11-2.7-2.7 11-11z" fill="currentColor"/><path d="m9.8 15.7 6.5 6.5-2.2 2.2-6.5-6.5zM7 22l3 3-3.8 3.8-3-3z" fill="currentColor"/></svg>`;
+}
+function heroSpecialV434(){
+ const root=$('#nexa-v33-detail');if(!root)return;
+ const name=currentHero(),box=$('.v33-special',root),icon=$('.v33-special-icon',box);
+ if(!icon)return;
+ if(/natalia/i.test(name)){icon.innerHTML=svgBear();icon.classList.add('nexa-v434-polar')}
+ if(/jeronimo/i.test(name)){icon.innerHTML=svgSword();icon.classList.add('nexa-v434-sword')}
+}
+const EXPERT_GLYPHS=[
+ `<svg viewBox="0 0 24 24"><path d="M12 3 19 7v5c0 4.4-2.8 7.2-7 9-4.2-1.8-7-4.6-7-9V7z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="m9 12 2 2 4-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>`,
+ `<svg viewBox="0 0 24 24"><path d="M4 17 17 4l3 3L7 20z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="m13 8 3 3M5 15l4 4" stroke="currentColor" stroke-width="1.7"/></svg>`,
+ `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 5v7l4 2" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>`,
+ `<svg viewBox="0 0 24 24"><path d="M5 18h14M7 18V9h10v9M9 9V6h6v3M10 13h4" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>`,
+ `<svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M6.5 6.5l11 11M17.5 6.5l-11 11" stroke="currentColor" stroke-width="1.6"/></svg>`
+];
+function expertGlyphsV434(){
+ const root=$('#nexa-v33-detail');if(!root)return;
+ const sec=$$('.v33-section',root).find(x=>/EXPERT SKILLS/i.test($('.v33-kicker span',x)?.textContent||''));if(!sec)return;
+ $$('.v33-skill',sec).forEach((card,n)=>{
+   const icon=$('.v33-skill-icon',card);if(!icon)return;
+   icon.classList.add('nexa-v434-expert-glyph');icon.style.setProperty('--skill-glow',COLORS[(n+2)%COLORS.length]||'#73e8ff');
+   icon.innerHTML=EXPERT_GLYPHS[n%EXPERT_GLYPHS.length];
+ });
 }
 
 /* Troop image visual only: remove the gray panel. We intentionally do NOT replace
@@ -678,7 +771,44 @@ function addV433CSS(){
  #nexa-profile-modal [class*="main-account"],
  #nexa-profile-modal [class*="main-note"]{
    white-space:normal!important;overflow-wrap:anywhere!important;word-break:break-word!important
- }`;
+ }
+ .nexa-v434-ministry-pill{
+   width:auto!important;min-width:170px!important;height:38px!important;min-height:38px!important;
+   border-radius:999px!important;padding:0 13px!important;display:inline-flex!important;align-items:center!important;
+   justify-content:center!important;gap:8px!important;font-size:8.5px!important;font-weight:950!important;
+   letter-spacing:.10em!important;color:#66e8ff!important;border:1px solid rgba(78,225,255,.62)!important;
+   background:linear-gradient(135deg,rgba(6,38,64,.95),rgba(10,16,42,.95))!important;
+   box-shadow:0 0 15px rgba(62,220,255,.22)!important
+ }
+ .nexa-v434-ministry-pill>*{display:block!important}
+ .nexa-v434-ministry-pill svg{width:18px!important;height:18px!important;flex:0 0 18px!important}
+ .nexa-v434-main-chip{
+   display:inline-flex!important;width:max-content!important;max-width:100%!important;padding:5px 9px!important;
+   border-radius:999px!important;border:1px solid rgba(255,211,96,.32)!important;background:rgba(70,50,13,.22)!important;
+   color:#ffd878!important;font-size:8px!important;font-weight:950!important;letter-spacing:.08em!important;white-space:nowrap!important
+ }
+ .nexa-v434-pet-orb{
+   width:46px;height:46px;border-radius:50%;display:grid;place-items:center;color:var(--pet);
+   border:1px solid color-mix(in srgb,var(--pet) 72%,white 10%);background:radial-gradient(circle,var(--petbg),#071327 72%);
+   box-shadow:0 0 12px color-mix(in srgb,var(--pet) 60%,transparent),0 0 30px color-mix(in srgb,var(--pet) 25%,transparent)
+ }
+ .nexa-v434-animal-glyph{font-size:27px;line-height:1;filter:drop-shadow(0 0 5px var(--pet))}
+ .nexa-v434-polar svg,.nexa-v434-sword svg,.nexa-v434-expert-glyph svg{width:26px!important;height:26px!important;display:block}
+ .nexa-v434-polar{color:#dffaff!important;box-shadow:0 0 12px rgba(177,239,255,.5)!important}
+ .nexa-v434-sword{color:#ffc96b!important;box-shadow:0 0 12px rgba(255,185,72,.42)!important}
+ .nexa-v434-expert-glyph{color:var(--skill-glow)!important;border-color:color-mix(in srgb,var(--skill-glow) 70%,white 10%)!important;
+   box-shadow:0 0 12px color-mix(in srgb,var(--skill-glow) 50%,transparent)!important}
+ .nexa-v434-role-panel{margin:12px 0;padding:14px;border:1px solid rgba(94,222,255,.28);border-radius:18px;background:rgba(7,20,45,.86)}
+ .nexa-v434-panel-title{display:grid;gap:4px}.nexa-v434-panel-title.modules{margin-top:18px}
+ .nexa-v434-panel-title small{color:#8f9ab8;font-size:10px;line-height:1.4}
+ .nexa-v434-chip-wrap{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}
+ .nexa-v434-role-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 7px 6px 10px;border-radius:999px;
+   border:1px solid rgba(113,225,255,.32);background:rgba(26,76,101,.24);color:#dff9ff;font-size:9px;font-weight:850}
+ .nexa-v434-role-chip button{width:21px;height:21px;border-radius:50%;border:0;background:rgba(255,255,255,.08);color:#fff;padding:0}
+ .nexa-v434-add-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+ .nexa-v434-add-row select{width:100%;min-width:0;padding:10px;border-radius:11px;background:#091329;color:#fff;border:1px solid rgba(255,255,255,.14)}
+ .nexa-v434-add-another{margin-top:8px;border:0;background:transparent;color:#6fe6ff;font-size:9px;font-weight:900;padding:4px 0}
+ `;
  document.head.appendChild(st);
 }
 function beginV433Switch(){const r=$('#nexa-v33-detail');if(r)r.classList.add('nexa-v433-switching')}
@@ -698,7 +828,7 @@ function cleanPublicAuthMenu(){
 }
 
 function allV432(){
- addV433CSS();widgetV432();troopV432();petV432();charmsV432();ministryV432();
+ addV433CSS();widgetV432();heroSpecialV434();expertGlyphsV434();troopV432();petV432();charmsV432();ministryV432();
  profileFitV432();signalV432();rolePanelV432();troopVisualV432();cleanPublicAuthMenu();
 }
 function deferV432(){requestAnimationFrame(()=>requestAnimationFrame(()=>{allV432();endV433Switch()}));setTimeout(()=>{allV432();endV433Switch()},80);setTimeout(()=>{allV432();endV433Switch()},260)}

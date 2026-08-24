@@ -1,4 +1,4 @@
-/* NEXA V43.9 — WIDGETS + CHARMS + PROFILE CLEANUP — 2026-08-24
+/* NEXA V43.10 — COMPLETE WIDGET DATA + PROFILE STABILITY — 2026-08-24
    Single focused runtime for the remaining Profile/Admin conflicts.
    Does NOT modify Heroes, Experts, Troops, or Library data.
    Fixes: Pets, Ministry visual ownership, legacy Ministry card cleanup,
@@ -7,8 +7,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V439_STABLE_RUNTIME__)return;
-window.__NEXA_V439_STABLE_RUNTIME__=true;
+if(window.__NEXA_V4310_STABLE_RUNTIME__)return;
+window.__NEXA_V4310_STABLE_RUNTIME__=true;
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
@@ -777,4 +777,396 @@ window.addEventListener('nexa:profile-updated',v439Schedule);
 window.addEventListener('pageshow',v439Schedule);
 v439Schedule();
 
+
+/* ============================================================
+   NEXA V43.10 — FINAL AUTHORITATIVE OVERRIDE
+   Scope: menu close, Mythic hero widgets, external charms,
+          Ministry rebuild, Main Account/Alliance cleanup.
+   Explicitly leaves Pets, Experts and Troops untouched.
+   ============================================================ */
+
+const V4310_STD5 = ['5%','7.5%','10%','12.5%','15%'];
+const V4310_WIDGETS = {
+  natalia:{gear:'Gale Force',
+    a:{name:'Unity',desc:'Natalia and her Polar Bear fight in perfect synchrony, increasing damage dealt.',v:['Damage Dealt +10%','Damage Dealt +15%','Damage Dealt +20%','Damage Dealt +25%','Damage Dealt +30%']},
+    b:{name:'Invincibles',desc:'Natalia summons a herd of beasts to join the rally, increasing Rally Troops’ Lethality.',v:V4310_STD5.map(x=>'Rally Troop Lethality +'+x)}},
+  jeronimo:{gear:'Dawnbreak',
+    a:{name:'Shield of Swords',desc:'When attacking, Jeronimo forms a sword-energy shield that reduces damage received.',v:['Damage Taken -10%','Damage Taken -15%','Damage Taken -20%','Damage Taken -25%','Damage Taken -30%']},
+    b:{name:'Discernment',desc:'Jeronimo attacks with a sword formation, increasing Rally Troops’ Attack.',v:V4310_STD5.map(x=>'Rally Troop Attack +'+x)}},
+  molly:{gear:'Yeti Spirit',
+    a:{name:'Modified Launcher',desc:'Molly wields a modified launcher that increases her damage dealt.',v:['Damage Dealt +10%','Damage Dealt +15%','Damage Dealt +20%','Damage Dealt +25%','Damage Dealt +30%']},
+    b:{name:'Snowy Blessing',desc:'The blessing of the snow increases Defender Troops’ Lethality.',v:V4310_STD5.map(x=>'Defender Troop Lethality +'+x)}},
+  zinman:{gear:'Woodpecker',
+    a:{name:'Overclocked Nail Gun',desc:'Zinman’s Nail Gun enters Overcharged Mode, increasing his Attack.',v:['Attack +8%','Attack +12%','Attack +16%','Attack +20%','Attack +24%']},
+    b:{name:'Defend to Attack',desc:'Zinman constructs an archer tower, increasing Defender Troops’ Attack.',v:V4310_STD5.map(x=>'Defender Troop Attack +'+x)}},
+
+  flint:{gear:'Dragonbane',
+    a:{name:'Vengeful Task',desc:'After Incinerator is triggered, Flint’s vengeance boosts his Attack until the end of battle.',v:['Attack +8%','Attack +12%','Attack +16%','Attack +20%','Attack +24%']},
+    b:{name:'Dragonbreath',desc:'Flint fortifies his flamethrower for city defense, increasing Defender Troops’ Attack.',v:V4310_STD5.map(x=>'Defender Troop Attack +'+x)}},
+  philly:{gear:'Pharmacologica',
+    a:{name:'Extraction',desc:'Philly strengthens her herbal techniques, increasing their healing effects.',v:['Healing Effect +30%','Healing Effect +40%','Healing Effect +50%','Healing Effect +60%','Healing Effect +70%']},
+    b:{name:'First Aid Training',desc:'Philly teaches first-aid and care techniques, increasing Defender Troops’ Health.',v:V4310_STD5.map(x=>'Defender Troop Health +'+x)}},
+
+  logan:{gear:'Fists of Steel',
+    a:{name:'Enhanced Fists of Steel',desc:'Logan modifies and upgrades Fists of Steel, increasing its damage.',v:['Damage +10%','Damage +15%','Damage +20%','Damage +25%','Damage +30%']},
+    b:{name:'Strong Protection',desc:'Logan defends the city with his mighty fists, increasing Defender Troops’ Defense.',v:V4310_STD5.map(x=>'Defender Troop Defense +'+x)}},
+  mia:{gear:'Fate Crystal',
+    a:{name:'Vision of Truth',desc:'Mia reads the secret of fate, increasing the upper and lower limits of her fluctuating skills.',v:['Fluctuation +30','Fluctuation +60','Fluctuation +90','Fluctuation +120','Fluctuation +150']},
+    b:{name:'Rally of Fate',desc:'Mia divines the best moment for an assault, increasing Rally Troops’ Attack.',v:V4310_STD5.map(x=>'Rally Troop Attack +'+x)}},
+  greg:{gear:'State Edict',
+    a:{name:'Courtroom Order',desc:'Greg silences the target, preventing skill use, and deals a heavy strike.',v:['Silence 3s • Damage 220%','Silence 3.5s • Damage 240%','Silence 4s • Damage 260%','Silence 4.5s • Damage 280%','Silence 5s • Damage 300%']},
+    b:{name:'Trumpet of Justice',desc:'Greg rallies the army under the banner of justice, increasing Rally Troops’ Health.',v:V4310_STD5.map(x=>'Rally Troop Health +'+x)}},
+
+  ahmose:{gear:'Guardian’s Relic',
+    a:{name:'Unyielding Determination',desc:'Friendly troops under Cthugha’s Protection gain increased Attack for 2.5s.',v:['Attack +30%','Attack +33%','Attack +36%','Attack +39%','Attack +42%']},
+    b:{name:'Oath of Guardian',desc:'Ahmose fortifies the city with a guardian’s resolve, increasing Defender Troops’ Health.',v:V4310_STD5.map(x=>'Defender Troop Health +'+x)}},
+  reina:{gear:'Ninjaken – Raikiri',
+    a:{name:'Silhouette Strike',desc:'Reina can throw an extra kunai with her Normal Attack.',v:['Extra Kunai Damage 25%','Extra Kunai Damage 30%','Extra Kunai Damage 35%','Extra Kunai Damage 40%','Extra Kunai Damage 45%']},
+    b:{name:'Fiery Invasion',desc:'Reina’s precision increases Rally Troops’ Lethality.',v:V4310_STD5.map(x=>'Rally Troop Lethality +'+x)}},
+  lynn:{gear:'Ella’s Tear',
+    a:{name:'Aira’s Elegy',desc:'After casting Hymn of Sidrak, Lynn increases Attack until the end of battle.',v:['Attack +7%','Attack +9%','Attack +11%','Attack +13%','Attack +15%']},
+    b:{name:'Iranon’s Determination',desc:'Lynn stirs defenders with a nostalgic poem, increasing Defender Troops’ Lethality.',v:V4310_STD5.map(x=>'Defender Troop Lethality +'+x)}},
+
+  hector:{gear:'Steel Fangs',
+    a:{name:'Reaper’s Embrace',desc:'Extends Sword Whirlwind and restores Hector’s Health from damage dealt.',v:['Heal 7% of Damage Dealt','Heal 9% of Damage Dealt','Heal 11% of Damage Dealt','Heal 13% of Damage Dealt','Heal 15% of Damage Dealt']},
+    b:{name:'Goliath',desc:'Hector uses terrain against attackers, increasing Defender Troops’ Attack.',v:V4310_STD5.map(x=>'Defender Troop Attack +'+x)}},
+  norah:{gear:'Snow Cruiser',
+    a:{name:'Disruptor',desc:'Norah improves her Barrage grenades, gaining a chance to stun the target.',v:['Stun 25% • 0.6s','Stun 27.5% • 0.7s','Stun 30% • 0.8s','Stun 32.5% • 0.9s','Stun 35% • 1s']},
+    b:{name:'True Grit',desc:'Norah inspires defenders with courage under fire, increasing Defender Troops’ Defense.',v:V4310_STD5.map(x=>'Defender Troop Defense +'+x)}},
+  gwen:{gear:'Wings of Hope',
+    a:{name:'Fire Support Unit',desc:'Gwen’s automated secondary weapon attacks a random target on skill cast.',v:['Damage 50%','Damage 55%','Damage 60%','Damage 65%','Damage 70%']},
+    b:{name:'Marauder',desc:'Gwen’s offensive expertise increases Rally Troops’ Lethality.',v:V4310_STD5.map(x=>'Rally Troop Lethality +'+x)}},
+
+  'wu ming':{gear:'Dragonslayer',
+    a:{name:'Martial Zenith',desc:'Wu Ming reaches the zenith of martial arts, increasing damage dealt.',v:['Damage Dealt +10%','Damage Dealt +15%','Damage Dealt +20%','Damage Dealt +25%','Damage Dealt +30%']},
+    b:{name:'Steel Discipline',desc:'Wu Ming puts defender troops under stern tutelage, increasing Defender Troops’ Defense.',v:V4310_STD5.map(x=>'Defender Troop Defense +'+x)}},
+  renee:{gear:'Illusion Magiball',
+    a:{name:'Dream Illusion',desc:'Renee’s attacks can confuse the target for 1 second.',v:['Confusion Chance 2%','Confusion Chance 3.5%','Confusion Chance 5%','Confusion Chance 6.5%','Confusion Chance 8%']},
+    b:{name:'Wistful Enchantment',desc:'Renee’s extraordinary talents increase Rally Troops’ Lethality.',v:V4310_STD5.map(x=>'Rally Troop Lethality +'+x)}},
+  wayne:{gear:'Power Boomerang',
+    a:{name:'Gunslinger',desc:'Wayne unleashes a rapid five-shot barrage; Escorts can be instantly knocked down.',v:['Damage 40% • Knockdown 40%','Damage 44% • Knockdown 55%','Damage 48% • Knockdown 70%','Damage 52% • Knockdown 85%','Damage 56% • Knockdown 100%']},
+    b:{name:'Offensive Defense',desc:'Wayne’s strategy increases Defender Troops’ Lethality.',v:V4310_STD5.map(x=>'Defender Troop Lethality +'+x)}},
+
+  edith:{gear:'Charm Toolkit',
+    a:{name:'Pocket Engineer',desc:'When Mr. Tin first drops below 50% Health, Edith restores Health and increases Defense until battle end.',v:['Heal 15% • Defense +10%','Heal 20% • Defense +15%','Heal 25% • Defense +20%','Heal 30% • Defense +25%','Heal 35% • Defense +30%']},
+    b:{name:'Fortworks',desc:'Edith and Mr. Tin increase Defender Troops’ Health.',v:V4310_STD5.map(x=>'Defender Troop Health +'+x)}},
+  gordon:{gear:'Bonecrux Venom',
+    a:{name:'Potion #1325',desc:'Gordon’s chemical arsenal increases Damage Dealt and weakens poisoned targets.',v:['Damage +5%','Damage +10%','Damage +15%','Damage +20%','Damage +25%']},
+    b:{name:'Bio Assault',desc:'Gordon equips allies with envenomed weaponry, increasing Rally Troops’ Lethality.',v:V4310_STD5.map(x=>'Rally Troop Lethality +'+x)}},
+  bradley:{gear:'Thunder Cannon',
+    a:{name:'Onslaught',desc:'Destructor further increases Attack Speed for Heroes and Escorts for 5 seconds.',v:['Attack Speed +6%','Attack Speed +8%','Attack Speed +10%','Attack Speed +12%','Attack Speed +14%']},
+    b:{name:'Siege Insight',desc:'Bradley’s siege expertise increases Defender Troops’ Attack.',v:V4310_STD5.map(x=>'Defender Troop Attack +'+x)}},
+
+  gatot:{gear:'Golden Fang',
+    a:{name:'King’s Punishment',desc:'King’s Resolve gains extra shield protection and reflects damage while the shield is active.',v:['Shield 55% • Reflect 10%','Shield 65% • Reflect 15%','Shield 75% • Reflect 20%','Shield 85% • Reflect 25%','Shield 95% • Reflect 30%']},
+    b:{name:'Indestructible City',desc:'Gatot increases Defender Troops’ Defense.',v:V4310_STD5.map(x=>'Defender Troop Defense +'+x)}},
+  sonya:{gear:'Mangrove Frog',
+    a:{name:'Chilled to the Bone',desc:'Sonya improves her cryogen formula; Extreme Cold shatters for extra damage when freezing ends.',v:['Attack +8% • Shatter 50%','Attack +12% • Shatter 55%','Attack +16% • Shatter 60%','Attack +20% • Shatter 65%','Attack +24% • Shatter 70%']},
+    b:{name:'Vortex Turret',desc:'Sonya’s water turrets increase Defender Troops’ Lethality.',v:V4310_STD5.map(x=>'Defender Troop Lethality +'+x)}},
+  hendrik:{gear:'Abyss Diver',
+    a:{name:'Hydra’s Dance',desc:'After Song of R’lyeh ends, moving tentacles remain to draw enemy attacks.',v:['Tentacle Health 10%','Tentacle Health 15%','Tentacle Health 20%','Tentacle Health 25%','Tentacle Health 30%']},
+    b:{name:'Abyssal Blessing',desc:'The abyssal spirit’s blessing increases Rally Troops’ Attack.',v:V4310_STD5.map(x=>'Rally Troop Attack +'+x)}},
+
+  magnus:{gear:'Storm Axe',
+    a:{name:'Heroic Stock',desc:'Magnus reduces incoming damage and increases Frozen Fury’s Defense bonus.',v:['Damage Taken -5% • Defense +25%','Damage Taken -7.5% • Defense +37.5%','Damage Taken -10% • Defense +50%','Damage Taken -12.5% • Defense +62.5%','Damage Taken -15% • Defense +75%']},
+    b:{name:'Valoric Inspiration',desc:'Magnus inspires Defender Troops with tales of ancient heroes, increasing Health.',v:V4310_STD5.map(x=>'Defender Troop Health +'+x)}},
+  fred:{gear:'Blazebearer',
+    a:{name:'Idealism',desc:'Fred’s idealism increases Attack and grants Defense for each bonus dispelled, up to 5 stacks.',v:['Attack +8% • Defense/stack +2%','Attack +12% • Defense/stack +4%','Attack +16% • Defense/stack +6%','Attack +20% • Defense/stack +8%','Attack +24% • Defense/stack +10%']},
+    b:{name:'Call of the Firefighter',desc:'Fred’s heroics increase Rally Troops’ Attack.',v:V4310_STD5.map(x=>'Rally Troop Attack +'+x)}},
+  xura:{gear:'Witch Mask',
+    a:{name:'War Cry',desc:'Xura boosts the highest-Attack ally’s damage dealt for 4 seconds.',v:['Damage +20%','Damage +30%','Damage +40%','Damage +50%','Damage +60%']},
+    b:{name:'Gaiac Hymn',desc:'Xura’s ancient hymn increases Defender Troops’ Attack.',v:V4310_STD5.map(x=>'Defender Troop Attack +'+x)}},
+
+  gregory:{gear:'Solarsword',
+    a:{name:'Indomitable Armor',desc:'Gregory’s armor increases Defense and protects him from interrupting control effects.',v:['Defense +10%','Defense +20%','Defense +30%','Defense +40%','Defense +50%']},
+    b:{name:'Day of the Guard',desc:'Gregory’s leadership increases Defender Troops’ Lethality.',v:V4310_STD5.map(x=>'Defender Troop Lethality +'+x)}},
+  freya:{gear:'Blood Moon Scythe',
+    a:{name:'Night Raid',desc:'Freya increases her Damage and instantly strikes enemy summoned units.',v:['Damage +10% • Summon Strike 100%','Damage +15% • Summon Strike 150%','Damage +20% • Summon Strike 200%','Damage +25% • Summon Strike 250%','Damage +30% • Summon Strike 300%']},
+    b:{name:'Defender of the Watch',desc:'Freya’s sacred watch increases Defender Troops’ Defense.',v:V4310_STD5.map(x=>'Defender Troop Defense +'+x)}},
+  blanchette:{gear:'Wolf Hunter',
+    a:{name:'Hunter’s Rage',desc:'Blanchette increases Attack Speed and extends Triple Blunderbuss healing block.',v:['Attack Speed +10%','Attack Speed +15%','Attack Speed +20%','Attack Speed +25%','Attack Speed +30%']},
+    b:{name:'Lightning Strike',desc:'Blanchette’s rapid rally increases Rally Troops’ Lethality.',v:V4310_STD5.map(x=>'Rally Troop Lethality +'+x)}},
+
+  eleonora:{gear:'Scepter of Solaris',
+    a:{name:'Hammer & Shield',desc:'Eleonora gains Attack above 50% Health and Defense below 50% Health.',v:['Attack +8% • Defense +25%','Attack +12% • Defense +37.5%','Attack +16% • Defense +50%','Attack +20% • Defense +62.5%','Attack +24% • Defense +75%']},
+    b:{name:'Last Fortress',desc:'Eleonora inspires Defender Troops, increasing their Health.',v:V4310_STD5.map(x=>'Defender Troop Health +'+x)}},
+  lloyd:{gear:'Mastercraft Treasure',
+    a:{name:'Frosty Whisper',desc:'Lloyd’s mechanical cuckoos add damage to normal attacks and reduce target Attack Speed for 2 seconds.',v:['Damage +3% • Attack Speed -3%','Damage +6% • Attack Speed -6%','Damage +9% • Attack Speed -9%','Damage +12% • Attack Speed -12%','Damage +15% • Attack Speed -15%']},
+    b:{name:'Steel Maze',desc:'Lloyd installs barricade traps, increasing Defender Troops’ Attack.',v:V4310_STD5.map(x=>'Defender Troop Attack +'+x)}},
+  rufus:{gear:'Meteor Blaster',
+    a:{name:'Ember of Conflict',desc:'Rufus’ normal attacks ignite targets for damage each second for 2 seconds.',v:['Burn Damage 6%/s','Burn Damage 12%/s','Burn Damage 18%/s','Burn Damage 24%/s','Burn Damage 30%/s']},
+    b:{name:'Blazing Legion',desc:'Rufus rallies troops under a phoenix banner, increasing Rally Troops’ Attack.',v:V4310_STD5.map(x=>'Rally Troop Attack +'+x)}},
+
+  hervor:{gear:'Hammer of Sathla',
+    a:{name:'Mark of the Chieftain',desc:'Hervor’s hammer increases Attack Speed and the chance of Intimidation from normal attacks.',v:['Attack Speed +10% • Intimidation +5%','Attack Speed +15% • Intimidation +10%','Attack Speed +20% • Intimidation +15%','Attack Speed +25% • Intimidation +20%','Attack Speed +30% • Intimidation +25%']},
+    b:{name:'Fort of Rock',desc:'Hervor reforges defenders in her image, increasing Defender Troops’ Defense.',v:V4310_STD5.map(x=>'Defender Troop Defense +'+x)}},
+  karol:{gear:'Spirit of Winterwind',
+    a:{name:'Eagle Flutter',desc:'Dawn Charge spurs friendly squads, increasing Attack Speed and Movement Speed for 5 seconds.',v:['Attack Speed +6% • Move +20%','Attack Speed +8% • Move +40%','Attack Speed +10% • Move +60%','Attack Speed +12% • Move +80%','Attack Speed +14% • Move +100%']},
+    b:{name:'Triumphant March',desc:'Karol’s Eagle Brigade increases Rally Squad Attack.',v:V4310_STD5.map(x=>'Rally Squad Attack +'+x)}},
+  ligeia:{gear:'Fateweaver',
+    a:{name:'Spider Queen',desc:'Ligeia begins battle with Guard Spiders and increases Spider Madam’s chance to strike an extra target.',v:['Extra Target Chance 25%','Extra Target Chance 50%','Extra Target Chance 75%','2 Starting Guard Spiders • 75%','2 Starting Guard Spiders • 100%']},
+    b:{name:'Trap Nest',desc:'Ligeia prepares traps for city defense, increasing Defender Troops’ Lethality.',v:V4310_STD5.map(x=>'Defender Troop Lethality +'+x)}},
+
+  gisela:{gear:'Helacore',
+    a:{name:'Energy Efficiency',desc:'Gisela gains extra Energy per Normal Attack and strengthens her shield at 100 Energy.',v:['Energy +3 • Shield 70%','Energy +6 • Shield 100%','Energy +9 • Shield 130%','Energy +12 • Shield 160%','Energy +15 • Shield 190%']},
+    b:{name:'Auto-Target',desc:'Gisela’s auto-turret expertise increases Defender Troops’ Attack.',v:V4310_STD5.map(x=>'Defender Troop Attack +'+x)}},
+  flora:{gear:'Kernel of Plenty',
+    a:{name:'Venom’s Heart',desc:'Flora makes Adoria Roses and vines more toxic, dealing repeated damage for 2 seconds.',v:['Damage 5% per 0.5s','Damage 10% per 0.5s','Damage 15% per 0.5s','Damage 20% per 0.5s','Damage 25% per 0.5s']},
+    b:{name:'Fruit of Life',desc:'Flora’s rejuvenating fruit increases Defender Troops’ Health.',v:V4310_STD5.map(x=>'Defender Troop Health +'+x)}},
+  vulcanus:{gear:'Doom Sigil',
+    a:{name:'Laceration',desc:'Vulcanus’ reforged arrowheads cause enhanced Bleed every 0.5 seconds for 3 seconds.',v:['Bleed 4%','Bleed 8%','Bleed 12%','Bleed 16%','Bleed 20%']},
+    b:{name:'Born King',desc:'Vulcanus’ momentum increases Rally Troops’ Attack.',v:V4310_STD5.map(x=>'Rally Troop Attack +'+x)}},
+
+  elif:{gear:'Moonscar',
+    a:{name:'Blazing Edge',desc:'Elif increases her Attack Speed and the confusion chance of Ethereal Steps.',v:['Attack Speed +7% • Confusion +7%','Attack Speed +10% • Confusion +10%','Attack Speed +13% • Confusion +13%','Attack Speed +16% • Confusion +16%','Attack Speed +20% • Confusion +20%']},
+    b:{name:'Guardian’s Grace',desc:'Elif inspires Defender Troops, increasing their Defense.',v:V4310_STD5.map(x=>'Defender Troop Defense +'+x)}},
+  dominic:{gear:'Exobox',
+    a:{name:'Illusion Mastery',desc:'Dominic perfects his magical skills, increasing Damage Dealt.',v:['Damage Dealt +5%','Damage Dealt +10%','Damage Dealt +15%','Damage Dealt +20%','Damage Dealt +25%']},
+    b:{name:'Grand Fantasy',desc:'Dominic turns the battlefield into his stage, increasing Rally Troops’ Lethality.',v:V4310_STD5.map(x=>'Rally Troop Lethality +'+x)}},
+  cara:{gear:'Velocomet',
+    a:{name:'Techno Power',desc:'Oestermore crafters extend Gloomy Mist and increase Cara’s Normal Attack damage.',v:['Normal Attack Damage +5%','Normal Attack Damage +10%','Normal Attack Damage +15%','Normal Attack Damage +20%','Normal Attack Damage +25%']},
+    b:{name:'Shrouded Haven',desc:'Cara defends the city like her hometown, increasing Defender Troops’ Lethality.',v:V4310_STD5.map(x=>'Defender Troop Lethality +'+x)}},
+
+  hank:{gear:'Roaring Rage',
+    a:{name:'Steel Barricade',desc:'When Hank uses Frenzied Slashes he gains a shield for 3 seconds.',v:['Shield 100% Attack','Shield 130% Attack','Shield 160% Attack','Shield 190% Attack','Shield 220% Attack']},
+    b:{name:'Wall of Despair',desc:'Hank’s courage increases Defender Troops’ Health.',v:V4310_STD5.map(x=>'Defender Troop Health +'+x)}},
+  estrella:{gear:'Dreamscape Painting',
+    a:{name:'Color Burst',desc:'Enemies stained with two colors at the same time take increased damage.',v:['Enemy Damage Taken +10%','Enemy Damage Taken +15%','Enemy Damage Taken +20%','Enemy Damage Taken +25%','Enemy Damage Taken +30%']},
+    b:{name:'Homeland Defense',desc:'Estrella’s painting inspires Defender Troops, increasing their Attack.',v:V4310_STD5.map(x=>'Defender Troop Attack +'+x)}},
+  viveca:{gear:'Dark Star',
+    a:{name:'Blood Hunt',desc:'Viveca refines her weapon from battle experience, increasing Damage Dealt.',v:['Damage Dealt +5%','Damage Dealt +10%','Damage Dealt +15%','Damage Dealt +20%','Damage Dealt +25%']},
+    b:{name:'Song of Dawn',desc:'The dawn-heralding horn increases Rally Troops’ Lethality.',v:V4310_STD5.map(x=>'Rally Troop Lethality +'+x)}},
+
+  seigel:{gear:'Blacklight Halberd',
+    a:{name:'Inhuman Cast',desc:'The Blood Moon plague extends Spike Guard and restores Health from damage dealt.',v:['Heal 5% of Damage Dealt','Heal 10% of Damage Dealt','Heal 15% of Damage Dealt','Heal 20% of Damage Dealt','Heal 25% of Damage Dealt']},
+    b:{name:'Hell’s Vow',desc:'Seigel’s determination increases Defender Troops’ Lethality.',v:V4310_STD5.map(x=>'Defender Troop Lethality +'+x)}},
+  ursar:{gear:'Progenitor Spear',
+    a:{name:'Venomous Edge',desc:'Normal attacks and Wind Tip poison targets every 0.5 seconds for 3 seconds, stacking up to three times.',v:['Poison Damage 10%','Poison Damage 15%','Poison Damage 20%','Poison Damage 25%','Poison Damage 30%']},
+    b:{name:'Typhoon Drums',desc:'The drums of the ancients increase Rally Troops’ Attack.',v:V4310_STD5.map(x=>'Rally Troop Attack +'+x)}},
+  aisling:{gear:'Cord of Destiny',
+    a:{name:'Woodland Harmony',desc:'Aisling’s vines and Fruits of Plenty reduce target Attack Speed for 3 seconds.',v:['Attack Speed -10%','Attack Speed -15%','Attack Speed -20%','Attack Speed -25%','Attack Speed -30%']},
+    b:{name:'Forest Guardian',desc:'Aisling’s defensive experience increases Defender Troops’ Defense.',v:V4310_STD5.map(x=>'Defender Troop Defense +'+x)}
+  }
+};
+
+/* Alonso already displayed correctly in the tested build; preserve its current
+   content rather than inventing undocumented intermediate Ocean's Bounty values. */
+
+function v4310Key(s=''){return String(s).trim().toLowerCase().replace(/[’']/g,"'").replace(/\s+/g,' ')}
+function v4310Widget(){
+  const root=$('#nexa-v33-detail');
+  if(!root?.classList.contains('open'))return;
+  const hero=(($('.v33-title h3',root)?.textContent)||'').trim();
+  const key=v4310Key(hero);
+  if(key==='alonso')return; // preserve tested Alonso
+  const d=V4310_WIDGETS[key];
+  if(!d)return;
+
+  const sec=$$('.v33-section',root).find(x=>/EXCLUSIVE GEAR|WIDGET/i.test($('.v33-kicker span',x)?.textContent||''));
+  if(!sec)return;
+  const lv=clamp(Number(
+    $('[data-v33-widget].active',sec)?.dataset.v33Widget ||
+    $('[data-v33-widget-level].active',sec)?.dataset.v33WidgetLevel ||
+    root.dataset.widgetLevel || 0
+  ),0,10);
+  const aLv=clamp(Math.ceil(lv/2),0,5);
+  const bLv=clamp(Math.floor(lv/2),0,5);
+  const k=$('.v33-kicker strong',sec);
+  if(k)k.textContent=`${d.gear} • LV ${lv}`;
+
+  let skills=$('.v33-skills',sec);
+  if(!skills){skills=document.createElement('div');skills.className='v33-skills';sec.appendChild(skills)}
+  sec.classList.add('nexa-v438-widget-table');
+
+  const av=aLv ? d.a.v[aLv-1] : 'Unlocks at Widget Lv 1';
+  const bv=bLv ? d.b.v[bLv-1] : 'Unlocks at Widget Lv 2';
+
+  skills.innerHTML=`
+    <article class="v33-skill">
+      <div class="nexa-v438-widget-name"><b>${esc(d.a.name)}</b><span>EXPLORATION</span></div>
+      <div class="nexa-v438-widget-desc">${esc(d.a.desc)}</div>
+      <div class="nexa-v438-widget-buff"><b>${esc(av)}</b></div>
+    </article>
+    <article class="v33-skill">
+      <div class="nexa-v438-widget-name"><b>${esc(d.b.name)}</b><span>EXPEDITION</span></div>
+      <div class="nexa-v438-widget-desc">${esc(d.b.desc)}</div>
+      <div class="nexa-v438-widget-buff"><b>${esc(bv)}</b></div>
+    </article>`;
+}
+v438Widget=v4310Widget;
+
+/* Restore "tap anywhere outside Menu to close". No preventDefault and no
+   propagation blocking, so the outside tap still does what the user intended. */
+function v4310CloseHomeMenuOutside(e){
+  const menu=document.getElementById('nexa-home-menu');
+  const toggle=document.getElementById('nexa-home-menu-toggle');
+  if(!menu?.classList.contains('open'))return;
+  if(e.target.closest?.('#nexa-home-menu-card,#nexa-home-menu-toggle'))return;
+  menu.classList.remove('open');
+  toggle?.classList.remove('open');
+  menu.setAttribute('aria-hidden','true');
+  toggle?.setAttribute('aria-expanded','false');
+}
+document.addEventListener('pointerdown',v4310CloseHomeMenuOutside,true);
+
+/* External charms: V33 already knows the saved levels; its only mistake is the
+   obsolete /assets/charms/<type>/lv-N.png path. Rebuild every mini image from
+   that level and type whenever the grid is painted. */
+function v4310CharmMini(){
+  const root=$('#nexa-profile-modal');if(!root)return;
+  $$('.v33-charm-mini-row',root).forEach(row=>{
+    const card=row.closest('.v33-item');
+    const s=((card?.querySelector('b')?.textContent||'')+' '+(card?.querySelector('small')?.textContent||'')).toLowerCase();
+    const type=/helmet|watch|lancer/.test(s)?'lancer':/coat|pants|infantry/.test(s)?'infantry':'marksman';
+    Array.from(row.children).forEach((node,idx)=>{
+      if(node.tagName==='IMG'){
+        const m=(node.getAttribute('src')||'').match(/lv[-_]?0*(\d+)/i);
+        const lv=clamp(Number(m?.[1]||0),0,18);
+        if(lv){
+          node.onerror=null;
+          node.src=`/lv${pad(lv)}-${type}.png`;
+          node.style.opacity='1';
+          node.style.visibility='visible';
+        }
+      }
+    });
+  });
+}
+
+/* On Save, use the visible selected charm levels immediately, then let V33's
+   normal repaint reload them from Supabase. */
+function v4310CharmAfterSave(){
+  const root=$('#nexa-v33-detail');
+  if(!root?.classList.contains('open'))return;
+  const selects=$$('[data-v33-charm-level]',root);
+  if(!selects.length)return;
+  const levels=selects.map(x=>clamp(Number(x.value),0,18));
+  const title=(($('.v33-title h3',root)?.textContent)||'').toLowerCase();
+  const type=/helmet|watch/.test(title)?'lancer':/coat|pants/.test(title)?'infantry':'marksman';
+  const card=$$('.v33-item',document).find(c=>(c.querySelector('b')?.textContent||'').toLowerCase().includes(title.replace(' charms','').trim()));
+  const row=card?.querySelector('.v33-charm-mini-row');
+  if(row){
+    row.innerHTML=levels.map(l=>l?`<img src="/lv${pad(l)}-${type}.png" alt="${type} Charm Lv ${l}">`:'<i>◇</i>').join('');
+  }
+}
+
+/* Ministry: stop styling/reusing the broken V33 circle. Hide it completely and
+   create one new independent button that forwards to the existing functional
+   appointment handler. */
+function v4310Ministry(){
+  const old=$('#nexa-v425-ministry');
+  if(!old)return;
+  old.style.setProperty('display','none','important');
+  old.setAttribute('aria-hidden','true');
+  let fresh=$('#nexa-v4310-ministry');
+  if(!fresh){
+    fresh=document.createElement('button');
+    fresh.type='button';
+    fresh.id='nexa-v4310-ministry';
+    fresh.setAttribute('aria-label','Ministry Appointments');
+    fresh.innerHTML=`<span class="v4310-cal" aria-hidden="true">▣</span><span>MINISTRY APPOINTMENTS</span>`;
+    old.insertAdjacentElement('afterend',fresh);
+    fresh.addEventListener('click',()=>{
+      /* Temporarily allow only the programmatic click so V33 opens its real overlay. */
+      old.style.removeProperty('display');
+      old.click();
+      old.style.setProperty('display','none','important');
+    });
+  }
+}
+
+/* Main/Alliance: remove every legacy overflow sentence and keep ONE short helper. */
+function v4310ProfileIdentity(){
+  const root=$('#nexa-profile-modal');if(!root)return;
+  $$('*',root).forEach(el=>{
+    if(el.children.length)return;
+    const t=(el.textContent||'').replace(/\s+/g,' ').trim();
+    if(/This is your main account/i.test(t)){
+      el.remove();
+    }
+    if(/Select your new alliance below, then use the existing Save Profile button/i.test(t)){
+      const wrap=el.closest('.nexa-v437-alliance-note,p,small,div');
+      if(wrap && wrap!==root)wrap.remove(); else el.remove();
+    }
+  });
+
+  const editor=$('#nexa-profile-editor',root);
+  if(!editor)return;
+  const allianceSel=$$('select',editor).find(sel=>{
+    const w=sel.closest('label,.form-group,.profile-field,.nexa-profile-field,div');
+    return /alliance/i.test((w?.textContent||''));
+  });
+  if(!allianceSel)return;
+  const host=allianceSel.closest('label,.form-group,.profile-field,.nexa-profile-field,div')||allianceSel.parentElement;
+  $$('.nexa-v437-alliance-note,.nexa-v4310-alliance-note,.nexa-v437-main',host).forEach(x=>x.remove());
+  const note=document.createElement('div');
+  note.className='nexa-v4310-alliance-note';
+  note.innerHTML='<b>Change Alliance</b><small>Select the alliance, then Save Profile.</small>';
+  allianceSel.before(note);
+  const main=document.createElement('span');
+  main.className='nexa-v4310-main-badge';
+  main.textContent='★ MAIN ACCOUNT';
+  host.appendChild(main);
+}
+
+function v4310AccountType(){
+  const sel=$('#account-purpose');if(!sel)return;
+  const current=sel.value;
+  const isMain=/main/i.test(current)||Array.from(sel.options).find(o=>o.selected&&/main/i.test(o.textContent||''));
+  sel.innerHTML=`<option value="main"${isMain?' selected':''}>Main Account</option>
+                 <option value="alternate"${!isMain?' selected':''}>Alternate Account</option>`;
+}
+
+/* CSS only for this pass. */
+(function(){
+  if($('#nexa-v4310-css'))return;
+  const st=document.createElement('style');st.id='nexa-v4310-css';st.textContent=`
+    #nexa-v4310-ministry{
+      width:auto!important;min-width:190px!important;height:42px!important;
+      display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;
+      padding:0 14px!important;border-radius:999px!important;
+      border:1px solid rgba(77,224,255,.72)!important;
+      background:linear-gradient(135deg,rgba(8,40,65,.98),rgba(9,14,38,.98))!important;
+      color:#78eaff!important;font-size:9px!important;font-weight:950!important;letter-spacing:.08em!important;
+      box-shadow:0 0 15px rgba(67,220,255,.28)!important;
+    }
+    #nexa-v4310-ministry .v4310-cal{font-size:16px;line-height:1}
+    .nexa-v4310-alliance-note{display:grid!important;gap:2px!important;margin:3px 0 7px!important}
+    .nexa-v4310-alliance-note b{color:#75e7ff!important;font-size:9px!important}
+    .nexa-v4310-alliance-note small{color:#8e99b9!important;font-size:8px!important;line-height:1.3!important}
+    .nexa-v4310-main-badge{
+      position:static!important;display:inline-flex!important;float:none!important;transform:none!important;
+      width:max-content!important;max-width:100%!important;margin:10px 0 0!important;
+      padding:5px 9px!important;border:1px solid rgba(255,211,96,.35)!important;border-radius:999px!important;
+      background:rgba(72,51,13,.22)!important;color:#ffd879!important;font-size:8px!important;font-weight:950!important;
+      letter-spacing:.08em!important;white-space:nowrap!important;
+    }
+    .v33-charm-mini-row img{opacity:1!important;visibility:visible!important;display:block!important;background:transparent!important}
+  `;document.head.appendChild(st);
 })();
+
+function v4310Apply(){
+  v4310Widget();
+  v4310CharmMini();
+  v4310Ministry();
+  v4310ProfileIdentity();
+  v4310AccountType();
+}
+function v4310Schedule(){
+  requestAnimationFrame(v4310Apply);
+  [30,100,220,450,850,1400].forEach(ms=>setTimeout(v4310Apply,ms));
+}
+document.addEventListener('click',e=>{
+  if(e.target.closest?.('[data-v33-widget],[data-v33-item],#nexa-profile-edit-btn,#admin-roles,#admin-permissions'))v4310Schedule();
+  if(e.target.closest?.('[data-v33-save]')){
+    v4310CharmAfterSave();
+    v4310Schedule();
+  }
+},true);
+document.addEventListener('change',e=>{
+  if(e.target.matches?.('[data-v33-widget],[data-v33-charm-level],#account-purpose'))v4310Schedule();
+},true);
+window.addEventListener('nexa:profile-open',v4310Schedule);
+window.addEventListener('nexa:profile-updated',v4310Schedule);
+window.addEventListener('pageshow',v4310Schedule);
+v4310Schedule();

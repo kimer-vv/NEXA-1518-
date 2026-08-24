@@ -19,7 +19,7 @@ function forceFreshOwners(){
  };
  // index.html still requests historical ?v=21 URLs. Load the current owners with unique URLs so Safari/Vercel cannot serve the stale copies.
  load('nexa-fresh-troop-owner','nexa-troop-assets-v21.js?v=24-431');
-load('nexa-fresh-profile-owner','nexa-profile-owner-v33.js?v=33-001-20260823');
+load('nexa-fresh-profile-owner','nexa-profile-owner-v33.js?v=33-002-20260823');
 }
 
 let localSb=null,currentAdmin='alliances',allianceCtx=null,allianceTargetTag=null;

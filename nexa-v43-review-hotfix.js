@@ -337,7 +337,7 @@ setTimeout(applyAll,1100);
 
 
 /* ==========================================================
-   NEXA V43.2 ADD-ON
+   NEXA V43.3 CONSOLIDATED FIX
    Loaded after the V43 base above. This layer owns the fixes
    requested in the Aug 24 review without changing Chief Gear.
    ========================================================== */
@@ -431,12 +431,12 @@ function widgetV432(){
   <article class="v33-skill">
    <div class="nexa-widget-name"><b>${d[1]}</b><span>EXPLORATION</span></div>
    <div class="nexa-widget-desc">Exclusive Gear effect • unlocks/upgrades at Widget Lv 1/3/5/7/9.</div>
-   <div class="nexa-widget-buff"><b>${aVal}</b><small>${a?`Effect Lv ${a}/5`:'Locked'}</small></div>
+   <div class="nexa-widget-buff"><b>${aVal}</b><small>${a?`Effect Lv ${a}/5`:'Unlocks at Widget Lv 1'}</small></div>
   </article>
   <article class="v33-skill">
    <div class="nexa-widget-name"><b>${d[3]}</b><span>EXPEDITION</span></div>
    <div class="nexa-widget-desc">${d[4]} • unlocks/upgrades at Widget Lv 2/4/6/8/10.</div>
-   <div class="nexa-widget-buff"><b>${bVal}</b><small>${b?`Effect Lv ${b}/5`:'Locked'}</small></div>
+   <div class="nexa-widget-buff"><b>${bVal}</b><small>${b?`Effect Lv ${b}/5`:'Unlocks at Widget Lv 2'}</small></div>
   </article>`;
 }
 
@@ -494,10 +494,10 @@ function troopV432(){
 const P={
  'Cave Hyena':['Builder’s Aide','hyena',['Construction Speed +5%','Construction Speed +7%','Construction Speed +9%','Construction Speed +12%','Construction Speed +15%'],['23h','23h','23h','23h','23h'],'Skilled hyenas deliver tools to architects, increasing Construction Speed.'],
  'Arctic Wolf':['Arctic Embrace','wolf',['Stamina +35','Stamina +40','Stamina +45','Stamina +50','Stamina +55','Stamina +60'],['23h','23h','23h','23h','23h','23h'],'The wolf restores Stamina when the skill is activated.'],
- 'Musk Ox':['Burden Bearer','ox',['Cooldown 35h','Cooldown 31h','Cooldown 27h','Cooldown 23h','Cooldown 19h','Cooldown 15h'],['35h','31h','27h','23h','19h','15h'],'The Musk Ox utility skill improves by lowering its cooldown.'],
+ 'Musk Ox':['Burden Bearer','ox',Array(6).fill('Instantly completes gathering at the next wilderness resource tile'),['35h','31h','27h','23h','19h','15h'],"Harnessing the Musk Ox's strength and endurance instantly completes gathering upon reaching the next wilderness resource tile. Secured Alliance Gathering Nodes are excluded."],
  'Giant Tapir':['Natural Intuition','tapir',['Pet Food +200','Pet Food +250','Pet Food +300','Pet Food +350','Pet Food +400','Pet Food +450','Pet Food +500'],Array(7).fill('23h'),'Natural intuition helps discover extra Pet Food.'],
  'Titan Roc':['Razorbeak','bird',['Enemy HP -1.5%','Enemy HP -2%','Enemy HP -2.5%','Enemy HP -3%','Enemy HP -3.5%','Enemy HP -4%','Enemy HP -5%'],Array(7).fill('20h'),'Razorbeak weakens enemy troop Health.'],
- 'Giant Elk':['Mystical Finding','elk',['Cooldown 51h','Cooldown 47h','Cooldown 43h','Cooldown 39h','Cooldown 35h','Cooldown 31h','Cooldown 27h','Cooldown 23h'],['51h','47h','43h','39h','35h','31h','27h','23h'],'Mystical Finding improves as its cooldown is reduced.'],
+ 'Giant Elk':['Mystical Finding','elk',Array(8).fill('Unearths an item lost on the Tundra'),['51h','47h','43h','39h','35h','31h','27h','23h'],'Guided by mystical intuition, the Giant Elk unearths an item lost on the Tundra.'],
  'Snow Leopard':['Lightning Raid','cat',['March Speed +15% • Enemy Lethality -1.5%','March Speed +17% • Enemy Lethality -2%','March Speed +19% • Enemy Lethality -2.5%','March Speed +21% • Enemy Lethality -3%','March Speed +23% • Enemy Lethality -3.5%','March Speed +25% • Enemy Lethality -4%','March Speed +27% • Enemy Lethality -4.5%','March Speed +30% • Enemy Lethality -5%'],Array(8).fill('20h'),'A rapid assault boosts March Speed while lowering enemy Lethality.'],
  'Cave Lion':['Feral Anthem','lion',['Troop Attack +2.5%','Troop Attack +3%','Troop Attack +3.5%','Troop Attack +4%','Troop Attack +5%','Troop Attack +6%','Troop Attack +7%','Troop Attack +8%','Troop Attack +9%','Troop Attack +10%'],null,'A battle anthem increases Troop Attack.'],
  'Snow Ape':['Tumbling Power','ape',['Squad Capacity +1,500','Squad Capacity +3,000','Squad Capacity +4,500','Squad Capacity +6,000','Squad Capacity +7,500','Squad Capacity +9,000','Squad Capacity +10,500','Squad Capacity +12,000','Squad Capacity +13,500','Squad Capacity +15,000'],null,'Tumbling Power increases Squad Capacity.'],
@@ -508,8 +508,12 @@ const P={
  'Frostscale Chameleon':['Icy Shroud','lizard',['Enemy Defense -2.5%','Enemy Defense -3%','Enemy Defense -3.5%','Enemy Defense -4%','Enemy Defense -5%','Enemy Defense -6%','Enemy Defense -7%','Enemy Defense -8%','Enemy Defense -9%','Enemy Defense -10%'],null,'Icy Shroud lowers Enemy Defense.']
 };
 function animalSVG(kind){
- const shapes={hyena:'M5 15l2-6 3-3 2 2 3-3 2 5 2 3-3 4H9z',wolf:'M5 16l2-7 3-4 2 3 3-4 2 5 2 4-4 5H9z',ox:'M7 8c2-3 8-3 10 0l1 7-3 4H9l-3-4z',tapir:'M4 12c3-5 10-6 14-2l2 4-4 4H8l-4-3z',bird:'M4 14c5-7 9-8 16-6-5 1-7 4-8 8-3-2-5-2-8-2z',elk:'M8 10c2-3 6-3 8 0v8H8z',cat:'M6 10l2-5 4 3 4-3 2 5v6l-3 3H9l-3-3z',lion:'M4 12a8 8 0 1 0 16 0A8 8 0 1 0 4 12',ape:'M6 20c0-6 2-10 6-10s6 4 6 10zM7 7a5 5 0 1 0 10 0A5 5 0 1 0 7 7',gorilla:'M3 20c1-7 4-11 9-11s8 4 9 11zM7 7a5 5 0 1 0 10 0A5 5 0 1 0 7 7',rhino:'M4 10c5-4 11-4 15 1l1 6H7l-3-3zM18 10l3-4-1 6',mammoth:'M4 11c2-5 12-6 15-1v8H8l-4-3zM18 12c4 5 1 8-2 7',lizard:'M5 12c3-4 9-4 12 0l4-3-3 5-4 2H8l-5 3 3-5z'};
- return `<svg viewBox="0 0 24 24" style="width:30px;height:30px;filter:drop-shadow(0 0 5px currentColor)"><path d="${shapes[kind]||shapes.wolf}" fill="currentColor"/></svg>`;
+ const glyphs={
+  hyena:'🐕',wolf:'🐺',ox:'🐂',tapir:'🐗',bird:'🦅',elk:'🦌',
+  cat:'🐆',lion:'🦁',ape:'🦍',gorilla:'🦍',rhino:'🦏',mammoth:'🐘',lizard:'🦎'
+ };
+ const g=glyphs[kind]||'🐾';
+ return `<span aria-hidden="true" style="font-size:29px;line-height:1;display:block;filter:grayscale(1) brightness(2.25) sepia(.08) hue-rotate(145deg) saturate(5) drop-shadow(0 0 5px #65e9ff)">${g}</span>`;
 }
 function petV432(){
  const root=$('#nexa-v33-detail');if(!root)return;
@@ -593,9 +597,9 @@ const Q=[
  'Today’s clean setup is tomorrow’s easy win.','Strong teams share the same signal.',
  'Clear timing makes strong teams stronger.','One reset. One signal. One direction.','Consistency wins the long game.'
 ];
-function qIndex(key){let h=2166136261;for(const ch of key){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)}return Math.abs(h)%Q.length}
+function qIndex(){return ((Math.floor(Date.now()/86400000)%Q.length)+Q.length)%Q.length}
 function signalV432(){
- const key=new Date().toISOString().slice(0,10),msg=Q[qIndex(key)];
+ const key=new Date().toISOString().slice(0,10),msg=Q[qIndex()];
  $$('h1,h2,h3,h4,b,strong,span').forEach(h=>{
   if((h.textContent||'').trim().toLowerCase()!=='the last signal')return;
   const wrap=h.closest('section,article,.glass,.card,div');if(!wrap)return;
@@ -610,7 +614,7 @@ function nextSignal(){const now=new Date(),next=new Date(now);next.setUTCHours(2
 const RL={battle_strategist:'Battle Strategist',event_operator:'Event Operator',scheduler:'Scheduler',transfer_coordinator:'Transfer Coordinator'};
 function sb(){return window.supabaseClient||window.sb||null}
 async function rolePanelV432(){
- const host=$('#admin-roles');if(!host||$('#nexa-v432-role-panel',host))return;
+ const host=$('#admin-roles')||$('#admin-manage-access')||$('[data-admin-panel="roles"]')||$('[data-admin-content="roles"]')||$('#admin-modal .admin-modal-card');if(!host||$('#nexa-v432-role-panel',host))return;
  const c=sb();if(!c)return;
  let role='';try{role=String((await c.rpc('current_nexa_role')).data||'').toLowerCase()}catch{}
  if(role!=='owner')return;
@@ -647,17 +651,65 @@ function troopVisualV432(){
  });
 }
 
-function allV432(){
- widgetV432();troopV432();petV432();charmsV432();ministryV432();
- profileFitV432();signalV432();rolePanelV432();troopVisualV432();
+
+function addV433CSS(){
+ if($('#nexa-v433-css'))return;
+ const st=document.createElement('style');st.id='nexa-v433-css';
+ st.textContent=`
+ #nexa-v33-detail.nexa-v433-switching #v33-detail-body{visibility:hidden!important}
+ #nexa-v425-ministry{
+   font-size:0!important;
+   background-color:#08182b!important;
+   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='4.5' y='5.5' width='15' height='14' rx='2.4' fill='none' stroke='%235be7ff' stroke-width='1.8'/%3E%3Cpath d='M8 3.7v3.4M16 3.7v3.4M4.8 9.3h14.4' fill='none' stroke='%235be7ff' stroke-width='1.8' stroke-linecap='round'/%3E%3Cpath d='M12 12.1l1.05 1.55 1.82.46-1.17 1.43.12 1.88L12 16.78l-1.82.65.12-1.88-1.17-1.43 1.82-.46L12 12.1z' fill='%235be7ff'/%3E%3C/svg%3E")!important;
+   background-repeat:no-repeat!important;background-position:center!important;background-size:21px!important
+ }
+ #nexa-v425-ministry>*{display:none!important}
+ #nexa-profile-modal .nexa-profile-identity,
+ #nexa-profile-modal .nexa-profile-main,
+ #nexa-profile-modal .nexa-profile-sub{
+   min-width:0!important;max-width:100%!important;overflow:hidden!important
+ }
+ #nexa-profile-modal .nexa-profile-identity *,
+ #nexa-profile-modal .nexa-profile-main *,
+ #nexa-profile-modal .nexa-profile-sub *{
+   min-width:0!important;max-width:100%!important;box-sizing:border-box!important
+ }
+ #nexa-profile-modal [class*="alliance"],
+ #nexa-profile-modal [class*="main-account"],
+ #nexa-profile-modal [class*="main-note"]{
+   white-space:normal!important;overflow-wrap:anywhere!important;word-break:break-word!important
+ }`;
+ document.head.appendChild(st);
 }
-function deferV432(){requestAnimationFrame(()=>requestAnimationFrame(allV432));setTimeout(allV432,80);setTimeout(allV432,260)}
+function beginV433Switch(){const r=$('#nexa-v33-detail');if(r)r.classList.add('nexa-v433-switching')}
+function endV433Switch(){const r=$('#nexa-v33-detail');if(r)r.classList.remove('nexa-v433-switching')}
+function repairAfterSave(){
+ [90,220,450,800,1200].forEach(ms=>setTimeout(()=>{charmsV432();ministryV432();profileFitV432();endV433Switch()},ms));
+}
+function cleanPublicAuthMenu(){
+ const auth=$('.nexa-auth-shell,.auth-shell,#auth-screen,#auth-view');
+ if(!auth)return;
+ const visible=getComputedStyle(auth).display!=='none' && auth.getBoundingClientRect().height>0;
+ if(!visible)return;
+ $$('button,a').forEach(el=>{
+   const t=(el.textContent||'').trim().toLowerCase();
+   if(t==='menu'||t==='my alliance')el.style.display='none';
+ });
+}
+
+function allV432(){
+ addV433CSS();widgetV432();troopV432();petV432();charmsV432();ministryV432();
+ profileFitV432();signalV432();rolePanelV432();troopVisualV432();cleanPublicAuthMenu();
+}
+function deferV432(){requestAnimationFrame(()=>requestAnimationFrame(()=>{allV432();endV433Switch()}));setTimeout(()=>{allV432();endV433Switch()},80);setTimeout(()=>{allV432();endV433Switch()},260)}
 
 document.addEventListener('click',e=>{
- if(e.target.closest?.('[data-nexa-tab],.v33-item,[data-v33-cat],[data-v33-gen],[data-v33-widget],[data-v33-troop-tier],[data-v33-troop-fc],[data-v33-t11],[data-v33-t12],[data-v33-troop-skill],[data-v33-charm-sub],#admin-panel-button,[data-admin-tab]'))deferV432();
+ if(e.target.closest?.('[data-v33-widget],[data-v33-troop-tier],[data-v33-troop-fc],[data-v33-t11],[data-v33-t12],[data-v33-troop-skill],[data-v33-charm-sub]'))beginV433Switch();
+ if(e.target.closest?.('[data-v33-save]')){beginV433Switch();repairAfterSave()}
+ if(e.target.closest?.('[data-nexa-tab],.v33-item,[data-v33-cat],[data-v33-gen],[data-v33-widget],[data-v33-troop-tier],[data-v33-troop-fc],[data-v33-t11],[data-v33-t12],[data-v33-troop-skill],[data-v33-charm-sub],#admin-panel-button,[data-admin-tab],[data-open-full-profile],#nexa-profile-launcher-section,[data-v33-save]'))deferV432();
 },true);
 document.addEventListener('change',e=>{
- if(e.target.matches?.('[data-v33-pet-level],[data-v33-pet-skill],[data-v33-charm-level]'))deferV432();
+ if(e.target.matches?.('[data-v33-pet-level],[data-v33-pet-skill],[data-v33-charm-level]')){beginV433Switch();deferV432();setTimeout(endV433Switch,320)}
 },true);
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',allV432,{once:true});else allV432();

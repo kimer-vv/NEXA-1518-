@@ -1,4 +1,4 @@
-/* NEXA V43.5 — ACTIVE PROFILE RESTORE + ROLES FIX — 2026-08-24
+/* NEXA V43.6 — FOCUSED PROFILE + ACCESS FIX — 2026-08-24
    Multiple Owner operational roles + module badges.
    Hero/Expert/Pet visual polish + Ministry Appointments pill.
    Main Account chip + anti-flash/profile fixes.
@@ -1116,5 +1116,394 @@ window.NEXA_V432_WIDGETS=W;
 window.NEXA_V432_TROOP_SKILLS=TS;
 window.NEXA_V432_PETS=P;
 })();
+
+
+
+(function(){
+ if(document.getElementById('nexa-v436-css'))return;
+ const s=document.createElement('style');s.id='nexa-v436-css';
+ s.textContent='\n/* V43.6 focused visual additions */\n#nexa-v436-pet-panel{\n  --pet:#74ecff;--petbg:#173d54;\n  margin:12px 0;padding:12px;border:1px solid color-mix(in srgb,var(--pet) 42%,transparent);\n  border-radius:17px;background:linear-gradient(145deg,color-mix(in srgb,var(--petbg) 50%,#081128),#071020);\n  box-shadow:0 0 20px color-mix(in srgb,var(--pet) 10%,transparent)\n}\n.nexa-v436-pet-head{\n  width:100%;display:grid;grid-template-columns:52px minmax(0,1fr);gap:10px;align-items:center;\n  padding:0;border:0;background:transparent;color:#fff;text-align:left\n}\n.nexa-v436-pet-orb{\n  width:50px;height:50px;border-radius:50%;display:grid;place-items:center;color:var(--pet);\n  border:1px solid color-mix(in srgb,var(--pet) 75%,white 8%);\n  background:radial-gradient(circle at 45% 38%,color-mix(in srgb,var(--pet) 20%,var(--petbg)),#071125 72%);\n  box-shadow:0 0 12px color-mix(in srgb,var(--pet) 75%,transparent),0 0 30px color-mix(in srgb,var(--pet) 28%,transparent)\n}\n.nexa-v436-pet-orb .nexa-v434-animal-glyph{font-size:27px;filter:grayscale(.08) drop-shadow(0 0 7px var(--pet))}\n.nexa-v436-pet-copy b{display:block;font-size:13px}\n.nexa-v436-pet-copy small{display:block;margin-top:4px;color:var(--pet);font-size:8px;font-weight:950;letter-spacing:.09em}\n.nexa-v436-pet-desc{margin:10px 0 0;padding:9px 10px;border-radius:11px;background:rgba(3,10,28,.45);color:#c8d1e6;font-size:10px;line-height:1.45}\n.nexa-v436-pet-level{display:grid;gap:5px;margin-top:10px}\n.nexa-v436-pet-level>span,.nexa-v436-pet-result small{color:#8f9bb9;font-size:8px;font-weight:950;letter-spacing:.1em}\n.nexa-v436-pet-level select,.nexa-v436-access-card select{\n  width:100%;box-sizing:border-box;padding:10px 11px;border:1px solid rgba(122,142,204,.26);\n  border-radius:11px;background:#071027;color:#fff;font-size:16px\n}\n.nexa-v436-pet-result{display:grid;gap:3px;margin-top:9px;padding:10px;border-radius:12px;border:1px solid color-mix(in srgb,var(--pet) 34%,transparent);background:color-mix(in srgb,var(--pet) 8%,#081027)}\n.nexa-v436-pet-result strong{color:var(--pet);font-size:12px}.nexa-v436-pet-result span{color:#b2bdd5;font-size:9px}\n\n.nexa-v436-main-account{\n  display:inline-flex!important;width:max-content!important;max-width:100%!important;\n  padding:5px 9px!important;border:1px solid rgba(255,211,96,.34)!important;border-radius:999px!important;\n  background:rgba(75,53,14,.22)!important;color:#ffd978!important;font-size:8px!important;font-weight:950!important;letter-spacing:.08em!important\n}\n.nexa-v436-alliance-change{display:grid;gap:2px;margin:4px 0 6px}\n.nexa-v436-alliance-change b{color:#72e6ff;font-size:9px}.nexa-v436-alliance-change small{color:#8f9ab9;font-size:8px;line-height:1.3}\n\n.nexa-v436-access-card{\n  display:grid;gap:10px;margin:10px 0 14px;padding:13px;border:1px solid rgba(83,211,255,.28);\n  border-radius:17px;background:linear-gradient(145deg,rgba(8,29,51,.88),rgba(8,11,32,.96));\n  box-shadow:0 0 20px rgba(61,192,255,.08)\n}\n.nexa-v436-access-title{color:#85e9ff;font-size:9px;font-weight:950;letter-spacing:.13em}\n.nexa-v436-select-row{display:grid;gap:5px}.nexa-v436-select-row>span,#nexa-v436-account-picker label>span{color:#9aa6c4;font-size:8px;font-weight:950;letter-spacing:.09em}\n.nexa-v436-badges{display:flex;gap:6px;flex-wrap:wrap;min-height:25px;align-items:center}.nexa-v436-badges small{color:#7e8aaa;font-size:8px}\n.nexa-v436-badge{\n  border:1px solid rgba(91,213,255,.34);border-radius:999px;padding:6px 9px;\n  background:rgba(14,49,69,.62);color:#c8f5ff;font-size:8px;font-weight:900\n}\n.nexa-v436-badge.module{border-color:rgba(164,107,255,.36);background:rgba(48,27,85,.55);color:#e2d4ff}\n.nexa-v436-add-another{width:max-content;border:0;background:transparent;color:#6fddff;padding:2px 0;font-size:9px;font-weight:900}\n';
+ document.head.appendChild(s);
+})();
+
+/* =========================================================
+   NEXA V43.6 FOCUSED FIX
+   - DO NOT TOUCH Heroes / Experts / Troops
+   - Restore full Pet Skill panel on active V30/V31 Profile
+   - Restore Charm art after every re-entry
+   - Remove legacy Ministry Schedule block, preserve new pill
+   - Main Account + Alliance profile polish
+   - Convert existing NEXA Access checkboxes into dropdown workflow
+   ========================================================= */
+
+const V436_PET_ALIASES={
+  'Frost Chameleon':'Frostscale Chameleon',
+  'Frostscale Chameleon':'Frostscale Chameleon',
+  'Saber Tooth Tiger':'Saber-tooth Tiger',
+  'Sabertooth Tiger':'Saber-tooth Tiger',
+  'Saber-tooth Tiger':'Saber-tooth Tiger',
+  'Frost Gorilla':'Frost Gorilla',
+  'Snow Ape':'Snow Ape',
+  'Iron Rhino':'Iron Rhino',
+  'Mammoth':'Mammoth',
+  'Cave Lion':'Cave Lion',
+  'Snow Leopard':'Snow Leopard',
+  'Giant Elk':'Giant Elk',
+  'Titan Roc':'Titan Roc',
+  'Giant Tapir':'Giant Tapir',
+  'Musk Ox':'Musk Ox',
+  'Arctic Wolf':'Arctic Wolf',
+  'Cave Hyena':'Cave Hyena'
+};
+
+function v436PetKey(root){
+  if(!root)return'';
+  const txt=(root.textContent||'').replace(/\s+/g,' ');
+  for(const [alias,key] of Object.entries(V436_PET_ALIASES)){
+    if(txt.toLowerCase().includes(alias.toLowerCase()))return key;
+  }
+  const head=(
+    $('#nexa-v30-detail h4')?.textContent||
+    $('#nexa-v33-detail .v33-title h3')?.textContent||
+    ''
+  ).trim();
+  return V436_PET_ALIASES[head]||head;
+}
+function v436FindPetLevel(root,max){
+  const candidates=$$('select',root).filter(s=>{
+    if(s.closest('#nexa-v436-pet-panel'))return false;
+    const wrap=s.closest('label,.nexa-v30-field,.v33-section,section,article,div');
+    const text=(wrap?.textContent||'').toLowerCase();
+    return /pet skill|skill level|level/.test(text);
+  });
+  let native=candidates.find(s=>{
+    const v=Number(s.value);
+    return Number.isFinite(v)&&v>=0&&v<=max;
+  });
+  if(!native){
+    native=$$('select',root).find(s=>{
+      if(s.closest('#nexa-v436-pet-panel'))return false;
+      const v=Number(s.value);
+      return Number.isFinite(v)&&v>=0&&v<=max;
+    });
+  }
+  return native||null;
+}
+function v436PetPanel(){
+  const root=$('#nexa-v30-detail')||$('#nexa-v33-detail');
+  if(!root)return;
+  const key=v436PetKey(root),p=P[key];
+  if(!p)return;
+
+  const native=v436FindPetLevel(root,p[2].length);
+  const lv=clamp(Number(native?.value||0),0,p[2].length);
+  const glow=PET_GLOW[key]||['#74ecff','#173d54'];
+
+  let panel=$('#nexa-v436-pet-panel',root);
+  if(!panel){
+    panel=document.createElement('section');
+    panel.id='nexa-v436-pet-panel';
+    const action=$('.nexa-v30-actions,.v33-actions',root);
+    if(action?.parentElement)action.parentElement.insertBefore(panel,action);
+    else root.appendChild(panel);
+  }
+  panel.style.setProperty('--pet',glow[0]);
+  panel.style.setProperty('--petbg',glow[1]);
+  panel.innerHTML=`
+    <button type="button" class="nexa-v436-pet-head" aria-expanded="false">
+      <span class="nexa-v436-pet-orb">${animalSVG(p[1])}</span>
+      <span class="nexa-v436-pet-copy">
+        <b>${esc(p[0])}</b>
+        <small>TAP TO VIEW PET SKILL</small>
+      </span>
+    </button>
+    <div class="nexa-v436-pet-desc" hidden>${esc(p[4])}</div>
+    <label class="nexa-v436-pet-level">
+      <span>PET SKILL LEVEL</span>
+      <select data-v436-pet-level>
+        ${Array.from({length:p[2].length+1},(_,i)=>`<option value="${i}" ${i===lv?'selected':''}>${i}</option>`).join('')}
+      </select>
+    </label>
+    <div class="nexa-v436-pet-result">
+      <small>PET BUFF</small>
+      <strong>${lv?esc(p[2][lv-1]):'Not active'}</strong>
+      ${lv&&p[3]?.[lv-1]?`<span>Cooldown: ${esc(p[3][lv-1])}</span>`:''}
+    </div>`;
+
+  const head=$('.nexa-v436-pet-head',panel);
+  const desc=$('.nexa-v436-pet-desc',panel);
+  head.onclick=()=>{
+    desc.hidden=!desc.hidden;
+    head.setAttribute('aria-expanded',String(!desc.hidden));
+  };
+  $('[data-v436-pet-level]',panel).onchange=e=>{
+    const n=Number(e.target.value||0);
+    if(native){
+      native.value=String(n);
+      native.dispatchEvent(new Event('input',{bubbles:true}));
+      native.dispatchEvent(new Event('change',{bubbles:true}));
+    }
+    v436PetPanel();
+  };
+
+  /* Hide ONLY the old pet skill presentation, never the Save actions. */
+  $$('section,.v33-section,.nexa-v30-field',root).forEach(el=>{
+    if(el===panel||el.contains(panel))return;
+    const text=(el.textContent||'').toLowerCase();
+    if(/pet skill/.test(text) && !$('button.nexa-v30-save,[data-v33-save]',el)){
+      if(el.contains(native)||/tap for skill details|pet buff/.test(text))el.style.display='none';
+    }
+  });
+}
+
+function v436RemoveLegacyMinistry(){
+  const profile=$('#nexa-profile-modal');if(!profile)return;
+  $$('section,article,.card,.panel,div',profile).forEach(el=>{
+    if(el.closest('.nexa-v435-ministry-pill,#nexa-v425-ministry,.nexa-v425-ministry'))return;
+    const tx=(el.textContent||'').replace(/\s+/g,' ').trim();
+    if(!tx||tx.length>700)return;
+    if(/Ministry Schedule/i.test(tx) && /(VIP Construction|Construction|9\s*P\.?M\.?|9:00)/i.test(tx)){
+      el.style.display='none';
+      el.setAttribute('aria-hidden','true');
+    }
+  });
+}
+
+function v436CharmTypeFromPieceText(text=''){
+  const s=String(text).toLowerCase();
+  if(/coat|pants/.test(s))return'infantry';
+  if(/helmet|watch/.test(s))return'lancer';
+  if(/ring|short\s*staff|shortstaff|staff/.test(s))return'marksman';
+  return charmType(s);
+}
+function v436RestoreCharms(){
+  const root=$('#nexa-profile-modal');if(!root)return;
+  const activeText=($('.nexa-v30-tab.active')?.textContent||$('.v33-cat.active')?.textContent||'').toLowerCase();
+  if(activeText && !/charm/.test(activeText))return;
+
+  const detail=$('#nexa-v30-detail')||$('#nexa-v33-detail')||root;
+  const detailText=(detail.textContent||'');
+  const globalType=v436CharmTypeFromPieceText(detailText);
+
+  $$('select',detail).forEach(sel=>{
+    if(sel.closest('#nexa-v436-pet-panel'))return;
+    const lv=Number(sel.value||0);
+    if(!lv||lv>18)return;
+
+    const row=sel.closest('.v33-charm-row,[class*="charm-row"],[class*="charm-card"],.nexa-v30-field,article,section,div');
+    if(!row)return;
+    const type=v436CharmTypeFromPieceText(row.textContent||'')||globalType;
+    if(!type)return;
+
+    let img=$('img',row);
+    if(!img){
+      const q=$$('div,span',row).find(x=>{
+        if(x.children.length)return false;
+        return /^\s*[?]\s*$/.test(x.textContent||'');
+      });
+      if(q){
+        img=document.createElement('img');
+        img.className='nexa-v436-charm-img';
+        q.replaceWith(img);
+      }
+    }
+    if(img){
+      const wanted=charmPath(type,lv);
+      img.src=wanted;
+      img.alt=`${type} Charm Lv ${lv}`;
+      img.style.setProperty('display','block','important');
+      img.style.setProperty('visibility','visible','important');
+      img.style.setProperty('opacity','1','important');
+      img.style.setProperty('background','transparent','important');
+      img.style.setProperty('object-fit','contain','important');
+    }
+  });
+}
+
+function v436MainAlliance(){
+  const root=$('#nexa-profile-modal');if(!root)return;
+
+  /* Main account becomes a compact badge wherever the legacy sentence exists. */
+  $$('*',root).forEach(el=>{
+    if(el.children.length)return;
+    const tx=(el.textContent||'').trim();
+    if(/^This is your main account\.?$/i.test(tx)){
+      el.textContent='★ MAIN ACCOUNT';
+      el.classList.add('nexa-v436-main-account');
+    }
+  });
+
+  /* Alliance: preserve the native dropdown + save behavior, only improve its presentation. */
+  $$('select',root).forEach(sel=>{
+    if(sel.dataset.nexaV436Alliance==='1')return;
+    const wrap=sel.closest('label,.nexa-v30-field,.profile-field,.form-group,div');
+    if(!wrap)return;
+    const tx=(wrap.textContent||'').replace(/\s+/g,' ').trim();
+    if(!/alliance/i.test(tx))return;
+
+    const label=$('label,span,b,strong',wrap);
+    if(label && /alliance/i.test(label.textContent||''))label.textContent='CURRENT ALLIANCE';
+
+    const hint=document.createElement('div');
+    hint.className='nexa-v436-alliance-change';
+    hint.innerHTML='<b>Change Alliance</b><small>Select your new alliance below. Your existing profile save button will apply the change.</small>';
+    sel.before(hint);
+    sel.dataset.nexaV436Alliance='1';
+  });
+}
+
+/* ---------- Administration / NEXA Access dropdown workflow ---------- */
+function v436AccessSection(){
+  return $('#admin-permissions')||$('[data-admin-section="access"]')||
+    $$('.admin-section').find(x=>/NEXA Access/i.test(x.textContent||''))||null;
+}
+function v436SelectedAccessCard(){
+  const sec=v436AccessSection();if(!sec)return null;
+  return $('#v25-access-selected',sec)||$('[id*="access-selected"]',sec)||
+    $$('.nexa-v25-panel',sec).find(x=>/Operational Roles/i.test(x.textContent||'')&&/Module Access/i.test(x.textContent||''))||null;
+}
+function v436ClickNativeBox(box,checked){
+  if(!box)return;
+  if(box.disabled)box.disabled=false; // Owner can manage own working access in NEXA.
+  if(box.checked===checked)return;
+  box.click(); // preserve original listeners / persistence path
+}
+function v436BuildAccessDropdowns(){
+  const sec=v436AccessSection();if(!sec)return;
+
+  /* Account picker = existing NEXA Access search results, converted to a dropdown. */
+  const resultButtons=$$('.nexa-v25-access-result',sec);
+  let picker=$('#nexa-v436-account-picker',sec);
+  if(resultButtons.length && !picker){
+    picker=document.createElement('div');
+    picker.id='nexa-v436-account-picker';
+    picker.className='nexa-v436-access-card';
+    picker.innerHTML=`
+      <label><span>ACCOUNT</span>
+        <select data-v436-account>
+          <option value="">Select account…</option>
+          ${resultButtons.map((b,i)=>`<option value="${i}">${esc((b.textContent||'').replace(/\s+/g,' ').trim())}</option>`).join('')}
+        </select>
+      </label>`;
+    const first=resultButtons[0];
+    first.parentElement?.insertBefore(picker,first.parentElement.firstChild);
+    resultButtons.forEach(b=>b.style.display='none');
+    $('[data-v436-account]',picker).onchange=e=>{
+      const i=Number(e.target.value);
+      if(Number.isInteger(i)&&resultButtons[i]){
+        resultButtons[i].click();
+        setTimeout(v436BuildAccessDropdowns,60);
+        setTimeout(v436BuildAccessDropdowns,220);
+      }
+    };
+  }
+
+  const target=v436SelectedAccessCard();if(!target)return;
+  const opBoxes=$$('input[type="checkbox"][data-v25-op]',target);
+  const modBoxes=$$('input[type="checkbox"][data-v25-access-module]',target);
+  if(!opBoxes.length && !modBoxes.length)return;
+
+  opBoxes.forEach(b=>b.disabled=false);
+  modBoxes.forEach(b=>b.disabled=false);
+
+  let ui=$('#nexa-v436-access-editor',target);
+  if(ui)ui.remove();
+  ui=document.createElement('div');
+  ui.id='nexa-v436-access-editor';
+  ui.className='nexa-v436-access-card';
+
+  const opBadges=opBoxes.filter(b=>b.checked).map(b=>{
+    const name=(b.closest('label')?.textContent||b.dataset.v25Op||'').trim();
+    return `<button type="button" class="nexa-v436-badge" data-v436-remove-op="${esc(b.dataset.v25Op)}">${esc(name)} ×</button>`;
+  }).join('');
+  const modBadges=modBoxes.filter(b=>b.checked).map(b=>{
+    const name=(b.closest('label')?.textContent||b.dataset.v25AccessModule||'').trim();
+    return `<button type="button" class="nexa-v436-badge module" data-v436-remove-module="${esc(b.dataset.v25AccessModule)}">${esc(name)} ×</button>`;
+  }).join('');
+
+  ui.innerHTML=`
+    <div class="nexa-v436-access-title">NEXA ACCESS</div>
+
+    <label class="nexa-v436-select-row">
+      <span>OPERATIONAL ROLE</span>
+      <select data-v436-add-op>
+        <option value="">Add operational role…</option>
+        ${opBoxes.filter(b=>!b.checked).map(b=>`<option value="${esc(b.dataset.v25Op)}">${esc((b.closest('label')?.textContent||b.dataset.v25Op).trim())}</option>`).join('')}
+      </select>
+    </label>
+    <div class="nexa-v436-badges">${opBadges||'<small>No operational roles selected.</small>'}</div>
+    <button type="button" class="nexa-v436-add-another" data-v436-focus-op>+ Add another operational role</button>
+
+    <label class="nexa-v436-select-row">
+      <span>MODULE ACCESS</span>
+      <select data-v436-add-module>
+        <option value="">Add module access…</option>
+        ${modBoxes.filter(b=>!b.checked).map(b=>`<option value="${esc(b.dataset.v25AccessModule)}">${esc((b.closest('label')?.textContent||b.dataset.v25AccessModule).trim())}</option>`).join('')}
+      </select>
+    </label>
+    <div class="nexa-v436-badges">${modBadges||'<small>No special module access selected.</small>'}</div>
+    <button type="button" class="nexa-v436-add-another" data-v436-focus-module>+ Add another module</button>`;
+
+  target.prepend(ui);
+
+  /* Old checkboxes remain as the persistence engine but disappear visually. */
+  $$('.nexa-v25-checks',target).forEach(x=>x.style.display='none');
+  $$('h4',target).forEach(h=>{
+    if(/Operational Roles|Module Access/i.test(h.textContent||''))h.style.display='none';
+  });
+  $$('.nexa-v25-protected',target).forEach(x=>{
+    if(/Owner Main Access Protected/i.test(x.textContent||''))x.style.display='none';
+  });
+
+  $('[data-v436-add-op]',ui)?.addEventListener('change',e=>{
+    const v=e.target.value;if(!v)return;
+    v436ClickNativeBox(opBoxes.find(b=>b.dataset.v25Op===v),true);
+    setTimeout(v436BuildAccessDropdowns,100);
+  });
+  $('[data-v436-add-module]',ui)?.addEventListener('change',e=>{
+    const v=e.target.value;if(!v)return;
+    v436ClickNativeBox(modBoxes.find(b=>b.dataset.v25AccessModule===v),true);
+    setTimeout(v436BuildAccessDropdowns,100);
+  });
+  $$('[data-v436-remove-op]',ui).forEach(btn=>btn.onclick=()=>{
+    v436ClickNativeBox(opBoxes.find(b=>b.dataset.v25Op===btn.dataset.v436RemoveOp),false);
+    setTimeout(v436BuildAccessDropdowns,100);
+  });
+  $$('[data-v436-remove-module]',ui).forEach(btn=>btn.onclick=()=>{
+    v436ClickNativeBox(modBoxes.find(b=>b.dataset.v25AccessModule===btn.dataset.v436RemoveModule),false);
+    setTimeout(v436BuildAccessDropdowns,100);
+  });
+  $('[data-v436-focus-op]',ui)?.addEventListener('click',()=> $('[data-v436-add-op]',ui)?.focus());
+  $('[data-v436-focus-module]',ui)?.addEventListener('click',()=> $('[data-v436-add-module]',ui)?.focus());
+}
+
+function v436ApplyFocused(){
+  v436PetPanel();
+  v436RemoveLegacyMinistry();
+  v436RestoreCharms();
+  v436MainAlliance();
+  v436BuildAccessDropdowns();
+}
+function v436Defer(){
+  requestAnimationFrame(v436ApplyFocused);
+  [60,180,360,700].forEach(ms=>setTimeout(v436ApplyFocused,ms));
+}
+document.addEventListener('click',e=>{
+  if(e.target.closest?.(
+    '.nexa-v30-tab,.nexa-v30-card,[data-v33-cat],.v33-item,'+
+    '.nexa-v25-access-result,[data-v25-manage-access],#admin-permissions,'+
+    '[data-admin-tab],[data-v25-nav],[data-v33-save],.nexa-v30-save'
+  ))v436Defer();
+},true);
+document.addEventListener('change',e=>{
+  if(e.target.matches?.(
+    '#nexa-v30-detail select,#nexa-v33-detail select,#nexa-v446-charms select,'+
+    '[data-v25-op],[data-v25-access-module]'
+  ))v436Defer();
+},true);
+window.addEventListener('nexa:profile-open',v436Defer);
+window.addEventListener('nexa:profile-updated',v436Defer);
+window.addEventListener('nexa:auth-ready',v436Defer);
+v436Defer();
 
 /* V43.5 active-profile compatibility layer: targets both legacy V33 detail and current V31/V30 profile DOM. */

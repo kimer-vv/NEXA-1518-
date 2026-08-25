@@ -176,7 +176,9 @@ function injectCSS(){
   .v33-orbit-dot{position:absolute;z-index:4;right:-5px;top:13px;width:5px;height:5px;border-radius:50%;background:var(--c);box-shadow:0 0 8px var(--c);animation:v33Dot 7s linear infinite}
   @keyframes v33Orbit{to{transform:rotate(360deg)}} @keyframes v33Dot{50%{transform:translate(-5px,43px)}}
   .v33-planet img{width:100%;height:100%;border-radius:50%;object-fit:cover;object-position:50% 28%;background:#071127}
-  .v33-item[data-type="troop"] .v33-planet img,.v33-item[data-type="chief_gear"] .v33-planet img{object-fit:contain;padding:3px;box-sizing:border-box;background:transparent}
+ .v33-item[data-type="troop"] .v33-planet img,.v33-item[data-type="chief_gear"] .v33-planet img{object-fit:contain;padding:3px;box-sizing:border-box;background:transparent}
+  .v448-gear-stars{position:absolute;z-index:8;left:5px;bottom:9px;display:flex;flex-direction:column-reverse;gap:1px;pointer-events:none}
+  .v448-gear-stars span{font-size:8px;line-height:8px;color:#ffd84f;text-shadow:0 0 4px rgba(255,214,72,.95),0 0 8px rgba(255,184,35,.48)}
   .v33-item b{display:block;font-size:11px;line-height:1.1;font-weight:950}.v33-item small{display:block;margin-top:3px;color:#929bb9;font-size:7.3px;line-height:1.25}
   .v33-empty{grid-column:1/-1;padding:24px;text-align:center;color:#8994b4;font-size:11px}
 
@@ -337,9 +339,11 @@ function renderGrid(){
   let arr=catItems();if(activeGen!=='all')arr=arr.filter(i=>String(genOf(i))===String(activeGen));
   if(!arr.length){r.innerHTML='<div class="v33-empty">Nothing is available in this filter.</div>';return}
   r.innerHTML=arr.map((i,n)=>{
-    const p=progOf(i),img=itemImg(i,p),c=colorFor(i,n),fallback=GEAR_FALLBACK[pieceKey(i)]||'';
+        const p=progOf(i),img=itemImg(i,p),c=colorFor(i,n),fallback=GEAR_FALLBACK[pieceKey(i)]||'';
+    const gearStarCount=i.item_type==='chief_gear'?clamp(Number(p.gear_stars||0),0,3):0;
+    const gearStars=gearStarCount?`<span class="v448-gear-stars">${Array.from({length:gearStarCount},()=>'<span>★</span>').join('')}</span>`:'';
     return `<button type="button" class="v33-item" data-v33-item="${esc(i.id)}" data-type="${esc(i.item_type)}" style="--c:${c}">
-      <span class="v33-planet">${imgTag(img,i.name,fallback)}<i class="v33-orbit-dot"></i></span>
+      <span class="v33-planet">${imgTag(img,i.name,fallback)}${gearStars}<i class="v33-orbit-dot"></i></span>
       ${activeCat==='charms'?charmThumbsFor(i,p):''}
       <b>${esc(activeCat==='charms'?`${i.name==='Belt'?'Ring':i.name} Charms`:i.name)}</b><small>${esc(meta(i,p))}</small>
     </button>`;

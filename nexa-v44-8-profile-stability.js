@@ -1,4 +1,4 @@
-/* NEXA V45.1 — CONSTELLATION POLISH / REAL SHIP / PROFILE GUIDE / OWNER EXPERIENCE — 2026-08-25
+/* NEXA V45.2 — HOME MENU / NEXA GUIDE / ALLIANCE PENDING / TEXT CLEANUP — 2026-08-25
    COMPLETE REPLACEMENT for nexa-v44-8-profile-stability.js
    Fixes:
    - MAIN / ALT labels across Constellation, Passport and Player Intelligence Profile
@@ -13,8 +13,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V451_POLISH__) return;
-window.__NEXA_V451_POLISH__=true;
+if(window.__NEXA_V452_HOME_GUIDE__) return;
+window.__NEXA_V452_HOME_GUIDE__=true;
 window.NEXA_CANONICAL_ACCOUNTS=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
@@ -57,6 +57,8 @@ function cleanMojibake(){
   const fix=t=>{
     let v=String(t||'');
     for(const [bad,good] of pairs)v=v.split(bad).join(good);
+    if(/English\s+.*en-US/i.test(v))v=v.replace(/English\s+.*?en-US/i,'English • en-US');
+    if(/Español\s+.*es-/i.test(v))v=v.replace(/Español\s+.*?(es-[A-Z]{2})/i,'Español • $1');
     return v;
   };
   roots.forEach(root=>{
@@ -436,8 +438,8 @@ function installCSS(){
   #nexa-account-constellation .nexa-v451-world .nexa-v450-player-id{display:none!important}
   #nexa-account-constellation .nexa-v451-world.alt .nexa-v450-account-badge{font-size:6.7px!important;padding:4px 7px!important}
 
-  #nexa-v4485-home-drone.accounts-context{top:max(118px,calc(env(safe-area-inset-top) + 104px))!important}
-  #nexa-v4485-home-drone.accounts-context + #nexa-v4485-home-bubble{top:max(132px,calc(env(safe-area-inset-top) + 118px))!important}
+  #nexa-v4485-home-drone.accounts-context{top:max(178px,calc(env(safe-area-inset-top) + 164px))!important}
+  #nexa-v4485-home-drone.accounts-context + #nexa-v4485-home-bubble{top:max(190px,calc(env(safe-area-inset-top) + 176px))!important}
 
   /* Profile: stronger neon depth without changing structure */
   #nexa-profile-modal.open .nexa-profile-shell,
@@ -452,6 +454,82 @@ function installCSS(){
     .nexa-v450-jump-ship .nexa-v451-ship-img{width:128px;height:90px}
     .nexa-v451-inside b{font-size:9px}.nexa-v451-inside small{font-size:5.3px}
     #nexa-account-constellation .nexa-v451-world.main .nexa-v451-inside b{font-size:13px}
+  }
+
+
+  /* ================= NEXA V45.2 HOME + MENU ================= */
+  body.nexa-v452-away-home #nexa-home-menu-toggle,
+  body.nexa-v452-away-home #nexa-home-menu{display:none!important}
+  body:not(.nexa-v452-away-home):not(:has(#nexa-auth-gate:not(.hidden))) #nexa-home-menu-toggle{
+    display:flex!important;
+    border:1px solid rgba(76,228,255,.72)!important;
+    background:linear-gradient(135deg,rgba(4,34,68,.94),rgba(7,18,48,.96))!important;
+    color:#dffcff!important;
+    box-shadow:0 0 12px rgba(68,223,255,.30),0 0 28px rgba(54,143,255,.16),inset 0 0 18px rgba(70,226,255,.08)!important
+  }
+  #nexa-home-menu{
+    border-color:rgba(68,220,255,.48)!important;
+    background:
+      radial-gradient(circle at 18% 0%,rgba(53,202,255,.16),transparent 34%),
+      radial-gradient(circle at 86% 86%,rgba(93,74,255,.14),transparent 38%),
+      linear-gradient(155deg,rgba(4,15,39,.98),rgba(6,8,27,.98))!important;
+    box-shadow:0 22px 65px rgba(0,0,0,.58),0 0 26px rgba(57,214,255,.17)!important
+  }
+  #nexa-home-menu button,#nexa-home-menu a{
+    border-color:rgba(67,209,255,.16)!important
+  }
+  #nexa-home-menu button:hover,#nexa-home-menu a:hover,
+  #nexa-home-menu button:active,#nexa-home-menu a:active{
+    background:rgba(34,183,255,.10)!important;
+    box-shadow:inset 3px 0 0 #5ce8ff!important
+  }
+
+  /* Keep Home structure and wording; upgrade only the four signal cards. */
+  #home-svs-section .event,
+  #home-transfers-section .event,
+  #home-announcements-module .event,
+  #home-event-operations-module .event{
+    --nexa-card-accent:#55e7ff;
+    position:relative!important;
+    overflow:hidden!important;
+    border:1px solid color-mix(in srgb,var(--nexa-card-accent) 55%,transparent)!important;
+    background:
+      radial-gradient(circle at 92% 18%,color-mix(in srgb,var(--nexa-card-accent) 15%,transparent),transparent 31%),
+      linear-gradient(135deg,rgba(7,18,47,.94),rgba(5,8,26,.96))!important;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,.018),
+      0 0 22px color-mix(in srgb,var(--nexa-card-accent) 12%,transparent),
+      inset 0 0 28px color-mix(in srgb,var(--nexa-card-accent) 5%,transparent)!important
+  }
+  #home-svs-section .event{--nexa-card-accent:#ff62cf}
+  #home-transfers-section .event{--nexa-card-accent:#ff9b54}
+  #home-announcements-module .event{--nexa-card-accent:#56e9ff}
+  #home-event-operations-module .event{--nexa-card-accent:#67ffd0}
+  #home-svs-section .event:before,
+  #home-transfers-section .event:before,
+  #home-announcements-module .event:before,
+  #home-event-operations-module .event:before{
+    content:"";position:absolute;left:0;top:12%;bottom:12%;width:2px;border-radius:99px;
+    background:var(--nexa-card-accent);box-shadow:0 0 12px var(--nexa-card-accent)
+  }
+  #home-svs-section .event h2,#home-svs-section .event h3,#home-svs-section .event strong,
+  #home-transfers-section .event h2,#home-transfers-section .event h3,#home-transfers-section .event strong,
+  #home-announcements-module .event h2,#home-announcements-module .event h3,#home-announcements-module .event strong,
+  #home-event-operations-module .event h2,#home-event-operations-module .event h3,#home-event-operations-module .event strong{
+    letter-spacing:.035em!important;
+    text-shadow:0 0 12px color-mix(in srgb,var(--nexa-card-accent) 18%,transparent)
+  }
+  #home-svs-section .event [class*="label"],
+  #home-transfers-section .event [class*="label"],
+  #home-announcements-module .event [class*="label"],
+  #home-event-operations-module .event [class*="label"]{
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace!important;
+    letter-spacing:.15em!important
+  }
+
+  #nexa-v452-alliance-note{
+    margin-top:2px;padding:8px 9px;border-radius:10px;
+    border:1px solid rgba(79,219,255,.18);background:rgba(21,132,172,.07);color:#91dded!important
   }
 
   /* Chief Gear stars: inside planet, left side, vertical */
@@ -871,7 +949,7 @@ async function openFleet(){
       <div><small>NEXA SYSTEM // PROFILE NAVIGATION</small><h2>NEXA FLEET</h2><p>DISCOVER • CONNECT • EXPLORE</p></div>
       <button class="nexa-v4484-close" type="button" data-fleet-close>×</button>
     </div>
-    <div class="nexa-v4484-fleet-guide">${droneMarkup()}<div class="nexa-v4484-dialog"><small>NEXA DRONE</small><p data-fleet-guide></p></div></div>
+    <div class="nexa-v4484-fleet-guide">${droneMarkup()}<div class="nexa-v4484-dialog"><small>NEXA</small><p data-fleet-guide></p></div></div>
     <div class="nexa-v450-fleet-label">AVAILABLE STATES // SELECT DESTINATION</div>
     <div class="nexa-v4484-state-list" data-fleet-list></div>
   </div>`;
@@ -888,7 +966,7 @@ async function openFleet(){
     </button>`;
   }).join(''):'<div class="nexa-v4484-fleet-empty">NO GAME ACCOUNTS FOUND // ADD AN ACCOUNT TO BEGIN</div>';
 
-  typeMessage($('[data-fleet-guide]',ov),'Welcome to NEXA Fleet. Choose a State and I’ll guide your ship to its Account Constellation.');
+  typeMessage($('[data-fleet-guide]',ov),'Hi, I’m NEXA. Welcome to NEXA Fleet. Choose a State and I’ll guide your ship to its Account Constellation.');
   $('[data-fleet-close]',ov)?.addEventListener('click',closeFleet);
   ov.addEventListener('click',e=>{
     const card=e.target.closest?.('[data-fleet-state]');if(!card)return;
@@ -903,7 +981,7 @@ function playWormhole(state,after,direction='in'){
   ov.innerHTML=`<div class="nexa-v450-nebula"></div><div class="nexa-v4484-streaks"></div><div class="nexa-v4484-worm"></div>
     <div class="nexa-v450-jump-ship">${shipAssetMarkup("jump")}</div>
     <div class="nexa-v4484-worm-content">${droneMarkup('intro')}
-      <div class="nexa-v4484-dialog"><small>NEXA DRONE</small><p>${returning?'Returning to NEXA Fleet. Hold tight — we’re heading back to the ship.':'State selected. Opening Account Constellation…'}</p></div>
+      <div class="nexa-v4484-dialog"><small>NEXA</small><p>${returning?'Heading back to NEXA Fleet. I’ll guide you to the ship.':'I’ve got it. Opening your Account Constellation…'}</p></div>
       <b>${returning?'RETURNING TO NEXA FLEET':`STATE ${esc(state)}`}</b>
       <span>${returning?'NAVIGATION LOCKED // RETURN JUMP':'PREPARING JUMP // CONSTELLATION LOCKED'}</span>
       <div class="nexa-v450-jump-progress"><i></i></div>
@@ -951,7 +1029,7 @@ function maybeShowFirstProfileGuide(account){
     $('.nexa-v451-first-profile')?.remove();
     const ov=document.createElement('div');ov.className='nexa-v450-help-overlay nexa-v451-first-profile';
     ov.innerHTML=`<section class="nexa-v450-help-card">
-      <div class="nexa-v450-help-head">${droneMarkup()}<div><small>NEXA DRONE // FIRST PROFILE SETUP</small><h3>Welcome to your Profile.</h3><p>This Game Account is still missing its progression details.</p></div><button class="nexa-v450-help-close" type="button">×</button></div>
+      <div class="nexa-v450-help-head">${droneMarkup()}<div><small>NEXA // FIRST PROFILE SETUP</small><h3>Hi, I’m NEXA. Welcome to your Profile.</h3><p>This Game Account is still missing its progression details.</p></div><button class="nexa-v450-help-close" type="button">×</button></div>
       <div class="nexa-v450-help-answer" style="display:block;margin-top:14px">
         <b>Start with Edit Profile.</b>
         <div style="margin-top:7px">Enter your Furnace or Fire Crystal level, Power, Deployment Capacity and the rest of the account information you know. NEXA uses that progression to adapt available Profile items and unlock the correct options as your account grows.</div>
@@ -1067,7 +1145,7 @@ function ensureCompanionDrones(){
   let home=$('#nexa-v4485-home-drone');
   if(!home){
     home=document.createElement('button');home.id='nexa-v4485-home-drone';home.className='nexa-v4485-companion';home.type='button';home.setAttribute('aria-label','NEXA Drone help');home.innerHTML=droneMarkup();
-    const bubble=document.createElement('div');bubble.id='nexa-v4485-home-bubble';bubble.className='nexa-v4485-companion-bubble';bubble.textContent='Hi! I’m your NEXA Drone. Tap My Profile to open your NEXA Fleet, or tap me anytime for quick help.';
+    const bubble=document.createElement('div');bubble.id='nexa-v4485-home-bubble';bubble.className='nexa-v4485-companion-bubble';bubble.textContent='Hi! I’m NEXA. Tap My Profile to open your NEXA Fleet. Double-tap me anytime for quick help.';
     document.body.append(home,bubble);bindDroneGesture(home,bubble,'home');
   }
   bindDroneGesture(home,$('#nexa-v4485-home-bubble'),'home');
@@ -1099,7 +1177,7 @@ function showReturningWelcome(){
       <h1>NEXA</h1>
       <div class="nexa-v450-systemline">CONNECT // MANAGE // EXPLORE</div>
       ${droneMarkup('intro')}
-      <div class="nexa-v4484-dialog" style="width:min(320px,84vw)"><small>NEXA DRONE</small><p>Welcome back. Connecting your profile, States, and NEXA systems…</p></div>
+      <div class="nexa-v4484-dialog" style="width:min(320px,84vw)"><small>NEXA</small><p>Hi, I’m NEXA. Welcome back. Connecting your Profile, States, and NEXA systems…</p></div>
       <div class="nexa-v450-sync"><i></i></div>
       <div class="nexa-v450-tagline">YOUR UNIVERSE // YOUR CONTROL</div>
     </div>`;
@@ -1125,7 +1203,7 @@ function openDroneHelp(context='home'){
   $('.nexa-v450-help-overlay')?.remove();
   const ov=document.createElement('div');ov.className='nexa-v450-help-overlay';
   ov.innerHTML=`<section class="nexa-v450-help-card">
-    <div class="nexa-v450-help-head">${droneMarkup()}<div><small>NEXA DRONE // QUICK HELP</small><h3>What do you need help with?</h3><p>${context==='profile'?'You’re viewing a Game Account Profile. Choose a quick question below.':'Choose a quick question and I’ll guide you.'}</p></div><button class="nexa-v450-help-close" type="button">×</button></div>
+    <div class="nexa-v450-help-head">${droneMarkup()}<div><small>NEXA // QUICK HELP</small><h3>What do you need help with?</h3><p>${context==='profile'?'You’re viewing a Game Account Profile. Choose a quick question below.':'Choose a quick question and I’ll guide you.'}</p></div><button class="nexa-v450-help-close" type="button">×</button></div>
     <div class="nexa-v450-help-list">${HELP_ITEMS.map(([k,q])=>`<button type="button" class="nexa-v450-help-q" data-help-key="${k}">${q}<span>→</span></button>`).join('')}</div>
     <div class="nexa-v450-help-answer" data-help-answer style="display:none"></div>
   </section>`;
@@ -1157,7 +1235,7 @@ function bindDroneGesture(btn,bubble,context){
     timer=setTimeout(()=>{
       bubble.textContent=context==='profile'
         ? 'Need help with this Profile? Double-tap me and I’ll guide you.'
-        : 'Need help with NEXA? Double-tap me and I’ll guide you.';
+        : 'Need help? Double-tap me and I’ll guide you.';
       bubble?.classList.add('open');
       setTimeout(()=>bubble?.classList.remove('open'),5200);
     },220);
@@ -1180,7 +1258,7 @@ function showOnboarding(){
   const ov=document.createElement('section');ov.id='nexa-v4484-onboarding';
   ov.innerHTML=`<div class="nexa-v4484-stars"></div><div class="nexa-v4484-shell"><div class="nexa-v4484-onboard-main"><div class="nexa-v4484-onboard-card">
     <div data-onboard-drone>${droneMarkup('intro')}</div>
-    <div class="nexa-v4484-dialog"><small>NEXA DRONE</small><p data-onboard-text></p></div>
+    <div class="nexa-v4484-dialog"><small>NEXA</small><p data-onboard-text></p></div>
     <div class="nexa-v4484-mini-path" data-onboard-path></div>
     <div class="nexa-v4484-step" data-onboard-step></div>
     <div class="nexa-v4484-progress" data-onboard-progress></div>
@@ -1361,11 +1439,64 @@ async function syncPendingState(){
   }catch{}
 }
 
+
+function syncHomeOnlyMenu(){
+  const authOpen=!!$('#nexa-auth-gate:not(.hidden)');
+  const away=authOpen
+    || !!$('#nexa-v4484-fleet')
+    || !!$('#nexa-v4484-wormhole')
+    || !!$('#nexa-account-constellation.open')
+    || !!$('#nexa-profile-modal.open')
+    || !!$('#accounts-modal.open')
+    || !!$('.nexa-v450-help-overlay');
+  document.body.classList.toggle('nexa-v452-away-home',away);
+  if(!away){
+    document.body.classList.remove('nexa-v451-fleet-open','nexa-v451-constellation-open','nexa-v451-profile-open');
+  }
+}
+
+function normalizeUnlimitedAccountUI(){
+  const modal=$('#accounts-modal');
+  if(modal){
+    const count=Math.max(accountCache.length,Number(String($('#account-count')?.textContent||'').match(/\d+/)?.[0]||0));
+    $$('*',modal).forEach(el=>{
+      if(el.children.length)return;
+      const t=String(el.textContent||'').trim();
+      if(/^\d+\s*\/\s*5$/i.test(t))el.textContent=`${count||''} ACCOUNT${count===1?'':'S'}`.trim();
+      if(/^WOS Accounts\s+\d+\s*\/\s*5$/i.test(t))el.textContent=`WOS Accounts ${count||''} ACCOUNT${count===1?'':'S'}`.trim();
+    });
+  }
+  const launcher=$('#nexa-profile-launcher');
+  if(launcher)$$('*',launcher).forEach(el=>{
+    if(el.children.length)return;
+    if(/^\d+\s*\/\s*5$/.test(String(el.textContent||'').trim()))el.style.display='none';
+  });
+}
+
+function removeAllianceCodeRequirement(){
+  const wrap=$('#v26-alliance-code-wrap');
+  const input=$('#v26-alliance-code');
+  if(wrap){wrap.hidden=true;wrap.style.display='none'}
+  if(input)input.value='NEXA_PENDING';
+  const select=$('#v26-edit-alliance');
+  const block=$('#v26-profile-alliance-block');
+  if(select&&block&&!$('#nexa-v452-alliance-note',block)){
+    const note=document.createElement('div');
+    note.id='nexa-v452-alliance-note';
+    note.className='nexa-v25-muted';
+    note.textContent='No access code required. Selecting a new alliance submits this Game Account as a Pending Member for leadership approval.';
+    select.closest('label')?.insertAdjacentElement('afterend',note);
+  }
+}
+
 function apply(){
   installCSS();
   installAccountManagerUI();
   installAuthAdjustments();
   cleanMojibake();
+  normalizeUnlimitedAccountUI();
+  removeAllianceCodeRequirement();
+  syncHomeOnlyMenu();
   repairAccountLabels();
   if($('#accounts-modal')?.classList.contains('open'))refreshAccountManager();
   deployment();

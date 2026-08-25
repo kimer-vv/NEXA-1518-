@@ -1,4 +1,4 @@
-/* NEXA V44.2 — PETS + CHARMS + PROFILE CLEANUP — 2026-08-24
+/* NEXA V44.3 — RESET + CHARMS + MINISTRY + HERO POLISH — 2026-08-24
    CLEAN REPLACEMENT. Not cumulative.
    Owns only:
    - Home menu outside-tap close
@@ -14,8 +14,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V442_CLEAN__) return;
-window.__NEXA_V442_CLEAN__=true;
+if(window.__NEXA_V443_CLEAN__) return;
+window.__NEXA_V443_CLEAN__=true;
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
@@ -248,6 +248,20 @@ function injectCSS(){
     .v44-widget-desc{font-size:8.5px}
   }
 
+
+  /* V44.3 hero signature trait cards */
+  .v443-trait-card{
+    display:grid!important;grid-template-columns:46px minmax(0,1fr)!important;gap:10px!important;align-items:center!important;
+  }
+  .v443-trait-icon{
+    width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-size:22px;
+    border:1px solid rgba(255,194,75,.68);background:radial-gradient(circle,rgba(255,197,83,.13),rgba(17,13,24,.94));
+    box-shadow:0 0 12px rgba(255,184,62,.28)
+  }
+  .v443-trait-copy b{display:block;color:#fff;font-size:14px;line-height:1.12}
+  .v443-trait-copy span{display:block;margin-top:4px;color:#e6e8f2;font-size:11px;line-height:1.3}
+  .v44-natalia-bear{font-size:20px!important;filter:drop-shadow(0 0 6px #bff6ff)!important}
+
   /* Pets */
   .v44-pet{--pet:#70eaff;--petbg:#17384a;padding:12px;border:1px solid color-mix(in srgb,var(--pet) 40%,transparent);border-radius:17px;background:linear-gradient(145deg,color-mix(in srgb,var(--petbg) 42%,#071128),#071020)}
   .v44-pet-head{display:grid;grid-template-columns:52px minmax(0,1fr);gap:10px;align-items:center;width:100%;padding:0;border:0;background:transparent;color:#fff;text-align:left}
@@ -261,11 +275,11 @@ function injectCSS(){
   /* Ministry beside profile name */
   #nexa-v44-ministry{
     width:34px!important;height:34px!important;flex:0 0 34px!important;display:inline-grid!important;place-items:center!important;
-    padding:0!important;border-radius:50%!important;border:1px solid rgba(77,224,255,.7)!important;
-    background:linear-gradient(135deg,#0a2b46,#091127)!important;color:#78eaff!important;
-    box-shadow:0 0 12px rgba(67,220,255,.3)!important;font-size:17px!important
+    padding:0!important;border-radius:50%!important;border:1px solid rgba(255,205,82,.82)!important;
+    background:linear-gradient(135deg,#3b2a08,#171006)!important;color:#ffd45e!important;
+    box-shadow:0 0 12px rgba(255,190,54,.34),inset 0 0 12px rgba(255,216,103,.08)!important;font-size:17px!important
   }
-  #nexa-v44-ministry:hover,#nexa-v44-ministry:active{box-shadow:0 0 20px rgba(67,220,255,.5)!important}
+  #nexa-v44-ministry:hover,#nexa-v44-ministry:active{box-shadow:0 0 21px rgba(255,190,54,.56)!important}
   #nexa-v425-ministry{display:none!important}
 
   /* Main + Alliance */
@@ -289,6 +303,39 @@ function injectCSS(){
   .v44-badges{display:flex;gap:6px;flex-wrap:wrap}.v44-badge{border:1px solid rgba(72,209,255,.36);border-radius:999px;padding:6px 9px;background:rgba(13,51,72,.62);color:#d4f8ff;font-size:8px;font-weight:900}
   `;
   document.head.appendChild(st);
+}
+
+
+function v443CurrentHero(){
+  return norm($('.v33-title h3','#nexa-v33-detail')?.textContent||'');
+}
+function repairHeroSignatureTrait(){
+  const root=$('#nexa-v33-detail');
+  if(!root?.classList.contains('open'))return;
+  const hero=v443CurrentHero();
+  const cfg=hero==='natalia'
+    ? {needle:'Ursus Strength',icon:'🐻‍❄️',title:'Ursus Strength',labels:['Attack','Defense']}
+    : hero==='jeronimo'
+      ? {needle:'Natural Leader',icon:'⚔️',title:'Natural Leader',labels:['Lethality','Health']}
+      : null;
+  if(!cfg)return;
+
+  const candidates=$$('*',root).filter(el=>{
+    if(!String(el.textContent||'').includes(cfg.needle))return false;
+    return !Array.from(el.children).some(c=>String(c.textContent||'').includes(cfg.needle));
+  });
+  const leaf=candidates[0]; if(!leaf)return;
+  const card=leaf.closest('.v33-result,.v33-hero-stat,.v33-bonus,.v33-section div')||leaf.parentElement;
+  if(!card||card.dataset.v443Trait==='1')return;
+
+  const raw=String(card.textContent||'').replace(/\s+/g,' ');
+  const vals=cfg.labels.map(label=>{
+    const m=raw.match(new RegExp(label+'\\s*\\+?(-?[\\d.]+)%','i'));
+    return m?`${label} +${m[1]}%`:`${label} +0%`;
+  });
+  card.dataset.v443Trait='1';
+  card.classList.add('v443-trait-card');
+  card.innerHTML=`<span class="v443-trait-icon">${cfg.icon}</span><span class="v443-trait-copy"><b>${cfg.title}</b><span>${vals.join(' • ')}</span></span>`;
 }
 
 function widgetSkillLevel(widgetLv, first){
@@ -395,15 +442,30 @@ function repairCharms(){
   refreshCharmGridFromSaved();
 }
 
-let v442CharmBusy=false, v442CharmLast=0;
-async function refreshCharmGridFromSaved(){
-  const root=$('#nexa-profile-modal'); if(!root) return;
-  if(!$$('.v33-charm-mini-row',root).length) return;
-  const now=Date.now(); if(v442CharmBusy || now-v442CharmLast<450) return;
-  const c=sb(), accountId=window.NEXA_ACTIVE_ACCOUNT_ID; if(!c||!accountId) return;
-  v442CharmBusy=true;v442CharmLast=now;
+let v443CharmBusy=false, v443CharmLast=0;
+async function v443AccountId(){
+  if(window.NEXA_ACTIVE_ACCOUNT_ID)return String(window.NEXA_ACTIVE_ACCOUNT_ID);
+  const c=sb();if(!c)return null;
   try{
-    const {data,error}=await c.from('player_library_inventory').select('library_item_id,progress').eq('player_account_id',accountId);
+    const {data:{user}}=await c.auth.getUser();if(!user)return null;
+    const playerId=String($('#nexa-profile-player-id')?.textContent||'').trim();
+    let q=null;
+    if(playerId&&playerId!=='—')q=await c.from('player_accounts').select('id').eq('user_id',user.id).eq('player_id',playerId).maybeSingle();
+    if(!q?.data?.id)q=await c.from('player_accounts').select('id').eq('user_id',user.id).order('is_main',{ascending:false}).limit(1).maybeSingle();
+    if(q?.data?.id){window.NEXA_ACTIVE_ACCOUNT_ID=String(q.data.id);return String(q.data.id)}
+  }catch{}
+  return null;
+}
+async function refreshCharmGridFromSaved(force=false){
+  const root=$('#nexa-profile-modal'); if(!root) return;
+  const rows=$$('.v33-charm-mini-row',root); if(!rows.length) return;
+  const now=Date.now(); if(v443CharmBusy || (!force && now-v443CharmLast<220)) return;
+  const c=sb(), accountId=await v443AccountId(); if(!c||!accountId) return;
+  v443CharmBusy=true;v443CharmLast=now;
+  try{
+    const {data,error}=await c.from('player_library_inventory')
+      .select('library_item_id,progress')
+      .eq('player_account_id',accountId);
     if(error)return;
     const map=new Map((data||[]).map(x=>[String(x.library_item_id),x.progress||{}]));
     $$('.v33-item[data-v33-item]',root).forEach(card=>{
@@ -413,10 +475,12 @@ async function refreshCharmGridFromSaved(){
       const type=charmTypeFromText(card.textContent||'');
       row.innerHTML=levels.slice(0,3).map(raw=>{
         const lv=clamp(Number(raw||0),0,18);
-        return lv?`<img src="${charmSrc(type,lv)}" alt="${type} Charm Lv ${lv}">`:'<i>◇</i>';
+        return lv
+          ? `<img src="${charmSrc(type,lv)}" alt="${type} Charm Lv ${lv}" style="opacity:1!important">`
+          : '<i>◇</i>';
       }).join('');
     });
-  }finally{v442CharmBusy=false}
+  }finally{v443CharmBusy=false}
 }
 
 function installMinistry(){
@@ -425,8 +489,23 @@ function installMinistry(){
   if(old){
     old.style.setProperty('display','none','important');
     old.setAttribute('aria-hidden','true');
-    const legacyRow=old.parentElement;
-    if(legacyRow && legacyRow!==line && legacyRow.children.length<=5) legacyRow.style.setProperty('display','none','important');
+    let legacyRow=old.parentElement;
+    if(legacyRow && legacyRow!==line && !legacyRow.querySelector('#nexa-profile-edit-btn')){
+      legacyRow.style.setProperty('display','none','important');
+      legacyRow.setAttribute('aria-hidden','true');
+    }
+    const scheduleBox=$$('*','#nexa-profile-modal').find(el=>{
+      const txt=String(el.textContent||'').replace(/\s+/g,' ').trim();
+      return /Ministry Schedule/i.test(txt) && !Array.from(el.children).some(c=>/Ministry Schedule/i.test(String(c.textContent||'')));
+    });
+    if(scheduleBox){
+      let box=scheduleBox;
+      for(let i=0;i<4 && box?.parentElement && box.parentElement!==line;i++){
+        if(box.querySelector?.('#nexa-profile-edit-btn'))break;
+        if(box.querySelector?.('button,select,input') || box.children.length<=6){box.style.setProperty('display','none','important');break}
+        box=box.parentElement;
+      }
+    }
   }
   let btn=$('#nexa-v44-ministry');
   if(!btn){
@@ -451,21 +530,26 @@ function installMinistry(){
 function repairProfileIdentity(){
   const root=$('#nexa-profile-modal'); if(!root) return;
 
-  $$('*',root).forEach(el=>{
-    if(el.children.length)return;
-    const txt=(el.textContent||'').replace(/\s+/g,' ').trim();
-    if(/This is your main account/i.test(txt)){
-      let card=el;
-      for(let i=0;i<5 && card && card!==root;i++,card=card.parentElement){
-        if(card.querySelector?.('select') && /Alliance/i.test(card.textContent||'')){card.remove();return}
-      }
-      el.remove();
-    }
-  });
+  // Remove the legacy lower Alliance/Main-account card as one whole unit.
+  const all=$$('div,section,article,label',root);
+  const legacyCandidates=all.filter(el=>{
+    const txt=String(el.textContent||'').replace(/\s+/g,' ').trim();
+    return /This is your\s+Main\s+account/i.test(txt) && !!el.querySelector('select');
+  }).sort((a,b)=>(a.textContent||'').length-(b.textContent||'').length);
+  const legacy=legacyCandidates[0];
+  if(legacy && !legacy.closest('#nexa-profile-editor')){
+    legacy.remove();
+  }else{
+    $$('*',root).forEach(el=>{
+      if(el.children.length)return;
+      if(/This is your\s+Main\s+account/i.test(String(el.textContent||'')))el.remove();
+    });
+  }
 
+  // Remove the long duplicated Alliance helper.
   $$('*',root).forEach(el=>{
     if(el.children.length)return;
-    const txt=(el.textContent||'').replace(/\s+/g,' ').trim();
+    const txt=String(el.textContent||'').replace(/\s+/g,' ').trim();
     if(/Select your new alliance below, then use the existing Save Profile button/i.test(txt)){
       const wrap=el.closest('.nexa-v437-alliance-note,p,small,div');
       if(wrap&&wrap!==root)wrap.remove();else el.remove();
@@ -477,7 +561,9 @@ function repairProfileIdentity(){
   if(allianceSel){
     const host=allianceSel.closest('label,.form-group,.profile-field,.nexa-profile-field,div')||allianceSel.parentElement;
     $$('.v44-alliance-note,.nexa-v437-alliance-note,.v44-main-badge,.nexa-v437-main',host).forEach(x=>x.remove());
-    const note=document.createElement('div');note.className='v44-alliance-note';note.innerHTML='<b>Change Alliance</b><small>Select the alliance, then Save Profile.</small>';allianceSel.before(note);
+    const note=document.createElement('div');note.className='v44-alliance-note';
+    note.innerHTML='<b>Change Alliance</b><small>Select the alliance, then Save Profile.</small>';
+    allianceSel.before(note);
     const badge=document.createElement('span');badge.className='v44-main-badge';badge.textContent='★ MAIN ACCOUNT';host.appendChild(badge);
   }
 }
@@ -525,13 +611,26 @@ function closeMenuOutside(e){
   menu.classList.remove('open');toggle?.classList.remove('open');menu.setAttribute('aria-hidden','true');toggle?.setAttribute('aria-expanded','false');
 }
 
+function repairMyProfileGuide(){
+  const overlays=$$('div,section').filter(el=>{
+    const txt=String(el.textContent||'').replace(/\s+/g,' ');
+    return /\bGUIDE\b/i.test(txt)&&/\bMy Profile\b/i.test(txt);
+  }).sort((a,b)=>(a.textContent||'').length-(b.textContent||'').length);
+  const box=overlays[0];if(!box)return;
+  const paras=$$('p',box);
+  const p=paras.find(x=>/Swipe categories|Library card|Troop tier|Fire Crystal/i.test(x.textContent||''))||paras[0];
+  if(p)p.innerHTML='My Profile stores this account’s <b>Heroes, Experts, Troops, Pets, Chief Gear and Charms</b>. Choose a category, open an item, set its levels or options, then tap <b>Save</b>. <b>Reset</b> clears only that item’s saved profile data. Generation filters only change what you are viewing. Use the <b>gold calendar beside your name</b> for Ministry Appointments.';
+}
+
 function apply(){
   injectCSS();
   installMinistry();
   repairWidget();
+  repairHeroSignatureTrait();
   repairPet();
   repairCharms();
   repairProfileIdentity();
+  repairMyProfileGuide();
   ownerAccess();
 }
 function schedule(){
@@ -541,7 +640,12 @@ function schedule(){
 
 document.addEventListener('pointerdown',closeMenuOutside,true);
 document.addEventListener('click',e=>{
-  if(e.target.closest?.('[data-v33-widget],[data-v33-item],#nexa-profile-edit-btn,#admin-roles,#admin-permissions,[data-v33-save]')) schedule();
+  if(e.target.closest?.('[data-v33-widget],[data-v33-item],[data-v33-cat],[data-v33-gen],[data-v33-reset],#nexa-profile-edit-btn,#admin-roles,#admin-permissions,[data-v33-save],.nexa-info')) schedule();
+  if(e.target.closest?.('[data-v33-reset]')){
+    [1400,1900,2600,3400].forEach(ms=>setTimeout(apply,ms));
+  }
+  if(e.target.closest?.('[data-v33-cat]'))setTimeout(()=>refreshCharmGridFromSaved(true),120);
+  if(e.target.closest?.('[data-v33-save]'))[180,500,950].forEach(ms=>setTimeout(()=>refreshCharmGridFromSaved(true),ms));
   if(e.target.closest?.('[data-v44-pet-details]')){
     const d=e.target.closest('.v44-pet')?.querySelector('.v44-pet-desc'); if(d)d.hidden=!d.hidden;
   }
@@ -552,6 +656,7 @@ document.addEventListener('change',e=>{
     if(d&&host){host.querySelector('.v44-pet-result strong').textContent=d[2][lv-1];host.querySelector('.v44-pet-result span').textContent='Cooldown: '+(d[3]?.[lv-1]||'—')}
   }
   if(e.target.matches?.('[data-v33-widget],[data-v33-charm-level],#account-purpose')) schedule();
+  if(e.target.matches?.('[data-v33-charm-level]'))setTimeout(()=>refreshCharmGridFromSaved(true),180);
 },true);
 window.addEventListener('nexa:profile-open',schedule);
 window.addEventListener('nexa:profile-updated',schedule);

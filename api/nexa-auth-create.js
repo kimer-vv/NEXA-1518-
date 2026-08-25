@@ -41,7 +41,6 @@ async function adminCreate(email,password,metadata){
 
 async function adminDelete(id){
   const service=serviceKey();
-
   await fetch(
     `${SUPABASE_URL}/auth/v1/admin/users/${encodeURIComponent(id)}`,
     {
@@ -93,6 +92,10 @@ export default async function handler(req,res){
     const normalized=normalizeGameId(rawGameId);
     const ign=cleanName(req.body?.in_game_name);
     const password=String(req.body?.password||'');
+    const stateNumber=Number(String(req.body?.state_number||'').replace(/\D/g,''));
+
+    if(!Number.isInteger(stateNumber)||stateNumber<1)
+      return reply(res,400,{error:'Enter your state.'});
 
     if(password.length<8)
       return reply(res,400,{
@@ -142,6 +145,7 @@ export default async function handler(req,res){
       {
         in_game_name:ign,
         nexa_game_id:rawGameId,
+        nexa_state_number:stateNumber,
         auth_method:'game_id'
       }
     );
@@ -168,7 +172,8 @@ export default async function handler(req,res){
         alliance_id:allianceId,
         custom_alliance_tag:allianceId?null:customAlliance,
         is_main:true,
-        account_purpose:'full'
+        account_purpose:'full',
+        state_number:stateNumber
       }
     });
 

@@ -502,6 +502,7 @@ async function v26CurrentUser(){try{return (await sb().auth.getUser()).data?.use
 async function v26Accounts(){const u=await v26CurrentUser();if(!u)return[];const {data,error}=await sb().from('player_accounts').select('id,in_game_name,player_id,alliance_id,custom_alliance_tag,is_main,account_purpose,alliance_role,furnace_level,power,deployment_capacity,profile_photo_url,alliances(tag,emblem_url,color)').eq('user_id',u.id).order('created_at');if(error)return[];return data||[]}
 function v26Avatar(a){return a?.profile_photo_url||`https://ui-avatars.com/api/?name=${encodeURIComponent(a?.in_game_name||'NEXA')}&background=111a38&color=cabaff&bold=true&size=256`}
 async function v26RefreshConstellation(){
+ if(window.NEXA_CANONICAL_ACCOUNTS)return;
  const system=$('#nexa-constellation-system');if(!system)return;const rows=await v26Accounts();if(!rows.length)return;
  window.nexaAccountsCache=rows;const main=rows.find(a=>a.is_main)||rows[0],others=rows.filter(a=>a.id!==main.id),pos=[[50,14],[82,33],[84,67],[50,86],[16,67],[18,33]];
  let out='<span class="nexa-constellation-orbit one"></span><span class="nexa-constellation-orbit two"></span>';
@@ -559,7 +560,7 @@ function v26ProfileEvents(){
    if(e.target.closest('#nexa-profile-edit-btn'))setTimeout(v26InjectProfileEditor,80);
    if(e.target.closest('[data-nexa-tab="troops"]'))setTimeout(v26FixTroopImages,240);
    if(e.target.closest('#nexa-profile-content'))setTimeout(v26FixTroopImages,80);
-   if(e.target.closest('[data-close-nexa-profile]')){e.preventDefault();e.stopImmediatePropagation();$('#nexa-profile-modal')?.classList.remove('open');$('#nexa-profile-modal')?.setAttribute('aria-hidden','true');const c=$('#nexa-account-constellation');if(c){c.classList.add('open');c.setAttribute('aria-hidden','false');setTimeout(v26RefreshConstellation,20)}}
+   if(e.target.closest('[data-close-nexa-profile]'))return;
  },true);
 }
 const v26Obs=new MutationObserver(()=>requestAnimationFrame(v26GlobalPolish));

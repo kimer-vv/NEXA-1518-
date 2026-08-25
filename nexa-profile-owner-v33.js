@@ -280,8 +280,15 @@ function ensureShell(){
   return shell;
 }
 async function resolveAccount(){
-  if(window.NEXA_ACTIVE_ACCOUNT_ID){accountId=String(window.NEXA_ACTIVE_ACCOUNT_ID);return accountId}
   const c=sb();if(!c)return null;
+  if(window.NEXA_ACTIVE_ACCOUNT_ID){
+    accountId=String(window.NEXA_ACTIVE_ACCOUNT_ID);
+    try{
+      const pr=await c.from('player_accounts').select('furnace_level').eq('id',accountId).maybeSingle();
+      accountProgress=parseProgress(pr?.data?.furnace_level||'30');
+    }catch{}
+    return accountId;
+  }
   try{
     const {data:{user}}=await c.auth.getUser();if(!user)return null;
     const playerId=String($('#nexa-profile-player-id')?.textContent||'').trim();
@@ -758,4 +765,15 @@ function boot(){
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 window.addEventListener('pageshow',()=>setTimeout(()=>{ensureShell();load()},100));
+window.addEventListener('nexa:account-changed',e=>{
+  const next=String(e.detail?.accountId||'');
+  if(!next)return;
+  accountId=next;
+  window.NEXA_ACTIVE_ACCOUNT_ID=next;
+  inventory=[];
+  selectedId=null;
+  detailOpen=false;
+  closeDetail();
+  load();
+});
 })();

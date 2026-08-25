@@ -1,4 +1,4 @@
-/* NEXA V44.8.2 — ACCOUNT ISOLATION / CONSTELLATION / CHIEF GEAR STAR PASS — 2026-08-25
+/* NEXA V44.8.3 — CANONICAL ACCOUNTS / CONSTELLATION / PROFILE COORDINATION — 2026-08-25
    COMPLETE REPLACEMENT for nexa-v44-8-profile-stability.js
    Fixes:
    - MAIN / ALT labels across Constellation, Passport and Player Intelligence Profile
@@ -13,8 +13,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V4482_CONSOLIDATED__) return;
-window.__NEXA_V4482_CONSOLIDATED__=true;
+if(window.__NEXA_V4483_CONSOLIDATED__) return;
+window.__NEXA_V4483_CONSOLIDATED__=true;
 window.NEXA_CANONICAL_ACCOUNTS=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
@@ -32,40 +32,17 @@ const ACCOUNT_COLORS=['#ff50d8','#58d8ff','#9c6dff','#5ce2b7','#ffae55'];
 
 function cleanMojibake(){
   const roots=[$('#accounts-modal'),$('#nexa-account-constellation'),$('#nexa-profile-modal')].filter(Boolean);
-
-  const pairs=[
-    ['\u00c3\u00a2\u00c2\u009c\u00c2\u00a6','✦'],
-    ['\u00e2\u009c\u00a6','✦'],
-    ['\u00c3\u00a2\u00c2\u0098\u00c2\u0085','★'],
-    ['\u00e2\u0098\u0085','★'],
-    ['\u00c3\u0097','×'],
-    ['\u00c3\u0097','×'],
-    ['\u00c3\u00a2\u00c2\u0080\u00c2\u0094','—'],
-    ['\u00e2\u0080\u0094','—'],
-    ['\u00c3\u00a2\u00c2\u0080\u00c2\u00a2','•'],
-    ['\u00e2\u0080\u00a2','•'],
-    ['\u00c3\u00a2\u00c2\u0086\u00c2\u0092','→'],
-    ['\u00e2\u0086\u0092','→'],
-    ['\u00c3\u00a2\u00c2\u009c\u00c2\u0093','✓'],
-    ['\u00e2\u009c\u0093','✓'],
-    ['\u00c2','']
-  ];
-
-  const fix=t=>{
-    let v=String(t||'');
-    pairs.forEach(([bad,good])=>{v=v.split(bad).join(good)});
-    return v;
-  };
-
+  const fix=t=>String(t||'')
+    .replace(/Ã¢ÂÂ¦|â¦/g,'✦').replace(/Ã¢ÂÂ|â/g,'★')
+    .replace(/Ã|Ã—/g,'×').replace(/Ã¢ÂÂ|â/g,'—')
+    .replace(/Ã¢ÂÂ¢|â¢/g,'•').replace(/Ã¢ÂÂ|â/g,'→')
+    .replace(/Ã¢ÂÂ|â/g,'✓').replace(/Â/g,'');
   roots.forEach(root=>{
     const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
-    let n;
-    while((n=walker.nextNode())){
-      const v=fix(n.nodeValue);
-      if(v!==n.nodeValue)n.nodeValue=v;
-    }
+    let n;while((n=walker.nextNode())){const v=fix(n.nodeValue);if(v!==n.nodeValue)n.nodeValue=v}
   });
 }
+
 function installCSS(){
   if($('#nexa-v4481-css'))return;
   const st=document.createElement('style');
@@ -173,6 +150,72 @@ async function resolveDisplayedAccount(){
     if(q.data)window.NEXA_ACTIVE_ACCOUNT_ID=String(q.data.id);
     return q.data||null;
   }catch{return null}
+}
+
+
+async function refreshAccountManager(){
+  const c=sb(), modal=$('#accounts-modal');if(!c||!modal)return;
+  try{
+    const {data:{user}}=await c.auth.getUser();if(!user)return;
+    const q=await c.from('player_accounts')
+      .select('id,in_game_name,player_id,alliance_id,custom_alliance_tag,is_main,state_number,alliances(tag)')
+      .eq('user_id',user.id).order('is_main',{ascending:false}).order('created_at');
+    if(q.error)throw q.error;
+    const rows=q.data||[];
+    const count=$('#account-count');if(count)count.textContent=`${rows.length}/5`;
+    const list=$('#accounts-list');
+    if(list)list.innerHTML=rows.map(a=>{
+      const tag=a.alliances?.tag||a.custom_alliance_tag||'Not Listed';
+      return `<article class="claimed-account">
+        <div><b>${esc(a.in_game_name||'Account')}</b><small>${a.is_main?'★ MAIN ACCOUNT':'✦ ALT ACCOUNT'} • State ${esc(a.state_number||'—')} • ${esc(tag)} • ID ${esc(a.player_id||'')}</small></div>
+        <div class="account-actions"><button type="button" data-v4483-edit="${esc(a.id)}">Edit</button><button type="button" data-v4483-delete="${esc(a.id)}">Delete</button></div>
+      </article>`;
+    }).join('');
+    accountCache=rows;renderCanonicalConstellation(rows);
+  }catch(e){console.warn('[NEXA V44.8.3] account manager',e?.message||e)}
+}
+function installAccountManagerUI(){
+  const form=$('#account-form');if(!form)return;
+  const old=$('#account-purpose')?.closest('label');
+  if(old&&!$('#account-state')){
+    const label=document.createElement('label');
+    label.innerHTML='State<input id="account-state" required inputmode="numeric" pattern="[0-9]*" placeholder="Enter state"><small>State/server for this Game Account.</small>';
+    old.replaceWith(label);
+  }
+  const lang=$('#language-select');
+  if(lang){
+    const names={auto:'Auto (device)',en:'English',es:'Español',tr:'Türkçe',ko:'한국어',ar:'العربية',pt:'Português',ru:'Русский',uk:'Українська',fr:'Français',it:'Italiano',zh:'简体中文',ja:'日本語'};
+    [...lang.options].forEach(o=>{if(names[o.value])o.textContent=names[o.value]});
+  }
+  const ll=$('#language-label');if(ll)ll.textContent='LANGUAGE';
+}
+async function saveManagedAccount(e){
+  const form=e.target;if(form?.id!=='account-form')return false;
+  e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+  const c=sb();if(!c)return true;
+  try{
+    const {data:{user}}=await c.auth.getUser();if(!user)throw new Error('Sign in to NEXA first.');
+    const editId=String($('#edit-account-id')?.value||'');
+    const state=Number(String($('#account-state')?.value||'').replace(/\D/g,''));
+    if(!state)throw new Error('Enter the account state.');
+    const alliance=$('#alliance'),custom=$('#custom-alliance'),notListed=alliance?.value==='not-listed';
+    const payload={
+      in_game_name:String($('#ign')?.value||'').trim(),
+      alliance_id:notListed?null:Number(alliance?.value),
+      custom_alliance_tag:notListed?String(custom?.value||'').trim():null,
+      account_purpose:'full',
+      state_number:state
+    };
+    let r;
+    if(editId)r=await c.from('player_accounts').update(payload).eq('id',editId).eq('user_id',user.id);
+    else r=await c.from('player_accounts').insert({...payload,user_id:user.id,player_id:String($('#player-id')?.value||'').trim(),is_main:false});
+    if(r.error)throw r.error;
+    if($('#edit-account-id'))$('#edit-account-id').value='';
+    if($('#ign'))$('#ign').value='';if($('#player-id')){$('#player-id').value='';$('#player-id').disabled=false}
+    if($('#account-state'))$('#account-state').value='';
+    await refreshAccountManager();await repairAccountLabels();
+  }catch(err){const m=$('#accounts-message');if(m)m.textContent=err?.message||String(err)}
+  return true;
 }
 
 function canonicalAccountText(el,isMain){
@@ -419,9 +462,11 @@ async function syncPendingState(){
 
 function apply(){
   installCSS();
+  installAccountManagerUI();
   installAuthAdjustments();
   cleanMojibake();
   repairAccountLabels();
+  if($('#accounts-modal')?.classList.contains('open'))refreshAccountManager();
   deployment();
   experts();
   chiefGearStars();
@@ -434,6 +479,23 @@ function schedule(){
 
 /* Canonical account selection: native index still opens Passport/Profile.
    This layer only establishes account identity before that native click runs. */
+
+window.addEventListener('click',e=>{
+  const launcher=e.target.closest?.('#nexa-profile-launcher');
+  if(launcher){
+    e.preventDefault();e.stopPropagation();
+    loadAccounts().then(rows=>{renderCanonicalConstellation(rows);const c=$('#nexa-account-constellation');c?.classList.add('open');c?.setAttribute('aria-hidden','false')});
+    return;
+  }
+  const close=e.target.closest?.('[data-close-nexa-profile]');
+  if(close){
+    e.preventDefault();e.stopPropagation();
+    const p=$('#nexa-profile-modal');p?.classList.remove('open');p?.setAttribute('aria-hidden','true');
+    loadAccounts().then(rows=>{renderCanonicalConstellation(rows);const c=$('#nexa-account-constellation');c?.classList.add('open');c?.setAttribute('aria-hidden','false')});
+    return;
+  }
+},true);
+
 document.addEventListener('pointerdown',e=>{
   const card=e.target.closest?.('#nexa-account-constellation [data-nexa-profile]');
   if(card?.dataset.nexaProfile){
@@ -444,7 +506,7 @@ document.addEventListener('pointerdown',e=>{
   }
 },true);
 
-document.addEventListener('submit',capturePendingState,true);
+window.addEventListener('submit',e=>{if(e.target?.id==='account-form'){saveManagedAccount(e);return}capturePendingState(e)},true);
 
 document.addEventListener('click',e=>{
   const closeProfile=e.target.closest?.('[data-close-nexa-profile]');

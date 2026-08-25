@@ -1,4 +1,4 @@
-/* NEXA V44.8.4 — NEXA FLEET / DRONE / ONBOARDING / CANONICAL ACCOUNTS — 2026-08-25
+/* NEXA V44.8.5 — ACCESSIBILITY / DRONE COMPANION / ACCOUNT SAFETY — 2026-08-25
    COMPLETE REPLACEMENT for nexa-v44-8-profile-stability.js
    Fixes:
    - MAIN / ALT labels across Constellation, Passport and Player Intelligence Profile
@@ -13,8 +13,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V4484_CONSOLIDATED__) return;
-window.__NEXA_V4484_CONSOLIDATED__=true;
+if(window.__NEXA_V4485_CONSOLIDATED__) return;
+window.__NEXA_V4485_CONSOLIDATED__=true;
 window.NEXA_CANONICAL_ACCOUNTS=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
@@ -38,6 +38,7 @@ let profileCameFromConstellation=false;
 let activeFleetState=null;
 let onboardingChecked=false;
 let typewriterRAF=0;
+let motionMode=null;
 
 const ACCOUNT_COLORS=['#ff50d8','#58d8ff','#9c6dff','#5ce2b7','#ffae55'];
 
@@ -217,13 +218,45 @@ function installCSS(){
   .v448-expert-info span{font-size:9px;line-height:1.4;color:#9daac8}
   .v448-expert-current{color:#ffd96b!important;font-weight:900!important}
 
+  /* V44.8.5 — accessibility + companion drone + brighter Home accents */
+  .nexa-v4485-motion-card{width:min(520px,100%);display:grid;gap:16px;text-align:center}
+  .nexa-v4485-motion-card h2{margin:0;font-size:24px;letter-spacing:.06em}
+  .nexa-v4485-motion-card>p{margin:0;color:#aebbd9;font-size:13px;line-height:1.55}
+  .nexa-v4485-motion-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .nexa-v4485-motion-choice{border:1px solid rgba(103,197,255,.38);border-radius:16px;padding:14px 11px;background:linear-gradient(145deg,rgba(18,31,67,.95),rgba(12,10,38,.96));color:#fff;font-weight:900;box-shadow:0 0 18px rgba(79,103,255,.10)}
+  .nexa-v4485-motion-choice small{display:block;margin-top:5px;color:#92a3c8;font-weight:650;line-height:1.35}
+  .nexa-v4485-motion-choice.full{border-color:rgba(221,87,255,.48);box-shadow:0 0 22px rgba(208,70,255,.13)}
+  .nexa-v4485-motion-note{font-size:10px!important;color:#7587ae!important}
+
+  .nexa-v4485-companion{position:fixed;z-index:99970;right:12px;bottom:max(16px,calc(env(safe-area-inset-bottom) + 12px));width:74px;height:74px;border:0;background:transparent;padding:0;display:grid;place-items:center;filter:drop-shadow(0 0 12px rgba(95,200,255,.28));animation:nexaCompanionTrick 120s linear infinite}
+  .nexa-v4485-companion .nexa-v4484-drone{transform:scale(.72);transform-origin:center}
+  .nexa-v4485-companion-bubble{position:fixed;z-index:99969;right:82px;bottom:max(26px,calc(env(safe-area-inset-bottom) + 22px));width:min(260px,calc(100vw - 110px));border:1px solid rgba(96,205,255,.42);border-radius:15px;padding:11px 12px;background:rgba(7,17,43,.96);box-shadow:0 0 25px rgba(77,104,255,.18);color:#eaf5ff;font-size:11px;line-height:1.45;display:none}
+  .nexa-v4485-companion-bubble.open{display:block}
+  @keyframes nexaCompanionTrick{0%,92%,100%{transform:rotate(0deg) translateY(0)}93%{transform:rotate(0deg) translateY(-7px)}94.5%{transform:rotate(360deg) translateY(-7px)}96%{transform:rotate(360deg) translateY(0)}}
+
+  /* Keep the existing Home layout; only strengthen its sci-fi glow. */
+  #home-svs-section .event,#home-transfers-section .event,#home-announcements-module .event,#home-event-operations-module .event{
+    box-shadow:0 0 0 1px rgba(107,129,255,.09),0 0 22px rgba(82,93,255,.08)!important
+  }
+  #nexa-profile-launcher{filter:drop-shadow(0 0 9px rgba(92,205,255,.24)) drop-shadow(0 0 16px rgba(176,69,255,.15))}
+
+  html.nexa-reduced-motion .nexa-v4484-drone,
+  html.nexa-reduced-motion .nexa-v4484-drone.intro,
+  html.nexa-reduced-motion .nexa-v4485-companion,
+  html.nexa-reduced-motion .nexa-v4484-worm,
+  html.nexa-reduced-motion .nexa-v4484-streaks{animation:none!important;transform:none!important}
+  html.nexa-reduced-motion .nexa-v4484-worm{filter:none!important;background:radial-gradient(circle,transparent 0 30%,rgba(90,210,255,.55) 31% 35%,rgba(103,73,255,.40) 36% 43%,transparent 44%)!important}
+  html.nexa-reduced-motion .nexa-v4484-streaks{display:none!important}
+  html.nexa-reduced-motion .nexa-star,html.nexa-reduced-motion .nexa-comet{animation:none!important}
+  @media(max-width:520px){.nexa-v4485-motion-actions{grid-template-columns:1fr}.nexa-v4485-companion{right:7px;bottom:max(10px,calc(env(safe-area-inset-bottom) + 8px))}}
+
   /* Chief Gear stars: inside planet, left side, vertical */
   .v448-gear-stars{
-    position:absolute;z-index:8;left:5px;bottom:9px;
+    position:absolute;z-index:8;left:8px;bottom:15px;
     display:flex;flex-direction:column-reverse;gap:1px;pointer-events:none
   }
   .v448-gear-stars span{
-    font-size:8px;line-height:8px;color:#ffd84f;
+    font-size:10px;line-height:10px;color:#ffd84f;
     text-shadow:0 0 4px rgba(255,214,72,.95),0 0 8px rgba(255,184,35,.48)
   }
   `;
@@ -291,6 +324,11 @@ async function refreshAccountManager(){
 }
 function installAccountManagerUI(){
   const form=$('#account-form');if(!form)return;
+  const game=$('#player-id',form);
+  if(game){game.inputMode='numeric';game.pattern='[0-9]{6,12}';game.minLength=6;game.maxLength=12;game.placeholder='Game ID (numbers only)';game.oninput=()=>{game.value=game.value.replace(/\D/g,'').slice(0,12)}}
+  const alliance=$('#alliance',form);
+  if(alliance){alliance.required=false;const label=alliance.closest('label');if(label&&label.firstChild?.nodeType===3)label.firstChild.nodeValue='Alliance (Optional)';}
+  const custom=$('#custom-alliance',form);if(custom)custom.required=false;
   const old=$('#account-purpose')?.closest('label');
   if(old&&!$('#account-state')){
     const label=document.createElement('label');
@@ -313,17 +351,24 @@ async function saveManagedAccount(e){
     const editId=String($('#edit-account-id')?.value||'');
     const state=Number(String($('#account-state')?.value||'').replace(/\D/g,''));
     if(!state)throw new Error('Enter the account state.');
-    const alliance=$('#alliance'),custom=$('#custom-alliance'),notListed=alliance?.value==='not-listed';
+    const gameId=String($('#player-id')?.value||'').replace(/\D/g,'');
+    if(!editId&&!/^[0-9]{6,12}$/.test(gameId))throw new Error('Game ID must contain 6–12 numbers only.');
+    const alliance=$('#alliance'),custom=$('#custom-alliance'),notListed=alliance?.value==='not-listed',allianceValue=String(alliance?.value||'');
     const payload={
       in_game_name:String($('#ign')?.value||'').trim(),
-      alliance_id:notListed?null:Number(alliance?.value),
-      custom_alliance_tag:notListed?String(custom?.value||'').trim():null,
+      alliance_id:(!allianceValue||notListed)?null:Number(allianceValue),
+      custom_alliance_tag:notListed?String(custom?.value||'').trim()||null:null,
       account_purpose:'full',
       state_number:state
     };
     let r;
     if(editId)r=await c.from('player_accounts').update(payload).eq('id',editId).eq('user_id',user.id);
-    else r=await c.from('player_accounts').insert({...payload,user_id:user.id,player_id:String($('#player-id')?.value||'').trim(),is_main:false});
+    else{
+      const existing=await c.from('player_accounts').select('id').eq('user_id',user.id).eq('player_id',gameId).eq('state_number',state).limit(1);
+      if(existing.data?.length)throw new Error('That Game ID is already added for this State.');
+      if(!confirm(`Verify Your Game Account\n\nGame ID: ${gameId}\nState: ${state}\n\nIs this information correct?`))return true;
+      r=await c.from('player_accounts').insert({...payload,user_id:user.id,player_id:gameId,is_main:false});
+    }
     if(r.error)throw r.error;
     if($('#edit-account-id'))$('#edit-account-id').value='';
     if($('#ign'))$('#ign').value='';if($('#player-id')){$('#player-id').value='';$('#player-id').disabled=false}
@@ -668,11 +713,77 @@ async function openSelectedProfile(id){
     $('#nexa-profile-editor')?.classList.remove('open');$('#nexa-deploy-panel')?.classList.remove('open');
     $('#nexa-account-constellation')?.classList.remove('open');$('#nexa-account-constellation')?.setAttribute('aria-hidden','true');
     const p=$('#nexa-profile-modal');p?.classList.add('open');p?.setAttribute('aria-hidden','false');
-    profileCameFromConstellation=true;
+    profileCameFromConstellation=true;ensureCompanionDrones();
     window.dispatchEvent(new CustomEvent('nexa:account-changed',{detail:{accountId:String(a.id),stateNumber:Number(a.state_number||0)}}));
     window.dispatchEvent(new CustomEvent('nexa:profile-open',{detail:{accountId:String(a.id)}}));
     schedule();
   }catch(err){alert(err?.message||String(err))}
+}
+
+function devicePrefersReducedMotion(){
+  try{return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches===true}catch{return false}
+}
+function applyMotionMode(mode){
+  motionMode=mode==='reduced'?'reduced':'full';
+  document.documentElement.classList.toggle('nexa-reduced-motion',motionMode==='reduced');
+}
+async function loadMotionMode(){
+  const c=sb();
+  try{
+    const {data:{user}}=await c.auth.getUser();
+    const saved=String(user?.user_metadata?.nexa_motion_mode||'');
+    if(saved==='full'||saved==='reduced'){applyMotionMode(saved);return saved}
+  }catch{}
+  const fallback=devicePrefersReducedMotion()?'reduced':'full';applyMotionMode(fallback);return null;
+}
+async function saveMotionMode(mode){
+  applyMotionMode(mode);
+  const c=sb();
+  try{if(c)await c.auth.updateUser({data:{nexa_motion_mode:motionMode}})}catch{}
+}
+function showMotionChoice(after){
+  if($('#nexa-v4485-motion'))return;
+  const ov=document.createElement('section');ov.id='nexa-v4485-motion';ov.setAttribute('style','position:fixed;inset:0;z-index:2147483647;color:#fff;background:radial-gradient(circle at 18% 18%,rgba(112,58,255,.28),transparent 30%),radial-gradient(circle at 80% 72%,rgba(23,143,255,.22),transparent 34%),linear-gradient(155deg,#030516,#070a24 55%,#02040f);overflow:auto');
+  const recommended=devicePrefersReducedMotion();
+  ov.innerHTML=`<div class="nexa-v4484-stars"></div><div class="nexa-v4484-shell"><div class="nexa-v4484-onboard-main"><div class="nexa-v4485-motion-card">
+    <div style="display:grid;place-items:center">${droneMarkup('intro')}</div>
+    <div><small style="color:#67dfff;font-weight:950;letter-spacing:.13em">ACCESSIBILITY</small><h2>MOTION & VISUAL EFFECTS</h2></div>
+    <p>NEXA uses animated transitions, glowing effects, flashes, and space-motion visuals. If you are sensitive to motion or flashing effects, you can reduce them.</p>
+    <div class="nexa-v4485-motion-actions">
+      <button type="button" class="nexa-v4485-motion-choice full" data-motion="full">KEEP FULL EFFECTS<small>Full glow, flashes, wormholes and animated transitions.</small></button>
+      <button type="button" class="nexa-v4485-motion-choice" data-motion="reduced">REDUCE MOTION & EFFECTS<small>Softer transitions with fewer flashes and less movement.${recommended?' Recommended by your device settings.':''}</small></button>
+    </div>
+    <p class="nexa-v4485-motion-note">You can change this preference later in Settings.</p>
+  </div></div></div>`;
+  document.body.appendChild(ov);document.body.style.overflow='hidden';
+  ov.addEventListener('click',async e=>{
+    const btn=e.target.closest?.('[data-motion]');if(!btn)return;
+    $$('.nexa-v4485-motion-choice',ov).forEach(x=>x.disabled=true);
+    await saveMotionMode(btn.dataset.motion);ov.remove();after?.();
+  });
+}
+
+function ensureCompanionDrones(){
+  const authOpen=!!$('#nexa-auth-gate:not(.hidden)');
+  const firstRun=!!$('#nexa-v4485-motion,#nexa-v4484-onboarding,#nexa-v4484-fleet,#nexa-v4484-wormhole');
+  const profileOpen=$('#nexa-profile-modal')?.classList.contains('open');
+  let home=$('#nexa-v4485-home-drone');
+  if(!home){
+    home=document.createElement('button');home.id='nexa-v4485-home-drone';home.className='nexa-v4485-companion';home.type='button';home.setAttribute('aria-label','NEXA Drone help');home.innerHTML=droneMarkup();
+    const bubble=document.createElement('div');bubble.id='nexa-v4485-home-bubble';bubble.className='nexa-v4485-companion-bubble';bubble.textContent='Hi! I’m your NEXA Drone. Tap My Profile to open your NEXA Fleet, or tap me anytime for quick help.';
+    document.body.append(home,bubble);home.onclick=()=>bubble.classList.toggle('open');
+  }
+  home.style.display=(!authOpen&&!firstRun&&!profileOpen&&location.pathname.match(/(?:\/|index\.html)$/))?'grid':'none';
+  if(home.style.display==='none')$('#nexa-v4485-home-bubble')?.classList.remove('open');
+
+  let pd=$('#nexa-v4485-profile-drone');
+  if(!pd){
+    pd=document.createElement('button');pd.id='nexa-v4485-profile-drone';pd.className='nexa-v4485-companion';pd.type='button';pd.setAttribute('aria-label','NEXA Drone profile help');pd.innerHTML=droneMarkup();
+    const bubble=document.createElement('div');bubble.id='nexa-v4485-profile-bubble';bubble.className='nexa-v4485-companion-bubble';bubble.textContent='Need help with your Profile? Your Heroes, Experts, Pets, Chief Gear, Charms and account stats all stay attached to this Game Account.';
+    document.body.append(pd,bubble);pd.onclick=()=>bubble.classList.toggle('open');
+  }
+  pd.style.display=profileOpen?'grid':'none';
+  if(!profileOpen)$('#nexa-v4485-profile-bubble')?.classList.remove('open');
 }
 
 const ONBOARDING=[
@@ -718,13 +829,19 @@ function showOnboarding(){
 
 async function maybeShowOnboarding(){
   if(onboardingChecked)return;onboardingChecked=true;
-  const c=sb();if(!c)return;
+  const c=sb();if(!c){onboardingChecked=false;return}
   try{
     const {data:{user}}=await c.auth.getUser();
     if(!user){onboardingChecked=false;return}
     const done=Number(user.user_metadata?.nexa_onboarding_version||0)>=1;
-    if(!done&&!$('#nexa-auth-gate:not(.hidden)'))showOnboarding();
-  }catch{}
+    const saved=String(user.user_metadata?.nexa_motion_mode||'');
+    if(done){applyMotionMode(saved==='reduced'?'reduced':(saved==='full'?'full':(devicePrefersReducedMotion()?'reduced':'full')));return}
+    if($('#nexa-auth-gate:not(.hidden)')){onboardingChecked=false;return}
+    if(saved==='full'||saved==='reduced'){
+      applyMotionMode(saved);showOnboarding();return;
+    }
+    showMotionChoice(()=>showOnboarding());
+  }catch{onboardingChecked=false}
 }
 
 async function openCompleteBugReporter(){
@@ -878,9 +995,11 @@ function apply(){
   chiefGearStars();
   syncPendingState();
   ensureFleetReturnButton();
+  loadMotionMode();
+  ensureCompanionDrones();
   maybeShowOnboarding();
 }
-window.NEXADrone={openFleet,showOnboarding,openAccount:openSelectedProfile};
+window.NEXADrone={openFleet,showOnboarding,showMotionChoice,openAccount:openSelectedProfile};
 
 function schedule(){
   requestAnimationFrame(apply);

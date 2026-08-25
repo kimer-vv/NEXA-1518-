@@ -32,17 +32,40 @@ const ACCOUNT_COLORS=['#ff50d8','#58d8ff','#9c6dff','#5ce2b7','#ffae55'];
 
 function cleanMojibake(){
   const roots=[$('#accounts-modal'),$('#nexa-account-constellation'),$('#nexa-profile-modal')].filter(Boolean);
-  const fix=t=>String(t||'')
-    .replace(/Ã¢ÂÂ¦|â¦/g,'✦').replace(/Ã¢ÂÂ|â/g,'★')
-    .replace(/Ã|Ã—/g,'×').replace(/Ã¢ÂÂ|â/g,'—')
-    .replace(/Ã¢ÂÂ¢|â¢/g,'•').replace(/Ã¢ÂÂ|â/g,'→')
-    .replace(/Ã¢ÂÂ|â/g,'✓').replace(/Â/g,'');
+
+  const pairs=[
+    ['\u00c3\u00a2\u00c2\u009c\u00c2\u00a6','✦'],
+    ['\u00e2\u009c\u00a6','✦'],
+    ['\u00c3\u00a2\u00c2\u0098\u00c2\u0085','★'],
+    ['\u00e2\u0098\u0085','★'],
+    ['\u00c3\u0097','×'],
+    ['\u00c3\u0097','×'],
+    ['\u00c3\u00a2\u00c2\u0080\u00c2\u0094','—'],
+    ['\u00e2\u0080\u0094','—'],
+    ['\u00c3\u00a2\u00c2\u0080\u00c2\u00a2','•'],
+    ['\u00e2\u0080\u00a2','•'],
+    ['\u00c3\u00a2\u00c2\u0086\u00c2\u0092','→'],
+    ['\u00e2\u0086\u0092','→'],
+    ['\u00c3\u00a2\u00c2\u009c\u00c2\u0093','✓'],
+    ['\u00e2\u009c\u0093','✓'],
+    ['\u00c2','']
+  ];
+
+  const fix=t=>{
+    let v=String(t||'');
+    pairs.forEach(([bad,good])=>{v=v.split(bad).join(good)});
+    return v;
+  };
+
   roots.forEach(root=>{
     const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
-    let n;while((n=walker.nextNode())){const v=fix(n.nodeValue);if(v!==n.nodeValue)n.nodeValue=v}
+    let n;
+    while((n=walker.nextNode())){
+      const v=fix(n.nodeValue);
+      if(v!==n.nodeValue)n.nodeValue=v;
+    }
   });
 }
-
 function installCSS(){
   if($('#nexa-v4481-css'))return;
   const st=document.createElement('style');

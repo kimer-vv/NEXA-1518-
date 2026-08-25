@@ -1,4 +1,4 @@
-/* NEXA V44.4 — STABLE PROFILE + STELLAR OWNER — 2026-08-24
+/* NEXA V44.5 — PROFILE POLISH + HUMAN STELLAR SIGNAL — 2026-08-24
    CLEAN REPLACEMENT. Not cumulative.
    Owns only:
    - Home menu outside-tap close
@@ -14,8 +14,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V444_STABLE__) return;
-window.__NEXA_V444_STABLE__=true;
+if(window.__NEXA_V445_STABLE__) return;
+window.__NEXA_V445_STABLE__=true;
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
@@ -261,6 +261,26 @@ function injectCSS(){
   .v444-signature-copy b{display:block!important;color:#fff!important;font-size:14px!important;line-height:1.1!important}
   .v444-signature-copy span{display:block!important;margin-top:4px!important;color:#eef0f7!important;font-size:11px!important;line-height:1.25!important}
 
+
+  /* V44.5 — account badges + native hero signature polish */
+  #nexa-profile-type.v445-main{
+    color:#ffd96b!important;border-color:rgba(255,198,64,.72)!important;
+    background:linear-gradient(135deg,rgba(102,65,4,.48),rgba(40,25,3,.48))!important;
+    box-shadow:0 0 14px rgba(255,191,51,.26)!important;
+  }
+  #nexa-profile-type.v445-alt{
+    color:#86eaff!important;border-color:rgba(77,216,255,.65)!important;
+    background:linear-gradient(135deg,rgba(6,75,104,.46),rgba(6,31,57,.52))!important;
+    box-shadow:0 0 14px rgba(73,215,255,.22)!important;
+  }
+  .v33-special{grid-template-columns:48px minmax(0,1fr)!important;align-items:center!important}
+  .v33-special .v33-special-icon{
+    width:42px!important;height:42px!important;display:grid!important;place-items:center!important;
+    font-size:23px!important;line-height:1!important
+  }
+  .v33-special b{display:block!important;margin:0 0 4px!important}
+  .v33-special small{display:block!important;line-height:1.35!important}
+
   /* Pets */
   .v44-pet{--pet:#70eaff;--petbg:#17384a;padding:12px;border:1px solid color-mix(in srgb,var(--pet) 40%,transparent);border-radius:17px;background:linear-gradient(145deg,color-mix(in srgb,var(--petbg) 42%,#071128),#071020)}
   .v44-pet-head{display:grid;grid-template-columns:52px minmax(0,1fr);gap:10px;align-items:center;width:100%;padding:0;border:0;background:transparent;color:#fff;text-align:left}
@@ -435,21 +455,60 @@ async function refreshCharmGridFromSaved(){
   }finally{v442CharmBusy=false}
 }
 
+async function v445ResolveAccountId(){
+  if(window.NEXA_ACTIVE_ACCOUNT_ID)return String(window.NEXA_ACTIVE_ACCOUNT_ID);
+  const c=sb();if(!c)return null;
+  try{
+    const {data:{user}}=await c.auth.getUser();if(!user)return null;
+    const playerId=String($('#nexa-profile-player-id')?.textContent||'').trim();
+    let q=null;
+    if(playerId&&playerId!=='—'){
+      q=await c.from('player_accounts').select('id').eq('user_id',user.id).eq('player_id',playerId).maybeSingle();
+    }
+    if(!q?.data?.id){
+      q=await c.from('player_accounts').select('id').eq('user_id',user.id).order('is_main',{ascending:false}).order('created_at').limit(1).maybeSingle();
+    }
+    if(q?.data?.id){window.NEXA_ACTIVE_ACCOUNT_ID=String(q.data.id);return String(q.data.id)}
+  }catch{}
+  return null;
+}
+function v445MinistryOverlay(ap){
+  $('#nexa-v445-ministry-overlay')?.remove();
+  const o=document.createElement('div');o.id='nexa-v445-ministry-overlay';
+  o.style.cssText='position:fixed;inset:0;z-index:2147483647;background:rgba(1,3,12,.78);backdrop-filter:blur(8px);display:grid;place-items:center;padding:18px';
+  const when=ap?.appointment_time?new Date(ap.appointment_time).toLocaleString([], {dateStyle:'medium',timeStyle:'short'}):'';
+  o.innerHTML=`<section style="width:min(430px,100%);border:1px solid rgba(255,203,76,.70);border-radius:24px;background:linear-gradient(160deg,#17140c,#070b1d);padding:20px">
+    <div style="color:#ffd45e;font-size:10px;font-weight:950;letter-spacing:.18em">MINISTRY</div>
+    <h3 style="margin:8px 0 12px;color:#fff;font-size:23px">${ap?'Ministry Appointment':'No active Ministry appointment'}</h3>
+    ${ap?`<div style="color:#c8cce0;font-size:13px;line-height:1.55"><b style="color:#fff">${esc(ap.ministry_position||'')}</b><br>${esc(ap.day_type||'')} • ${esc(when)}${ap.notes?`<br><small>${esc(ap.notes)}</small>`:''}</div>`:`<p style="margin:0;color:#aeb6cf;font-size:13px">There is no current Ministry appointment for this account.</p>`}
+    <button type="button" data-v445-close-ministry style="margin-top:18px;border:1px solid rgba(255,203,76,.65);border-radius:999px;background:#17130a;color:#fff;padding:9px 16px;font-weight:900">Close</button>
+  </section>`;
+  o.addEventListener('click',e=>{if(e.target===o||e.target.closest('[data-v445-close-ministry]'))o.remove()});
+  document.body.appendChild(o);
+}
+async function openMinistryFromCalendar(){
+  const c=sb(), accountId=await v445ResolveAccountId();
+  if(!c||!accountId){v445MinistryOverlay(null);return}
+  try{
+    const now=new Date().toISOString();
+    const ev=await c.from('svs_events').select('id,prep_monday,is_live,auto_end_at')
+      .eq('is_live',true).order('prep_monday',{ascending:false}).limit(10);
+    const live=(ev.data||[]).filter(x=>!x.auto_end_at||new Date(x.auto_end_at)>new Date());
+    if(!live.length){v445MinistryOverlay(null);return}
+    const ap=await c.from('ministry_appointments')
+      .select('id,event_id,player_account_id,day_type,ministry_position,appointment_time,notes')
+      .in('event_id',live.map(x=>x.id)).eq('player_account_id',accountId)
+      .gte('appointment_time',now).order('appointment_time',{ascending:true}).limit(1).maybeSingle();
+    v445MinistryOverlay(ap.error?null:(ap.data||null));
+  }catch{v445MinistryOverlay(null)}
+}
 function installMinistry(){
   const old=$('#nexa-v425-ministry');
-  if(old){
-    old.style.setProperty('display','none','important');
-    old.setAttribute('aria-hidden','true');
-    old.tabIndex=-1;
-  }
+  if(old){old.style.setProperty('display','none','important');old.setAttribute('aria-hidden','true');old.tabIndex=-1}
   const actions=$('#nexa-v425-profile-actions');
-  if(actions){
-    Array.from(actions.children).forEach(ch=>{
-      if(!ch.classList.contains('nexa-v425-guide'))ch.style.setProperty('display','none','important');
-    });
-  }
+  if(actions)Array.from(actions.children).forEach(ch=>{if(!ch.classList.contains('nexa-v425-guide'))ch.style.setProperty('display','none','important')});
 
-  const line=$('.nexa-profile-name-line'); if(!line) return;
+  const line=$('.nexa-profile-name-line');if(!line)return;
   let btn=$('#nexa-v44-ministry');
   if(!btn){
     btn=document.createElement('button');btn.id='nexa-v44-ministry';btn.type='button';
@@ -460,76 +519,72 @@ function installMinistry(){
       <path d="M8 13h3M13.5 13h2.5M8 16h3M13.5 16h2.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
     </svg>`;
     line.appendChild(btn);
-    btn.addEventListener('click',()=>{
-      const legacy=$('#nexa-v425-ministry');
-      if(legacy) legacy.click();
-    });
   }
+  btn.onclick=e=>{e.preventDefault();e.stopPropagation();openMinistryFromCalendar()};
 }
 
+async function repairAccountBadge(){
+  const badge=$('#nexa-profile-type');if(!badge)return;
+  const c=sb();if(!c)return;
+  try{
+    const {data:{user}}=await c.auth.getUser();if(!user)return;
+    const playerId=String($('#nexa-profile-player-id')?.textContent||'').trim();
+    let q=null;
+    if(playerId&&playerId!=='—'){
+      q=await c.from('player_accounts').select('id,is_main,account_purpose').eq('user_id',user.id).eq('player_id',playerId).maybeSingle();
+    }
+    if(!q?.data)q=await c.from('player_accounts').select('id,is_main,account_purpose').eq('user_id',user.id).order('is_main',{ascending:false}).order('created_at').limit(1).maybeSingle();
+    const row=q?.data;if(!row)return;
+    badge.classList.remove('v445-main','v445-alt');
+    if(row.is_main){
+      badge.textContent='★ MAIN ACCOUNT';badge.classList.add('v445-main');
+    }else{
+      badge.textContent='✦ ALT ACCOUNT';badge.classList.add('v445-alt');
+    }
+  }catch{}
+}
 function repairProfileIdentity(){
-  const root=$('#nexa-profile-modal'); if(!root) return;
-  const editor=$('#nexa-profile-editor',root);
+  const root=$('#nexa-profile-modal');if(!root)return;
 
-  // Remove every legacy "This is your Main account" message/check only.
+  // Legacy terminology never appears to the player. Backend values are left untouched.
+  $$('option,span,b,strong,small,p,div,label',root).forEach(el=>{
+    if(el.children.length && el.tagName!=='OPTION')return;
+    const txt=String(el.textContent||'').replace(/\s+/g,' ').trim();
+    if(/^(buff\s*points?|buff\s*account|boost\s*points?|boost\s*account)$/i.test(txt))el.textContent='ALT ACCOUNT';
+  });
+
+  // Remove the old overflowing sentence/check from the lower Alliance card.
   $$('*',root).forEach(el=>{
     if(el.children.length)return;
-    const s=String(el.textContent||'').replace(/\s+/g,' ').trim();
-    if(/This is your\s+Main\s+account/i.test(s)){
-      const parent=el.parentElement;
-      el.remove();
-      if(parent){
-        $$('span,i,div',parent).forEach(x=>{
-          if(!x.children.length && /^[✓✔☑]$/.test(String(x.textContent||'').trim()))x.remove();
-        });
-      }
-    }
+    const txt=String(el.textContent||'').replace(/\s+/g,' ').trim();
+    if(/This is your\s+Main\s+account/i.test(txt))el.remove();
   });
 
-  // Restore Alliance Role to only its own label + R1–R5 selector.
+  const editor=$('#nexa-profile-editor',root);if(!editor){repairAccountBadge();return}
+
+  // Alliance Role stays only Alliance Role.
   const role=$('#nexa-edit-role',root);
-  if(role){
-    const label=role.closest('label');
-    if(label){
-      Array.from(label.childNodes).forEach(n=>{
-        if(n.nodeType===Node.ELEMENT_NODE && n!==role && n.classList?.contains('v44-alliance-note'))n.remove();
-      });
-    }
-  }
+  role?.closest('label')?.querySelectorAll('.v44-alliance-note,.v44-main-badge,.nexa-v437-alliance-note,.nexa-v437-main').forEach(x=>x.remove());
 
-  if(!editor)return;
-
-  // Find the separate lower Alliance selector/card — never the Alliance Role selector.
-  const candidates=$$('select',editor).filter(s=>s.id!=='nexa-edit-role' && s.id!=='nexa-edit-furnace');
-  let allianceSel=candidates.find(s=>{
-    const box=s.closest('label,section,article,div');
-    const txt=String(box?.textContent||'').replace(/\s+/g,' ').trim();
-    return /^Alliance\b/i.test(txt) || /\bAlliance\b/i.test(txt);
+  // Separate Alliance selector becomes Change Alliance.
+  const allianceSel=$$('select',editor).find(s=>{
+    if(['nexa-edit-role','nexa-edit-furnace'].includes(s.id))return false;
+    const txt=String(s.closest('label,section,article,div')?.textContent||'').replace(/\s+/g,' ').trim();
+    return /\bAlliance\b/i.test(txt);
   });
-
   if(allianceSel){
-    let box=allianceSel.closest('label,section,article,div')||allianceSel.parentElement;
-    // climb only until we reach a compact card, never the entire editor
-    for(let i=0;i<3 && box?.parentElement && box.parentElement!==editor;i++){
-      const txt=String(box.textContent||'').replace(/\s+/g,' ').trim();
-      if(/\bAlliance\b/i.test(txt) && box.querySelector('select'))break;
-      box=box.parentElement;
-    }
-
+    const box=allianceSel.closest('label,section,article,div')||allianceSel.parentElement;
+    const label=[...box.childNodes].find(n=>n.nodeType===Node.TEXT_NODE && /^\s*Alliance\s*$/i.test(n.textContent||''));
+    if(label)label.textContent='Change Alliance';
+    const head=$$('b,strong,h3,h4,span,label',box).find(x=>x!==box && /^Alliance$/i.test(String(x.textContent||'').trim()));
+    if(head)head.textContent='Change Alliance';
     $$('.v44-alliance-note,.v44-main-badge,.nexa-v437-alliance-note,.nexa-v437-main',box).forEach(x=>x.remove());
-
-    // Rename the lower heading/label from Alliance -> Change Alliance.
-    const heading=$$('label,b,strong,h3,h4,span,div',box).find(el=>{
-      if(el===box || el.querySelector?.('select'))return false;
-      return /^Alliance$/i.test(String(el.textContent||'').trim());
-    });
-    if(heading)heading.textContent='Change Alliance';
-
-    const note=document.createElement('div');
-    note.className='v44-alliance-note';
-    note.innerHTML='<small>Select the alliance, then Save Profile.</small>';
-    allianceSel.before(note);
+    if(!box.querySelector('.v445-alliance-note')){
+      const note=document.createElement('small');note.className='v445-alliance-note';note.textContent='Select the alliance, then Save Profile.';
+      allianceSel.before(note);
+    }
   }
+  repairAccountBadge();
 }
 
 async function ownerAccess(){
@@ -576,36 +631,19 @@ function closeMenuOutside(e){
 }
 
 function repairHeroSignature(){
-  const root=$('#nexa-v33-detail');
-  if(!root?.classList.contains('open'))return;
+  const root=$('#nexa-v33-detail');if(!root?.classList.contains('open'))return;
   const hero=norm($('.v33-title h3',root)?.textContent||'');
-  const cfg=hero==='natalia'
-    ? {needle:'Ursus Strength',icon:'🐻‍❄️',title:'Ursus Strength',a:'Attack',b:'Defense'}
-    : hero==='jeronimo'
-      ? {needle:'Natural Leader',icon:'⚔️',title:'Natural Leader',a:'Lethality',b:'Health'}
-      : null;
-  if(!cfg)return;
-
-  const leaf=$$('*',root).find(el=>{
-    if(el.children.length)return false;
-    return String(el.textContent||'').includes(cfg.needle);
-  });
-  if(!leaf)return;
-
-  let card=leaf;
-  for(let i=0;i<4 && card?.parentElement;i++){
-    const txt=String(card.textContent||'').replace(/\s+/g,' ');
-    if(txt.includes(cfg.needle) && txt.includes(cfg.a) && txt.includes(cfg.b))break;
-    card=card.parentElement;
+  const special=$('.v33-special',root);if(!special)return;
+  const icon=$('.v33-special-icon',special),title=$('b',special),stats=$('small',special);
+  if(hero==='natalia'){
+    if(icon)icon.textContent='🐻‍❄️';
+    if(title)title.textContent='Ursus Strength';
+    if(stats)stats.innerHTML=String(stats.textContent||'').replace(/Attack\s*/i,'Attack ').replace(/Defense\s*/i,'Defense ');
+  }else if(hero==='jeronimo'){
+    if(icon)icon.textContent='⚔️';
+    if(title)title.textContent='Natural Leader';
+    if(stats)stats.innerHTML=String(stats.textContent||'').replace(/Lethality\s*/i,'Lethality ').replace(/Health\s*/i,'Health ');
   }
-  if(!card)return;
-
-  const raw=String(card.textContent||'').replace(/\s+/g,' ');
-  const ma=raw.match(new RegExp(cfg.a+'\\s*\\+?(-?[\\d.]+)%','i'));
-  const mb=raw.match(new RegExp(cfg.b+'\\s*\\+?(-?[\\d.]+)%','i'));
-  const av=ma?ma[1]:'0', bv=mb?mb[1]:'0';
-  card.classList.add('v444-signature');
-  card.innerHTML=`<span class="v444-signature-icon">${cfg.icon}</span><span class="v444-signature-copy"><b>${cfg.title}</b><span>${cfg.a} +${av}% • ${cfg.b} +${bv}%</span></span>`;
 }
 
 function repairCharmPaths(){
@@ -634,37 +672,49 @@ function repairCharmPaths(){
 }
 
 const V444_SIGNAL_GENERAL=[
- 'Small course corrections can change the path of an entire orbit.',
- 'Consistency is quiet power. Keep moving.',
- 'Strong states are built before the battle begins.',
- 'One clean decision today can simplify tomorrow.',
- 'Preparation turns pressure into options.',
- 'The map changes. Good coordination travels with you.',
- 'Save resources, read the field, move with purpose.',
- 'A calm team sees openings that chaos misses.',
- 'Every orbit has a window. Be ready when yours opens.',
- 'Good timing is a force multiplier.',
- 'Progress is easier to defend when it is organized.',
- 'Build the account you want to bring into the next fight.'
+ '“Optimism is the faith that leads to achievement.” — Helen Keller',
+ '“The future belongs to those who believe in the beauty of their dreams.” — Eleanor Roosevelt',
+ '“It is never too late to be what you might have been.” — George Eliot',
+ '“Wherever you go, go with all your heart.” — Confucius',
+ '“Act as if what you do makes a difference. It does.” — William James',
+ '“Nothing great was ever achieved without enthusiasm.” — Ralph Waldo Emerson',
+ 'A hard day is still only one day. Tomorrow gets a fresh page. ✨',
+ 'You are allowed to be proud of small progress. Small still moves you forward. 🌙',
+ 'Some days are for winning. Some days are for learning. Both count.',
+ 'You do not have to have everything figured out tonight. ⭐',
+ 'Rest, reset, and try again. A new orbit begins tomorrow.',
+ 'Be gentle with yourself. You are still becoming. 💫',
+ 'One bad moment does not get to write the whole story.',
+ 'Keep the people who make the game—and life—feel lighter. 🤍',
+ 'A little courage today can make tomorrow feel completely different.'
 ];
 const V444_SIGNAL_SVS=[
- 'SVS signal: save what matters now so the state can spend it where it counts.',
- 'SVS signal: preparation is part of the battle.',
- 'SVS signal: coordinate first, score second, waste nothing.',
- 'SVS signal: one disciplined state can outplay a stronger one.',
- 'SVS signal: read the schedule before you spend.'
+ 'Stay calm, communicate clearly, and trust the work you did before the moment arrived.',
+ 'Preparation gives confidence somewhere to stand. ✨',
+ 'Good teamwork is less about being perfect and more about moving together.',
+ 'A setback is information, not the ending. Adjust, regroup, and keep going.',
+ 'Timing matters, but so does patience. The best move does not always need to be the fastest one.'
 ];
 const V444_SIGNAL_TRANSFER=[
- 'Transfer signal: choose the environment where the game stays fun.',
- 'Transfer signal: a good move is about fit, not only power.',
- 'Transfer signal: plan the destination before you burn the ticket.',
- 'Transfer signal: strong communities are a resource too.'
+ 'Choose the place where you can grow and still enjoy being there. ✨',
+ 'A fresh start does not erase your story—it gives it another chapter.',
+ 'The right community can make the same game feel completely different.',
+ 'Moving forward sometimes looks like choosing peace over familiarity.',
+ 'New places can be scary and exciting at the same time. Both feelings are allowed.'
+];
+const V444_SIGNAL_EVENT=[
+ 'Play smart, stay kind, and remember that one result never defines the team.',
+ 'Strategy works best when everyone understands the plan and trusts each other.',
+ 'If today did not go your way, learn what it taught you and come back lighter tomorrow.',
+ 'Strong teams recover together. ✨',
+ 'Do your part, communicate, and leave room to enjoy the moment too.'
 ];
 let v444SignalTimer=null,v444SignalDay='';
 
 async function v444SignalContext(){
+  const visible=String(document.querySelector('main.shell')?.innerText||'');
+  if(/\b(SBS|FDT|Frost Dragon|TAL)\b/i.test(visible))return 'event';
   const c=sb();if(!c)return 'general';
-  const now=new Date().toISOString();
   try{
     const [s,t]=await Promise.all([
       c.from('svs_events').select('id,is_live,status,auto_end_at').eq('is_live',true).order('prep_monday',{ascending:false}).limit(1),
@@ -683,7 +733,7 @@ async function refreshStellarSignal(force=false){
   const day=Math.floor(Date.now()/86400000);
   if(!force && v444SignalDay===String(day))return;
   const context=await v444SignalContext();
-  const bank=context==='svs'?V444_SIGNAL_SVS:context==='transfer'?V444_SIGNAL_TRANSFER:V444_SIGNAL_GENERAL;
+  const bank=context==='svs'?V444_SIGNAL_SVS:context==='transfer'?V444_SIGNAL_TRANSFER:context==='event'?V444_SIGNAL_EVENT:V444_SIGNAL_GENERAL;
   p.textContent=bank[day%bank.length];
   box.dataset.signalContext=context;
   box.dataset.signalDay=String(day);
@@ -695,6 +745,20 @@ async function refreshStellarSignal(force=false){
 }
 
 
+function showV445ProfileGuide(){
+  $('#nexa-v445-profile-guide')?.remove();
+  const d=document.createElement('div');d.id='nexa-v445-profile-guide';
+  d.style.cssText='position:fixed;inset:0;z-index:2147483647;background:rgba(5,4,16,.78);backdrop-filter:blur(7px);display:grid;place-items:center;padding:16px';
+  d.innerHTML=`<section style="width:min(520px,100%);border:1px solid #ff4fd8;border-radius:22px;padding:20px;background:#080d25;color:#fff;box-shadow:0 25px 70px rgba(0,0,0,.58)">
+    <div style="font-size:10px;letter-spacing:.16em;color:#ff4fd8;font-weight:950">GUIDE</div>
+    <h2 style="margin:6px 0 10px;font-size:28px">My Profile</h2>
+    <p style="margin:0;color:#c4c7db;line-height:1.55;font-size:14px">Your Profile stores progress for the selected account. Browse Heroes, Experts, Troops, Pets, Chief Gear and Charms; open an item, choose its levels or options, then tap <b>Save</b>. <b>Reset</b> clears only that item. Use the gold calendar beside your account name to view your current Ministry Appointment.</p>
+    <button type="button" data-v445-close-guide style="margin-top:16px;padding:10px 18px;border-radius:999px;border:1px solid #ff4fd8;background:#11152f;color:#fff;font-weight:900">Close</button>
+  </section>`;
+  d.addEventListener('click',e=>{if(e.target===d||e.target.closest('[data-v445-close-guide]'))d.remove()});
+  document.body.appendChild(d);
+}
+
 function apply(){
   injectCSS();
   installMinistry();
@@ -704,6 +768,7 @@ function apply(){
   repairCharms();
   repairCharmPaths();
   repairProfileIdentity();
+  repairAccountBadge();
   refreshStellarSignal();
   ownerAccess();
 }
@@ -714,6 +779,9 @@ function schedule(){
 
 document.addEventListener('pointerdown',closeMenuOutside,true);
 document.addEventListener('click',e=>{
+  if(e.target.closest?.('.nexa-v425-guide')){
+    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();showV445ProfileGuide();return;
+  }
   if(e.target.closest?.('[data-v33-widget],[data-v33-item],[data-v33-cat],[data-v33-gen],[data-v33-reset],#nexa-profile-edit-btn,#admin-roles,#admin-permissions,[data-v33-save]')) schedule();
   if(e.target.closest?.('[data-v33-cat],[data-v33-gen],[data-v33-save],[data-v33-reset]')){
     [80,180,360,700,1200,2000].forEach(ms=>setTimeout(()=>{repairCharmPaths();repairPet();repairWidget();repairHeroSignature();},ms));

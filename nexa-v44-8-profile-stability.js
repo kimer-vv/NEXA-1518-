@@ -1,4 +1,4 @@
-/* NEXA V44.8.3 — CANONICAL ACCOUNTS / CONSTELLATION / PROFILE COORDINATION — 2026-08-25
+/* NEXA V44.8.3 — CANONICAL ACCOUNTS / CONSTELLATION / FULL BUG REPORTER — 2026-08-25
    COMPLETE REPLACEMENT for nexa-v44-8-profile-stability.js
    Fixes:
    - MAIN / ALT labels across Constellation, Passport and Player Intelligence Profile
@@ -22,7 +22,15 @@ const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,Number(n)||0));
 const norm=s=>String(s||'').trim().toLowerCase().replace(/[’']/g,"'").replace(/\s+/g,' ');
-const sb=()=>window.supabaseClient?.from?window.supabaseClient:(window.sb?.from?window.sb:null);
+const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
+const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
+let localSb=null;
+const sb=()=>{
+  if(window.supabaseClient?.from)return window.supabaseClient;
+  if(window.sb?.from)return window.sb;
+  if(!localSb&&window.supabase?.createClient)localSb=window.supabase.createClient(SB_URL,SB_KEY);
+  return localSb;
+};
 
 let deployBusy=false, expertBusy=false, gearBusy=false, labelBusy=false;
 let accountCache=[];
@@ -32,14 +40,28 @@ const ACCOUNT_COLORS=['#ff50d8','#58d8ff','#9c6dff','#5ce2b7','#ffae55'];
 
 function cleanMojibake(){
   const roots=[$('#accounts-modal'),$('#nexa-account-constellation'),$('#nexa-profile-modal')].filter(Boolean);
-  const fix=t=>String(t||'')
-    .replace(/Ã¢ÂÂ¦|â¦/g,'✦').replace(/Ã¢ÂÂ|â/g,'★')
-    .replace(/Ã|Ã—/g,'×').replace(/Ã¢ÂÂ|â/g,'—')
-    .replace(/Ã¢ÂÂ¢|â¢/g,'•').replace(/Ã¢ÂÂ|â/g,'→')
-    .replace(/Ã¢ÂÂ|â/g,'✓').replace(/Â/g,'');
+  const pairs=[
+    ['\u00e2\u009c\u00a6','\u2726'],
+    ['\u00e2\u0098\u0085','\u2605'],
+    ['\u00c3\u0097','\u00d7'],
+    ['\u00e2\u0080\u0094','\u2014'],
+    ['\u00e2\u0080\u00a2','\u2022'],
+    ['\u00e2\u0086\u0092','\u2192'],
+    ['\u00e2\u009c\u0093','\u2713'],
+    ['\u00c2','']
+  ];
+  const fix=t=>{
+    let v=String(t||'');
+    for(const [bad,good] of pairs)v=v.split(bad).join(good);
+    return v;
+  };
   roots.forEach(root=>{
     const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
-    let n;while((n=walker.nextNode())){const v=fix(n.nodeValue);if(v!==n.nodeValue)n.nodeValue=v}
+    let n;
+    while((n=walker.nextNode())){
+      const v=fix(n.nodeValue);
+      if(v!==n.nodeValue)n.nodeValue=v;
+    }
   });
 }
 
@@ -92,6 +114,21 @@ function installCSS(){
   #nexa-account-constellation .nexa-account-planet-type{
     color:var(--acct)!important;text-shadow:0 0 8px color-mix(in srgb,var(--acct) 70%,transparent)!important
   }
+
+
+  .nexa-v4483-bug-overlay{position:fixed;inset:0;z-index:2147483647;display:grid;place-items:center;padding:16px;background:rgba(0,2,13,.82);backdrop-filter:blur(9px)}
+  .nexa-v4483-bug-card{width:min(560px,100%);max-height:88dvh;overflow:auto;box-sizing:border-box;border:1px solid rgba(83,190,255,.43);border-radius:22px;padding:18px;background:radial-gradient(circle at 12% 0%,rgba(83,116,255,.15),transparent 34%),linear-gradient(155deg,#0d1535,#040817);box-shadow:0 25px 70px rgba(0,0,0,.62),0 0 28px rgba(64,126,255,.13);color:#fff}
+  .nexa-v4483-bug-card h3{margin:0 42px 8px 0}
+  .nexa-v4483-bug-card p{color:#aeb9d4;line-height:1.45;font-size:.86rem}
+  .nexa-v4483-bug-card label{display:grid;gap:6px;margin-top:11px;color:#dfe8ff;font-size:.78rem;font-weight:850}
+  .nexa-v4483-bug-card input,.nexa-v4483-bug-card textarea{width:100%;box-sizing:border-box;padding:11px;border-radius:11px;border:1px solid #2b3c6f;background:#081126;color:#fff;font:inherit}
+  .nexa-v4483-bug-shot{border:1px dashed rgba(91,202,255,.38)!important;background:rgba(9,24,47,.72)!important}
+  .nexa-v4483-bug-actions{display:flex;gap:9px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px}
+  .nexa-v4483-bug-actions button{border:1px solid rgba(104,127,225,.4);border-radius:11px;padding:10px 13px;background:#121a39;color:#fff;font-weight:850}
+  .nexa-v4483-bug-actions .send{background:linear-gradient(135deg,#704aff,#219cff);border:0}
+  .nexa-v4483-bug-close{float:right;width:32px;height:32px;border-radius:50%!important;border:1px solid rgba(255,112,170,.4)!important;background:#210a23!important;color:#ff9ac2!important;font-weight:900}
+  .nexa-v4483-bug-status{min-height:18px;margin-top:10px;color:#8fdfff;font-size:.78rem;line-height:1.4}
+  .nexa-v4483-bug-files{margin-top:5px;color:#8fa0c8;font-size:.72rem;line-height:1.4}
 
   #nexa-profile-type.v448-main{color:#ffd96b!important;border-color:rgba(255,198,64,.72)!important}
   #nexa-profile-type.v448-alt{color:#86eaff!important;border-color:rgba(77,216,255,.65)!important}
@@ -409,6 +446,101 @@ async function chiefGearStars(){
   finally{gearBusy=false}
 }
 
+
+async function openCompleteBugReporter(){
+  const c=sb();
+  if(!c)return alert('NEXA is still connecting.');
+  document.querySelector('.nexa-v4483-bug-overlay')?.remove();
+
+  const ov=document.createElement('div');
+  ov.className='nexa-v4483-bug-overlay';
+  ov.innerHTML=`<form class="nexa-v4483-bug-card" id="nexa-v4483-bug-form">
+    <button type="button" class="nexa-v4483-bug-close" aria-label="Close">×</button>
+    <h3>Report a Bug</h3>
+    <p>Tell us what happened. You can attach screenshots or images from iPhone, Android, tablet, Mac or PC. NEXA also sends the page, device and viewport with the report.</p>
+    <label>Module
+      <input id="nexa-v4483-bug-module" placeholder="Example: Profile → Pets">
+    </label>
+    <label>What Happened?
+      <textarea id="nexa-v4483-bug-desc" required rows="5" placeholder="Tell us what you tapped and what went wrong."></textarea>
+    </label>
+    <label>Screenshot(s) / Images
+      <input class="nexa-v4483-bug-shot" id="nexa-v4483-bug-shots" type="file" accept="image/*,.heic,.heif" multiple>
+      <span class="nexa-v4483-bug-files" id="nexa-v4483-bug-files">Optional · up to 5 images.</span>
+    </label>
+    <div class="nexa-v4483-bug-actions">
+      <button type="button" data-bug-cancel>Cancel</button>
+      <button class="send" type="submit">Send</button>
+    </div>
+    <div class="nexa-v4483-bug-status" id="nexa-v4483-bug-status"></div>
+  </form>`;
+  document.body.appendChild(ov);
+
+  const form=$('#nexa-v4483-bug-form',ov);
+  const shots=$('#nexa-v4483-bug-shots',ov);
+  const filesText=$('#nexa-v4483-bug-files',ov);
+  const status=$('#nexa-v4483-bug-status',ov);
+
+  function close(){ov.remove()}
+  $('.nexa-v4483-bug-close',ov)?.addEventListener('click',close);
+  $('[data-bug-cancel]',ov)?.addEventListener('click',close);
+  ov.addEventListener('click',e=>{if(e.target===ov)close()});
+
+  shots?.addEventListener('change',()=>{
+    const files=Array.from(shots.files||[]).slice(0,5);
+    filesText.textContent=files.length
+      ? `${files.length} image${files.length===1?'':'s'} selected: ${files.map(f=>f.name).join(', ')}`
+      : 'Optional · up to 5 images.';
+  });
+
+  form?.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const desc=String($('#nexa-v4483-bug-desc',ov)?.value||'').trim();
+    if(!desc){status.textContent='Tell us what happened first.';return}
+    status.textContent='Preparing report…';
+    try{
+      const {data:{session}}=await c.auth.getSession();
+      if(!session)throw new Error('Please sign in first.');
+
+      const paths=[];
+      const files=Array.from(shots?.files||[]).slice(0,5);
+      const tempId=crypto.randomUUID?.()||String(Date.now());
+
+      for(const f of files){
+        if(!String(f.type||'').startsWith('image/') && !/\.(heic|heif)$/i.test(f.name||'')){
+          throw new Error(`${f.name} is not an image.`);
+        }
+        if(f.size>12*1024*1024)throw new Error(`${f.name} is larger than 12 MB.`);
+        const safe=String(f.name||'image').replace(/[^a-zA-Z0-9._-]+/g,'_');
+        const path=`${session.user.id}/${tempId}/${Date.now()}-${safe}`;
+        const up=await c.storage.from('nexa-bug-reports').upload(path,f,{upsert:false,contentType:f.type||undefined});
+        if(up.error)throw up.error;
+        paths.push(path);
+      }
+
+      const build=$$('body *').find(x=>x.children.length===0&&/^NEXA BUILD\b/i.test(String(x.textContent||'').trim()))?.textContent?.trim()||'';
+      const args={
+        p_module:String($('#nexa-v4483-bug-module',ov)?.value||'').trim()||'General',
+        p_description:desc,
+        p_expected_behavior:null,
+        p_actual_behavior:desc,
+        p_page_path:location.pathname+location.search,
+        p_build_label:build,
+        p_user_agent:navigator.userAgent,
+        p_viewport:`${Math.round(innerWidth)}x${Math.round(window.visualViewport?.height||innerHeight)} @${devicePixelRatio||1}x`,
+        p_client_errors:[],
+        p_screenshot_paths:paths
+      };
+      const res=await c.rpc('nexa_submit_bug_report',args);
+      if(res.error)throw res.error;
+      status.textContent=`Sent ✓ Report ${String(res.data||'').slice(0,8)} is now available to the Owner.`;
+      setTimeout(close,1300);
+    }catch(err){
+      status.textContent=`Could not send: ${err?.message||err}`;
+    }
+  });
+}
+
 function installAuthAdjustments(){
   const gate=$('#nexa-auth-gate');if(!gate)return;
   const brand=$('.nexa-auth-brand p',gate);
@@ -421,13 +553,7 @@ function installAuthAdjustments(){
   if(!report){
     report=document.createElement('button');report.id='nexa-v4481-report-bugs';report.type='button';
     report.innerHTML='🐞';report.setAttribute('aria-label','Report Bugs');report.title='Report Bugs';
-    report.onclick=()=>{
-      const native=$('.nexa-v27-menu-bug')||$$('button,a').find(x=>/^report a bug$/i.test(String(x.textContent||'').trim()));
-      if(native){native.click();return}
-      const menuReport=$('#nexa-v412-report-bugs');
-      if(menuReport){menuReport.click();return}
-      alert('Bug reporting is available after NEXA finishes loading.');
-    };
+    report.onclick=()=>openCompleteBugReporter();
     document.body.appendChild(report);
   }
 

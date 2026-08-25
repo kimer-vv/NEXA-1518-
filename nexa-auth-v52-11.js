@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-// NEXA V52.13 — ACCOUNT SAFETY / OPTIONAL ALLIANCE — 2026-08-25
+// NEXA V52.14 — CINEMATIC RETURN LOGIN / ACCOUNT SAFETY — 2026-08-25
 
 const SUPABASE_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const SUPABASE_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
@@ -56,7 +56,24 @@ async function api(path,body={},token=''){const r=await fetch(path,{method:'POST
 async function status(session){if(!session?.access_token)return{allowed:false};try{return await api('/api/nexa-auth-status',{},session.access_token)}catch{return{allowed:false}}}
 async function reconcile(){const {data:{session}}=await sb.auth.getSession();if(!session){show('login');document.documentElement.classList.remove('nexa-auth-boot');return}const st=await status(session);if(st.allowed){hide();document.documentElement.classList.remove('nexa-auth-boot');return}await sb.auth.signOut();show('login');document.documentElement.classList.remove('nexa-auth-boot')}
 function verifyGameAccount(gameId,state){return new Promise(resolve=>{document.querySelector('.nexa-verify-overlay')?.remove();const ov=document.createElement('div');ov.className='nexa-verify-overlay';ov.innerHTML=`<div class="nexa-verify-card"><h3>Verify Your Game Account</h3><p>Please confirm that this Game ID and State are correct. NEXA will use them to identify your Game Account.</p><div class="nexa-verify-values"><span>Game ID: <b>${gameId}</b></span><span>State: <b>${state}</b></span></div><p>Make sure you entered your own Game ID.</p><div class="nexa-verify-actions"><button type="button" data-edit>EDIT</button><button type="button" class="yes" data-yes>YES, THIS IS CORRECT</button></div></div>`;document.body.appendChild(ov);ov.querySelector('[data-edit]').onclick=()=>{ov.remove();resolve(false)};ov.querySelector('[data-yes]').onclick=()=>{ov.remove();resolve(true)}})}
-async function login(e){e.preventDefault();msg('Signing in…');try{const gameId=$('nexa-login-game-id').value.trim();if(!validGameId(gameId))throw new Error('Game ID must contain 6–12 numbers only.');const stateNumber=Number(String($('nexa-login-state').value||'').replace(/\D/g,''));if(!stateNumber)throw new Error('Enter your state.');const data=await api('/api/nexa-auth-login',{game_id:gameId,state_number:stateNumber,password:$('nexa-login-password').value});const {error}=await sb.auth.setSession({access_token:data.session.access_token,refresh_token:data.session.refresh_token});if(error)throw error;msg('Welcome back.','good');await reconcile();location.reload()}catch(e){msg(e.message,'error')}}
+
+async function login(e){
+  e.preventDefault();msg('Signing in…');
+  try{
+    const gameId=$('nexa-login-game-id').value.trim();
+    if(!validGameId(gameId))throw new Error('Game ID must contain 6–12 numbers only.');
+    const stateNumber=Number(String($('nexa-login-state').value||'').replace(/\D/g,''));
+    if(!stateNumber)throw new Error('Enter your state.');
+    const data=await api('/api/nexa-auth-login',{game_id:gameId,state_number:stateNumber,password:$('nexa-login-password').value});
+    const {error}=await sb.auth.setSession({access_token:data.session.access_token,refresh_token:data.session.refresh_token});
+    if(error)throw error;
+    msg('Welcome back.','good');
+    await reconcile();
+    sessionStorage.setItem('nexa_show_returning_welcome','1');
+    location.reload();
+  }catch(e){msg(e.message,'error')}
+}
+
 async function create(e){e.preventDefault();msg('');const gameId=$('nexa-create-game-id').value.trim(),ign=$('nexa-create-name').value.trim(),p1=$('nexa-create-password').value,p2=$('nexa-create-password2').value,stateNumber=Number(String($('nexa-create-state').value||'').replace(/\D/g,''));if(!validGameId(gameId))return msg('Game ID must contain 6–12 numbers only.','error');if(!stateNumber)return msg('Enter your state.','error');if(decorativeName(ign))return msg('Decorative characters are not supported. Please use standard letters for your In-Game Name.','error');if(p1!==p2)return msg('Passwords do not match.','error');if(p1.length<8)return msg('NEXA Password must be at least 8 characters.','error');if(!(await verifyGameAccount(gameId,stateNumber)))return;msg('Creating account…');try{const data=await api('/api/nexa-auth-create',{game_id:gameId,in_game_name:ign,state_number:stateNumber,alliance_id:null,custom_alliance_tag:null,password:p1});const {error}=await sb.auth.setSession({access_token:data.session.access_token,refresh_token:data.session.refresh_token});if(error)throw error;await reconcile();location.reload()}catch(e){msg(e.message,'error')}}
 async function init(){styles();markup();sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);document.querySelectorAll('[data-auth-tab]').forEach(btn=>btn.addEventListener('click',()=>show(btn.dataset.authTab)));$('nexa-login-form').addEventListener('submit',login);$('nexa-create-form').addEventListener('submit',create);$('nexa-owner-lock').addEventListener('click',()=>{location.href='/owner-access.html'});$('nexa-forgot').addEventListener('click',()=>msg('Forgot your password? Ask your R5 or an authorized NEXA administrator for help.',''));['nexa-login-game-id','nexa-create-game-id'].forEach(id=>$(id)?.addEventListener('input',e=>digitsOnly(e.target,12)));['nexa-login-state','nexa-create-state'].forEach(id=>$(id)?.addEventListener('input',e=>digitsOnly(e.target,6)));window.NEXAAuth={show,reconcile};await reconcile();sb.auth.onAuthStateChange(()=>setTimeout(reconcile,0))}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();

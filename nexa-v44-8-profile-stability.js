@@ -1,4 +1,4 @@
-/* NEXA V44.8.1 — CONSOLIDATED PROFILE / CONSTELLATION / MULTISERVER PASS — 2026-08-25
+/* NEXA V44.8.2 — ACCOUNT ISOLATION / CONSTELLATION / CHIEF GEAR STAR PASS — 2026-08-25
    COMPLETE REPLACEMENT for nexa-v44-8-profile-stability.js
    Fixes:
    - MAIN / ALT labels across Constellation, Passport and Player Intelligence Profile
@@ -13,8 +13,9 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V4481_CONSOLIDATED__) return;
-window.__NEXA_V4481_CONSOLIDATED__=true;
+if(window.__NEXA_V4482_CONSOLIDATED__) return;
+window.__NEXA_V4482_CONSOLIDATED__=true;
+window.NEXA_CANONICAL_ACCOUNTS=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -25,8 +26,22 @@ const sb=()=>window.supabaseClient?.from?window.supabaseClient:(window.sb?.from?
 
 let deployBusy=false, expertBusy=false, gearBusy=false, labelBusy=false;
 let accountCache=[];
+let profileCameFromConstellation=false;
 
 const ACCOUNT_COLORS=['#ff50d8','#58d8ff','#9c6dff','#5ce2b7','#ffae55'];
+
+function cleanMojibake(){
+  const roots=[$('#accounts-modal'),$('#nexa-account-constellation'),$('#nexa-profile-modal')].filter(Boolean);
+  const fix=t=>String(t||'')
+    .replace(/Ã¢ÂÂ¦|â¦/g,'✦').replace(/Ã¢ÂÂ|â/g,'★')
+    .replace(/Ã|Ã—/g,'×').replace(/Ã¢ÂÂ|â/g,'—')
+    .replace(/Ã¢ÂÂ¢|â¢/g,'•').replace(/Ã¢ÂÂ|â/g,'→')
+    .replace(/Ã¢ÂÂ|â/g,'✓').replace(/Â/g,'');
+  roots.forEach(root=>{
+    const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+    let n;while((n=walker.nextNode())){const v=fix(n.nodeValue);if(v!==n.nodeValue)n.nodeValue=v}
+  });
+}
 
 function installCSS(){
   if($('#nexa-v4481-css'))return;
@@ -37,12 +52,12 @@ function installCSS(){
   body:has(#nexa-auth-gate:not(.hidden)) #nexa-home-menu-toggle,
   body:has(#nexa-auth-gate:not(.hidden)) #nexa-home-menu{display:none!important}
   #nexa-v4481-report-bugs{
-    position:fixed;z-index:1000002;left:22px;top:max(18px,calc(env(safe-area-inset-top) + 8px));
-    display:none;align-items:center;gap:8px;border:1px solid rgba(255,79,191,.55);border-radius:999px;
-    background:rgba(28,8,42,.82);color:#ff83d2;padding:10px 14px;font-size:11px;font-weight:950;
-    letter-spacing:.08em;box-shadow:0 0 18px rgba(255,71,190,.18);backdrop-filter:blur(12px)
+    position:fixed;z-index:1000002;left:14px;top:max(12px,calc(env(safe-area-inset-top) + 5px));
+    width:34px;height:34px;padding:0;display:none;place-items:center;border:1px solid rgba(255,79,191,.48);border-radius:50%;
+    background:rgba(28,8,42,.78);color:#ff8bd6;font-size:16px;font-weight:950;
+    box-shadow:0 0 14px rgba(255,71,190,.14);backdrop-filter:blur(10px)
   }
-  body:has(#nexa-auth-gate:not(.hidden)) #nexa-v4481-report-bugs{display:inline-flex}
+  body:has(#nexa-auth-gate:not(.hidden)) #nexa-v4481-report-bugs{display:grid}
   #nexa-auth-gate .nexa-auth-brand p{max-width:360px;margin-left:auto!important;margin-right:auto!important}
 
   /* Stable canonical Constellation atmosphere */
@@ -89,15 +104,12 @@ function installCSS(){
 
   /* Chief Gear stars: inside planet, left side, vertical */
   .v448-gear-stars{
-    position:absolute;z-index:8;left:5px;top:50%;transform:translateY(-50%);
-    display:flex;flex-direction:column;gap:1px;pointer-events:none
+    position:absolute;z-index:8;left:5px;bottom:9px;
+    display:flex;flex-direction:column-reverse;gap:1px;pointer-events:none
   }
   .v448-gear-stars span{
-    font-size:10px;line-height:10px;color:rgba(255,232,132,.22);
-    text-shadow:0 0 5px rgba(255,205,67,.08)
-  }
-  .v448-gear-stars span.on{
-    color:#ffd84f;text-shadow:0 0 5px rgba(255,214,72,.95),0 0 10px rgba(255,184,35,.52)
+    font-size:8px;line-height:8px;color:#ffd84f;
+    text-shadow:0 0 4px rgba(255,214,72,.95),0 0 8px rgba(255,184,35,.48)
   }
   `;
   document.head.appendChild(st);
@@ -108,7 +120,7 @@ async function loadAccounts(){
   try{
     const {data:{user}}=await c.auth.getUser();if(!user)return [];
     const q=await c.from('player_accounts')
-      .select('id,in_game_name,player_id,is_main,account_purpose,state_number')
+      .select('id,in_game_name,player_id,is_main,account_purpose,state_number,deployment_capacity,profile_photo_url')
       .eq('user_id',user.id).order('is_main',{ascending:false}).order('created_at');
     accountCache=q.data||[];
     return accountCache;
@@ -119,19 +131,23 @@ async function resolveDisplayedAccount(){
   const c=sb();if(!c)return null;
   try{
     const {data:{user}}=await c.auth.getUser();if(!user)return null;
-    const pid=String($('#nexa-profile-player-id')?.textContent||'').trim();
-    if(pid&&pid!=='—'){
-      const q=await c.from('player_accounts')
-        .select('id,in_game_name,player_id,is_main,account_purpose,state_number')
-        .eq('user_id',user.id).eq('player_id',pid).maybeSingle();
-      if(q.data){window.NEXA_ACTIVE_ACCOUNT_ID=String(q.data.id);return q.data}
-    }
+    const fields='id,in_game_name,player_id,is_main,account_purpose,state_number,deployment_capacity,profile_photo_url';
+
     const active=String(window.NEXA_ACTIVE_ACCOUNT_ID||'');
     if(active){
-      const q=await c.from('player_accounts').select('id,in_game_name,player_id,is_main,account_purpose,state_number').eq('user_id',user.id).eq('id',active).maybeSingle();
+      const q=await c.from('player_accounts').select(fields).eq('user_id',user.id).eq('id',active).maybeSingle();
       if(q.data)return q.data;
     }
-    const q=await c.from('player_accounts').select('id,in_game_name,player_id,is_main,account_purpose,state_number').eq('user_id',user.id).order('is_main',{ascending:false}).order('created_at').limit(1).maybeSingle();
+
+    const pid=String($('#nexa-profile-player-id')?.textContent||'').trim();
+    if(pid&&pid!=='—'){
+      const q=await c.from('player_accounts').select(fields).eq('user_id',user.id).eq('player_id',pid).maybeSingle();
+      if(q.data){window.NEXA_ACTIVE_ACCOUNT_ID=String(q.data.id);return q.data}
+    }
+
+    const q=await c.from('player_accounts').select(fields).eq('user_id',user.id)
+      .order('is_main',{ascending:false}).order('created_at').limit(1).maybeSingle();
+    if(q.data)window.NEXA_ACTIVE_ACCOUNT_ID=String(q.data.id);
     return q.data||null;
   }catch{return null}
 }
@@ -141,11 +157,55 @@ function canonicalAccountText(el,isMain){
   el.textContent=isMain?'★ MAIN ACCOUNT':'✦ ALT ACCOUNT';
 }
 
+function accountColor(id){
+  const str=String(id||'');
+  let h=0;for(let i=0;i<str.length;i++)h=(h*31+str.charCodeAt(i))>>>0;
+  return ACCOUNT_COLORS[h%ACCOUNT_COLORS.length];
+}
+function accountAvatar(a){
+  return a?.profile_photo_url||
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(a?.in_game_name||'NEXA')}&background=111a38&color=cabaff&bold=true&size=256`;
+}
+function renderCanonicalConstellation(rows){
+  const system=$('#nexa-constellation-system');if(!system)return;
+  const list=Array.isArray(rows)?rows:[];
+  const main=list.find(a=>a.is_main)||list[0]||null;
+  const others=main?list.filter(a=>String(a.id)!==String(main.id)):list;
+  const pos=[[50,14],[82,33],[84,67],[50,86],[16,67],[18,33]];
+  let out='<span class="nexa-constellation-orbit one"></span><span class="nexa-constellation-orbit two"></span>';
+
+  if(main){
+    out+=`<button type="button" class="nexa-account-planet main" data-nexa-profile="${esc(main.id)}" style="--acct:${accountColor(main.id)}">
+      <img src="${esc(accountAvatar(main))}" alt="">
+      <span class="nexa-account-planet-name">${esc(main.in_game_name||'WOS Account')}</span>
+      <span class="nexa-account-planet-type">★ MAIN ACCOUNT</span>
+    </button>`;
+  }
+  others.forEach((a,i)=>{
+    const p=pos[i%pos.length];
+    out+=`<button type="button" class="nexa-account-planet alt" data-nexa-profile="${esc(a.id)}" style="left:${p[0]}%;top:${p[1]}%;--acct:${accountColor(a.id)}">
+      <img src="${esc(accountAvatar(a))}" alt="">
+      <span class="nexa-account-planet-name">${esc(a.in_game_name||'Account')}</span>
+      <span class="nexa-account-planet-type">✦ ALT ACCOUNT</span>
+    </button>`;
+  });
+  if(list.length<5){
+    const p=pos[Math.max(0,list.length-1)%pos.length];
+    out+=`<button type="button" id="nexa-constellation-add" class="nexa-account-planet alt nexa-add-planet" style="left:${p[0]}%;top:${p[1]}%">
+      <span class="nexa-add-planet-symbol">+</span><span class="nexa-account-planet-name">ADD ACCOUNT</span>
+    </button>`;
+  }
+  system.innerHTML=out;
+  const heading=$('#nexa-account-constellation .nexa-constellation-heading span');
+  if(heading)heading.textContent='Choose the account you want to open.';
+}
+
 async function repairAccountLabels(){
   if(labelBusy)return;labelBusy=true;
   try{
     const rows=await loadAccounts();
     const byId=new Map(rows.map(x=>[String(x.id),x]));
+    renderCanonicalConstellation(rows);
 
     // Constellation: source of truth by data-nexa-profile.
     $$('#nexa-account-constellation [data-nexa-profile]').forEach((card,i)=>{
@@ -188,14 +248,18 @@ async function deployment(){
   if(deployBusy)return;
   const panel=$('#nexa-deploy-panel');if(!panel)return;
   const parse=v=>Number(String(v||'').replace(/[^\d]/g,'')||0);
-  const base=parse($('#nexa-edit-deployment')?.value)||parse($('#nexa-profile-deployment')?.textContent);
-  if(!base)return;
   const set=(id,v)=>{const el=$('#'+id);if(el)el.textContent=typeof v==='number'?Math.round(v).toLocaleString():String(v)};
-  set('dep-base',base);set('dep-10',base*1.10);set('dep-20',base*1.20);
 
   deployBusy=true;
   try{
     const c=sb(),account=await resolveDisplayedAccount();if(!c||!account?.id)return;
+    const base=Number(account.deployment_capacity||0)||
+      parse($('#nexa-edit-deployment')?.value)||
+      parse($('#nexa-profile-deployment')?.textContent);
+    if(!base)return;
+
+    set('dep-base',base);set('dep-10',base*1.10);set('dep-20',base*1.20);
+
     let pet=await c.from('nexa_library_items').select('id,name').eq('item_type','pet').eq('name','Snow Ape').maybeSingle();
     if(!pet.data?.id)pet=await c.from('nexa_library_items').select('id,name').eq('item_type','pet').ilike('name','%Snow%Ape%').limit(1).maybeSingle();
     if(!pet.data?.id){set('dep-pet','Snow Ape not found');set('dep-pet10','—');set('dep-pet20','—');return}
@@ -204,8 +268,7 @@ async function deployment(){
       .eq('player_account_id',account.id).eq('library_item_id',pet.data.id).maybeSingle();
     const p=inv.data?.progress||{};
     const lv=clamp(Number(p.pet_skill??p.skill_level??0),0,10);
-    const vals=[0,1500,3000,4500,6000,7500,9000,10500,12000,13500,15000];
-    const plus=vals[lv]||0;
+    const plus=lv*1500;
 
     if(!plus){
       set('dep-pet','Set Snow Ape skill first');
@@ -213,11 +276,11 @@ async function deployment(){
       set('dep-pet20','Set Snow Ape skill first');
       return;
     }
-    // Flat Snow Ape capacity stacks with the percentage deployment buff calculated from Base.
-    set('dep-pet',base+plus);
-    set('dep-pet10',base+plus+(base*.10));
-    set('dep-pet20',base+plus+(base*.20));
-  }catch(e){console.warn('[NEXA V44.8.1] deployment',e)}
+    const withPet=base+plus;
+    set('dep-pet',withPet);
+    set('dep-pet10',withPet*1.10);
+    set('dep-pet20',withPet*1.20);
+  }catch(e){console.warn('[NEXA V44.8.2] deployment',e)}
   finally{deployBusy=false}
 }
 
@@ -270,11 +333,13 @@ async function chiefGearStars(){
       const p=map.get(String(card.dataset.v33Item))||{};
       const stars=clamp(Number(p.gear_stars||0),0,3);
       const planet=$('.v33-planet',card);if(!planet)return;
-      let host=$('.v448-gear-stars',planet);
-      if(!host){host=document.createElement('span');host.className='v448-gear-stars';planet.appendChild(host)}
-      host.innerHTML=[1,2,3].map(n=>`<span class="${n<=stars?'on':''}">★</span>`).join('');
+      $('.v448-gear-stars',planet)?.remove();
+      if(!stars)return;
+      const host=document.createElement('span');host.className='v448-gear-stars';
+      host.innerHTML=Array.from({length:stars},()=>'<span>★</span>').join('');
+      planet.appendChild(host);
     });
-  }catch(e){console.warn('[NEXA V44.8.1] chief gear stars',e)}
+  }catch(e){console.warn('[NEXA V44.8.2] chief gear stars',e)}
   finally{gearBusy=false}
 }
 
@@ -283,16 +348,19 @@ function installAuthAdjustments(){
   const brand=$('.nexa-auth-brand p',gate);
   if(brand)brand.textContent='ONE HUB • MANAGEMENT, EVENTS & COORDINATION';
 
+  const note=$('#nexa-pane-create .nexa-auth-note',gate);
+  if(note)note.innerHTML='<b>Main Account:</b> Your first game account becomes your Main Account. You can add up to 4 Alt Accounts later. Each account keeps its own Profile, Heroes, Experts, Pets, Chief Gear, Charms and Deployment data.';
+
   let report=$('#nexa-v4481-report-bugs');
   if(!report){
     report=document.createElement('button');report.id='nexa-v4481-report-bugs';report.type='button';
-    report.innerHTML='<span>●</span><span>REPORT BUGS</span>';
+    report.innerHTML='🐞';report.setAttribute('aria-label','Report Bugs');report.title='Report Bugs';
     report.onclick=()=>{
-      const candidates=$$('button,a');
-      const native=candidates.find(x=>/report\s*bugs/i.test(String(x.textContent||''))&&x!==report);
+      const native=$('.nexa-v27-menu-bug')||$$('button,a').find(x=>/^report a bug$/i.test(String(x.textContent||'').trim()));
       if(native){native.click();return}
-      if(typeof window.openBugReport==='function'){window.openBugReport();return}
-      location.hash='report-bugs';
+      const menuReport=$('#nexa-v412-report-bugs');
+      if(menuReport){menuReport.click();return}
+      alert('Bug reporting is available after NEXA finishes loading.');
     };
     document.body.appendChild(report);
   }
@@ -329,6 +397,7 @@ async function syncPendingState(){
 function apply(){
   installCSS();
   installAuthAdjustments();
+  cleanMojibake();
   repairAccountLabels();
   deployment();
   experts();
@@ -340,17 +409,33 @@ function schedule(){
   [60,180,420,900,1600].forEach(ms=>setTimeout(apply,ms));
 }
 
-/* Do NOT hijack Constellation clicks. Native code owns Passport navigation. */
+/* Canonical account selection: native index still opens Passport/Profile.
+   This layer only establishes account identity before that native click runs. */
 document.addEventListener('pointerdown',e=>{
   const card=e.target.closest?.('#nexa-account-constellation [data-nexa-profile]');
-  if(card?.dataset.nexaProfile)window.NEXA_ACTIVE_ACCOUNT_ID=String(card.dataset.nexaProfile);
+  if(card?.dataset.nexaProfile){
+    const id=String(card.dataset.nexaProfile);
+    window.NEXA_ACTIVE_ACCOUNT_ID=id;
+    profileCameFromConstellation=true;
+    window.dispatchEvent(new CustomEvent('nexa:account-changed',{detail:{accountId:id}}));
+  }
 },true);
 
 document.addEventListener('submit',capturePendingState,true);
 
 document.addEventListener('click',e=>{
+  const closeProfile=e.target.closest?.('[data-close-nexa-profile]');
+  if(closeProfile&&profileCameFromConstellation){
+    setTimeout(async()=>{
+      const rows=await loadAccounts();
+      renderCanonicalConstellation(rows);
+      const c=$('#nexa-account-constellation');
+      c?.classList.add('open');c?.setAttribute('aria-hidden','false');
+    },0);
+  }
+
   if(e.target.closest?.('#nexa-profile-launcher,[data-nexa-profile],[data-close-nexa-profile],[data-close-constellation],#nexa-deployment-stat,[data-v33-save],[data-v33-item],[data-v33-cat],[data-v33-gen]'))schedule();
-  if(e.target.closest?.('[data-v33-save]'))[100,320,800].forEach(ms=>setTimeout(()=>{deployment();chiefGearStars();},ms));
+  if(e.target.closest?.('[data-v33-save]'))[120,360,850].forEach(ms=>setTimeout(()=>{deployment();chiefGearStars();},ms));
 },true);
 
 document.addEventListener('change',e=>{

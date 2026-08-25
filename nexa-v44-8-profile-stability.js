@@ -1,4 +1,4 @@
-/* NEXA V44.8.5 — ACCESSIBILITY / DRONE COMPANION / ACCOUNT SAFETY — 2026-08-25
+/* NEXA V45.0 — CINEMATIC NEXA / FLEET / CONSTELLATION / DRONE GUIDE — 2026-08-25
    COMPLETE REPLACEMENT for nexa-v44-8-profile-stability.js
    Fixes:
    - MAIN / ALT labels across Constellation, Passport and Player Intelligence Profile
@@ -13,8 +13,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V4485_CONSOLIDATED__) return;
-window.__NEXA_V4485_CONSOLIDATED__=true;
+if(window.__NEXA_V450_CINEMATIC__) return;
+window.__NEXA_V450_CINEMATIC__=true;
 window.NEXA_CANONICAL_ACCOUNTS=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
@@ -250,6 +250,166 @@ function installCSS(){
   html.nexa-reduced-motion .nexa-star,html.nexa-reduced-motion .nexa-comet{animation:none!important}
   @media(max-width:520px){.nexa-v4485-motion-actions{grid-template-columns:1fr}.nexa-v4485-companion{right:7px;bottom:max(10px,calc(env(safe-area-inset-bottom) + 8px))}}
 
+
+  /* ================= NEXA V45.0 CINEMATIC SYSTEM ================= */
+  :root{--nexa-cyan:#55e7ff;--nexa-blue:#397cff;--nexa-violet:#8b4dff;--nexa-magenta:#f34de7;--nexa-ink:#02040f}
+  #nexa-v4484-onboarding,#nexa-v4484-fleet,#nexa-v4484-wormhole,#nexa-v4485-motion{
+    background:
+      radial-gradient(circle at 15% 8%,rgba(103,45,255,.38),transparent 26%),
+      radial-gradient(circle at 86% 22%,rgba(23,119,255,.34),transparent 31%),
+      radial-gradient(circle at 52% 67%,rgba(235,52,255,.18),transparent 33%),
+      linear-gradient(160deg,#02030e 0%,#070826 46%,#02040f 100%)!important
+  }
+  .nexa-v450-nebula{position:absolute;inset:0;pointer-events:none;overflow:hidden;background:
+      radial-gradient(ellipse at 18% 78%,rgba(89,54,255,.24),transparent 38%),
+      radial-gradient(ellipse at 82% 63%,rgba(0,204,255,.14),transparent 34%),
+      radial-gradient(ellipse at 50% 18%,rgba(242,48,255,.12),transparent 31%);
+      filter:saturate(1.35)}
+  .nexa-v450-nebula:before,.nexa-v450-nebula:after{content:"";position:absolute;border-radius:50%;filter:blur(20px);opacity:.62}
+  .nexa-v450-nebula:before{width:58vw;height:18vw;left:-16vw;top:24%;background:linear-gradient(90deg,transparent,#763cff,#27d9ff);transform:rotate(-22deg)}
+  .nexa-v450-nebula:after{width:54vw;height:14vw;right:-19vw;bottom:18%;background:linear-gradient(90deg,#ff48da,#5d4cff,transparent);transform:rotate(22deg)}
+  .nexa-v4484-stars{opacity:.82!important;background-size:37px 37px,61px 61px!important;filter:drop-shadow(0 0 2px #65bfff)}
+  .nexa-v4484-shell{width:min(720px,100%)!important}
+  .nexa-v4484-fleet-head small,.nexa-v450-fleet-label,.nexa-v4484-fleet-head p{
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace!important;letter-spacing:.16em
+  }
+  .nexa-v4484-fleet-head small{color:#65e4ff!important;font-size:9px!important;font-weight:950}
+  .nexa-v4484-fleet-head h2{font-size:30px!important;letter-spacing:.14em!important;text-shadow:0 0 18px rgba(90,207,255,.45),0 0 34px rgba(170,75,255,.23)}
+  .nexa-v4484-fleet-head p{margin:4px 0 0;color:#8395c3;font-size:9px;font-weight:800}
+  .nexa-v450-fleet-label{margin:9px 2px 10px;color:#6fdfff;font-size:9px;font-weight:900}
+  .nexa-v4484-fleet-guide{padding:12px;border:1px solid rgba(109,82,255,.22);border-radius:22px;background:linear-gradient(135deg,rgba(7,18,48,.72),rgba(25,7,47,.48));box-shadow:inset 0 0 30px rgba(80,108,255,.05),0 0 26px rgba(101,69,255,.08)}
+  .nexa-v4484-dialog{border-color:rgba(85,218,255,.72)!important;background:linear-gradient(145deg,rgba(6,25,61,.96),rgba(28,8,54,.95))!important;box-shadow:0 0 18px rgba(61,211,255,.19),0 0 32px rgba(203,58,255,.12)!important}
+  .nexa-v4484-dialog small{font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important;color:#5ce8ff!important;letter-spacing:.12em!important}
+  .nexa-v4484-dialog p{font-family:ui-rounded,"SF Pro Rounded",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important}
+  .nexa-v4484-state-list{gap:14px!important}
+  .nexa-v450-ship-card{min-height:126px!important;padding:14px 52px 14px 138px!important;border-radius:24px!important;
+    background:
+      radial-gradient(circle at 18% 52%,color-mix(in srgb,var(--ship) 24%,transparent),transparent 30%),
+      linear-gradient(135deg,rgba(12,19,55,.96),rgba(5,8,28,.96))!important;
+    border:1px solid color-mix(in srgb,var(--ship) 68%,transparent)!important;
+    box-shadow:0 0 24px color-mix(in srgb,var(--ship) 16%,transparent),inset 0 0 30px rgba(93,76,255,.06)!important}
+  .nexa-v450-ship-card:before{content:"";position:absolute;inset:5px;border-radius:19px;border:1px solid rgba(255,255,255,.035);pointer-events:none}
+  .nexa-v450-ship-card:active{transform:scale(.985)}
+  .nexa-v450-ship-space{position:absolute;left:13px;top:15px;width:112px;height:96px;display:grid;place-items:center}
+  .nexa-v450-ship-space:before{content:"";position:absolute;width:92px;height:56px;border-radius:50%;border:1px solid color-mix(in srgb,var(--ship) 40%,transparent);transform:rotate(-14deg);box-shadow:0 0 18px color-mix(in srgb,var(--ship) 15%,transparent)}
+  .nexa-v450-ship-card .nexa-v4484-ship{left:auto!important;top:auto!important;width:91px!important;height:43px!important;position:relative!important;z-index:2;transform:skewX(-10deg) rotate(-8deg)!important;
+    background:linear-gradient(135deg,#fff 0%,#a5ecff 13%,var(--ship) 34%,#7554ff 67%,#ff55da 100%)!important;
+    filter:drop-shadow(0 0 7px #fff) drop-shadow(0 0 14px var(--ship))!important}
+  .nexa-v4484-ship i{position:absolute;right:14px;top:13px;width:21px;height:10px;border-radius:50%;background:#071631;border:1px solid #8ef5ff;box-shadow:0 0 8px #5ce8ff}
+  .nexa-v450-thruster{position:absolute;z-index:1;left:5px;width:44px;height:10px;border-radius:50%;background:linear-gradient(90deg,transparent,var(--ship),#fff);filter:blur(3px);opacity:.85}
+  .nexa-v450-state-copy{position:relative;z-index:2;display:block}
+  .nexa-v450-state-copy em{display:block;color:color-mix(in srgb,var(--ship) 90%,white);font-style:normal;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:8px;font-weight:900;letter-spacing:.13em;margin-bottom:5px}
+  .nexa-v450-state-copy b{font-size:18px!important;text-shadow:0 0 13px color-mix(in srgb,var(--ship) 35%,transparent)}
+  .nexa-v450-state-copy small{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9px!important;letter-spacing:.07em!important}
+  .nexa-v450-ship-card .go{width:36px!important;height:36px!important;box-shadow:0 0 14px color-mix(in srgb,var(--ship) 24%,transparent)}
+
+  /* cinematic wormhole + visible ship */
+  #nexa-v4484-wormhole{background:#01030c!important}
+  .nexa-v4484-worm{width:min(105vw,650px)!important;box-shadow:0 0 85px rgba(112,64,255,.42);filter:drop-shadow(0 0 44px #7546ff) saturate(1.45)!important}
+  .nexa-v450-jump-ship{position:absolute;z-index:4;left:8%;top:54%;width:150px;height:70px;display:grid;place-items:center;transform:translateY(-50%) rotate(-6deg);animation:nexaV450ShipJump 1.45s cubic-bezier(.25,.7,.2,1) both}
+  .nexa-v450-jump-ship .nexa-v4484-ship{position:relative!important;left:auto!important;top:auto!important;width:118px!important;height:55px!important;background:linear-gradient(135deg,#fff,#70e8ff 23%,#6c48ff 64%,#ff4fd8)!important;filter:drop-shadow(0 0 12px #4ee8ff) drop-shadow(0 0 24px #7c4fff)!important}
+  .nexa-v450-jump-ship .nexa-v450-thruster{left:-4px;width:65px;height:13px}
+  @keyframes nexaV450ShipJump{0%{opacity:.15;transform:translate(-70vw,-40%) scale(.72) rotate(-8deg)}38%{opacity:1}100%{opacity:.96;transform:translate(46vw,-50%) scale(.52) rotate(-2deg)}}
+  .nexa-v4484-worm-content{width:min(420px,90vw);padding-top:44vh!important}
+  .nexa-v4484-worm-content .nexa-v4484-dialog{width:min(330px,84vw)!important}
+  .nexa-v4484-worm-content>b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:16px!important}
+  .nexa-v4484-worm-content>span{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .nexa-v450-jump-progress{width:min(300px,72vw);height:4px;border-radius:999px;background:rgba(77,94,157,.28);overflow:hidden;box-shadow:0 0 10px rgba(93,197,255,.18)}
+  .nexa-v450-jump-progress i{display:block;height:100%;width:100%;transform-origin:left;background:linear-gradient(90deg,#50e8ff,#724dff,#ff4cd6);animation:nexaV450Progress 1.35s ease-out both}
+  @keyframes nexaV450Progress{from{transform:scaleX(.04)}to{transform:scaleX(1)}}
+
+  /* Account Constellation: textured CSS planets instead of profile photos */
+  #nexa-account-constellation.nexa-v450-constellation .nexa-constellation-backdrop{
+    background:
+      radial-gradient(circle at 73% 16%,rgba(109,69,255,.34),transparent 24%),
+      radial-gradient(circle at 22% 68%,rgba(15,176,255,.18),transparent 29%),
+      radial-gradient(circle at 50% 44%,rgba(227,48,255,.15),transparent 33%),
+      linear-gradient(160deg,#01030d,#080629 52%,#02030e)!important
+  }
+  #nexa-account-constellation.nexa-v450-constellation .nexa-constellation-stage{
+    background-image:
+      radial-gradient(circle,rgba(255,255,255,.95) 0 1px,transparent 1.35px),
+      radial-gradient(circle,rgba(81,198,255,.82) 0 1px,transparent 1.5px),
+      linear-gradient(28deg,transparent 48%,rgba(81,144,255,.07) 49% 50%,transparent 51%)!important;
+    background-size:37px 37px,71px 71px,118px 118px!important
+  }
+  #nexa-account-constellation.nexa-v450-constellation .nexa-constellation-heading{
+    top:max(62px,calc(env(safe-area-inset-top) + 54px))!important;border:1px solid rgba(86,113,255,.55)!important;border-radius:999px!important;padding:9px 17px!important;
+    background:linear-gradient(90deg,rgba(11,27,70,.87),rgba(33,10,67,.84))!important;box-shadow:0 0 18px rgba(74,110,255,.15)!important
+  }
+  #nexa-account-constellation.nexa-v450-constellation .nexa-constellation-heading b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important;font-size:13px!important;text-shadow:0 0 9px #6ca7ff}
+  #nexa-account-constellation.nexa-v450-constellation .nexa-constellation-heading span{display:block!important;margin-top:2px;color:#778bb8!important;font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important;font-size:7px!important;letter-spacing:.10em!important}
+  #nexa-v4484-return-fleet{top:max(14px,env(safe-area-inset-top))!important;left:12px!important;padding:9px 13px!important;border-color:rgba(63,125,255,.75)!important;background:rgba(4,13,39,.90)!important;color:#ddecff!important;box-shadow:0 0 16px rgba(63,112,255,.16)!important;font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important}
+  #nexa-v4484-return-fleet span{font-size:15px;color:#65e4ff}
+  .nexa-v450-orbit.third{position:absolute;left:50%;top:52%;width:68%;height:68%;transform:translate(-50%,-50%) rotate(24deg);border:1px solid rgba(79,128,255,.20);border-radius:50%;pointer-events:none}
+  #nexa-account-constellation .nexa-v450-world{z-index:8!important}
+  #nexa-account-constellation .nexa-v450-world.main{top:28%!important;left:50%!important}
+  #nexa-account-constellation .nexa-v450-world .nexa-v4484-planet-orb{position:relative;padding:0!important;overflow:visible!important;border-width:2px!important}
+  #nexa-account-constellation .nexa-v450-world.main .nexa-v4484-planet-orb{width:154px!important;height:154px!important}
+  #nexa-account-constellation .nexa-v450-world.alt .nexa-v4484-planet-orb{width:90px!important;height:90px!important}
+  .nexa-v450-planet-surface{background:
+      radial-gradient(circle at 31% 24%,rgba(255,255,255,.88) 0 2%,transparent 3%),
+      radial-gradient(circle at 38% 33%,color-mix(in srgb,var(--acct) 72%,#fff) 0 5%,transparent 15%),
+      radial-gradient(circle at 62% 67%,rgba(0,0,0,.44) 0 14%,transparent 32%),
+      radial-gradient(circle at 48% 43%,var(--acct),color-mix(in srgb,var(--acct) 64%,#35115f) 44%,#06091d 76%)!important;
+      box-shadow:inset -24px -20px 28px rgba(0,0,0,.42),inset 9px 8px 16px rgba(255,255,255,.12),0 0 18px var(--acct),0 0 45px color-mix(in srgb,var(--acct) 44%,transparent)!important}
+  .nexa-v450-planet-surface:before{content:"";position:absolute;left:-16%;right:-16%;top:43%;height:26%;border-radius:50%;border:2px solid color-mix(in srgb,var(--acct) 88%,#fff);transform:rotate(-11deg);box-shadow:0 0 9px var(--acct),inset 0 0 10px color-mix(in srgb,var(--acct) 30%,transparent);pointer-events:none}
+  .nexa-v450-planet-surface:after{content:"";position:absolute;inset:7%;border-radius:50%;background:repeating-radial-gradient(circle at 30% 35%,rgba(255,255,255,.08) 0 2px,transparent 3px 11px);mix-blend-mode:screen;opacity:.65}
+  .nexa-v450-planet-surface i{position:absolute;right:-10%;top:7%;width:18%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 30% 25%,#fff,var(--acct) 34%,#10152f 80%);box-shadow:0 0 9px var(--acct)}
+  .nexa-v450-crown{position:absolute;z-index:12;top:-38px;left:50%;transform:translateX(-50%);font-size:39px;color:#ffd84e;text-shadow:0 0 5px #fff3a2,0 0 14px #ffc120,0 0 24px #ff6d00}
+  .nexa-v450-account-badge{display:inline-flex!important;align-items:center;justify-content:center;margin-top:8px!important;padding:5px 11px!important;border:1px solid var(--acct)!important;border-radius:999px!important;background:rgba(11,8,42,.90)!important;color:#fff!important;font-size:8px!important;font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important;font-weight:900!important;letter-spacing:.08em!important;box-shadow:0 0 13px color-mix(in srgb,var(--acct) 28%,transparent)!important}
+  .nexa-v450-account-badge.alt{padding:4px 9px!important}
+  #nexa-account-constellation .nexa-v450-world .nexa-account-planet-name{font-size:12px!important;font-weight:950!important;letter-spacing:.04em!important;text-shadow:0 0 8px #000,0 0 10px var(--acct)!important}
+  #nexa-account-constellation .nexa-v450-world.main .nexa-account-planet-name{font-size:15px!important}
+  .nexa-v450-player-id{display:block;margin-top:2px;color:#c5d8ff;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:7px;white-space:nowrap}
+  .nexa-v450-alliance-chip{display:inline-flex;margin-top:5px;padding:4px 8px;border-radius:999px;border:1px solid color-mix(in srgb,var(--acct) 58%,transparent);background:rgba(6,12,33,.84);color:#e9f4ff;font-size:8px;font-weight:850;white-space:nowrap}
+  #nexa-account-constellation .nexa-v450-add .nexa-v4484-add-orb{width:62px!important;height:62px!important;font-size:31px!important;background:rgba(5,17,43,.86)!important;border-color:#56e8ff!important;box-shadow:0 0 19px rgba(71,222,255,.32)!important}
+  #nexa-account-constellation .nexa-v450-add .nexa-account-planet-name{font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important;font-size:8px!important}
+
+  /* Returning-login cinematic welcome */
+  #nexa-v450-returning{position:fixed;inset:0;z-index:2147483647;display:grid;place-items:center;overflow:hidden;color:#fff;background:#02030e}
+  .nexa-v450-return-card{position:relative;z-index:3;width:min(460px,90vw);display:grid;place-items:center;gap:16px;text-align:center}
+  .nexa-v450-logo-ring{position:relative;width:150px;height:150px;border-radius:50%;display:grid;place-items:center;border:2px solid #4ce6ff;box-shadow:0 0 20px #41dcff,0 0 55px rgba(124,64,255,.65),inset 0 0 30px rgba(101,67,255,.25)}
+  .nexa-v450-logo-ring:before,.nexa-v450-logo-ring:after{content:"";position:absolute;border-radius:50%;inset:-16px;border:2px solid rgba(239,69,255,.66);box-shadow:0 0 25px rgba(239,69,255,.35)}
+  .nexa-v450-logo-ring:after{inset:-31px;border-color:rgba(60,122,255,.30)}
+  .nexa-v450-logo-ring img{width:88px;height:88px;object-fit:contain;filter:drop-shadow(0 0 15px #77eaff)}
+  .nexa-v450-return-card h1{margin:2px 0 0;font-size:31px;letter-spacing:.22em;text-shadow:0 0 16px #4de3ff,0 0 29px rgba(205,66,255,.45)}
+  .nexa-v450-systemline{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#7fe9ff;font-size:9px;font-weight:900;letter-spacing:.17em}
+  .nexa-v450-return-card .nexa-v4484-drone{margin-top:7px}
+  .nexa-v450-tagline{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#a2add0;font-size:9px;letter-spacing:.23em}
+  .nexa-v450-sync{width:min(285px,78vw);height:4px;border-radius:99px;overflow:hidden;background:#111934}
+  .nexa-v450-sync i{display:block;width:100%;height:100%;background:linear-gradient(90deg,#46eaff,#7654ff,#ff4ddd);transform-origin:left;animation:nexaV450Sync 1.25s ease-out both}
+  @keyframes nexaV450Sync{from{transform:scaleX(.03)}to{transform:scaleX(1)}}
+
+  /* Companion moved to top near NEXA, one tap hint / double-tap full help */
+  #nexa-v4485-home-drone,#nexa-v4485-profile-drone{right:10px!important;bottom:auto!important;top:max(62px,calc(env(safe-area-inset-top) + 48px))!important}
+  #nexa-v4485-home-bubble,#nexa-v4485-profile-bubble{right:78px!important;bottom:auto!important;top:max(75px,calc(env(safe-area-inset-top) + 61px))!important}
+  .nexa-v450-help-overlay{position:fixed;inset:0;z-index:2147483647;padding:14px;display:grid;place-items:center;background:rgba(0,2,12,.78);backdrop-filter:blur(10px)}
+  .nexa-v450-help-card{position:relative;width:min(570px,100%);max-height:88dvh;overflow:auto;border:1px solid rgba(79,209,255,.55);border-radius:25px;padding:18px;background:radial-gradient(circle at 12% 0%,rgba(101,75,255,.18),transparent 35%),linear-gradient(155deg,#0a1231,#050718);box-shadow:0 28px 80px rgba(0,0,0,.62),0 0 35px rgba(98,76,255,.17);color:#fff}
+  .nexa-v450-help-head{display:grid;grid-template-columns:78px 1fr 34px;gap:10px;align-items:center}
+  .nexa-v450-help-head .nexa-v4484-drone{transform:scale(.78)}
+  .nexa-v450-help-head small{color:#63e6ff;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:900;letter-spacing:.14em}
+  .nexa-v450-help-head h3{margin:3px 0;font-size:20px}.nexa-v450-help-head p{margin:0;color:#9eafd0;font-size:11px;line-height:1.4}
+  .nexa-v450-help-close{width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,92,182,.45);background:#210921;color:#ff9fd0;font-size:20px}
+  .nexa-v450-help-list{display:grid;gap:8px;margin-top:15px}
+  .nexa-v450-help-q{width:100%;border:1px solid rgba(107,116,255,.28);border-radius:14px;padding:11px 12px;background:linear-gradient(135deg,rgba(11,24,57,.92),rgba(22,9,48,.87));color:#eaf4ff;text-align:left;font-weight:800}
+  .nexa-v450-help-q span{float:right;color:#5ee4ff}
+  .nexa-v450-help-answer{margin-top:13px;padding:13px;border:1px solid rgba(88,217,255,.26);border-radius:15px;background:rgba(5,20,43,.76);color:#c8d6ef;font-size:12px;line-height:1.5}
+  .nexa-v450-help-answer b{color:#fff}.nexa-v450-help-back{margin-top:10px;border:0;background:transparent;color:#72e5ff;font-weight:900}
+
+  html.nexa-reduced-motion .nexa-v450-jump-ship,
+  html.nexa-reduced-motion .nexa-v450-sync i,
+  html.nexa-reduced-motion .nexa-v450-jump-progress i{animation:none!important;transform:none!important}
+
+  @media(max-width:560px){
+    .nexa-v450-ship-card{padding-left:118px!important;min-height:116px!important}.nexa-v450-ship-space{left:4px;width:106px}
+    #nexa-account-constellation .nexa-v450-world.main .nexa-v4484-planet-orb{width:130px!important;height:130px!important}
+    #nexa-account-constellation .nexa-v450-world.alt .nexa-v4484-planet-orb{width:78px!important;height:78px!important}
+    .nexa-v450-crown{font-size:32px;top:-31px}
+    .nexa-v450-player-id{font-size:6.5px}.nexa-v450-alliance-chip{font-size:7px}
+  }
+
+
   /* Chief Gear stars: inside planet, left side, vertical */
   .v448-gear-stars{
     position:absolute;z-index:8;left:8px;bottom:15px;
@@ -268,7 +428,7 @@ async function loadAccounts(){
   try{
     const {data:{user}}=await c.auth.getUser();if(!user)return [];
     const q=await c.from('player_accounts')
-      .select('id,in_game_name,player_id,is_main,account_purpose,state_number,deployment_capacity,profile_photo_url')
+      .select('id,in_game_name,player_id,is_main,account_purpose,state_number,deployment_capacity,profile_photo_url,alliance_id,custom_alliance_tag,alliances(tag)')
       .eq('user_id',user.id).order('is_main',{ascending:false}).order('created_at');
     accountCache=q.data||[];
     return accountCache;
@@ -399,41 +559,48 @@ function renderCanonicalConstellation(rows,stateNumber=activeFleetState){
   const list=state?all.filter(a=>Number(a.state_number||0)===state):all;
   const main=list.find(a=>a.is_main)||list[0]||null;
   const others=main?list.filter(a=>String(a.id)!==String(main.id)):list;
-  const pos=[[50,15],[79,31],[82,65],[52,84],[18,68],[18,34],[66,10],[91,49],[67,89],[32,89],[9,50],[33,10]];
-  let out='<span class="nexa-constellation-orbit one"></span><span class="nexa-constellation-orbit two"></span>';
+  const pos=[[18,67],[80,66],[18,34],[82,35],[50,83],[50,17],[9,50],[91,50],[32,86],[68,86],[32,15],[68,15]];
+  const alliance=a=>a?.alliances?.tag||a?.custom_alliance_tag||'UNASSIGNED';
+  let out='<span class="nexa-constellation-orbit one"></span><span class="nexa-constellation-orbit two"></span><span class="nexa-v450-orbit third"></span>';
 
   if(main){
-    out+=`<button type="button" class="nexa-account-planet main nexa-v4484-planet" data-nexa-profile="${esc(main.id)}" style="--acct:${accountColor(main.id)}">
-      <span class="nexa-v4484-planet-orb"><img src="${esc(accountAvatar(main))}" alt=""></span>
+    out+=`<button type="button" class="nexa-account-planet main nexa-v4484-planet nexa-v450-world" data-nexa-profile="${esc(main.id)}" style="--acct:${accountColor(main.id)}">
+      <span class="nexa-v450-crown">♛</span>
+      <span class="nexa-v4484-planet-orb nexa-v450-planet-surface"><i></i></span>
+      <span class="nexa-v450-account-badge">♛ MY MAIN</span>
       <span class="nexa-account-planet-name">${esc(main.in_game_name||'WOS Account')}</span>
-      <span class="nexa-account-planet-type">★ MAIN ACCOUNT</span>
+      <span class="nexa-v450-player-id">ID: ${esc(main.player_id||'—')}</span>
+      <span class="nexa-v450-alliance-chip">✦ ${esc(alliance(main))}</span>
     </button>`;
   }
+
   others.forEach((a,i)=>{
     const p=pos[i%pos.length];
-    out+=`<button type="button" class="nexa-account-planet alt nexa-v4484-planet" data-nexa-profile="${esc(a.id)}" style="left:${p[0]}%;top:${p[1]}%;--acct:${accountColor(a.id)}">
-      <span class="nexa-v4484-planet-orb"><img src="${esc(accountAvatar(a))}" alt=""></span>
+    const label=i===0?'ALT':'ACCOUNT';
+    out+=`<button type="button" class="nexa-account-planet alt nexa-v4484-planet nexa-v450-world" data-nexa-profile="${esc(a.id)}" style="left:${p[0]}%;top:${p[1]}%;--acct:${accountColor(a.id)}">
+      <span class="nexa-v4484-planet-orb nexa-v450-planet-surface"><i></i></span>
+      <span class="nexa-v450-account-badge alt">${label}</span>
       <span class="nexa-account-planet-name">${esc(a.in_game_name||'Account')}</span>
-      <span class="nexa-account-planet-type">✦ ALT ACCOUNT</span>
+      <span class="nexa-v450-player-id">ID: ${esc(a.player_id||'—')}</span>
+      <span class="nexa-v450-alliance-chip">✦ ${esc(alliance(a))}</span>
     </button>`;
   });
 
   const addPos=pos[Math.max(0,list.length-1)%pos.length];
-  out+=`<button type="button" id="nexa-constellation-add" class="nexa-account-planet alt nexa-add-planet nexa-v4484-planet" style="left:${addPos[0]}%;top:${addPos[1]}%">
+  out+=`<button type="button" id="nexa-constellation-add" class="nexa-account-planet alt nexa-add-planet nexa-v4484-planet nexa-v450-add" style="left:${addPos[0]}%;top:${addPos[1]}%">
     <span class="nexa-v4484-add-orb">+</span><span class="nexa-account-planet-name">ADD ACCOUNT</span>
   </button>`;
 
   system.innerHTML=out;
-
   const wrap=$('#nexa-account-constellation');
+  wrap?.classList.add('nexa-v450-constellation');
   const heading=$('.nexa-constellation-heading',wrap);
   if(heading){
     const count=list.length;
-    heading.innerHTML=`<b>STATE ${esc(state||'—')} · ${count} ACCOUNT${count===1?'':'S'}</b><span>Choose the Game Account you want to access.</span>`;
+    heading.innerHTML=`<b>STATE ${esc(state||'—')} &nbsp;•&nbsp; ${count} ACCOUNT${count===1?'':'S'}</b><span>CHOOSE THE GAME ACCOUNT YOU WANT TO ACCESS</span>`;
   }
   ensureFleetReturnButton();
 }
-
 async function repairAccountLabels(){
   if(labelBusy)return;labelBusy=true;
   try{
@@ -632,39 +799,52 @@ async function openFleet(){
   $('#nexa-account-constellation')?.classList.remove('open');
   $('#nexa-account-constellation')?.setAttribute('aria-hidden','true');
   $('#nexa-v4484-fleet')?.remove();
-  const ov=document.createElement('section');ov.id='nexa-v4484-fleet';
-  ov.innerHTML=`<div class="nexa-v4484-stars"></div><div class="nexa-v4484-shell">
-    <div class="nexa-v4484-fleet-head"><div><small style="color:#65dfff;font-weight:900;letter-spacing:.14em">MY PROFILE</small><h2>NEXA FLEET</h2></div><button class="nexa-v4484-close" type="button" data-fleet-close>×</button></div>
+  const ov=document.createElement('section');ov.id='nexa-v4484-fleet';ov.className='nexa-v450-cinematic';
+  ov.innerHTML=`<div class="nexa-v450-nebula"></div><div class="nexa-v4484-stars"></div><div class="nexa-v4484-shell">
+    <div class="nexa-v4484-fleet-head">
+      <div><small>NEXA SYSTEM // PROFILE NAVIGATION</small><h2>NEXA FLEET</h2><p>DISCOVER • CONNECT • EXPLORE</p></div>
+      <button class="nexa-v4484-close" type="button" data-fleet-close>×</button>
+    </div>
     <div class="nexa-v4484-fleet-guide">${droneMarkup()}<div class="nexa-v4484-dialog"><small>NEXA DRONE</small><p data-fleet-guide></p></div></div>
+    <div class="nexa-v450-fleet-label">AVAILABLE STATES // SELECT DESTINATION</div>
     <div class="nexa-v4484-state-list" data-fleet-list></div>
   </div>`;
   document.body.appendChild(ov);document.body.style.overflow='hidden';
+
   const groups=groupAccountsByState(rows);
   const list=$('[data-fleet-list]',ov);
-  list.innerHTML=groups.length?groups.map(([state,accounts])=>{
+  list.innerHTML=groups.length?groups.map(([state,accounts],i)=>{
     const c=stateShipColor(state);
-    return `<button class="nexa-v4484-state-card" type="button" data-fleet-state="${esc(state)}" style="--ship:${c}">
-      <span class="nexa-v4484-ship"></span><b>STATE ${esc(state||'UNASSIGNED')}</b>
-      <small>${accounts.length} ACCOUNT${accounts.length===1?'':'S'}</small><span class="go">→</span>
+    return `<button class="nexa-v4484-state-card nexa-v450-ship-card" type="button" data-fleet-state="${esc(state)}" style="--ship:${c};--ship-i:${i}">
+      <span class="nexa-v450-ship-space"><span class="nexa-v4484-ship"><i></i></span><span class="nexa-v450-thruster"></span></span>
+      <span class="nexa-v450-state-copy"><em>STATE LINK // READY</em><b>STATE ${esc(state||'UNASSIGNED')}</b><small>${accounts.length} ACCOUNT${accounts.length===1?'':'S'} CONNECTED</small></span>
+      <span class="go">→</span>
     </button>`;
-  }).join(''):'<div class="nexa-v4484-fleet-empty">No Game Accounts found yet.</div>';
-  typeMessage($('[data-fleet-guide]',ov),'Welcome to NEXA Fleet. Select a State to access its Account Constellation.');
+  }).join(''):'<div class="nexa-v4484-fleet-empty">NO GAME ACCOUNTS FOUND // ADD AN ACCOUNT TO BEGIN</div>';
+
+  typeMessage($('[data-fleet-guide]',ov),'Welcome to NEXA Fleet. Choose a State and I’ll guide your ship to its Account Constellation.');
   $('[data-fleet-close]',ov)?.addEventListener('click',closeFleet);
   ov.addEventListener('click',e=>{
-    const card=e.target.closest?.('[data-fleet-state]');
-    if(!card)return;
-    const state=Number(card.dataset.fleetState||0);
-    enterFleetState(state);
+    const card=e.target.closest?.('[data-fleet-state]');if(!card)return;
+    enterFleetState(Number(card.dataset.fleetState||0));
   });
 }
 
-function playWormhole(state,after){
+function playWormhole(state,after,direction='in'){
   $('#nexa-v4484-wormhole')?.remove();
-  const ov=document.createElement('section');ov.id='nexa-v4484-wormhole';
-  ov.innerHTML=`<div class="nexa-v4484-streaks"></div><div class="nexa-v4484-worm"></div>
-    <div class="nexa-v4484-worm-content">${droneMarkup('intro')}<div class="nexa-v4484-dialog" style="width:min(300px,80vw)"><small>NEXA DRONE</small><p>State selected. Opening Account Constellation…</p></div><b>STATE ${esc(state)}</b><span>PREPARING JUMP…</span></div>`;
+  const ov=document.createElement('section');ov.id='nexa-v4484-wormhole';ov.className='nexa-v450-cinematic';
+  const returning=direction==='out';
+  ov.innerHTML=`<div class="nexa-v450-nebula"></div><div class="nexa-v4484-streaks"></div><div class="nexa-v4484-worm"></div>
+    <div class="nexa-v450-jump-ship"><span class="nexa-v4484-ship"><i></i></span><span class="nexa-v450-thruster"></span></div>
+    <div class="nexa-v4484-worm-content">${droneMarkup('intro')}
+      <div class="nexa-v4484-dialog"><small>NEXA DRONE</small><p>${returning?'Returning to NEXA Fleet. Hold tight — we’re heading back to the ship.':'State selected. Opening Account Constellation…'}</p></div>
+      <b>${returning?'RETURNING TO NEXA FLEET':`STATE ${esc(state)}`}</b>
+      <span>${returning?'NAVIGATION LOCKED // RETURN JUMP':'PREPARING JUMP // CONSTELLATION LOCKED'}</span>
+      <div class="nexa-v450-jump-progress"><i></i></div>
+    </div>`;
   document.body.appendChild(ov);
-  setTimeout(()=>{ov.remove();after?.()},1150);
+  const delay=document.documentElement.classList.contains('nexa-reduced-motion')?420:1450;
+  setTimeout(()=>{ov.remove();after?.()},delay);
 }
 
 async function enterFleetState(state){
@@ -676,17 +856,23 @@ async function enterFleetState(state){
     const c=$('#nexa-account-constellation');
     c?.classList.add('open');c?.setAttribute('aria-hidden','false');
     document.body.style.overflow='hidden';
-  });
+  },'in');
+}
+
+function returnToFleetWithJump(){
+  const wrap=$('#nexa-account-constellation');
+  wrap?.classList.remove('open');wrap?.setAttribute('aria-hidden','true');
+  playWormhole(activeFleetState,()=>openFleet(),'out');
 }
 
 function ensureFleetReturnButton(){
   const wrap=$('#nexa-account-constellation'),stage=$('.nexa-constellation-stage',wrap);
   if(!wrap||!stage)return;
   let b=$('#nexa-v4484-return-fleet',stage);
-  if(!b){b=document.createElement('button');b.id='nexa-v4484-return-fleet';b.type='button';b.textContent='← RETURN TO NEXA FLEET';stage.prepend(b)}
-  b.onclick=e=>{e.preventDefault();e.stopPropagation();wrap.classList.remove('open');wrap.setAttribute('aria-hidden','true');openFleet()};
+  if(!b){b=document.createElement('button');b.id='nexa-v4484-return-fleet';b.type='button';stage.prepend(b)}
+  b.innerHTML='<span>←</span> RETURN TO NEXA FLEET';
+  b.onclick=e=>{e.preventDefault();e.stopPropagation();returnToFleetWithJump()};
 }
-
 async function openSelectedProfile(id){
   const c=sb();if(!c||!id)return;
   try{
@@ -771,8 +957,9 @@ function ensureCompanionDrones(){
   if(!home){
     home=document.createElement('button');home.id='nexa-v4485-home-drone';home.className='nexa-v4485-companion';home.type='button';home.setAttribute('aria-label','NEXA Drone help');home.innerHTML=droneMarkup();
     const bubble=document.createElement('div');bubble.id='nexa-v4485-home-bubble';bubble.className='nexa-v4485-companion-bubble';bubble.textContent='Hi! I’m your NEXA Drone. Tap My Profile to open your NEXA Fleet, or tap me anytime for quick help.';
-    document.body.append(home,bubble);home.onclick=()=>bubble.classList.toggle('open');
+    document.body.append(home,bubble);bindDroneGesture(home,bubble,'home');
   }
+  bindDroneGesture(home,$('#nexa-v4485-home-bubble'),'home');
   home.style.display=(!authOpen&&!firstRun&&!profileOpen&&location.pathname.match(/(?:\/|index\.html)$/))?'grid':'none';
   if(home.style.display==='none')$('#nexa-v4485-home-bubble')?.classList.remove('open');
 
@@ -780,10 +967,89 @@ function ensureCompanionDrones(){
   if(!pd){
     pd=document.createElement('button');pd.id='nexa-v4485-profile-drone';pd.className='nexa-v4485-companion';pd.type='button';pd.setAttribute('aria-label','NEXA Drone profile help');pd.innerHTML=droneMarkup();
     const bubble=document.createElement('div');bubble.id='nexa-v4485-profile-bubble';bubble.className='nexa-v4485-companion-bubble';bubble.textContent='Need help with your Profile? Your Heroes, Experts, Pets, Chief Gear, Charms and account stats all stay attached to this Game Account.';
-    document.body.append(pd,bubble);pd.onclick=()=>bubble.classList.toggle('open');
+    document.body.append(pd,bubble);bindDroneGesture(pd,bubble,'profile');
   }
+  bindDroneGesture(pd,$('#nexa-v4485-profile-bubble'),'profile');
   pd.style.display=profileOpen?'grid':'none';
   if(!profileOpen)$('#nexa-v4485-profile-bubble')?.classList.remove('open');
+}
+
+
+function showReturningWelcome(){
+  if($('#nexa-v450-returning')||$('#nexa-v4484-onboarding')||$('#nexa-v4485-motion'))return;
+  const flag=sessionStorage.getItem('nexa_show_returning_welcome');
+  if(flag!=='1')return;
+  sessionStorage.removeItem('nexa_show_returning_welcome');
+  const ov=document.createElement('section');ov.id='nexa-v450-returning';
+  ov.innerHTML=`<div class="nexa-v450-nebula"></div><div class="nexa-v4484-stars"></div>
+    <div class="nexa-v450-return-card">
+      <div class="nexa-v450-logo-ring"><img src="/nexa-icon.png" alt="NEXA"></div>
+      <h1>NEXA</h1>
+      <div class="nexa-v450-systemline">CONNECT // MANAGE // EXPLORE</div>
+      ${droneMarkup('intro')}
+      <div class="nexa-v4484-dialog" style="width:min(320px,84vw)"><small>NEXA DRONE</small><p>Welcome back. Connecting your profile, States, and NEXA systems…</p></div>
+      <div class="nexa-v450-sync"><i></i></div>
+      <div class="nexa-v450-tagline">YOUR UNIVERSE // YOUR CONTROL</div>
+    </div>`;
+  document.body.appendChild(ov);
+  const delay=document.documentElement.classList.contains('nexa-reduced-motion')?520:1650;
+  setTimeout(()=>ov.remove(),delay);
+}
+
+const HELP_ITEMS=[
+ ['profile','How do I set up my Profile?','Open Edit My Profile and enter the information for this Game Account, including Furnace or Fire Crystal level, Power and Deployment. Your progression choices should follow the account data you save.'],
+ ['accounts','How do my Game Accounts work?','Each Game Account keeps its own Profile data. My Profile opens NEXA Fleet, then you choose a State and the Account Constellation for that State.'],
+ ['states','How do States work in NEXA?','Your accounts are grouped by State. State-specific events, alliances, schedules and tools stay separated so one server does not overwrite another.'],
+ ['events','How do Events work?','Events belong to the active State hub. Open the event area to see schedules, instructions, forms and any actions available to your account.'],
+ ['forms','How do Forms work?','Forms collect the information requested by State leadership. Complete the requested fields and submit them; your saved Profile can be used to reduce repeated entry.'],
+ ['alliance','How do Alliances work?','Choose the alliance for the correct State when alliance selection is available. New selections can appear as Pending until leadership approves them.'],
+ ['library','Heroes, Experts, Pets & Gear?','These Profile sections track the progression of this Game Account. Saved levels and equipment remain attached only to the selected account.'],
+ ['locked','Why are some options locked?','Some options depend on Furnace or Fire Crystal progression, generation, State configuration, or your NEXA permissions.'],
+ ['switch','How do I change account or State?','Open My Profile → NEXA Fleet → choose a State → choose the Game Account you want to access.'],
+ ['bug','Something is not working.','Use Report a Bug so NEXA can capture the page, device information and any screenshots you choose to attach.']
+];
+
+function openDroneHelp(context='home'){
+  $('.nexa-v450-help-overlay')?.remove();
+  const ov=document.createElement('div');ov.className='nexa-v450-help-overlay';
+  ov.innerHTML=`<section class="nexa-v450-help-card">
+    <div class="nexa-v450-help-head">${droneMarkup()}<div><small>NEXA DRONE // QUICK HELP</small><h3>What do you need help with?</h3><p>${context==='profile'?'You’re viewing a Game Account Profile. Choose a quick question below.':'Choose a quick question and I’ll guide you.'}</p></div><button class="nexa-v450-help-close" type="button">×</button></div>
+    <div class="nexa-v450-help-list">${HELP_ITEMS.map(([k,q])=>`<button type="button" class="nexa-v450-help-q" data-help-key="${k}">${q}<span>→</span></button>`).join('')}</div>
+    <div class="nexa-v450-help-answer" data-help-answer style="display:none"></div>
+  </section>`;
+  document.body.appendChild(ov);
+  $('.nexa-v450-help-close',ov).onclick=()=>ov.remove();
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove()});
+  ov.addEventListener('click',e=>{
+    const q=e.target.closest?.('[data-help-key]');if(!q)return;
+    const item=HELP_ITEMS.find(x=>x[0]===q.dataset.helpKey);if(!item)return;
+    const ans=$('[data-help-answer]',ov);
+    ans.style.display='block';
+    ans.innerHTML=`<b>${esc(item[1])}</b><div style="margin-top:6px">${esc(item[2])}</div><button type="button" class="nexa-v450-help-back">↑ Back to questions</button>`;
+    ans.scrollIntoView({block:'nearest',behavior:document.documentElement.classList.contains('nexa-reduced-motion')?'auto':'smooth'});
+    $('.nexa-v450-help-back',ans).onclick=()=>{$('.nexa-v450-help-list',ov)?.scrollIntoView({block:'start',behavior:'smooth'})};
+  });
+}
+
+function bindDroneGesture(btn,bubble,context){
+  if(!btn||btn.dataset.v450Gesture==='1')return;
+  btn.dataset.v450Gesture='1';
+  let last=0,timer=0;
+  btn.onclick=e=>{
+    e.preventDefault();e.stopPropagation();
+    const now=Date.now();
+    if(now-last<360){
+      clearTimeout(timer);last=0;bubble?.classList.remove('open');openDroneHelp(context);return;
+    }
+    last=now;
+    timer=setTimeout(()=>{
+      bubble.textContent=context==='profile'
+        ? 'Need help with this Profile? Double-tap me and I’ll guide you.'
+        : 'Need help with NEXA? Double-tap me and I’ll guide you.';
+      bubble?.classList.add('open');
+      setTimeout(()=>bubble?.classList.remove('open'),5200);
+    },220);
+  };
 }
 
 const ONBOARDING=[
@@ -835,7 +1101,7 @@ async function maybeShowOnboarding(){
     if(!user){onboardingChecked=false;return}
     const done=Number(user.user_metadata?.nexa_onboarding_version||0)>=1;
     const saved=String(user.user_metadata?.nexa_motion_mode||'');
-    if(done){applyMotionMode(saved==='reduced'?'reduced':(saved==='full'?'full':(devicePrefersReducedMotion()?'reduced':'full')));return}
+    if(done){applyMotionMode(saved==='reduced'?'reduced':(saved==='full'?'full':(devicePrefersReducedMotion()?'reduced':'full')));showReturningWelcome();return}
     if($('#nexa-auth-gate:not(.hidden)')){onboardingChecked=false;return}
     if(saved==='full'||saved==='reduced'){
       applyMotionMode(saved);showOnboarding();return;
@@ -999,7 +1265,7 @@ function apply(){
   ensureCompanionDrones();
   maybeShowOnboarding();
 }
-window.NEXADrone={openFleet,showOnboarding,showMotionChoice,openAccount:openSelectedProfile};
+window.NEXADrone={openFleet,showOnboarding,showMotionChoice,openHelp:openDroneHelp,openAccount:openSelectedProfile};
 
 function schedule(){
   requestAnimationFrame(apply);
@@ -1020,8 +1286,7 @@ window.addEventListener('click',e=>{
   const fleetReturn=e.target.closest?.('#nexa-v4484-return-fleet');
   if(fleetReturn){
     e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
-    $('#nexa-account-constellation')?.classList.remove('open');
-    openFleet();
+    returnToFleetWithJump();
     return;
   }
 

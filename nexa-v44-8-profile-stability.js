@@ -1,4 +1,4 @@
-/* NEXA V44.8.3 — CANONICAL ACCOUNTS / CONSTELLATION / FULL BUG REPORTER — 2026-08-25
+/* NEXA V44.8.4 — NEXA FLEET / DRONE / ONBOARDING / CANONICAL ACCOUNTS — 2026-08-25
    COMPLETE REPLACEMENT for nexa-v44-8-profile-stability.js
    Fixes:
    - MAIN / ALT labels across Constellation, Passport and Player Intelligence Profile
@@ -13,8 +13,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V4483_CONSOLIDATED__) return;
-window.__NEXA_V4483_CONSOLIDATED__=true;
+if(window.__NEXA_V4484_CONSOLIDATED__) return;
+window.__NEXA_V4484_CONSOLIDATED__=true;
 window.NEXA_CANONICAL_ACCOUNTS=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
@@ -35,6 +35,9 @@ const sb=()=>{
 let deployBusy=false, expertBusy=false, gearBusy=false, labelBusy=false;
 let accountCache=[];
 let profileCameFromConstellation=false;
+let activeFleetState=null;
+let onboardingChecked=false;
+let typewriterRAF=0;
 
 const ACCOUNT_COLORS=['#ff50d8','#58d8ff','#9c6dff','#5ce2b7','#ffae55'];
 
@@ -130,6 +133,81 @@ function installCSS(){
   .nexa-v4483-bug-status{min-height:18px;margin-top:10px;color:#8fdfff;font-size:.78rem;line-height:1.4}
   .nexa-v4483-bug-files{margin-top:5px;color:#8fa0c8;font-size:.72rem;line-height:1.4}
 
+
+  /* NEXA V44.8.4 — Drone / Fleet / clean Constellation */
+  .nexa-v4484-drone{position:relative;width:86px;height:66px;filter:drop-shadow(0 0 18px rgba(71,196,255,.45)) drop-shadow(0 0 30px rgba(137,69,255,.30));animation:nexaDroneFloat 3.4s ease-in-out infinite}
+  .nexa-v4484-drone-body{position:absolute;left:16px;top:10px;width:54px;height:45px;border-radius:46% 46% 42% 42%;background:linear-gradient(145deg,#f7f8ff 0%,#bac7ff 42%,#7b73d7 100%);border:2px solid rgba(142,226,255,.92);box-shadow:inset 0 -8px 12px rgba(56,40,132,.28),0 0 15px rgba(61,214,255,.35)}
+  .nexa-v4484-drone-face{position:absolute;left:7px;right:7px;top:8px;height:25px;border-radius:15px;background:linear-gradient(180deg,#07142e,#020817);border:1px solid rgba(73,221,255,.68);box-shadow:inset 0 0 16px rgba(25,122,255,.24)}
+  .nexa-v4484-drone-eye{position:absolute;top:8px;width:7px;height:7px;border-radius:50%;background:#67f0ff;box-shadow:0 0 7px #67f0ff}
+  .nexa-v4484-drone-eye.a{left:10px}.nexa-v4484-drone-eye.b{right:10px}
+  .nexa-v4484-drone-wing{position:absolute;top:17px;width:24px;height:13px;border-radius:80% 20% 80% 20%;background:linear-gradient(135deg,rgba(168,112,255,.95),rgba(76,219,255,.92));box-shadow:0 0 13px rgba(103,176,255,.48)}
+  .nexa-v4484-drone-wing.a{left:0;transform:rotate(-18deg)}.nexa-v4484-drone-wing.b{right:0;transform:scaleX(-1) rotate(-18deg)}
+  .nexa-v4484-drone-core{position:absolute;left:38px;bottom:0;width:10px;height:10px;border-radius:50%;background:#bf58ff;box-shadow:0 0 10px #bf58ff,0 0 20px #5bbcff}
+  @keyframes nexaDroneFloat{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-8px) rotate(1deg)}}
+  .nexa-v4484-drone.intro{animation:nexaDroneMaterialize 1.15s cubic-bezier(.2,.8,.2,1) both,nexaDroneFloat 3.4s ease-in-out 1.15s infinite}
+  @keyframes nexaDroneMaterialize{0%{opacity:0;transform:translateY(42px) scale(.25) rotate(-20deg);filter:blur(8px) drop-shadow(0 0 40px #6d6cff)}55%{opacity:1;transform:translateY(-8px) scale(1.12) rotate(4deg);filter:blur(0) drop-shadow(0 0 34px #4ecfff)}100%{transform:translateY(0) scale(1) rotate(0)}}
+
+  .nexa-v4484-dialog{position:relative;border:1px solid rgba(94,194,255,.48);border-radius:18px;padding:13px 14px;background:linear-gradient(145deg,rgba(11,27,61,.94),rgba(18,11,48,.94));box-shadow:0 0 24px rgba(79,119,255,.14),inset 0 0 22px rgba(83,205,255,.035);color:#f7f9ff}
+  .nexa-v4484-dialog:before{content:"";position:absolute;left:-9px;top:22px;width:16px;height:16px;border-left:1px solid rgba(94,194,255,.48);border-bottom:1px solid rgba(94,194,255,.48);background:#0d1838;transform:rotate(45deg)}
+  .nexa-v4484-dialog small{display:block;color:#66dfff;font-size:10px;font-weight:950;letter-spacing:.08em;margin-bottom:4px}
+  .nexa-v4484-dialog p{margin:0!important;color:#eef4ff!important;font-size:13px!important;line-height:1.5!important;min-height:42px}
+
+  #nexa-v4484-onboarding,#nexa-v4484-fleet,#nexa-v4484-wormhole{position:fixed;inset:0;z-index:2147483646;color:#fff;background:
+    radial-gradient(circle at 17% 18%,rgba(101,58,255,.25),transparent 29%),
+    radial-gradient(circle at 82% 70%,rgba(20,129,255,.22),transparent 34%),
+    radial-gradient(circle at 54% 43%,rgba(226,49,255,.10),transparent 25%),
+    linear-gradient(155deg,#030516,#070a24 55%,#02040f);overflow:auto}
+  .nexa-v4484-stars{position:absolute;inset:0;pointer-events:none;opacity:.55;background-image:
+    radial-gradient(circle,rgba(255,255,255,.9) 0 1px,transparent 1.4px),
+    radial-gradient(circle,rgba(95,151,255,.7) 0 1px,transparent 1.4px);
+    background-size:54px 54px,87px 87px;background-position:7px 13px,26px 39px}
+  .nexa-v4484-shell{position:relative;z-index:2;width:min(640px,100%);min-height:100%;box-sizing:border-box;margin:auto;padding:max(22px,env(safe-area-inset-top)) 18px max(24px,env(safe-area-inset-bottom));display:flex;flex-direction:column}
+  .nexa-v4484-onboard-main{flex:1;display:grid;place-items:center}
+  .nexa-v4484-onboard-card{width:min(520px,100%);display:grid;grid-template-columns:105px 1fr;align-items:center;gap:13px}
+  .nexa-v4484-step{grid-column:1/-1;text-align:center;color:#7d8db8;font-size:10px;font-weight:900;letter-spacing:.18em}
+  .nexa-v4484-progress{grid-column:1/-1;display:flex;justify-content:center;gap:7px}.nexa-v4484-progress i{width:7px;height:7px;border-radius:50%;background:#24345e}.nexa-v4484-progress i.on{background:#69d8ff;box-shadow:0 0 9px #69d8ff}
+  .nexa-v4484-primary{grid-column:1/-1;width:min(300px,100%);justify-self:center;border:0;border-radius:999px;padding:13px 19px;color:#fff;font-weight:950;background:linear-gradient(100deg,#225eff,#8449ff 55%,#ef4ed2);box-shadow:0 0 22px rgba(105,75,255,.32)}
+  .nexa-v4484-primary:disabled{opacity:.45;filter:grayscale(.25)}
+  .nexa-v4484-mini-path{grid-column:1/-1;display:flex;justify-content:center;align-items:center;gap:7px;flex-wrap:wrap;color:#98a7cb;font-size:10px}.nexa-v4484-mini-path b{color:#cfeaff}.nexa-v4484-mini-path em{font-style:normal;color:#6cdfff}
+
+  .nexa-v4484-fleet-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+  .nexa-v4484-fleet-head h2{margin:0;font-size:23px;letter-spacing:.08em}.nexa-v4484-close{width:39px;height:39px;border-radius:50%;border:1px solid rgba(143,106,255,.48);background:#0a1028;color:#fff;font-size:22px}
+  .nexa-v4484-fleet-guide{display:grid;grid-template-columns:88px 1fr;gap:12px;align-items:center;margin:8px 0 17px}
+  .nexa-v4484-state-list{display:grid;gap:12px;padding-bottom:20px}
+  .nexa-v4484-state-card{--ship:#6ad9ff;position:relative;width:100%;min-height:112px;border:1px solid color-mix(in srgb,var(--ship) 55%,transparent);border-radius:20px;padding:16px 17px 16px 132px;text-align:left;color:#fff;background:radial-gradient(circle at 20% 50%,color-mix(in srgb,var(--ship) 15%,transparent),transparent 35%),linear-gradient(145deg,rgba(9,17,43,.96),rgba(7,8,26,.97));box-shadow:0 0 24px color-mix(in srgb,var(--ship) 10%,transparent);overflow:hidden}
+  .nexa-v4484-state-card b{display:block;font-size:17px;letter-spacing:.07em}.nexa-v4484-state-card small{display:block;margin-top:5px;color:#9eafd1;font-weight:750}.nexa-v4484-state-card .go{position:absolute;right:15px;top:50%;transform:translateY(-50%);width:33px;height:33px;border-radius:50%;display:grid;place-items:center;border:1px solid color-mix(in srgb,var(--ship) 55%,transparent);color:#c9f4ff}
+  .nexa-v4484-ship{position:absolute;left:26px;top:37px;width:78px;height:38px;clip-path:polygon(0 50%,28% 8%,78% 0,100% 50%,78% 100%,28% 92%);background:linear-gradient(135deg,#f5efff 0%,var(--ship) 28%,#7b4fff 66%,#ff5cca 100%);transform:skewX(-10deg) rotate(-7deg);filter:drop-shadow(0 0 10px var(--ship))}
+  .nexa-v4484-ship:before{content:"";position:absolute;left:8px;top:12px;width:22px;height:14px;border-radius:50%;background:#07152f;border:2px solid #80efff;box-shadow:0 0 8px #80efff}
+  .nexa-v4484-ship:after{content:"";position:absolute;left:-18px;top:11px;width:25px;height:15px;background:linear-gradient(90deg,transparent,var(--ship));filter:blur(2px)}
+  .nexa-v4484-fleet-empty{padding:28px 16px;border:1px dashed rgba(120,142,215,.27);border-radius:18px;text-align:center;color:#8fa0c4}
+
+  #nexa-v4484-wormhole{display:grid;place-items:center;overflow:hidden}
+  .nexa-v4484-worm{position:absolute;width:min(88vw,520px);aspect-ratio:1;border-radius:50%;background:
+    radial-gradient(circle,transparent 0 24%,rgba(255,255,255,.95) 25% 26%,rgba(80,213,255,.85) 27% 31%,rgba(111,64,255,.76) 33% 38%,rgba(239,60,255,.55) 40% 46%,transparent 48%),
+    conic-gradient(from 0deg,#7e55ff,#4cdcff,#ff58d3,#473cff,#7e55ff);
+    filter:blur(.2px) drop-shadow(0 0 34px #744cff);animation:nexaWormSpin 1.05s linear infinite,nexaWormPulse 1.4s ease-in-out infinite}
+  @keyframes nexaWormSpin{to{transform:rotate(360deg)}}@keyframes nexaWormPulse{50%{scale:1.07}}
+  .nexa-v4484-streaks{position:absolute;inset:-30%;background:repeating-conic-gradient(from 0deg,transparent 0 5deg,rgba(129,181,255,.22) 6deg,transparent 7deg 14deg);animation:nexaStreak .6s linear infinite}
+  @keyframes nexaStreak{to{transform:rotate(20deg) scale(1.08)}}
+  .nexa-v4484-worm-content{position:relative;z-index:3;text-align:center;display:grid;place-items:center;gap:12px}.nexa-v4484-worm-content b{font-size:18px;letter-spacing:.10em}.nexa-v4484-worm-content span{color:#76eaff;font-size:11px;font-weight:850;letter-spacing:.12em}
+
+  #nexa-account-constellation .nexa-account-planet.nexa-v4484-planet{background:transparent!important;border:0!important;box-shadow:none!important;border-radius:0!important;padding:0!important;overflow:visible!important}
+  #nexa-account-constellation .nexa-v4484-planet-orb{display:grid;place-items:center;border-radius:50%;padding:4px;background:radial-gradient(circle,color-mix(in srgb,var(--acct) 22%,#081127),#061020 67%);border:2px solid var(--acct);box-shadow:0 0 16px color-mix(in srgb,var(--acct) 75%,transparent),0 0 34px color-mix(in srgb,var(--acct) 28%,transparent)}
+  #nexa-account-constellation .nexa-v4484-planet-orb img{display:block;width:100%!important;height:100%!important;border-radius:50%!important;object-fit:cover!important;box-shadow:none!important}
+  #nexa-account-constellation .nexa-account-planet.main .nexa-v4484-planet-orb{width:118px;height:118px}
+  #nexa-account-constellation .nexa-account-planet.alt .nexa-v4484-planet-orb{width:80px;height:80px}
+  #nexa-account-constellation .nexa-account-planet-name{margin-top:7px!important;text-shadow:0 0 8px rgba(0,0,0,.9)}
+  #nexa-account-constellation .nexa-account-planet-type{display:block!important;background:transparent!important;border:0!important;padding:2px 0!important;box-shadow:none!important}
+  #nexa-account-constellation .nexa-v4484-add-orb{width:72px;height:72px;border-radius:50%;display:grid;place-items:center;margin:auto;border:2px solid #65dfff;background:#07162e;color:#69e3ff;font-size:40px;box-shadow:0 0 22px rgba(83,215,255,.30)}
+  #nexa-v4484-return-fleet{position:absolute;z-index:65;left:18px;top:max(18px,env(safe-area-inset-top));border:1px solid rgba(93,194,255,.38);border-radius:999px;padding:8px 11px;background:rgba(7,17,39,.86);color:#bceeff;font-size:10px;font-weight:900}
+  #nexa-account-constellation .nexa-constellation-heading b{display:block;color:#f5f7ff;font-size:14px;letter-spacing:.09em;margin-bottom:4px}
+  @media(max-width:560px){
+    .nexa-v4484-onboard-card{grid-template-columns:82px 1fr}.nexa-v4484-drone{transform:scale(.88);transform-origin:center}
+    .nexa-v4484-state-card{padding-left:116px}.nexa-v4484-ship{left:18px}
+    #nexa-account-constellation .nexa-account-planet.main .nexa-v4484-planet-orb{width:104px;height:104px}
+    #nexa-account-constellation .nexa-account-planet.alt .nexa-v4484-planet-orb{width:72px;height:72px}
+  }
+
   #nexa-profile-type.v448-main{color:#ffd96b!important;border-color:rgba(255,198,64,.72)!important}
   #nexa-profile-type.v448-alt{color:#86eaff!important;border-color:rgba(77,216,255,.65)!important}
 
@@ -199,7 +277,7 @@ async function refreshAccountManager(){
       .eq('user_id',user.id).order('is_main',{ascending:false}).order('created_at');
     if(q.error)throw q.error;
     const rows=q.data||[];
-    const count=$('#account-count');if(count)count.textContent=`${rows.length}/5`;
+    const count=$('#account-count');if(count)count.textContent=`${rows.length} ACCOUNT${rows.length===1?'':'S'}`;
     const list=$('#accounts-list');
     if(list)list.innerHTML=rows.map(a=>{
       const tag=a.alliances?.tag||a.custom_alliance_tag||'Not Listed';
@@ -269,38 +347,46 @@ function accountAvatar(a){
   return a?.profile_photo_url||
     `https://ui-avatars.com/api/?name=${encodeURIComponent(a?.in_game_name||'NEXA')}&background=111a38&color=cabaff&bold=true&size=256`;
 }
-function renderCanonicalConstellation(rows){
+function renderCanonicalConstellation(rows,stateNumber=activeFleetState){
   const system=$('#nexa-constellation-system');if(!system)return;
-  const list=Array.isArray(rows)?rows:[];
+  const all=Array.isArray(rows)?rows:[];
+  const state=Number(stateNumber||0);
+  const list=state?all.filter(a=>Number(a.state_number||0)===state):all;
   const main=list.find(a=>a.is_main)||list[0]||null;
   const others=main?list.filter(a=>String(a.id)!==String(main.id)):list;
-  const pos=[[50,14],[82,33],[84,67],[50,86],[16,67],[18,33]];
+  const pos=[[50,15],[79,31],[82,65],[52,84],[18,68],[18,34],[66,10],[91,49],[67,89],[32,89],[9,50],[33,10]];
   let out='<span class="nexa-constellation-orbit one"></span><span class="nexa-constellation-orbit two"></span>';
 
   if(main){
-    out+=`<button type="button" class="nexa-account-planet main" data-nexa-profile="${esc(main.id)}" style="--acct:${accountColor(main.id)}">
-      <img src="${esc(accountAvatar(main))}" alt="">
+    out+=`<button type="button" class="nexa-account-planet main nexa-v4484-planet" data-nexa-profile="${esc(main.id)}" style="--acct:${accountColor(main.id)}">
+      <span class="nexa-v4484-planet-orb"><img src="${esc(accountAvatar(main))}" alt=""></span>
       <span class="nexa-account-planet-name">${esc(main.in_game_name||'WOS Account')}</span>
       <span class="nexa-account-planet-type">★ MAIN ACCOUNT</span>
     </button>`;
   }
   others.forEach((a,i)=>{
     const p=pos[i%pos.length];
-    out+=`<button type="button" class="nexa-account-planet alt" data-nexa-profile="${esc(a.id)}" style="left:${p[0]}%;top:${p[1]}%;--acct:${accountColor(a.id)}">
-      <img src="${esc(accountAvatar(a))}" alt="">
+    out+=`<button type="button" class="nexa-account-planet alt nexa-v4484-planet" data-nexa-profile="${esc(a.id)}" style="left:${p[0]}%;top:${p[1]}%;--acct:${accountColor(a.id)}">
+      <span class="nexa-v4484-planet-orb"><img src="${esc(accountAvatar(a))}" alt=""></span>
       <span class="nexa-account-planet-name">${esc(a.in_game_name||'Account')}</span>
       <span class="nexa-account-planet-type">✦ ALT ACCOUNT</span>
     </button>`;
   });
-  if(list.length<5){
-    const p=pos[Math.max(0,list.length-1)%pos.length];
-    out+=`<button type="button" id="nexa-constellation-add" class="nexa-account-planet alt nexa-add-planet" style="left:${p[0]}%;top:${p[1]}%">
-      <span class="nexa-add-planet-symbol">+</span><span class="nexa-account-planet-name">ADD ACCOUNT</span>
-    </button>`;
-  }
+
+  const addPos=pos[Math.max(0,list.length-1)%pos.length];
+  out+=`<button type="button" id="nexa-constellation-add" class="nexa-account-planet alt nexa-add-planet nexa-v4484-planet" style="left:${addPos[0]}%;top:${addPos[1]}%">
+    <span class="nexa-v4484-add-orb">+</span><span class="nexa-account-planet-name">ADD ACCOUNT</span>
+  </button>`;
+
   system.innerHTML=out;
-  const heading=$('#nexa-account-constellation .nexa-constellation-heading span');
-  if(heading)heading.textContent='Choose the account you want to open.';
+
+  const wrap=$('#nexa-account-constellation');
+  const heading=$('.nexa-constellation-heading',wrap);
+  if(heading){
+    const count=list.length;
+    heading.innerHTML=`<b>STATE ${esc(state||'—')} · ${count} ACCOUNT${count===1?'':'S'}</b><span>Choose the Game Account you want to access.</span>`;
+  }
+  ensureFleetReturnButton();
 }
 
 async function repairAccountLabels(){
@@ -447,6 +533,200 @@ async function chiefGearStars(){
 }
 
 
+
+function droneMarkup(extra=''){
+  return `<div class="nexa-v4484-drone ${extra}">
+    <span class="nexa-v4484-drone-wing a"></span><span class="nexa-v4484-drone-wing b"></span>
+    <span class="nexa-v4484-drone-body"><span class="nexa-v4484-drone-face"><i class="nexa-v4484-drone-eye a"></i><i class="nexa-v4484-drone-eye b"></i></span></span>
+    <span class="nexa-v4484-drone-core"></span>
+  </div>`;
+}
+
+function typeMessage(el,text,onDone){
+  cancelAnimationFrame(typewriterRAF);
+  if(!el)return onDone?.();
+  const full=String(text||'');
+  let i=0,finished=false,last=0;
+  el.textContent='';
+  const complete=()=>{
+    if(finished)return;
+    finished=true;cancelAnimationFrame(typewriterRAF);el.textContent=full;onDone?.();
+  };
+  el.onclick=complete;
+  function step(ts){
+    if(finished)return;
+    if(!last||ts-last>18){i=Math.min(full.length,i+2);el.textContent=full.slice(0,i);last=ts}
+    if(i>=full.length){finished=true;onDone?.();return}
+    typewriterRAF=requestAnimationFrame(step);
+  }
+  typewriterRAF=requestAnimationFrame(step);
+  return complete;
+}
+
+function groupAccountsByState(rows){
+  const map=new Map();
+  (rows||[]).forEach(a=>{
+    const key=Number(a.state_number||0)||0;
+    if(!map.has(key))map.set(key,[]);
+    map.get(key).push(a);
+  });
+  return [...map.entries()].sort((a,b)=>a[0]-b[0]);
+}
+
+function stateShipColor(state){
+  const colors=['#64dcff','#ff9a45','#5ce2a4','#d766ff','#ff5eaa','#8c7bff'];
+  let n=Number(state)||0;return colors[Math.abs(n)%colors.length];
+}
+
+function closeFleet(){
+  $('#nexa-v4484-fleet')?.remove();
+  document.body.style.overflow='';
+}
+async function openFleet(){
+  const rows=await loadAccounts();
+  $('#nexa-account-constellation')?.classList.remove('open');
+  $('#nexa-account-constellation')?.setAttribute('aria-hidden','true');
+  $('#nexa-v4484-fleet')?.remove();
+  const ov=document.createElement('section');ov.id='nexa-v4484-fleet';
+  ov.innerHTML=`<div class="nexa-v4484-stars"></div><div class="nexa-v4484-shell">
+    <div class="nexa-v4484-fleet-head"><div><small style="color:#65dfff;font-weight:900;letter-spacing:.14em">MY PROFILE</small><h2>NEXA FLEET</h2></div><button class="nexa-v4484-close" type="button" data-fleet-close>×</button></div>
+    <div class="nexa-v4484-fleet-guide">${droneMarkup()}<div class="nexa-v4484-dialog"><small>NEXA DRONE</small><p data-fleet-guide></p></div></div>
+    <div class="nexa-v4484-state-list" data-fleet-list></div>
+  </div>`;
+  document.body.appendChild(ov);document.body.style.overflow='hidden';
+  const groups=groupAccountsByState(rows);
+  const list=$('[data-fleet-list]',ov);
+  list.innerHTML=groups.length?groups.map(([state,accounts])=>{
+    const c=stateShipColor(state);
+    return `<button class="nexa-v4484-state-card" type="button" data-fleet-state="${esc(state)}" style="--ship:${c}">
+      <span class="nexa-v4484-ship"></span><b>STATE ${esc(state||'UNASSIGNED')}</b>
+      <small>${accounts.length} ACCOUNT${accounts.length===1?'':'S'}</small><span class="go">→</span>
+    </button>`;
+  }).join(''):'<div class="nexa-v4484-fleet-empty">No Game Accounts found yet.</div>';
+  typeMessage($('[data-fleet-guide]',ov),'Welcome to NEXA Fleet. Select a State to access its Account Constellation.');
+  $('[data-fleet-close]',ov)?.addEventListener('click',closeFleet);
+  ov.addEventListener('click',e=>{
+    const card=e.target.closest?.('[data-fleet-state]');
+    if(!card)return;
+    const state=Number(card.dataset.fleetState||0);
+    enterFleetState(state);
+  });
+}
+
+function playWormhole(state,after){
+  $('#nexa-v4484-wormhole')?.remove();
+  const ov=document.createElement('section');ov.id='nexa-v4484-wormhole';
+  ov.innerHTML=`<div class="nexa-v4484-streaks"></div><div class="nexa-v4484-worm"></div>
+    <div class="nexa-v4484-worm-content">${droneMarkup('intro')}<div class="nexa-v4484-dialog" style="width:min(300px,80vw)"><small>NEXA DRONE</small><p>State selected. Opening Account Constellation…</p></div><b>STATE ${esc(state)}</b><span>PREPARING JUMP…</span></div>`;
+  document.body.appendChild(ov);
+  setTimeout(()=>{ov.remove();after?.()},1150);
+}
+
+async function enterFleetState(state){
+  activeFleetState=Number(state||0);
+  closeFleet();
+  const rows=await loadAccounts();
+  playWormhole(activeFleetState,()=>{
+    renderCanonicalConstellation(rows,activeFleetState);
+    const c=$('#nexa-account-constellation');
+    c?.classList.add('open');c?.setAttribute('aria-hidden','false');
+    document.body.style.overflow='hidden';
+  });
+}
+
+function ensureFleetReturnButton(){
+  const wrap=$('#nexa-account-constellation'),stage=$('.nexa-constellation-stage',wrap);
+  if(!wrap||!stage)return;
+  let b=$('#nexa-v4484-return-fleet',stage);
+  if(!b){b=document.createElement('button');b.id='nexa-v4484-return-fleet';b.type='button';b.textContent='← RETURN TO NEXA FLEET';stage.prepend(b)}
+  b.onclick=e=>{e.preventDefault();e.stopPropagation();wrap.classList.remove('open');wrap.setAttribute('aria-hidden','true');openFleet()};
+}
+
+async function openSelectedProfile(id){
+  const c=sb();if(!c||!id)return;
+  try{
+    const {data:{user}}=await c.auth.getUser();if(!user)return;
+    const q=await c.from('player_accounts')
+      .select('id,in_game_name,player_id,alliance_id,custom_alliance_tag,is_main,account_purpose,alliance_role,furnace_level,power,deployment_capacity,profile_photo_url,state_number,alliances(tag)')
+      .eq('id',id).eq('user_id',user.id).single();
+    if(q.error)throw q.error;
+    const a=q.data||{};
+    window.NEXA_ACTIVE_ACCOUNT_ID=String(a.id);
+    const text=(sel,val)=>{const el=$(sel);if(el)el.textContent=val};
+    const value=(sel,val)=>{const el=$(sel);if(el)el.value=val??''};
+    const tag=a.alliances?.tag||a.custom_alliance_tag||'Not Listed';
+    text('#nexa-profile-name',String(a.in_game_name||'PLAYER').toUpperCase());
+    text('#nexa-profile-player-id',a.player_id||'');
+    text('#nexa-profile-alliance',tag);
+    text('#nexa-profile-role',a.alliance_role||'R3');
+    text('#nexa-profile-type',a.is_main?'★ MAIN ACCOUNT':'✦ ALT ACCOUNT');
+    text('#nexa-profile-furnace',a.furnace_level||'—');
+    text('#nexa-profile-power',a.power?Intl.NumberFormat(undefined,{notation:'compact',maximumFractionDigits:2}).format(Number(a.power)):'—');
+    text('#nexa-profile-deployment',a.deployment_capacity?Number(a.deployment_capacity).toLocaleString():'—');
+    const photo=$('#nexa-profile-photo');if(photo)photo.src=accountAvatar(a);
+    value('#nexa-edit-name',a.in_game_name||'');value('#nexa-edit-role',a.alliance_role||'R3');value('#nexa-edit-furnace',a.furnace_level||'');value('#nexa-edit-power',a.power||'');value('#nexa-edit-deployment',a.deployment_capacity||'');
+    $('#nexa-profile-editor')?.classList.remove('open');$('#nexa-deploy-panel')?.classList.remove('open');
+    $('#nexa-account-constellation')?.classList.remove('open');$('#nexa-account-constellation')?.setAttribute('aria-hidden','true');
+    const p=$('#nexa-profile-modal');p?.classList.add('open');p?.setAttribute('aria-hidden','false');
+    profileCameFromConstellation=true;
+    window.dispatchEvent(new CustomEvent('nexa:account-changed',{detail:{accountId:String(a.id),stateNumber:Number(a.state_number||0)}}));
+    window.dispatchEvent(new CustomEvent('nexa:profile-open',{detail:{accountId:String(a.id)}}));
+    schedule();
+  }catch(err){alert(err?.message||String(err))}
+}
+
+const ONBOARDING=[
+  {title:'WELCOME',text:'Welcome to NEXA — your hub for game accounts, profiles, events, schedules, forms, and State tools.'},
+  {title:'YOUR ACCOUNTS',text:'Manage multiple Game Accounts, even across different States. Each account stays separate and keeps its own data.'},
+  {title:'GET STARTED',text:'Open My Profile to access your NEXA Fleet. Select a State, enter its Account Constellation, and choose the account you want to use.'}
+];
+
+async function finishOnboarding(){
+  const c=sb();
+  try{if(c)await c.auth.updateUser({data:{nexa_onboarding_version:1}})}catch{}
+  $('#nexa-v4484-onboarding')?.remove();document.body.style.overflow='';
+}
+function showOnboarding(){
+  if($('#nexa-v4484-onboarding'))return;
+  const ov=document.createElement('section');ov.id='nexa-v4484-onboarding';
+  ov.innerHTML=`<div class="nexa-v4484-stars"></div><div class="nexa-v4484-shell"><div class="nexa-v4484-onboard-main"><div class="nexa-v4484-onboard-card">
+    <div data-onboard-drone>${droneMarkup('intro')}</div>
+    <div class="nexa-v4484-dialog"><small>NEXA DRONE</small><p data-onboard-text></p></div>
+    <div class="nexa-v4484-mini-path" data-onboard-path></div>
+    <div class="nexa-v4484-step" data-onboard-step></div>
+    <div class="nexa-v4484-progress" data-onboard-progress></div>
+    <button class="nexa-v4484-primary" type="button" data-onboard-next disabled>NEXT</button>
+  </div></div></div>`;
+  document.body.appendChild(ov);document.body.style.overflow='hidden';
+  let page=0;
+  const text=$('[data-onboard-text]',ov),next=$('[data-onboard-next]',ov),step=$('[data-onboard-step]',ov),dots=$('[data-onboard-progress]',ov),path=$('[data-onboard-path]',ov);
+  function render(){
+    const item=ONBOARDING[page];next.disabled=true;
+    step.textContent=`${page+1} / ${ONBOARDING.length} · ${item.title}`;
+    dots.innerHTML=ONBOARDING.map((_,i)=>`<i class="${i===page?'on':''}"></i>`).join('');
+    path.innerHTML=page===2?'<b>MY PROFILE</b><em>→</em><b>NEXA FLEET</b><em>→</em><b>STATE</b><em>→</em><b>ACCOUNT</b>':'';
+    next.textContent=page===ONBOARDING.length-1?'ENTER NEXA':'NEXT';
+    typeMessage(text,item.text,()=>{next.disabled=false});
+  }
+  next.addEventListener('click',async()=>{
+    if(next.disabled){text.click();return}
+    if(page<ONBOARDING.length-1){page++;render();return}
+    next.disabled=true;next.textContent='ENTERING…';await finishOnboarding();
+  });
+  render();
+}
+
+async function maybeShowOnboarding(){
+  if(onboardingChecked)return;onboardingChecked=true;
+  const c=sb();if(!c)return;
+  try{
+    const {data:{user}}=await c.auth.getUser();
+    if(!user){onboardingChecked=false;return}
+    const done=Number(user.user_metadata?.nexa_onboarding_version||0)>=1;
+    if(!done&&!$('#nexa-auth-gate:not(.hidden)'))showOnboarding();
+  }catch{}
+}
+
 async function openCompleteBugReporter(){
   const c=sb();
   if(!c)return alert('NEXA is still connecting.');
@@ -547,7 +827,7 @@ function installAuthAdjustments(){
   if(brand)brand.textContent='ONE HUB • MANAGEMENT, EVENTS & COORDINATION';
 
   const note=$('#nexa-pane-create .nexa-auth-note',gate);
-  if(note)note.innerHTML='<b>Main Account:</b> Your first game account becomes your Main Account. You can add up to 4 Alt Accounts later. Each account keeps its own Profile, Heroes, Experts, Pets, Chief Gear, Charms and Deployment data.';
+  if(note)note.innerHTML='<b>Main Account:</b> Your first Game Account becomes your Main Account. Add as many Game Accounts as you need, including accounts from different States. Each account keeps its own Profile data separate.';
 
   let report=$('#nexa-v4481-report-bugs');
   if(!report){
@@ -597,7 +877,11 @@ function apply(){
   experts();
   chiefGearStars();
   syncPendingState();
+  ensureFleetReturnButton();
+  maybeShowOnboarding();
 }
+window.NEXADrone={openFleet,showOnboarding,openAccount:openSelectedProfile};
+
 function schedule(){
   requestAnimationFrame(apply);
   [60,180,420,900,1600].forEach(ms=>setTimeout(apply,ms));
@@ -609,15 +893,44 @@ function schedule(){
 window.addEventListener('click',e=>{
   const launcher=e.target.closest?.('#nexa-profile-launcher');
   if(launcher){
-    e.preventDefault();e.stopPropagation();
-    loadAccounts().then(rows=>{renderCanonicalConstellation(rows);const c=$('#nexa-account-constellation');c?.classList.add('open');c?.setAttribute('aria-hidden','false')});
+    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+    openFleet();
     return;
   }
+
+  const fleetReturn=e.target.closest?.('#nexa-v4484-return-fleet');
+  if(fleetReturn){
+    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+    $('#nexa-account-constellation')?.classList.remove('open');
+    openFleet();
+    return;
+  }
+
+  const card=e.target.closest?.('#nexa-account-constellation [data-nexa-profile]');
+  if(card?.dataset.nexaProfile){
+    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+    openSelectedProfile(String(card.dataset.nexaProfile));
+    return;
+  }
+
+  const add=e.target.closest?.('#nexa-constellation-add');
+  if(add){
+    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+    $('#nexa-account-constellation')?.classList.remove('open');
+    const m=$('#accounts-modal');m?.classList.add('open');m?.setAttribute('aria-hidden','false');
+    installAccountManagerUI();
+    if(activeFleetState&&$('#account-state'))$('#account-state').value=String(activeFleetState);
+    return;
+  }
+
   const close=e.target.closest?.('[data-close-nexa-profile]');
   if(close){
-    e.preventDefault();e.stopPropagation();
+    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
     const p=$('#nexa-profile-modal');p?.classList.remove('open');p?.setAttribute('aria-hidden','true');
-    loadAccounts().then(rows=>{renderCanonicalConstellation(rows);const c=$('#nexa-account-constellation');c?.classList.add('open');c?.setAttribute('aria-hidden','false')});
+    loadAccounts().then(rows=>{
+      renderCanonicalConstellation(rows,activeFleetState);
+      const c=$('#nexa-account-constellation');c?.classList.add('open');c?.setAttribute('aria-hidden','false');
+    });
     return;
   }
 },true);
@@ -628,7 +941,7 @@ document.addEventListener('pointerdown',e=>{
     const id=String(card.dataset.nexaProfile);
     window.NEXA_ACTIVE_ACCOUNT_ID=id;
     profileCameFromConstellation=true;
-    window.dispatchEvent(new CustomEvent('nexa:account-changed',{detail:{accountId:id}}));
+    window.dispatchEvent(new CustomEvent('nexa:account-changed',{detail:{accountId:id,stateNumber:activeFleetState}}));
   }
 },true);
 

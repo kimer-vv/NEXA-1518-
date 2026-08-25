@@ -1,4 +1,4 @@
-/* NEXA V45.2 — HOME MENU / NEXA GUIDE / ALLIANCE PENDING / TEXT CLEANUP — 2026-08-25
+/* NEXA V45.3 — ACCOUNT ISOLATION / HOME RETURN / SIGNAL CARDS — 2026-08-25
    COMPLETE REPLACEMENT for nexa-v44-8-profile-stability.js
    Fixes:
    - MAIN / ALT labels across Constellation, Passport and Player Intelligence Profile
@@ -13,8 +13,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V452_HOME_GUIDE__) return;
-window.__NEXA_V452_HOME_GUIDE__=true;
+if(window.__NEXA_V453_ACCOUNT_ISOLATION__) return;
+window.__NEXA_V453_ACCOUNT_ISOLATION__=true;
 window.NEXA_CANONICAL_ACCOUNTS=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
@@ -530,6 +530,64 @@ function installCSS(){
   #nexa-v452-alliance-note{
     margin-top:2px;padding:8px 9px;border-radius:10px;
     border:1px solid rgba(79,219,255,.18);background:rgba(21,132,172,.07);color:#91dded!important
+  }
+
+
+  /* ================= NEXA V45.3 STABILITY + REAL HOME CARDS ================= */
+  .nexa-v453-home-card{
+    --nexa-card-accent:#56e7ff!important;
+    position:relative!important;
+    overflow:hidden!important;
+    border:1px solid color-mix(in srgb,var(--nexa-card-accent) 58%,transparent)!important;
+    border-radius:22px!important;
+    background:
+      radial-gradient(circle at 88% 10%,color-mix(in srgb,var(--nexa-card-accent) 18%,transparent),transparent 31%),
+      radial-gradient(circle at 8% 92%,rgba(116,76,255,.10),transparent 30%),
+      linear-gradient(145deg,rgba(8,20,48,.96),rgba(5,8,26,.96))!important;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,.02),
+      0 0 25px color-mix(in srgb,var(--nexa-card-accent) 13%,transparent),
+      inset 0 0 28px color-mix(in srgb,var(--nexa-card-accent) 6%,transparent)!important
+  }
+  .nexa-v453-home-card:before{
+    content:"";position:absolute;left:0;top:14%;bottom:14%;width:2px;border-radius:99px;
+    background:var(--nexa-card-accent);box-shadow:0 0 12px var(--nexa-card-accent)
+  }
+  .nexa-v453-live{--nexa-card-accent:#ff63d2!important}
+  .nexa-v453-transfer{--nexa-card-accent:#ff9b57!important}
+  .nexa-v453-pulse{--nexa-card-accent:#50e9ff!important}
+  .nexa-v453-alliance{--nexa-card-accent:#c75cff!important}
+  .nexa-v453-home-card h2,.nexa-v453-home-card h3,.nexa-v453-home-card strong{
+    text-shadow:0 0 12px color-mix(in srgb,var(--nexa-card-accent) 23%,transparent)!important
+  }
+  .nexa-v453-home-card .head h2,
+  .nexa-v453-home-card [class*="kicker"],
+  .nexa-v453-home-card .badge{
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace!important;
+    letter-spacing:.13em!important
+  }
+
+  /* Profile editor ownership / layout safety */
+  #v26-profile-alliance-block{max-width:100%!important;overflow:hidden!important}
+  #v26-profile-alliance-block > label:last-child{
+    display:grid!important;
+    grid-template-columns:28px minmax(0,1fr)!important;
+    align-items:center!important;
+    gap:9px!important;
+    max-width:100%!important;
+    overflow:hidden!important;
+    line-height:1.25!important
+  }
+  #v26-profile-alliance-block > label:last-child input{
+    width:22px!important;height:22px!important;margin:0!important
+  }
+  #v26-profile-alliance-block > label:last-child{
+    font-size:12px!important;color:#ccd6ee!important
+  }
+
+  /* Home menu must always return once overlays are closed. */
+  body:not(.nexa-v452-away-home):not(:has(#nexa-auth-gate:not(.hidden))) #nexa-home-menu-toggle{
+    display:flex!important;visibility:visible!important;opacity:1!important
   }
 
   /* Chief Gear stars: inside planet, left side, vertical */
@@ -1440,6 +1498,102 @@ async function syncPendingState(){
 }
 
 
+
+function markHomeSignalCards(){
+  const seen=new Set();
+  const candidates=$$('.section,.event,article,section');
+  const defs=[
+    ['live','LIVE EVENT'],
+    ['transfer','TRANSFER CENTER'],
+    ['pulse','NEXA PULSE'],
+    ['alliance','ALLIANCE SIGNAL']
+  ];
+  for(const el of candidates){
+    if(!el||seen.has(el))continue;
+    const txt=String(el.textContent||'').replace(/\s+/g,' ').trim().toUpperCase();
+    const hit=defs.find(([,label])=>txt.includes(label));
+    if(!hit)continue;
+    el.classList.add('nexa-v453-home-card',`nexa-v453-${hit[0]}`);
+    seen.add(el);
+  }
+}
+
+async function safeProfileSubmit(e){
+  const form=e.target;
+  if(form?.id!=='nexa-profile-editor')return;
+  e.preventDefault();
+  e.stopImmediatePropagation();
+
+  const pid=String($('#nexa-profile-player-id')?.textContent||'').trim();
+  if(!pid){alert('NEXA could not identify this Game Account. Close Profile and open the account again.');return}
+
+  const client=sb();
+  const {data:{user}}=await client.auth.getUser();
+  if(!user){alert('Your NEXA session expired. Please sign in again.');return}
+
+  const {data:account,error:accountError}=await client
+    .from('player_accounts')
+    .select('id,player_id,in_game_name,is_main,alliance_id,state_number,profile_photo_url')
+    .eq('user_id',user.id)
+    .eq('player_id',pid)
+    .maybeSingle();
+  if(accountError||!account){
+    alert(accountError?.message||'NEXA could not find the selected Game Account.');
+    return;
+  }
+
+  try{
+    const newAlliance=$('#v26-edit-alliance')?.value||'';
+    if(newAlliance && String(newAlliance)!==String(account.alliance_id||'')){
+      await rpc('nexa_change_account_alliance',{
+        p_account_id:account.id,
+        p_alliance_id:Number(newAlliance),
+        p_access_code:''
+      });
+    }
+
+    const payload={
+      in_game_name:$('#nexa-edit-name')?.value?.trim()||account.in_game_name||'',
+      furnace_level:$('#nexa-edit-furnace')?.value||null,
+      power:Number(String($('#nexa-edit-power')?.value||'').replace(/\D/g,''))||null,
+      deployment_capacity:Number(String($('#nexa-edit-deployment')?.value||'').replace(/\D/g,''))||null
+    };
+
+    const {error}=await client.from('player_accounts').update(payload).eq('id',account.id).eq('user_id',user.id);
+    if(error)throw error;
+
+    if($('#v26-set-main')?.checked && !account.is_main){
+      await rpc('nexa_set_main_account',{p_account_id:account.id});
+    }
+
+    form.dataset.v26AccountId=account.id;
+    form.dataset.v26AllianceId=newAlliance||account.alliance_id||'';
+
+    form.classList.remove('open');
+    await repairAccountLabels();
+    await loadAccounts();
+    await openSelectedProfile(account.id);
+    document.body.classList.add('nexa-v451-profile-open');
+    syncHomeOnlyMenu();
+  }catch(err){
+    alert(err?.message||String(err));
+  }
+}
+
+function installSafeProfileIsolation(){
+  if(document.documentElement.dataset.nexaV453ProfileSafe==='1')return;
+  document.documentElement.dataset.nexaV453ProfileSafe='1';
+  document.addEventListener('submit',safeProfileSubmit,true);
+  document.addEventListener('click',()=>{
+    setTimeout(()=>{
+      syncHomeOnlyMenu();
+      markHomeSignalCards();
+      cleanMojibake();
+      normalizeUnlimitedAccountUI();
+    },60);
+  },true);
+}
+
 function syncHomeOnlyMenu(){
   const authOpen=!!$('#nexa-auth-gate:not(.hidden)');
   const away=authOpen
@@ -1494,6 +1648,8 @@ function apply(){
   installAccountManagerUI();
   installAuthAdjustments();
   cleanMojibake();
+  installSafeProfileIsolation();
+  markHomeSignalCards();
   normalizeUnlimitedAccountUI();
   removeAllianceCodeRequirement();
   syncHomeOnlyMenu();

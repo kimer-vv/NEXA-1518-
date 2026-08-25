@@ -1,4 +1,4 @@
-/* NEXA V44.5 — PROFILE POLISH + HUMAN STELLAR SIGNAL — 2026-08-24
+/* NEXA V44.6 — PROFILE STABILITY + EXPERT DETAILS + PET SAVE — 2026-08-25
    CLEAN REPLACEMENT. Not cumulative.
    Owns only:
    - Home menu outside-tap close
@@ -14,8 +14,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V445_STABLE__) return;
-window.__NEXA_V445_STABLE__=true;
+if(window.__NEXA_V446_STABLE__) return;
+window.__NEXA_V446_STABLE__=true;
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
@@ -315,6 +315,13 @@ function injectCSS(){
   #home-transfers-section h2,#home-transfers-section h3,#nexa-v430-transfer-card h3,#nexa-transfer-card h3,[data-nexa-transfer] h3{
     font-size:16px!important;line-height:1.15!important;margin:3px 0 4px!important
   }
+
+  .v446-expert-desc{margin:9px 0 4px!important;color:#cbd4ea!important;font-size:10px!important;line-height:1.45!important}
+  .v446-expert-where{display:block!important;margin:0 0 8px!important;color:#73dfff!important;font-size:8px!important;font-weight:900!important;letter-spacing:.06em!important}
+  #nexa-v446-linked-accounts{margin:10px 18px 4px;padding:10px 12px;border:1px solid rgba(101,203,255,.18);border-radius:14px;background:rgba(6,13,31,.44)}
+  #nexa-v446-linked-accounts>small{display:block;color:#8292ba;font-size:8px;font-weight:950;letter-spacing:.12em;margin-bottom:7px}
+  #nexa-v446-linked-accounts>div{display:flex;gap:6px;flex-wrap:wrap}
+  #nexa-v446-linked-accounts button{border:1px solid rgba(76,218,255,.28);border-radius:999px;background:rgba(7,37,57,.55);color:#bcefff;padding:6px 9px;font-size:8px;font-weight:900}
 
   /* Owner access */
   .v44-owner-manager{display:grid;gap:12px;margin:12px 0 16px;padding:14px;border:1px solid rgba(78,213,255,.32);border-radius:18px;background:linear-gradient(145deg,rgba(7,29,50,.92),rgba(7,10,31,.97))}
@@ -755,8 +762,151 @@ function showV445ProfileGuide(){
     <p style="margin:0;color:#c4c7db;line-height:1.55;font-size:14px">Your Profile stores progress for the selected account. Browse Heroes, Experts, Troops, Pets, Chief Gear and Charms; open an item, choose its levels or options, then tap <b>Save</b>. <b>Reset</b> clears only that item. Use the gold calendar beside your account name to view your current Ministry Appointment.</p>
     <button type="button" data-v445-close-guide style="margin-top:16px;padding:10px 18px;border-radius:999px;border:1px solid #ff4fd8;background:#11152f;color:#fff;font-weight:900">Close</button>
   </section>`;
-  d.addEventListener('click',e=>{if(e.target===d||e.target.closest('[data-v445-close-guide]'))d.remove()});
+  d.addEventListener('click',e=>{if(e.target===d||e.target.closest('[data-v445-close-guide]')){d.remove();[0,30,100].forEach(ms=>setTimeout(removeLegacyProfileGuide,ms));}});
   document.body.appendChild(d);
+}
+
+/* ===== V44.6 stability pass ===== */
+const V446_EXPERT_CACHE=new Map();
+let v446DeploymentBusy=false;
+
+function removeLegacyProfileGuide(){
+  const phrase='Swipe categories and generations naturally';
+  $$('body *').forEach(el=>{
+    if(el.id==='nexa-v445-profile-guide')return;
+    const txt=String(el.textContent||'').replace(/\s+/g,' ').trim();
+    if(!txt.includes(phrase))return;
+    const fixed=el.closest('[style*="position:fixed"],[style*="position: fixed"],.modal,.overlay,[role="dialog"]')||el;
+    if(fixed && fixed!==document.body) fixed.remove();
+  });
+}
+function v446CleanMainSentence(){
+  const root=$('#nexa-profile-modal');if(!root)return;
+  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+  const kill=[];
+  while(walker.nextNode()){
+    const n=walker.currentNode;
+    if(/This is your\s+Main\s+account/i.test(String(n.nodeValue||'').replace(/\s+/g,' ')))kill.push(n);
+  }
+  kill.forEach(n=>{n.nodeValue='';});
+  $$('label,small,span,p,div',root).forEach(el=>{
+    const t=String(el.textContent||'').replace(/\s+/g,' ').trim();
+    if(/^This is your Main account$/i.test(t))el.remove();
+  });
+}
+function v446RenameAlliance(){
+  const root=$('#nexa-profile-editor');if(!root)return;
+  $$('select',root).forEach(sel=>{
+    if(sel.id==='nexa-edit-role'||sel.id==='nexa-edit-furnace')return;
+    const box=sel.closest('label')||sel.parentElement;if(!box)return;
+    const text=String(box.textContent||'').replace(/\s+/g,' ').trim();
+    if(!/\bAlliance\b/i.test(text))return;
+    [...box.childNodes].forEach(n=>{
+      if(n.nodeType===Node.TEXT_NODE && /^\s*Alliance\s*$/i.test(n.nodeValue||''))n.nodeValue='Change Alliance';
+    });
+    $$('b,strong,span,h3,h4',box).forEach(x=>{if(/^Alliance$/i.test(String(x.textContent||'').trim()))x.textContent='Change Alliance';});
+  });
+}
+async function v446ExpertDetails(){
+  const root=$('#nexa-v33-detail');if(!root?.classList.contains('open'))return;
+  const title=String($('.v33-title h3',root)?.textContent||'').trim();
+  if(!title)return;
+  const sections=$$('.v33-skill[data-v33-expert-box]',root);
+  if(!sections.length)return;
+  let md=V446_EXPERT_CACHE.get(title);
+  if(!md){
+    const c=sb();if(!c)return;
+    try{
+      const q=await c.from('nexa_library_items').select('metadata').eq('item_type','expert').eq('name',title).maybeSingle();
+      md=q.data?.metadata||{};V446_EXPERT_CACHE.set(title,md);
+    }catch{return}
+  }
+  const skills=Array.isArray(md.skills)?md.skills:[];
+  sections.forEach(box=>{
+    const name=String($('h4',box)?.textContent||'').trim();
+    const sk=skills.find(x=>norm(x.name)===norm(name));if(!sk)return;
+    let desc=$('.v446-expert-desc',box);
+    if(!desc){desc=document.createElement('p');desc.className='v446-expert-desc';const select=$('[data-v33-expert-skill]',box);select?.before(desc)}
+    desc.textContent=sk.description||sk.effect||sk.value_text||'';
+    let where=$('.v446-expert-where',box);
+    const specialty=md.specialty||'Expert bonus';
+    if(!where){where=document.createElement('small');where.className='v446-expert-where';desc.after(where)}
+    where.textContent=`Applies to: ${specialty}`;
+  });
+}
+function v446SnapshotHero(){
+  const root=$('#nexa-v33-detail');if(!root?.classList.contains('open'))return;
+  const rows={};
+  $$('[data-v33-hero-skill-box]',root).forEach(box=>{
+    const k=box.dataset.v33HeroSkillBox;
+    rows[k]=Number($('.v33-level.active[data-v33-hero-skill]',box)?.dataset.level||0);
+  });
+  root.dataset.v446HeroSkills=JSON.stringify(rows);
+}
+function v446RestoreHero(){
+  const root=$('#nexa-v33-detail');if(!root?.classList.contains('open'))return;
+  let rows={};try{rows=JSON.parse(root.dataset.v446HeroSkills||'{}')}catch{}
+  $$('[data-v33-hero-skill-box]',root).forEach(box=>{
+    const wanted=Number(rows[box.dataset.v33HeroSkillBox]);
+    if(!Number.isFinite(wanted))return;
+    $$('[data-v33-hero-skill]',box).forEach(b=>b.classList.toggle('active',Number(b.dataset.level)===wanted));
+  });
+  repairHeroSignature();repairWidget();
+}
+function v446SyncPetCustom(){
+  const root=$('#nexa-v33-detail');if(!root?.classList.contains('open'))return;
+  const custom=$('[data-v44-pet-level]',root),native=$('[data-v33-pet-skill]',root);
+  if(!custom||!native)return;
+  native.value=String(custom.value);
+  root.dataset.petSkill=String(custom.value);
+}
+function v446TroopImage(){
+  const root=$('#nexa-v33-detail');if(!root?.classList.contains('open'))return;
+  const title=norm($('.v33-title h3',root)?.textContent||'');
+  const type=title.includes('infantry')?'infantry':title.includes('lancer')?'lancer':title.includes('marksman')?'marksman':'';
+  if(!type)return;
+  const tier=clamp(Number(root.dataset.troopTier||$('.v33-level.active[data-v33-troop-tier]',root)?.dataset.v33TroopTier||1),1,12);
+  const src=window.NEXA_TROOP_ASSETS?.getPortrait?.(type,tier)||window.NEXA_TROOP_PORTRAITS?.[type]?.['t'+tier];
+  const img=$('.v33-mini img',root);if(src&&img)img.src=src;
+}
+async function v446Deployment(){
+  if(v446DeploymentBusy)return;
+  const panel=$('#nexa-deploy-panel');if(!panel)return;
+  const parse=v=>Number(String(v||'').replace(/[^\d]/g,'')||0);
+  let base=parse($('#nexa-edit-deployment')?.value)||parse($('#nexa-profile-deployment')?.textContent);
+  if(!base)return;
+  const set=(id,v)=>{const el=$('#'+id);if(el)el.textContent=Number(v).toLocaleString()};
+  set('dep-base',base);set('dep-10',Math.round(base*1.10));set('dep-20',Math.round(base*1.20));
+  v446DeploymentBusy=true;
+  try{
+    const c=sb();const accountId=window.NEXA_ACTIVE_ACCOUNT_ID;
+    if(!c||!accountId)return;
+    const pet=await c.from('nexa_library_items').select('id').eq('item_type','pet').eq('name','Snow Ape').maybeSingle();
+    if(!pet.data?.id)return;
+    const inv=await c.from('player_library_inventory').select('progress').eq('player_account_id',accountId).eq('library_item_id',pet.data.id).maybeSingle();
+    const lv=clamp(Number(inv.data?.progress?.pet_skill||0),0,10);
+    const vals=[0,1500,3000,4500,6000,7500,9000,10500,12000,13500,15000];
+    const plus=vals[lv]||0;
+    if(!plus){
+      ['dep-pet','dep-pet10','dep-pet20'].forEach(id=>{const el=$('#'+id);if(el)el.textContent='Set pet first'});
+      return;
+    }
+    set('dep-pet',base+plus);set('dep-pet10',Math.round((base+plus)*1.10));set('dep-pet20',Math.round((base+plus)*1.20));
+  }finally{v446DeploymentBusy=false}
+}
+async function v446LinkedAccounts(){
+  const root=$('#nexa-profile-modal .nexa-profile-sheet');if(!root)return;
+  const c=sb();if(!c)return;
+  try{
+    const {data:{user}}=await c.auth.getUser();if(!user)return;
+    const q=await c.from('player_accounts').select('id,in_game_name,player_id,is_main,custom_alliance_tag,alliances(tag)').eq('user_id',user.id).order('is_main',{ascending:false}).order('created_at');
+    const rows=q.data||[];let host=$('#nexa-v446-linked-accounts',root);
+    if(rows.length<2){host?.remove();return}
+    const active=String(window.NEXA_ACTIVE_ACCOUNT_ID||'');
+    const others=rows.filter(x=>String(x.id)!==active);
+    if(!host){host=document.createElement('section');host.id='nexa-v446-linked-accounts';const stats=$('.nexa-profile-stats',root);stats?.insertAdjacentElement('afterend',host)}
+    host.innerHTML=`<small>OTHER ACCOUNTS · ${others.length}</small><div>${others.slice(0,3).map(x=>`<button type="button" data-v446-account="${esc(x.id)}">✦ ${esc(x.in_game_name||'Account')} • ${esc(x.alliances?.tag||x.custom_alliance_tag||'—')} • ALT</button>`).join('')}</div>`;
+  }catch{}
 }
 
 function apply(){
@@ -768,7 +918,13 @@ function apply(){
   repairCharms();
   repairCharmPaths();
   repairProfileIdentity();
+  v446CleanMainSentence();
+  v446RenameAlliance();
   repairAccountBadge();
+  v446ExpertDetails();
+  v446TroopImage();
+  v446Deployment();
+  v446LinkedAccounts();
   refreshStellarSignal();
   ownerAccess();
 }
@@ -777,15 +933,24 @@ function schedule(){
   [30,90,180,360,700,1200].forEach(ms=>setTimeout(apply,ms));
 }
 
+document.addEventListener('pointerdown',e=>{
+  if(e.target.closest?.('[data-v33-star],[data-v33-widget]'))v446SnapshotHero();
+  const acc=e.target.closest?.('[data-nexa-profile],[data-v446-account]');
+  if(acc){const id=acc.dataset.nexaProfile||acc.dataset.v446Account;if(id)window.NEXA_ACTIVE_ACCOUNT_ID=String(id)}
+},true);
 document.addEventListener('pointerdown',closeMenuOutside,true);
 document.addEventListener('click',e=>{
   if(e.target.closest?.('.nexa-v425-guide')){
     e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();showV445ProfileGuide();return;
   }
-  if(e.target.closest?.('[data-v33-widget],[data-v33-item],[data-v33-cat],[data-v33-gen],[data-v33-reset],#nexa-profile-edit-btn,#admin-roles,#admin-permissions,[data-v33-save]')) schedule();
-  if(e.target.closest?.('[data-v33-cat],[data-v33-gen],[data-v33-save],[data-v33-reset]')){
+  if(e.target.closest?.('[data-v33-widget],[data-v33-star],[data-v33-troop-tier],[data-v33-item],[data-v33-cat],[data-v33-gen],[data-v33-reset],#nexa-profile-edit-btn,#nexa-deployment-stat,#admin-roles,#admin-permissions,[data-v33-save]')) schedule();
+  if(e.target.closest?.('[data-v33-cat],[data-v33-gen],[data-v33-save],[data-v33-reset],[data-v33-star],[data-v33-widget],[data-v33-troop-tier]')){
     [80,180,360,700,1200,2000].forEach(ms=>setTimeout(()=>{repairCharmPaths();repairPet();repairWidget();repairHeroSignature();},ms));
   }
+  if(e.target.closest?.('[data-v33-star],[data-v33-widget]'))[0,30,90,180].forEach(ms=>setTimeout(v446RestoreHero,ms));
+  if(e.target.closest?.('[data-v33-troop-tier]'))[0,30,90].forEach(ms=>setTimeout(v446TroopImage,ms));
+  if(e.target.closest?.('#nexa-deployment-stat,[data-v33-save]'))[40,160,500].forEach(ms=>setTimeout(v446Deployment,ms));
+  if(e.target.closest?.('.nexa-v425-guide'))[0,30,100].forEach(ms=>setTimeout(removeLegacyProfileGuide,ms));
   if(e.target.closest?.('[data-v44-pet-details]')){
     const d=e.target.closest('.v44-pet')?.querySelector('.v44-pet-desc'); if(d)d.hidden=!d.hidden;
   }
@@ -794,6 +959,7 @@ document.addEventListener('change',e=>{
   if(e.target.matches?.('[data-v44-pet-level]')){
     const name=petName(),d=PETS[name],lv=clamp(Number(e.target.value),1,d?.[2]?.length||1),host=e.target.closest('.v44-pet');
     if(d&&host){host.querySelector('.v44-pet-result strong').textContent=d[2][lv-1];host.querySelector('.v44-pet-result span').textContent='Cooldown: '+(d[3]?.[lv-1]||'—')}
+    v446SyncPetCustom();
   }
   if(e.target.matches?.('[data-v33-widget],[data-v33-charm-level],#account-purpose')) schedule();
   if(e.target.matches?.('[data-v33-charm-level]'))[60,160,320].forEach(ms=>setTimeout(repairCharmPaths,ms));

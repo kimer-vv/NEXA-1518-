@@ -1,4 +1,4 @@
-/* NEXA V44.6 — PROFILE STABILITY + EXPERT DETAILS + PET SAVE — 2026-08-25
+/* NEXA V44.7 — PROFILE FOLLOW-UP + T11/T12 + PET DEPLOYMENT — 2026-08-25
    CLEAN REPLACEMENT. Not cumulative.
    Owns only:
    - Home menu outside-tap close
@@ -14,8 +14,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V446_STABLE__) return;
-window.__NEXA_V446_STABLE__=true;
+if(window.__NEXA_V447_STABLE__) return;
+window.__NEXA_V447_STABLE__=true;
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
@@ -33,13 +33,13 @@ const PETS={
  'Titan Roc':['Razorbeak','🦅',['Enemy HP -1.5%','Enemy HP -2%','Enemy HP -2.5%','Enemy HP -3%','Enemy HP -3.5%','Enemy HP -4%','Enemy HP -5%'],Array(7).fill('20h'),'Razorbeak weakens enemy troop Health.','#c3a4ff','#32265b'],
  'Giant Elk':['Mystical Finding','🦌',Array(8).fill('Unearths an item lost on the Tundra'),['51h','47h','43h','39h','35h','31h','27h','23h'],'Guided by mystical intuition, the Giant Elk unearths an item lost on the Tundra.','#7bd9c7','#21473f'],
  'Snow Leopard':['Lightning Raid','🐆',['March Speed +15% • Enemy Lethality -1.5%','March Speed +17% • Enemy Lethality -2%','March Speed +19% • Enemy Lethality -2.5%','March Speed +21% • Enemy Lethality -3%','March Speed +23% • Enemy Lethality -3.5%','March Speed +25% • Enemy Lethality -4%','March Speed +27% • Enemy Lethality -4.5%','March Speed +30% • Enemy Lethality -5%'],Array(8).fill('20h'),'A rapid assault boosts March Speed while lowering enemy Lethality.','#aeeeff','#24446f'],
- 'Cave Lion':['Feral Anthem','🦁',['Troop Attack +2.5%','Troop Attack +3%','Troop Attack +3.5%','Troop Attack +4%','Troop Attack +5%','Troop Attack +6%','Troop Attack +7%','Troop Attack +8%','Troop Attack +9%','Troop Attack +10%'],null,'A battle anthem increases Troop Attack.','#ffb24e','#5d3416'],
- 'Snow Ape':['Tumbling Power','🦍',['Squad Capacity +1,500','Squad Capacity +3,000','Squad Capacity +4,500','Squad Capacity +6,000','Squad Capacity +7,500','Squad Capacity +9,000','Squad Capacity +10,500','Squad Capacity +12,000','Squad Capacity +13,500','Squad Capacity +15,000'],null,'Tumbling Power increases Squad Capacity.','#f2fbff','#486175'],
- 'Iron Rhino':['Rallying Beasts','🦏',['Rally Capacity +60,000','Rally Capacity +70,000','Rally Capacity +80,000','Rally Capacity +90,000','Rally Capacity +100,000','Rally Capacity +110,000','Rally Capacity +120,000','Rally Capacity +130,000','Rally Capacity +140,000','Rally Capacity +150,000'],null,'Rallying Beasts increases Rally Capacity.','#aeb7c2','#3d444c'],
- 'Saber-tooth Tiger':['Apex Assault','🐅',['Troop Lethality +2.5%','Troop Lethality +3%','Troop Lethality +3.5%','Troop Lethality +4%','Troop Lethality +5%','Troop Lethality +6%','Troop Lethality +7%','Troop Lethality +8%','Troop Lethality +9%','Troop Lethality +10%'],null,'Apex Assault increases Troop Lethality.','#ff8438','#612910'],
- 'Mammoth':['Hardened Skin','🐘',['Troop Defense +2.5%','Troop Defense +3%','Troop Defense +3.5%','Troop Defense +4%','Troop Defense +5%','Troop Defense +6%','Troop Defense +7%','Troop Defense +8%','Troop Defense +9%','Troop Defense +10%'],null,'Hardened Skin increases Troop Defense.','#d7bd93','#533f2d'],
- 'Frost Gorilla':['Earthbound Vigor','🦍',['Troop Health +2.5%','Troop Health +3%','Troop Health +3.5%','Troop Health +4%','Troop Health +5%','Troop Health +6%','Troop Health +7%','Troop Health +8%','Troop Health +9%','Troop Health +10%'],null,'Earthbound Vigor increases Troop Health.','#508bff','#192c63'],
- 'Frostscale Chameleon':['Icy Shroud','🦎',['Enemy Defense -2.5%','Enemy Defense -3%','Enemy Defense -3.5%','Enemy Defense -4%','Enemy Defense -5%','Enemy Defense -6%','Enemy Defense -7%','Enemy Defense -8%','Enemy Defense -9%','Enemy Defense -10%'],null,'Icy Shroud lowers Enemy Defense.','#5de9c0','#174f45']
+ 'Cave Lion':['Feral Anthem','🦁',['Troop Attack +2.5%','Troop Attack +3%','Troop Attack +3.5%','Troop Attack +4%','Troop Attack +5%','Troop Attack +6%','Troop Attack +7%','Troop Attack +8%','Troop Attack +9%','Troop Attack +10%'],Array(10).fill('20h'),'A battle anthem increases Troop Attack.','#ffb24e','#5d3416'],
+ 'Snow Ape':['Tumbling Power','🦍',['Squad Capacity +1,500','Squad Capacity +3,000','Squad Capacity +4,500','Squad Capacity +6,000','Squad Capacity +7,500','Squad Capacity +9,000','Squad Capacity +10,500','Squad Capacity +12,000','Squad Capacity +13,500','Squad Capacity +15,000'],Array(10).fill('20h'),'Tumbling Power increases Squad Capacity.','#f2fbff','#486175'],
+ 'Iron Rhino':['Rallying Beasts','🦏',['Rally Capacity +60,000','Rally Capacity +70,000','Rally Capacity +80,000','Rally Capacity +90,000','Rally Capacity +100,000','Rally Capacity +110,000','Rally Capacity +120,000','Rally Capacity +130,000','Rally Capacity +140,000','Rally Capacity +150,000'],Array(10).fill('20h'),'Rallying Beasts increases Rally Capacity.','#aeb7c2','#3d444c'],
+ 'Saber-tooth Tiger':['Apex Assault','🐅',['Troop Lethality +2.5%','Troop Lethality +3%','Troop Lethality +3.5%','Troop Lethality +4%','Troop Lethality +5%','Troop Lethality +6%','Troop Lethality +7%','Troop Lethality +8%','Troop Lethality +9%','Troop Lethality +10%'],Array(10).fill('20h'),'Apex Assault increases Troop Lethality.','#ff8438','#612910'],
+ 'Mammoth':['Hardened Skin','🐘',['Troop Defense +2.5%','Troop Defense +3%','Troop Defense +3.5%','Troop Defense +4%','Troop Defense +5%','Troop Defense +6%','Troop Defense +7%','Troop Defense +8%','Troop Defense +9%','Troop Defense +10%'],Array(10).fill('20h'),'Hardened Skin increases Troop Defense.','#d7bd93','#533f2d'],
+ 'Frost Gorilla':['Earthbound Vigor','🦍',['Troop Health +2.5%','Troop Health +3%','Troop Health +3.5%','Troop Health +4%','Troop Health +5%','Troop Health +6%','Troop Health +7%','Troop Health +8%','Troop Health +9%','Troop Health +10%'],Array(10).fill('20h'),'Earthbound Vigor increases Troop Health.','#508bff','#192c63'],
+ 'Frostscale Chameleon':['Icy Shroud','🦎',['Enemy Defense -2.5%','Enemy Defense -3%','Enemy Defense -3.5%','Enemy Defense -4%','Enemy Defense -5%','Enemy Defense -6%','Enemy Defense -7%','Enemy Defense -8%','Enemy Defense -9%','Enemy Defense -10%'],Array(10).fill('20h'),'Icy Shroud lowers Enemy Defense.','#5de9c0','#174f45']
 };
 const PET_ALIAS={'Frost Chameleon':'Frostscale Chameleon','Sabertooth Tiger':'Saber-tooth Tiger','Saber Tooth Tiger':'Saber-tooth Tiger'};
 
@@ -280,6 +280,11 @@ function injectCSS(){
   }
   .v33-special b{display:block!important;margin:0 0 4px!important}
   .v33-special small{display:block!important;line-height:1.35!important}
+
+  .v447-expert-effect{display:grid!important;gap:4px!important;margin:9px 0!important;padding:10px 11px!important;border:1px solid rgba(96,211,255,.28)!important;border-radius:12px!important;background:rgba(7,28,48,.55)!important}
+  .v447-expert-effect small{color:#66dfff!important;font-size:8px!important;font-weight:950!important;letter-spacing:.12em!important}
+  .v447-expert-effect b{color:#eef8ff!important;font-size:11px!important;line-height:1.45!important}
+  .v447-expert-effect span{color:#91a0c2!important;font-size:9px!important}
 
   /* Pets */
   .v44-pet{--pet:#70eaff;--petbg:#17384a;padding:12px;border:1px solid color-mix(in srgb,var(--pet) 40%,transparent);border-radius:17px;background:linear-gradient(145deg,color-mix(in srgb,var(--petbg) 42%,#071128),#071020)}
@@ -807,6 +812,12 @@ function v446RenameAlliance(){
     $$('b,strong,span,h3,h4',box).forEach(x=>{if(/^Alliance$/i.test(String(x.textContent||'').trim()))x.textContent='Change Alliance';});
   });
 }
+const V447_EXPERT_EXPLAIN={
+  'Scavenging':'Earns extra Enhancement XP Components from Bear Hunt rewards.',
+  'Weapon Master':'Earns extra Essence Stones from Bear Hunt rewards.',
+  'Entrapment':'Increases the maximum number of troops that can fit in your Bear Hunt rally.',
+  "Ursa's Bane":'Increases the number of your own troops you can deploy during Bear Hunt.'
+};
 async function v446ExpertDetails(){
   const root=$('#nexa-v33-detail');if(!root?.classList.contains('open'))return;
   const title=String($('.v33-title h3',root)?.textContent||'').trim();
@@ -825,13 +836,15 @@ async function v446ExpertDetails(){
   sections.forEach(box=>{
     const name=String($('h4',box)?.textContent||'').trim();
     const sk=skills.find(x=>norm(x.name)===norm(name));if(!sk)return;
-    let desc=$('.v446-expert-desc',box);
-    if(!desc){desc=document.createElement('p');desc.className='v446-expert-desc';const select=$('[data-v33-expert-skill]',box);select?.before(desc)}
-    desc.textContent=sk.description||sk.effect||sk.value_text||'';
-    let where=$('.v446-expert-where',box);
-    const specialty=md.specialty||'Expert bonus';
-    if(!where){where=document.createElement('small');where.className='v446-expert-where';desc.after(where)}
-    where.textContent=`Applies to: ${specialty}`;
+    let info=$('.v447-expert-effect',box);
+    if(!info){
+      info=document.createElement('div');
+      info.className='v447-expert-effect';
+      const result=$('.v33-result',box);
+      if(result)result.before(info);else box.appendChild(info);
+    }
+    const effect=V447_EXPERT_EXPLAIN[name]||sk.description||sk.effect||sk.value_text||'This Expert skill provides the listed bonus as its level increases.';
+    info.innerHTML=`<small>WHAT IT DOES</small><b>${esc(effect)}</b><span>Applies to: ${esc(md.specialty||'Expert bonus')}</span>`;
   });
 }
 function v446SnapshotHero(){
@@ -866,7 +879,10 @@ function v446TroopImage(){
   const type=title.includes('infantry')?'infantry':title.includes('lancer')?'lancer':title.includes('marksman')?'marksman':'';
   if(!type)return;
   const tier=clamp(Number(root.dataset.troopTier||$('.v33-level.active[data-v33-troop-tier]',root)?.dataset.v33TroopTier||1),1,12);
-  const src=window.NEXA_TROOP_ASSETS?.getPortrait?.(type,tier)||window.NEXA_TROOP_PORTRAITS?.[type]?.['t'+tier];
+  const t11=root.dataset.t11==='1'||$('.v33-chip.active[data-v33-t11="1"]',root);
+  const t12=root.dataset.t12==='1'||$('.v33-chip.active[data-v33-t12="1"]',root);
+  const shownTier=t12?12:t11?11:tier;
+  const src=window.NEXA_TROOP_ASSETS?.getPortrait?.(type,shownTier)||window.NEXA_TROOP_PORTRAITS?.[type]?.['t'+shownTier];
   const img=$('.v33-mini img',root);if(src&&img)img.src=src;
 }
 async function v446Deployment(){
@@ -891,7 +907,7 @@ async function v446Deployment(){
       ['dep-pet','dep-pet10','dep-pet20'].forEach(id=>{const el=$('#'+id);if(el)el.textContent='Set pet first'});
       return;
     }
-    set('dep-pet',base+plus);set('dep-pet10',Math.round((base+plus)*1.10));set('dep-pet20',Math.round((base+plus)*1.20));
+    set('dep-pet',base+plus);set('dep-pet10',base+plus+Math.round(base*.10));set('dep-pet20',base+plus+Math.round(base*.20));
   }finally{v446DeploymentBusy=false}
 }
 async function v446LinkedAccounts(){
@@ -906,6 +922,44 @@ async function v446LinkedAccounts(){
     const others=rows.filter(x=>String(x.id)!==active);
     if(!host){host=document.createElement('section');host.id='nexa-v446-linked-accounts';const stats=$('.nexa-profile-stats',root);stats?.insertAdjacentElement('afterend',host)}
     host.innerHTML=`<small>OTHER ACCOUNTS · ${others.length}</small><div>${others.slice(0,3).map(x=>`<button type="button" data-v446-account="${esc(x.id)}">✦ ${esc(x.in_game_name||'Account')} • ${esc(x.alliances?.tag||x.custom_alliance_tag||'—')} • ALT</button>`).join('')}</div>`;
+  }catch{}
+}
+
+
+function v447AccountLabels(){
+  const roots=[document,$('#nexa-account-constellation'),$('#nexa-profile-modal')].filter(Boolean);
+  const seen=new Set();
+  roots.forEach(root=>$$('span,b,strong,small,p,div,label,option',root).forEach(el=>{
+    if(seen.has(el))return;seen.add(el);
+    if(el.children.length && el.tagName!=='OPTION')return;
+    const t=String(el.textContent||'').replace(/\s+/g,' ').trim();
+    if(/^(points?\s+account|buff\s*points?|buff\s*account|boost\s*points?|boost\s*account|full|basic)$/i.test(t)){
+      // Only remap account-purpose badges/labels, never arbitrary prose.
+      const context=String(el.closest('[class*="account"],[id*="account"],[class*="passport"],[id*="passport"],#nexa-profile-modal')?.textContent||'');
+      if(context || /account/i.test(t)) el.textContent='ALT ACCOUNT';
+    }
+  }));
+  $$('[data-nexa-profile]',document).forEach(card=>{
+    const badge=card.querySelector('.nexa-account-planet-type,[class*="type"],[class*="purpose"]');
+    if(badge && !card.classList.contains('main'))badge.textContent='ALT';
+  });
+}
+async function v447PersistPetCustom(){
+  const root=$('#nexa-v33-detail');if(!root?.classList.contains('open'))return;
+  const custom=$('[data-v44-pet-level]',root);if(!custom)return;
+  const name=petName(),c=sb(),accountId=window.NEXA_ACTIVE_ACCOUNT_ID;if(!name||!c||!accountId)return;
+  try{
+    const {data:{user}}=await c.auth.getUser();if(!user)return;
+    const item=await c.from('nexa_library_items').select('id').eq('item_type','pet').eq('name',name).maybeSingle();
+    if(!item.data?.id)return;
+    const current=await c.from('player_library_inventory').select('id,progress').eq('player_account_id',accountId).eq('library_item_id',item.data.id).maybeSingle();
+    const progress={...(current.data?.progress||{})};
+    progress.pet_skill=clamp(Number(custom.value||0),0,10);
+    const petLevel=$('[data-v33-pet-level]',root);
+    if(petLevel)progress.level=Number(petLevel.value||progress.level||0);
+    await c.from('player_library_inventory').upsert({
+      user_id:user.id,player_account_id:accountId,library_item_id:item.data.id,owned:true,progress,updated_at:new Date().toISOString()
+    },{onConflict:'player_account_id,library_item_id'});
   }catch{}
 }
 
@@ -925,6 +979,7 @@ function apply(){
   v446TroopImage();
   v446Deployment();
   v446LinkedAccounts();
+  v447AccountLabels();
   refreshStellarSignal();
   ownerAccess();
 }
@@ -934,22 +989,25 @@ function schedule(){
 }
 
 document.addEventListener('pointerdown',e=>{
+  if(e.target.closest?.('.nexa-v425-guide'))removeLegacyProfileGuide();
+  if(e.target.closest?.('[data-v33-save]'))v446SyncPetCustom();
   if(e.target.closest?.('[data-v33-star],[data-v33-widget]'))v446SnapshotHero();
   const acc=e.target.closest?.('[data-nexa-profile],[data-v446-account]');
-  if(acc){const id=acc.dataset.nexaProfile||acc.dataset.v446Account;if(id)window.NEXA_ACTIVE_ACCOUNT_ID=String(id)}
+  if(acc){const id=acc.dataset.nexaProfile||acc.dataset.v446Account;if(id){window.NEXA_ACTIVE_ACCOUNT_ID=String(id);[0,80,220].forEach(ms=>setTimeout(v447AccountLabels,ms));}}
 },true);
 document.addEventListener('pointerdown',closeMenuOutside,true);
 document.addEventListener('click',e=>{
   if(e.target.closest?.('.nexa-v425-guide')){
     e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();showV445ProfileGuide();return;
   }
-  if(e.target.closest?.('[data-v33-widget],[data-v33-star],[data-v33-troop-tier],[data-v33-item],[data-v33-cat],[data-v33-gen],[data-v33-reset],#nexa-profile-edit-btn,#nexa-deployment-stat,#admin-roles,#admin-permissions,[data-v33-save]')) schedule();
-  if(e.target.closest?.('[data-v33-cat],[data-v33-gen],[data-v33-save],[data-v33-reset],[data-v33-star],[data-v33-widget],[data-v33-troop-tier]')){
+  if(e.target.closest?.('[data-v33-widget],[data-v33-star],[data-v33-troop-tier],[data-v33-t11],[data-v33-t12],[data-v33-item],[data-v33-cat],[data-v33-gen],[data-v33-reset],#nexa-profile-edit-btn,#nexa-deployment-stat,#admin-roles,#admin-permissions,[data-v33-save]')) schedule();
+  if(e.target.closest?.('[data-v33-cat],[data-v33-gen],[data-v33-save],[data-v33-reset],[data-v33-star],[data-v33-widget],[data-v33-troop-tier],[data-v33-t11],[data-v33-t12]')){
     [80,180,360,700,1200,2000].forEach(ms=>setTimeout(()=>{repairCharmPaths();repairPet();repairWidget();repairHeroSignature();},ms));
   }
   if(e.target.closest?.('[data-v33-star],[data-v33-widget]'))[0,30,90,180].forEach(ms=>setTimeout(v446RestoreHero,ms));
-  if(e.target.closest?.('[data-v33-troop-tier]'))[0,30,90].forEach(ms=>setTimeout(v446TroopImage,ms));
-  if(e.target.closest?.('#nexa-deployment-stat,[data-v33-save]'))[40,160,500].forEach(ms=>setTimeout(v446Deployment,ms));
+  if(e.target.closest?.('[data-v33-troop-tier],[data-v33-t11],[data-v33-t12]'))[0,30,90,180].forEach(ms=>setTimeout(v446TroopImage,ms));
+  if(e.target.closest?.('[data-v33-save]'))[30,120,350].forEach(ms=>setTimeout(v447PersistPetCustom,ms));
+  if(e.target.closest?.('#nexa-deployment-stat,[data-v33-save]'))[80,220,650].forEach(ms=>setTimeout(v446Deployment,ms));
   if(e.target.closest?.('.nexa-v425-guide'))[0,30,100].forEach(ms=>setTimeout(removeLegacyProfileGuide,ms));
   if(e.target.closest?.('[data-v44-pet-details]')){
     const d=e.target.closest('.v44-pet')?.querySelector('.v44-pet-desc'); if(d)d.hidden=!d.hidden;

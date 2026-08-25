@@ -1,4 +1,4 @@
-/* NEXA V45.0 — CINEMATIC NEXA / FLEET / CONSTELLATION / DRONE GUIDE — 2026-08-25
+/* NEXA V45.1 — CONSTELLATION POLISH / REAL SHIP / PROFILE GUIDE / OWNER EXPERIENCE — 2026-08-25
    COMPLETE REPLACEMENT for nexa-v44-8-profile-stability.js
    Fixes:
    - MAIN / ALT labels across Constellation, Passport and Player Intelligence Profile
@@ -13,8 +13,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V450_CINEMATIC__) return;
-window.__NEXA_V450_CINEMATIC__=true;
+if(window.__NEXA_V451_POLISH__) return;
+window.__NEXA_V451_POLISH__=true;
 window.NEXA_CANONICAL_ACCOUNTS=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
@@ -40,7 +40,7 @@ let onboardingChecked=false;
 let typewriterRAF=0;
 let motionMode=null;
 
-const ACCOUNT_COLORS=['#ff50d8','#58d8ff','#9c6dff','#5ce2b7','#ffae55'];
+const ACCOUNT_COLORS=['#43e8ff','#ff4fd8','#66ffb2','#ff9f43','#8f63ff','#f7e65c','#ff5f6d','#43a7ff','#b7ff3c','#ff6bf2'];
 
 function cleanMojibake(){
   const roots=[$('#accounts-modal'),$('#nexa-account-constellation'),$('#nexa-profile-modal')].filter(Boolean);
@@ -410,6 +410,50 @@ function installCSS(){
   }
 
 
+
+  /* ================= NEXA V45.1 POLISH ================= */
+  body.nexa-v451-fleet-open #nexa-home-menu-toggle,
+  body.nexa-v451-constellation-open #nexa-home-menu-toggle,
+  body.nexa-v451-profile-open #nexa-home-menu-toggle,
+  body:has(#accounts-modal.open) #nexa-home-menu-toggle{display:none!important}
+
+  .nexa-v451-ship-img{display:block;width:108px;height:76px;object-fit:contain;filter:drop-shadow(0 0 7px #62e8ff) drop-shadow(0 0 14px #8f4fff) drop-shadow(0 0 18px rgba(255,71,221,.42));transform:rotate(-7deg)}
+  .nexa-v450-ship-card:nth-child(2n) .nexa-v451-ship-img{filter:hue-rotate(42deg) saturate(1.18) drop-shadow(0 0 8px #6effdc) drop-shadow(0 0 16px rgba(93,255,180,.42))}
+  .nexa-v450-ship-card:nth-child(3n) .nexa-v451-ship-img{filter:hue-rotate(300deg) saturate(1.24) drop-shadow(0 0 8px #ff9b59) drop-shadow(0 0 16px rgba(255,97,67,.40))}
+  .nexa-v450-ship-space:before{width:105px!important;height:60px!important;opacity:.52}
+  .nexa-v450-jump-ship .nexa-v451-ship-img{width:150px;height:104px;transform:rotate(-5deg);filter:drop-shadow(0 0 10px #5cecff) drop-shadow(0 0 24px #784cff) drop-shadow(0 0 32px rgba(255,67,218,.46))}
+  .nexa-v450-jump-ship:after{content:"";position:absolute;left:-42px;top:29px;width:88px;height:22px;border-radius:50%;background:linear-gradient(90deg,transparent,#42eaff 47%,#fff 72%,#ff50dc);filter:blur(6px);opacity:.8;z-index:-1}
+
+  #nexa-account-constellation .nexa-v451-world .nexa-v4484-planet-orb{overflow:visible!important}
+  .nexa-v451-inside{position:absolute;z-index:7;left:50%;top:54%;width:82%;transform:translate(-50%,-50%);display:grid;gap:2px;text-align:center;pointer-events:none;text-shadow:0 2px 7px rgba(0,0,0,.95),0 0 8px rgba(0,0,0,.95)}
+  .nexa-v451-inside b{display:block;color:#fff;font-size:11px;line-height:1.05;font-weight:1000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .nexa-v451-inside small{display:block;color:#eef6ff;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:6px;line-height:1.05;white-space:nowrap}
+  #nexa-account-constellation .nexa-v451-world.main .nexa-v451-inside b{font-size:15px}
+  #nexa-account-constellation .nexa-v451-world.main .nexa-v451-inside small{font-size:7px}
+  #nexa-account-constellation .nexa-v451-world .nexa-v450-account-badge{margin-top:7px!important}
+  #nexa-account-constellation .nexa-v451-world .nexa-v450-alliance-chip{margin-top:4px!important}
+  #nexa-account-constellation .nexa-v451-world .nexa-account-planet-name,
+  #nexa-account-constellation .nexa-v451-world .nexa-v450-player-id{display:none!important}
+  #nexa-account-constellation .nexa-v451-world.alt .nexa-v450-account-badge{font-size:6.7px!important;padding:4px 7px!important}
+
+  #nexa-v4485-home-drone.accounts-context{top:max(118px,calc(env(safe-area-inset-top) + 104px))!important}
+  #nexa-v4485-home-drone.accounts-context + #nexa-v4485-home-bubble{top:max(132px,calc(env(safe-area-inset-top) + 118px))!important}
+
+  /* Profile: stronger neon depth without changing structure */
+  #nexa-profile-modal.open .nexa-profile-shell,
+  #nexa-profile-modal.open [class*="profile-shell"],
+  #nexa-profile-modal.open [class*="profile-card"]{box-shadow:0 0 0 1px rgba(94,194,255,.09),0 0 28px rgba(71,145,255,.08),0 0 44px rgba(190,62,255,.07)!important}
+  #nexa-profile-modal.open .v33-tab.active,
+  #nexa-profile-modal.open .v33-chip.active{box-shadow:0 0 16px rgba(121,72,255,.24),0 0 26px rgba(71,211,255,.10)!important}
+  #nexa-profile-modal.open .v33-planet{filter:saturate(1.12) brightness(1.04)}
+
+  @media(max-width:560px){
+    .nexa-v451-ship-img{width:98px;height:70px}
+    .nexa-v450-jump-ship .nexa-v451-ship-img{width:128px;height:90px}
+    .nexa-v451-inside b{font-size:9px}.nexa-v451-inside small{font-size:5.3px}
+    #nexa-account-constellation .nexa-v451-world.main .nexa-v451-inside b{font-size:13px}
+  }
+
   /* Chief Gear stars: inside planet, left side, vertical */
   .v448-gear-stars{
     position:absolute;z-index:8;left:8px;bottom:15px;
@@ -534,6 +578,11 @@ async function saveManagedAccount(e){
     if($('#ign'))$('#ign').value='';if($('#player-id')){$('#player-id').value='';$('#player-id').disabled=false}
     if($('#account-state'))$('#account-state').value='';
     await refreshAccountManager();await repairAccountLabels();
+    const modal=$('#accounts-modal');modal?.classList.remove('open');modal?.setAttribute('aria-hidden','true');
+    const rows=await loadAccounts();
+    renderCanonicalConstellation(rows,activeFleetState||state);
+    const cst=$('#nexa-account-constellation');cst?.classList.add('open');cst?.setAttribute('aria-hidden','false');
+    document.body.classList.add('nexa-v451-constellation-open');
   }catch(err){const m=$('#accounts-message');if(m)m.textContent=err?.message||String(err)}
   return true;
 }
@@ -548,6 +597,15 @@ function accountColor(id){
   let h=0;for(let i=0;i<str.length;i++)h=(h*31+str.charCodeAt(i))>>>0;
   return ACCOUNT_COLORS[h%ACCOUNT_COLORS.length];
 }
+function shuffledAccountColors(count){
+  const pool=[...ACCOUNT_COLORS];
+  for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]]}
+  while(pool.length<count)pool.push(...ACCOUNT_COLORS);
+  return pool.slice(0,count);
+}
+function shipAssetMarkup(extra=''){
+  return `<img class="nexa-v451-ship-img ${extra}" src="/nexa-fleet-ship.png" alt="NEXA ship">`;
+}
 function accountAvatar(a){
   return a?.profile_photo_url||
     `https://ui-avatars.com/api/?name=${encodeURIComponent(a?.in_game_name||'NEXA')}&background=111a38&color=cabaff&bold=true&size=256`;
@@ -559,29 +617,35 @@ function renderCanonicalConstellation(rows,stateNumber=activeFleetState){
   const list=state?all.filter(a=>Number(a.state_number||0)===state):all;
   const main=list.find(a=>a.is_main)||list[0]||null;
   const others=main?list.filter(a=>String(a.id)!==String(main.id)):list;
-  const pos=[[18,67],[80,66],[18,34],[82,35],[50,83],[50,17],[9,50],[91,50],[32,86],[68,86],[32,15],[68,15]];
+  const pos=[[18,63],[82,63],[18,34],[82,34],[50,79],[50,16],[10,49],[90,49],[33,82],[67,82],[33,18],[67,18]];
   const alliance=a=>a?.alliances?.tag||a?.custom_alliance_tag||'UNASSIGNED';
+  const colors=shuffledAccountColors(Math.max(1,list.length));
+  const colorById=new Map(list.map((a,i)=>[String(a.id),colors[i]]));
+
   let out='<span class="nexa-constellation-orbit one"></span><span class="nexa-constellation-orbit two"></span><span class="nexa-v450-orbit third"></span>';
 
   if(main){
-    out+=`<button type="button" class="nexa-account-planet main nexa-v4484-planet nexa-v450-world" data-nexa-profile="${esc(main.id)}" style="--acct:${accountColor(main.id)}">
+    const c=colorById.get(String(main.id))||ACCOUNT_COLORS[0];
+    out+=`<button type="button" class="nexa-account-planet main nexa-v4484-planet nexa-v450-world nexa-v451-world" data-nexa-profile="${esc(main.id)}" style="--acct:${c}">
       <span class="nexa-v450-crown">♛</span>
-      <span class="nexa-v4484-planet-orb nexa-v450-planet-surface"><i></i></span>
+      <span class="nexa-v4484-planet-orb nexa-v450-planet-surface">
+        <i></i>
+        <span class="nexa-v451-inside"><b>${esc(main.in_game_name||'WOS Account')}</b><small>ID: ${esc(main.player_id||'—')}</small></span>
+      </span>
       <span class="nexa-v450-account-badge">♛ MY MAIN</span>
-      <span class="nexa-account-planet-name">${esc(main.in_game_name||'WOS Account')}</span>
-      <span class="nexa-v450-player-id">ID: ${esc(main.player_id||'—')}</span>
       <span class="nexa-v450-alliance-chip">✦ ${esc(alliance(main))}</span>
     </button>`;
   }
 
   others.forEach((a,i)=>{
     const p=pos[i%pos.length];
-    const label=i===0?'ALT':'ACCOUNT';
-    out+=`<button type="button" class="nexa-account-planet alt nexa-v4484-planet nexa-v450-world" data-nexa-profile="${esc(a.id)}" style="left:${p[0]}%;top:${p[1]}%;--acct:${accountColor(a.id)}">
-      <span class="nexa-v4484-planet-orb nexa-v450-planet-surface"><i></i></span>
-      <span class="nexa-v450-account-badge alt">${label}</span>
-      <span class="nexa-account-planet-name">${esc(a.in_game_name||'Account')}</span>
-      <span class="nexa-v450-player-id">ID: ${esc(a.player_id||'—')}</span>
+    const c=colorById.get(String(a.id))||ACCOUNT_COLORS[(i+1)%ACCOUNT_COLORS.length];
+    out+=`<button type="button" class="nexa-account-planet alt nexa-v4484-planet nexa-v450-world nexa-v451-world" data-nexa-profile="${esc(a.id)}" style="left:${p[0]}%;top:${p[1]}%;--acct:${c}">
+      <span class="nexa-v4484-planet-orb nexa-v450-planet-surface">
+        <i></i>
+        <span class="nexa-v451-inside"><b>${esc(a.in_game_name||'Account')}</b><small>ID: ${esc(a.player_id||'—')}</small></span>
+      </span>
+      <span class="nexa-v450-account-badge alt">ALT ACCOUNT</span>
       <span class="nexa-v450-alliance-chip">✦ ${esc(alliance(a))}</span>
     </button>`;
   });
@@ -594,6 +658,7 @@ function renderCanonicalConstellation(rows,stateNumber=activeFleetState){
   system.innerHTML=out;
   const wrap=$('#nexa-account-constellation');
   wrap?.classList.add('nexa-v450-constellation');
+  document.body.classList.add('nexa-v451-constellation-open');
   const heading=$('.nexa-constellation-heading',wrap);
   if(heading){
     const count=list.length;
@@ -792,6 +857,7 @@ function stateShipColor(state){
 
 function closeFleet(){
   $('#nexa-v4484-fleet')?.remove();
+  document.body.classList.remove('nexa-v451-fleet-open');
   document.body.style.overflow='';
 }
 async function openFleet(){
@@ -809,14 +875,14 @@ async function openFleet(){
     <div class="nexa-v450-fleet-label">AVAILABLE STATES // SELECT DESTINATION</div>
     <div class="nexa-v4484-state-list" data-fleet-list></div>
   </div>`;
-  document.body.appendChild(ov);document.body.style.overflow='hidden';
+  document.body.appendChild(ov);document.body.classList.add('nexa-v451-fleet-open');document.body.style.overflow='hidden';
 
   const groups=groupAccountsByState(rows);
   const list=$('[data-fleet-list]',ov);
   list.innerHTML=groups.length?groups.map(([state,accounts],i)=>{
     const c=stateShipColor(state);
     return `<button class="nexa-v4484-state-card nexa-v450-ship-card" type="button" data-fleet-state="${esc(state)}" style="--ship:${c};--ship-i:${i}">
-      <span class="nexa-v450-ship-space"><span class="nexa-v4484-ship"><i></i></span><span class="nexa-v450-thruster"></span></span>
+      <span class="nexa-v450-ship-space">${shipAssetMarkup()}</span>
       <span class="nexa-v450-state-copy"><em>STATE LINK // READY</em><b>STATE ${esc(state||'UNASSIGNED')}</b><small>${accounts.length} ACCOUNT${accounts.length===1?'':'S'} CONNECTED</small></span>
       <span class="go">→</span>
     </button>`;
@@ -835,7 +901,7 @@ function playWormhole(state,after,direction='in'){
   const ov=document.createElement('section');ov.id='nexa-v4484-wormhole';ov.className='nexa-v450-cinematic';
   const returning=direction==='out';
   ov.innerHTML=`<div class="nexa-v450-nebula"></div><div class="nexa-v4484-streaks"></div><div class="nexa-v4484-worm"></div>
-    <div class="nexa-v450-jump-ship"><span class="nexa-v4484-ship"><i></i></span><span class="nexa-v450-thruster"></span></div>
+    <div class="nexa-v450-jump-ship">${shipAssetMarkup("jump")}</div>
     <div class="nexa-v4484-worm-content">${droneMarkup('intro')}
       <div class="nexa-v4484-dialog"><small>NEXA DRONE</small><p>${returning?'Returning to NEXA Fleet. Hold tight — we’re heading back to the ship.':'State selected. Opening Account Constellation…'}</p></div>
       <b>${returning?'RETURNING TO NEXA FLEET':`STATE ${esc(state)}`}</b>
@@ -862,6 +928,7 @@ async function enterFleetState(state){
 function returnToFleetWithJump(){
   const wrap=$('#nexa-account-constellation');
   wrap?.classList.remove('open');wrap?.setAttribute('aria-hidden','true');
+  document.body.classList.remove('nexa-v451-constellation-open');
   playWormhole(activeFleetState,()=>openFleet(),'out');
 }
 
@@ -873,6 +940,49 @@ function ensureFleetReturnButton(){
   b.innerHTML='<span>←</span> RETURN TO NEXA FLEET';
   b.onclick=e=>{e.preventDefault();e.stopPropagation();returnToFleetWithJump()};
 }
+function maybeShowFirstProfileGuide(account){
+  if(!account?.id)return;
+  const key=`nexa_profile_intro_${account.id}`;
+  if(localStorage.getItem(key)==='1')return;
+  const empty=!String(account.furnace_level||'').trim();
+  if(!empty)return;
+  setTimeout(()=>{
+    if(!$('#nexa-profile-modal')?.classList.contains('open'))return;
+    $('.nexa-v451-first-profile')?.remove();
+    const ov=document.createElement('div');ov.className='nexa-v450-help-overlay nexa-v451-first-profile';
+    ov.innerHTML=`<section class="nexa-v450-help-card">
+      <div class="nexa-v450-help-head">${droneMarkup()}<div><small>NEXA DRONE // FIRST PROFILE SETUP</small><h3>Welcome to your Profile.</h3><p>This Game Account is still missing its progression details.</p></div><button class="nexa-v450-help-close" type="button">×</button></div>
+      <div class="nexa-v450-help-answer" style="display:block;margin-top:14px">
+        <b>Start with Edit Profile.</b>
+        <div style="margin-top:7px">Enter your Furnace or Fire Crystal level, Power, Deployment Capacity and the rest of the account information you know. NEXA uses that progression to adapt available Profile items and unlock the correct options as your account grows.</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:13px">
+        <button type="button" class="nexa-v450-help-q" data-profile-later>GOT IT</button>
+        <button type="button" class="nexa-v450-help-q" data-profile-edit>EDIT MY PROFILE <span>→</span></button>
+      </div>
+    </section>`;
+    document.body.appendChild(ov);
+    const done=()=>{localStorage.setItem(key,'1');ov.remove()};
+    $('.nexa-v450-help-close',ov).onclick=done;
+    $('[data-profile-later]',ov).onclick=done;
+    $('[data-profile-edit]',ov).onclick=()=>{
+      done();
+      const buttons=$$('#nexa-profile-modal button');
+      const edit=buttons.find(b=>/edit profile/i.test(String(b.textContent||'')));
+      edit?.click();
+    };
+  },260);
+}
+
+function cleanLegacyHomeAccountLimit(){
+  const root=$('#nexa-profile-launcher');if(!root)return;
+  $$('*',root).forEach(el=>{
+    if(el.children.length)return;
+    const t=String(el.textContent||'').trim();
+    if(/^\d+\s*\/\s*5$/.test(t))el.style.display='none';
+  });
+}
+
 async function openSelectedProfile(id){
   const c=sb();if(!c||!id)return;
   try{
@@ -897,12 +1007,12 @@ async function openSelectedProfile(id){
     const photo=$('#nexa-profile-photo');if(photo)photo.src=accountAvatar(a);
     value('#nexa-edit-name',a.in_game_name||'');value('#nexa-edit-role',a.alliance_role||'R3');value('#nexa-edit-furnace',a.furnace_level||'');value('#nexa-edit-power',a.power||'');value('#nexa-edit-deployment',a.deployment_capacity||'');
     $('#nexa-profile-editor')?.classList.remove('open');$('#nexa-deploy-panel')?.classList.remove('open');
-    $('#nexa-account-constellation')?.classList.remove('open');$('#nexa-account-constellation')?.setAttribute('aria-hidden','true');
-    const p=$('#nexa-profile-modal');p?.classList.add('open');p?.setAttribute('aria-hidden','false');
+    $('#nexa-account-constellation')?.classList.remove('open');$('#nexa-account-constellation')?.setAttribute('aria-hidden','true');document.body.classList.remove('nexa-v451-constellation-open');
+    const p=$('#nexa-profile-modal');p?.classList.add('open');p?.setAttribute('aria-hidden','false');document.body.classList.add('nexa-v451-profile-open');
     profileCameFromConstellation=true;ensureCompanionDrones();
     window.dispatchEvent(new CustomEvent('nexa:account-changed',{detail:{accountId:String(a.id),stateNumber:Number(a.state_number||0)}}));
     window.dispatchEvent(new CustomEvent('nexa:profile-open',{detail:{accountId:String(a.id)}}));
-    schedule();
+    maybeShowFirstProfileGuide(a);schedule();
   }catch(err){alert(err?.message||String(err))}
 }
 
@@ -953,6 +1063,7 @@ function ensureCompanionDrones(){
   const authOpen=!!$('#nexa-auth-gate:not(.hidden)');
   const firstRun=!!$('#nexa-v4485-motion,#nexa-v4484-onboarding,#nexa-v4484-fleet,#nexa-v4484-wormhole');
   const profileOpen=$('#nexa-profile-modal')?.classList.contains('open');
+  const accountsOpen=$('#accounts-modal')?.classList.contains('open');
   let home=$('#nexa-v4485-home-drone');
   if(!home){
     home=document.createElement('button');home.id='nexa-v4485-home-drone';home.className='nexa-v4485-companion';home.type='button';home.setAttribute('aria-label','NEXA Drone help');home.innerHTML=droneMarkup();
@@ -960,6 +1071,7 @@ function ensureCompanionDrones(){
     document.body.append(home,bubble);bindDroneGesture(home,bubble,'home');
   }
   bindDroneGesture(home,$('#nexa-v4485-home-bubble'),'home');
+  home.classList.toggle('accounts-context',accountsOpen);
   home.style.display=(!authOpen&&!firstRun&&!profileOpen&&location.pathname.match(/(?:\/|index\.html)$/))?'grid':'none';
   if(home.style.display==='none')$('#nexa-v4485-home-bubble')?.classList.remove('open');
 
@@ -1263,6 +1375,7 @@ function apply(){
   ensureFleetReturnButton();
   loadMotionMode();
   ensureCompanionDrones();
+  cleanLegacyHomeAccountLimit();
   maybeShowOnboarding();
 }
 window.NEXADrone={openFleet,showOnboarding,showMotionChoice,openHelp:openDroneHelp,openAccount:openSelectedProfile};
@@ -1310,7 +1423,7 @@ window.addEventListener('click',e=>{
   const close=e.target.closest?.('[data-close-nexa-profile]');
   if(close){
     e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
-    const p=$('#nexa-profile-modal');p?.classList.remove('open');p?.setAttribute('aria-hidden','true');
+    const p=$('#nexa-profile-modal');p?.classList.remove('open');p?.setAttribute('aria-hidden','true');document.body.classList.remove('nexa-v451-profile-open');
     loadAccounts().then(rows=>{
       renderCanonicalConstellation(rows,activeFleetState);
       const c=$('#nexa-account-constellation');c?.classList.add('open');c?.setAttribute('aria-hidden','false');

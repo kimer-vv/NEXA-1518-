@@ -127,7 +127,7 @@ function markup(){
     <div class="nexa-auth-brand">
       <div class="nexa-auth-logo">✦</div>
       <h1>NEXA</h1>
-      <p>STATE 1518 • MANAGEMENT & EVENT COORDINATION</p>
+   <p>ONE HUB • MANAGEMENT, EVENTS &amp; COORDINATION</p>
     </div>
 
     <div class="nexa-auth-tabs">
@@ -138,9 +138,12 @@ function markup(){
     <div id="nexa-pane-login" class="nexa-auth-pane active">
       <h2>Welcome Back</h2>
       <p class="sub">Use your Game ID and NEXA Password to continue.</p>
-      <form id="nexa-login-form" class="nexa-auth-form">
-        <label>Game ID
+      <form id="nexa-login-form" class="nexa-auth-        <label>Game ID
           <input id="nexa-login-game-id" required autocomplete="username" inputmode="numeric" placeholder="Enter your Game ID">
+        </label>
+        <label>State
+          <input id="nexa-login-state" required inputmode="numeric" pattern="[0-9]*" placeholder="Enter your state">
+          <span class="nexa-field-hint">The state/server for this Game Account.</span>
         </label>
         <label>NEXA Password
           <input id="nexa-login-password" required minlength="8" type="password" autocomplete="current-password" placeholder="Enter your password">
@@ -161,8 +164,12 @@ function markup(){
           <input id="nexa-create-game-id" required autocomplete="username" inputmode="numeric" placeholder="Enter your Main Game ID">
           <span class="nexa-field-hint">Your first account becomes your Main Account.</span>
         </label>
-        <label>In-Game Name
+         <label>In-Game Name
           <input id="nexa-create-name" required maxlength="40" autocomplete="nickname" placeholder="Your current in-game name">
+        </label>
+        <label>State
+          <input id="nexa-create-state" required inputmode="numeric" pattern="[0-9]*" placeholder="Enter your state">
+          <span class="nexa-field-hint">The state/server this Main Game Account belongs to.</span>
         </label>
         <label>Alliance
           <select id="nexa-create-alliance" required><option value="">Loading alliances…</option></select>
@@ -178,9 +185,7 @@ function markup(){
         </label>
         <button class="nexa-auth-submit" type="submit">CREATE ACCOUNT</button>
       </form>
-      <div class="nexa-auth-note"><b>Main Account:</b> You can save up to 5 game accounts in NEXA. Your Main Account appears first by default. Additional account setup and Full / Buff-Only options are the next account-management phase.</div>
-    </div>
-
+     <div class="nexa-auth-note"><b>Main Account:</b> Your first game account becomes your Main Account. You can add up to 4 Alt Accounts later. Each account keeps its own Profile data.</div>
     <div id="nexa-auth-message" class="nexa-auth-message"></div>
     <button id="nexa-owner-lock" class="nexa-owner-lock" type="button" aria-label="Owner access" title="Owner access">🔒</button>
   </section>`;
@@ -502,8 +507,11 @@ async function login(e){
   e.preventDefault();
   msg('Signing in…');
   try{
+    const stateNumber=Number(String($('nexa-login-state').value||'').replace(/\D/g,''));
+    if(!stateNumber||stateNumber<1)throw new Error('Enter your state.');
     const data=await api('/api/nexa-auth-login',{
       game_id:$('nexa-login-game-id').value.trim(),
+      state_number:stateNumber,
       password:$('nexa-login-password').value
     });
     const {error}=await sb.auth.setSession({
@@ -525,7 +533,9 @@ async function create(e){
   const p1=$('nexa-create-password').value;
   const p2=$('nexa-create-password2').value;
   const alliance=$('nexa-create-alliance').value;
+  const stateNumber=Number(String($('nexa-create-state').value||'').replace(/\D/g,''));
 
+  if(!stateNumber||stateNumber<1)return msg('Enter your state.','error');
   if(decorativeName(ign)){
     return msg('Decorative characters are not supported. Please use standard letters for your In-Game Name.','error');
   }
@@ -538,6 +548,7 @@ async function create(e){
     const data=await api('/api/nexa-auth-create',{
       game_id:gameId,
       in_game_name:ign,
+      state_number:stateNumber,
       alliance_id:alliance==='not-listed'?null:Number(alliance),
       custom_alliance_tag:alliance==='not-listed'?$('nexa-create-custom-alliance').value.trim():null,
       password:p1

@@ -1,4 +1,4 @@
-/* NEXA V46.2 — FULL EDIT PROFILE RESTORE / SAFE ALLIANCE DEDUPE — 2026-08-25
+/* NEXA V46.3 — INSTANT PROFILE PAINT / SAVE WITHOUT REOPEN — 2026-08-25
    COMPLETE REPLACEMENT for nexa-v44-8-profile-stability.js
    Fixes:
    - MAIN / ALT labels across Constellation, Passport and Player Intelligence Profile
@@ -13,9 +13,9 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V462_FULL_EDIT_PROFILE__) return;
-window.__NEXA_V462_FULL_EDIT_PROFILE__=true;
-window.NEXA_UI_BUILD='46.2';
+if(window.__NEXA_V463_INSTANT_PROFILE_PAINT__) return;
+window.__NEXA_V463_INSTANT_PROFILE_PAINT__=true;
+window.NEXA_UI_BUILD='46.3';
 window.NEXA_CANONICAL_ACCOUNTS=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
@@ -1981,7 +1981,7 @@ async function restoreNexaHomeRuntime(){
     ensureCompanionDrones();
     syncHomeOnlyMenu();
   }catch(err){
-    console.warn('[NEXA V46.2] restore',err?.message||err);
+    console.warn('[NEXA V46.3] restore',err?.message||err);
   }
 }
 
@@ -2071,6 +2071,40 @@ function markHomeSignalCards(){
   }
 }
 
+
+function paintVisibleProfileNow(a){
+  if(!a?.id)return;
+  const tag=a.alliances?.tag||a.custom_alliance_tag||'Not Listed';
+
+  setText('#nexa-profile-name',String(a.in_game_name||'PLAYER').toUpperCase());
+  setText('#nexa-profile-player-id',a.player_id||'');
+  setText('#nexa-profile-alliance',tag);
+  setText('#nexa-profile-role',a.alliance_role||'R3');
+  setText('#nexa-profile-type',a.is_main?'★ MAIN ACCOUNT':'✦ ALT ACCOUNT');
+  setText('#nexa-profile-furnace',a.furnace_level||'—');
+  setText('#nexa-profile-power',profileFormat(a.power));
+  setText('#nexa-profile-deployment',a.deployment_capacity?Number(a.deployment_capacity).toLocaleString():'—');
+
+  const photo=$('#nexa-profile-photo');
+  if(photo)photo.src=accountAvatar(a);
+
+  // Keep any alternate/legacy display nodes synchronized too.
+  $$('[data-profile-field="name"]').forEach(el=>el.textContent=String(a.in_game_name||'PLAYER').toUpperCase());
+  $$('[data-profile-field="furnace"]').forEach(el=>el.textContent=a.furnace_level||'—');
+  $$('[data-profile-field="power"]').forEach(el=>el.textContent=profileFormat(a.power));
+  $$('[data-profile-field="deployment"]').forEach(el=>el.textContent=a.deployment_capacity?Number(a.deployment_capacity).toLocaleString():'—');
+
+  renderDeploymentForAccount(a);
+}
+
+function mergeAccountCacheRow(a){
+  if(!a?.id)return;
+  const i=accountCache.findIndex(x=>String(x.id)===String(a.id));
+  if(i>=0)accountCache[i]={...accountCache[i],...a};
+  else accountCache.push(a);
+  window.nexaAccountsCache=accountCache;
+}
+
 async function safeProfileSubmit(e){
   const form=e.target;
   if(form?.id!=='nexa-profile-editor')return;
@@ -2100,6 +2134,13 @@ async function safeProfileSubmit(e){
       .eq('id',account.id).eq('user_id',(await client.auth.getUser()).data.user.id);
     if(error)throw error;
 
+    // Paint the saved values immediately. The user should never have to
+    // leave Profile and reopen the planet to see the new values.
+    const optimistic={...account,...payload};
+    mergeAccountCacheRow(optimistic);
+    hydrateProfileAccount(optimistic,{closeEditor:false});
+    paintVisibleProfileNow(optimistic);
+
     let alliancePending=false;
     if(allianceChanged){
       if(selectedAlliance){
@@ -2123,23 +2164,27 @@ async function safeProfileSubmit(e){
 
     const fresh=await refreshExactProfile(account.id,{closeEditor:false});
     if(!fresh)throw new Error('Profile saved, but NEXA could not refresh this account.');
+
+    mergeAccountCacheRow(fresh);
     hydrateProfileAccount(fresh,{closeEditor:false});
-    renderDeploymentForAccount(fresh);
     await ensureProfileAllianceEditor(fresh);
     clearLegacyProfileMessages();
 
-    // Close edit mode only after the exact saved account has been re-fetched and painted.
+    // Close edit mode only after the exact account is refreshed.
     form.classList.remove('open');
 
-    // Never show the old generic Main Account message.
     const mainChanged=$('#v26-set-main')?.checked && !account.is_main;
     const msg=alliancePending
       ? 'Profile saved. Alliance request is Pending approval.'
       : (mainChanged ? 'Profile saved. Main account updated.' : 'Profile saved.');
     showProfileSaveStatus(msg,'good');
 
-    // Re-render the visible Profile and Constellation immediately from the fresh row.
-    window.dispatchEvent(new CustomEvent('nexa:profile-updated',{detail:{accountId:String(fresh.id)}}));
+    // FINAL paint happens after every save-side effect so no legacy layer
+    // can leave the old Power/Furnace/Deployment values on screen.
+    paintVisibleProfileNow(fresh);
+    renderCanonicalConstellation(accountCache,Number(fresh.state_number||activeFleetState||0));
+
+    window.dispatchEvent(new CustomEvent('nexa:profile-updated',{detail:{accountId:String(fresh.id),account:fresh}}));
     syncHomeOnlyMenu();
   }catch(err){
     showProfileSaveStatus(err?.message||String(err),'error');
@@ -2189,7 +2234,7 @@ function installSafeProfileIsolation(){
               if(error)throw error;
               if(Array.isArray(data)&&data.length===1)accountId=String(data[0].id);
             }
-          }catch(err){console.warn('[NEXA V46.2] edit account resolve',err?.message||err)}
+          }catch(err){console.warn('[NEXA V46.3] edit account resolve',err?.message||err)}
         }
       }
 
@@ -2353,7 +2398,7 @@ async function authoritativeBoot({late=false}={}){
     document.body.classList.remove('nexa-v451-constellation-open','nexa-v452-away-home');
     await refreshAccountManager();
   }catch(err){
-    console.warn('[NEXA V46.2] authoritative boot',err?.message||err);
+    console.warn('[NEXA V46.3] authoritative boot',err?.message||err);
   }
 
   cleanMojibake();
@@ -2363,7 +2408,7 @@ async function authoritativeBoot({late=false}={}){
   syncHomeOnlyMenu();
 
   // Visible runtime marker used only for diagnostics in console / support.
-  document.documentElement.dataset.nexaUiBuild='46.2';
+  document.documentElement.dataset.nexaUiBuild='46.3';
   if(late)nexaV456BootSettled=true;
 }
 
@@ -2413,7 +2458,7 @@ function apply(){
   cleanLegacyHomeAccountLimit();
   maybeShowOnboarding();
 }
-window.NEXADrone={openFleet,showOnboarding,showMotionChoice,openHelp:openDroneHelp,openAccount:openSelectedProfile,boot:authoritativeBoot,build:'46.2'};
+window.NEXADrone={openFleet,showOnboarding,showMotionChoice,openHelp:openDroneHelp,openAccount:openSelectedProfile,boot:authoritativeBoot,build:'46.3'};
 
 function schedule(){
   requestAnimationFrame(apply);

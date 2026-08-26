@@ -1,4 +1,4 @@
-/* NEXA V45.7 — WELCOME HOLD / CONTINUE BUTTON — 2026-08-25
+/* NEXA V45.9 — CONSOLIDATED PROFILE SAVE / 10S WELCOME / SINGLE ALLIANCE — 2026-08-25
    COMPLETE REPLACEMENT for nexa-v44-8-profile-stability.js
    Fixes:
    - MAIN / ALT labels across Constellation, Passport and Player Intelligence Profile
@@ -13,9 +13,9 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V457_WELCOME_HOLD__) return;
-window.__NEXA_V457_WELCOME_HOLD__=true;
-window.NEXA_UI_BUILD='45.7';
+if(window.__NEXA_V459_CONSOLIDATED_PROFILE__) return;
+window.__NEXA_V459_CONSOLIDATED_PROFILE__=true;
+window.NEXA_UI_BUILD='45.9';
 window.NEXA_CANONICAL_ACCOUNTS=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
@@ -603,32 +603,6 @@ function installCSS(){
   .nexa-v454-pending-count{display:inline-grid;place-items:center;min-width:24px;height:24px;margin-left:5px;border-radius:999px;background:rgba(255,177,57,.16);border:1px solid rgba(255,184,62,.35);color:#ffd18a;font-size:11px}
   #accounts-modal #alliance{border-color:rgba(74,222,255,.30)!important}
 
-
-  /* V45.7 — returning welcome stays until the user continues */
-  #nexa-v450-returning{
-    transition:opacity .28s ease,transform .28s ease;
-  }
-  #nexa-v450-returning.nexa-v457-leaving{
-    opacity:0;
-    transform:scale(1.015);
-    pointer-events:none;
-  }
-  .nexa-v457-continue{
-    margin-top:4px;
-    min-width:min(290px,78vw);
-    border:1px solid rgba(93,225,255,.72);
-    border-radius:999px;
-    padding:12px 20px;
-    background:linear-gradient(100deg,#1b5dff,#754dff 58%,#e94bd6);
-    color:#fff;
-    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-    font-size:11px;
-    font-weight:950;
-    letter-spacing:.12em;
-    box-shadow:0 0 18px rgba(78,219,255,.20),0 0 30px rgba(125,75,255,.22);
-  }
-  .nexa-v457-continue:active{transform:scale(.985)}
-
   /* Chief Gear stars: inside planet, left side, vertical */
   .v448-gear-stars{
     position:absolute;z-index:8;left:8px;bottom:15px;
@@ -746,8 +720,33 @@ async function fillAllianceSelect(select,stateNumber,selectedId,{allowNotListed=
   select.dataset.nexaState=String(stateNumber||'');
 }
 
+
+function removeDuplicateProfileAllianceEditors(){
+  const form=$('#nexa-profile-editor');if(!form)return;
+
+  // If older layers injected duplicate blocks with the same id, keep one only.
+  const dupIds=$$('[id="v26-profile-alliance-block"]',form);
+  dupIds.slice(1).forEach(el=>el.remove());
+
+  const canonical=dupIds[0]||null;
+
+  // Remove any other legacy Alliance/Main wrapper created by index/V43/V26.
+  // The canonical block is the ONLY owner of Alliance + Main inside this form.
+  // Scope is strictly inside the Profile editor.
+  const candidates=Array.from(form.children);
+  candidates.forEach(el=>{
+    if(!el||el===canonical)return;
+    const txt=String(el.textContent||'').replace(/\s+/g,' ').trim().toLowerCase();
+    const hasAlliance=/\balliance\b/.test(txt);
+    const hasSelect=!!el.querySelector?.('select');
+    const hasMain=/make this my main account|main account/.test(txt);
+    if(hasAlliance && (hasSelect||hasMain))el.remove();
+  });
+}
+
 async function ensureProfileAllianceEditor(a){
   const form=$('#nexa-profile-editor');if(!form||!a?.id)return;
+  removeDuplicateProfileAllianceEditors();
   let block=$('#v26-profile-alliance-block',form);
   if(!block){
     block=document.createElement('div');block.id='v26-profile-alliance-block';
@@ -772,6 +771,25 @@ async function ensureProfileAllianceEditor(a){
   form.dataset.v26AllianceId=String(a.alliance_id||'');
   form.dataset.v26IsMain=a.is_main?'1':'0';
   $('#nexa-edit-role')?.setAttribute('disabled','disabled');
+  removeDuplicateProfileAllianceEditors();
+}
+
+
+function clearLegacyProfileMessages(){
+  const form=$('#nexa-profile-editor');if(!form)return;
+  $$('[role="status"],.toast,.notice,.message,.success,.nexa-v26-message,.v26-message',form).forEach(el=>{
+    if(el.id==='nexa-v454-profile-save-status')return;
+    const t=String(el.textContent||'').toLowerCase();
+    if(/main account|alliance verification|profile updated|saved/.test(t))el.remove();
+  });
+  $$('*',form).forEach(el=>{
+    if(el.children.length)return;
+    const t=String(el.textContent||'').trim().toLowerCase();
+    if(/alliance verification and main account changes are saved|main account changes are saved/.test(t)){
+      el.textContent='';
+      el.style.display='none';
+    }
+  });
 }
 
 function showProfileSaveStatus(message,kind='good'){
@@ -780,7 +798,7 @@ function showProfileSaveStatus(message,kind='good'){
   if(!form)return;
   if(!el){
     el=document.createElement('div');el.id='nexa-v454-profile-save-status';
-    const btn=form.querySelector('[type="submit"]');if(btn)btn.insertAdjacentElement('afterend',el);else form.appendChild(el);
+    form.insertAdjacentElement('afterend',el);
   }
   el.className=`nexa-v454-save-status ${kind}`;
   el.textContent=message;
@@ -1532,38 +1550,35 @@ function showReturningWelcome(){
   if(flag!=='1')return;
   sessionStorage.removeItem('nexa_show_returning_welcome');
 
-  const ov=document.createElement('section');
-  ov.id='nexa-v450-returning';
+  const ov=document.createElement('section');ov.id='nexa-v450-returning';
   ov.innerHTML=`<div class="nexa-v450-nebula"></div><div class="nexa-v4484-stars"></div>
     <div class="nexa-v450-return-card">
       <div class="nexa-v450-logo-ring"><img src="/nexa-icon.png" alt="NEXA"></div>
       <h1>NEXA</h1>
       <div class="nexa-v450-systemline">CONNECT // MANAGE // EXPLORE</div>
       ${droneMarkup('intro')}
-      <div class="nexa-v4484-dialog" style="width:min(330px,86vw)">
-        <small>NEXA</small>
-        <p>Hi, I’m NEXA. Welcome back. Connecting your Profile, States, and NEXA systems…</p>
-      </div>
+      <div class="nexa-v4484-dialog" style="width:min(320px,84vw)"><small>NEXA</small><p>Hi, I’m NEXA. Welcome back. Connecting your Profile, States, and NEXA systems…</p></div>
       <div class="nexa-v450-sync"><i></i></div>
       <div class="nexa-v450-tagline">YOUR UNIVERSE // YOUR CONTROL</div>
-      <button type="button" class="nexa-v457-continue" data-nexa-welcome-continue>CONTINUE TO HOME</button>
+      <div class="nexa-v457-welcome-actions">
+        <button type="button" class="nexa-v457-welcome-continue" data-nexa-welcome-continue>CONTINUE TO HOME</button>
+      </div>
     </div>`;
-
   document.body.appendChild(ov);
   document.body.style.overflow='hidden';
 
-  const btn=$('[data-nexa-welcome-continue]',ov);
-  const closeWelcome=()=>{
-    ov.classList.add('nexa-v457-leaving');
-    const done=()=>{
-      ov.remove();
-      document.body.style.overflow='';
-      syncHomeOnlyMenu();
-    };
-    if(document.documentElement.classList.contains('nexa-reduced-motion'))done();
-    else setTimeout(done,280);
+  let closed=false;
+  const finish=()=>{
+    if(closed)return;
+    closed=true;
+    ov.remove();
+    document.body.style.overflow='';
+    syncHomeOnlyMenu();
+    ensureCompanionDrones();
   };
-  btn?.addEventListener('click',closeWelcome);
+
+  $('[data-nexa-welcome-continue]',ov)?.addEventListener('click',finish);
+  setTimeout(finish,10000);
 }
 
 const HELP_ITEMS=[
@@ -1891,10 +1906,24 @@ async function safeProfileSubmit(e){
     }
 
     const fresh=await refreshExactProfile(account.id,{closeEditor:false});
-    if(fresh)await ensureProfileAllianceEditor(fresh);
+    if(!fresh)throw new Error('Profile saved, but NEXA could not refresh this account.');
+    hydrateProfileAccount(fresh,{closeEditor:false});
+    renderDeploymentForAccount(fresh);
+    await ensureProfileAllianceEditor(fresh);
+    clearLegacyProfileMessages();
+
+    // Close edit mode only after the exact saved account has been re-fetched and painted.
     form.classList.remove('open');
-    showProfileSaveStatus(alliancePending?'Profile saved. Alliance request is Pending approval.':'Profile saved.','good');
-    setTimeout(()=>{$('#nexa-v454-profile-save-status')?.remove()},2600);
+
+    // Never show the old generic Main Account message.
+    const mainChanged=$('#v26-set-main')?.checked && !account.is_main;
+    const msg=alliancePending
+      ? 'Profile saved. Alliance request is Pending approval.'
+      : (mainChanged ? 'Profile saved. Main account updated.' : 'Profile saved.');
+    showProfileSaveStatus(msg,'good');
+
+    // Re-render the visible Profile and Constellation immediately from the fresh row.
+    window.dispatchEvent(new CustomEvent('nexa:profile-updated',{detail:{accountId:String(fresh.id)}}));
     syncHomeOnlyMenu();
   }catch(err){
     showProfileSaveStatus(err?.message||String(err),'error');
@@ -2050,7 +2079,7 @@ async function authoritativeBoot({late=false}={}){
     document.body.classList.remove('nexa-v451-constellation-open','nexa-v452-away-home');
     await refreshAccountManager();
   }catch(err){
-    console.warn('[NEXA V45.6] authoritative boot',err?.message||err);
+    console.warn('[NEXA V45.9] authoritative boot',err?.message||err);
   }
 
   cleanMojibake();
@@ -2060,7 +2089,7 @@ async function authoritativeBoot({late=false}={}){
   syncHomeOnlyMenu();
 
   // Visible runtime marker used only for diagnostics in console / support.
-  document.documentElement.dataset.nexaUiBuild='45.7';
+  document.documentElement.dataset.nexaUiBuild='45.9';
   if(late)nexaV456BootSettled=true;
 }
 
@@ -2093,6 +2122,7 @@ function apply(){
   markHomeSignalCards();
   normalizeUnlimitedAccountUI();
   removeAllianceCodeRequirement();
+  removeDuplicateProfileAllianceEditors();
   bindManagedAccountAllianceState();
   syncHomeOnlyMenu();
   repairAccountLabels();
@@ -2105,128 +2135,4 @@ function apply(){
   loadMotionMode();
   ensureCompanionDrones();
   cleanLegacyHomeAccountLimit();
-  maybeShowOnboarding();
-}
-window.NEXADrone={openFleet,showOnboarding,showMotionChoice,openHelp:openDroneHelp,openAccount:openSelectedProfile,boot:authoritativeBoot,build:'45.7'};
-
-function schedule(){
-  requestAnimationFrame(apply);
-  [60,180,420,900,1600].forEach(ms=>setTimeout(apply,ms));
-}
-
-/* Canonical account selection: native index still opens Passport/Profile.
-   This layer only establishes account identity before that native click runs. */
-
-window.addEventListener('click',e=>{
-  const launcher=e.target.closest?.('#nexa-profile-launcher');
-  if(launcher){
-    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
-    openFleet();
-    return;
-  }
-
-  const fleetReturn=e.target.closest?.('#nexa-v4484-return-fleet');
-  if(fleetReturn){
-    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
-    returnToFleetWithJump();
-    return;
-  }
-
-  const card=e.target.closest?.('#nexa-account-constellation [data-nexa-profile]');
-  if(card?.dataset.nexaProfile){
-    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
-    openSelectedProfile(String(card.dataset.nexaProfile));
-    return;
-  }
-
-  const add=e.target.closest?.('#nexa-constellation-add');
-  if(add){
-    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
-    $('#nexa-account-constellation')?.classList.remove('open');
-    $('#nexa-account-constellation')?.setAttribute('aria-hidden','true');
-    openManagedAccountEditor('');
-    return;
-  }
-
-  const editAccount=e.target.closest?.('[data-v4483-edit]');
-  if(editAccount){
-    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
-    openManagedAccountEditor(String(editAccount.dataset.v4483Edit||''));
-    return;
-  }
-
-  const deleteAccount=e.target.closest?.('[data-v4483-delete]');
-  if(deleteAccount){
-    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
-    deleteManagedAccount(String(deleteAccount.dataset.v4483Delete||''));
-    return;
-  }
-
-  const closeAccounts=e.target.closest?.('#accounts-modal [data-close-modal],#accounts-modal .modal-close,#accounts-modal [aria-label="Close"],#accounts-modal .close');
-  if(closeAccounts){
-    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
-    closeManagedAccountsToConstellation();
-    return;
-  }
-
-  const close=e.target.closest?.('[data-close-nexa-profile]');
-  if(close){
-    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
-    const p=$('#nexa-profile-modal');p?.classList.remove('open');p?.setAttribute('aria-hidden','true');document.body.classList.remove('nexa-v451-profile-open');
-    loadAccounts().then(rows=>{
-      renderCanonicalConstellation(rows,activeFleetState);
-      const c=$('#nexa-account-constellation');c?.classList.add('open');c?.setAttribute('aria-hidden','false');
-    });
-    return;
-  }
-},true);
-
-
-document.addEventListener('click',e=>{
-  const btn=e.target.closest?.('#accounts-modal button');
-  if(!btn)return;
-  const text=String(btn.textContent||'').trim().toLowerCase();
-  if((/add (game )?account|new account|add another/.test(text)) && !btn.matches('[type="submit"]')){
-    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
-    resetManagedAccountForm({stateNumber:activeFleetState||''});
-  }
-},true);
-
-document.addEventListener('pointerdown',e=>{
-  const card=e.target.closest?.('#nexa-account-constellation [data-nexa-profile]');
-  if(card?.dataset.nexaProfile){
-    const id=String(card.dataset.nexaProfile);
-    window.NEXA_ACTIVE_ACCOUNT_ID=id;
-    profileCameFromConstellation=true;
-    window.dispatchEvent(new CustomEvent('nexa:account-changed',{detail:{accountId:id,stateNumber:activeFleetState}}));
-  }
-},true);
-
-window.addEventListener('submit',e=>{if(e.target?.id==='account-form'){saveManagedAccount(e);return}capturePendingState(e)},true);
-
-document.addEventListener('click',e=>{
-  const closeProfile=e.target.closest?.('[data-close-nexa-profile]');
-  if(closeProfile&&profileCameFromConstellation){
-    setTimeout(async()=>{
-      const rows=await loadAccounts();
-      renderCanonicalConstellation(rows);
-      const c=$('#nexa-account-constellation');
-      c?.classList.add('open');c?.setAttribute('aria-hidden','false');
-    },0);
-  }
-
-  if(e.target.closest?.('#nexa-profile-launcher,[data-nexa-profile],[data-close-nexa-profile],[data-close-constellation],#nexa-deployment-stat,[data-v33-save],[data-v33-item],[data-v33-cat],[data-v33-gen]'))schedule();
-  if(e.target.closest?.('[data-v33-save]'))[120,360,850].forEach(ms=>setTimeout(()=>{deployment();chiefGearStars();},ms));
-},true);
-
-document.addEventListener('change',e=>{
-  if(e.target.matches?.('[data-v33-expert-skill],[data-v44-pet-level],[data-v33-pet-skill],#nexa-edit-deployment'))schedule();
-},true);
-
-window.addEventListener('nexa:profile-open',schedule);
-window.addEventListener('nexa:profile-updated',schedule);
-window.addEventListener('pageshow',schedule);
-window.addEventListener('load',schedule);
-
-schedule();
-})();
+  maybeShowOnboardin

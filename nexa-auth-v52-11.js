@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-// NEXA V52.17 — ROBOT GREETING / REMOVE ORB — 2026-08-25
+// NEXA V52.18 — HIDDEN OWNER ACCESS / 2S NEXA LONG PRESS — 2026-08-25
 
 const SUPABASE_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const SUPABASE_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
@@ -33,7 +33,7 @@ function styles(){
 
   .nexa-v460-auth-guide{display:none!important}
   .nexa-auth-guide{display:flex;align-items:center;gap:9px;margin:0 0 10px;padding:7px 9px;border-radius:11px;border:1px solid rgba(79,200,255,.20);background:linear-gradient(135deg,rgba(9,28,57,.55),rgba(32,10,57,.38))}
-  .nexa-auth-guide-bot{position:relative;width:36px;height:30px;flex:0 0 36px;filter:drop-shadow(0 0 10px rgba(80,210,255,.35))}
+  .nexa-auth-guide-bot{position:relative;width:36px;height:30px;flex:0 0 36px;filter:drop-shadow(0 0 10px rgba(80,210,255,.35));user-select:none;-webkit-user-select:none;touch-action:manipulation;cursor:default}
   .nexa-auth-guide-bot .body{position:absolute;left:5px;top:4px;width:26px;height:20px;border-radius:45%;background:linear-gradient(145deg,#f7f8ff 0%,#bac7ff 45%,#7b73d7 100%);border:1px solid rgba(142,226,255,.9)}
   .nexa-auth-guide-bot .face{position:absolute;left:4px;right:4px;top:5px;height:10px;border-radius:8px;background:linear-gradient(180deg,#07142e,#020817);border:1px solid rgba(73,221,255,.55)}
   .nexa-auth-guide-bot .eye{position:absolute;top:3px;width:3px;height:3px;border-radius:50%;background:#67f0ff;box-shadow:0 0 4px #67f0ff}
@@ -65,7 +65,6 @@ function styles(){
   .nexa-auth-note{margin-top:8px;padding:7px 9px;border-radius:9px;border:1px solid rgba(123,105,255,.18);background:rgba(108,77,255,.055);color:#9ea8cb;font-size:9px;line-height:1.35}
   .nexa-auth-message{min-height:14px;margin-top:7px;color:#98a4c9;font-size:10px;line-height:1.35}
   .nexa-auth-message.error{color:#ff9ba8}.nexa-auth-message.good{color:#85e9b6}
-  .nexa-owner-lock{position:absolute;right:9px;bottom:7px;width:29px;height:29px;border:0;border-radius:50%;background:transparent;color:rgba(221,222,255,.55);font-size:14px}
 
   .nexa-verify-overlay{position:fixed;inset:0;z-index:1000001;display:grid;place-items:center;padding:18px;background:rgba(1,3,14,.86);backdrop-filter:blur(12px)}
   .nexa-verify-card{width:min(360px,100%);border:1px solid rgba(95,201,255,.38);border-radius:18px;padding:16px;background:linear-gradient(150deg,#0b1430,#08091f);box-shadow:0 25px 70px rgba(0,0,0,.55),0 0 28px rgba(99,73,255,.14)}
@@ -135,7 +134,6 @@ function markup(){
     </div>
 
     <div id="nexa-auth-message" class="nexa-auth-message"></div>
-    <button id="nexa-owner-lock" class="nexa-owner-lock" type="button" aria-label="Owner access" title="Owner access">🔒</button>
   </section>`;
   document.body.prepend(gate);
   stars($('nexa-auth-space'))
@@ -191,6 +189,48 @@ async function create(e){
   }catch(e){msg(e.message,'error')}
 }
 
+
+function installHiddenOwnerAccess(){
+  const bot=document.querySelector('.nexa-auth-guide-bot');
+  if(!bot || bot.dataset.ownerPressBound==='1')return;
+  bot.dataset.ownerPressBound='1';
+
+  let timer=0;
+  let triggered=false;
+
+  const clear=()=>{
+    if(timer){clearTimeout(timer);timer=0}
+  };
+
+  const start=()=>{
+    triggered=false;
+    clear();
+    timer=setTimeout(()=>{
+      triggered=true;
+      location.href='/owner-access.html';
+    },2000);
+  };
+
+  bot.addEventListener('pointerdown',start);
+  bot.addEventListener('pointerup',clear);
+  bot.addEventListener('pointercancel',clear);
+  bot.addEventListener('pointerleave',clear);
+  bot.addEventListener('contextmenu',e=>e.preventDefault());
+
+  // Keyboard fallback for desktop without adding visible UI.
+  bot.tabIndex=0;
+  bot.setAttribute('aria-label','NEXA');
+  bot.addEventListener('keydown',e=>{
+    if(e.key==='Enter'||e.key===' '){
+      e.preventDefault();
+      start();
+    }
+  });
+  bot.addEventListener('keyup',e=>{
+    if(e.key==='Enter'||e.key===' ')clear();
+  });
+}
+
 async function init(){
   styles();
   markup();
@@ -198,8 +238,8 @@ async function init(){
   document.querySelectorAll('[data-auth-tab]').forEach(btn=>btn.addEventListener('click',()=>show(btn.dataset.authTab)));
   $('nexa-login-form').addEventListener('submit',login);
   $('nexa-create-form').addEventListener('submit',create);
-  $('nexa-owner-lock').addEventListener('click',()=>{location.href='/owner-access.html'});
   $('nexa-forgot').addEventListener('click',()=>msg('Forgot your password? Ask your R5 or an authorized NEXA administrator for help.',''));
+  installHiddenOwnerAccess();
   ['nexa-login-game-id','nexa-create-game-id'].forEach(id=>$(id)?.addEventListener('input',e=>digitsOnly(e.target,12)));
   ['nexa-login-state','nexa-create-state'].forEach(id=>$(id)?.addEventListener('input',e=>digitsOnly(e.target,6)));
   window.NEXAAuth={show,reconcile};

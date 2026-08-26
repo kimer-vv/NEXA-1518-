@@ -4,6 +4,9 @@
    Removes V29/V30 overlay shells and their oval legacy presentation.
    Allows Owner operational-role assignment while keeping Owner module access protected.
    My Alliance is intentionally untouched.
+
+   V47 addition:
+   - Loads NEXA visual identity + Chief Gear asset renderer.
 */
 (()=>{
 'use strict';
@@ -14,45 +17,91 @@ const $=(s,r=document)=>r.querySelector(s);
 
 function css(){
  if(document.getElementById('nexa-v44-css')) return;
+
  const s=document.createElement('style');
+
  s.id='nexa-v44-css';
+
  s.textContent=`
    /* TRANSFER: exact compact card rhythm used by the neighboring Home cards. */
    body #nexa-v430-transfer-card{
-     width:100%!important;max-width:100%!important;min-width:0!important;
-     min-height:0!important;height:auto!important;max-height:none!important;aspect-ratio:auto!important;
-     margin:0!important;padding:12px 14px!important;border-radius:18px!important;box-sizing:border-box!important;
+     width:100%!important;
+     max-width:100%!important;
+     min-width:0!important;
+     min-height:0!important;
+     height:auto!important;
+     max-height:none!important;
+     aspect-ratio:auto!important;
+     margin:0!important;
+     padding:12px 14px!important;
+     border-radius:18px!important;
+     box-sizing:border-box!important;
    }
+
    body #nexa-v430-transfer-card .kicker{
-     margin:0 0 4px!important;padding:0!important;font-size:8px!important;
-     line-height:1.2!important;letter-spacing:.17em!important;font-weight:950!important;
+     margin:0 0 4px!important;
+     padding:0!important;
+     font-size:8px!important;
+     line-height:1.2!important;
+     letter-spacing:.17em!important;
+     font-weight:950!important;
    }
+
    body #nexa-v430-transfer-card h1,
    body #nexa-v430-transfer-card h2,
    body #nexa-v430-transfer-card h3,
    body #nexa-v430-transfer-card h4{
-     margin:0 0 3px!important;padding:0!important;font-size:15px!important;
-     line-height:1.12!important;letter-spacing:0!important;font-weight:900!important;
+     margin:0 0 3px!important;
+     padding:0!important;
+     font-size:15px!important;
+     line-height:1.12!important;
+     letter-spacing:0!important;
+     font-weight:900!important;
    }
-   body #nexa-v430-transfer-card p{
-     margin:0!important;padding:0!important;font-size:10px!important;line-height:1.38!important;
-     color:#adb7cf!important;letter-spacing:0!important;
-   }
-   body #nexa-v430-transfer-card .nexa-v430-actions{margin-top:8px!important;gap:7px!important}
-   body #nexa-v430-transfer-card .nexa-v430-actions a{min-height:30px!important;padding:6px 11px!important;font-size:10px!important}
 
-   #nexa-v425-ministry{font-size:0!important;overflow:hidden!important}
-   #nexa-v425-ministry svg{display:block!important;width:19px!important;height:19px!important}
+   body #nexa-v430-transfer-card p{
+     margin:0!important;
+     padding:0!important;
+     font-size:10px!important;
+     line-height:1.38!important;
+     color:#adb7cf!important;
+     letter-spacing:0!important;
+   }
+
+   body #nexa-v430-transfer-card .nexa-v430-actions{
+     margin-top:8px!important;
+     gap:7px!important;
+   }
+
+   body #nexa-v430-transfer-card .nexa-v430-actions a{
+     min-height:30px!important;
+     padding:6px 11px!important;
+     font-size:10px!important;
+   }
+
+   #nexa-v425-ministry{
+     font-size:0!important;
+     overflow:hidden!important;
+   }
+
+   #nexa-v425-ministry svg{
+     display:block!important;
+     width:19px!important;
+     height:19px!important;
+   }
 
    /* V44.3: only accidental second-owner shells stay hidden. */
    #nexa-profile-modal #nexa-v30-shell,
-   #nexa-profile-modal #nexa-p29-shell{display:none!important}
+   #nexa-profile-modal #nexa-p29-shell{
+     display:none!important;
+   }
 
-   /* Kill the inherited oval/egg presentation. The established Profile owns the inside. */
+   /* Kill the inherited oval/egg presentation. */
    #nexa-profile-modal{
      padding:6px!important;
      overflow:hidden!important;
    }
+
    #nexa-profile-modal .nexa-profile-sheet{
      position:relative!important;
      inset:auto!important;
@@ -73,6 +122,7 @@ function css(){
      -webkit-overflow-scrolling:touch!important;
      box-sizing:border-box!important;
    }
+
    #nexa-profile-modal .nexa-profile-sheet:before,
    #nexa-profile-modal .nexa-profile-sheet:after{
      border-radius:26px!important;
@@ -92,107 +142,332 @@ function css(){
      opacity:1!important;
    }
  `;
+
  document.head.appendChild(s);
 }
 
 function ministry(){
- const b=document.getElementById('nexa-v425-ministry');
+
+ const b=document.getElementById(
+   'nexa-v425-ministry'
+ );
+
  if(!b) return;
- b.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8.5h12v10H6zM8 5v3.5M16 5v3.5M8.5 12h3v3h-3zM12.5 12h3v3h-3zM7 8.5h10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
- b.setAttribute('aria-label','Ministry Schedule');
+
+ b.innerHTML=
+   '<svg viewBox="0 0 24 24" aria-hidden="true">'+
+   '<path d="M6 8.5h12v10H6zM8 5v3.5M16 5v3.5M8.5 12h3v3h-3zM12.5 12h3v3h-3zM7 8.5h10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'+
+   '</svg>';
+
+ b.setAttribute(
+   'aria-label',
+   'Ministry Schedule'
+ );
 }
 
-
 function unstackProfile(){
- const modal=document.getElementById('nexa-profile-modal');
+
+ const modal=document.getElementById(
+   'nexa-profile-modal'
+ );
+
  if(!modal) return;
 
- modal.querySelector('#nexa-v30-shell')?.remove();
- modal.querySelector('#nexa-p29-shell')?.remove();
- modal.classList.remove('nexa-v30-owned','nexa-p29-owned');
+ modal.querySelector(
+   '#nexa-v30-shell'
+ )?.remove();
 
- document.getElementById('nexa-profile-v30-css')?.remove();
- document.getElementById('nexa-p29-css')?.remove();
+ modal.querySelector(
+   '#nexa-p29-shell'
+ )?.remove();
 
- const sheet=modal.querySelector('.nexa-profile-sheet');
+ modal.classList.remove(
+   'nexa-v30-owned',
+   'nexa-p29-owned'
+ );
+
+ document.getElementById(
+   'nexa-profile-v30-css'
+ )?.remove();
+
+ document.getElementById(
+   'nexa-p29-css'
+ )?.remove();
+
+ const sheet=modal.querySelector(
+   '.nexa-profile-sheet'
+ );
+
  if(sheet){
-   sheet.style.removeProperty('clip-path');
-   sheet.style.removeProperty('-webkit-clip-path');
-   sheet.style.removeProperty('mask');
-   sheet.style.removeProperty('-webkit-mask');
+
+   sheet.style.removeProperty(
+     'clip-path'
+   );
+
+   sheet.style.removeProperty(
+     '-webkit-clip-path'
+   );
+
+   sheet.style.removeProperty(
+     'mask'
+   );
+
+   sheet.style.removeProperty(
+     '-webkit-mask'
+   );
  }
 
  modal.querySelectorAll(
-   '.nexa-profile-tabs,#nexa-profile-content,.nexa-profile-content,#nexa-player-gen-rail,#nexa-pl-owned-root'
+   '.nexa-profile-tabs,'+
+   '#nexa-profile-content,'+
+   '.nexa-profile-content,'+
+   '#nexa-player-gen-rail,'+
+   '#nexa-pl-owned-root'
  ).forEach(el=>{
-   el.style.removeProperty('display');
-   el.style.removeProperty('visibility');
-   el.style.removeProperty('opacity');
-   el.removeAttribute('aria-hidden');
+
+   el.style.removeProperty(
+     'display'
+   );
+
+   el.style.removeProperty(
+     'visibility'
+   );
+
+   el.style.removeProperty(
+     'opacity'
+   );
+
+   el.removeAttribute(
+     'aria-hidden'
+   );
+
  });
 
- if(window.__NEXA_PROFILE_OWNER__==='V31' ||
-    window.__NEXA_PROFILE_OWNER__==='V30' ||
-    window.__NEXA_PROFILE_OWNER__==='V29'){
-   window.__NEXA_PROFILE_OWNER__='ESTABLISHED-V443';
+ if(
+   window.__NEXA_PROFILE_OWNER__==='V31' ||
+   window.__NEXA_PROFILE_OWNER__==='V30' ||
+   window.__NEXA_PROFILE_OWNER__==='V29'
+ ){
+   window.__NEXA_PROFILE_OWNER__=
+     'ESTABLISHED-V443';
  }
 }
 
 function fixOwnerOperationalRoles(){
- document.querySelectorAll('.nexa-v25-protected').forEach(badge=>{
-   const card=badge.closest('article');
+
+ document.querySelectorAll(
+   '.nexa-v25-protected'
+ ).forEach(badge=>{
+
+   const card=badge.closest(
+     'article'
+   );
+
    if(!card) return;
-   card.querySelectorAll('input[data-v25-op-user][data-v25-op]').forEach(input=>{
+
+   card.querySelectorAll(
+     'input[data-v25-op-user][data-v25-op]'
+   ).forEach(input=>{
+
      input.disabled=false;
-     input.removeAttribute('disabled');
+
+     input.removeAttribute(
+       'disabled'
+     );
+
      input.dataset.v443OwnerOp='1';
+
    });
+
  });
 }
 
 function refreshProfileV22(){
- const modal=document.getElementById('nexa-profile-modal');
+
+ const modal=document.getElementById(
+   'nexa-profile-modal'
+ );
+
  if(!modal) return;
- const accountId=window.NEXA_ACTIVE_ACCOUNT_ID ||
+
+ const accountId=
+   window.NEXA_ACTIVE_ACCOUNT_ID ||
    modal.dataset.accountId ||
-   modal.querySelector('[data-account-id]')?.dataset.accountId ||
+   modal.querySelector(
+     '[data-account-id]'
+   )?.dataset.accountId ||
    null;
+
  if(accountId){
-   window.NEXA_ACTIVE_ACCOUNT_ID=String(accountId);
-   document.dispatchEvent(new CustomEvent('nexa:profile-opened',{detail:{accountId:String(accountId)}}));
+
+   window.NEXA_ACTIVE_ACCOUNT_ID=
+     String(accountId);
+
+   document.dispatchEvent(
+     new CustomEvent(
+       'nexa:profile-opened',
+       {
+         detail:{
+           accountId:String(accountId)
+         }
+       }
+     )
+   );
+
  }
 }
 
 function loadFresh(id,src){
+
  const old=document.getElementById(id);
+
  if(old) return;
- const s=document.createElement('script');s.id=id;s.src=src;s.async=false;document.head.appendChild(s);
+
+ const s=document.createElement(
+   'script'
+ );
+
+ s.id=id;
+ s.src=src;
+ s.async=false;
+
+ document.head.appendChild(s);
 }
 
 function boot(){
+
  css();
- /* These unique URLs are the cache cutover. */
- loadFresh('nexa-v44-troops','nexa-troop-assets-v25.js?v=25-20260823');
- let p22=document.getElementById('nexa-v443-player-library');
- if(!window.__NEXA_PLAYER_LIBRARY_V22__ && !p22){
-   p22=document.createElement('script');
-   p22.id='nexa-v443-player-library';
-   p22.src='nexa-player-library-v22.js?v=22-443-20260823';
+
+ /*
+   Cache cutover.
+ */
+
+ loadFresh(
+   'nexa-v44-troops',
+   'nexa-troop-assets-v25.js?v=25-20260823'
+ );
+
+ loadFresh(
+   'nexa-v47-visual-assets',
+   'nexa-v47-visual-assets.js?v=47-20260826'
+ );
+
+ let p22=document.getElementById(
+   'nexa-v443-player-library'
+ );
+
+ if(
+   !window.__NEXA_PLAYER_LIBRARY_V22__ &&
+   !p22
+ ){
+
+   p22=document.createElement(
+     'script'
+   );
+
+   p22.id=
+     'nexa-v443-player-library';
+
+   p22.src=
+     'nexa-player-library-v22.js?v=22-443-20260823';
+
    p22.async=false;
-   p22.addEventListener('load',()=>setTimeout(refreshProfileV22,80),{once:true});
+
+   p22.addEventListener(
+     'load',
+     ()=>{
+       setTimeout(
+         refreshProfileV22,
+         80
+       );
+     },
+     {once:true}
+   );
+
    document.head.appendChild(p22);
- }else if(window.__NEXA_PLAYER_LIBRARY_V22__){
-   setTimeout(refreshProfileV22,80);
+
+ }else if(
+   window.__NEXA_PLAYER_LIBRARY_V22__
+ ){
+
+   setTimeout(
+     refreshProfileV22,
+     80
+   );
+
  }
+
  ministry();
+
  unstackProfile();
+
  fixOwnerOperationalRoles();
- [120,350,750,1400,2600].forEach(ms=>setTimeout(()=>{css();ministry();unstackProfile();fixOwnerOperationalRoles();},ms));
+
+ [
+   120,
+   350,
+   750,
+   1400,
+   2600
+ ].forEach(ms=>
+   setTimeout(
+     ()=>{
+       css();
+       ministry();
+       unstackProfile();
+       fixOwnerOperationalRoles();
+     },
+     ms
+   )
+ );
+
 }
-if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot,{once:true});
-else boot();
-document.addEventListener('click',()=>{
- [0,120,320,700].forEach(ms=>setTimeout(fixOwnerOperationalRoles,ms));
-},true);
-window.addEventListener('pageshow',()=>setTimeout(()=>{boot();unstackProfile();fixOwnerOperationalRoles();},80));
+
+if(
+  document.readyState==='loading'
+){
+
+ document.addEventListener(
+   'DOMContentLoaded',
+   boot,
+   {once:true}
+ );
+
+}else{
+
+ boot();
+
+}
+
+document.addEventListener(
+ 'click',
+ ()=>{
+   [
+     0,
+     120,
+     320,
+     700
+   ].forEach(ms=>
+     setTimeout(
+       fixOwnerOperationalRoles,
+       ms
+     )
+   );
+ },
+ true
+);
+
+window.addEventListener(
+ 'pageshow',
+ ()=>
+   setTimeout(
+     ()=>{
+       boot();
+       unstackProfile();
+       fixOwnerOperationalRoles();
+     },
+     80
+   )
+);
+
 })();

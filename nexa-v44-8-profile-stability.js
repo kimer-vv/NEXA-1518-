@@ -1,4 +1,4 @@
-/* NEXA V45.5 — ACCOUNT MANAGER OWNERSHIP / ADD-EDIT-DELETE RESTORE — 2026-08-25
+ NEXA V45.5 — ACCOUNT MANAGER OWNERSHIP / ADD-EDIT-DELETE RESTORE — 2026-08-25
    COMPLETE REPLACEMENT for nexa-v44-8-profile-stability.js
    Fixes:
    - MAIN / ALT labels across Constellation, Passport and Player Intelligence Profile
@@ -2031,3 +2031,79 @@ window.addEventListener('click',e=>{
     openManagedAccountEditor(String(editAccount.dataset.v4483Edit||''));
     return;
   }
+
+  const deleteAccount=e.target.closest?.('[data-v4483-delete]');
+  if(deleteAccount){
+    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+    deleteManagedAccount(String(deleteAccount.dataset.v4483Delete||''));
+    return;
+  }
+
+  const closeAccounts=e.target.closest?.('#accounts-modal [data-close-modal],#accounts-modal .modal-close,#accounts-modal [aria-label="Close"],#accounts-modal .close');
+  if(closeAccounts){
+    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+    closeManagedAccountsToConstellation();
+    return;
+  }
+
+  const close=e.target.closest?.('[data-close-nexa-profile]');
+  if(close){
+    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+    const p=$('#nexa-profile-modal');p?.classList.remove('open');p?.setAttribute('aria-hidden','true');document.body.classList.remove('nexa-v451-profile-open');
+    loadAccounts().then(rows=>{
+      renderCanonicalConstellation(rows,activeFleetState);
+      const c=$('#nexa-account-constellation');c?.classList.add('open');c?.setAttribute('aria-hidden','false');
+    });
+    return;
+  }
+},true);
+
+
+document.addEventListener('click',e=>{
+  const btn=e.target.closest?.('#accounts-modal button');
+  if(!btn)return;
+  const text=String(btn.textContent||'').trim().toLowerCase();
+  if((/add (game )?account|new account|add another/.test(text)) && !btn.matches('[type="submit"]')){
+    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+    resetManagedAccountForm({stateNumber:activeFleetState||''});
+  }
+},true);
+
+document.addEventListener('pointerdown',e=>{
+  const card=e.target.closest?.('#nexa-account-constellation [data-nexa-profile]');
+  if(card?.dataset.nexaProfile){
+    const id=String(card.dataset.nexaProfile);
+    window.NEXA_ACTIVE_ACCOUNT_ID=id;
+    profileCameFromConstellation=true;
+    window.dispatchEvent(new CustomEvent('nexa:account-changed',{detail:{accountId:id,stateNumber:activeFleetState}}));
+  }
+},true);
+
+window.addEventListener('submit',e=>{if(e.target?.id==='account-form'){saveManagedAccount(e);return}capturePendingState(e)},true);
+
+document.addEventListener('click',e=>{
+  const closeProfile=e.target.closest?.('[data-close-nexa-profile]');
+  if(closeProfile&&profileCameFromConstellation){
+    setTimeout(async()=>{
+      const rows=await loadAccounts();
+      renderCanonicalConstellation(rows);
+      const c=$('#nexa-account-constellation');
+      c?.classList.add('open');c?.setAttribute('aria-hidden','false');
+    },0);
+  }
+
+  if(e.target.closest?.('#nexa-profile-launcher,[data-nexa-profile],[data-close-nexa-profile],[data-close-constellation],#nexa-deployment-stat,[data-v33-save],[data-v33-item],[data-v33-cat],[data-v33-gen]'))schedule();
+  if(e.target.closest?.('[data-v33-save]'))[120,360,850].forEach(ms=>setTimeout(()=>{deployment();chiefGearStars();},ms));
+},true);
+
+document.addEventListener('change',e=>{
+  if(e.target.matches?.('[data-v33-expert-skill],[data-v44-pet-level],[data-v33-pet-skill],#nexa-edit-deployment'))schedule();
+},true);
+
+window.addEventListener('nexa:profile-open',schedule);
+window.addEventListener('nexa:profile-updated',schedule);
+window.addEventListener('pageshow',schedule);
+window.addEventListener('load',schedule);
+
+schedule();
+})();

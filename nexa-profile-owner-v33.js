@@ -156,13 +156,7 @@ function gearTierAsset(i,p={}){
 
   return `/assets/nexa/chief-gear/chiefgear_${filePiece}_${color}_t${tier}.png`;
 }
-  const q=String(p.gear_quality||'Red');
-  const tier=clamp(p.gear_tier||0,0,6);
-  const star=clamp(p.gear_stars||0,0,3);
-  const k=pieceKey(i);
-  if(q==='Red' && tier>=3) return `/assets/chief-gear/t${tier}/${k}-${star}.png`;
-  return i.image_url||GEAR_FALLBACK[k]||'';
-}
+  
 function itemImg(i,p={}){
   if(i.item_type==='troop'){
     const t=troopType(i), tier=clamp(p.tier||1,1,12);

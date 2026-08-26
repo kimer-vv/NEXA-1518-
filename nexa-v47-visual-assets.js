@@ -1,4 +1,4 @@
-/* NEXA V47.5 — EXPLICIT HOME CARD OWNERSHIP
+/* NEXA V47.6 — HOME ICON SIDE-LAYOUT / STABLE LIVE + TRANSFER
    2026-08-26
 
    COMPLETE REPLACEMENT for: nexa-v47-visual-assets.js
@@ -6,14 +6,11 @@
    Goals:
    - Preserve the official NEXA "N" symbol asset.
    - Preserve the current Home wordmark / CONTROL HUB branding.
-   - Style the REAL Home wrappers directly:
-       #home-svs-section
-       #home-transfers-section
-   - Live Event and Transfer use the same robotic / galactic family as
-     NEXA Pulse / Stellar Signal.
+   - Keep all four Home command-card icons BESIDE the text, never above it.
+   - Make Live Event + Transfer icons stable across later Home re-renders.
    - Transfer uses ⇄, never the refresh-style ↻ icon.
-   - Keep text to the right of the icon on iPhone/Safari.
-   - Preserve Chief Gear asset resolver and the current slight planet spacing.
+   - Preserve the robotic / galactic command-card family on iPhone/Safari.
+   - Preserve Chief Gear asset resolver while thinning the visible inner black ring so tier labels stay readable.
    - Preserve NEXA identity / alliance emblem asset globals.
    - No MutationObserver.
    - No touchmove preventDefault.
@@ -22,8 +19,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V475_CONTROL_HUB__) return;
-window.__NEXA_V475_CONTROL_HUB__=true;
+if(window.__NEXA_V476_CONTROL_HUB__) return;
+window.__NEXA_V476_CONTROL_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -332,12 +329,65 @@ function installCSS(){
     text-shadow:0 0 12px color-mix(in srgb,var(--tech) 17%,transparent)!important;
   }
 
-  /* REAL legacy Home wrappers. Do not guess by inner text. */
-  #home-svs-section.nexa-v475-tech-card,
-  #home-transfers-section.nexa-v475-tech-card{
+  /* HOME cards: stable side icon lane.
+     Live + Transfer target the REAL ids directly so the icon survives
+     even if Home re-renders those sections after this script runs. */
+  #home-svs-section,
+  #home-transfers-section,
+  .nexa-v475-tech-card[data-nexa-tech="pulse"],
+  .nexa-v475-tech-card[data-nexa-tech="alliance"]{
     box-sizing:border-box!important;
-    padding-left:68px!important;
+    position:relative!important;
+    padding-left:88px!important;
     min-height:0!important;
+  }
+
+  /* Pulse / Alliance: put the existing icon BESIDE the copy, never above it. */
+  .nexa-v475-tech-card[data-nexa-tech="pulse"] > .nexa-v475-tech-icon,
+  .nexa-v475-tech-card[data-nexa-tech="alliance"] > .nexa-v475-tech-icon{
+    position:absolute!important;
+    left:22px!important;
+    top:50%!important;
+    transform:translateY(-50%)!important;
+    width:58px!important;
+    height:58px!important;
+    margin:0!important;
+    z-index:4!important;
+  }
+
+  /* Live + Transfer: CSS-owned icons are not removable by later innerHTML paints. */
+  #home-svs-section::before,
+  #home-transfers-section::before{
+    position:absolute!important;
+    left:20px!important;
+    top:50%!important;
+    transform:translateY(-50%)!important;
+    width:54px!important;
+    height:54px!important;
+    display:grid!important;
+    place-items:center!important;
+    border-radius:16px!important;
+    z-index:5!important;
+    font-size:24px!important;
+    font-weight:900!important;
+    line-height:1!important;
+    pointer-events:none!important;
+  }
+
+  #home-svs-section::before{
+    content:"⌁"!important;
+    color:#d7b9ff!important;
+    border:1px solid rgba(171,104,255,.72)!important;
+    background:radial-gradient(circle,rgba(165,107,255,.20),rgba(5,10,28,.88))!important;
+    box-shadow:inset 0 0 18px rgba(165,107,255,.10),0 0 14px rgba(165,107,255,.18)!important;
+  }
+
+  #home-transfers-section::before{
+    content:"⇄"!important;
+    color:#ffc078!important;
+    border:1px solid rgba(255,157,61,.72)!important;
+    background:radial-gradient(circle,rgba(255,157,61,.18),rgba(5,10,28,.88))!important;
+    box-shadow:inset 0 0 18px rgba(255,157,61,.09),0 0 14px rgba(255,157,61,.16)!important;
   }
 
   #home-svs-section.nexa-v475-tech-card{
@@ -356,25 +406,14 @@ function installCSS(){
 
   #home-svs-section > .nexa-v475-tech-icon,
   #home-transfers-section > .nexa-v475-tech-icon{
-    position:absolute!important;
-    left:12px!important;
-    top:50%!important;
-    transform:translateY(-50%)!important;
-    z-index:4!important;
-    margin:0!important;
-    float:none!important;
-  }
-
-  #home-transfers-section > .nexa-v475-tech-icon{
-    font-size:25px!important;
-    letter-spacing:-3px!important;
+    display:none!important;
   }
 
   #home-svs-section > .head,
   #home-transfers-section > .head{
     position:relative!important;
     z-index:2!important;
-    padding-left:12px!important;
+    padding-left:0!important;
     padding-right:14px!important;
   }
 
@@ -401,7 +440,7 @@ function installCSS(){
 
   /* Keep the empty Transfer copy inside the content lane, not under the icon. */
   #home-transfer-events:empty::before{
-    left:12px!important;
+    left:0!important;
     right:12px!important;
   }
 
@@ -414,7 +453,9 @@ function installCSS(){
   }
 
   /* ---------- CHIEF GEAR PLANETS ----------
-     Preserve the V47.4 spacing adjustment exactly.
+     Keep the current outer planet size, but let the gear art fill the planet.
+     This removes the extra wrapper gap that made the black ring look too thick
+     and makes embedded tier labels (T1/T2/etc.) easier to read.
   */
 
   #nexa-profile-modal
@@ -429,11 +470,11 @@ function installCSS(){
   #nexa-profile-modal
   .v33-item[data-type="chief_gear"]
   .v33-planet img{
-    width:min(19vw,74px)!important;
-    height:min(19vw,74px)!important;
-    max-width:74px!important;
-    max-height:74px!important;
-    padding:3px!important;
+    width:100%!important;
+    height:100%!important;
+    max-width:none!important;
+    max-height:none!important;
+    padding:0!important;
     box-sizing:border-box!important;
     object-fit:contain!important;
     border-radius:50%!important;
@@ -470,16 +511,25 @@ function installCSS(){
       font-size:7.5px!important;
     }
 
-    #home-svs-section.nexa-v475-tech-card,
-    #home-transfers-section.nexa-v475-tech-card{
-      padding-left:64px!important;
+    #home-svs-section,
+    #home-transfers-section,
+    .nexa-v475-tech-card[data-nexa-tech="pulse"],
+    .nexa-v475-tech-card[data-nexa-tech="alliance"]{
+      padding-left:78px!important;
     }
 
-    #home-svs-section > .nexa-v475-tech-icon,
-    #home-transfers-section > .nexa-v475-tech-icon{
-      left:10px!important;
-      width:44px!important;
-      height:44px!important;
+    #home-svs-section::before,
+    #home-transfers-section::before{
+      left:14px!important;
+      width:50px!important;
+      height:50px!important;
+    }
+
+    .nexa-v475-tech-card[data-nexa-tech="pulse"] > .nexa-v475-tech-icon,
+    .nexa-v475-tech-card[data-nexa-tech="alliance"] > .nexa-v475-tech-icon{
+      left:16px!important;
+      width:52px!important;
+      height:52px!important;
     }
   }
   `;

@@ -1,4 +1,4 @@
-/* NEXA V45.9 — CONSOLIDATED PROFILE SAVE / 10S WELCOME / SINGLE ALLIANCE — 2026-08-25
+/* NEXA V46.0 — AUTH COMPACT / NEXA RESTORE / LOGIN BUG ACCESS — 2026-08-25
    COMPLETE REPLACEMENT for nexa-v44-8-profile-stability.js
    Fixes:
    - MAIN / ALT labels across Constellation, Passport and Player Intelligence Profile
@@ -13,9 +13,9 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V459_CONSOLIDATED_PROFILE__) return;
-window.__NEXA_V459_CONSOLIDATED_PROFILE__=true;
-window.NEXA_UI_BUILD='45.9';
+if(window.__NEXA_V460_AUTH_RESTORE__) return;
+window.__NEXA_V460_AUTH_RESTORE__=true;
+window.NEXA_UI_BUILD='46.0';
 window.NEXA_CANONICAL_ACCOUNTS=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
@@ -1789,6 +1789,154 @@ async function openCompleteBugReporter(){
   });
 }
 
+
+function installCompactAuthTheme(){
+  if($('#nexa-v460-auth-compact-css'))return;
+  const st=document.createElement('style');
+  st.id='nexa-v460-auth-compact-css';
+  st.textContent=`
+    #nexa-auth-gate{padding:14px!important}
+    #nexa-auth-gate .nexa-auth-card{
+      width:min(420px,calc(100vw - 28px))!important;
+      padding:17px 17px 38px!important;
+      border-radius:22px!important;
+      background:linear-gradient(155deg,rgba(7,13,34,.88),rgba(10,8,30,.84))!important;
+      border-color:rgba(126,145,255,.30)!important;
+      box-shadow:0 22px 68px rgba(0,0,0,.44),0 0 30px rgba(91,79,255,.11)!important;
+      backdrop-filter:blur(18px)!important;
+    }
+    #nexa-auth-gate .nexa-auth-logo{
+      width:46px!important;height:46px!important;border-radius:15px!important;
+      margin:0 auto 7px!important;box-shadow:0 0 22px rgba(93,160,255,.30)!important
+    }
+    #nexa-auth-gate .nexa-auth-brand{margin-bottom:11px!important}
+    #nexa-auth-gate .nexa-auth-brand h1{font-size:23px!important;letter-spacing:.15em!important}
+    #nexa-auth-gate .nexa-auth-brand p{font-size:9px!important;letter-spacing:.08em!important;margin-top:3px!important}
+    #nexa-auth-gate .nexa-auth-tabs{
+      margin-bottom:13px!important;padding:3px!important;border-radius:13px!important
+    }
+    #nexa-auth-gate .nexa-auth-tab{
+      padding:8px 7px!important;border-radius:9px!important;font-size:11px!important
+    }
+    #nexa-auth-gate .nexa-auth-pane h2{font-size:17px!important;margin-bottom:3px!important}
+    #nexa-auth-gate .nexa-auth-pane>.sub{
+      font-size:11px!important;margin-bottom:11px!important;line-height:1.38!important
+    }
+    #nexa-auth-gate .nexa-auth-form{gap:8px!important}
+    #nexa-auth-gate .nexa-auth-form label{gap:4px!important;font-size:10.5px!important}
+    #nexa-auth-gate .nexa-auth-form input{
+      min-height:40px!important;padding:9px 11px!important;border-radius:10px!important;font-size:13px!important
+    }
+    #nexa-auth-gate .nexa-field-hint{font-size:9px!important;line-height:1.25!important}
+    #nexa-auth-gate .nexa-auth-submit{
+      min-height:40px!important;padding:10px 13px!important;border-radius:11px!important;font-size:11px!important
+    }
+    #nexa-auth-gate .nexa-auth-help{
+      margin-top:7px!important;gap:8px!important;font-size:9px!important;line-height:1.3!important
+    }
+    #nexa-auth-gate .nexa-auth-note{
+      margin-top:8px!important;padding:8px 9px!important;border-radius:10px!important;
+      font-size:9px!important;line-height:1.35!important
+    }
+    #nexa-auth-gate .nexa-auth-message{
+      min-height:14px!important;margin-top:7px!important;font-size:10px!important
+    }
+    #nexa-auth-gate .nexa-owner-lock{right:9px!important;bottom:8px!important;width:30px!important;height:30px!important;font-size:14px!important}
+    #nexa-v4481-report-bugs{display:none}
+    body:has(#nexa-auth-gate:not(.hidden)) #nexa-v4481-report-bugs{
+      display:grid!important;left:10px!important;top:max(10px,calc(env(safe-area-inset-top) + 4px))!important;
+      width:32px!important;height:32px!important
+    }
+    .nexa-v460-auth-guide{
+      display:grid;grid-template-columns:48px minmax(0,1fr);gap:8px;align-items:center;
+      margin:0 0 10px;padding:7px 9px;border:1px solid rgba(80,211,255,.18);border-radius:12px;
+      background:linear-gradient(135deg,rgba(8,29,57,.58),rgba(28,10,54,.42))
+    }
+    .nexa-v460-auth-guide .nexa-v4484-drone{transform:scale(.54)!important;transform-origin:center!important;width:48px!important;height:40px!important;animation:none!important}
+    .nexa-v460-auth-guide b{display:block;color:#6fe7ff;font-size:8px;letter-spacing:.12em}
+    .nexa-v460-auth-guide span{display:block;margin-top:2px;color:#aebbd7;font-size:9px;line-height:1.25}
+    @media(max-height:720px){
+      #nexa-auth-gate{place-items:start center!important;padding-top:max(10px,env(safe-area-inset-top))!important}
+      #nexa-auth-gate .nexa-auth-card{margin:auto 0!important}
+    }
+  `;
+  document.head.appendChild(st);
+}
+
+function ensureAuthNexaGuide(){
+  const gate=$('#nexa-auth-gate');
+  const card=$('.nexa-auth-card',gate);
+  const tabs=$('.nexa-auth-tabs',gate);
+  if(!gate||!card||!tabs||$('#nexa-v460-auth-guide',card))return;
+  const guide=document.createElement('div');
+  guide.id='nexa-v460-auth-guide';
+  guide.className='nexa-v460-auth-guide';
+  guide.innerHTML=`${droneMarkup()}<div><b>NEXA // ACCESS</b><span>Hi, I’m NEXA. Sign in or create your account to enter your hub.</span></div>`;
+  tabs.before(guide);
+}
+
+async function restoreNexaHomeRuntime(){
+  const gate=$('#nexa-auth-gate');
+  const authOpen=!!gate && !gate.classList.contains('hidden');
+  installCompactAuthTheme();
+  installAuthAdjustments();
+  ensureAuthNexaGuide();
+  ensureAuthNexaGuide();
+
+  if(authOpen){
+    ensureCompanionDrones();
+    return;
+  }
+
+  try{
+    const rows=await loadAccounts();
+    accountCache=rows;
+    const main=rows.find(a=>a.is_main)||rows[0]||null;
+    const photo=$('#nexa-profile-launcher-photo');
+    const name=$('#nexa-profile-launcher-name');
+    const badge=$('#nexa-profile-launcher-badge');
+    const count=$('#nexa-profile-launcher-count');
+    if(main){
+      if(photo)photo.src=accountAvatar(main);
+      if(name)name.textContent=String(main.in_game_name||'MY PROFILE').toUpperCase();
+      if(badge)badge.textContent='MAIN';
+      if(count){
+        const extra=Math.max(0,rows.length-1);
+        count.textContent='+'+extra;
+        count.classList.toggle('hidden',extra===0);
+      }
+    }
+    renderCanonicalConstellation(rows,activeFleetState||null);
+    $('#nexa-account-constellation')?.classList.remove('open');
+    $('#nexa-account-constellation')?.setAttribute('aria-hidden','true');
+    document.body.classList.remove('nexa-v451-constellation-open','nexa-v451-profile-open','nexa-v452-away-home');
+    ensureCompanionDrones();
+    syncHomeOnlyMenu();
+  }catch(err){
+    console.warn('[NEXA V46.0] restore',err?.message||err);
+  }
+}
+
+function installV460Lifecycle(){
+  if(document.documentElement.dataset.nexaV460Lifecycle==='1')return;
+  document.documentElement.dataset.nexaV460Lifecycle='1';
+
+  const afterDom=()=>queueMicrotask(()=>{
+    installCompactAuthTheme();
+    installAuthAdjustments();
+    ensureAuthNexaGuide();
+    restoreNexaHomeRuntime();
+  });
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',afterDom,{once:true});
+  }else{
+    afterDom();
+  }
+
+  window.addEventListener('pageshow',()=>restoreNexaHomeRuntime());
+}
+
 function installAuthAdjustments(){
   const gate=$('#nexa-auth-gate');if(!gate)return;
   const brand=$('.nexa-auth-brand p',gate);
@@ -2079,7 +2227,7 @@ async function authoritativeBoot({late=false}={}){
     document.body.classList.remove('nexa-v451-constellation-open','nexa-v452-away-home');
     await refreshAccountManager();
   }catch(err){
-    console.warn('[NEXA V45.9] authoritative boot',err?.message||err);
+    console.warn('[NEXA V46.0] authoritative boot',err?.message||err);
   }
 
   cleanMojibake();
@@ -2089,7 +2237,7 @@ async function authoritativeBoot({late=false}={}){
   syncHomeOnlyMenu();
 
   // Visible runtime marker used only for diagnostics in console / support.
-  document.documentElement.dataset.nexaUiBuild='45.9';
+  document.documentElement.dataset.nexaUiBuild='46.0';
   if(late)nexaV456BootSettled=true;
 }
 
@@ -2114,6 +2262,8 @@ function installAuthoritativeBoot(){
 
 function apply(){
   installCSS();
+  installV460Lifecycle();
+  installCompactAuthTheme();
   installAuthoritativeBoot();
   installAccountManagerUI();
   installAuthAdjustments();
@@ -2135,4 +2285,128 @@ function apply(){
   loadMotionMode();
   ensureCompanionDrones();
   cleanLegacyHomeAccountLimit();
-  maybeShowOnboardin
+  maybeShowOnboarding();
+}
+window.NEXADrone={openFleet,showOnboarding,showMotionChoice,openHelp:openDroneHelp,openAccount:openSelectedProfile,boot:authoritativeBoot,build:'46.0'};
+
+function schedule(){
+  requestAnimationFrame(apply);
+  [60,180,420,900,1600].forEach(ms=>setTimeout(apply,ms));
+}
+
+/* Canonical account selection: native index still opens Passport/Profile.
+   This layer only establishes account identity before that native click runs. */
+
+window.addEventListener('click',e=>{
+  const launcher=e.target.closest?.('#nexa-profile-launcher');
+  if(launcher){
+    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+    openFleet();
+    return;
+  }
+
+  const fleetReturn=e.target.closest?.('#nexa-v4484-return-fleet');
+  if(fleetReturn){
+    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+    returnToFleetWithJump();
+    return;
+  }
+
+  const card=e.target.closest?.('#nexa-account-constellation [data-nexa-profile]');
+  if(card?.dataset.nexaProfile){
+    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+    openSelectedProfile(String(card.dataset.nexaProfile));
+    return;
+  }
+
+  const add=e.target.closest?.('#nexa-constellation-add');
+  if(add){
+    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+    $('#nexa-account-constellation')?.classList.remove('open');
+    $('#nexa-account-constellation')?.setAttribute('aria-hidden','true');
+    openManagedAccountEditor('');
+    return;
+  }
+
+  const editAccount=e.target.closest?.('[data-v4483-edit]');
+  if(editAccount){
+    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+    openManagedAccountEditor(String(editAccount.dataset.v4483Edit||''));
+    return;
+  }
+
+  const deleteAccount=e.target.closest?.('[data-v4483-delete]');
+  if(deleteAccount){
+    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+    deleteManagedAccount(String(deleteAccount.dataset.v4483Delete||''));
+    return;
+  }
+
+  const closeAccounts=e.target.closest?.('#accounts-modal [data-close-modal],#accounts-modal .modal-close,#accounts-modal [aria-label="Close"],#accounts-modal .close');
+  if(closeAccounts){
+    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+    closeManagedAccountsToConstellation();
+    return;
+  }
+
+  const close=e.target.closest?.('[data-close-nexa-profile]');
+  if(close){
+    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+    const p=$('#nexa-profile-modal');p?.classList.remove('open');p?.setAttribute('aria-hidden','true');document.body.classList.remove('nexa-v451-profile-open');
+    loadAccounts().then(rows=>{
+      renderCanonicalConstellation(rows,activeFleetState);
+      const c=$('#nexa-account-constellation');c?.classList.add('open');c?.setAttribute('aria-hidden','false');
+    });
+    return;
+  }
+},true);
+
+
+document.addEventListener('click',e=>{
+  const btn=e.target.closest?.('#accounts-modal button');
+  if(!btn)return;
+  const text=String(btn.textContent||'').trim().toLowerCase();
+  if((/add (game )?account|new account|add another/.test(text)) && !btn.matches('[type="submit"]')){
+    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+    resetManagedAccountForm({stateNumber:activeFleetState||''});
+  }
+},true);
+
+document.addEventListener('pointerdown',e=>{
+  const card=e.target.closest?.('#nexa-account-constellation [data-nexa-profile]');
+  if(card?.dataset.nexaProfile){
+    const id=String(card.dataset.nexaProfile);
+    window.NEXA_ACTIVE_ACCOUNT_ID=id;
+    profileCameFromConstellation=true;
+    window.dispatchEvent(new CustomEvent('nexa:account-changed',{detail:{accountId:id,stateNumber:activeFleetState}}));
+  }
+},true);
+
+window.addEventListener('submit',e=>{if(e.target?.id==='account-form'){saveManagedAccount(e);return}capturePendingState(e)},true);
+
+document.addEventListener('click',e=>{
+  const closeProfile=e.target.closest?.('[data-close-nexa-profile]');
+  if(closeProfile&&profileCameFromConstellation){
+    setTimeout(async()=>{
+      const rows=await loadAccounts();
+      renderCanonicalConstellation(rows);
+      const c=$('#nexa-account-constellation');
+      c?.classList.add('open');c?.setAttribute('aria-hidden','false');
+    },0);
+  }
+
+  if(e.target.closest?.('#nexa-profile-launcher,[data-nexa-profile],[data-close-nexa-profile],[data-close-constellation],#nexa-deployment-stat,[data-v33-save],[data-v33-item],[data-v33-cat],[data-v33-gen]'))schedule();
+  if(e.target.closest?.('[data-v33-save]'))[120,360,850].forEach(ms=>setTimeout(()=>{deployment();chiefGearStars();},ms));
+},true);
+
+document.addEventListener('change',e=>{
+  if(e.target.matches?.('[data-v33-expert-skill],[data-v44-pet-level],[data-v33-pet-skill],#nexa-edit-deployment'))schedule();
+},true);
+
+window.addEventListener('nexa:profile-open',schedule);
+window.addEventListener('nexa:profile-updated',schedule);
+window.addEventListener('pageshow',schedule);
+window.addEventListener('load',schedule);
+
+schedule();
+})();

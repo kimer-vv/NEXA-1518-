@@ -1,7 +1,11 @@
-/* NEXA PROFILE OWNER V33.5 — RARITY-SAFE HERO FILTER + PROFILE SHELL
+/* NEXA PROFILE OWNER V33.6 — PETAL STARS + FILTERED NAV + ISOLATED DRAFTS
    Replaces V32 as the single Profile owner.
    Goals:
-   - preserve the V33.4 Profile structure and behavior
+   - preserve the V33.5 Profile structure and behavior
+   - selectable individual hero star petals (6 petals per star)
+   - filtered previous/next navigation inside detail cards
+   - isolate transient detail state per item so widget/tier values never bleed
+   - Ling Xue Expedition Skill icon fallbacks
    - correct Heroes classification: generation 0 is EPIC only when rarity is Epic/Purple
    - Rare/Blue heroes remain in Administration Library but are not mixed into My Profile > Epic
    - richer galaxy Profile surface
@@ -257,7 +261,9 @@ function injectCSS(){
     border:1px solid rgba(143,101,255,.62);border-radius:27px 27px 20px 20px;padding:15px;
     background:radial-gradient(circle at 12% 0,rgba(122,72,255,.22),transparent 26%),linear-gradient(160deg,#101735,#050919 72%);
     box-shadow:0 0 38px rgba(104,59,236,.21)}
-  .v33-detail-head{display:grid;grid-template-columns:54px minmax(0,1fr) 36px;gap:10px;align-items:center;position:sticky;top:-15px;z-index:5;padding:8px 0 10px;background:linear-gradient(#101735 80%,transparent)}
+  .v33-detail-head{display:grid;grid-template-columns:54px minmax(0,1fr) auto 36px;gap:9px;align-items:center;position:sticky;top:-15px;z-index:5;padding:8px 0 10px;background:linear-gradient(#101735 80%,transparent)}
+  .v33-nav{display:flex;gap:5px;align-items:center}.v33-nav-btn{width:31px;height:31px;border-radius:50%;border:1px solid rgba(151,111,255,.52);background:rgba(8,13,35,.88);color:#d9ccff;font-size:19px;font-weight:900;line-height:1;display:grid;place-items:center;box-shadow:0 0 10px rgba(112,66,255,.14);touch-action:manipulation}.v33-nav-btn:disabled{opacity:.22;box-shadow:none}
+  .v33-petal[data-v33-petal]{pointer-events:auto;cursor:pointer;touch-action:manipulation}
   .v33-mini{--c:#a56bff;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;overflow:hidden;border:2px solid var(--c);box-shadow:0 0 12px color-mix(in srgb,var(--c) 55%,transparent)}
   .v33-mini img{width:100%;height:100%;object-fit:cover}.v33-mini.gear img,.v33-mini.troop img{object-fit:contain;background:transparent}
   .v33-title h3{margin:0;font-size:19px;color:#fff}.v33-title small{color:#96a0bd;font-size:9px}
@@ -404,9 +410,14 @@ function renderFilters(){
     return `<button type="button" class="v33-filter ${String(g)===String(activeGen)?'active':''}" data-v33-gen="${g}" style="--c:${COLORS[n%COLORS.length]}">${label}</button>`;
   }).join('');
 }
+function filteredItems(){
+  let arr=catItems();
+  if(activeGen!=='all') arr=arr.filter(i=>String(genOf(i))===String(activeGen));
+  return arr;
+}
 function renderGrid(){
   const r=$('#v33-grid');if(!r)return;
-  let arr=catItems();if(activeGen!=='all')arr=arr.filter(i=>String(genOf(i))===String(activeGen));
+  const arr=filteredItems();
   if(!arr.length){r.innerHTML='<div class="v33-empty">Nothing is available in this filter.</div>';return}
   r.innerHTML=arr.map((i,n)=>{
     const p=progOf(i),img=itemImg(i,p),c=colorFor(i,n),fallback=GEAR_FALLBACK[pieceKey(i)]||'';
@@ -466,20 +477,30 @@ function starHTML(p,name){
   const step=clamp(p.star_step??Math.round(Number(p.stars||0)*6),0,30),full=Math.floor(step/6),sp=SPECIAL[name];
   const flowers=Array.from({length:5},(_,s)=>{
     const fill=clamp(step-s*6,0,6);
-    return `<button type="button" class="v33-flower" data-v33-star="${s}" aria-label="Star ${s+1}">
-      ${Array.from({length:6},(_,k)=>`<i class="v33-petal ${k<fill?'on':''}"></i>`).join('')}
+    return `<button type="button" class="v33-flower" data-v33-star="${s}" aria-label="Star ${s+1}. Tap a petal for partial progress or the center for the full star.">
+      ${Array.from({length:6},(_,k)=>`<i class="v33-petal ${k<fill?'on':''}" data-v33-petal="${s}:${k}" title="Star ${s+1}, petal ${k+1}"></i>`).join('')}
     </button>`;
   }).join('');
-  return `<div class="v33-section"><div class="v33-kicker"><span>STARS</span><strong>${full}★${step%6?` • ${step%6}/6`:''}</strong></div>
+  return `<div class="v33-section"><div class="v33-kicker"><span>STARS</span><strong>${full}★${step%6?` • ${step%6}/6 PETALS`:''}</strong></div>
   <div class="v33-star-row">${flowers}</div>
   ${sp?`<div class="v33-special"><span class="v33-special-icon">${sp.icon}</span><div><b>${sp.name}</b><small>${sp.stats[0]} +${sp.vals[full]}% • ${sp.stats[1]} +${sp.vals[full]}%</small></div></div>`:''}</div>`;
+}
+const HERO_SKILL_ICON_FALLBACKS={
+  'Ling Xue':{
+    'Fearsome Aura':'https://gom-s3-user-avatar.s3.us-west-2.amazonaws.com/wp-content/uploads/2024/12/%E5%87%8C%E9%9B%AA5.png',
+    'Total Control':'https://gom-s3-user-avatar.s3.us-west-2.amazonaws.com/wp-content/uploads/2024/12/%E5%87%8C%E9%9B%AA2.png'
+  }
+};
+function heroSkillIcon(i,skill){
+  return skill?.icon||skill?.image||skill?.image_url||HERO_SKILL_ICON_FALLBACKS[i?.name]?.[skill?.name]||'';
 }
 function heroDetail(i,p){
   const skills=i.metadata?.expedition_skills||[],levels=p.hero_skills||{};
   return `${starHTML(p,i.name)}<div class="v33-section"><div class="v33-kicker"><span>EXPEDITION SKILLS</span><strong>MAX 5</strong></div>
     <div class="v33-skills">${skills.map((s,n)=>{
       const lv=clamp(levels[s.name]??p[`skill_${n+1}`]??0,0,5);
-      return `<article class="v33-skill" data-v33-hero-skill-box="${esc(s.name)}"><div class="v33-skill-top"><span class="v33-skill-icon">${s.icon?imgTag(s.icon,''): '✦'}</span><div><h4>${esc(s.name)}</h4><small>${esc(s.effect||'Expedition Skill')}</small></div></div>
+      const skillIcon=heroSkillIcon(i,s);
+      return `<article class="v33-skill" data-v33-hero-skill-box="${esc(s.name)}"><div class="v33-skill-top"><span class="v33-skill-icon">${skillIcon?imgTag(skillIcon,s.name): '✦'}</span><div><h4>${esc(s.name)}</h4><small>${esc(s.effect||'Expedition Skill')}</small></div></div>
       <div class="v33-levels" style="margin-top:8px">${Array.from({length:6},(_,x)=>`<button class="v33-level ${x===lv?'active':''}" data-v33-hero-skill="${n}" data-level="${x}">${x}</button>`).join('')}</div>
       <p>${esc(s.description||'')}</p><div class="v33-result">${esc(exactSkillValue(s,lv))}</div></article>`;
     }).join('')||'<div class="v33-result">No Expedition Skill metadata is stored for this hero yet.</div>'}</div></div>${heroWidgetDetail(i,p)}`;
@@ -667,17 +688,29 @@ function detailBody(i,p){
   if(activeCat==='gear')return gearDetail(i,p);
   return charmDetail(i,p);
 }
+const DETAIL_DATA_KEYS=['starStep','widgetLevel','troopTier','troopFc','t11','t12','troopSkill','gearQ','gearTier','gearStar','gearSub','charmSub0','charmSub1','charmSub2'];
+function clearDetailDraftState(root=$('#nexa-v33-detail')){
+  if(!root)return;
+  DETAIL_DATA_KEYS.forEach(k=>delete root.dataset[k]);
+}
+function detailNavState(){
+  const arr=filteredItems(),idx=arr.findIndex(x=>String(x.id)===String(selectedId));
+  return {arr,idx,prev:idx>0?arr[idx-1]:null,next:idx>=0&&idx<arr.length-1?arr[idx+1]:null};
+}
 function openDetail(id){
+  clearDetailDraftState();
   selectedId=String(id);detailOpen=true;renderDetail();
   $('#nexa-v33-detail')?.classList.add('open');
 }
-function closeDetail(){detailOpen=false;selectedId=null;$('#nexa-v33-detail')?.classList.remove('open')}
+function closeDetail(){detailOpen=false;selectedId=null;clearDetailDraftState();$('#nexa-v33-detail')?.classList.remove('open')}
 function renderDetail(){
   const o=$('#nexa-v33-detail');if(!o)return;
   const i=items.find(x=>String(x.id)===String(selectedId));if(!i){o.innerHTML='';return}
   const p=progOf(i),c=colorFor(i,catItems().indexOf(i)),img=itemImg(i,p),fallback=GEAR_FALLBACK[pieceKey(i)]||'';
+  const nav=detailNavState();
   o.innerHTML=`<section class="v33-sheet"><div class="v33-detail-head"><span class="v33-mini ${i.item_type==='chief_gear'?'gear':i.item_type==='troop'?'troop':''}" style="--c:${c}">${imgTag(img,i.name,fallback)}</span>
-    <div class="v33-title"><h3>${esc(activeCat==='charms'?`${i.name==='Belt'?'Ring':i.name} Charms`:(i.name==='Belt'?'Ring':i.name))}</h3><small>${esc(meta(i,p))}</small></div><button class="v33-close" data-v33-close>×</button></div>
+    <div class="v33-title"><h3>${esc(activeCat==='charms'?`${i.name==='Belt'?'Ring':i.name} Charms`:(i.name==='Belt'?'Ring':i.name))}</h3><small>${esc(meta(i,p))}</small></div>
+    <div class="v33-nav"><button type="button" class="v33-nav-btn" data-v33-prev ${nav.prev?'':'disabled'} aria-label="Previous item">‹</button><button type="button" class="v33-nav-btn" data-v33-next ${nav.next?'':'disabled'} aria-label="Next item">›</button></div><button class="v33-close" data-v33-close>×</button></div>
     <div id="v33-detail-body">${detailBody(i,p)}</div>
     <div class="v33-actions"><button class="v33-reset" data-v33-reset>RESET</button><button class="v33-save" data-v33-save>SAVE</button></div><div class="v33-msg"></div></section>`;
 }
@@ -778,8 +811,11 @@ document.addEventListener('click',e=>{
   if(e.target.closest?.('[data-v33-close]')||e.target.id==='nexa-v33-detail'){if(e.target.id==='nexa-v33-detail'||e.target.closest?.('[data-v33-close]'))closeDetail();return}
   const root=$('#nexa-v33-detail');if(!root?.classList.contains('open'))return;
   const i=items.find(x=>String(x.id)===String(selectedId));if(!i)return;
+  const prev=e.target.closest?.('[data-v33-prev]'),next=e.target.closest?.('[data-v33-next]');
+  if(prev||next){const nav=detailNavState(),target=prev?nav.prev:nav.next;if(target)openDetail(target.id);return}
   const d=currentDraft()||{};
-  const flower=e.target.closest?.('[data-v33-star]');if(flower){const s=Number(flower.dataset.v33Star),cur=Number(root.dataset.starStep||d.star_step||0),base=s*6,within=clamp(cur-base,0,6);root.dataset.starStep=String(within>=6?base:base+6);d.star_step=Number(root.dataset.starStep);rerenderBody(d);return}
+  const petal=e.target.closest?.('[data-v33-petal]');if(petal){const [s,k]=petal.dataset.v33Petal.split(':').map(Number);root.dataset.starStep=String(clamp(s*6+k+1,0,30));d.star_step=Number(root.dataset.starStep);rerenderBody(d);return}
+  const flower=e.target.closest?.('[data-v33-star]');if(flower){const s=Number(flower.dataset.v33Star);root.dataset.starStep=String(clamp((s+1)*6,0,30));d.star_step=Number(root.dataset.starStep);rerenderBody(d);return}
   const wg=e.target.closest?.('[data-v33-widget]');if(wg){root.dataset.widgetLevel=wg.dataset.v33Widget;d.widget_level=Number(wg.dataset.v33Widget);rerenderBody(d);return}
   const hs=e.target.closest?.('[data-v33-hero-skill]');if(hs){const box=hs.closest('.v33-skill');$$('[data-v33-hero-skill]',box).forEach(x=>x.classList.toggle('active',x===hs));const s=i.metadata?.expedition_skills?.[Number(hs.dataset.v33HeroSkill)],res=$('.v33-result',box);if(res&&s)res.textContent=exactSkillValue(s,Number(hs.dataset.level));return}
   const wl=e.target.closest?.('[data-v33-widget-level]');if(wl){root.dataset.widgetLevel=wl.dataset.v33WidgetLevel;d.widget_level=Number(wl.dataset.v33WidgetLevel);rerenderBody(d);return}

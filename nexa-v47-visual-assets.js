@@ -1,4 +1,4 @@
-/* NEXA V47.3 — CONTROL HUB CARD FIX
+/* NEXA V47.4 — LIVE + TRANSFER CARD ALIGNMENT
    2026-08-26
 
    COMPLETE REPLACEMENT for: nexa-v47-visual-assets.js
@@ -20,8 +20,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V473_CONTROL_HUB__) return;
-window.__NEXA_V473_CONTROL_HUB__=true;
+if(window.__NEXA_V474_CONTROL_HUB__) return;
+window.__NEXA_V474_CONTROL_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -163,10 +163,10 @@ window.NEXA_CHIEF_GEAR_ASSETS={
 --------------------------------------------------------- */
 
 function installCSS(){
-  if($('#nexa-v473-control-hub-css')) return;
+  if($('#nexa-v474-control-hub-css')) return;
 
   const s=document.createElement('style');
-  s.id='nexa-v473-control-hub-css';
+  s.id='nexa-v474-control-hub-css';
 
   s.textContent=`
   /* ---------- AUTH IDENTITY ---------- */
@@ -184,7 +184,7 @@ function installCSS(){
 
   /* ---------- HOME TOP IDENTITY ---------- */
 
-  header.topbar .logo.nexa-v473-control-brand{
+  header.topbar .logo.nexa-v474-control-brand{
     display:flex!important;
     align-items:center!important;
     gap:10px!important;
@@ -192,7 +192,7 @@ function installCSS(){
     text-decoration:none!important;
   }
 
-  .nexa-v473-control-symbol{
+  .nexa-v474-control-symbol{
     width:34px!important;
     height:34px!important;
     flex:0 0 34px!important;
@@ -202,14 +202,14 @@ function installCSS(){
       drop-shadow(0 0 14px rgba(175,70,255,.28));
   }
 
-  .nexa-v473-control-copy{
+  .nexa-v474-control-copy{
     display:grid!important;
     gap:1px!important;
     min-width:0!important;
     line-height:1!important;
   }
 
-  .nexa-v473-control-copy strong{
+  .nexa-v474-control-copy strong{
     color:#f6f7ff!important;
     font-size:12px!important;
     font-weight:950!important;
@@ -217,7 +217,7 @@ function installCSS(){
     white-space:nowrap!important;
   }
 
-  .nexa-v473-control-copy small{
+  .nexa-v474-control-copy small{
     color:#bb6cff!important;
     font-size:8px!important;
     font-weight:950!important;
@@ -228,7 +228,7 @@ function installCSS(){
 
   /* ---------- MAIN HOME NEXA WORDMARK ---------- */
 
-  .nexa-v473-home-wordmark-wrap{
+  .nexa-v474-home-wordmark-wrap{
     display:flex!important;
     align-items:center!important;
     justify-content:center!important;
@@ -237,7 +237,7 @@ function installCSS(){
     min-height:62px!important;
   }
 
-  .nexa-v473-home-wordmark{
+  .nexa-v474-home-wordmark{
     display:block!important;
     width:min(330px,76vw)!important;
     max-height:92px!important;
@@ -250,7 +250,7 @@ function installCSS(){
 
   /* ---------- ROBOTIC / GALACTIC HOME PANELS ---------- */
 
-  .nexa-v473-tech-card{
+  .nexa-v474-tech-card{
     --tech:#9b63ff;
     position:relative!important;
     isolation:isolate!important;
@@ -267,7 +267,7 @@ function installCSS(){
       0 0 18px color-mix(in srgb,var(--tech) 12%,transparent)!important;
   }
 
-  .nexa-v473-tech-card:before{
+  .nexa-v474-tech-card:before{
     content:""!important;
     position:absolute!important;
     inset:0!important;
@@ -282,7 +282,7 @@ function installCSS(){
       radial-gradient(circle at 86% 72%,var(--tech) 0 1px,transparent 1.7px);
   }
 
-  .nexa-v473-tech-card:after{
+  .nexa-v474-tech-card:after{
     content:""!important;
     position:absolute!important;
     left:18px!important;
@@ -299,20 +299,30 @@ function installCSS(){
     box-shadow:0 0 11px color-mix(in srgb,var(--tech) 50%,transparent)!important;
   }
 
-  .nexa-v473-tech-card[data-nexa-tech="live"]{--tech:#a56bff;}
-  .nexa-v473-tech-card[data-nexa-tech="transfer"]{--tech:#ff9d3d;}
-  .nexa-v473-tech-card[data-nexa-tech="pulse"]{--tech:#39dfff;}
-  .nexa-v473-tech-card[data-nexa-tech="alliance"]{--tech:#e263ff;}
+  .nexa-v474-tech-card[data-nexa-tech="live"]{--tech:#a56bff;}
+  .nexa-v474-tech-card[data-nexa-tech="transfer"]{--tech:#ff9d3d;}
+  .nexa-v474-tech-card[data-nexa-tech="pulse"]{--tech:#39dfff;}
+  .nexa-v474-tech-card[data-nexa-tech="alliance"]{--tech:#e263ff;}
 
   /* Make legacy Live Event / Transfer wrappers match the same command-panel family. */
-  .nexa-v473-tech-card[data-nexa-tech="live"],
-  .nexa-v473-tech-card[data-nexa-tech="transfer"]{
+  .nexa-v474-tech-card[data-nexa-tech="live"],
+  .nexa-v474-tech-card[data-nexa-tech="transfer"]{
     padding:18px 18px 18px 78px!important;
     min-height:118px!important;
   }
 
-  .nexa-v473-tech-card[data-nexa-tech="live"] .nexa-v473-tech-icon,
-  .nexa-v473-tech-card[data-nexa-tech="transfer"] .nexa-v473-tech-icon{
+  .nexa-v474-tech-card[data-nexa-tech="live"] .nexa-v474-tech-copy,
+  .nexa-v474-tech-card[data-nexa-tech="transfer"] .nexa-v474-tech-copy{
+    position:relative!important;
+    z-index:2!important;
+    width:100%!important;
+    min-width:0!important;
+    margin-left:0!important;
+    padding-left:0!important;
+  }
+
+  .nexa-v474-tech-card[data-nexa-tech="live"] .nexa-v474-tech-icon,
+  .nexa-v474-tech-card[data-nexa-tech="transfer"] .nexa-v474-tech-icon{
     position:absolute!important;
     left:16px!important;
     top:50%!important;
@@ -321,21 +331,26 @@ function installCSS(){
     margin:0!important;
   }
 
-  .nexa-v473-tech-card[data-nexa-tech="live"]{
+  .nexa-v474-tech-card[data-nexa-tech="live"]{
     border-color:rgba(171,104,255,.78)!important;
     box-shadow:
       inset 0 0 28px rgba(119,67,255,.08),
       0 0 18px rgba(142,83,255,.16)!important;
   }
 
-  .nexa-v473-tech-card[data-nexa-tech="transfer"]{
+  .nexa-v474-tech-card[data-nexa-tech="transfer"]{
     border-color:rgba(255,157,61,.72)!important;
     box-shadow:
       inset 0 0 28px rgba(255,140,45,.07),
       0 0 18px rgba(255,142,50,.13)!important;
   }
 
-  .nexa-v473-tech-icon{
+  .nexa-v474-tech-card[data-nexa-tech="transfer"] > .nexa-v474-tech-icon{
+    font-size:25px!important;
+    letter-spacing:-3px!important;
+  }
+
+  .nexa-v474-tech-icon{
     float:left!important;
     width:48px!important;
     height:48px!important;
@@ -354,9 +369,9 @@ function installCSS(){
       0 0 13px color-mix(in srgb,var(--tech) 18%,transparent)!important;
   }
 
-  .nexa-v473-tech-card h2,
-  .nexa-v473-tech-card h3,
-  .nexa-v473-tech-card h4{
+  .nexa-v474-tech-card h2,
+  .nexa-v474-tech-card h3,
+  .nexa-v474-tech-card h4{
     text-shadow:0 0 12px color-mix(in srgb,var(--tech) 17%,transparent)!important;
   }
 
@@ -406,17 +421,17 @@ function installCSS(){
       max-height:78px!important;
     }
 
-    .nexa-v473-control-symbol{
+    .nexa-v474-control-symbol{
       width:31px!important;
       height:31px!important;
       flex-basis:31px!important;
     }
 
-    .nexa-v473-control-copy strong{
+    .nexa-v474-control-copy strong{
       font-size:11px!important;
     }
 
-    .nexa-v473-control-copy small{
+    .nexa-v474-control-copy small{
       font-size:7.5px!important;
     }
   }
@@ -432,19 +447,19 @@ function installCSS(){
 function installHeaderBrand(){
   const logo=$('header.topbar .logo');
 
-  if(!logo||logo.dataset.nexaV473Brand==='1') return;
+  if(!logo||logo.dataset.nexaV474Brand==='1') return;
 
-  logo.dataset.nexaV473Brand='1';
-  logo.classList.add('nexa-v473-control-brand');
+  logo.dataset.nexaV474Brand='1';
+  logo.classList.add('nexa-v474-control-brand');
 
   logo.innerHTML=`
     <img
-      class="nexa-v473-control-symbol"
+      class="nexa-v474-control-symbol"
       src="${IDENTITY.symbol}"
       alt=""
       aria-hidden="true"
     >
-    <span class="nexa-v473-control-copy">
+    <span class="nexa-v474-control-copy">
       <strong>CONTROL HUB</strong>
       <small>NEXA SYSTEM</small>
     </span>
@@ -462,14 +477,14 @@ function installHomeWordmark(){
     return text==='NEXA';
   });
 
-  if(!target||target.dataset.nexaV473Wordmark==='1') return;
+  if(!target||target.dataset.nexaV474Wordmark==='1') return;
 
-  target.dataset.nexaV473Wordmark='1';
-  target.classList.add('nexa-v473-home-wordmark-wrap');
+  target.dataset.nexaV474Wordmark='1';
+  target.classList.add('nexa-v474-home-wordmark-wrap');
 
   target.innerHTML=`
     <img
-      class="nexa-v473-home-wordmark"
+      class="nexa-v474-home-wordmark"
       src="${IDENTITY.home}"
       alt="NEXA"
     >
@@ -489,7 +504,7 @@ const CARD_RULES=[
   {
     match:['TRANSFER CENTER'],
     type:'transfer',
-    icon:'↻'
+    icon:'⇄'
   },
   {
     match:['SIGNALS & RESPONSE REQUESTS','SIGNALS AND RESPONSE REQUESTS'],
@@ -549,15 +564,27 @@ function resolveHomeCard(heading){
   return best;
 }
 
-function addTechIcon(card,rule){
-  if(!card || card.querySelector(':scope > .nexa-v473-tech-icon')) return;
+function addTechIcon(card,rule,heading){
+  if(!card) return;
 
-  const icon=document.createElement('span');
-  icon.className='nexa-v473-tech-icon';
-  icon.setAttribute('aria-hidden','true');
+  let icon=card.querySelector(':scope > .nexa-v474-tech-icon');
+
+  if(!icon){
+    icon=document.createElement('span');
+    icon.className='nexa-v474-tech-icon';
+    icon.setAttribute('aria-hidden','true');
+    card.prepend(icon);
+  }
+
   icon.textContent=rule.icon;
 
-  card.prepend(icon);
+  if(heading){
+    const copy=heading.parentElement;
+
+    if(copy && copy!==card){
+      copy.classList.add('nexa-v474-tech-copy');
+    }
+  }
 }
 
 function decorateHomeCards(){
@@ -575,8 +602,8 @@ function decorateHomeCards(){
     if(!card) return;
 
     card.dataset.nexaTech=rule.type;
-    card.classList.add('nexa-v473-tech-card');
-    addTechIcon(card,rule);
+    card.classList.add('nexa-v474-tech-card');
+    addTechIcon(card,rule,heading);
   });
 
   /* Extra fallback for the two legacy Home cards that can be rebuilt
@@ -610,8 +637,8 @@ function decorateHomeCards(){
     if(rect && (rect.width<220 || rect.height<70 || rect.height>360)) return;
 
     target.dataset.nexaTech=rule.type;
-    target.classList.add('nexa-v473-tech-card');
-    addTechIcon(target,rule);
+    target.classList.add('nexa-v474-tech-card');
+    addTechIcon(target,rule,target.querySelector('h1,h2,h3,h4,strong,b'));
   });
 }
 

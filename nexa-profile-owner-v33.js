@@ -1,9 +1,12 @@
-/* NEXA PROFILE OWNER V33.4 — BUFFS + PROFILE SHELL + CHARMS VISUAL FIX
+/* NEXA PROFILE OWNER V33.5 — RARITY-SAFE HERO FILTER + PROFILE SHELL
    Replaces V32 as the single Profile owner.
    Goals:
+   - preserve the V33.4 Profile structure and behavior
+   - correct Heroes classification: generation 0 is EPIC only when rarity is Epic/Purple
+   - Rare/Blue heroes remain in Administration Library but are not mixed into My Profile > Epic
    - richer galaxy Profile surface
    - working category/generation filters
-   - focused item detail sheet (no more scrolling to the bottom)
+   - focused item detail sheet
    - no visible OWNED / NOT OWNED UI
    - larger hero star tap targets
    - dropdown controls for Experts and Pets
@@ -43,6 +46,35 @@ function sb(){
   return localSb;
 }
 const genOf=i=>Number(i?.generation||0);
+
+function heroRarity(i){
+  const s=String(i?.rarity||i?.tier||i?.metadata?.rarity||i?.metadata?.tier||'')
+    .trim()
+    .toLowerCase();
+
+  if(s.includes('legend')||s.includes('myth')) return 'legendary';
+  if(s.includes('epic')||s.includes('purple')) return 'epic';
+  if(s.includes('rare')||s.includes('blue')) return 'rare';
+  if(s.includes('common')||s.includes('green')) return 'common';
+  return s;
+}
+
+function profileHeroEligible(i){
+  if(i?.item_type!=='hero') return true;
+
+  const rarity=heroRarity(i);
+
+  /* Rare/Blue and Common/Green heroes stay in Administration Library,
+     but they do not belong in the Profile's EPIC / generation rail. */
+  if(rarity==='rare'||rarity==='common') return false;
+
+  /* Generated heroes remain generation-driven. */
+  if(genOf(i)>0) return true;
+
+  /* Generation 0 is the Profile's EPIC bucket, so rarity must confirm Epic. */
+  return rarity==='epic';
+}
+
 function parseProgress(raw){
   const v=String(raw||'').trim().toLowerCase();
   const m=v.match(/fc\s*(\d+)/i);
@@ -95,23 +127,11 @@ function gearTierAsset(i,p={}){
     q='Green';
   }
 
-  let tier=clamp(
-    Number(p.gear_tier||0),
-    0,
-    6
-  );
+  let tier=clamp(Number(p.gear_tier||0),0,6);
 
-  if(q==='Green' || q==='Blue'){
-    tier=0;
-  }
-
-  if(q==='Purple'){
-    tier=Math.min(tier,1);
-  }
-
-  if(q==='Gold'){
-    tier=Math.min(tier,2);
-  }
+  if(q==='Green' || q==='Blue') tier=0;
+  if(q==='Purple') tier=Math.min(tier,1);
+  if(q==='Gold') tier=Math.min(tier,2);
 
   const key=pieceKey(i);
 
@@ -125,9 +145,7 @@ function gearTierAsset(i,p={}){
     shortstaff:'staff'
   }[key];
 
-  if(!filePiece){
-    return i.image_url||'';
-  }
+  if(!filePiece) return i.image_url||'';
 
   const color={
     Green:'green',
@@ -138,25 +156,16 @@ function gearTierAsset(i,p={}){
   }[q];
 
   if(q==='Red'){
-
-    if(tier===0){
-      return `/assets/nexa/chief-gear-red/chiefgear_${filePiece}_red.png`;
-    }
-
-    if(tier===6){
-      return `/assets/nexa/chief-gear-red/chiefgear_${filePiece}_red_t6.png.jpeg`;
-    }
-
+    if(tier===0) return `/assets/nexa/chief-gear-red/chiefgear_${filePiece}_red.png`;
+    if(tier===6) return `/assets/nexa/chief-gear-red/chiefgear_${filePiece}_red_t6.png.jpeg`;
     return `/assets/nexa/chief-gear-red/chiefgear_${filePiece}_red_t${tier}.png`;
   }
 
-  if(tier===0){
-    return `/assets/nexa/chief-gear/chiefgear_${filePiece}_${color}.png`;
-  }
+  if(tier===0) return `/assets/nexa/chief-gear/chiefgear_${filePiece}_${color}.png`;
 
   return `/assets/nexa/chief-gear/chiefgear_${filePiece}_${color}_t${tier}.png`;
 }
-  
+
 function itemImg(i,p={}){
   if(i.item_type==='troop'){
     const t=troopType(i), tier=clamp(p.tier||1,1,12);
@@ -296,8 +305,6 @@ function injectCSS(){
   .v33-field-label{font-size:9px;font-weight:900;letter-spacing:.15em;color:#8f9cc7}
   #nexa-v425-ministry{color:#d4b6ff!important;box-shadow:0 0 0 1px rgba(205,171,255,.2),0 0 18px rgba(183,126,255,.2)!important}
 
-
-  /* V33.4 profile shell polish */
   #nexa-profile-modal .nexa-stat label{display:flex!important;align-items:center!important;gap:6px!important}
   #nexa-profile-modal .nexa-stat.furnace label:before{content:"✦";font-size:13px;color:#62dcff;text-shadow:0 0 10px #4bcfff}
   #nexa-profile-modal .nexa-stat.power label:before{content:"ϟ";font-size:15px;color:#b98cff;text-shadow:0 0 10px #9b6dff}
@@ -316,8 +323,6 @@ function injectCSS(){
   .v33-charm-row{display:block!important}.v33-charm-row-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.v33-charm-row-head strong{color:#fff}
   .v33-charm-body{display:grid;grid-template-columns:78px 1fr;gap:12px;align-items:center}.v33-charm-img,.v33-charm-placeholder{width:76px;height:76px;object-fit:contain;display:grid;place-items:center;font-size:34px;border-radius:16px;background:rgba(255,255,255,.035)}
   .v33-field-label{display:block;color:#8f9abb;font-size:8px;font-weight:900;letter-spacing:.12em;margin-bottom:5px}.v33-charm-buffs.compact{margin-top:8px}
-
-
   .v33-charm-mini-row{height:18px;margin:-3px auto 4px;display:flex;justify-content:center;gap:3px}.v33-charm-mini-row img,.v33-charm-mini-row i{width:17px;height:17px;object-fit:contain;border-radius:4px;display:grid;place-items:center;color:#f5a64d;font-style:normal;font-size:12px}
   .v33-role-card{padding:16px;border:1px solid rgba(154,105,255,.25);border-radius:18px;background:rgba(8,12,30,.5)}.v33-role-card p{color:#8f9ab9}.v33-role-grid{display:flex;flex-wrap:wrap;gap:8px}.v33-role-chip{border:1px solid rgba(127,143,199,.25);border-radius:999px;background:#0b1128;color:#aab5d5;padding:9px 12px;font-weight:800}.v33-role-chip.active{border-color:#8f66ff;color:#fff;box-shadow:0 0 12px rgba(128,80,255,.3)}
   @media(max-width:390px){#v33-grid{gap:17px 4px;padding-inline:6px}.v33-skills{grid-template-columns:1fr}.v33-gear-hero{grid-template-columns:76px minmax(0,1fr)}.v33-gear-img{width:74px;height:74px}}
@@ -374,7 +379,15 @@ async function load(){
   }catch(e){console.warn('V33 load',e?.message||e)}
   render();await refreshMinistryState();
 }
-function catItems(){return activeCat==='charms'?items.filter(i=>i.item_type==='chief_gear'):items.filter(i=>i.item_type===TYPES[activeCat])}
+function catItems(){
+  if(activeCat==='charms') return items.filter(i=>i.item_type==='chief_gear');
+
+  const arr=items.filter(i=>i.item_type===TYPES[activeCat]);
+
+  if(activeCat==='heroes') return arr.filter(profileHeroEligible);
+
+  return arr;
+}
 function filters(){
   if(!['heroes','experts','pets'].includes(activeCat))return ['all'];
   return ['all',...[...new Set(catItems().map(genOf))].sort((a,b)=>a-b)];
@@ -396,7 +409,7 @@ function renderGrid(){
   let arr=catItems();if(activeGen!=='all')arr=arr.filter(i=>String(genOf(i))===String(activeGen));
   if(!arr.length){r.innerHTML='<div class="v33-empty">Nothing is available in this filter.</div>';return}
   r.innerHTML=arr.map((i,n)=>{
-        const p=progOf(i),img=itemImg(i,p),c=colorFor(i,n),fallback=GEAR_FALLBACK[pieceKey(i)]||'';
+    const p=progOf(i),img=itemImg(i,p),c=colorFor(i,n),fallback=GEAR_FALLBACK[pieceKey(i)]||'';
     const gearStarCount=i.item_type==='chief_gear'?clamp(Number(p.gear_stars||0),0,3):0;
     const gearStars=gearStarCount?`<span class="v448-gear-stars">${Array.from({length:gearStarCount},()=>'<span>★</span>').join('')}</span>`:'';
     return `<button type="button" class="v33-item" data-v33-item="${esc(i.id)}" data-type="${esc(i.item_type)}" style="--c:${c}">
@@ -417,7 +430,6 @@ function exactSkillValue(skill,lv){
   const text=[skill?.effect,skill?.description,skill?.value_text].filter(Boolean).join(' ').trim();
   if(!text)return `Level ${lv}`;
 
-  // Exact slash arrays such as 10%/20%/30%/40%/50%.
   const slash=[...text.matchAll(/([+-]?\d[\d,.]*)\s*(%|\/min|h|hours?)?/gi)]
     .map(m=>({v:Number(String(m[1]).replace(/,/g,'')),u:m[2]||''}))
     .filter(x=>Number.isFinite(x.v));
@@ -426,7 +438,6 @@ function exactSkillValue(skill,lv){
     return `Current buff: ${fmtNum(x.v)}${x.u}`;
   }
 
-  // Ranges such as 10–50% / 5-25%.
   const ranges=[...text.matchAll(/([+-]?\d[\d,.]*)\s*(%|\/min|h|hours?)?\s*[–-]\s*([+-]?\d[\d,.]*)\s*(%|\/min|h|hours?)?/g)];
   if(ranges.length){
     return 'Current buff: '+ranges.map(m=>{
@@ -586,7 +597,6 @@ function troopDetail(i,p){
     ${skill?`<div class="v33-result" style="margin-top:8px"><b>${skillName}</b><br>${troopSkillBuff(t,skill)}</div>`:''}
   </div>`;
 }
-/* Full stage map retained from V32. Values are kept until the global game catalog is migrated. */
 const GEAR_STAGES=[
  ['Green',0,0,9.35,0],['Green',0,1,12.75,0],['Blue',0,0,17,0],['Blue',0,1,21.25,0],['Blue',0,2,25.5,0],['Blue',0,3,29.75,0],
  ['Purple',0,0,34,0],['Purple',0,1,36.89,0],['Purple',0,2,39.78,0],['Purple',0,3,42.67,0],
@@ -608,11 +618,7 @@ function legalGearStars(q,t){
   if(q==='Blue')return [0,1,2,3];
   return [0,1,2,3];
 }
-function gearProgressSteps(q,t,s){
-  // Wiki explicitly lists 4 intermediate enhancement steps starting at Red.
-  // Earlier qualities advance directly by star/tier and do not show the Red step rail.
-  return q==='Red'?4:0;
-}
+function gearProgressSteps(q,t,s){return q==='Red'?4:0}
 function gearDetail(i,p){
   let q=String(p.gear_quality||'Green'),t=clamp(p.gear_tier||0,0,6),s=clamp(p.gear_stars||0,0,3),sub=clamp(p.gear_substep||0,0,4);
   const allowedQ=['Green','Blue','Purple','Gold','Red'];if(!allowedQ.includes(q))q='Green';
@@ -798,7 +804,6 @@ document.addEventListener('change',e=>{
   if(e.target.matches?.('[data-v33-expert-skill]')){const box=e.target.closest('.v33-skill'),s=i.metadata?.skills?.[Number(e.target.dataset.v33ExpertSkill)],res=$('.v33-result',box);if(res&&s)res.textContent=`Level ${e.target.value} • ${exactSkillValue(s,Number(e.target.value))}`}
   if(e.target.matches?.('[data-v33-pet-level],[data-v33-pet-skill],[data-v33-charm-level]')){const d=currentDraft()||{};if(e.target.matches('[data-v33-pet-level]'))d.level=Number(e.target.value);if(e.target.matches('[data-v33-pet-skill]'))d.pet_skill=Number(e.target.value);if(e.target.matches('[data-v33-charm-level]')){d.charm_levels=[0,1,2].map(n=>Number($(`[data-v33-charm-level="${n}"]`,root)?.value||0));d.charm_substeps=[0,1,2].map(n=>Number(root.dataset[`charmSub${n}`]||d?.charm_substeps?.[n]||0))}rerenderBody(d)}
 },true);
-
 
 function polishProfileShell(){
   const editor=$('#nexa-profile-editor'),editRow=$('#nexa-profile-modal .nexa-profile-edit-row');

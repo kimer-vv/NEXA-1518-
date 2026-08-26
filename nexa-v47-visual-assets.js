@@ -1,18 +1,20 @@
-/* NEXA V47.4 — LIVE + TRANSFER CARD ALIGNMENT
+/* NEXA V47.5 — EXPLICIT HOME CARD OWNERSHIP
    2026-08-26
 
    COMPLETE REPLACEMENT for: nexa-v47-visual-assets.js
 
    Goals:
    - Preserve the official NEXA "N" symbol asset.
-   - Home header: N symbol + CONTROL HUB.
-   - Move the NEXA Home wordmark into the main Home identity area.
-   - Give Home cards a cleaner robotic / galactic command-panel skin.
-   - Keep existing Home content and behavior intact.
-   - Chief Gear: slightly larger planet while keeping the artwork itself
-     at its previous visual size, giving T1/T2/etc. extra breathing room.
+   - Preserve the current Home wordmark / CONTROL HUB branding.
+   - Style the REAL Home wrappers directly:
+       #home-svs-section
+       #home-transfers-section
+   - Live Event and Transfer use the same robotic / galactic family as
+     NEXA Pulse / Stellar Signal.
+   - Transfer uses ⇄, never the refresh-style ↻ icon.
+   - Keep text to the right of the icon on iPhone/Safari.
+   - Preserve Chief Gear asset resolver and the current slight planet spacing.
    - Preserve NEXA identity / alliance emblem asset globals.
-   - Preserve Chief Gear asset resolver for other modules.
    - No MutationObserver.
    - No touchmove preventDefault.
    - No manual scrollLeft.
@@ -20,8 +22,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V474_CONTROL_HUB__) return;
-window.__NEXA_V474_CONTROL_HUB__=true;
+if(window.__NEXA_V475_CONTROL_HUB__) return;
+window.__NEXA_V475_CONTROL_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -163,10 +165,12 @@ window.NEXA_CHIEF_GEAR_ASSETS={
 --------------------------------------------------------- */
 
 function installCSS(){
-  if($('#nexa-v474-control-hub-css')) return;
+  if($('#nexa-v475-control-hub-css')) return;
+
+  $('#nexa-v474-control-hub-css')?.remove();
 
   const s=document.createElement('style');
-  s.id='nexa-v474-control-hub-css';
+  s.id='nexa-v475-control-hub-css';
 
   s.textContent=`
   /* ---------- AUTH IDENTITY ---------- */
@@ -184,7 +188,7 @@ function installCSS(){
 
   /* ---------- HOME TOP IDENTITY ---------- */
 
-  header.topbar .logo.nexa-v474-control-brand{
+  header.topbar .logo.nexa-v475-control-brand{
     display:flex!important;
     align-items:center!important;
     gap:10px!important;
@@ -192,7 +196,7 @@ function installCSS(){
     text-decoration:none!important;
   }
 
-  .nexa-v474-control-symbol{
+  .nexa-v475-control-symbol{
     width:34px!important;
     height:34px!important;
     flex:0 0 34px!important;
@@ -202,14 +206,14 @@ function installCSS(){
       drop-shadow(0 0 14px rgba(175,70,255,.28));
   }
 
-  .nexa-v474-control-copy{
+  .nexa-v475-control-copy{
     display:grid!important;
     gap:1px!important;
     min-width:0!important;
     line-height:1!important;
   }
 
-  .nexa-v474-control-copy strong{
+  .nexa-v475-control-copy strong{
     color:#f6f7ff!important;
     font-size:12px!important;
     font-weight:950!important;
@@ -217,7 +221,7 @@ function installCSS(){
     white-space:nowrap!important;
   }
 
-  .nexa-v474-control-copy small{
+  .nexa-v475-control-copy small{
     color:#bb6cff!important;
     font-size:8px!important;
     font-weight:950!important;
@@ -228,7 +232,7 @@ function installCSS(){
 
   /* ---------- MAIN HOME NEXA WORDMARK ---------- */
 
-  .nexa-v474-home-wordmark-wrap{
+  .nexa-v475-home-wordmark-wrap{
     display:flex!important;
     align-items:center!important;
     justify-content:center!important;
@@ -237,7 +241,7 @@ function installCSS(){
     min-height:62px!important;
   }
 
-  .nexa-v474-home-wordmark{
+  .nexa-v475-home-wordmark{
     display:block!important;
     width:min(330px,76vw)!important;
     max-height:92px!important;
@@ -250,7 +254,7 @@ function installCSS(){
 
   /* ---------- ROBOTIC / GALACTIC HOME PANELS ---------- */
 
-  .nexa-v474-tech-card{
+  .nexa-v475-tech-card{
     --tech:#9b63ff;
     position:relative!important;
     isolation:isolate!important;
@@ -267,7 +271,7 @@ function installCSS(){
       0 0 18px color-mix(in srgb,var(--tech) 12%,transparent)!important;
   }
 
-  .nexa-v474-tech-card:before{
+  .nexa-v475-tech-card:before{
     content:""!important;
     position:absolute!important;
     inset:0!important;
@@ -282,7 +286,7 @@ function installCSS(){
       radial-gradient(circle at 86% 72%,var(--tech) 0 1px,transparent 1.7px);
   }
 
-  .nexa-v474-tech-card:after{
+  .nexa-v475-tech-card:after{
     content:""!important;
     position:absolute!important;
     left:18px!important;
@@ -299,62 +303,14 @@ function installCSS(){
     box-shadow:0 0 11px color-mix(in srgb,var(--tech) 50%,transparent)!important;
   }
 
-  .nexa-v474-tech-card[data-nexa-tech="live"]{--tech:#a56bff;}
-  .nexa-v474-tech-card[data-nexa-tech="transfer"]{--tech:#ff9d3d;}
-  .nexa-v474-tech-card[data-nexa-tech="pulse"]{--tech:#39dfff;}
-  .nexa-v474-tech-card[data-nexa-tech="alliance"]{--tech:#e263ff;}
+  .nexa-v475-tech-card[data-nexa-tech="live"]{--tech:#a56bff;}
+  .nexa-v475-tech-card[data-nexa-tech="transfer"]{--tech:#ff9d3d;}
+  .nexa-v475-tech-card[data-nexa-tech="pulse"]{--tech:#39dfff;}
+  .nexa-v475-tech-card[data-nexa-tech="alliance"]{--tech:#e263ff;}
 
-  /* Make legacy Live Event / Transfer wrappers match the same command-panel family. */
-  .nexa-v474-tech-card[data-nexa-tech="live"],
-  .nexa-v474-tech-card[data-nexa-tech="transfer"]{
-    padding:18px 18px 18px 78px!important;
-    min-height:118px!important;
-  }
-
-  .nexa-v474-tech-card[data-nexa-tech="live"] .nexa-v474-tech-copy,
-  .nexa-v474-tech-card[data-nexa-tech="transfer"] .nexa-v474-tech-copy{
-    position:relative!important;
-    z-index:2!important;
-    width:100%!important;
-    min-width:0!important;
-    margin-left:0!important;
-    padding-left:0!important;
-  }
-
-  .nexa-v474-tech-card[data-nexa-tech="live"] .nexa-v474-tech-icon,
-  .nexa-v474-tech-card[data-nexa-tech="transfer"] .nexa-v474-tech-icon{
-    position:absolute!important;
-    left:16px!important;
-    top:50%!important;
-    transform:translateY(-50%)!important;
-    float:none!important;
-    margin:0!important;
-  }
-
-  .nexa-v474-tech-card[data-nexa-tech="live"]{
-    border-color:rgba(171,104,255,.78)!important;
-    box-shadow:
-      inset 0 0 28px rgba(119,67,255,.08),
-      0 0 18px rgba(142,83,255,.16)!important;
-  }
-
-  .nexa-v474-tech-card[data-nexa-tech="transfer"]{
-    border-color:rgba(255,157,61,.72)!important;
-    box-shadow:
-      inset 0 0 28px rgba(255,140,45,.07),
-      0 0 18px rgba(255,142,50,.13)!important;
-  }
-
-  .nexa-v474-tech-card[data-nexa-tech="transfer"] > .nexa-v474-tech-icon{
-    font-size:25px!important;
-    letter-spacing:-3px!important;
-  }
-
-  .nexa-v474-tech-icon{
-    float:left!important;
+  .nexa-v475-tech-icon{
     width:48px!important;
     height:48px!important;
-    margin:0 12px 8px 0!important;
     display:grid!important;
     place-items:center!important;
     border-radius:15px!important;
@@ -364,21 +320,101 @@ function installCSS(){
     color:color-mix(in srgb,var(--tech) 82%,white)!important;
     font-size:22px!important;
     font-weight:900!important;
+    line-height:1!important;
     box-shadow:
       inset 0 0 18px color-mix(in srgb,var(--tech) 10%,transparent),
       0 0 13px color-mix(in srgb,var(--tech) 18%,transparent)!important;
   }
 
-  .nexa-v474-tech-card h2,
-  .nexa-v474-tech-card h3,
-  .nexa-v474-tech-card h4{
+  .nexa-v475-tech-card h2,
+  .nexa-v475-tech-card h3,
+  .nexa-v475-tech-card h4{
     text-shadow:0 0 12px color-mix(in srgb,var(--tech) 17%,transparent)!important;
   }
 
+  /* REAL legacy Home wrappers. Do not guess by inner text. */
+  #home-svs-section.nexa-v475-tech-card,
+  #home-transfers-section.nexa-v475-tech-card{
+    box-sizing:border-box!important;
+    padding-left:68px!important;
+    min-height:0!important;
+  }
+
+  #home-svs-section.nexa-v475-tech-card{
+    border-color:rgba(171,104,255,.78)!important;
+    box-shadow:
+      inset 0 0 28px rgba(119,67,255,.08),
+      0 0 18px rgba(142,83,255,.16)!important;
+  }
+
+  #home-transfers-section.nexa-v475-tech-card{
+    border-color:rgba(255,157,61,.72)!important;
+    box-shadow:
+      inset 0 0 28px rgba(255,140,45,.07),
+      0 0 18px rgba(255,142,50,.13)!important;
+  }
+
+  #home-svs-section > .nexa-v475-tech-icon,
+  #home-transfers-section > .nexa-v475-tech-icon{
+    position:absolute!important;
+    left:12px!important;
+    top:50%!important;
+    transform:translateY(-50%)!important;
+    z-index:4!important;
+    margin:0!important;
+    float:none!important;
+  }
+
+  #home-transfers-section > .nexa-v475-tech-icon{
+    font-size:25px!important;
+    letter-spacing:-3px!important;
+  }
+
+  #home-svs-section > .head,
+  #home-transfers-section > .head{
+    position:relative!important;
+    z-index:2!important;
+    padding-left:12px!important;
+    padding-right:14px!important;
+  }
+
+  #home-svs-section > .glass,
+  #home-transfers-section > .glass,
+  #home-transfers-section > .nexa-transfer-home-actions{
+    position:relative!important;
+    z-index:2!important;
+    min-width:0!important;
+  }
+
+  #home-svs-section .head h2,
+  #home-transfers-section .head h2{
+    font-size:17px!important;
+    line-height:1.12!important;
+    margin:0!important;
+  }
+
+  /* Kill the older oversized decorative transfer pseudo-icon so ⇄ is unique. */
+  #home-transfers-section::after{
+    content:none!important;
+    display:none!important;
+  }
+
+  /* Keep the empty Transfer copy inside the content lane, not under the icon. */
+  #home-transfer-events:empty::before{
+    left:12px!important;
+    right:12px!important;
+  }
+
+  /* Generic command-card copy wrapper retained for Pulse / Stellar-style cards. */
+  .nexa-v475-tech-copy{
+    position:relative!important;
+    z-index:2!important;
+    width:100%!important;
+    min-width:0!important;
+  }
+
   /* ---------- CHIEF GEAR PLANETS ----------
-     Planet grows from the old 74px ceiling to 80px.
-     The artwork itself stays at 74px, so we create real breathing room
-     around T1/T2/etc. instead of simply scaling everything up.
+     Preserve the V47.4 spacing adjustment exactly.
   */
 
   #nexa-profile-modal
@@ -403,7 +439,6 @@ function installCSS(){
     border-radius:50%!important;
   }
 
-  /* Keep the orbit balanced after the +6px planet adjustment. */
   #nexa-profile-modal
   .v33-item[data-type="chief_gear"]
   .v33-orbit-dot{
@@ -421,18 +456,30 @@ function installCSS(){
       max-height:78px!important;
     }
 
-    .nexa-v474-control-symbol{
+    .nexa-v475-control-symbol{
       width:31px!important;
       height:31px!important;
       flex-basis:31px!important;
     }
 
-    .nexa-v474-control-copy strong{
+    .nexa-v475-control-copy strong{
       font-size:11px!important;
     }
 
-    .nexa-v474-control-copy small{
+    .nexa-v475-control-copy small{
       font-size:7.5px!important;
+    }
+
+    #home-svs-section.nexa-v475-tech-card,
+    #home-transfers-section.nexa-v475-tech-card{
+      padding-left:64px!important;
+    }
+
+    #home-svs-section > .nexa-v475-tech-icon,
+    #home-transfers-section > .nexa-v475-tech-icon{
+      left:10px!important;
+      width:44px!important;
+      height:44px!important;
     }
   }
   `;
@@ -447,19 +494,20 @@ function installCSS(){
 function installHeaderBrand(){
   const logo=$('header.topbar .logo');
 
-  if(!logo||logo.dataset.nexaV474Brand==='1') return;
+  if(!logo) return;
 
-  logo.dataset.nexaV474Brand='1';
-  logo.classList.add('nexa-v474-control-brand');
+  logo.dataset.nexaV475Brand='1';
+  logo.classList.remove('nexa-v474-control-brand');
+  logo.classList.add('nexa-v475-control-brand');
 
   logo.innerHTML=`
     <img
-      class="nexa-v474-control-symbol"
+      class="nexa-v475-control-symbol"
       src="${IDENTITY.symbol}"
       alt=""
       aria-hidden="true"
     >
-    <span class="nexa-v474-control-copy">
+    <span class="nexa-v475-control-copy">
       <strong>CONTROL HUB</strong>
       <small>NEXA SYSTEM</small>
     </span>
@@ -477,14 +525,22 @@ function installHomeWordmark(){
     return text==='NEXA';
   });
 
-  if(!target||target.dataset.nexaV474Wordmark==='1') return;
+  if(!target) return;
 
-  target.dataset.nexaV474Wordmark='1';
-  target.classList.add('nexa-v474-home-wordmark-wrap');
+  target.dataset.nexaV475Wordmark='1';
+  target.classList.remove('nexa-v474-home-wordmark-wrap');
+  target.classList.add('nexa-v475-home-wordmark-wrap');
+
+  const existing=target.querySelector('img');
+  if(
+    existing &&
+    existing.getAttribute('src')===IDENTITY.home &&
+    existing.classList.contains('nexa-v475-home-wordmark')
+  ) return;
 
   target.innerHTML=`
     <img
-      class="nexa-v474-home-wordmark"
+      class="nexa-v475-home-wordmark"
       src="${IDENTITY.home}"
       alt="NEXA"
     >
@@ -496,16 +552,6 @@ function installHomeWordmark(){
 --------------------------------------------------------- */
 
 const CARD_RULES=[
-  {
-    match:['NO LIVE EVENT'],
-    type:'live',
-    icon:'⌁'
-  },
-  {
-    match:['TRANSFER CENTER'],
-    type:'transfer',
-    icon:'⇄'
-  },
   {
     match:['SIGNALS & RESPONSE REQUESTS','SIGNALS AND RESPONSE REQUESTS'],
     type:'pulse',
@@ -525,10 +571,43 @@ function textKey(el){
     .toUpperCase();
 }
 
-/* The Live Event and Transfer cards use a different wrapper than NEXA Pulse.
-   Pick the smallest visible ancestor that contains the heading + its body copy,
-   instead of relying on one specific legacy class name. */
-function resolveHomeCard(heading){
+function clearOldV474(card){
+  if(!card) return;
+  card.classList.remove('nexa-v474-tech-card');
+  delete card.dataset.nexaTech;
+
+  $$(':scope > .nexa-v474-tech-icon',card).forEach(x=>x.remove());
+  $$('.nexa-v474-tech-copy',card).forEach(x=>x.classList.remove('nexa-v474-tech-copy'));
+}
+
+function addExplicitIcon(card,type,iconText){
+  if(!card) return;
+
+  clearOldV474(card);
+
+  card.dataset.nexaTech=type;
+  card.classList.add('nexa-v475-tech-card');
+
+  let icon=card.querySelector(':scope > .nexa-v475-tech-icon');
+
+  if(!icon){
+    icon=document.createElement('span');
+    icon.className='nexa-v475-tech-icon';
+    icon.setAttribute('aria-hidden','true');
+    card.prepend(icon);
+  }
+
+  icon.textContent=iconText;
+}
+
+function decorateExplicitHomeCards(){
+  addExplicitIcon($('#home-svs-section'),'live','⌁');
+  addExplicitIcon($('#home-transfers-section'),'transfer','⇄');
+}
+
+/* Retain the previous family styling for Pulse / alliance signal cards only.
+   Live Event and Transfer are NEVER resolved heuristically anymore. */
+function resolveGenericCard(heading){
   if(!heading) return null;
 
   let el=heading.parentElement;
@@ -548,14 +627,8 @@ function resolveHomeCard(heading){
     const rect=el.getBoundingClientRect?.();
     const visible=!rect || (rect.width>220 && rect.height>70);
 
-    if(
-      visible &&
-      txt.length>25 &&
-      txt.length<900
-    ){
+    if(visible && txt.length>25 && txt.length<900){
       best=el;
-
-      /* Most home cards have one heading and at least one paragraph/label. */
       const hasBody=!!el.querySelector?.('p,small,[class*="desc"],[class*="copy"],[class*="text"]');
       if(hasBody) break;
     }
@@ -564,30 +637,7 @@ function resolveHomeCard(heading){
   return best;
 }
 
-function addTechIcon(card,rule,heading){
-  if(!card) return;
-
-  let icon=card.querySelector(':scope > .nexa-v474-tech-icon');
-
-  if(!icon){
-    icon=document.createElement('span');
-    icon.className='nexa-v474-tech-icon';
-    icon.setAttribute('aria-hidden','true');
-    card.prepend(icon);
-  }
-
-  icon.textContent=rule.icon;
-
-  if(heading){
-    const copy=heading.parentElement;
-
-    if(copy && copy!==card){
-      copy.classList.add('nexa-v474-tech-copy');
-    }
-  }
-}
-
-function decorateHomeCards(){
+function decorateGenericCards(){
   const nodes=$$('h1,h2,h3,h4,strong,b');
 
   CARD_RULES.forEach(rule=>{
@@ -598,47 +648,27 @@ function decorateHomeCards(){
 
     if(!heading) return;
 
-    const card=resolveHomeCard(heading);
+    const card=resolveGenericCard(heading);
     if(!card) return;
 
+    clearOldV474(card);
+
     card.dataset.nexaTech=rule.type;
-    card.classList.add('nexa-v474-tech-card');
-    addTechIcon(card,rule,heading);
-  });
+    card.classList.add('nexa-v475-tech-card');
 
-  /* Extra fallback for the two legacy Home cards that can be rebuilt
-     after initial page load. This intentionally scopes to Home content only. */
-  $$('main div,main section,main article').forEach(card=>{
-    if(card.closest('#nexa-profile-modal,#admin-modal,#nexa-auth-gate')) return;
-
-    const txt=textKey(card);
-
-    let rule=null;
-    if(txt.includes('NO LIVE EVENT') && txt.includes('UPCOMING STATE EVENTS')) {
-      rule=CARD_RULES.find(x=>x.type==='live');
-    } else if(txt.includes('TRANSFER CENTER') && txt.includes('TRANSFER CYCLES')) {
-      rule=CARD_RULES.find(x=>x.type==='transfer');
+    let icon=card.querySelector(':scope > .nexa-v475-tech-icon');
+    if(!icon){
+      icon=document.createElement('span');
+      icon.className='nexa-v475-tech-icon';
+      icon.setAttribute('aria-hidden','true');
+      card.prepend(icon);
     }
+    icon.textContent=rule.icon;
 
-    if(!rule) return;
-
-    const childMatches=$$(':scope > div,:scope > section,:scope > article',card)
-      .filter(x=>{
-        const t=textKey(x);
-        return rule.type==='live'
-          ? t.includes('NO LIVE EVENT')
-          : t.includes('TRANSFER CENTER');
-      });
-
-    /* Prefer the innermost card-sized node, not the whole Home column. */
-    const target=childMatches.length ? childMatches[childMatches.length-1] : card;
-    const rect=target.getBoundingClientRect?.();
-
-    if(rect && (rect.width<220 || rect.height<70 || rect.height>360)) return;
-
-    target.dataset.nexaTech=rule.type;
-    target.classList.add('nexa-v474-tech-card');
-    addTechIcon(target,rule,target.querySelector('h1,h2,h3,h4,strong,b'));
+    const copy=heading.parentElement;
+    if(copy && copy!==card){
+      copy.classList.add('nexa-v475-tech-copy');
+    }
   });
 }
 
@@ -678,7 +708,8 @@ function applyVisuals(){
   applyIdentityHooks();
   installHeaderBrand();
   installHomeWordmark();
-  decorateHomeCards();
+  decorateExplicitHomeCards();
+  decorateGenericCards();
 }
 
 function delayedRefresh(){

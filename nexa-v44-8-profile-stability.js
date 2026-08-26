@@ -1,4 +1,4 @@
- NEXA V45.5 — ACCOUNT MANAGER OWNERSHIP / ADD-EDIT-DELETE RESTORE — 2026-08-25
+/* NEXA V45.6 — AUTHORITATIVE BOOT / REFRESH STATE RESET — 2026-08-25
    COMPLETE REPLACEMENT for nexa-v44-8-profile-stability.js
    Fixes:
    - MAIN / ALT labels across Constellation, Passport and Player Intelligence Profile
@@ -13,8 +13,9 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V455_ACCOUNT_MANAGER__) return;
-window.__NEXA_V455_ACCOUNT_MANAGER__=true;
+if(window.__NEXA_V456_AUTHORITATIVE_BOOT__) return;
+window.__NEXA_V456_AUTHORITATIVE_BOOT__=true;
+window.NEXA_UI_BUILD='45.6';
 window.NEXA_CANONICAL_ACCOUNTS=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
@@ -1961,8 +1962,85 @@ function removeAllianceCodeRequirement(){
   const wrap=$('#v26-alliance-code-wrap');if(wrap){wrap.hidden=true;wrap.style.display='none'}
   const input=$('#v26-alliance-code');if(input){input.required=false;input.value=''}
 }
+
+let nexaV456BootSettled=false;
+
+async function authoritativeBoot({late=false}={}){
+  const gate=$('#nexa-auth-gate');
+  const authOpen=!!gate && !gate.classList.contains('hidden');
+  if(authOpen)return;
+
+  // A browser refresh must never restore the legacy Profile/Constellation state.
+  // V45.6 always starts from Home, then rebuilds Fleet/Constellation from Supabase.
+  $('#nexa-v4484-fleet')?.remove();
+  $('#nexa-v4484-wormhole')?.remove();
+  $('#nexa-v450-returning')?.remove();
+
+  const profile=$('#nexa-profile-modal');
+  profile?.classList.remove('open');
+  profile?.setAttribute('aria-hidden','true');
+
+  const accounts=$('#accounts-modal');
+  accounts?.classList.remove('open');
+  accounts?.setAttribute('aria-hidden','true');
+
+  const constellation=$('#nexa-account-constellation');
+  constellation?.classList.remove('open');
+  constellation?.setAttribute('aria-hidden','true');
+
+  document.body.classList.remove(
+    'nexa-v451-fleet-open',
+    'nexa-v451-constellation-open',
+    'nexa-v451-profile-open',
+    'nexa-v452-away-home'
+  );
+  document.body.style.overflow='';
+
+  try{
+    const rows=await loadAccounts();
+    accountCache=rows;
+    renderCanonicalConstellation(rows,null);
+    constellation?.classList.remove('open');
+    constellation?.setAttribute('aria-hidden','true');
+    document.body.classList.remove('nexa-v451-constellation-open','nexa-v452-away-home');
+    await refreshAccountManager();
+  }catch(err){
+    console.warn('[NEXA V45.6] authoritative boot',err?.message||err);
+  }
+
+  cleanMojibake();
+  markHomeSignalCards();
+  normalizeUnlimitedAccountUI();
+  ensureCompanionDrones();
+  syncHomeOnlyMenu();
+
+  // Visible runtime marker used only for diagnostics in console / support.
+  document.documentElement.dataset.nexaUiBuild='45.6';
+  if(late)nexaV456BootSettled=true;
+}
+
+function installAuthoritativeBoot(){
+  if(document.documentElement.dataset.nexaV456Boot==='1')return;
+  document.documentElement.dataset.nexaV456Boot='1';
+
+  const run=()=>authoritativeBoot().catch(()=>{});
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',run,{once:true});
+  }else{
+    queueMicrotask(run);
+  }
+
+  window.addEventListener('pageshow',()=>authoritativeBoot().catch(()=>{}));
+  window.addEventListener('load',()=>{
+    authoritativeBoot().catch(()=>{});
+    // One final takeover after legacy boot timers finish. Not polling.
+    setTimeout(()=>authoritativeBoot({late:true}).catch(()=>{}),2100);
+  },{once:true});
+}
+
 function apply(){
   installCSS();
+  installAuthoritativeBoot();
   installAccountManagerUI();
   installAuthAdjustments();
   cleanMojibake();
@@ -1984,7 +2062,7 @@ function apply(){
   cleanLegacyHomeAccountLimit();
   maybeShowOnboarding();
 }
-window.NEXADrone={openFleet,showOnboarding,showMotionChoice,openHelp:openDroneHelp,openAccount:openSelectedProfile};
+window.NEXADrone={openFleet,showOnboarding,showMotionChoice,openHelp:openDroneHelp,openAccount:openSelectedProfile,boot:authoritativeBoot,build:'45.6'};
 
 function schedule(){
   requestAnimationFrame(apply);

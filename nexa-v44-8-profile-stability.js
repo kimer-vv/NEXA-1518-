@@ -1,4 +1,4 @@
-/* NEXA V45.3 — ACCOUNT ISOLATION / HOME RETURN / SIGNAL CARDS — 2026-08-25
+/* NEXA V45.4 — HARD ACCOUNT ISOLATION / LIVE PROFILE SAVE / PENDING ALLIANCE FLOW — 2026-08-25
    COMPLETE REPLACEMENT for nexa-v44-8-profile-stability.js
    Fixes:
    - MAIN / ALT labels across Constellation, Passport and Player Intelligence Profile
@@ -13,8 +13,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V453_ACCOUNT_ISOLATION__) return;
-window.__NEXA_V453_ACCOUNT_ISOLATION__=true;
+if(window.__NEXA_V454_HARD_ISOLATION__) return;
+window.__NEXA_V454_HARD_ISOLATION__=true;
 window.NEXA_CANONICAL_ACCOUNTS=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
@@ -590,6 +590,18 @@ function installCSS(){
     display:flex!important;visibility:visible!important;opacity:1!important
   }
 
+
+  /* ================= NEXA V45.4 HARD ISOLATION ================= */
+  .nexa-v454-save-status{margin-top:9px;padding:9px 11px;border-radius:11px;font-size:11px;font-weight:850}
+  .nexa-v454-save-status.good{border:1px solid rgba(78,235,178,.28);background:rgba(33,180,124,.09);color:#9df3ce}
+  .nexa-v454-save-status.error{border:1px solid rgba(255,101,140,.34);background:rgba(207,42,83,.10);color:#ffb0c2}
+  .nexa-v454-main-check{display:grid!important;grid-template-columns:24px minmax(0,1fr)!important;align-items:center!important;gap:9px!important;max-width:100%!important;color:#cbd8ef!important}
+  .nexa-v454-main-check input{width:22px!important;height:22px!important;margin:0!important}
+  #nexa-v454-alliance-status{padding:7px 9px;border-radius:9px;border:1px solid rgba(75,222,255,.16);background:rgba(51,173,224,.05)}
+  .nexa-v454-pending-panel{border-color:rgba(255,188,72,.34)!important;background:linear-gradient(145deg,rgba(39,25,10,.45),rgba(8,13,30,.92))!important}
+  .nexa-v454-pending-count{display:inline-grid;place-items:center;min-width:24px;height:24px;margin-left:5px;border-radius:999px;background:rgba(255,177,57,.16);border:1px solid rgba(255,184,62,.35);color:#ffd18a;font-size:11px}
+  #accounts-modal #alliance{border-color:rgba(74,222,255,.30)!important}
+
   /* Chief Gear stars: inside planet, left side, vertical */
   .v448-gear-stars{
     position:absolute;z-index:8;left:8px;bottom:15px;
@@ -608,7 +620,7 @@ async function loadAccounts(){
   try{
     const {data:{user}}=await c.auth.getUser();if(!user)return [];
     const q=await c.from('player_accounts')
-      .select('id,in_game_name,player_id,is_main,account_purpose,state_number,deployment_capacity,profile_photo_url,alliance_id,custom_alliance_tag,alliances(tag)')
+      .select('id,in_game_name,player_id,is_main,account_purpose,state_number,alliance_role,furnace_level,power,deployment_capacity,profile_photo_url,alliance_id,custom_alliance_tag,alliance_verified_at,alliances(tag)')
       .eq('user_id',user.id).order('is_main',{ascending:false}).order('created_at');
     accountCache=q.data||[];
     return accountCache;
@@ -641,12 +653,188 @@ async function resolveDisplayedAccount(){
 }
 
 
+
+const V454_ACCOUNT_FIELDS='id,in_game_name,player_id,alliance_id,custom_alliance_tag,is_main,account_purpose,alliance_role,furnace_level,power,deployment_capacity,profile_photo_url,alliance_verified_at,state_number,alliances(tag)';
+
+async function getOwnedAccount(accountId){
+  const c=sb();if(!c||!accountId)return null;
+  const {data:{user}}=await c.auth.getUser();if(!user)return null;
+  const {data,error}=await c.from('player_accounts').select(V454_ACCOUNT_FIELDS)
+    .eq('user_id',user.id).eq('id',accountId).maybeSingle();
+  if(error)throw error;
+  return data||null;
+}
+
+function profileFormat(n){
+  const x=Number(n||0);if(!x)return '—';
+  return Intl.NumberFormat(undefined,{notation:'compact',maximumFractionDigits:2}).format(x);
+}
+function setText(sel,val){const el=$(sel);if(el)el.textContent=val}
+function setValue(sel,val){const el=$(sel);if(el)el.value=val??''}
+
+function hydrateProfileAccount(a,{closeEditor=false}={}){
+  if(!a?.id)return;
+  window.NEXA_ACTIVE_ACCOUNT_ID=String(a.id);
+  const tag=a.alliances?.tag||a.custom_alliance_tag||'Not Listed';
+  setText('#nexa-profile-name',String(a.in_game_name||'PLAYER').toUpperCase());
+  setText('#nexa-profile-player-id',a.player_id||'');
+  setText('#nexa-profile-alliance',tag);
+  setText('#nexa-profile-role',a.alliance_role||'R3');
+  setText('#nexa-profile-type',a.is_main?'★ MAIN ACCOUNT':'✦ ALT ACCOUNT');
+  setText('#nexa-profile-furnace',a.furnace_level||'—');
+  setText('#nexa-profile-power',profileFormat(a.power));
+  setText('#nexa-profile-deployment',a.deployment_capacity?Number(a.deployment_capacity).toLocaleString():'—');
+  const photo=$('#nexa-profile-photo');if(photo)photo.src=accountAvatar(a);
+  setValue('#nexa-edit-name',a.in_game_name||'');
+  setValue('#nexa-edit-role',a.alliance_role||'R3');
+  setValue('#nexa-edit-furnace',a.furnace_level||'');
+  setValue('#nexa-edit-power',a.power||'');
+  setValue('#nexa-edit-deployment',a.deployment_capacity||'');
+  const form=$('#nexa-profile-editor');
+  if(form){
+    form.dataset.v454AccountId=String(a.id);
+    form.dataset.v26AccountId=String(a.id);
+    form.dataset.v26AllianceId=String(a.alliance_id||'');
+    form.dataset.v26IsMain=a.is_main?'1':'0';
+    if(closeEditor)form.classList.remove('open');
+  }
+}
+
+async function activeAlliancesForState(stateNumber){
+  const c=sb();if(!c)return [];
+  const args=Number(stateNumber)>0?{p_state_number:Number(stateNumber)}:{p_state_number:null};
+  const {data,error}=await c.rpc('get_public_nexa_alliances',args);
+  if(error){console.warn('[NEXA V45.4] alliances',error.message);return []}
+  return Array.isArray(data)?data:[];
+}
+
+async function fillAllianceSelect(select,stateNumber,selectedId,{allowNotListed=true}={}){
+  if(!select)return;
+  const rows=await activeAlliancesForState(stateNumber);
+  const prev=String(selectedId??select.value??'');
+  select.innerHTML=(allowNotListed?'<option value="">Not Listed</option>':'')+
+    rows.map(a=>`<option value="${esc(a.id)}">${esc(a.tag)}${a.name?' · '+esc(a.name):''}</option>`).join('');
+  if(prev && [...select.options].some(o=>String(o.value)===prev))select.value=prev;
+  else if(allowNotListed)select.value='';
+  select.dataset.nexaState=String(stateNumber||'');
+}
+
+async function ensureProfileAllianceEditor(a){
+  const form=$('#nexa-profile-editor');if(!form||!a?.id)return;
+  let block=$('#v26-profile-alliance-block',form);
+  if(!block){
+    block=document.createElement('div');block.id='v26-profile-alliance-block';
+    const submit=form.querySelector('[type="submit"]');
+    if(submit)form.insertBefore(block,submit);else form.appendChild(block);
+  }
+  block.style.cssText='display:grid;gap:8px;margin:12px 0;padding:12px;border:1px solid rgba(83,220,255,.24);border-radius:14px;background:rgba(5,19,42,.76)';
+  block.innerHTML=`<label style="display:grid;gap:6px;font-weight:800">Alliance
+      <select id="v26-edit-alliance" style="width:100%;padding:11px;border-radius:11px;background:#090f24;color:#fff;border:1px solid rgba(255,255,255,.16)"></select>
+    </label>
+    <div id="nexa-v454-alliance-status" class="nexa-v25-muted"></div>
+    <label class="nexa-v454-main-check"><input id="v26-set-main" type="checkbox" ${a.is_main?'checked disabled':''}><span>${a.is_main?'This is your Main account':'Make this my Main account'}</span></label>`;
+  await fillAllianceSelect($('#v26-edit-alliance',block),a.state_number,a.alliance_id,{allowNotListed:true});
+  const status=$('#nexa-v454-alliance-status',block);
+  if(status){
+    status.textContent=a.alliance_id
+      ? (a.alliance_verified_at?'Alliance membership verified.':'Pending Member — waiting for leadership approval.')
+      : 'Choose an active alliance for this State. No verification code is required.';
+  }
+  form.dataset.v454AccountId=String(a.id);
+  form.dataset.v26AccountId=String(a.id);
+  form.dataset.v26AllianceId=String(a.alliance_id||'');
+  form.dataset.v26IsMain=a.is_main?'1':'0';
+  $('#nexa-edit-role')?.setAttribute('disabled','disabled');
+}
+
+function showProfileSaveStatus(message,kind='good'){
+  let el=$('#nexa-v454-profile-save-status');
+  const form=$('#nexa-profile-editor');
+  if(!form)return;
+  if(!el){
+    el=document.createElement('div');el.id='nexa-v454-profile-save-status';
+    const btn=form.querySelector('[type="submit"]');if(btn)btn.insertAdjacentElement('afterend',el);else form.appendChild(el);
+  }
+  el.className=`nexa-v454-save-status ${kind}`;
+  el.textContent=message;
+}
+
+async function refreshExactProfile(accountId,{closeEditor=true}={}){
+  const fresh=await getOwnedAccount(accountId);if(!fresh)return null;
+  hydrateProfileAccount(fresh,{closeEditor});
+  const rows=await loadAccounts();
+  renderCanonicalConstellation(rows,Number(fresh.state_number||activeFleetState||0));
+  return fresh;
+}
+
+function renderDeploymentForAccount(a){
+  const base=Number(a?.deployment_capacity||0);
+  const whole=n=>Number(n||0).toLocaleString();
+  setText('#dep-base',base?whole(base):'—');
+  setText('#dep-10',base?whole(Math.round(base*1.10)):'—');
+  setText('#dep-20',base?whole(Math.round(base*1.20)):'—');
+  setText('#dep-pet','Set pet first');setText('#dep-pet10','Set pet first');setText('#dep-pet20','Set pet first');
+}
+
+async function bindManagedAccountAllianceState(){
+  const state=$('#account-state'),select=$('#alliance');if(!state||!select)return;
+  if(state.dataset.v454AllianceBound!=='1'){
+    state.dataset.v454AllianceBound='1';
+    const reload=()=>{const n=Number(String(state.value||'').replace(/\D/g,''));if(n)fillAllianceSelect(select,n,select.value,{allowNotListed:true})};
+    state.addEventListener('change',reload);
+    state.addEventListener('blur',reload);
+  }
+  const n=Number(String(state.value||'').replace(/\D/g,''));
+  if(n && select.dataset.nexaState!==String(n))await fillAllianceSelect(select,n,select.value,{allowNotListed:true});
+}
+
+async function renderPendingAlliancePanel(allianceId){
+  const host=$('#admin-alliances .nexa-v25-host');if(!host||!allianceId)return;
+  let rows=[];
+  try{
+    const {data,error}=await sb().rpc('nexa_list_pending_alliance_members',{p_alliance_id:Number(allianceId)});
+    if(error)throw error;rows=Array.isArray(data)?data:[];
+  }catch(err){
+    if(/cannot view pending/i.test(String(err?.message||'')))return;
+    console.warn('[NEXA V45.4] pending members',err?.message||err);return;
+  }
+  let panel=$('#nexa-v454-pending-members',host);
+  if(!panel){
+    panel=document.createElement('section');panel.id='nexa-v454-pending-members';panel.className='nexa-v25-panel nexa-v454-pending-panel';
+    const firstPanel=$('.nexa-v25-panel',host);
+    if(firstPanel)firstPanel.insertAdjacentElement('afterend',panel);else host.prepend(panel);
+  }
+  panel.dataset.allianceId=String(allianceId);
+  panel.innerHTML=`<h4>Pending Members <span class="nexa-v454-pending-count">${rows.length}</span></h4>
+    <div class="nexa-v25-muted">Game Accounts waiting for leadership approval.</div>
+    <div class="nexa-v25-members" style="margin-top:9px">
+      ${rows.map(m=>`<div class="nexa-v25-member">
+        <b>${esc(m.name||'Player')}</b>
+        <small>ID ${esc(m.gameId||'—')} · State ${esc(m.stateNumber||'—')}</small>
+        <div class="nexa-v25-buttons">
+          <button type="button" class="nexa-v25-btn" data-v454-approve="${esc(m.accountId)}">Approve</button>
+          <button type="button" class="nexa-v25-btn danger" data-v454-reject="${esc(m.accountId)}">Reject</button>
+        </div>
+      </div>`).join('')||'<div class="nexa-v25-empty">No pending members.</div>'}
+    </div>`;
+}
+
+async function handlePendingDecision(accountId,approve){
+  const panel=$('#nexa-v454-pending-members');const allianceId=Number(panel?.dataset.allianceId||0);
+  try{
+    const fn=approve?'nexa_approve_alliance_member':'nexa_reject_alliance_member';
+    const {error}=await sb().rpc(fn,{p_account_id:accountId});
+    if(error)throw error;
+    if(allianceId)await renderPendingAlliancePanel(allianceId);
+  }catch(err){alert(err?.message||String(err))}
+}
+
 async function refreshAccountManager(){
   const c=sb(), modal=$('#accounts-modal');if(!c||!modal)return;
   try{
     const {data:{user}}=await c.auth.getUser();if(!user)return;
     const q=await c.from('player_accounts')
-      .select('id,in_game_name,player_id,alliance_id,custom_alliance_tag,is_main,state_number,alliances(tag)')
+      .select('id,in_game_name,player_id,alliance_id,custom_alliance_tag,is_main,state_number,alliance_role,furnace_level,power,deployment_capacity,profile_photo_url,alliance_verified_at,alliances(tag)')
       .eq('user_id',user.id).order('is_main',{ascending:false}).order('created_at');
     if(q.error)throw q.error;
     const rows=q.data||[];
@@ -681,6 +869,7 @@ function installAccountManagerUI(){
     [...lang.options].forEach(o=>{if(names[o.value])o.textContent=names[o.value]});
   }
   const ll=$('#language-label');if(ll)ll.textContent='LANGUAGE';
+  bindManagedAccountAllianceState();
 }
 async function saveManagedAccount(e){
   const form=e.target;if(form?.id!=='account-form')return false;
@@ -693,36 +882,66 @@ async function saveManagedAccount(e){
     if(!state)throw new Error('Enter the account state.');
     const gameId=String($('#player-id')?.value||'').replace(/\D/g,'');
     if(!editId&&!/^[0-9]{6,12}$/.test(gameId))throw new Error('Game ID must contain 6–12 numbers only.');
-    const alliance=$('#alliance'),custom=$('#custom-alliance'),notListed=alliance?.value==='not-listed',allianceValue=String(alliance?.value||'');
-    const payload={
+
+    const alliance=$('#alliance'),custom=$('#custom-alliance');
+    const allianceValue=String(alliance?.value||'');
+    const notListed=!allianceValue||allianceValue==='not-listed';
+    let existingAccount=editId?await getOwnedAccount(editId):null;
+
+    const basePayload={
       in_game_name:String($('#ign')?.value||'').trim(),
-      alliance_id:(!allianceValue||notListed)?null:Number(allianceValue),
-      custom_alliance_tag:notListed?String(custom?.value||'').trim()||null:null,
       account_purpose:'full',
       state_number:state
     };
-    let r;
-    if(editId)r=await c.from('player_accounts').update(payload).eq('id',editId).eq('user_id',user.id);
-    else{
-      const existing=await c.from('player_accounts').select('id').eq('user_id',user.id).eq('player_id',gameId).eq('state_number',state).limit(1);
-      if(existing.data?.length)throw new Error('That Game ID is already added for this State.');
+    if(!basePayload.in_game_name)throw new Error('Enter the In-Game Name.');
+
+    let savedId=editId;
+    if(editId){
+      const allianceChanged=String(existingAccount?.alliance_id||'')!==String(notListed?'':allianceValue);
+      const payload={...basePayload};
+      if(notListed){
+        payload.alliance_id=null;
+        payload.custom_alliance_tag=String(custom?.value||'').trim()||null;
+        payload.alliance_verified_at=null;
+      }
+      const r=await c.from('player_accounts').update(payload).eq('id',editId).eq('user_id',user.id);
+      if(r.error)throw r.error;
+      if(!notListed&&allianceChanged){
+        const rr=await c.rpc('nexa_change_account_alliance',{p_account_id:editId,p_alliance_id:Number(allianceValue),p_access_code:''});
+        if(rr.error)throw rr.error;
+      }
+    }else{
+      const existing=await c.from('player_accounts').select('id').eq('player_id',gameId).eq('state_number',state).limit(1);
+      if(existing.data?.length)throw new Error('That Game ID is already registered for this State.');
       if(!confirm(`Verify Your Game Account\n\nGame ID: ${gameId}\nState: ${state}\n\nIs this information correct?`))return true;
-      r=await c.from('player_accounts').insert({...payload,user_id:user.id,player_id:gameId,is_main:false});
+      const insertPayload={
+        ...basePayload,user_id:user.id,player_id:gameId,is_main:false,
+        alliance_id:notListed?null:Number(allianceValue),
+        custom_alliance_tag:notListed?(String(custom?.value||'').trim()||null):null,
+        alliance_verified_at:null,
+        alliance_role:'R3'
+      };
+      const r=await c.from('player_accounts').insert(insertPayload).select('id').single();
+      if(r.error)throw r.error;savedId=String(r.data.id);
     }
-    if(r.error)throw r.error;
+
     if($('#edit-account-id'))$('#edit-account-id').value='';
-    if($('#ign'))$('#ign').value='';if($('#player-id')){$('#player-id').value='';$('#player-id').disabled=false}
+    if($('#ign'))$('#ign').value='';
+    if($('#player-id')){$('#player-id').value='';$('#player-id').disabled=false}
     if($('#account-state'))$('#account-state').value='';
+
     await refreshAccountManager();await repairAccountLabels();
     const modal=$('#accounts-modal');modal?.classList.remove('open');modal?.setAttribute('aria-hidden','true');
     const rows=await loadAccounts();
     renderCanonicalConstellation(rows,activeFleetState||state);
     const cst=$('#nexa-account-constellation');cst?.classList.add('open');cst?.setAttribute('aria-hidden','false');
     document.body.classList.add('nexa-v451-constellation-open');
-  }catch(err){const m=$('#accounts-message');if(m)m.textContent=err?.message||String(err)}
+    syncHomeOnlyMenu();
+  }catch(err){
+    const m=$('#accounts-message');if(m)m.textContent=err?.message||String(err);
+  }
   return true;
 }
-
 function canonicalAccountText(el,isMain){
   if(!el)return;
   el.textContent=isMain?'★ MAIN ACCOUNT':'✦ ALT ACCOUNT';
@@ -1122,36 +1341,23 @@ function cleanLegacyHomeAccountLimit(){
 async function openSelectedProfile(id){
   const c=sb();if(!c||!id)return;
   try{
-    const {data:{user}}=await c.auth.getUser();if(!user)return;
-    const q=await c.from('player_accounts')
-      .select('id,in_game_name,player_id,alliance_id,custom_alliance_tag,is_main,account_purpose,alliance_role,furnace_level,power,deployment_capacity,profile_photo_url,state_number,alliances(tag)')
-      .eq('id',id).eq('user_id',user.id).single();
-    if(q.error)throw q.error;
-    const a=q.data||{};
-    window.NEXA_ACTIVE_ACCOUNT_ID=String(a.id);
-    const text=(sel,val)=>{const el=$(sel);if(el)el.textContent=val};
-    const value=(sel,val)=>{const el=$(sel);if(el)el.value=val??''};
-    const tag=a.alliances?.tag||a.custom_alliance_tag||'Not Listed';
-    text('#nexa-profile-name',String(a.in_game_name||'PLAYER').toUpperCase());
-    text('#nexa-profile-player-id',a.player_id||'');
-    text('#nexa-profile-alliance',tag);
-    text('#nexa-profile-role',a.alliance_role||'R3');
-    text('#nexa-profile-type',a.is_main?'★ MAIN ACCOUNT':'✦ ALT ACCOUNT');
-    text('#nexa-profile-furnace',a.furnace_level||'—');
-    text('#nexa-profile-power',a.power?Intl.NumberFormat(undefined,{notation:'compact',maximumFractionDigits:2}).format(Number(a.power)):'—');
-    text('#nexa-profile-deployment',a.deployment_capacity?Number(a.deployment_capacity).toLocaleString():'—');
-    const photo=$('#nexa-profile-photo');if(photo)photo.src=accountAvatar(a);
-    value('#nexa-edit-name',a.in_game_name||'');value('#nexa-edit-role',a.alliance_role||'R3');value('#nexa-edit-furnace',a.furnace_level||'');value('#nexa-edit-power',a.power||'');value('#nexa-edit-deployment',a.deployment_capacity||'');
-    $('#nexa-profile-editor')?.classList.remove('open');$('#nexa-deploy-panel')?.classList.remove('open');
-    $('#nexa-account-constellation')?.classList.remove('open');$('#nexa-account-constellation')?.setAttribute('aria-hidden','true');document.body.classList.remove('nexa-v451-constellation-open');
-    const p=$('#nexa-profile-modal');p?.classList.add('open');p?.setAttribute('aria-hidden','false');document.body.classList.add('nexa-v451-profile-open');
+    const a=await getOwnedAccount(id);if(!a)throw new Error('Game Account not found.');
+    activeFleetState=Number(a.state_number||activeFleetState||0);
+    hydrateProfileAccount(a,{closeEditor:true});
+    renderDeploymentForAccount(a);
+
+    $('#nexa-account-constellation')?.classList.remove('open');
+    $('#nexa-account-constellation')?.setAttribute('aria-hidden','true');
+    document.body.classList.remove('nexa-v451-constellation-open');
+    const p=$('#nexa-profile-modal');p?.classList.add('open');p?.setAttribute('aria-hidden','false');
+    document.body.classList.add('nexa-v451-profile-open');
+
     profileCameFromConstellation=true;ensureCompanionDrones();
     window.dispatchEvent(new CustomEvent('nexa:account-changed',{detail:{accountId:String(a.id),stateNumber:Number(a.state_number||0)}}));
     window.dispatchEvent(new CustomEvent('nexa:profile-open',{detail:{accountId:String(a.id)}}));
-    maybeShowFirstProfileGuide(a);schedule();
+    maybeShowFirstProfileGuide(a);schedule();syncHomeOnlyMenu();
   }catch(err){alert(err?.message||String(err))}
 }
-
 function devicePrefersReducedMotion(){
   try{return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches===true}catch{return false}
 }
@@ -1521,36 +1727,19 @@ function markHomeSignalCards(){
 async function safeProfileSubmit(e){
   const form=e.target;
   if(form?.id!=='nexa-profile-editor')return;
-  e.preventDefault();
-  e.stopImmediatePropagation();
+  e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
 
-  const pid=String($('#nexa-profile-player-id')?.textContent||'').trim();
-  if(!pid){alert('NEXA could not identify this Game Account. Close Profile and open the account again.');return}
+  const accountId=String(window.NEXA_ACTIVE_ACCOUNT_ID||form.dataset.v454AccountId||'');
+  if(!accountId){alert('NEXA could not identify this Game Account. Close Profile and open it again.');return}
 
   const client=sb();
-  const {data:{user}}=await client.auth.getUser();
-  if(!user){alert('Your NEXA session expired. Please sign in again.');return}
-
-  const {data:account,error:accountError}=await client
-    .from('player_accounts')
-    .select('id,player_id,in_game_name,is_main,alliance_id,state_number,profile_photo_url')
-    .eq('user_id',user.id)
-    .eq('player_id',pid)
-    .maybeSingle();
-  if(accountError||!account){
-    alert(accountError?.message||'NEXA could not find the selected Game Account.');
-    return;
-  }
-
   try{
-    const newAlliance=$('#v26-edit-alliance')?.value||'';
-    if(newAlliance && String(newAlliance)!==String(account.alliance_id||'')){
-      await rpc('nexa_change_account_alliance',{
-        p_account_id:account.id,
-        p_alliance_id:Number(newAlliance),
-        p_access_code:''
-      });
-    }
+    const account=await getOwnedAccount(accountId);
+    if(!account)throw new Error('The selected Game Account could not be loaded.');
+
+    const selectedAlliance=String($('#v26-edit-alliance')?.value??account.alliance_id??'');
+    const oldAlliance=String(account.alliance_id||'');
+    const allianceChanged=selectedAlliance!==oldAlliance;
 
     const payload={
       in_game_name:$('#nexa-edit-name')?.value?.trim()||account.in_game_name||'',
@@ -1558,42 +1747,113 @@ async function safeProfileSubmit(e){
       power:Number(String($('#nexa-edit-power')?.value||'').replace(/\D/g,''))||null,
       deployment_capacity:Number(String($('#nexa-edit-deployment')?.value||'').replace(/\D/g,''))||null
     };
+    if(!payload.in_game_name)throw new Error('In-Game Name cannot be empty.');
 
-    const {error}=await client.from('player_accounts').update(payload).eq('id',account.id).eq('user_id',user.id);
+    const {error}=await client.from('player_accounts').update(payload)
+      .eq('id',account.id).eq('user_id',(await client.auth.getUser()).data.user.id);
     if(error)throw error;
 
-    if($('#v26-set-main')?.checked && !account.is_main){
-      await rpc('nexa_set_main_account',{p_account_id:account.id});
+    let alliancePending=false;
+    if(allianceChanged){
+      if(selectedAlliance){
+        const rr=await client.rpc('nexa_change_account_alliance',{
+          p_account_id:account.id,p_alliance_id:Number(selectedAlliance),p_access_code:''
+        });
+        if(rr.error)throw rr.error;
+        alliancePending=true;
+      }else{
+        const rr=await client.from('player_accounts').update({
+          alliance_id:null,custom_alliance_tag:null,alliance_verified_at:null,alliance_role:'R3'
+        }).eq('id',account.id);
+        if(rr.error)throw rr.error;
+      }
     }
 
-    form.dataset.v26AccountId=account.id;
-    form.dataset.v26AllianceId=newAlliance||account.alliance_id||'';
+    if($('#v26-set-main')?.checked && !account.is_main){
+      const rr=await client.rpc('nexa_set_main_account',{p_account_id:account.id});
+      if(rr.error)throw rr.error;
+    }
 
+    const fresh=await refreshExactProfile(account.id,{closeEditor:false});
+    if(fresh)await ensureProfileAllianceEditor(fresh);
     form.classList.remove('open');
-    await repairAccountLabels();
-    await loadAccounts();
-    await openSelectedProfile(account.id);
-    document.body.classList.add('nexa-v451-profile-open');
+    showProfileSaveStatus(alliancePending?'Profile saved. Alliance request is Pending approval.':'Profile saved.','good');
+    setTimeout(()=>{$('#nexa-v454-profile-save-status')?.remove()},2600);
     syncHomeOnlyMenu();
   }catch(err){
-    alert(err?.message||String(err));
+    showProfileSaveStatus(err?.message||String(err),'error');
   }
 }
-
 function installSafeProfileIsolation(){
-  if(document.documentElement.dataset.nexaV453ProfileSafe==='1')return;
-  document.documentElement.dataset.nexaV453ProfileSafe='1';
+  if(document.documentElement.dataset.nexaV454ProfileSafe==='1')return;
+  document.documentElement.dataset.nexaV454ProfileSafe='1';
+
   document.addEventListener('submit',safeProfileSubmit,true);
-  document.addEventListener('click',()=>{
-    setTimeout(()=>{
-      syncHomeOnlyMenu();
-      markHomeSignalCards();
-      cleanMojibake();
-      normalizeUnlimitedAccountUI();
-    },60);
+
+  document.addEventListener('click',async e=>{
+    const edit=e.target.closest?.('#nexa-profile-edit-btn');
+    if(edit){
+      e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+      const accountId=String(window.NEXA_ACTIVE_ACCOUNT_ID||'');
+      const a=await getOwnedAccount(accountId).catch(()=>null);if(!a)return;
+      const form=$('#nexa-profile-editor');
+      const opening=!form?.classList.contains('open');
+      form?.classList.toggle('open',opening);
+      if(opening){hydrateProfileAccount(a);await ensureProfileAllianceEditor(a)}
+      return;
+    }
+
+    const dep=e.target.closest?.('#nexa-deployment-stat');
+    if(dep){
+      e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+      const a=await getOwnedAccount(String(window.NEXA_ACTIVE_ACCOUNT_ID||'')).catch(()=>null);
+      if(a){renderDeploymentForAccount(a);$('#nexa-deploy-panel')?.classList.toggle('open')}
+      return;
+    }
+
+    const approve=e.target.closest?.('[data-v454-approve]');
+    if(approve){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();await handlePendingDecision(approve.dataset.v454Approve,true);return}
+    const reject=e.target.closest?.('[data-v454-reject]');
+    if(reject){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();await handlePendingDecision(reject.dataset.v454Reject,false);return}
+
+    const alliance=e.target.closest?.('[data-v25-alliance]');
+    if(alliance)setTimeout(()=>renderPendingAlliancePanel(alliance.dataset.v25Alliance),180);
+    const reopen=e.target.closest?.('[data-v25-open-alliance]');
+    if(reopen)setTimeout(()=>renderPendingAlliancePanel(reopen.dataset.v25OpenAlliance),180);
+
+    setTimeout(async()=>{
+      syncHomeOnlyMenu();markHomeSignalCards();cleanMojibake();normalizeUnlimitedAccountUI();
+      await bindManagedAccountAllianceState();
+      const form=$('#nexa-profile-editor');
+      if(form?.classList.contains('open')){
+        const a=await getOwnedAccount(String(window.NEXA_ACTIVE_ACCOUNT_ID||'')).catch(()=>null);
+        if(a)await ensureProfileAllianceEditor(a);
+      }
+    },70);
+  },true);
+
+  document.addEventListener('change',async e=>{
+    if(e.target?.id==='nexa-photo-input'){
+      e.stopImmediatePropagation();
+      const file=e.target.files?.[0];if(!file)return;
+      if(file.size>5*1024*1024){alert('Please choose an image under 5 MB.');return}
+      const accountId=String(window.NEXA_ACTIVE_ACCOUNT_ID||'');const a=await getOwnedAccount(accountId).catch(()=>null);if(!a)return;
+      try{
+        const c=sb(),{data:{user}}=await c.auth.getUser();if(!user)throw new Error('Sign in again.');
+        const ext=(file.name.split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,'')||'jpg';
+        const path=`${user.id}/${a.id}-${Date.now()}.${ext}`;
+        const up=await c.storage.from('profile-photos').upload(path,file,{upsert:true,contentType:file.type});
+        if(up.error)throw up.error;
+        const pub=c.storage.from('profile-photos').getPublicUrl(path).data?.publicUrl;
+        if(!pub)throw new Error('Photo URL could not be created.');
+        const q=await c.from('player_accounts').update({profile_photo_url:pub}).eq('id',a.id).eq('user_id',user.id);
+        if(q.error)throw q.error;
+        await refreshExactProfile(a.id,{closeEditor:false});
+      }catch(err){alert(err?.message||String(err))}
+      return;
+    }
   },true);
 }
-
 function syncHomeOnlyMenu(){
   const authOpen=!!$('#nexa-auth-gate:not(.hidden)');
   const away=authOpen
@@ -1628,21 +1888,9 @@ function normalizeUnlimitedAccountUI(){
 }
 
 function removeAllianceCodeRequirement(){
-  const wrap=$('#v26-alliance-code-wrap');
-  const input=$('#v26-alliance-code');
-  if(wrap){wrap.hidden=true;wrap.style.display='none'}
-  if(input)input.value='NEXA_PENDING';
-  const select=$('#v26-edit-alliance');
-  const block=$('#v26-profile-alliance-block');
-  if(select&&block&&!$('#nexa-v452-alliance-note',block)){
-    const note=document.createElement('div');
-    note.id='nexa-v452-alliance-note';
-    note.className='nexa-v25-muted';
-    note.textContent='No access code required. Selecting a new alliance submits this Game Account as a Pending Member for leadership approval.';
-    select.closest('label')?.insertAdjacentElement('afterend',note);
-  }
+  const wrap=$('#v26-alliance-code-wrap');if(wrap){wrap.hidden=true;wrap.style.display='none'}
+  const input=$('#v26-alliance-code');if(input){input.required=false;input.value=''}
 }
-
 function apply(){
   installCSS();
   installAccountManagerUI();
@@ -1652,6 +1900,7 @@ function apply(){
   markHomeSignalCards();
   normalizeUnlimitedAccountUI();
   removeAllianceCodeRequirement();
+  bindManagedAccountAllianceState();
   syncHomeOnlyMenu();
   repairAccountLabels();
   if($('#accounts-modal')?.classList.contains('open'))refreshAccountManager();

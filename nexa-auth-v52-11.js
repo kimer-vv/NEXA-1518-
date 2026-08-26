@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-// NEXA V52.15 — SLIM AUTH / COMPACT LOGIN + CREATE ACCOUNT — 2026-08-25
+// NEXA V52.17 — ROBOT GREETING / REMOVE ORB — 2026-08-25
 
 const SUPABASE_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const SUPABASE_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
@@ -31,9 +31,15 @@ function styles(){
   .nexa-auth-brand h1{margin:0;font-size:22px;letter-spacing:.16em}
   .nexa-auth-brand p{margin:3px 0 0;color:#9fa8cc;font-size:8.5px;letter-spacing:.08em;white-space:nowrap}
 
+  .nexa-v460-auth-guide{display:none!important}
   .nexa-auth-guide{display:flex;align-items:center;gap:9px;margin:0 0 10px;padding:7px 9px;border-radius:11px;border:1px solid rgba(79,200,255,.20);background:linear-gradient(135deg,rgba(9,28,57,.55),rgba(32,10,57,.38))}
-  .nexa-auth-guide-orb{width:28px;height:28px;flex:0 0 28px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 30%,#9cf5ff,#5c6eff 52%,#6e2bbf 100%);box-shadow:0 0 14px rgba(76,213,255,.34)}
-  .nexa-auth-guide-orb:after{content:"";width:10px;height:7px;border-radius:999px;background:#050b1b;box-shadow:0 0 6px #59e9ff inset}
+  .nexa-auth-guide-bot{position:relative;width:36px;height:30px;flex:0 0 36px;filter:drop-shadow(0 0 10px rgba(80,210,255,.35))}
+  .nexa-auth-guide-bot .body{position:absolute;left:5px;top:4px;width:26px;height:20px;border-radius:45%;background:linear-gradient(145deg,#f7f8ff 0%,#bac7ff 45%,#7b73d7 100%);border:1px solid rgba(142,226,255,.9)}
+  .nexa-auth-guide-bot .face{position:absolute;left:4px;right:4px;top:5px;height:10px;border-radius:8px;background:linear-gradient(180deg,#07142e,#020817);border:1px solid rgba(73,221,255,.55)}
+  .nexa-auth-guide-bot .eye{position:absolute;top:3px;width:3px;height:3px;border-radius:50%;background:#67f0ff;box-shadow:0 0 4px #67f0ff}
+  .nexa-auth-guide-bot .eye.a{left:5px}.nexa-auth-guide-bot .eye.b{right:5px}
+  .nexa-auth-guide-bot .wing{position:absolute;top:9px;width:10px;height:6px;border-radius:80% 20% 80% 20%;background:linear-gradient(135deg,rgba(168,112,255,.95),rgba(76,219,255,.92))}
+  .nexa-auth-guide-bot .wing.a{left:0;transform:rotate(-18deg)}.nexa-auth-guide-bot .wing.b{right:0;transform:scaleX(-1) rotate(-18deg)}
   .nexa-auth-guide b{display:block;font-size:8px;letter-spacing:.12em;color:#67e7ff}
   .nexa-auth-guide span{display:block;margin-top:1px;font-size:9px;line-height:1.25;color:#aab6d5}
 
@@ -93,8 +99,8 @@ function markup(){
     </div>
 
     <div class="nexa-auth-guide">
-      <div class="nexa-auth-guide-orb"></div>
-      <div><b>NEXA // ACCESS</b><span>Sign in or create your account to enter your hub.</span></div>
+      <div class="nexa-auth-guide-bot"><span class="wing a"></span><span class="wing b"></span><span class="body"><span class="face"><span class="eye a"></span><span class="eye b"></span></span></span></div>
+      <div><b>NEXA</b><span>Login or create your account to enter your hub.</span></div>
     </div>
 
     <div class="nexa-auth-tabs">

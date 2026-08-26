@@ -1,4 +1,4 @@
-/* NEXA V47.2 — CONTROL HUB VISUAL SYSTEM
+/* NEXA V47.3 — CONTROL HUB CARD FIX
    2026-08-26
 
    COMPLETE REPLACEMENT for: nexa-v47-visual-assets.js
@@ -20,8 +20,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V472_CONTROL_HUB__) return;
-window.__NEXA_V472_CONTROL_HUB__=true;
+if(window.__NEXA_V473_CONTROL_HUB__) return;
+window.__NEXA_V473_CONTROL_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -163,10 +163,10 @@ window.NEXA_CHIEF_GEAR_ASSETS={
 --------------------------------------------------------- */
 
 function installCSS(){
-  if($('#nexa-v472-control-hub-css')) return;
+  if($('#nexa-v473-control-hub-css')) return;
 
   const s=document.createElement('style');
-  s.id='nexa-v472-control-hub-css';
+  s.id='nexa-v473-control-hub-css';
 
   s.textContent=`
   /* ---------- AUTH IDENTITY ---------- */
@@ -184,7 +184,7 @@ function installCSS(){
 
   /* ---------- HOME TOP IDENTITY ---------- */
 
-  header.topbar .logo.nexa-v472-control-brand{
+  header.topbar .logo.nexa-v473-control-brand{
     display:flex!important;
     align-items:center!important;
     gap:10px!important;
@@ -192,7 +192,7 @@ function installCSS(){
     text-decoration:none!important;
   }
 
-  .nexa-v472-control-symbol{
+  .nexa-v473-control-symbol{
     width:34px!important;
     height:34px!important;
     flex:0 0 34px!important;
@@ -202,14 +202,14 @@ function installCSS(){
       drop-shadow(0 0 14px rgba(175,70,255,.28));
   }
 
-  .nexa-v472-control-copy{
+  .nexa-v473-control-copy{
     display:grid!important;
     gap:1px!important;
     min-width:0!important;
     line-height:1!important;
   }
 
-  .nexa-v472-control-copy strong{
+  .nexa-v473-control-copy strong{
     color:#f6f7ff!important;
     font-size:12px!important;
     font-weight:950!important;
@@ -217,7 +217,7 @@ function installCSS(){
     white-space:nowrap!important;
   }
 
-  .nexa-v472-control-copy small{
+  .nexa-v473-control-copy small{
     color:#bb6cff!important;
     font-size:8px!important;
     font-weight:950!important;
@@ -228,7 +228,7 @@ function installCSS(){
 
   /* ---------- MAIN HOME NEXA WORDMARK ---------- */
 
-  .nexa-v472-home-wordmark-wrap{
+  .nexa-v473-home-wordmark-wrap{
     display:flex!important;
     align-items:center!important;
     justify-content:center!important;
@@ -237,7 +237,7 @@ function installCSS(){
     min-height:62px!important;
   }
 
-  .nexa-v472-home-wordmark{
+  .nexa-v473-home-wordmark{
     display:block!important;
     width:min(330px,76vw)!important;
     max-height:92px!important;
@@ -250,7 +250,7 @@ function installCSS(){
 
   /* ---------- ROBOTIC / GALACTIC HOME PANELS ---------- */
 
-  .nexa-v472-tech-card{
+  .nexa-v473-tech-card{
     --tech:#9b63ff;
     position:relative!important;
     isolation:isolate!important;
@@ -267,7 +267,7 @@ function installCSS(){
       0 0 18px color-mix(in srgb,var(--tech) 12%,transparent)!important;
   }
 
-  .nexa-v472-tech-card:before{
+  .nexa-v473-tech-card:before{
     content:""!important;
     position:absolute!important;
     inset:0!important;
@@ -282,7 +282,7 @@ function installCSS(){
       radial-gradient(circle at 86% 72%,var(--tech) 0 1px,transparent 1.7px);
   }
 
-  .nexa-v472-tech-card:after{
+  .nexa-v473-tech-card:after{
     content:""!important;
     position:absolute!important;
     left:18px!important;
@@ -299,12 +299,43 @@ function installCSS(){
     box-shadow:0 0 11px color-mix(in srgb,var(--tech) 50%,transparent)!important;
   }
 
-  .nexa-v472-tech-card[data-nexa-tech="live"]{--tech:#a56bff;}
-  .nexa-v472-tech-card[data-nexa-tech="transfer"]{--tech:#ff9d3d;}
-  .nexa-v472-tech-card[data-nexa-tech="pulse"]{--tech:#39dfff;}
-  .nexa-v472-tech-card[data-nexa-tech="alliance"]{--tech:#e263ff;}
+  .nexa-v473-tech-card[data-nexa-tech="live"]{--tech:#a56bff;}
+  .nexa-v473-tech-card[data-nexa-tech="transfer"]{--tech:#ff9d3d;}
+  .nexa-v473-tech-card[data-nexa-tech="pulse"]{--tech:#39dfff;}
+  .nexa-v473-tech-card[data-nexa-tech="alliance"]{--tech:#e263ff;}
 
-  .nexa-v472-tech-icon{
+  /* Make legacy Live Event / Transfer wrappers match the same command-panel family. */
+  .nexa-v473-tech-card[data-nexa-tech="live"],
+  .nexa-v473-tech-card[data-nexa-tech="transfer"]{
+    padding:18px 18px 18px 78px!important;
+    min-height:118px!important;
+  }
+
+  .nexa-v473-tech-card[data-nexa-tech="live"] .nexa-v473-tech-icon,
+  .nexa-v473-tech-card[data-nexa-tech="transfer"] .nexa-v473-tech-icon{
+    position:absolute!important;
+    left:16px!important;
+    top:50%!important;
+    transform:translateY(-50%)!important;
+    float:none!important;
+    margin:0!important;
+  }
+
+  .nexa-v473-tech-card[data-nexa-tech="live"]{
+    border-color:rgba(171,104,255,.78)!important;
+    box-shadow:
+      inset 0 0 28px rgba(119,67,255,.08),
+      0 0 18px rgba(142,83,255,.16)!important;
+  }
+
+  .nexa-v473-tech-card[data-nexa-tech="transfer"]{
+    border-color:rgba(255,157,61,.72)!important;
+    box-shadow:
+      inset 0 0 28px rgba(255,140,45,.07),
+      0 0 18px rgba(255,142,50,.13)!important;
+  }
+
+  .nexa-v473-tech-icon{
     float:left!important;
     width:48px!important;
     height:48px!important;
@@ -323,9 +354,9 @@ function installCSS(){
       0 0 13px color-mix(in srgb,var(--tech) 18%,transparent)!important;
   }
 
-  .nexa-v472-tech-card h2,
-  .nexa-v472-tech-card h3,
-  .nexa-v472-tech-card h4{
+  .nexa-v473-tech-card h2,
+  .nexa-v473-tech-card h3,
+  .nexa-v473-tech-card h4{
     text-shadow:0 0 12px color-mix(in srgb,var(--tech) 17%,transparent)!important;
   }
 
@@ -375,17 +406,17 @@ function installCSS(){
       max-height:78px!important;
     }
 
-    .nexa-v472-control-symbol{
+    .nexa-v473-control-symbol{
       width:31px!important;
       height:31px!important;
       flex-basis:31px!important;
     }
 
-    .nexa-v472-control-copy strong{
+    .nexa-v473-control-copy strong{
       font-size:11px!important;
     }
 
-    .nexa-v472-control-copy small{
+    .nexa-v473-control-copy small{
       font-size:7.5px!important;
     }
   }
@@ -401,19 +432,19 @@ function installCSS(){
 function installHeaderBrand(){
   const logo=$('header.topbar .logo');
 
-  if(!logo||logo.dataset.nexaV472Brand==='1') return;
+  if(!logo||logo.dataset.nexaV473Brand==='1') return;
 
-  logo.dataset.nexaV472Brand='1';
-  logo.classList.add('nexa-v472-control-brand');
+  logo.dataset.nexaV473Brand='1';
+  logo.classList.add('nexa-v473-control-brand');
 
   logo.innerHTML=`
     <img
-      class="nexa-v472-control-symbol"
+      class="nexa-v473-control-symbol"
       src="${IDENTITY.symbol}"
       alt=""
       aria-hidden="true"
     >
-    <span class="nexa-v472-control-copy">
+    <span class="nexa-v473-control-copy">
       <strong>CONTROL HUB</strong>
       <small>NEXA SYSTEM</small>
     </span>
@@ -431,14 +462,14 @@ function installHomeWordmark(){
     return text==='NEXA';
   });
 
-  if(!target||target.dataset.nexaV472Wordmark==='1') return;
+  if(!target||target.dataset.nexaV473Wordmark==='1') return;
 
-  target.dataset.nexaV472Wordmark='1';
-  target.classList.add('nexa-v472-home-wordmark-wrap');
+  target.dataset.nexaV473Wordmark='1';
+  target.classList.add('nexa-v473-home-wordmark-wrap');
 
   target.innerHTML=`
     <img
-      class="nexa-v472-home-wordmark"
+      class="nexa-v473-home-wordmark"
       src="${IDENTITY.home}"
       alt="NEXA"
     >
@@ -472,10 +503,61 @@ const CARD_RULES=[
   }
 ];
 
-function closestCard(el){
-  return el.closest(
-    'article,section,.card,.home-card,.glass,.panel,.signal-card,.event-card,.transfer-card'
-  );
+function textKey(el){
+  return String(el?.textContent||'')
+    .trim()
+    .replace(/\s+/g,' ')
+    .toUpperCase();
+}
+
+/* The Live Event and Transfer cards use a different wrapper than NEXA Pulse.
+   Pick the smallest visible ancestor that contains the heading + its body copy,
+   instead of relying on one specific legacy class name. */
+function resolveHomeCard(heading){
+  if(!heading) return null;
+
+  let el=heading.parentElement;
+  let best=null;
+
+  for(let depth=0;el&&depth<7;depth++,el=el.parentElement){
+    if(
+      el===document.body ||
+      el.matches?.('main,#home,#home-view,.home-view,.shell')
+    ) break;
+
+    if(
+      el.closest?.('#nexa-profile-modal,#admin-modal,#nexa-auth-gate')
+    ) continue;
+
+    const txt=textKey(el);
+    const rect=el.getBoundingClientRect?.();
+    const visible=!rect || (rect.width>220 && rect.height>70);
+
+    if(
+      visible &&
+      txt.length>25 &&
+      txt.length<900
+    ){
+      best=el;
+
+      /* Most home cards have one heading and at least one paragraph/label. */
+      const hasBody=!!el.querySelector?.('p,small,[class*="desc"],[class*="copy"],[class*="text"]');
+      if(hasBody) break;
+    }
+  }
+
+  return best;
+}
+
+function addTechIcon(card,rule){
+  if(!card || card.querySelector(':scope > .nexa-v473-tech-icon')) return;
+
+  const icon=document.createElement('span');
+  icon.className='nexa-v473-tech-icon';
+  icon.setAttribute('aria-hidden','true');
+  icon.textContent=rule.icon;
+
+  card.prepend(icon);
 }
 
 function decorateHomeCards(){
@@ -483,39 +565,53 @@ function decorateHomeCards(){
 
   CARD_RULES.forEach(rule=>{
     const heading=nodes.find(el=>{
-      if(el.closest('#nexa-profile-modal')) return false;
-      if(el.closest('#admin-modal')) return false;
-
-      const text=String(el.textContent||'')
-        .trim()
-        .replace(/\s+/g,' ')
-        .toUpperCase();
-
-      return rule.match.includes(text);
+      if(el.closest('#nexa-profile-modal,#admin-modal,#nexa-auth-gate')) return false;
+      return rule.match.includes(textKey(el));
     });
 
     if(!heading) return;
 
-    const card=closestCard(heading);
-    if(!card||card.dataset.nexaTech) return;
+    const card=resolveHomeCard(heading);
+    if(!card) return;
 
     card.dataset.nexaTech=rule.type;
-    card.classList.add('nexa-v472-tech-card');
+    card.classList.add('nexa-v473-tech-card');
+    addTechIcon(card,rule);
+  });
 
-    const icon=document.createElement('span');
-    icon.className='nexa-v472-tech-icon';
-    icon.setAttribute('aria-hidden','true');
-    icon.textContent=rule.icon;
+  /* Extra fallback for the two legacy Home cards that can be rebuilt
+     after initial page load. This intentionally scopes to Home content only. */
+  $$('main div,main section,main article').forEach(card=>{
+    if(card.closest('#nexa-profile-modal,#admin-modal,#nexa-auth-gate')) return;
 
-    const firstContent=
-      card.querySelector('h1,h2,h3,h4,strong,b,p,div')||
-      card.firstElementChild;
+    const txt=textKey(card);
 
-    if(firstContent){
-      card.insertBefore(icon,firstContent);
-    }else{
-      card.prepend(icon);
+    let rule=null;
+    if(txt.includes('NO LIVE EVENT') && txt.includes('UPCOMING STATE EVENTS')) {
+      rule=CARD_RULES.find(x=>x.type==='live');
+    } else if(txt.includes('TRANSFER CENTER') && txt.includes('TRANSFER CYCLES')) {
+      rule=CARD_RULES.find(x=>x.type==='transfer');
     }
+
+    if(!rule) return;
+
+    const childMatches=$$(':scope > div,:scope > section,:scope > article',card)
+      .filter(x=>{
+        const t=textKey(x);
+        return rule.type==='live'
+          ? t.includes('NO LIVE EVENT')
+          : t.includes('TRANSFER CENTER');
+      });
+
+    /* Prefer the innermost card-sized node, not the whole Home column. */
+    const target=childMatches.length ? childMatches[childMatches.length-1] : card;
+    const rect=target.getBoundingClientRect?.();
+
+    if(rect && (rect.width<220 || rect.height<70 || rect.height>360)) return;
+
+    target.dataset.nexaTech=rule.type;
+    target.classList.add('nexa-v473-tech-card');
+    addTechIcon(target,rule);
   });
 }
 

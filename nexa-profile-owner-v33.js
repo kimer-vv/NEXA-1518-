@@ -79,20 +79,83 @@ function pieceKey(i){
   return s;
 }
 const GEAR_FALLBACK={
-  helmet:'/nexa-v23-chief-gear-helmet.webp',
-  watch:'/nexa-v23-chief-gear-watch.webp',
-  coat:'/nexa-v23-chief-gear-coat.webp',
-  pants:'/nexa-v23-chief-gear-pants.webp',
-  ring:'/nexa-v23-chief-gear-belt.webp',
-  shortstaff:'/nexa-v23-chief-gear-shortstaff.webp'
+  helmet:'/assets/nexa/chief-gear/chiefgear_helmet_green.png',
+  watch:'/assets/nexa/chief-gear/chiefgear_watch_green.png',
+  coat:'/assets/nexa/chief-gear/chiefgear_chestplate_green.png',
+  pants:'/assets/nexa/chief-gear/chiefgear_pants_green.png',
+  belt:'/assets/nexa/chief-gear/chiefgear_ring_green.png',
+  ring:'/assets/nexa/chief-gear/chiefgear_ring_green.png',
+  shortstaff:'/assets/nexa/chief-gear/chiefgear_staff_green.png'
 };
-/* Tier-specific assets can be added later without changing this code.
-   Naming:
-   /assets/chief-gear/t4/helmet-0.png ... helmet-3.png
-   /assets/chief-gear/t5/watch-0.png  ... watch-3.png
-   /assets/chief-gear/t6/coat-0.png   ... coat-3.png
-*/
+
 function gearTierAsset(i,p={}){
+  let q=String(p.gear_quality||'Green').trim();
+
+  if(!['Green','Blue','Purple','Gold','Red'].includes(q)){
+    q='Green';
+  }
+
+  let tier=clamp(
+    Number(p.gear_tier||0),
+    0,
+    6
+  );
+
+  if(q==='Green' || q==='Blue'){
+    tier=0;
+  }
+
+  if(q==='Purple'){
+    tier=Math.min(tier,1);
+  }
+
+  if(q==='Gold'){
+    tier=Math.min(tier,2);
+  }
+
+  const key=pieceKey(i);
+
+  const filePiece={
+    helmet:'helmet',
+    watch:'watch',
+    coat:'chestplate',
+    pants:'pants',
+    belt:'ring',
+    ring:'ring',
+    shortstaff:'staff'
+  }[key];
+
+  if(!filePiece){
+    return i.image_url||'';
+  }
+
+  const color={
+    Green:'green',
+    Blue:'blue',
+    Purple:'purple',
+    Gold:'gold',
+    Red:'red'
+  }[q];
+
+  if(q==='Red'){
+
+    if(tier===0){
+      return `/assets/nexa/chief-gear-red/chiefgear_${filePiece}_red.png`;
+    }
+
+    if(tier===6){
+      return `/assets/nexa/chief-gear-red/chiefgear_${filePiece}_red_t6.png.jpeg`;
+    }
+
+    return `/assets/nexa/chief-gear-red/chiefgear_${filePiece}_red_t${tier}.png`;
+  }
+
+  if(tier===0){
+    return `/assets/nexa/chief-gear/chiefgear_${filePiece}_${color}.png`;
+  }
+
+  return `/assets/nexa/chief-gear/chiefgear_${filePiece}_${color}_t${tier}.png`;
+}
   const q=String(p.gear_quality||'Red');
   const tier=clamp(p.gear_tier||0,0,6);
   const star=clamp(p.gear_stars||0,0,3);

@@ -1,4 +1,4 @@
-/* NEXA V45.6 — AUTHORITATIVE BOOT / REFRESH STATE RESET — 2026-08-25
+/* NEXA V45.7 — WELCOME HOLD / CONTINUE BUTTON — 2026-08-25
    COMPLETE REPLACEMENT for nexa-v44-8-profile-stability.js
    Fixes:
    - MAIN / ALT labels across Constellation, Passport and Player Intelligence Profile
@@ -13,9 +13,9 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V456_AUTHORITATIVE_BOOT__) return;
-window.__NEXA_V456_AUTHORITATIVE_BOOT__=true;
-window.NEXA_UI_BUILD='45.6';
+if(window.__NEXA_V457_WELCOME_HOLD__) return;
+window.__NEXA_V457_WELCOME_HOLD__=true;
+window.NEXA_UI_BUILD='45.7';
 window.NEXA_CANONICAL_ACCOUNTS=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
@@ -602,6 +602,32 @@ function installCSS(){
   .nexa-v454-pending-panel{border-color:rgba(255,188,72,.34)!important;background:linear-gradient(145deg,rgba(39,25,10,.45),rgba(8,13,30,.92))!important}
   .nexa-v454-pending-count{display:inline-grid;place-items:center;min-width:24px;height:24px;margin-left:5px;border-radius:999px;background:rgba(255,177,57,.16);border:1px solid rgba(255,184,62,.35);color:#ffd18a;font-size:11px}
   #accounts-modal #alliance{border-color:rgba(74,222,255,.30)!important}
+
+
+  /* V45.7 — returning welcome stays until the user continues */
+  #nexa-v450-returning{
+    transition:opacity .28s ease,transform .28s ease;
+  }
+  #nexa-v450-returning.nexa-v457-leaving{
+    opacity:0;
+    transform:scale(1.015);
+    pointer-events:none;
+  }
+  .nexa-v457-continue{
+    margin-top:4px;
+    min-width:min(290px,78vw);
+    border:1px solid rgba(93,225,255,.72);
+    border-radius:999px;
+    padding:12px 20px;
+    background:linear-gradient(100deg,#1b5dff,#754dff 58%,#e94bd6);
+    color:#fff;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:11px;
+    font-weight:950;
+    letter-spacing:.12em;
+    box-shadow:0 0 18px rgba(78,219,255,.20),0 0 30px rgba(125,75,255,.22);
+  }
+  .nexa-v457-continue:active{transform:scale(.985)}
 
   /* Chief Gear stars: inside planet, left side, vertical */
   .v448-gear-stars{
@@ -1505,20 +1531,39 @@ function showReturningWelcome(){
   const flag=sessionStorage.getItem('nexa_show_returning_welcome');
   if(flag!=='1')return;
   sessionStorage.removeItem('nexa_show_returning_welcome');
-  const ov=document.createElement('section');ov.id='nexa-v450-returning';
+
+  const ov=document.createElement('section');
+  ov.id='nexa-v450-returning';
   ov.innerHTML=`<div class="nexa-v450-nebula"></div><div class="nexa-v4484-stars"></div>
     <div class="nexa-v450-return-card">
       <div class="nexa-v450-logo-ring"><img src="/nexa-icon.png" alt="NEXA"></div>
       <h1>NEXA</h1>
       <div class="nexa-v450-systemline">CONNECT // MANAGE // EXPLORE</div>
       ${droneMarkup('intro')}
-      <div class="nexa-v4484-dialog" style="width:min(320px,84vw)"><small>NEXA</small><p>Hi, I’m NEXA. Welcome back. Connecting your Profile, States, and NEXA systems…</p></div>
+      <div class="nexa-v4484-dialog" style="width:min(330px,86vw)">
+        <small>NEXA</small>
+        <p>Hi, I’m NEXA. Welcome back. Connecting your Profile, States, and NEXA systems…</p>
+      </div>
       <div class="nexa-v450-sync"><i></i></div>
       <div class="nexa-v450-tagline">YOUR UNIVERSE // YOUR CONTROL</div>
+      <button type="button" class="nexa-v457-continue" data-nexa-welcome-continue>CONTINUE TO HOME</button>
     </div>`;
+
   document.body.appendChild(ov);
-  const delay=document.documentElement.classList.contains('nexa-reduced-motion')?520:1650;
-  setTimeout(()=>ov.remove(),delay);
+  document.body.style.overflow='hidden';
+
+  const btn=$('[data-nexa-welcome-continue]',ov);
+  const closeWelcome=()=>{
+    ov.classList.add('nexa-v457-leaving');
+    const done=()=>{
+      ov.remove();
+      document.body.style.overflow='';
+      syncHomeOnlyMenu();
+    };
+    if(document.documentElement.classList.contains('nexa-reduced-motion'))done();
+    else setTimeout(done,280);
+  };
+  btn?.addEventListener('click',closeWelcome);
 }
 
 const HELP_ITEMS=[
@@ -2015,7 +2060,7 @@ async function authoritativeBoot({late=false}={}){
   syncHomeOnlyMenu();
 
   // Visible runtime marker used only for diagnostics in console / support.
-  document.documentElement.dataset.nexaUiBuild='45.6';
+  document.documentElement.dataset.nexaUiBuild='45.7';
   if(late)nexaV456BootSettled=true;
 }
 
@@ -2062,7 +2107,7 @@ function apply(){
   cleanLegacyHomeAccountLimit();
   maybeShowOnboarding();
 }
-window.NEXADrone={openFleet,showOnboarding,showMotionChoice,openHelp:openDroneHelp,openAccount:openSelectedProfile,boot:authoritativeBoot,build:'45.6'};
+window.NEXADrone={openFleet,showOnboarding,showMotionChoice,openHelp:openDroneHelp,openAccount:openSelectedProfile,boot:authoritativeBoot,build:'45.7'};
 
 function schedule(){
   requestAnimationFrame(apply);

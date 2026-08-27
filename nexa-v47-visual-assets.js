@@ -1,4 +1,4 @@
-/* NEXA V47.21 — HOME TRANSFER PAINTED SIGNAL ACCENTS / SINGLE OWNER
+/* NEXA V47.22 — HOME TRANSFER FINAL SIGNAL ACCENTS
    COMPLETE REPLACEMENT for: nexa-v47-visual-assets.js
 
    Owns:
@@ -25,8 +25,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4721_CONTROL_HUB__) return;
-window.__NEXA_V4721_CONTROL_HUB__=true;
+if(window.__NEXA_V4722_CONTROL_HUB__) return;
+window.__NEXA_V4722_CONTROL_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -479,9 +479,32 @@ function installCSS(){
     opacity:1!important
   }
 
-  #home-transfers-section .nexa-v4717-left,
-  #home-transfers-section .nexa-v4717-top{
-    display:none!important
+  /* V47.22 — Transfer-only final accent owner. */
+  #home #home-transfers-section.nexa-v4717-transfer-clean::before,
+  #home #home-transfers-section.nexa-v4717-transfer-clean::after{
+    content:""!important;
+    display:block!important;
+    position:absolute!important;
+    pointer-events:none!important;
+    z-index:30!important;
+  }
+  #home #home-transfers-section.nexa-v4717-transfer-clean::before{
+    left:18px!important;
+    top:-1px!important;
+    width:42px!important;
+    height:2px!important;
+    border-radius:999px!important;
+    background:linear-gradient(90deg,transparent,rgba(255,157,61,.40),#ff9d3d,#fff,#ff9d3d,rgba(255,157,61,.40),transparent)!important;
+    box-shadow:0 0 5px rgba(255,157,61,.98),0 0 12px rgba(255,157,61,.74),0 0 22px rgba(255,157,61,.32)!important;
+  }
+  #home #home-transfers-section.nexa-v4717-transfer-clean::after{
+    left:-1px!important;
+    top:18px!important;
+    width:3px!important;
+    height:40px!important;
+    border-radius:0 999px 999px 0!important;
+    background:linear-gradient(180deg,transparent 0%,rgba(255,157,61,.45) 12%,#ff9d3d 42%,#fff 50%,#ff9d3d 58%,rgba(255,157,61,.45) 88%,transparent 100%)!important;
+    box-shadow:0 0 5px rgba(255,157,61,.98),0 0 12px rgba(255,157,61,.72),0 0 20px rgba(255,157,61,.28)!important;
   }
 
   /* Active information = signal breath/blink. Nothing active stays completely static. */

@@ -1,4 +1,4 @@
-/* NEXA V47.20 — HOME TRANSFER MATCHED SIGNAL ACCENTS
+/* NEXA V47.21 — HOME TRANSFER PAINTED SIGNAL ACCENTS / SINGLE OWNER
    COMPLETE REPLACEMENT for: nexa-v47-visual-assets.js
 
    Owns:
@@ -25,8 +25,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4720_CONTROL_HUB__) return;
-window.__NEXA_V4720_CONTROL_HUB__=true;
+if(window.__NEXA_V4721_CONTROL_HUB__) return;
+window.__NEXA_V4721_CONTROL_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -326,6 +326,26 @@ function installCSS(){
     overflow:hidden!important;
     isolation:isolate!important;
     background:
+      linear-gradient(
+        180deg,
+        transparent 0%,
+        rgba(255,157,61,.45) 12%,
+        rgba(255,157,61,1) 42%,
+        #fff 50%,
+        rgba(255,157,61,1) 58%,
+        rgba(255,157,61,.45) 88%,
+        transparent 100%
+      ) 0 18px / 3px 40px no-repeat,
+      linear-gradient(
+        90deg,
+        transparent,
+        rgba(255,157,61,.40),
+        rgba(255,157,61,1),
+        #fff,
+        rgba(255,157,61,1),
+        rgba(255,157,61,.40),
+        transparent
+      ) 18px 0 / 42px 2px no-repeat,
       linear-gradient(90deg,rgba(255,157,61,.12),rgba(255,157,61,0) 14px),
       radial-gradient(circle at 24px 0px,rgba(255,255,255,.16),transparent 42px),
       radial-gradient(circle at 8% 12%,rgba(255,157,61,.10),transparent 34%),
@@ -457,6 +477,11 @@ function installCSS(){
     filter:brightness(1.24) saturate(1.10)!important;
     transform:translateZ(0)!important;
     opacity:1!important
+  }
+
+  #home-transfers-section .nexa-v4717-left,
+  #home-transfers-section .nexa-v4717-top{
+    display:none!important
   }
 
   /* Active information = signal breath/blink. Nothing active stays completely static. */

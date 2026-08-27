@@ -1,4 +1,4 @@
-/* NEXA V49.2 — STATE HUB / FLEET / NEXA DESTRUCTIVE MODALS
+/* NEXA V49.3 — ADMIN ACCESS / OPERATIONAL ROLES / BATTLE ROLES / ALLIANCE EMBLEMS
    NEW FILE: nexa-v49-state-hub.js
 
    Owns:
@@ -22,8 +22,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V492_STATE_HUB__) return;
-window.__NEXA_V492_STATE_HUB__=true;
+if(window.__NEXA_V493_STATE_HUB__) return;
+window.__NEXA_V493_STATE_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -32,6 +32,18 @@ const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
 const ACTIVE_STATE_KEY='nexa_active_state_v49';
 const ACTIVE_ACCOUNT_KEY='nexa_active_account_v49';
+const ALLIANCE_EMBLEMS=[
+  '/assets/nexa/alliances/Alliance_01_Stellar_Guardians.png',
+  '/assets/nexa/alliances/Alliance_02_Celestial_Legion.png',
+  '/assets/nexa/alliances/Alliance_03_Obsidian_Syndicate.png',
+  '/assets/nexa/alliances/Alliance_04_Nova_Empire.png',
+  '/assets/nexa/alliances/Alliance_05_Eclipse_Order.png',
+  '/assets/nexa/alliances/Alliance_06_Dragonis_Clan.png',
+  '/assets/nexa/alliances/Alliance_07_Veridian_Covenant.png',
+  '/assets/nexa/alliances/Alliance_08_Infinite_Horizon.png',
+  '/assets/nexa/alliances/Alliance_09_Solar_Vanguard.png',
+  '/assets/nexa/alliances/Alliance_10_Lost_Protocol.png'
+];
 let localSb=null;
 let cachedAccounts=[];
 let booted=false;
@@ -171,6 +183,11 @@ function installCSS(){
   .nexa-v49-rolegrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:10px}
   .nexa-v49-rolecard{border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:11px;background:#081027}
   .nexa-v49-rolecard h4{font-size:.88rem}.nexa-v49-copyrow{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:10px 0}
+  .nexa-v49-emblem-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
+  .nexa-v49-emblem{position:relative;aspect-ratio:1;border:1px solid rgba(255,255,255,.13);border-radius:15px;background:#081027;padding:7px;display:grid;place-items:center;overflow:hidden}
+  .nexa-v49-emblem img{width:100%;height:100%;object-fit:contain}
+  .nexa-v49-emblem.used{opacity:.30;filter:grayscale(.8)}
+  .nexa-v49-emblem.current{border-color:#62dcff;box-shadow:0 0 18px rgba(98,220,255,.25)}
   .nexa-v49-copyrow select{flex:1;min-width:150px;padding:9px;border-radius:10px;background:#081027;color:#fff;border:1px solid rgba(255,255,255,.12)}
   @media(max-width:560px){.nexa-v49-rolegrid{grid-template-columns:1fr}.nexa-v49-searchrow{grid-template-columns:1fr}.nexa-v49-actions{display:grid}}
   `;
@@ -434,6 +451,7 @@ function scheduleV49Enhancers(){
   [260,700,1400].forEach(ms=>setTimeout(()=>{
     enhanceFleet();
     enhanceAccountManager();
+    relabelOperationalRolesUI();
   },ms));
 }
 
@@ -470,6 +488,65 @@ function adminHost(sectionId){
   if(!host){host=document.createElement('div');host.className='nexa-v49-admin-host';section.appendChild(host)}
   return host;
 }
+function relabelOperationalRolesUI(){
+  const section=$('#admin-roles');
+  if(section){
+    $$('.nexa-v25-title',section).forEach(el=>{
+      if(/^roles$/i.test(String(el.textContent||'').trim()))el.textContent='Operational Roles';
+    });
+  }
+  $$('[data-admin-tab="roles"]').forEach(el=>{
+    if(/^roles$/i.test(String(el.textContent||'').trim()))el.textContent='Operational Roles';
+  });
+  $$('.nexa-home-menu-item,.nexa-home-menu-subview button').forEach(el=>{
+    if(/^roles$/i.test(String(el.textContent||'').trim()))el.textContent='Operational Roles';
+  });
+}
+
+function normalizeAllianceEmblem(url){
+  const s=String(url||'');
+  const m=s.match(/nexa-alliance-emblem-(\d{2})\.png$/i);
+  if(m){
+    const i=Math.max(0,Math.min(ALLIANCE_EMBLEMS.length-1,Number(m[1])-1));
+    return ALLIANCE_EMBLEMS[i];
+  }
+  return s;
+}
+
+async function openAllianceEmblemPicker(allianceId){
+  try{
+    const rows=await rpc('nexa_list_alliance_passports')||[];
+    const current=rows.find(x=>String(x.id)===String(allianceId));
+    const used=new Set(rows.filter(x=>String(x.id)!==String(allianceId)).map(x=>normalizeAllianceEmblem(x.emblemUrl||x.emblem_url)).filter(Boolean));
+    const currentUrl=normalizeAllianceEmblem(current?.emblemUrl||current?.emblem_url);
+    const ov=dialog(`<button class="nexa-v49-close" type="button">×</button>
+      <h3>Choose Alliance Emblem</h3>
+      <p>Select one of the official NEXA alliance emblems. Each emblem can be assigned to only one alliance at a time.</p>
+      <div class="nexa-v49-emblem-grid">
+        ${ALLIANCE_EMBLEMS.map((url,i)=>{
+          const isUsed=used.has(url),isCurrent=currentUrl===url;
+          return `<button type="button" class="nexa-v49-emblem ${isUsed?'used':''} ${isCurrent?'current':''}" ${isUsed?'disabled':''} data-v49-emblem="${esc(url)}" title="Emblem ${i+1}"><img src="${esc(url)}" alt="Alliance emblem ${i+1}"></button>`;
+        }).join('')}
+      </div>
+      <div class="nexa-v49-status"></div>`);
+    ov.addEventListener('click',async e=>{
+      const pick=e.target.closest?.('[data-v49-emblem]');if(!pick)return;
+      const status=$('.nexa-v49-status',ov);
+      try{
+        pick.disabled=true;
+        status.textContent='Saving emblem…';
+        await rpc('nexa_set_alliance_emblem',{p_alliance_id:Number(allianceId),p_emblem_url:pick.dataset.v49Emblem});
+        ov.remove();
+        const refresh=$('[data-v25-refresh]');
+        if(refresh)refresh.click();
+      }catch(err){
+        pick.disabled=false;
+        status.textContent=err.message||String(err);
+      }
+    });
+  }catch(err){alert(err.message||String(err))}
+}
+
 function infoDialog(kind){
   if(kind==='ops'){
     dialog(`<button class="nexa-v49-close" type="button">×</button><h3>Operational Roles</h3>
@@ -492,7 +569,7 @@ async function renderAdminAccess(){
     const admins=await rpc('nexa_list_state_admins',{p_state:activeState()})||[];
     host.innerHTML=`<section class="nexa-v49-panel">
       <h3>Administrative Access</h3>
-      <div class="nexa-v49-muted">Grant or remove access to NEXA Administration for State ${esc(activeState())}.</div>
+      <div class="nexa-v49-muted">Grant or remove Administrative Access for State ${esc(activeState())}. This access is separate from Operational and Battle Roles.</div>
       <div class="nexa-v49-searchrow"><input id="v49-admin-search" placeholder="Search IGN or Game ID"><button data-v49-find-admin>SEARCH</button></div>
       <div id="v49-admin-results"></div>
     </section>
@@ -531,7 +608,7 @@ async function renderRoles(){
     host.dataset.v49Battle=JSON.stringify(battle||[]);
     host.innerHTML=`<section class="nexa-v49-panel">
       <div class="nexa-v49-heading"><h3>Operational Roles</h3><button class="nexa-v49-info" type="button" data-v49-info="ops">i</button></div>
-      <div class="nexa-v49-muted">Assign a responsibility once; that Operational Role gives access to its corresponding tools.</div>
+      <div class="nexa-v49-muted">Assign a responsibility once. Each Operational Role automatically enables the tools connected to that responsibility.</div>
       <div class="nexa-v49-searchrow"><input id="v49-op-player" placeholder="IGN or Game ID"><select id="v49-op-role">${Object.entries(OP_LABELS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></div>
       <div class="nexa-v49-actions"><button class="nexa-v49-primary" data-v49-add-op>ADD OPERATIONAL ROLE</button></div>
       <div class="nexa-v49-rolegrid">${Object.entries(OP_LABELS).map(([k,label])=>`<div class="nexa-v49-rolecard"><h4>${label}</h4>${(byRole[k]||[]).map(p=>`<div class="nexa-v49-person"><div><b>${esc(p.in_game_name||'Player')}</b><small>ID ${esc(p.player_id||'—')}</small></div><button class="nexa-v49-x" data-v49-remove-op="${esc(p.player_id)}" data-role="${k}">×</button></div>`).join('')||'<div class="nexa-v49-muted">No players assigned.</div>'}</div>`).join('')}</div>
@@ -588,6 +665,15 @@ function refreshAdminOwners(){
 
 function bind(){
   document.addEventListener('click',async e=>{
+    const emblemButton=e.target.closest?.('[data-v25-emblems]');
+    if(emblemButton){
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      await openAllianceEmblemPicker(emblemButton.dataset.v25Emblems);
+      return;
+    }
+
     const ship=e.target.closest?.('[data-fleet-state]');
     if(ship&&!e.target.closest('[data-v49-remove-state]')){
       const st=stateNum(ship.dataset.fleetState);
@@ -662,6 +748,7 @@ async function boot(){
   adminHost('#admin-roles');
   renderAdminAccess();
   renderRoles();
+  relabelOperationalRolesUI();
 
   /* Old index Home sync was globally hard-coded to 1518. From V49 onward the
      active Fleet State is the source of truth. */

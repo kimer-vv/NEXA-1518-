@@ -1,4 +1,4 @@
-/* NEXA V47.19 — HOME TRANSFER SINGLE OWNER + VISIBLE SIGNAL ACCENTS
+/* NEXA V47.20 — HOME TRANSFER MATCHED SIGNAL ACCENTS
    COMPLETE REPLACEMENT for: nexa-v47-visual-assets.js
 
    Owns:
@@ -25,8 +25,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4719_CONTROL_HUB__) return;
-window.__NEXA_V4719_CONTROL_HUB__=true;
+if(window.__NEXA_V4720_CONTROL_HUB__) return;
+window.__NEXA_V4720_CONTROL_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -390,35 +390,48 @@ function installCSS(){
   }
   #home-transfers-section .nexa-v4717-left,
   #home-transfers-section .nexa-v4717-top{
-    position:absolute!important;
-    z-index:20!important;
-    display:block!important;
-    pointer-events:none!important
+    left:18px!important;
+    top:-1px!important;
+    width:42px!important;
+    height:2px!important;
+    border-radius:999px!important;
+    background:linear-gradient(
+      90deg,
+      transparent,
+      rgba(255,157,61,.40),
+      rgba(255,157,61,1),
+      #fff,
+      rgba(255,157,61,1),
+      rgba(255,157,61,.40),
+      transparent
+    )!important;
+    box-shadow:
+      0 0 5px rgba(255,157,61,.95),
+      0 0 12px rgba(255,157,61,.58),
+      0 0 22px rgba(255,157,61,.20)!important;
+    opacity:1!important
   }
   #home-transfers-section .nexa-v4717-left{
-    left:0!important;
+    left:-1px!important;
     top:18px!important;
     width:3px!important;
-    height:44px!important;
+    height:40px!important;
     border-radius:0 999px 999px 0!important;
     background:linear-gradient(
       180deg,
       transparent 0%,
-      rgba(255,157,61,.55) 10%,
-      #ff9d3d 36%,
+      rgba(255,157,61,.45) 12%,
+      rgba(255,157,61,1) 42%,
       #fff 50%,
-      #ff9d3d 64%,
-      rgba(255,157,61,.55) 90%,
+      rgba(255,157,61,1) 58%,
+      rgba(255,157,61,.45) 88%,
       transparent 100%
     )!important;
     box-shadow:
-      0 0 4px rgba(255,255,255,.90),
-      0 0 9px rgba(255,157,61,1),
-      0 0 18px rgba(255,157,61,.72),
-      0 0 30px rgba(255,157,61,.28)!important;
-    filter:brightness(1.22) saturate(1.10)!important;
-    transform:translateZ(0)!important;
-    opacity:1!important
+      0 0 5px rgba(255,157,61,.92),
+      0 0 12px rgba(255,157,61,.54),
+      0 0 20px rgba(255,157,61,.24)!important;
+    opacity:.98!important
   }
   #home-transfers-section .nexa-v4717-top{
     left:18px!important;

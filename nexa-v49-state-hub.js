@@ -1,4 +1,4 @@
-/* NEXA V49.10 — DETERMINISTIC ADMIN DIRECTORY OWNER / LEGACY HOST DETACH
+/* NEXA V49.11 — ADMIN ACCESS/ROLES SINGLE OWNER / LEGACY NAV INTERCEPT
    NEW FILE: nexa-v49-state-hub.js
 
    Owns:
@@ -22,8 +22,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V4910_STATE_HUB__) return;
-window.__NEXA_V4910_STATE_HUB__=true;
+if(window.__NEXA_V4911_STATE_HUB__) return;
+window.__NEXA_V4911_STATE_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -834,7 +834,75 @@ function scheduleAdminOwners(){
   },ms));
 }
 
+function hideObsoleteAdminIntro(section){
+  if(!section)return;
+  const obsolete=[
+    'Find a player and manage Operational Roles and module access from one place.',
+    "Alliance Rank is managed inside each Alliance Passport. Operational Roles describe a person's work in NEXA and never grant module access automatically."
+  ];
+  $$('*',section).forEach(el=>{
+    if(el.closest('.nexa-v49-admin-host'))return;
+    const txt=String(el.textContent||'').trim().replace(/\s+/g,' ');
+    if(obsolete.includes(txt)){
+      const box=el.closest('.nexa-v25-panel,.setting-card,.module-action-card,.card,.panel')||el;
+      box.style.setProperty('display','none','important');
+      box.setAttribute('aria-hidden','true');
+    }
+  });
+}
+
+function openV49AdminSection(key){
+  const id=key==='access'?'admin-permissions':'admin-roles';
+  const target=$('#'+id);if(!target)return;
+
+  const modal=$('#admin-modal');
+  modal?.classList.add('module-view','nexa-v25-admin');
+  $('#admin-module-chooser')?.classList.add('hidden');
+  $('#svs-admin-content')?.classList.remove('hidden');
+
+  ['admin-events','admin-forms','admin-alliances','admin-roles','admin-permissions','admin-library','admin-system','admin-announcements']
+    .forEach(sectionId=>{
+      const el=$('#'+sectionId);if(!el)return;
+      const on=sectionId===id;
+      el.classList.toggle('hidden',!on);
+      el.classList.toggle('nexa-v25-active',on);
+    });
+
+  detachLegacyAdminHost('#admin-permissions');
+  detachLegacyAdminHost('#admin-roles');
+  hideObsoleteAdminIntro(target);
+
+  if(key==='access')renderAdminAccess();
+  else renderRoles();
+}
+
+function installLegacyNavIntercept(){
+  if(window.__NEXA_V4911_ADMIN_NAV_INTERCEPT__)return;
+  window.__NEXA_V4911_ADMIN_NAV_INTERCEPT__=true;
+
+  /* Window capture runs before V26's document-capture listener.
+     Access/Roles therefore never start the old async render at all. */
+  window.addEventListener('click',e=>{
+    const go=e.target?.closest?.('[data-v25-go]');
+    const key=go?.dataset?.v25Go;
+    if(key==='access'||key==='roles'){
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      openV49AdminSection(key);
+      return;
+    }
+
+    const oldManage=e.target?.closest?.('[data-v25-manage-access]');
+    if(oldManage){
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      openV49AdminSection('access');
+    }
+  },true);
+}
+
 function bind(){
+  installLegacyNavIntercept();
   document.addEventListener('click',async e=>{
     const adminOwnerTrigger=e.target.closest?.(
       '#admin-modal .nexa-v25-arrow,#admin-modal .nexa-v25-nav,'+
@@ -939,9 +1007,6 @@ async function boot(){
   renderRoles();
   relabelOperationalRolesUI();
   scheduleAdminOwners();
-  [760,980].forEach(ms=>setTimeout(()=>{
-    if($('#admin-modal')?.classList.contains('nexa-v25-admin'))scheduleAdminOwners();
-  },ms));
 
   /* Old index Home sync was globally hard-coded to 1518. From V49 onward the
      active Fleet State is the source of truth. */

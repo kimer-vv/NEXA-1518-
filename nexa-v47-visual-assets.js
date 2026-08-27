@@ -1,4 +1,4 @@
-/* NEXA V47.17 — HOME TRANSFER DELETE + CLEAN REBUILD
+/* NEXA V47.18 — HOME TRANSFER SINGLE OWNER / NO REBUILD FLASH
    COMPLETE REPLACEMENT for: nexa-v47-visual-assets.js
 
    Owns:
@@ -25,8 +25,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4717_CONTROL_HUB__) return;
-window.__NEXA_V4717_CONTROL_HUB__=true;
+if(window.__NEXA_V4718_CONTROL_HUB__) return;
+window.__NEXA_V4718_CONTROL_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -683,11 +683,27 @@ function decorateCard(card,type){
   if(copy&&copy!==card)copy.classList.add('nexa-v477-tech-copy');
 }
 
-function rebuildTransferCard(){
+function ensureTransferCard(){
   const card=$('#home-transfers-section');
   if(!card)return;
 
-  /* Keep only the outer section id as the data hook. Everything visual inside is recreated. */
+  const alreadyOwned=
+    card.classList.contains('nexa-v4717-transfer-clean') &&
+    $(':scope > .nexa-v4717-left',card) &&
+    $(':scope > .nexa-v4717-top',card) &&
+    $(':scope > .nexa-v4717-transfer-kicker',card) &&
+    $('#home-transfer-events',card);
+
+  /* Do not rebuild a healthy Transfer card on every refresh.
+     That repeated innerHTML replacement caused the visible "flash" and allowed
+     async Home/state painters to appear to retake ownership. */
+  if(alreadyOwned){
+    card.dataset.nexaTech='transfer';
+    return;
+  }
+
+  /* Legacy/foreign markup detected: reclaim Transfer once, preserving the
+     stable outer #home-transfers-section data hook used by State Hub. */
   card.className='section nexa-v4717-transfer-clean';
   card.removeAttribute('style');
   card.dataset.nexaTech='transfer';
@@ -710,7 +726,7 @@ function rebuildTransferCard(){
 
 function decorateHomeCards(){
   decorateCard($('#home-svs-section'),'live');
-  rebuildTransferCard();
+  ensureTransferCard();
 
   const nodes=$$('h1,h2,h3,h4,strong,b');
   RULES.forEach(rule=>{
@@ -760,6 +776,8 @@ function delayedRefresh(){
   applyVisuals();
   [120,350,800,1400].forEach(ms=>setTimeout(applyVisuals,ms));
 }
+
+window.NEXA_HOME_VISUALS_REFRESH=applyVisuals;
 
 if(document.readyState==='loading'){
   document.addEventListener('DOMContentLoaded',delayedRefresh,{once:true});

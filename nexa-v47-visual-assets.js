@@ -1,4 +1,4 @@
-/* NEXA V47.18 — HOME TRANSFER SINGLE OWNER / NO REBUILD FLASH
+/* NEXA V47.19 — HOME TRANSFER SINGLE OWNER + VISIBLE SIGNAL ACCENTS
    COMPLETE REPLACEMENT for: nexa-v47-visual-assets.js
 
    Owns:
@@ -25,8 +25,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4718_CONTROL_HUB__) return;
-window.__NEXA_V4718_CONTROL_HUB__=true;
+if(window.__NEXA_V4719_CONTROL_HUB__) return;
+window.__NEXA_V4719_CONTROL_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -396,22 +396,54 @@ function installCSS(){
     pointer-events:none!important
   }
   #home-transfers-section .nexa-v4717-left{
-    left:-1px!important;
+    left:0!important;
     top:18px!important;
     width:3px!important;
-    height:40px!important;
+    height:44px!important;
     border-radius:0 999px 999px 0!important;
-    background:linear-gradient(180deg,transparent,rgba(255,157,61,.45) 12%,#ff9d3d 42%,#fff 50%,#ff9d3d 58%,rgba(255,157,61,.45) 88%,transparent)!important;
-    box-shadow:0 0 5px rgba(255,157,61,.92),0 0 12px rgba(255,157,61,.54)!important
+    background:linear-gradient(
+      180deg,
+      transparent 0%,
+      rgba(255,157,61,.55) 10%,
+      #ff9d3d 36%,
+      #fff 50%,
+      #ff9d3d 64%,
+      rgba(255,157,61,.55) 90%,
+      transparent 100%
+    )!important;
+    box-shadow:
+      0 0 4px rgba(255,255,255,.90),
+      0 0 9px rgba(255,157,61,1),
+      0 0 18px rgba(255,157,61,.72),
+      0 0 30px rgba(255,157,61,.28)!important;
+    filter:brightness(1.22) saturate(1.10)!important;
+    transform:translateZ(0)!important;
+    opacity:1!important
   }
   #home-transfers-section .nexa-v4717-top{
     left:18px!important;
-    top:-1px!important;
-    width:42px!important;
-    height:2px!important;
+    top:0!important;
+    width:54px!important;
+    height:3px!important;
     border-radius:999px!important;
-    background:linear-gradient(90deg,transparent,rgba(255,157,61,.40),#ff9d3d,#fff,#ff9d3d,rgba(255,157,61,.40),transparent)!important;
-    box-shadow:0 0 5px rgba(255,157,61,.95),0 0 12px rgba(255,157,61,.58),0 0 22px rgba(255,157,61,.20)!important
+    background:linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255,157,61,.52) 16%,
+      #ff9d3d 38%,
+      #fff 50%,
+      #ff9d3d 62%,
+      rgba(255,157,61,.52) 84%,
+      transparent 100%
+    )!important;
+    box-shadow:
+      0 0 4px rgba(255,255,255,.92),
+      0 0 9px rgba(255,157,61,1),
+      0 0 18px rgba(255,157,61,.70),
+      0 0 30px rgba(255,157,61,.28)!important;
+    filter:brightness(1.24) saturate(1.10)!important;
+    transform:translateZ(0)!important;
+    opacity:1!important
   }
 
   /* Active information = signal breath/blink. Nothing active stays completely static. */

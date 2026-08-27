@@ -1,4 +1,4 @@
-/* NEXA V47.27 — TRANSFER NEON GREEN / STRONGER GLOW
+/* NEXA V47.28 — NEW TRANSFER OWNER / NEON GREEN / LEGACY TRANSFER DEAD
    COMPLETE REPLACEMENT for: nexa-v47-visual-assets.js
 
    Owns:
@@ -25,8 +25,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4727_CONTROL_HUB__) return;
-window.__NEXA_V4727_CONTROL_HUB__=true;
+if(window.__NEXA_V4728_CONTROL_HUB__) return;
+window.__NEXA_V4728_CONTROL_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -188,6 +188,9 @@ function installCSS(){
     filter:drop-shadow(0 0 13px rgba(114,100,255,.34)) drop-shadow(0 0 24px rgba(178,75,255,.16))
   }
 
+  /* V47.28: the original orange Transfer block is retired. V49 creates the only live Transfer card. */
+  #home-transfers-section{display:none!important;visibility:hidden!important;pointer-events:none!important}
+
   /* UNIFIED HOME CARD FAMILY — no icons, glow is the visual cue */
   .nexa-v477-tech-card{
     --tech:#9b63ff;
@@ -328,8 +331,8 @@ function installCSS(){
   /* Disable legacy Home-card pseudo decoration. Actual accents above own the visuals. */
   #home-svs-section::before,
   #home-svs-section::after,
-  #home-transfers-section::before,
-  #home-transfers-section::after,
+  #nexa-v49-transfer-card::before,
+  #nexa-v49-transfer-card::after,
   #nexa-v302-pulse::before,
   #nexa-v302-pulse::after,
   #nexa-v31-alliance::before,
@@ -342,7 +345,7 @@ function installCSS(){
   /* V47.23 — Transfer keeps only content/layout ownership here.
      The exact same .nexa-v477-tech-card + .nexa-v4711-* visual path
      used by Live/Pulse/Alliance now owns its border and two signal glows. */
-  #home-transfers-section.nexa-v4717-transfer-clean{
+  #nexa-v49-transfer-card.nexa-v4717-transfer-clean{
     display:block!important;
     position:relative!important;
     margin:18px 0!important;
@@ -352,7 +355,7 @@ function installCSS(){
     overflow:hidden!important;
     isolation:isolate!important
   }
-  #home-transfers-section.nexa-v4717-transfer-clean > .nexa-v4717-transfer-kicker{
+  #nexa-v49-transfer-card.nexa-v4717-transfer-clean > .nexa-v4717-transfer-kicker{
     display:block!important;
     margin:0 0 6px!important;
     color:#79ffb9!important;
@@ -361,9 +364,9 @@ function installCSS(){
     font-weight:950!important;
     letter-spacing:.18em!important
   }
-  #home-transfers-section.nexa-v4717-transfer-clean #home-transfer-events,
-  #home-transfers-section.nexa-v4717-transfer-clean #home-transfer-events .event,
-  #home-transfers-section.nexa-v4717-transfer-clean #home-transfer-events .event-row{
+  #nexa-v49-transfer-card.nexa-v4717-transfer-clean #nexa-v49-transfer-events,
+  #nexa-v49-transfer-card.nexa-v4717-transfer-clean #nexa-v49-transfer-events .event,
+  #nexa-v49-transfer-card.nexa-v4717-transfer-clean #nexa-v49-transfer-events .event-row{
     display:block!important;
     width:100%!important;
     max-width:none!important;
@@ -376,11 +379,11 @@ function installCSS(){
     background:transparent!important;
     box-shadow:none!important
   }
-  #home-transfers-section.nexa-v4717-transfer-clean h3{
+  #nexa-v49-transfer-card.nexa-v4717-transfer-clean h3{
     margin:0 0 5px!important;
     color:#fff!important
   }
-  #home-transfers-section.nexa-v4717-transfer-clean .muted{
+  #nexa-v49-transfer-card.nexa-v4717-transfer-clean .muted{
     color:#c0c4d4!important;
     line-height:1.35!important
   }
@@ -388,9 +391,9 @@ function installCSS(){
   /* V47.24 — V44/V45 legacy still styles the INNER .event.
      V47 owns the outer Transfer card, so the inner event is now always
      a content-only container. Specificity is intentionally higher than
-     legacy #home-transfers-section .event rules. */
-  #home #home-transfers-section.nexa-v4717-transfer-clean #home-transfer-events > .event,
-  #home #home-transfers-section.nexa-v4717-transfer-clean #home-transfer-events > .event > .event-row{
+     legacy #nexa-v49-transfer-card .event rules. */
+  #home #nexa-v49-transfer-card.nexa-v4717-transfer-clean #nexa-v49-transfer-events > .event,
+  #home #nexa-v49-transfer-card.nexa-v4717-transfer-clean #nexa-v49-transfer-events > .event > .event-row{
     position:static!important;
     overflow:visible!important;
     border:0!important;
@@ -400,16 +403,16 @@ function installCSS(){
     margin:0!important;
     padding:0!important;
   }
-  #home #home-transfers-section.nexa-v4717-transfer-clean #home-transfer-events > .event::before,
-  #home #home-transfers-section.nexa-v4717-transfer-clean #home-transfer-events > .event::after{
+  #home #nexa-v49-transfer-card.nexa-v4717-transfer-clean #nexa-v49-transfer-events > .event::before,
+  #home #nexa-v49-transfer-card.nexa-v4717-transfer-clean #nexa-v49-transfer-events > .event::after{
     content:none!important;
     display:none!important;
   }
-  #home #home-transfers-section.nexa-v4717-transfer-clean > .nexa-v4711-top-accent{
+  #home #nexa-v49-transfer-card.nexa-v4717-transfer-clean > .nexa-v4711-top-accent{
     top:0!important;
     z-index:30!important;
   }
-  #home #home-transfers-section.nexa-v4717-transfer-clean > .nexa-v4711-left-accent{
+  #home #nexa-v49-transfer-card.nexa-v4717-transfer-clean > .nexa-v4711-left-accent{
     z-index:30!important;
   }
 
@@ -670,8 +673,8 @@ function lockTransferVisual(card){
     linear-gradient(145deg,rgba(8,24,22,.98),rgba(3,11,20,.99))
   `,'important');
 
-  const event=$('#home-transfer-events > .event',card);
-  const row=$('#home-transfer-events > .event > .event-row',card);
+  const event=$('#nexa-v49-transfer-events > .event',card);
+  const row=$('#nexa-v49-transfer-events > .event > .event-row',card);
   [event,row].filter(Boolean).forEach(el=>{
     el.style.setProperty('border','0','important');
     el.style.setProperty('background','transparent','important');
@@ -719,7 +722,7 @@ function decorateCard(card,type){
 }
 
 function ensureTransferCard(){
-  const card=$('#home-transfers-section');
+  const card=$('#nexa-v49-transfer-card');
   if(!card)return null;
   lockTransferVisual(card);
   return card;

@@ -1,4 +1,4 @@
-/* NEXA V47.15 — HOME CARD OWNER / TRANSFER ROOT REBUILD
+/* NEXA V47.16 — HOME CARD OWNER / TRANSFER FORCED ROOT ACCENT
    COMPLETE REPLACEMENT for: nexa-v47-visual-assets.js
 
    Owns:
@@ -25,8 +25,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4715_CONTROL_HUB__) return;
-window.__NEXA_V4715_CONTROL_HUB__=true;
+if(window.__NEXA_V4716_CONTROL_HUB__) return;
+window.__NEXA_V4716_CONTROL_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -313,41 +313,6 @@ function installCSS(){
     display:none!important
   }
 
-
-  /*
-    V47.15 — TRANSFER ROOT REBUILD
-    The old Transfer decoration is explicitly neutralized above.
-    This selector is intentionally declared AFTER that reset and uses the exact outer card.
-    It does not depend on an injected child that can be erased when Transfer content re-renders.
-  */
-  #home #home-transfers-section.nexa-v477-tech-card::before{
-    content:""!important;
-    display:block!important;
-    position:absolute!important;
-    z-index:2147483000!important;
-    left:18px!important;
-    top:-1px!important;
-    width:42px!important;
-    height:2px!important;
-    border-radius:999px!important;
-    pointer-events:none!important;
-    background:linear-gradient(
-      90deg,
-      transparent,
-      rgba(255,157,61,.40),
-      rgba(255,157,61,1),
-      #fff,
-      rgba(255,157,61,1),
-      rgba(255,157,61,.40),
-      transparent
-    )!important;
-    box-shadow:
-      0 0 5px rgba(255,157,61,.95),
-      0 0 12px rgba(255,157,61,.58),
-      0 0 22px rgba(255,157,61,.20)!important;
-    opacity:1!important
-  }
-
   /* Active information = signal breath/blink. Nothing active stays completely static. */
   .nexa-v477-tech-card[data-nexa-active="1"]{
     border-color:rgba(var(--tech-rgb),.90)!important;
@@ -573,6 +538,30 @@ function neutralizeV453(card){
   });
 }
 
+function forceTransferRootAccent(card,type){
+  if(!card||type!=='transfer')return;
+  let el=card.querySelector(':scope > .nexa-v4716-transfer-top');
+  if(!el){
+    el=document.createElement('span');
+    el.className='nexa-v4716-transfer-top';
+    card.appendChild(el);
+  }
+  const st=el.style;
+  st.setProperty('position','absolute','important');
+  st.setProperty('z-index','2147483646','important');
+  st.setProperty('left','18px','important');
+  st.setProperty('top','0px','important');
+  st.setProperty('width','42px','important');
+  st.setProperty('height','3px','important');
+  st.setProperty('display','block','important');
+  st.setProperty('pointer-events','none','important');
+  st.setProperty('border-radius','999px','important');
+  st.setProperty('opacity','1','important');
+  st.setProperty('transform','translateZ(0)','important');
+  st.setProperty('background','linear-gradient(90deg,transparent,rgba(255,157,61,.42),rgba(255,157,61,1),#fff,rgba(255,157,61,1),rgba(255,157,61,.42),transparent)','important');
+  st.setProperty('box-shadow','0 0 5px rgba(255,157,61,.98),0 0 12px rgba(255,157,61,.64),0 0 24px rgba(255,157,61,.24)','important');
+}
+
 function decorateCard(card,type){
   if(!card)return;
   removeOldDecor(card);
@@ -606,6 +595,7 @@ function decorateCard(card,type){
   card.style.setProperty('border-color',`rgba(${palette[0]},.54)`,'important');
   card.style.setProperty('background',v4713CardBackground(palette[0]),'important');
   ensureCardAccents(card);
+  forceTransferRootAccent(card,type);
 
   $$(':scope > .nexa-v477-card-icon',card).forEach(x=>x.remove());
 

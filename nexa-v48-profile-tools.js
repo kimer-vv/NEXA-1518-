@@ -1,4 +1,4 @@
-/* NEXA V48.3 — PROFILE CLEANUP + CONTINUOUS MASTERY + SINGLE BATTLE DATA
+/* NEXA V48.4 — PROFILE LAYOUT FINAL + CONTINUOUS MASTERY + CLEAN MAX
    COMPLETE REPLACEMENT for: nexa-v48-profile-tools.js
 
    Extends stable V33.6 without taking Profile ownership.
@@ -16,8 +16,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V483_PROFILE_TOOLS__) return;
-window.__NEXA_V483_PROFILE_TOOLS__=true;
+if(window.__NEXA_V484_PROFILE_TOOLS__) return;
+window.__NEXA_V484_PROFILE_TOOLS__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -84,8 +84,8 @@ function injectCSS(){
   .v48-tool-btn.battle{border:1px solid rgba(193,105,255,.48);color:#e9c5ff;box-shadow:0 0 13px rgba(180,76,255,.08)}
 
   #v48-category-tools{
-    position:relative;z-index:4;display:flex;justify-content:flex-end;
-    padding:0 14px 1px
+    position:relative;z-index:4;display:flex;justify-content:flex-end;align-items:center;
+    padding:5px 14px 3px;margin-top:1px
   }
   .v48-category-max{
     appearance:none;-webkit-appearance:none;min-height:30px;padding:6px 10px;
@@ -146,10 +146,18 @@ function injectCSS(){
   .v48-select-row input{width:17px;height:17px;margin:0;accent-color:#73e7ff}
   .v48-select-row .visual{width:42px;height:42px;display:grid;place-items:center;position:relative}
   .v48-select-row .visual>img{max-width:42px;max-height:42px;width:100%;height:100%;object-fit:contain;border-radius:9px;background:rgba(255,255,255,.025)}
-  .v48-select-row .visual.charm-trio{display:flex;align-items:center;justify-content:center;gap:2px}
-  .v48-select-row .visual.charm-trio img{
-    width:16px;height:30px;object-fit:contain;border-radius:6px;background:rgba(255,255,255,.025)
+  .v48-select-row .visual.charm-trio{
+    display:flex;align-items:center;justify-content:center;gap:2px;width:44px;height:42px
   }
+  .v48-charm-gem{
+    width:12px;height:25px;border-radius:7px 7px 9px 9px;display:grid;place-items:center;
+    border:1px solid rgba(170,118,255,.52);
+    background:linear-gradient(180deg,rgba(133,83,255,.40),rgba(32,18,72,.70));
+    color:#eee7ff;font-size:7px;font-weight:1000;line-height:1;
+    box-shadow:inset 0 0 9px rgba(168,99,255,.17),0 0 7px rgba(124,86,255,.10)
+  }
+  .v48-charm-gem:nth-child(2){transform:translateY(-2px)}
+  .v48-charm-gem small{font-size:5px;color:#d9caff;letter-spacing:0}
   .v48-select-row b{display:block;font-size:11px}
   .v48-select-row small{display:block;color:#8793b5;font-size:7px;margin-top:3px;line-height:1.35}
 
@@ -392,8 +400,9 @@ function visualFor(i,cat){
     return `<span class="visual"><img src="${esc(chiefT6Asset(i))}" alt="${esc(i.name)} T6" onerror="this.onerror=null;this.src='${esc(i.image_url||'')}'"></span>`;
   }
   if(cat==='charms'){
-    const src=`/assets/charms/${charmType(i)}/lv-18.png`;
-    return `<span class="visual charm-trio">${[0,1,2].map(()=>`<img src="${esc(src)}" alt="Lv18 Charm" onerror="this.style.opacity=.18">`).join('')}</span>`;
+    return `<span class="visual charm-trio" aria-label="Three Level 18 Charms">
+      ${[0,1,2].map(()=>`<span class="v48-charm-gem">18</span>`).join('')}
+    </span>`;
   }
   const src=i.image_url||'';
   return src?`<span class="visual"><img src="${esc(src)}" alt="" onerror="this.style.opacity=.18"></span>`:`<span class="visual">✦</span>`;
@@ -423,7 +432,7 @@ function ensureTools(){
     const x=document.createElement('div');
     x.id='v48-category-tools';
     x.innerHTML=`<button type="button" class="v48-category-max" data-v48-category-max>✓ MAX <span class="info">i</span></button>`;
-    filters.before(x);
+    filters.after(x);
   }
   organizeHeader();
 }
@@ -825,7 +834,7 @@ async function saveBattle(){
     const old=normalizeHeroGear(accountData.hero_gear||{});
     const hero_gear={
       ...old,
-      version:'v48.3',
+      version:'v48.4',
       main:{mode:mainMode,data:mainMode==='maxed'?maxHeroGearSet():collectGearSet('main')},
       second:{
         mode:secondMode,

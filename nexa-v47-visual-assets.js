@@ -1,10 +1,10 @@
-/* NEXA V47.7 — UNIFIED HOME CARDS / ORBITING BORDER GLOW
+/* NEXA V47.8 — CLEAN HOME CARDS / VISIBLE TRAVELLING BORDER GLOW
    COMPLETE REPLACEMENT for: nexa-v47-visual-assets.js
 
    Owns:
    - NEXA identity / Home branding
    - Home command-card visual family
-   - small consistent corner icon on all 4 cards
+   - no decorative card icons; border glow is the visual cue
    - animated border glow on inactive cards
    - brighter pulse on active cards
    - Chief Gear asset resolver
@@ -23,8 +23,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V477_CONTROL_HUB__) return;
-window.__NEXA_V477_CONTROL_HUB__=true;
+if(window.__NEXA_V478_CONTROL_HUB__) return;
+window.__NEXA_V478_CONTROL_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -186,7 +186,7 @@ function installCSS(){
     filter:drop-shadow(0 0 13px rgba(114,100,255,.34)) drop-shadow(0 0 24px rgba(178,75,255,.16))
   }
 
-  /* UNIFIED HOME CARD FAMILY */
+  /* UNIFIED HOME CARD FAMILY — no icons, glow is the visual cue */
   .nexa-v477-tech-card{
     --tech:#9b63ff;
     --tech-rgb:155,99,255;
@@ -194,95 +194,80 @@ function installCSS(){
     isolation:isolate!important;
     overflow:hidden!important;
     box-sizing:border-box!important;
-    border:1px solid rgba(var(--tech-rgb),.32)!important;
+    border:1px solid rgba(var(--tech-rgb),.52)!important;
     border-radius:20px!important;
-    padding-left:58px!important;
+    padding-left:16px!important;
     background:
-      radial-gradient(circle at 7% 12%,rgba(var(--tech-rgb),.11),transparent 34%),
-      radial-gradient(circle at 91% 76%,rgba(var(--tech-rgb),.07),transparent 37%),
+      radial-gradient(circle at 8% 12%,rgba(var(--tech-rgb),.10),transparent 34%),
+      radial-gradient(circle at 91% 76%,rgba(var(--tech-rgb),.06),transparent 37%),
       linear-gradient(145deg,rgba(10,17,42,.96),rgba(3,8,24,.98))!important;
     box-shadow:
       inset 0 0 0 1px rgba(255,255,255,.018),
       inset 0 0 28px rgba(var(--tech-rgb),.035),
-      0 0 14px rgba(var(--tech-rgb),.08)!important
+      0 0 14px rgba(var(--tech-rgb),.10)!important
   }
 
-  .nexa-v477-tech-card[data-nexa-tech="live"]{--tech:#a56bff;--tech-rgb:165,107,255}
+  /* Live gets a distinct fuchsia identity. */
+  .nexa-v477-tech-card[data-nexa-tech="live"]{--tech:#ff4fc8;--tech-rgb:255,79,200}
   .nexa-v477-tech-card[data-nexa-tech="transfer"]{--tech:#ff9d3d;--tech-rgb:255,157,61}
   .nexa-v477-tech-card[data-nexa-tech="pulse"]{--tech:#39dfff;--tech-rgb:57,223,255}
-  .nexa-v477-tech-card[data-nexa-tech="alliance"]{--tech:#e263ff;--tech-rgb:226,99,255}
+  .nexa-v477-tech-card[data-nexa-tech="alliance"]{--tech:#a76cff;--tech-rgb:167,108,255}
 
-  /* travelling border light */
+  /*
+    Safari-safe travelling glow:
+    one short luminous segment physically travels the perimeter.
+    No mask-composite / conic-mask, so it cannot turn into diagonal bars.
+  */
   .nexa-v477-tech-card::after{
     content:""!important;
     position:absolute!important;
-    inset:-1px!important;
-    z-index:6!important;
-    border-radius:inherit!important;
-    padding:1.5px!important;
+    z-index:8!important;
     pointer-events:none!important;
-    background:
-      conic-gradient(
-        from 0deg,
-        transparent 0deg 282deg,
-        rgba(var(--tech-rgb),0) 282deg,
-        rgba(var(--tech-rgb),.42) 305deg,
-        rgba(var(--tech-rgb),1) 326deg,
-        rgba(255,255,255,.95) 333deg,
-        rgba(var(--tech-rgb),.60) 342deg,
-        transparent 360deg
-      )!important;
-    -webkit-mask:
-      linear-gradient(#000 0 0) content-box,
-      linear-gradient(#000 0 0)!important;
-    -webkit-mask-composite:xor!important;
-    mask-composite:exclude!important;
-    animation:nexaV477BorderOrbit 5.8s linear infinite!important;
-    filter:drop-shadow(0 0 4px rgba(var(--tech-rgb),.48))
-  }
-
-  @keyframes nexaV477BorderOrbit{
-    to{transform:rotate(360deg)}
-  }
-
-  /* Active = whole border is alive and gently pulses. */
-  .nexa-v477-tech-card[data-nexa-active="1"]{
-    border-color:rgba(var(--tech-rgb),.78)!important;
+    left:14px!important;
+    top:-1px!important;
+    width:38px!important;
+    height:2px!important;
+    border-radius:999px!important;
+    background:linear-gradient(90deg,transparent,rgba(var(--tech-rgb),1),#fff,rgba(var(--tech-rgb),1),transparent)!important;
     box-shadow:
-      inset 0 0 32px rgba(var(--tech-rgb),.085),
-      0 0 18px rgba(var(--tech-rgb),.27),
-      0 0 34px rgba(var(--tech-rgb),.10)!important;
-    animation:nexaV477ActivePulse 1.9s ease-in-out infinite!important
+      0 0 5px rgba(var(--tech-rgb),.95),
+      0 0 12px rgba(var(--tech-rgb),.62),
+      0 0 22px rgba(var(--tech-rgb),.28)!important;
+    animation:nexaV478BorderRun 5.4s linear infinite!important;
+    transform-origin:center!important
+  }
+
+  @keyframes nexaV478BorderRun{
+    0%   {left:14px;top:-1px;width:38px;height:2px;transform:none}
+    23%  {left:calc(100% - 52px);top:-1px;width:38px;height:2px;transform:none}
+    25%  {left:calc(100% - 1px);top:14px;width:2px;height:38px;transform:none}
+    48%  {left:calc(100% - 1px);top:calc(100% - 52px);width:2px;height:38px;transform:none}
+    50%  {left:calc(100% - 52px);top:calc(100% - 1px);width:38px;height:2px;transform:none}
+    73%  {left:14px;top:calc(100% - 1px);width:38px;height:2px;transform:none}
+    75%  {left:-1px;top:calc(100% - 52px);width:2px;height:38px;transform:none}
+    98%  {left:-1px;top:14px;width:2px;height:38px;transform:none}
+    100% {left:14px;top:-1px;width:38px;height:2px;transform:none}
+  }
+
+  /* Active card: stronger whole border + soft pulse, travelling light remains. */
+  .nexa-v477-tech-card[data-nexa-active="1"]{
+    border-color:rgba(var(--tech-rgb),.88)!important;
+    animation:nexaV478ActivePulse 1.9s ease-in-out infinite!important
   }
   .nexa-v477-tech-card[data-nexa-active="1"]::after{
-    animation-duration:3.2s!important;
-    filter:drop-shadow(0 0 6px rgba(var(--tech-rgb),.76))
+    animation-duration:3.5s!important
   }
-  @keyframes nexaV477ActivePulse{
-    0%,100%{box-shadow:inset 0 0 30px rgba(var(--tech-rgb),.07),0 0 14px rgba(var(--tech-rgb),.20)}
-    50%{box-shadow:inset 0 0 36px rgba(var(--tech-rgb),.12),0 0 25px rgba(var(--tech-rgb),.36)}
-  }
-
-  /* Same small corner icon on all 4 cards. */
-  .nexa-v477-card-icon{
-    position:absolute!important;
-    left:15px!important;
-    top:14px!important;
-    z-index:8!important;
-    width:30px!important;
-    height:30px!important;
-    margin:0!important;
-    display:grid!important;
-    place-items:center!important;
-    border-radius:10px!important;
-    border:1px solid rgba(var(--tech-rgb),.52)!important;
-    background:radial-gradient(circle,rgba(var(--tech-rgb),.16),rgba(5,10,28,.82))!important;
-    color:color-mix(in srgb,var(--tech) 78%,white)!important;
-    font-size:15px!important;
-    font-weight:950!important;
-    line-height:1!important;
-    box-shadow:inset 0 0 11px rgba(var(--tech-rgb),.08),0 0 8px rgba(var(--tech-rgb),.10)!important;
-    pointer-events:none!important
+  @keyframes nexaV478ActivePulse{
+    0%,100%{
+      box-shadow:
+        inset 0 0 30px rgba(var(--tech-rgb),.07),
+        0 0 15px rgba(var(--tech-rgb),.20)!important
+    }
+    50%{
+      box-shadow:
+        inset 0 0 36px rgba(var(--tech-rgb),.12),
+        0 0 26px rgba(var(--tech-rgb),.36)!important
+    }
   }
 
   .nexa-v477-tech-copy,
@@ -300,13 +285,18 @@ function installCSS(){
     text-shadow:0 0 11px rgba(var(--tech-rgb),.16)!important
   }
 
-  /* Disable older pseudo icons / icon blocks so nothing overlaps. */
+  /* Remove every old/home decorative symbol. Glow is the only cue. */
   #home-svs-section::before,
-  #home-transfers-section::before,
-  #home-transfers-section::after{
+  #home-transfers-section::before{
     content:none!important;
     display:none!important
   }
+  #home-transfers-section::after{
+    /* V47.8 owns this pseudo for the travelling glow, never the old ⇄ watermark */
+    content:""!important;
+    display:block!important
+  }
+  .nexa-v477-tech-card > .nexa-v477-card-icon,
   .nexa-v477-tech-card > .nexa-v475-tech-icon,
   .nexa-v477-tech-card > .nexa-v474-tech-icon{
     display:none!important
@@ -329,8 +319,7 @@ function installCSS(){
     .nexa-v477-control-symbol{width:31px!important;height:31px!important;flex-basis:31px!important}
     .nexa-v477-control-copy strong{font-size:11px!important}
     .nexa-v477-control-copy small{font-size:7.5px!important}
-    .nexa-v477-tech-card{padding-left:54px!important}
-    .nexa-v477-card-icon{left:13px!important;top:13px!important;width:29px!important;height:29px!important}
+    .nexa-v477-tech-card{padding-left:14px!important}
     #nexa-profile-modal .v33-item[data-type="chief_gear"] .v33-planet{
       width:min(21vw,78px)!important;height:min(21vw,78px)!important;max-width:78px!important;max-height:78px!important
     }
@@ -422,17 +411,6 @@ function removeOldDecor(card){
   $$(':scope > .nexa-v474-tech-icon,:scope > .nexa-v475-tech-icon',card).forEach(x=>x.remove());
 }
 
-function ensureIcon(card,iconText){
-  let icon=$(':scope > .nexa-v477-card-icon',card);
-  if(!icon){
-    icon=document.createElement('span');
-    icon.className='nexa-v477-card-icon';
-    icon.setAttribute('aria-hidden','true');
-    card.prepend(icon);
-  }
-  icon.textContent=iconText;
-}
-
 function isEmptyState(type,text){
   const t=String(text||'').toUpperCase();
   if(type==='live') return /NO\s+(LIVE|ACTIVE)\s+EVENT|NO EVENT|NOT PUBLISHED|STANDBY/.test(t);
@@ -442,13 +420,14 @@ function isEmptyState(type,text){
   return true;
 }
 
-function decorateCard(card,type,iconText){
+function decorateCard(card,type){
   if(!card)return;
   removeOldDecor(card);
 
   card.classList.add('nexa-v477-tech-card');
   card.dataset.nexaTech=type;
-  ensureIcon(card,iconText);
+
+  $$(':scope > .nexa-v477-card-icon',card).forEach(x=>x.remove());
 
   const txt=textKey(card);
   card.dataset.nexaActive=isEmptyState(type,txt)?'0':'1';
@@ -459,8 +438,8 @@ function decorateCard(card,type,iconText){
 }
 
 function decorateHomeCards(){
-  decorateCard($('#home-svs-section'),'live','⌁');
-  decorateCard($('#home-transfers-section'),'transfer','⇄');
+  decorateCard($('#home-svs-section'),'live');
+  decorateCard($('#home-transfers-section'),'transfer');
 
   const nodes=$$('h1,h2,h3,h4,strong,b');
   RULES.forEach(rule=>{
@@ -471,7 +450,7 @@ function decorateHomeCards(){
     });
     if(!heading)return;
     const card=genericCardFromHeading(heading);
-    if(card)decorateCard(card,rule.type,rule.icon);
+    if(card)decorateCard(card,rule.type);
   });
 }
 

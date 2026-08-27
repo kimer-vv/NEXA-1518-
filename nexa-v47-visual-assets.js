@@ -1,4 +1,4 @@
-/* NEXA V47.14 — HOME CARD OWNER / TRANSFER TOP ACCENT HARD FIX
+/* NEXA V47.15 — HOME CARD OWNER / TRANSFER ROOT REBUILD
    COMPLETE REPLACEMENT for: nexa-v47-visual-assets.js
 
    Owns:
@@ -25,8 +25,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4714_CONTROL_HUB__) return;
-window.__NEXA_V4714_CONTROL_HUB__=true;
+if(window.__NEXA_V4715_CONTROL_HUB__) return;
+window.__NEXA_V4715_CONTROL_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -241,22 +241,6 @@ function installCSS(){
   .nexa-v4711-left-accent,
   .nexa-v4711-top-accent{display:none!important}
 
-  /* V47.14: Transfer gets a dedicated real top accent above every legacy layer. */
-  #home-transfers-section{position:relative!important}
-  #home-transfers-section .nexa-v4714-transfer-top{
-    position:absolute!important;
-    z-index:2147482000!important;
-    left:18px!important;
-    top:0!important;
-    width:44px!important;
-    height:2px!important;
-    display:block!important;
-    pointer-events:none!important;
-    border-radius:999px!important;
-    background:linear-gradient(90deg,transparent,rgba(255,154,69,.45),rgba(255,154,69,1),#fff,rgba(255,154,69,1),rgba(255,154,69,.45),transparent)!important;
-    box-shadow:0 0 7px rgba(255,154,69,.95),0 0 16px rgba(255,154,69,.55)!important
-  }
-
   /*
     V47.11 accent ownership:
     actual child elements, NOT ::before/::after.
@@ -327,6 +311,41 @@ function installCSS(){
   #nexa-v31-alliance::after{
     content:none!important;
     display:none!important
+  }
+
+
+  /*
+    V47.15 — TRANSFER ROOT REBUILD
+    The old Transfer decoration is explicitly neutralized above.
+    This selector is intentionally declared AFTER that reset and uses the exact outer card.
+    It does not depend on an injected child that can be erased when Transfer content re-renders.
+  */
+  #home #home-transfers-section.nexa-v477-tech-card::before{
+    content:""!important;
+    display:block!important;
+    position:absolute!important;
+    z-index:2147483000!important;
+    left:18px!important;
+    top:-1px!important;
+    width:42px!important;
+    height:2px!important;
+    border-radius:999px!important;
+    pointer-events:none!important;
+    background:linear-gradient(
+      90deg,
+      transparent,
+      rgba(255,157,61,.40),
+      rgba(255,157,61,1),
+      #fff,
+      rgba(255,157,61,1),
+      rgba(255,157,61,.40),
+      transparent
+    )!important;
+    box-shadow:
+      0 0 5px rgba(255,157,61,.95),
+      0 0 12px rgba(255,157,61,.58),
+      0 0 22px rgba(255,157,61,.20)!important;
+    opacity:1!important
   }
 
   /* Active information = signal breath/blink. Nothing active stays completely static. */
@@ -554,16 +573,6 @@ function neutralizeV453(card){
   });
 }
 
-function ensureTransferTop(card,type){
-  if(!card||type!=='transfer')return;
-  let el=card.querySelector(':scope > .nexa-v4714-transfer-top');
-  if(!el){
-    el=document.createElement('span');
-    el.className='nexa-v4714-transfer-top';
-    card.appendChild(el);
-  }
-}
-
 function decorateCard(card,type){
   if(!card)return;
   removeOldDecor(card);
@@ -571,8 +580,19 @@ function decorateCard(card,type){
 
   card.classList.add('nexa-v477-tech-card');
   card.dataset.nexaTech=type;
+
+  if(type==='transfer'){
+    card.removeAttribute('style');
+    card.classList.add('nexa-v4715-transfer-root');
+    const inner=$(':scope > .glass',card);
+    if(inner){
+      inner.style.setProperty('border','0','important');
+      inner.style.setProperty('background','transparent','important');
+      inner.style.setProperty('box-shadow','none','important');
+      inner.style.setProperty('padding','0','important');
+    }
+  }
   ensureCardAccents(card);
-  ensureTransferTop(card,type);
 
   const palette={
     live:['255,79,200','#ff4fc8'],

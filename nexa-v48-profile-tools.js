@@ -1,4 +1,4 @@
-/* NEXA V48.1 — PROFILE TOOLS / CLEAN UI + FUNCTIONAL MAX + BATTLE DATA
+/* NEXA V48.2 — PROFILE CLEANUP + HERO GEAR 20 + SAFE IN-PLACE SAVE
    COMPLETE REPLACEMENT for: nexa-v48-profile-tools.js
 
    Extends stable V33.6 without taking Profile ownership.
@@ -9,15 +9,15 @@
    - Chief Gear MAX selector uses Red T6 visuals
    - Charms MAX selector uses Lv18 charm visuals
    - Rally Capacity + Deployment Capacity
-   - Main March Hero Gear: MAXED / CUSTOM
-   - Second March Hero Gear: MAXED / CUSTOM / NONE
+   - Main March Hero Gear: MAXED / CUSTOM with collapsed troop selectors
+   - Second March Hero Gear: MAXED / CUSTOM / NONE with collapsed troop selectors
    - CUSTOM Hero Gear stores 3 troop-type sets x 4 gear slots
    - no MutationObserver, no manual scrollLeft, no touchmove preventDefault
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V481_PROFILE_TOOLS__) return;
-window.__NEXA_V481_PROFILE_TOOLS__=true;
+if(window.__NEXA_V482_PROFILE_TOOLS__) return;
+window.__NEXA_V482_PROFILE_TOOLS__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -30,6 +30,7 @@ let items=[];
 let inventory=[];
 let accountData={rally_capacity:null,deployment_capacity:null,hero_gear:{}};
 let busy=false;
+let battleDraft=null;
 
 function sb(){
   if(window.supabaseClient?.from)return window.supabaseClient;
@@ -84,7 +85,7 @@ function injectCSS(){
 
   #v48-category-tools{
     position:relative;z-index:4;display:flex;justify-content:flex-end;
-    padding:0 14px 3px
+    padding:0 14px 1px
   }
   .v48-category-max{
     appearance:none;-webkit-appearance:none;min-height:30px;padding:6px 10px;
@@ -105,7 +106,9 @@ function injectCSS(){
   .v48-max-badge:before{content:"✓ ";}
 
   /* Clean header helpers: Guide sits beside Ministry when both exist. */
-  #nexa-profile-modal .v481-header-actions{display:inline-flex!important;gap:7px!important;align-items:center!important}
+  #nexa-profile-modal .v481-header-actions{
+    display:inline-flex!important;gap:6px!important;align-items:center!important;vertical-align:middle!important
+  }
   #nexa-profile-modal .v481-guide-mini{
     width:38px!important;height:38px!important;min-width:38px!important;padding:0!important;border-radius:50%!important;
     display:grid!important;place-items:center!important;border:1px solid rgba(255,76,218,.65)!important;
@@ -203,6 +206,29 @@ function injectCSS(){
   .v48-gear-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
   .v48-gear-cell label{display:block;color:#7f8aab;font-size:7px;font-weight:900;letter-spacing:.08em;margin-bottom:3px}
   .v48-gear-cell select{min-height:34px;padding:5px 7px;font-size:10px}
+
+  .v48-troop-chooser{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:9px}
+  .v48-troop-card{
+    appearance:none;min-height:68px;padding:8px 6px;border-radius:14px;
+    border:1px solid rgba(121,105,255,.22);background:rgba(7,12,31,.62);color:#d9ddf8;
+    display:grid;gap:4px;place-items:center;text-align:center
+  }
+  .v48-troop-card strong{font-size:8px;letter-spacing:.10em}
+  .v48-troop-card small{margin:0!important;font-size:7px!important;color:#8792b5!important}
+  .v48-troop-card .orb{
+    width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:13px;
+    border:1px solid rgba(105,220,255,.25);background:rgba(10,25,52,.66)
+  }
+  .v48-gear-editor-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:9px 0 7px}
+  .v48-back{
+    appearance:none;border:1px solid rgba(111,135,205,.25);background:#091027;color:#b9c3e0;
+    border-radius:999px;min-height:30px;padding:5px 9px;font-size:8px;font-weight:900
+  }
+  .v48-buff-note{
+    margin-top:6px;padding:6px 7px;border-radius:9px;background:rgba(11,27,51,.62);
+    color:#8ddff7;font-size:7px;line-height:1.35
+  }
+
   .v48-confirm-note{
     margin-top:12px;padding:10px;border-radius:13px;border:1px solid rgba(255,190,84,.20);
     background:rgba(90,56,8,.15);color:#d4c19b;font-size:9px;line-height:1.5
@@ -347,13 +373,18 @@ function pieceKey(i){
   return s;
 }
 function chiefT6Asset(i){
+  try{
+    const resolver=window.NEXA_CHIEF_GEAR_ASSETS?.get;
+    if(typeof resolver==='function'){
+      const hit=resolver(i,{gear_quality:'Red',gear_tier:6,gear_stars:3,gear_substep:4});
+      if(hit)return hit;
+    }
+  }catch(_){}
   const file={
     helmet:'helmet',watch:'watch',coat:'chestplate',pants:'pants',belt:'ring',shortstaff:'staff'
   }[pieceKey(i)];
   if(!file)return i.image_url||'';
-  return file==='staff'
-    ?'/assets/nexa/chief-gear-red/chiefgear_staff_red_t6.png.jpeg'
-    :`/assets/nexa/chief-gear-red/chiefgear_${file}_red_t6.png`;
+  return `/assets/nexa/chief-gear-red/chiefgear_${file}_red_t6.png.jpeg`;
 }
 function charmType(i){
   const k=pieceKey(i);
@@ -402,21 +433,41 @@ function ensureTools(){
   organizeHeader();
 }
 
+function findGuideButton(modal){
+  const direct=$('.nexa-v425-guide',modal)||$('[data-nexa-profile-guide]',modal)||$('#nexa-profile-guide',modal);
+  if(direct)return direct;
+  const actionRoot=$('#nexa-v425-profile-actions',modal);
+  if(!actionRoot)return null;
+  return $$('button',actionRoot).find(b=>{
+    if(b.id==='nexa-v425-ministry')return false;
+    const s=[b.textContent,b.title,b.getAttribute('aria-label'),b.className].join(' ').toLowerCase();
+    return /guide|help|info|nexa-v425-guide/.test(s) || !!$('svg',b);
+  })||null;
+}
+
 function organizeHeader(){
   const modal=$('#nexa-profile-modal');if(!modal)return;
   const ministry=$('#nexa-v425-ministry',modal);
-  const guide=$('.nexa-v425-guide',modal)||$('[data-nexa-profile-guide]',modal);
-  if(ministry&&guide&&guide.parentElement!==ministry.parentElement){
+  const guide=findGuideButton(modal);
+
+  if(ministry&&guide){
     let wrap=$('.v481-header-actions',modal);
     if(!wrap){
-      wrap=document.createElement('span');wrap.className='v481-header-actions';
+      wrap=document.createElement('span');
+      wrap.className='v481-header-actions';
       ministry.parentNode?.insertBefore(wrap,ministry);
+      wrap.appendChild(ministry);
+    }else if(ministry.parentElement!==wrap){
       wrap.appendChild(ministry);
     }
     guide.classList.add('v481-guide-mini');
-    wrap.appendChild(guide);
+    if(guide.parentElement!==wrap)wrap.appendChild(guide);
+
     const old=$('#nexa-v425-profile-actions',modal);
-    if(old&&!old.children.length)old.style.display='none';
+    if(old&&old!==wrap){
+      const visible=$$('button',old).filter(x=>x!==guide&&x!==ministry);
+      if(!visible.length)old.style.display='none';
+    }
   }
 
   const edit=$('#nexa-profile-edit-btn',modal)||$('.nexa-profile-edit-btn',modal);
@@ -443,7 +494,18 @@ function decorateBadges(){
   });
 }
 function scheduleRefresh(ms=180){
-  setTimeout(async()=>{await refreshData();ensureTools();decorateBadges()},ms);
+  setTimeout(async()=>{await refreshData();ensureTools();decorateBadges();organizeHeader()},ms);
+}
+async function repaintProfileInPlace(){
+  await refreshData();
+  ensureTools();
+  decorateBadges();
+  organizeHeader();
+  const modal=$('#nexa-profile-modal');
+  if(modal){
+    modal.classList.remove('hidden');
+    modal.style.display='';
+  }
 }
 
 function closeOverlay(){$('#v48-overlay')?.remove()}
@@ -505,7 +567,7 @@ async function applyCategory(cat){
     }
     if(msg)msg.textContent=`Saved ${targets.length} maxed item${targets.length===1?'':'s'} ✓`;
     await refreshData();
-    setTimeout(()=>{closeOverlay();window.dispatchEvent(new Event('pageshow'));scheduleRefresh(350)},400);
+    setTimeout(async()=>{closeOverlay();await repaintProfileInPlace()},260);
   }catch(e){
     if(msg)msg.textContent=e?.message||String(e);
     if(btn)btn.disabled=false;
@@ -539,7 +601,7 @@ async function applyMaxAll(){
     const q=await c.from('player_accounts').update({hero_gear:hg,updated_at:new Date().toISOString()}).eq('id',accountId);
     if(q.error)throw q.error;
     if(msg)msg.textContent='Profile maxed ✓';
-    setTimeout(()=>{closeOverlay();window.dispatchEvent(new Event('pageshow'));scheduleRefresh(400)},450);
+    setTimeout(async()=>{closeOverlay();await repaintProfileInPlace()},300);
   }catch(e){
     if(msg)msg.textContent=e?.message||String(e);if(btn)btn.disabled=false;
   }finally{busy=false}
@@ -557,7 +619,7 @@ function defaultGearSet(){
 function maxHeroGearSet(){
   const out=defaultGearSet();
   HERO_GEAR_TYPES.forEach(t=>HERO_GEAR_SLOTS.forEach(([k])=>{
-    out[t][k]={quality:'Legendary',enhancement:100,mastery:15,empowerment:5};
+    out[t][k]={quality:'Legendary',enhancement:100,mastery:20,empowerment:100};
   }));
   return out;
 }
@@ -569,8 +631,8 @@ function normalizeGearSet(raw){
     base[t][k]={
       quality:p.quality==='Legendary'?'Legendary':'Mythic',
       enhancement:clamp(p.enhancement,0,100),
-      mastery:clamp(p.mastery,0,p.quality==='Legendary'?15:10),
-      empowerment:p.quality==='Legendary'?clamp(p.empowerment,0,5):0
+      mastery:clamp(p.mastery,0,p.quality==='Legendary'?20:10),
+      empowerment:p.quality==='Legendary'?([0,20,40,60,80,100].includes(Number(p.empowerment))?Number(p.empowerment):(Number(p.empowerment)<=5?Number(p.empowerment)*20:clamp(p.empowerment,0,100))):0
     };
   }));
   return base;
@@ -588,6 +650,24 @@ function normalizeHeroGear(raw){
 }
 
 function nOptions(max,val){return Array.from({length:max+1},(_,n)=>`<option value="${n}" ${n===Number(val)?'selected':''}>${n}</option>`).join('')}
+function empowermentOptions(val){
+  const cur=Number(val)||0;
+  return [0,20,40,60,80,100].map(n=>`<option value="${n}" ${n===cur?'selected':''}>${n===0?'0':'+'+n}</option>`).join('');
+}
+function expeditionEmpowerText(t,k,emp){
+  const troop=t.charAt(0).toUpperCase()+t.slice(1);
+  const e=Number(emp)||0,parts=[];
+  if(k==='headgear'||k==='belt'){
+    if(e>=20)parts.push(`${troop} Attack +20%`);
+    if(e>=60)parts.push(`${troop} Defense +30%`);
+    if(e>=100)parts.push(`${troop} Attack +50%`);
+  }else{
+    if(e>=20)parts.push(`${troop} Defense +20%`);
+    if(e>=60)parts.push(`${troop} Attack +30%`);
+    if(e>=100)parts.push(`${troop} Defense +50%`);
+  }
+  return parts.length?`EXPEDITION: ${parts.join(' • ')}`:(e===40||e===80?'This milestone is Exploration-focused; earlier Expedition milestones remain active.':'No Expedition Empowerment milestone yet.');
+}
 function heroGearPieceHTML(setName,t,k,label,p){
   const legendary=p.quality==='Legendary';
   const icon={headgear:'🥽',gloves:'🧤',belt:'◈',boots:'🥾'}[k]||'◇';
@@ -598,24 +678,45 @@ function heroGearPieceHTML(setName,t,k,label,p){
         <option value="Mythic" ${!legendary?'selected':''}>Mythic (Gold)</option>
         <option value="Legendary" ${legendary?'selected':''}>Legendary (Red)</option>
       </select></div>
-      <div class="v48-gear-cell"><label>ENHANCE</label><select data-v48-hg-enhancement>${nOptions(100,p.enhancement)}</select></div>
-      <div class="v48-gear-cell"><label>MASTERY</label><select data-v48-hg-mastery>${nOptions(legendary?15:10,p.mastery)}</select></div>
-      <div class="v48-gear-cell"><label>EMPOWER</label><select data-v48-hg-empowerment ${legendary?'':'disabled'}>${nOptions(5,legendary?p.empowerment:0)}</select></div>
-    </div></div>
+      <div class="v48-gear-cell"><label>ENHANCEMENT</label><select data-v48-hg-enhancement>${nOptions(100,p.enhancement)}</select></div>
+      <div class="v48-gear-cell"><label>MASTERY</label><select data-v48-hg-mastery>${nOptions(legendary?20:10,p.mastery)}</select></div>
+      <div class="v48-gear-cell"><label>EMPOWERMENT</label><select data-v48-hg-empowerment ${legendary?'':'disabled'}>${empowermentOptions(legendary?p.empowerment:0)}</select></div>
+    </div><div class="v48-buff-note" data-v48-buff-preview>${esc(expeditionEmpowerText(t,k,p.empowerment))}</div></div>
   </div>`;
 }
-function customGearHTML(setName,data){
+function troopSummary(data,t){
+  const d=normalizeGearSet(data)?.[t]||{};
+  const vals=HERO_GEAR_SLOTS.map(([k])=>d[k]||defaultPiece());
+  const max=vals.every(p=>p.quality==='Legendary'&&Number(p.enhancement)>=100&&Number(p.mastery)>=20&&Number(p.empowerment)>=100);
+  const avg=Math.round(vals.reduce((a,p)=>a+Number(p.mastery||0),0)/Math.max(vals.length,1));
+  return max?'4/4 MAXED':`Avg Mastery ${avg}`;
+}
+function customGearChooserHTML(setName,data){
   const d=normalizeGearSet(data);
   return `<div class="v48-custom-gear" data-v48-custom="${setName}">
-    ${HERO_GEAR_TYPES.map(t=>`<section class="v48-troop-gear"><div class="v48-troop-title">${t.toUpperCase()} HERO GEAR</div>
+    <div class="v48-troop-chooser">
+      ${HERO_GEAR_TYPES.map(t=>`<button type="button" class="v48-troop-card" data-v48-open-troop="${setName}:${t}">
+        <span class="orb">${t==='infantry'?'🛡️':t==='lancer'?'⚔️':'🏹'}</span>
+        <strong>${t.toUpperCase()}</strong><small>${esc(troopSummary(d,t))}</small>
+      </button>`).join('')}
+    </div>
+  </div>`;
+}
+function troopGearEditorHTML(setName,t,data){
+  const d=normalizeGearSet(data);
+  return `<div class="v48-custom-gear" data-v48-custom="${setName}" data-v48-open-type="${t}">
+    <div class="v48-gear-editor-head"><button type="button" class="v48-back" data-v48-back-troops="${setName}">‹ ALL THREE</button>
+      <span class="v48-troop-title">${t.toUpperCase()} HERO GEAR</span></div>
+    <section class="v48-troop-gear">
       ${HERO_GEAR_SLOTS.map(([k,l])=>heroGearPieceHTML(setName,t,k,l,d[t][k])).join('')}
-    </section>`).join('')}
+    </section>
   </div>`;
 }
 
 async function openBattle(){
   await refreshData();
   const hg=normalizeHeroGear(accountData.hero_gear||{});
+  battleDraft=structuredClone(hg);
   const mainMode=hg.main.mode,secondMode=hg.second.mode;
   const body=`<div class="v48-battle-grid">
     <div class="v48-field"><label>RALLY CAPACITY</label>
@@ -633,7 +734,7 @@ async function openBattle(){
         <button type="button" class="v48-toggle ${mainMode==='custom'?'active':''}" data-v48-set-mode="main:custom">CUSTOM</button>
       </div>
       <small>MAXED = all 12 pieces at current endgame maximum. CUSTOM lets you enter each piece.</small>
-      <div data-v48-set-body="main">${mainMode==='custom'?customGearHTML('main',hg.main.data):''}</div>
+      <div data-v48-set-body="main">${mainMode==='custom'?customGearChooserHTML('main',hg.main.data):''}</div>
     </div>
 
     <div class="v48-field" data-v48-set-card="second"><label>SECOND MARCH HERO GEAR</label>
@@ -643,44 +744,59 @@ async function openBattle(){
         <button type="button" class="v48-toggle ${secondMode==='none'?'active':''}" data-v48-set-mode="second:none">NONE</button>
       </div>
       <small>Use CUSTOM only when you want NEXA to evaluate a second strong gear set separately.</small>
-      <div data-v48-set-body="second">${secondMode==='custom'?customGearHTML('second',hg.second.data):''}</div>
+      <div data-v48-set-body="second">${secondMode==='custom'?customGearChooserHTML('second',hg.second.data):''}</div>
     </div>
   </div>`;
 
-  overlay('BATTLE DATA','Rally & Hero Gear',
+  overlay('BATTLE DATA','Battle Capacity & Hero Gear',
     'Saved here once, then Battle Planning can use these values instead of asking again.',
     body,
     `<div class="v48-actions"><button class="v48-cancel" data-v48-close>CANCEL</button><button class="v48-apply" data-v48-save-battle>SAVE BATTLE DATA</button></div>`);
 }
 
-function collectGearSet(setName){
-  const out=defaultGearSet(),root=$(`[data-v48-custom="${setName}"]`);
-  if(!root)return out;
+function captureOpenGearEditor(setName){
+  if(!battleDraft)return;
+  const root=$(`[data-v48-custom="${setName}"][data-v48-open-type]`);
+  if(!root)return;
   $$('[data-v48-piece]',root).forEach(row=>{
     const [,t,k]=String(row.dataset.v48Piece).split(':');
     const quality=$('[data-v48-hg-quality]',row)?.value==='Legendary'?'Legendary':'Mythic';
-    out[t][k]={
+    battleDraft[setName].data[t][k]={
       quality,
       enhancement:clamp($('[data-v48-hg-enhancement]',row)?.value,0,100),
-      mastery:clamp($('[data-v48-hg-mastery]',row)?.value,0,quality==='Legendary'?15:10),
-      empowerment:quality==='Legendary'?clamp($('[data-v48-hg-empowerment]',row)?.value,0,5):0
+      mastery:clamp($('[data-v48-hg-mastery]',row)?.value,0,quality==='Legendary'?20:10),
+      empowerment:quality==='Legendary'?Number($('[data-v48-hg-empowerment]',row)?.value||0):0
     };
   });
-  return out;
 }
-
+function collectGearSet(setName){
+  if(!battleDraft)return defaultGearSet();
+  captureOpenGearEditor(setName);
+  return normalizeGearSet(battleDraft[setName]?.data);
+}
 function setMode(setName,mode){
   const root=$('#v48-overlay'),card=$(`[data-v48-set-card="${setName}"]`,root);if(!card)return;
+  captureOpenGearEditor(setName);
   $$(`[data-v48-set-mode^="${setName}:"]`,card).forEach(b=>b.classList.toggle('active',b.dataset.v48SetMode===`${setName}:${mode}`));
   card.dataset.mode=mode;
-  const body=$(`[data-v48-set-body="${setName}"]`,card);
-  if(!body)return;
+  if(battleDraft)battleDraft[setName].mode=mode;
+  const body=$(`[data-v48-set-body="${setName}"]`,card);if(!body)return;
   if(mode==='custom'){
-    const hg=normalizeHeroGear(accountData.hero_gear||{});
-    const existing=collectGearSet(setName);
-    const source=$(`[data-v48-custom="${setName}"]`,card)?existing:hg[setName].data;
-    body.innerHTML=customGearHTML(setName,source);
+    const data=battleDraft?.[setName]?.data||defaultGearSet();
+    body.innerHTML=customGearChooserHTML(setName,data);
   }else body.innerHTML='';
+}
+function openTroopEditor(setName,t){
+  captureOpenGearEditor(setName);
+  const body=$(`[data-v48-set-body="${setName}"]`);
+  if(!body)return;
+  body.innerHTML=troopGearEditorHTML(setName,t,battleDraft?.[setName]?.data||defaultGearSet());
+}
+function backToTroopChooser(setName){
+  captureOpenGearEditor(setName);
+  const body=$(`[data-v48-set-body="${setName}"]`);
+  if(!body)return;
+  body.innerHTML=customGearChooserHTML(setName,battleDraft?.[setName]?.data||defaultGearSet());
 }
 
 async function saveBattle(){
@@ -698,7 +814,7 @@ async function saveBattle(){
     const old=normalizeHeroGear(accountData.hero_gear||{});
     const hero_gear={
       ...old,
-      version:'v48.1',
+      version:'v48.2',
       main:{mode:mainMode,data:mainMode==='maxed'?maxHeroGearSet():collectGearSet('main')},
       second:{
         mode:secondMode,
@@ -718,7 +834,7 @@ async function saveBattle(){
       hero_gear:q.data?.hero_gear||hero_gear
     };
     if(msg)msg.textContent='Battle data saved ✓';
-    setTimeout(()=>{closeOverlay();window.dispatchEvent(new Event('pageshow'))},420);
+    setTimeout(async()=>{closeOverlay();await repaintProfileInPlace()},280);
   }catch(e){
     if(msg)msg.textContent=e?.message||String(e);if(btn)btn.disabled=false;
   }finally{busy=false}
@@ -728,13 +844,16 @@ function refreshMasteryControl(row){
   const q=$('[data-v48-hg-quality]',row)?.value||'Mythic';
   const m=$('[data-v48-hg-mastery]',row),e=$('[data-v48-hg-empowerment]',row);
   if(m){
-    const cur=clamp(m.value,0,q==='Legendary'?15:10);
-    m.innerHTML=nOptions(q==='Legendary'?15:10,cur);
+    const cur=clamp(m.value,0,q==='Legendary'?20:10);
+    m.innerHTML=nOptions(q==='Legendary'?20:10,cur);
   }
   if(e){
     e.disabled=q!=='Legendary';
     if(q!=='Legendary')e.value='0';
   }
+  const rowKey=String(row.dataset.v48Piece||'').split(':');
+  const preview=$('[data-v48-buff-preview]',row);
+  if(preview&&rowKey.length===3)preview.textContent=expeditionEmpowerText(rowKey[1],rowKey[2],e?.value||0);
 }
 
 document.addEventListener('click',e=>{
@@ -762,12 +881,24 @@ document.addEventListener('click',e=>{
     setMode(setName,value);return;
   }
 
+  const troop=e.target.closest?.('[data-v48-open-troop]');
+  if(troop){
+    const [setName,t]=troop.dataset.v48OpenTroop.split(':');
+    openTroopEditor(setName,t);return;
+  }
+  const back=e.target.closest?.('[data-v48-back-troops]');
+  if(back){backToTroopChooser(back.dataset.v48BackTroops);return}
+
   if(e.target.closest?.('[data-v33-cat],[data-v33-gen],[data-v33-save],[data-v33-reset]'))scheduleRefresh(250);
 },false);
 
 document.addEventListener('change',e=>{
-  const q=e.target.closest?.('[data-v48-hg-quality]');
-  if(q)refreshMasteryControl(q.closest('[data-v48-piece]'));
+  const row=e.target.closest?.('[data-v48-piece]');
+  if(!row)return;
+  if(e.target.matches('[data-v48-hg-quality],[data-v48-hg-empowerment]'))refreshMasteryControl(row);
+  const key=String(row.dataset.v48Piece||'').split(':');
+  const preview=$('[data-v48-buff-preview]',row);
+  if(preview&&key.length===3)preview.textContent=expeditionEmpowerText(key[1],key[2],$('[data-v48-hg-empowerment]',row)?.value||0);
 });
 
 window.addEventListener('nexa:account-changed',e=>{
@@ -780,7 +911,7 @@ window.addEventListener('pageshow',()=>scheduleRefresh(300));
 async function boot(){
   injectCSS();
   await refreshData();
-  [80,250,600,1200].forEach(ms=>setTimeout(()=>{ensureTools();decorateBadges()},ms));
+  [80,250,600,1200,2200].forEach(ms=>setTimeout(()=>{ensureTools();decorateBadges()},ms));
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 

@@ -1,4 +1,4 @@
-/* NEXA V49.9 — ADMIN DIRECTORY CLEAN INTRO OWNER
+/* NEXA V49.10 — DETERMINISTIC ADMIN DIRECTORY OWNER / LEGACY HOST DETACH
    NEW FILE: nexa-v49-state-hub.js
 
    Owns:
@@ -22,8 +22,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V499_STATE_HUB__) return;
-window.__NEXA_V499_STATE_HUB__=true;
+if(window.__NEXA_V4910_STATE_HUB__) return;
+window.__NEXA_V4910_STATE_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -552,8 +552,14 @@ function memberCard(p,removeAttrs=''){
     ${removeAttrs?`<button class="nexa-v49-x" ${removeAttrs} title="Remove">×</button>`:''}
   </div>`;
 }
+function detachLegacyAdminHost(sectionId){
+  const section=$(sectionId);if(!section)return;
+  $$(':scope > .nexa-v25-host',section).forEach(host=>host.remove());
+}
+
 function claimAdminSection(sectionId){
   const section=$(sectionId);if(!section)return;
+  detachLegacyAdminHost(sectionId);
   Array.from(section.children).forEach(ch=>{
     if(ch.classList?.contains('nexa-v49-admin-host')){
       ch.style.setProperty('display','block','important');
@@ -568,6 +574,7 @@ function claimAdminSection(sectionId){
 
 function adminHost(sectionId){
   const section=$(sectionId);if(!section)return null;
+  detachLegacyAdminHost(sectionId);
   claimAdminSection(sectionId);
   let host=$(':scope>.nexa-v49-admin-host',section);
   if(!host){host=document.createElement('div');host.className='nexa-v49-admin-host';section.appendChild(host)}
@@ -794,46 +801,17 @@ async function acceptPendingInviteIfAny(){
 }
 
 function purgeLegacyAdminUI(){
-  const modal=$('#admin-modal');if(!modal)return;
+  detachLegacyAdminHost('#admin-permissions');
+  detachLegacyAdminHost('#admin-roles');
 
-  [
-    '#admin-permissions .nexa-v25-host',
-    '#admin-roles .nexa-v25-host',
-    '#admin-permissions .nexa-v25-panel',
-    '#admin-roles .nexa-v25-panel',
-    '#admin-permissions .nexa-v25-search',
-    '#admin-roles .nexa-v25-search',
-    '#admin-permissions .nexa-v25-access-results',
-    '#admin-roles .nexa-v25-access-results',
-    '#admin-permissions .nexa-v25-checks',
-    '#admin-roles .nexa-v25-checks'
-  ].forEach(sel=>$$(sel,modal).forEach(el=>{
-    el.style.setProperty('display','none','important');
-    el.setAttribute('aria-hidden','true');
-  }));
-
-  const obsolete=[
-    'Find a player and manage Operational Roles and module access from one place.',
-    "Alliance Rank is managed inside each Alliance Passport. Operational Roles describe a person's work in NEXA and never grant module access automatically."
-  ];
-
-  $$('*',modal).forEach(el=>{
-    const txt=String(el.textContent||'').trim().replace(/\s+/g,' ');
-    if(!obsolete.includes(txt))return;
-
-    const holder=
-      el.closest('.nexa-v25-panel,.nexa-v27-role-card,.setting-card,.module-action-card,.glass,.card,.panel')||
-      el.parentElement||
-      el;
-
-    holder.style.setProperty('display','none','important');
-    holder.setAttribute('aria-hidden','true');
-  });
-
-  $$('input[placeholder="Search Player Name or Game ID"]',modal).forEach(el=>{
-    const holder=el.closest('.nexa-v25-host,.nexa-v25-panel,.setting-card,.card,.panel')||el;
-    holder.style.setProperty('display','none','important');
-    holder.setAttribute('aria-hidden','true');
+  ['#admin-permissions','#admin-roles'].forEach(sectionId=>{
+    const section=$(sectionId);if(!section)return;
+    Array.from(section.children).forEach(ch=>{
+      if(ch.classList?.contains('nexa-v49-admin-host'))return;
+      if(ch.classList?.contains('nexa-v25-nav'))return;
+      ch.style.setProperty('display','none','important');
+      ch.setAttribute('aria-hidden','true');
+    });
   });
 }
 
@@ -845,17 +823,14 @@ function refreshAdminOwners(){
 }
 
 function scheduleAdminOwners(){
-  /* Legacy Administration carousel paints synchronously from its arrows.
-     Reclaim immediately after that user navigation and once after its transition.
-     Finite event follow-up only: no observer and no polling. */
-  [0,90,240].forEach(ms=>setTimeout(()=>{
-    purgeLegacyAdminUI();
+  [0,120,320].forEach(ms=>setTimeout(()=>{
+    detachLegacyAdminHost('#admin-permissions');
+    detachLegacyAdminHost('#admin-roles');
     claimAdminSection('#admin-permissions');
     claimAdminSection('#admin-roles');
     relabelOperationalRolesUI();
     renderAdminAccess();
     renderRoles();
-    purgeLegacyAdminUI();
   },ms));
 }
 
@@ -964,6 +939,9 @@ async function boot(){
   renderRoles();
   relabelOperationalRolesUI();
   scheduleAdminOwners();
+  [760,980].forEach(ms=>setTimeout(()=>{
+    if($('#admin-modal')?.classList.contains('nexa-v25-admin'))scheduleAdminOwners();
+  },ms));
 
   /* Old index Home sync was globally hard-coded to 1518. From V49 onward the
      active Fleet State is the source of truth. */

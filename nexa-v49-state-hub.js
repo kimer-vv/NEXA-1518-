@@ -1,4 +1,4 @@
-/* NEXA V49.7 — CLEAN ADMIN DIRECTORY / LEGACY UI PURGE
+/* NEXA V49.8 — ADMIN DIRECTORY ONLY / LEGACY V25 HOST HARD-OFF
    NEW FILE: nexa-v49-state-hub.js
 
    Owns:
@@ -22,8 +22,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V497_STATE_HUB__) return;
-window.__NEXA_V497_STATE_HUB__=true;
+if(window.__NEXA_V498_STATE_HUB__) return;
+window.__NEXA_V498_STATE_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -170,10 +170,20 @@ function installCSS(){
     width:100%!important;
     min-height:220px!important
   }
-  #admin-permissions>.nexa-v25-host,
-  #admin-roles>.nexa-v25-host,
-  #admin-permissions>.nexa-v27-role-card,
-  #admin-roles>.nexa-v27-role-card{display:none!important}
+  #admin-permissions .nexa-v25-host,
+  #admin-roles .nexa-v25-host,
+  #admin-permissions .nexa-v25-panel,
+  #admin-roles .nexa-v25-panel,
+  #admin-permissions .nexa-v25-search,
+  #admin-roles .nexa-v25-search,
+  #admin-permissions .nexa-v25-access-results,
+  #admin-roles .nexa-v25-access-results,
+  #admin-permissions .nexa-v25-checks,
+  #admin-roles .nexa-v25-checks,
+  #admin-permissions .nexa-v27-role-card,
+  #admin-roles .nexa-v27-role-card{
+    display:none!important
+  }
   .nexa-v49-admin-host{min-height:220px}
   .nexa-v49-panel{border:1px solid rgba(132,95,255,.27);border-radius:18px;padding:14px;margin-bottom:11px;
     background:linear-gradient(145deg,rgba(14,19,46,.88),rgba(5,9,24,.94));color:#fff}
@@ -691,7 +701,7 @@ async function renderRoles(){
 
     host.innerHTML=`<section class="nexa-v49-panel">
       <div class="nexa-v49-heading"><h3>Operational Roles</h3><button class="nexa-v49-info" type="button" data-v49-info="ops">i</button></div>
-      <div class="nexa-v49-muted">Add members by Game ID.</div>
+      <div class="nexa-v49-muted">Each Operational Role automatically enables its corresponding NEXA tools. Add members by Game ID.</div>
 
       ${Object.entries(OP_LABELS).map(([key,label])=>`
         <div class="nexa-v49-role-section">
@@ -783,58 +793,43 @@ async function acceptPendingInviteIfAny(){
   }catch(_){}
 }
 
-function hideLegacyBlock(node){
-  if(!node || node.closest?.('.nexa-v49-admin-host'))return;
-  let cur=node;
-  for(let i=0;i<6&&cur&&cur!==document.body;i++,cur=cur.parentElement){
-    if(cur.closest?.('.nexa-v49-admin-host'))return;
-    const cls=String(cur.className||'');
-    const txt=String(cur.textContent||'').trim().replace(/\s+/g,' ');
-    if(
-      /(?:help|panel|card|role|search|access)/i.test(cls) &&
-      txt.length<1800
-    ){
-      cur.style.setProperty('display','none','important');
-      cur.setAttribute('aria-hidden','true');
-      return;
-    }
-  }
-  node.style?.setProperty?.('display','none','important');
-  node.setAttribute?.('aria-hidden','true');
-}
-
 function purgeLegacyAdminUI(){
   const modal=$('#admin-modal');if(!modal)return;
 
-  const phrases=[
+  [
+    '#admin-permissions .nexa-v25-host',
+    '#admin-roles .nexa-v25-host',
+    '#admin-permissions .nexa-v25-panel',
+    '#admin-roles .nexa-v25-panel',
+    '#admin-permissions .nexa-v25-search',
+    '#admin-roles .nexa-v25-search',
+    '#admin-permissions .nexa-v25-access-results',
+    '#admin-roles .nexa-v25-access-results',
+    '#admin-permissions .nexa-v25-checks',
+    '#admin-roles .nexa-v25-checks'
+  ].forEach(sel=>$$(sel,modal).forEach(el=>{
+    el.style.setProperty('display','none','important');
+    el.setAttribute('aria-hidden','true');
+  }));
+
+  const obsolete=[
     'Find a player and manage Operational Roles and module access from one place.',
-    'Alliance Rank is managed inside each Alliance Passport.'
+    "Alliance Rank is managed inside each Alliance Passport. Operational Roles describe a person's work in NEXA and never grant module access automatically."
   ];
-
   $$('*',modal).forEach(el=>{
     if(el.closest('.nexa-v49-admin-host'))return;
-    const txt=String(el.textContent||'').trim().replace(/\s+/g,' ');
-    if(!txt || txt.length>650)return;
-    if(phrases.some(p=>txt.includes(p)))hideLegacyBlock(el);
-  });
-
-  $$('input[placeholder="Search Player Name or Game ID"]',modal).forEach(input=>{
-    if(!input.closest('.nexa-v49-admin-host'))hideLegacyBlock(input);
-  });
-
-  $$('*',modal).forEach(el=>{
-    if(el.closest('.nexa-v49-admin-host'))return;
-    const txt=String(el.textContent||'').trim().replace(/\s+/g,' ');
-    if(
-      txt.length>80 && txt.length<1600 &&
-      txt.includes('Battle Strategist') &&
-      txt.includes('Event Operator') &&
-      txt.includes('Scheduler') &&
-      txt.includes('Transfer Coordinator') &&
-      txt.includes('Manage Access')
-    ){
-      hideLegacyBlock(el);
+    const txt=String(el.textContent||'').trim().replace(/\\s+/g,' ');
+    if(obsolete.includes(txt)){
+      el.style.setProperty('display','none','important');
+      el.setAttribute('aria-hidden','true');
     }
+  });
+
+  $$('input[placeholder="Search Player Name or Game ID"]',modal).forEach(el=>{
+    if(el.closest('.nexa-v49-admin-host'))return;
+    const holder=el.closest('.nexa-v25-host,.nexa-v25-panel,.setting-card,.card,.panel')||el;
+    holder.style.setProperty('display','none','important');
+    holder.setAttribute('aria-hidden','true');
   });
 }
 

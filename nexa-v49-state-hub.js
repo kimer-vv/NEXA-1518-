@@ -1,4 +1,4 @@
-/* NEXA V49.6 — VISUAL NEXA ACCESS + OPERATIONAL/BATTLE ROLE OWNER
+/* NEXA V49.7 — CLEAN ADMIN DIRECTORY / LEGACY UI PURGE
    NEW FILE: nexa-v49-state-hub.js
 
    Owns:
@@ -22,8 +22,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V496_STATE_HUB__) return;
-window.__NEXA_V496_STATE_HUB__=true;
+if(window.__NEXA_V497_STATE_HUB__) return;
+window.__NEXA_V497_STATE_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -691,7 +691,7 @@ async function renderRoles(){
 
     host.innerHTML=`<section class="nexa-v49-panel">
       <div class="nexa-v49-heading"><h3>Operational Roles</h3><button class="nexa-v49-info" type="button" data-v49-info="ops">i</button></div>
-      <div class="nexa-v49-muted">Each Operational Role automatically enables its corresponding NEXA tools. Add members by Game ID.</div>
+      <div class="nexa-v49-muted">Add members by Game ID.</div>
 
       ${Object.entries(OP_LABELS).map(([key,label])=>`
         <div class="nexa-v49-role-section">
@@ -783,9 +783,66 @@ async function acceptPendingInviteIfAny(){
   }catch(_){}
 }
 
+function hideLegacyBlock(node){
+  if(!node || node.closest?.('.nexa-v49-admin-host'))return;
+  let cur=node;
+  for(let i=0;i<6&&cur&&cur!==document.body;i++,cur=cur.parentElement){
+    if(cur.closest?.('.nexa-v49-admin-host'))return;
+    const cls=String(cur.className||'');
+    const txt=String(cur.textContent||'').trim().replace(/\s+/g,' ');
+    if(
+      /(?:help|panel|card|role|search|access)/i.test(cls) &&
+      txt.length<1800
+    ){
+      cur.style.setProperty('display','none','important');
+      cur.setAttribute('aria-hidden','true');
+      return;
+    }
+  }
+  node.style?.setProperty?.('display','none','important');
+  node.setAttribute?.('aria-hidden','true');
+}
+
+function purgeLegacyAdminUI(){
+  const modal=$('#admin-modal');if(!modal)return;
+
+  const phrases=[
+    'Find a player and manage Operational Roles and module access from one place.',
+    'Alliance Rank is managed inside each Alliance Passport.'
+  ];
+
+  $$('*',modal).forEach(el=>{
+    if(el.closest('.nexa-v49-admin-host'))return;
+    const txt=String(el.textContent||'').trim().replace(/\s+/g,' ');
+    if(!txt || txt.length>650)return;
+    if(phrases.some(p=>txt.includes(p)))hideLegacyBlock(el);
+  });
+
+  $$('input[placeholder="Search Player Name or Game ID"]',modal).forEach(input=>{
+    if(!input.closest('.nexa-v49-admin-host'))hideLegacyBlock(input);
+  });
+
+  $$('*',modal).forEach(el=>{
+    if(el.closest('.nexa-v49-admin-host'))return;
+    const txt=String(el.textContent||'').trim().replace(/\s+/g,' ');
+    if(
+      txt.length>80 && txt.length<1600 &&
+      txt.includes('Battle Strategist') &&
+      txt.includes('Event Operator') &&
+      txt.includes('Scheduler') &&
+      txt.includes('Transfer Coordinator') &&
+      txt.includes('Manage Access')
+    ){
+      hideLegacyBlock(el);
+    }
+  });
+}
+
 function refreshAdminOwners(){
+  purgeLegacyAdminUI();
   renderAdminAccess();
   renderRoles();
+  purgeLegacyAdminUI();
 }
 
 function scheduleAdminOwners(){
@@ -793,11 +850,13 @@ function scheduleAdminOwners(){
      Reclaim immediately after that user navigation and once after its transition.
      Finite event follow-up only: no observer and no polling. */
   [0,90,240].forEach(ms=>setTimeout(()=>{
+    purgeLegacyAdminUI();
     claimAdminSection('#admin-permissions');
     claimAdminSection('#admin-roles');
     relabelOperationalRolesUI();
     renderAdminAccess();
     renderRoles();
+    purgeLegacyAdminUI();
   },ms));
 }
 

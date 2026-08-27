@@ -1,4 +1,4 @@
-/* NEXA V47.26 — TRANSFER VISUAL SHELL ONLY / NO DOM REBUILD
+/* NEXA V47.27 — TRANSFER NEON GREEN / STRONGER GLOW
    COMPLETE REPLACEMENT for: nexa-v47-visual-assets.js
 
    Owns:
@@ -25,8 +25,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4726_CONTROL_HUB__) return;
-window.__NEXA_V4726_CONTROL_HUB__=true;
+if(window.__NEXA_V4727_CONTROL_HUB__) return;
+window.__NEXA_V4727_CONTROL_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -213,9 +213,34 @@ function installCSS(){
   }
 
   .nexa-v477-tech-card[data-nexa-tech="live"]{--tech:#ff4fc8;--tech-rgb:255,79,200}
-  .nexa-v477-tech-card[data-nexa-tech="transfer"]{--tech:#ff9d3d;--tech-rgb:255,157,61}
+  .nexa-v477-tech-card[data-nexa-tech="transfer"]{--tech:#35ff95;--tech-rgb:53,255,149}
   .nexa-v477-tech-card[data-nexa-tech="pulse"]{--tech:#39dfff;--tech-rgb:57,223,255}
   .nexa-v477-tech-card[data-nexa-tech="alliance"]{--tech:#a76cff;--tech-rgb:167,108,255}
+
+  .nexa-v477-tech-card[data-nexa-tech="transfer"]{
+    border-color:rgba(53,255,149,.74)!important;
+    box-shadow:
+      inset 0 0 0 1px rgba(255,255,255,.024),
+      inset 0 0 36px rgba(53,255,149,.10),
+      0 0 20px rgba(53,255,149,.22),
+      0 0 44px rgba(53,255,149,.12)!important
+  }
+  .nexa-v477-tech-card[data-nexa-tech="transfer"] > .nexa-v4711-left-accent{
+    width:4px!important;
+    height:52px!important;
+    box-shadow:
+      0 0 8px rgba(53,255,149,.95),
+      0 0 18px rgba(53,255,149,.72),
+      0 0 30px rgba(53,255,149,.26)!important
+  }
+  .nexa-v477-tech-card[data-nexa-tech="transfer"] > .nexa-v4711-top-accent{
+    width:58px!important;
+    height:3px!important;
+    box-shadow:
+      0 0 8px rgba(53,255,149,.98),
+      0 0 18px rgba(53,255,149,.74),
+      0 0 34px rgba(53,255,149,.30)!important
+  }
 
   /*
     V47.13: V44/V45.3 used .nexa-v453-home-card on both outer and inner Home nodes.
@@ -330,7 +355,7 @@ function installCSS(){
   #home-transfers-section.nexa-v4717-transfer-clean > .nexa-v4717-transfer-kicker{
     display:block!important;
     margin:0 0 6px!important;
-    color:#ffac61!important;
+    color:#79ffb9!important;
     font-size:10px!important;
     line-height:1!important;
     font-weight:950!important;
@@ -620,28 +645,29 @@ function lockTransferVisual(card){
   card.classList.add('nexa-v4717-transfer-clean','nexa-v477-tech-card');
   card.dataset.nexaTech='transfer';
 
-  card.style.setProperty('--nexa-card-rgb','255,157,61');
+  card.style.setProperty('--nexa-card-rgb','53,255,149');
   card.style.setProperty('position','relative','important');
   card.style.setProperty('overflow','hidden','important');
-  card.style.setProperty('border','1px solid rgba(255,157,61,.48)','important');
+  card.style.setProperty('border','1px solid rgba(53,255,149,.72)','important');
   card.style.setProperty('border-radius','20px','important');
   card.style.setProperty('padding','20px 24px 19px 26px','important');
   card.style.setProperty('margin','18px 0','important');
-  card.style.setProperty('box-shadow','inset 0 0 28px rgba(255,157,61,.045),0 0 18px rgba(255,157,61,.055)','important');
+  card.style.setProperty('box-shadow','inset 0 0 34px rgba(53,255,149,.12),0 0 24px rgba(53,255,149,.22),0 0 44px rgba(53,255,149,.10)','important');
 
   card.style.setProperty('background',`
     linear-gradient(180deg,
-      transparent 0%,rgba(255,157,61,.42) 12%,#ff9d3d 42%,#fff 50%,
-      #ff9d3d 58%,rgba(255,157,61,.42) 88%,transparent 100%
-    ) 0 18px / 3px 40px no-repeat,
+      transparent 0%,rgba(53,255,149,.42) 12%,#35ff95 42%,#fff 50%,
+      #35ff95 58%,rgba(53,255,149,.42) 88%,transparent 100%
+    ) 0 18px / 4px 52px no-repeat,
     linear-gradient(90deg,
-      transparent 0%,rgba(255,157,61,.42) 14%,#ff9d3d 38%,#fff 50%,
-      #ff9d3d 62%,rgba(255,157,61,.42) 86%,transparent 100%
-    ) 18px 0 / 46px 3px no-repeat,
-    linear-gradient(90deg,rgba(255,157,61,.12),rgba(255,157,61,0) 14px),
-    radial-gradient(circle at 25px 0,rgba(255,255,255,.17),transparent 43px),
-    radial-gradient(circle at 8% 12%,rgba(255,157,61,.10),transparent 34%),
-    linear-gradient(145deg,rgba(27,15,27,.97),rgba(14,12,27,.98))
+      transparent 0%,rgba(53,255,149,.42) 14%,#35ff95 38%,#fff 50%,
+      #35ff95 62%,rgba(53,255,149,.42) 86%,transparent 100%
+    ) 18px 0 / 58px 3px no-repeat,
+    linear-gradient(90deg,rgba(53,255,149,.13),rgba(53,255,149,0) 16px),
+    radial-gradient(circle at 25px 0,rgba(255,255,255,.18),transparent 43px),
+    radial-gradient(circle at 8% 12%,rgba(53,255,149,.12),transparent 34%),
+    radial-gradient(circle at 92% 76%,rgba(53,255,149,.08),transparent 35%),
+    linear-gradient(145deg,rgba(8,24,22,.98),rgba(3,11,20,.99))
   `,'important');
 
   const event=$('#home-transfer-events > .event',card);
@@ -671,7 +697,7 @@ function decorateCard(card,type){
 
   const palette={
     live:['255,79,200','#ff4fc8'],
-    transfer:['255,157,61','#ff9d3d'],
+    transfer:['53,255,149','#35ff95'],
     pulse:['57,223,255','#39dfff'],
     alliance:['167,108,255','#a76cff']
   }[type]||['155,99,255','#9b63ff'];

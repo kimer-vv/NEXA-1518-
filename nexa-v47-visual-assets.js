@@ -1,4 +1,4 @@
-/* NEXA V47.24 — TRANSFER SINGLE VISUAL OWNER / LEGACY INNER PAINTER OFF
+/* NEXA V47.25 — TRANSFER LEGACY SINK QUARANTINE / SINGLE LIVE OWNER
    COMPLETE REPLACEMENT for: nexa-v47-visual-assets.js
 
    Owns:
@@ -25,8 +25,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4724_CONTROL_HUB__) return;
-window.__NEXA_V4724_CONTROL_HUB__=true;
+if(window.__NEXA_V4725_CONTROL_HUB__) return;
+window.__NEXA_V4725_CONTROL_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -388,6 +388,21 @@ function installCSS(){
     z-index:30!important;
   }
 
+  #nexa-v47-transfer-legacy-sink-wrap{display:none!important}
+  #home #home-transfers-section #nexa-v47-transfer-events-owner{
+    display:block!important;width:100%!important;margin:0!important;padding:0!important;
+    border:0!important;background:transparent!important;box-shadow:none!important
+  }
+  #home #home-transfers-section .nexa-v47-transfer-item{
+    display:block!important;margin:0!important;padding:0!important;border:0!important;
+    border-radius:0!important;background:transparent!important;box-shadow:none!important;
+    overflow:visible!important
+  }
+  #home #home-transfers-section .nexa-v47-transfer-item::before,
+  #home #home-transfers-section .nexa-v47-transfer-item::after{
+    content:none!important;display:none!important
+  }
+
   /* Active information = signal breath/blink. Nothing active stays completely static. */
   .nexa-v477-tech-card[data-nexa-active="1"]{
     border-color:rgba(var(--tech-rgb),.90)!important;
@@ -613,19 +628,35 @@ function neutralizeV453(card){
   });
 }
 
-function neutralizeTransferInner(card){
-  if(!card)return;
-  const event=$('#home-transfer-events > .event',card);
-  const row=$('#home-transfer-events > .event > .event-row',card);
-  [event,row].filter(Boolean).forEach(el=>{
-    el.style.setProperty('border','0','important');
-    el.style.setProperty('background','transparent','important');
-    el.style.setProperty('box-shadow','none','important');
-    el.style.setProperty('margin','0','important');
-    el.style.setProperty('padding','0','important');
-    el.style.setProperty('border-radius','0','important');
-    el.style.setProperty('overflow','visible','important');
-  });
+function transferLegacySink(){
+  let wrap=$('#nexa-v47-transfer-legacy-sink-wrap');
+  if(!wrap){
+    wrap=document.createElement('div');
+    wrap.id='nexa-v47-transfer-legacy-sink-wrap';
+    wrap.setAttribute('aria-hidden','true');
+    document.body.appendChild(wrap);
+  }
+
+  let legacy=document.getElementById('home-transfer-events');
+  if(legacy && !wrap.contains(legacy))wrap.appendChild(legacy);
+  if(!legacy){
+    legacy=document.createElement('div');
+    legacy.id='home-transfer-events';
+    wrap.appendChild(legacy);
+  }
+  return legacy;
+}
+
+function transferOwner(card){
+  if(!card)return null;
+  transferLegacySink();
+  let owner=$('#nexa-v47-transfer-events-owner',card);
+  if(!owner){
+    owner=document.createElement('div');
+    owner.id='nexa-v47-transfer-events-owner';
+    card.appendChild(owner);
+  }
+  return owner;
 }
 
 function decorateCard(card,type){
@@ -639,7 +670,6 @@ function decorateCard(card,type){
   if(type==='transfer'){
     card.removeAttribute('style');
     card.classList.add('nexa-v4715-transfer-root');
-    neutralizeTransferInner(card);
     const inner=$(':scope > .glass',card);
     if(inner){
       inner.style.setProperty('border','0','important');
@@ -677,26 +707,36 @@ function ensureTransferCard(){
   const card=$('#home-transfers-section');
   if(!card)return null;
 
-  const alreadyOwned=
-    card.classList.contains('nexa-v4717-transfer-clean') &&
-    $(':scope > .nexa-v4717-transfer-kicker',card) &&
-    $('#home-transfer-events',card);
+  transferLegacySink();
 
-  if(!alreadyOwned){
-    card.className='section nexa-v4717-transfer-clean';
-    card.removeAttribute('style');
-    card.innerHTML=`
-      <span class="nexa-v4717-transfer-kicker">TRANSFERS</span>
-      <div id="home-transfer-events">
-        <article class="event">
-          <div class="event-row">
-            <div>
-              <h3>Transfer Center</h3>
-              <div class="muted">Transfer cycles and recruiting information will appear here when a transfer cycle is active.</div>
-            </div>
-          </div>
-        </article>
-      </div>`;
+  card.classList.add('nexa-v4717-transfer-clean');
+  card.removeAttribute('style');
+
+  let kicker=$(':scope > .nexa-v4717-transfer-kicker',card);
+  if(!kicker){
+    kicker=document.createElement('span');
+    kicker.className='nexa-v4717-transfer-kicker';
+    kicker.textContent='TRANSFERS';
+    card.prepend(kicker);
+  }
+
+  Array.from(card.children).forEach(ch=>{
+    if(ch===kicker)return;
+    if(ch.id==='nexa-v47-transfer-events-owner')return;
+    if(ch.classList?.contains('nexa-v4711-left-accent'))return;
+    if(ch.classList?.contains('nexa-v4711-top-accent'))return;
+    if(ch.classList?.contains('nexa-v477-card-icon'))return;
+    ch.remove();
+  });
+
+  const owner=transferOwner(card);
+  if(owner && !owner.dataset.nexaInit){
+    owner.dataset.nexaInit='1';
+    owner.innerHTML=`
+      <article class="nexa-v47-transfer-item">
+        <h3>Transfer Center</h3>
+        <div class="muted">Transfer cycles and recruiting information will appear here when a transfer cycle is active.</div>
+      </article>`;
   }
 
   return card;
@@ -705,7 +745,6 @@ function ensureTransferCard(){
 function decorateHomeCards(){
   decorateCard($('#home-svs-section'),'live');
   const transferCard=ensureTransferCard();
-  neutralizeTransferInner(transferCard);
   decorateCard(transferCard,'transfer');
 
   const nodes=$$('h1,h2,h3,h4,strong,b');
@@ -745,6 +784,7 @@ function applyIdentityHooks(){
 --------------------------------------------------------- */
 
 function applyVisuals(){
+  transferLegacySink();
   installCSS();
   applyIdentityHooks();
   installHeaderBrand();

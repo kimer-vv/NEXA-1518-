@@ -1,4 +1,4 @@
-/* NEXA V47.13 — HOME CARD OWNER / INLINE ACCENTS + LEGACY V45.3 NEUTRALIZED
+/* NEXA V47.14 — HOME CARD OWNER / TRANSFER TOP ACCENT HARD FIX
    COMPLETE REPLACEMENT for: nexa-v47-visual-assets.js
 
    Owns:
@@ -25,8 +25,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4713_CONTROL_HUB__) return;
-window.__NEXA_V4713_CONTROL_HUB__=true;
+if(window.__NEXA_V4714_CONTROL_HUB__) return;
+window.__NEXA_V4714_CONTROL_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -240,6 +240,22 @@ function installCSS(){
      directly into the card background so Safari cannot lose them behind inner cards. */
   .nexa-v4711-left-accent,
   .nexa-v4711-top-accent{display:none!important}
+
+  /* V47.14: Transfer gets a dedicated real top accent above every legacy layer. */
+  #home-transfers-section{position:relative!important}
+  #home-transfers-section .nexa-v4714-transfer-top{
+    position:absolute!important;
+    z-index:2147482000!important;
+    left:18px!important;
+    top:0!important;
+    width:44px!important;
+    height:2px!important;
+    display:block!important;
+    pointer-events:none!important;
+    border-radius:999px!important;
+    background:linear-gradient(90deg,transparent,rgba(255,154,69,.45),rgba(255,154,69,1),#fff,rgba(255,154,69,1),rgba(255,154,69,.45),transparent)!important;
+    box-shadow:0 0 7px rgba(255,154,69,.95),0 0 16px rgba(255,154,69,.55)!important
+  }
 
   /*
     V47.11 accent ownership:
@@ -538,6 +554,16 @@ function neutralizeV453(card){
   });
 }
 
+function ensureTransferTop(card,type){
+  if(!card||type!=='transfer')return;
+  let el=card.querySelector(':scope > .nexa-v4714-transfer-top');
+  if(!el){
+    el=document.createElement('span');
+    el.className='nexa-v4714-transfer-top';
+    card.appendChild(el);
+  }
+}
+
 function decorateCard(card,type){
   if(!card)return;
   removeOldDecor(card);
@@ -546,6 +572,7 @@ function decorateCard(card,type){
   card.classList.add('nexa-v477-tech-card');
   card.dataset.nexaTech=type;
   ensureCardAccents(card);
+  ensureTransferTop(card,type);
 
   const palette={
     live:['255,79,200','#ff4fc8'],

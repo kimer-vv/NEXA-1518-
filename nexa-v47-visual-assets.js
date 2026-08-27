@@ -1,4 +1,4 @@
-/* NEXA V47.12 — HOME CARD OWNER / REAL ACCENTS + COLOR-LOCKED BORDERS
+/* NEXA V47.13 — HOME CARD OWNER / INLINE ACCENTS + LEGACY V45.3 NEUTRALIZED
    COMPLETE REPLACEMENT for: nexa-v47-visual-assets.js
 
    Owns:
@@ -25,8 +25,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4712_CONTROL_HUB__) return;
-window.__NEXA_V4712_CONTROL_HUB__=true;
+if(window.__NEXA_V4713_CONTROL_HUB__) return;
+window.__NEXA_V4713_CONTROL_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -216,6 +216,30 @@ function installCSS(){
   .nexa-v477-tech-card[data-nexa-tech="transfer"]{--tech:#ff9d3d;--tech-rgb:255,157,61}
   .nexa-v477-tech-card[data-nexa-tech="pulse"]{--tech:#39dfff;--tech-rgb:57,223,255}
   .nexa-v477-tech-card[data-nexa-tech="alliance"]{--tech:#a76cff;--tech-rgb:167,108,255}
+
+  /*
+    V47.13: V44/V45.3 used .nexa-v453-home-card on both outer and inner Home nodes.
+    That second visual owner is why Transfer kept its old long orange line while Live lost
+    its line. V47 is now the only Home-card visual owner.
+  */
+  #home .nexa-v453-home-card::before,
+  #home .nexa-v453-home-card::after{
+    content:none!important;
+    display:none!important
+  }
+  #home .nexa-v453-home-card{
+    --nexa-tech:transparent!important
+  }
+  #home .nexa-v477-tech-card .nexa-v453-home-card{
+    border:0!important;
+    background:transparent!important;
+    box-shadow:none!important
+  }
+
+  /* Old DOM accent spans are intentionally hidden. V47.13 paints the two accents
+     directly into the card background so Safari cannot lose them behind inner cards. */
+  .nexa-v4711-left-accent,
+  .nexa-v4711-top-accent{display:none!important}
 
   /*
     V47.11 accent ownership:
@@ -492,9 +516,32 @@ function ensureCardAccents(card){
   }
 }
 
+
+function v4713CardBackground(rgb){
+  return [
+    `linear-gradient(180deg,transparent 0%,rgba(${rgb},.45) 12%,rgba(${rgb},1) 42%,#fff 50%,rgba(${rgb},1) 58%,rgba(${rgb},.45) 88%,transparent 100%) 0 18px / 3px 40px no-repeat`,
+    `linear-gradient(90deg,transparent,rgba(${rgb},.40),rgba(${rgb},1),#fff,rgba(${rgb},1),rgba(${rgb},.40),transparent) 18px 0 / 42px 2px no-repeat`,
+    `linear-gradient(90deg,rgba(${rgb},.12),rgba(${rgb},0) 14px)`,
+    `radial-gradient(circle at 24px 0px,rgba(255,255,255,.16),transparent 42px)`,
+    `radial-gradient(circle at 8% 12%,rgba(${rgb},.10),transparent 34%)`,
+    `radial-gradient(circle at 91% 76%,rgba(${rgb},.06),transparent 37%)`,
+    `linear-gradient(145deg,rgba(10,17,42,.96),rgba(3,8,24,.98))`
+  ].join(',');
+}
+
+function neutralizeV453(card){
+  if(!card)return;
+  const old=['nexa-v453-home-card','nexa-v453-live','nexa-v453-transfer','nexa-v453-pulse','nexa-v453-alliance','nexa-v453-has-info'];
+  card.classList.remove(...old);
+  $$('*',card).forEach(el=>{
+    if(old.some(c=>el.classList?.contains(c)))el.classList.remove(...old);
+  });
+}
+
 function decorateCard(card,type){
   if(!card)return;
   removeOldDecor(card);
+  neutralizeV453(card);
 
   card.classList.add('nexa-v477-tech-card');
   card.dataset.nexaTech=type;
@@ -510,6 +557,7 @@ function decorateCard(card,type){
   card.style.setProperty('--tech-rgb',palette[0],'important');
   card.style.setProperty('--tech',palette[1],'important');
   card.style.setProperty('border-color',`rgba(${palette[0]},.54)`,'important');
+  card.style.setProperty('background',v4713CardBackground(palette[0]),'important');
   ensureCardAccents(card);
 
   $$(':scope > .nexa-v477-card-icon',card).forEach(x=>x.remove());

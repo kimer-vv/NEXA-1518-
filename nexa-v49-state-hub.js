@@ -1,4 +1,4 @@
-/* NEXA V49.12 — LEGACY ADMIN QUARANTINE + OWNER SECTIONS / TRANSFER OWNER TARGET
+/* NEXA V49.13 — ADMIN OWNER CONTENT FIX / LEGACY SECTIONS QUARANTINED
    NEW FILE: nexa-v49-state-hub.js
 
    Owns:
@@ -22,8 +22,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V4912_STATE_HUB__) return;
-window.__NEXA_V4912_STATE_HUB__=true;
+if(window.__NEXA_V4913_STATE_HUB__) return;
+window.__NEXA_V4913_STATE_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -186,8 +186,10 @@ function installCSS(){
   }
   .nexa-v49-admin-host{min-height:220px}
   .nexa-v49-legacy-quarantine{display:none!important}
-  .nexa-v49-owner-section{display:none!important}
-  .nexa-v49-owner-section.nexa-v49-owner-active{display:block!important}
+  #admin-modal #admin-permissions.nexa-v49-legacy-quarantine,
+  #admin-modal #admin-roles.nexa-v49-legacy-quarantine{display:none!important}
+  #admin-modal.nexa-v25-admin .nexa-v49-owner-section{display:none!important}
+  #admin-modal.nexa-v25-admin .nexa-v49-owner-section.nexa-v49-owner-active.nexa-v25-active{display:block!important}
   .nexa-v49-owner-nav{
     position:sticky;top:0;z-index:70;display:grid;grid-template-columns:1fr auto 1fr;
     gap:8px;align-items:center;padding:9px 0 13px;
@@ -286,10 +288,10 @@ function liveEmpty(st){
   if(count)count.textContent='—';
 }
 function transferEmpty(st){
-  let host=$('#nexa-v47-transfer-events-owner');
-  if(!host){refreshHomeVisualOwner();host=$('#nexa-v47-transfer-events-owner')}
+  let host=$('#home-transfer-events');
+  if(!host){refreshHomeVisualOwner();host=$('#home-transfer-events')}
   if(!host)return;
-  host.innerHTML=`<article class="nexa-v47-transfer-item"><h3>Transfer Center</h3><div class="muted">Transfer cycles and recruiting information for State ${esc(st)} will appear here when active.</div></article>`;
+  host.innerHTML=`<article class="event"><div class="event-row"><div><h3>Transfer Center</h3><div class="muted">Transfer cycles and recruiting information for State ${esc(st)} will appear here when active.</div></div></article>`;
 }
 async function syncStateHome(){
   const st=activeState();if(!st)return;
@@ -318,11 +320,11 @@ async function syncStateHome(){
       if(count)count.textContent='LIVE';
     }else liveEmpty(st);
 
-    const host=$('#nexa-v47-transfer-events-owner');
+    const host=$('#home-transfer-events');
     if(host){
       if(trans){
         const status=String(trans.status||'upcoming').replace(/_/g,' ').toUpperCase();
-        host.innerHTML=`<article class="nexa-v47-transfer-item"><h3>${esc(trans.title||'Transfer Center')}</h3><div class="muted">State ${esc(st)} • ${esc(status)}${trans.applications_open?' • Applications Open':''}</div></article>`;
+        host.innerHTML=`<article class="event"><div class="event-row"><div><h3>${esc(trans.title||'Transfer Center')}</h3><div class="muted">State ${esc(st)} • ${esc(status)}${trans.applications_open?' • Applications Open':''}</div></div></article>`;
       }else transferEmpty(st);
     }
     refreshHomeVisualOwner();
@@ -585,23 +587,6 @@ function ownerSection(sectionId){
   return owner;
 }
 
-function ownerNav(kind){
-  const access=kind==='access';
-  const left=access
-    ? `<button type="button" class="nexa-v25-arrow" data-v49-owner-library>← L</button>`
-    : `<button type="button" class="nexa-v25-arrow" data-v49-owner-section="access">← N</button>`;
-  const right=access
-    ? `<button type="button" class="nexa-v25-arrow" data-v49-owner-section="roles">R →</button>`
-    : `<button type="button" class="nexa-v25-arrow" data-v49-owner-system>S →</button>`;
-  const label=access?'NEXA Access':'Operational Roles';
-  const guide=access?'access':'ops';
-  return `<nav class="nexa-v49-owner-nav">
-    <span class="left">${left}</span>
-    <div class="title"><span>${label}</span><button class="nexa-v49-info" type="button" data-v49-info="${guide}">i</button></div>
-    <span class="right">${right}</span>
-  </nav>`;
-}
-
 function showOwnerSection(kind){
   const accessOwner=ownerSection('#admin-permissions');
   const rolesOwner=ownerSection('#admin-roles');
@@ -616,7 +601,9 @@ function showOwnerSection(kind){
   [accessOwner,rolesOwner].filter(Boolean).forEach(el=>{
     const on=(kind==='access'&&el===accessOwner)||(kind==='roles'&&el===rolesOwner);
     el.classList.toggle('nexa-v49-owner-active',on);
+    el.classList.toggle('nexa-v25-active',on);
     el.classList.toggle('hidden',!on);
+    el.style.setProperty('display',on?'block':'none','important');
   });
 
   const modal=$('#admin-modal');
@@ -628,7 +615,6 @@ function showOwnerSection(kind){
 function adminHost(sectionId){
   const kind=sectionId==='#admin-permissions'?'access':'roles';
   const section=ownerSection(sectionId);if(!section)return null;
-  if(!$(':scope>.nexa-v49-owner-nav',section))section.insertAdjacentHTML('afterbegin',ownerNav(kind));
   let host=$(':scope>.nexa-v49-admin-host',section);
   if(!host){
     host=document.createElement('div');
@@ -1030,6 +1016,8 @@ function bind(){
 async function boot(){
   ownerSection('#admin-permissions');
   ownerSection('#admin-roles');
+  renderAdminAccess();
+  renderRoles();
   if(booted)return;booted=true;
   installCSS();
   try{await restoreActiveContext()}catch(e){console.warn('[NEXA V49] restore',e?.message||e)}

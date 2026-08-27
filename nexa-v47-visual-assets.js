@@ -1,4 +1,4 @@
-/* NEXA V47.22 — HOME TRANSFER FINAL SIGNAL ACCENTS
+/* NEXA V47.23 — UNIFIED HOME CARD OWNER / TRANSFER SAME SIGNAL PATH
    COMPLETE REPLACEMENT for: nexa-v47-visual-assets.js
 
    Owns:
@@ -25,8 +25,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4722_CONTROL_HUB__) return;
-window.__NEXA_V4722_CONTROL_HUB__=true;
+if(window.__NEXA_V4723_CONTROL_HUB__) return;
+window.__NEXA_V4723_CONTROL_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -314,197 +314,50 @@ function installCSS(){
   }
 
 
-  /* V47.17 — Home Transfer is rebuilt from zero. Old inner .glass/.events markup no longer owns visuals. */
+  /* V47.23 — Transfer keeps only content/layout ownership here.
+     The exact same .nexa-v477-tech-card + .nexa-v4711-* visual path
+     used by Live/Pulse/Alliance now owns its border and two signal glows. */
   #home-transfers-section.nexa-v4717-transfer-clean{
     display:block!important;
     position:relative!important;
     margin:18px 0!important;
     padding:20px 24px 19px 26px!important;
     min-height:0!important;
-    border:1px solid rgba(255,157,61,.54)!important;
     border-radius:20px!important;
     overflow:hidden!important;
-    isolation:isolate!important;
-    background:
-      linear-gradient(
-        180deg,
-        transparent 0%,
-        rgba(255,157,61,.45) 12%,
-        rgba(255,157,61,1) 42%,
-        #fff 50%,
-        rgba(255,157,61,1) 58%,
-        rgba(255,157,61,.45) 88%,
-        transparent 100%
-      ) 0 18px / 3px 40px no-repeat,
-      linear-gradient(
-        90deg,
-        transparent,
-        rgba(255,157,61,.40),
-        rgba(255,157,61,1),
-        #fff,
-        rgba(255,157,61,1),
-        rgba(255,157,61,.40),
-        transparent
-      ) 18px 0 / 42px 2px no-repeat,
-      linear-gradient(90deg,rgba(255,157,61,.12),rgba(255,157,61,0) 14px),
-      radial-gradient(circle at 24px 0px,rgba(255,255,255,.16),transparent 42px),
-      radial-gradient(circle at 8% 12%,rgba(255,157,61,.10),transparent 34%),
-      radial-gradient(circle at 91% 76%,rgba(255,157,61,.06),transparent 37%),
-      linear-gradient(145deg,rgba(27,15,27,.97),rgba(14,12,27,.98))!important;
-    box-shadow:
-      inset 0 0 0 1px rgba(255,255,255,.018),
-      inset 0 1px 0 rgba(255,157,61,.16),
-      inset 0 0 28px rgba(255,157,61,.035),
-      0 0 14px rgba(255,157,61,.10)!important
+    isolation:isolate!important
   }
-  #home-transfers-section.nexa-v4717-transfer-clean > .head,
-  #home-transfers-section.nexa-v4717-transfer-clean > .glass,
-  #home-transfers-section.nexa-v4717-transfer-clean > .nexa-transfer-home-actions{
-    display:none!important
-  }
-  #home-transfers-section .nexa-v4717-transfer-kicker{
+  #home-transfers-section.nexa-v4717-transfer-clean > .nexa-v4717-transfer-kicker{
     display:block!important;
-    margin:0 0 5px!important;
-    color:#ffb36d!important;
-    font-size:12px!important;
-    line-height:1.15!important;
+    margin:0 0 6px!important;
+    color:#ffac61!important;
+    font-size:10px!important;
+    line-height:1!important;
     font-weight:950!important;
     letter-spacing:.18em!important
   }
-  #home-transfers-section #home-transfer-events{
+  #home-transfers-section.nexa-v4717-transfer-clean #home-transfer-events,
+  #home-transfers-section.nexa-v4717-transfer-clean #home-transfer-events .event,
+  #home-transfers-section.nexa-v4717-transfer-clean #home-transfer-events .event-row{
     display:block!important;
+    width:100%!important;
+    max-width:none!important;
+    min-height:0!important;
+    height:auto!important;
     margin:0!important;
     padding:0!important;
     border:0!important;
+    border-radius:0!important;
     background:transparent!important;
     box-shadow:none!important
   }
-  #home-transfers-section #home-transfer-events article,
-  #home-transfers-section #home-transfer-events .event{
-    display:block!important;
-    margin:0!important;
-    padding:0!important;
-    border:0!important;
-    background:transparent!important;
-    box-shadow:none!important
+  #home-transfers-section.nexa-v4717-transfer-clean h3{
+    margin:0 0 5px!important;
+    color:#fff!important
   }
-  #home-transfers-section #home-transfer-events .event-row{
-    display:block!important;
-    margin:0!important;
-    padding:0!important
-  }
-  #home-transfers-section #home-transfer-events h3{
-    margin:0 0 6px!important;
-    color:#fff!important;
-    font-size:27px!important;
-    line-height:1.06!important;
-    font-weight:950!important;
-    letter-spacing:-.02em!important
-  }
-  #home-transfers-section #home-transfer-events .muted{
-    margin:0!important;
-    color:#c9c9d6!important;
-    font-size:16px!important;
-    line-height:1.35!important;
-    font-weight:650!important
-  }
-  #home-transfers-section .nexa-v4717-left,
-  #home-transfers-section .nexa-v4717-top{
-    left:18px!important;
-    top:-1px!important;
-    width:42px!important;
-    height:2px!important;
-    border-radius:999px!important;
-    background:linear-gradient(
-      90deg,
-      transparent,
-      rgba(255,157,61,.40),
-      rgba(255,157,61,1),
-      #fff,
-      rgba(255,157,61,1),
-      rgba(255,157,61,.40),
-      transparent
-    )!important;
-    box-shadow:
-      0 0 5px rgba(255,157,61,.95),
-      0 0 12px rgba(255,157,61,.58),
-      0 0 22px rgba(255,157,61,.20)!important;
-    opacity:1!important
-  }
-  #home-transfers-section .nexa-v4717-left{
-    left:-1px!important;
-    top:18px!important;
-    width:3px!important;
-    height:40px!important;
-    border-radius:0 999px 999px 0!important;
-    background:linear-gradient(
-      180deg,
-      transparent 0%,
-      rgba(255,157,61,.45) 12%,
-      rgba(255,157,61,1) 42%,
-      #fff 50%,
-      rgba(255,157,61,1) 58%,
-      rgba(255,157,61,.45) 88%,
-      transparent 100%
-    )!important;
-    box-shadow:
-      0 0 5px rgba(255,157,61,.92),
-      0 0 12px rgba(255,157,61,.54),
-      0 0 20px rgba(255,157,61,.24)!important;
-    opacity:.98!important
-  }
-  #home-transfers-section .nexa-v4717-top{
-    left:18px!important;
-    top:0!important;
-    width:54px!important;
-    height:3px!important;
-    border-radius:999px!important;
-    background:linear-gradient(
-      90deg,
-      transparent 0%,
-      rgba(255,157,61,.52) 16%,
-      #ff9d3d 38%,
-      #fff 50%,
-      #ff9d3d 62%,
-      rgba(255,157,61,.52) 84%,
-      transparent 100%
-    )!important;
-    box-shadow:
-      0 0 4px rgba(255,255,255,.92),
-      0 0 9px rgba(255,157,61,1),
-      0 0 18px rgba(255,157,61,.70),
-      0 0 30px rgba(255,157,61,.28)!important;
-    filter:brightness(1.24) saturate(1.10)!important;
-    transform:translateZ(0)!important;
-    opacity:1!important
-  }
-
-  /* V47.22 — Transfer-only final accent owner. */
-  #home #home-transfers-section.nexa-v4717-transfer-clean::before,
-  #home #home-transfers-section.nexa-v4717-transfer-clean::after{
-    content:""!important;
-    display:block!important;
-    position:absolute!important;
-    pointer-events:none!important;
-    z-index:30!important;
-  }
-  #home #home-transfers-section.nexa-v4717-transfer-clean::before{
-    left:18px!important;
-    top:-1px!important;
-    width:42px!important;
-    height:2px!important;
-    border-radius:999px!important;
-    background:linear-gradient(90deg,transparent,rgba(255,157,61,.40),#ff9d3d,#fff,#ff9d3d,rgba(255,157,61,.40),transparent)!important;
-    box-shadow:0 0 5px rgba(255,157,61,.98),0 0 12px rgba(255,157,61,.74),0 0 22px rgba(255,157,61,.32)!important;
-  }
-  #home #home-transfers-section.nexa-v4717-transfer-clean::after{
-    left:-1px!important;
-    top:18px!important;
-    width:3px!important;
-    height:40px!important;
-    border-radius:0 999px 999px 0!important;
-    background:linear-gradient(180deg,transparent 0%,rgba(255,157,61,.45) 12%,#ff9d3d 42%,#fff 50%,#ff9d3d 58%,rgba(255,157,61,.45) 88%,transparent 100%)!important;
-    box-shadow:0 0 5px rgba(255,157,61,.98),0 0 12px rgba(255,157,61,.72),0 0 20px rgba(255,157,61,.28)!important;
+  #home-transfers-section.nexa-v4717-transfer-clean .muted{
+    color:#c0c4d4!important;
+    line-height:1.35!important
   }
 
   /* Active information = signal breath/blink. Nothing active stays completely static. */
@@ -778,48 +631,37 @@ function decorateCard(card,type){
 
 function ensureTransferCard(){
   const card=$('#home-transfers-section');
-  if(!card)return;
+  if(!card)return null;
 
   const alreadyOwned=
     card.classList.contains('nexa-v4717-transfer-clean') &&
-    $(':scope > .nexa-v4717-left',card) &&
-    $(':scope > .nexa-v4717-top',card) &&
     $(':scope > .nexa-v4717-transfer-kicker',card) &&
     $('#home-transfer-events',card);
 
-  /* Do not rebuild a healthy Transfer card on every refresh.
-     That repeated innerHTML replacement caused the visible "flash" and allowed
-     async Home/state painters to appear to retake ownership. */
-  if(alreadyOwned){
-    card.dataset.nexaTech='transfer';
-    return;
+  if(!alreadyOwned){
+    card.className='section nexa-v4717-transfer-clean';
+    card.removeAttribute('style');
+    card.innerHTML=`
+      <span class="nexa-v4717-transfer-kicker">TRANSFERS</span>
+      <div id="home-transfer-events">
+        <article class="event">
+          <div class="event-row">
+            <div>
+              <h3>Transfer Center</h3>
+              <div class="muted">Transfer cycles and recruiting information will appear here when a transfer cycle is active.</div>
+            </div>
+          </div>
+        </article>
+      </div>`;
   }
 
-  /* Legacy/foreign markup detected: reclaim Transfer once, preserving the
-     stable outer #home-transfers-section data hook used by State Hub. */
-  card.className='section nexa-v4717-transfer-clean';
-  card.removeAttribute('style');
-  card.dataset.nexaTech='transfer';
-
-  card.innerHTML=`
-    <span class="nexa-v4717-left" aria-hidden="true"></span>
-    <span class="nexa-v4717-top" aria-hidden="true"></span>
-    <span class="nexa-v4717-transfer-kicker">TRANSFERS</span>
-    <div id="home-transfer-events">
-      <article class="event">
-        <div class="event-row">
-          <div>
-            <h3>Transfer Center</h3>
-            <div class="muted">Transfer cycles and recruiting information will appear here when a transfer cycle is active.</div>
-          </div>
-        </div>
-      </article>
-    </div>`;
+  return card;
 }
 
 function decorateHomeCards(){
   decorateCard($('#home-svs-section'),'live');
-  ensureTransferCard();
+  const transferCard=ensureTransferCard();
+  decorateCard(transferCard,'transfer');
 
   const nodes=$$('h1,h2,h3,h4,strong,b');
   RULES.forEach(rule=>{

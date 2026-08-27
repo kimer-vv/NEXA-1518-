@@ -1,23 +1,23 @@
-/* NEXA V48.2 — PROFILE CLEANUP + HERO GEAR 20 + SAFE IN-PLACE SAVE
+/* NEXA V48.3 — PROFILE CLEANUP + CONTINUOUS MASTERY + SINGLE BATTLE DATA
    COMPLETE REPLACEMENT for: nexa-v48-profile-tools.js
 
    Extends stable V33.6 without taking Profile ownership.
    Includes:
    - cleaner Profile tool layout
-   - category MAXED multi-select + automatic ✓ MAX badges
+   - category MAX multi-select + automatic ✓ MAX badges
    - fixed Apply Max persistence
    - Chief Gear MAX selector uses Red T6 visuals
    - Charms MAX selector uses Lv18 charm visuals
    - Rally Capacity + Deployment Capacity
-   - Main March Hero Gear: MAXED / CUSTOM with collapsed troop selectors
-   - Second March Hero Gear: MAXED / CUSTOM / NONE with collapsed troop selectors
-   - CUSTOM Hero Gear stores 3 troop-type sets x 4 gear slots
+   - Main March Hero Gear: MAXED / CUSTOM with continuous Mastery 0–20
+   - Second March Hero Gear: MAXED / CUSTOM / NONE with continuous Mastery 0–20
+   - Empowerment appears only for Legendary / Red Hero Gear
    - no MutationObserver, no manual scrollLeft, no touchmove preventDefault
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V482_PROFILE_TOOLS__) return;
-window.__NEXA_V482_PROFILE_TOOLS__=true;
+if(window.__NEXA_V483_PROFILE_TOOLS__) return;
+window.__NEXA_V483_PROFILE_TOOLS__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -105,15 +105,10 @@ function injectCSS(){
   }
   .v48-max-badge:before{content:"✓ ";}
 
-  /* Clean header helpers: Guide sits beside Ministry when both exist. */
-  #nexa-profile-modal .v481-header-actions{
-    display:inline-flex!important;gap:6px!important;align-items:center!important;vertical-align:middle!important
-  }
-  #nexa-profile-modal .v481-guide-mini{
-    width:38px!important;height:38px!important;min-width:38px!important;padding:0!important;border-radius:50%!important;
-    display:grid!important;place-items:center!important;border:1px solid rgba(255,76,218,.65)!important;
-    background:rgba(30,8,43,.55)!important;color:#ff79df!important;box-shadow:0 0 12px rgba(255,74,218,.16)!important
-  }
+  /* Profile header cleanup: Guide removed; Edit stays compact beside account identity. */
+  #nexa-profile-modal #nexa-v425-profile-actions .nexa-v425-guide,
+  #nexa-profile-modal [data-nexa-profile-guide],
+  #nexa-profile-modal #nexa-profile-guide{display:none!important}
   #nexa-profile-modal .v481-edit-mini{
     display:inline-flex!important;align-items:center!important;gap:4px!important;padding:5px 8px!important;
     min-height:27px!important;border-radius:999px!important;font-size:8px!important;
@@ -142,21 +137,21 @@ function injectCSS(){
   }
   .v48-msg{min-height:18px;margin-top:9px;text-align:center;color:#8fe8ff;font-size:9px}
 
-  .v48-list{display:grid;gap:8px;margin-top:15px}
+  .v48-list{display:grid;gap:7px;margin-top:13px}
   .v48-select-row{
-    display:grid;grid-template-columns:22px 54px minmax(0,1fr);gap:10px;align-items:center;
-    min-height:64px;padding:8px 10px;border-radius:16px;border:1px solid rgba(111,130,188,.17);
-    background:rgba(4,9,24,.55)
+    display:grid;grid-template-columns:20px 44px minmax(0,1fr);gap:9px;align-items:center;
+    min-height:54px;padding:7px 9px;border-radius:14px;border:1px solid rgba(111,130,188,.18);
+    background:linear-gradient(145deg,rgba(7,13,31,.70),rgba(3,8,22,.58))
   }
-  .v48-select-row input{width:18px;height:18px;margin:0;accent-color:#73e7ff}
-  .v48-select-row .visual{width:52px;height:52px;display:grid;place-items:center;position:relative}
-  .v48-select-row .visual>img{max-width:52px;max-height:52px;width:100%;height:100%;object-fit:contain;border-radius:11px;background:rgba(255,255,255,.03)}
+  .v48-select-row input{width:17px;height:17px;margin:0;accent-color:#73e7ff}
+  .v48-select-row .visual{width:42px;height:42px;display:grid;place-items:center;position:relative}
+  .v48-select-row .visual>img{max-width:42px;max-height:42px;width:100%;height:100%;object-fit:contain;border-radius:9px;background:rgba(255,255,255,.025)}
   .v48-select-row .visual.charm-trio{display:flex;align-items:center;justify-content:center;gap:2px}
   .v48-select-row .visual.charm-trio img{
-    width:20px;height:35px;object-fit:contain;border-radius:6px;background:rgba(255,255,255,.025)
+    width:16px;height:30px;object-fit:contain;border-radius:6px;background:rgba(255,255,255,.025)
   }
-  .v48-select-row b{display:block;font-size:12px}
-  .v48-select-row small{display:block;color:#8793b5;font-size:8px;margin-top:3px;line-height:1.35}
+  .v48-select-row b{display:block;font-size:11px}
+  .v48-select-row small{display:block;color:#8793b5;font-size:7px;margin-top:3px;line-height:1.35}
 
   .v48-actions{display:flex;gap:8px;margin-top:16px}
   .v48-actions button{
@@ -427,48 +422,63 @@ function ensureTools(){
   if(!$('#v48-category-tools')){
     const x=document.createElement('div');
     x.id='v48-category-tools';
-    x.innerHTML=`<button type="button" class="v48-category-max" data-v48-category-max>✓ MAXED <span class="info">i</span></button>`;
+    x.innerHTML=`<button type="button" class="v48-category-max" data-v48-category-max>✓ MAX <span class="info">i</span></button>`;
     filters.before(x);
   }
   organizeHeader();
 }
 
-function findGuideButton(modal){
-  const direct=$('.nexa-v425-guide',modal)||$('[data-nexa-profile-guide]',modal)||$('#nexa-profile-guide',modal);
-  if(direct)return direct;
-  const actionRoot=$('#nexa-v425-profile-actions',modal);
-  if(!actionRoot)return null;
-  return $$('button',actionRoot).find(b=>{
-    if(b.id==='nexa-v425-ministry')return false;
-    const s=[b.textContent,b.title,b.getAttribute('aria-label'),b.className].join(' ').toLowerCase();
-    return /guide|help|info|nexa-v425-guide/.test(s) || !!$('svg',b);
-  })||null;
+function removeGuide(modal){
+  if(!modal)return;
+  [
+    $('.nexa-v425-guide',modal),
+    $('[data-nexa-profile-guide]',modal),
+    $('#nexa-profile-guide',modal)
+  ].filter(Boolean).forEach(x=>x.remove());
+
+  const actions=$('#nexa-v425-profile-actions',modal);
+  if(actions){
+    $$('button',actions).forEach(b=>{
+      if(b.id!=='nexa-v425-ministry')b.remove();
+    });
+    if(!actions.children.length)actions.remove();
+  }
+}
+
+function hideLegacyDeploymentEditor(){
+  const value=accountData?.deployment_capacity;
+  $$('input,select,textarea').forEach(input=>{
+    if(input.closest('#v48-overlay'))return;
+    const key=[
+      input.id,input.name,input.getAttribute('data-field'),input.getAttribute('aria-label'),
+      input.placeholder
+    ].filter(Boolean).join(' ').toLowerCase();
+    if(!/deployment/.test(key))return;
+
+    if(value!=null && 'value' in input) input.value=String(value);
+    const row=input.closest('label,.field,.form-field,.form-group,.nexa-field,.nexa-profile-field,.nexa-edit-field,.input-group')||input.parentElement;
+    if(row){
+      row.style.display='none';
+      row.setAttribute('data-v483-hidden-deployment','1');
+    }else{
+      input.style.display='none';
+      input.setAttribute('data-v483-hidden-deployment','1');
+    }
+  });
+
+  $$('label').forEach(label=>{
+    if(label.closest('#v48-overlay'))return;
+    if(/deployment\s*capacity/i.test(label.textContent||'')){
+      const row=label.closest('.field,.form-field,.form-group,.nexa-field,.nexa-profile-field,.nexa-edit-field')||label;
+      row.style.display='none';
+      row.setAttribute('data-v483-hidden-deployment','1');
+    }
+  });
 }
 
 function organizeHeader(){
   const modal=$('#nexa-profile-modal');if(!modal)return;
-  const ministry=$('#nexa-v425-ministry',modal);
-  const guide=findGuideButton(modal);
-
-  if(ministry&&guide){
-    let wrap=$('.v481-header-actions',modal);
-    if(!wrap){
-      wrap=document.createElement('span');
-      wrap.className='v481-header-actions';
-      ministry.parentNode?.insertBefore(wrap,ministry);
-      wrap.appendChild(ministry);
-    }else if(ministry.parentElement!==wrap){
-      wrap.appendChild(ministry);
-    }
-    guide.classList.add('v481-guide-mini');
-    if(guide.parentElement!==wrap)wrap.appendChild(guide);
-
-    const old=$('#nexa-v425-profile-actions',modal);
-    if(old&&old!==wrap){
-      const visible=$$('button',old).filter(x=>x!==guide&&x!==ministry);
-      if(!visible.length)old.style.display='none';
-    }
-  }
+  removeGuide(modal);
 
   const edit=$('#nexa-profile-edit-btn',modal)||$('.nexa-profile-edit-btn',modal);
   const mainChip=[...$$('*',modal)].find(el=>el.children.length===0&&/MAIN ACCOUNT/i.test(el.textContent||''));
@@ -494,13 +504,14 @@ function decorateBadges(){
   });
 }
 function scheduleRefresh(ms=180){
-  setTimeout(async()=>{await refreshData();ensureTools();decorateBadges();organizeHeader()},ms);
+  setTimeout(async()=>{await refreshData();ensureTools();decorateBadges();organizeHeader();hideLegacyDeploymentEditor()},ms);
 }
 async function repaintProfileInPlace(){
   await refreshData();
   ensureTools();
   decorateBadges();
   organizeHeader();
+  hideLegacyDeploymentEditor();
   const modal=$('#nexa-profile-modal');
   if(modal){
     modal.classList.remove('hidden');
@@ -520,7 +531,7 @@ function overlay(kicker,title,help,body,actions=''){
 }
 
 function openMaxInfo(){
-  overlay('PROFILE SHORTCUT','Maxed Selection',
+  overlay('PROFILE SHORTCUT','Max Selection',
     'Select only the items you actually have fully maxed. NEXA fills the real saved levels and upgrades.',
     `<div class="v48-confirm-note">The ✓ MAX marker is calculated from the saved values. If you later lower an upgrade, the marker disappears automatically.</div>`,
     `<div class="v48-actions"><button class="v48-apply" data-v48-close>GOT IT</button></div>`);
@@ -538,7 +549,7 @@ async function openCategoryMax(){
       <span><b>${esc(name)}</b><small>${esc(subtitle(i,cat))}</small></span>
     </label>`;
   }).join('');
-  overlay('MAXED SELECTION',CATS[cat]?.label||cat.toUpperCase(),
+  overlay('MAX SELECTION',CATS[cat]?.label||cat.toUpperCase(),
     'Choose the items that are fully maxed, then apply. Existing non-maxed items are not changed.',
     `<div class="v48-list">${rows||'<p class="v48-help">No items available.</p>'}</div>`,
     `<div class="v48-actions"><button class="v48-cancel" data-v48-close>CANCEL</button><button class="v48-apply" data-v48-apply-cat="${esc(cat)}">APPLY MAX</button></div>`);
@@ -631,7 +642,7 @@ function normalizeGearSet(raw){
     base[t][k]={
       quality:p.quality==='Legendary'?'Legendary':'Mythic',
       enhancement:clamp(p.enhancement,0,100),
-      mastery:clamp(p.mastery,0,p.quality==='Legendary'?20:10),
+      mastery:clamp(p.mastery,0,20),
       empowerment:p.quality==='Legendary'?([0,20,40,60,80,100].includes(Number(p.empowerment))?Number(p.empowerment):(Number(p.empowerment)<=5?Number(p.empowerment)*20:clamp(p.empowerment,0,100))):0
     };
   }));
@@ -679,8 +690,8 @@ function heroGearPieceHTML(setName,t,k,label,p){
         <option value="Legendary" ${legendary?'selected':''}>Legendary (Red)</option>
       </select></div>
       <div class="v48-gear-cell"><label>ENHANCEMENT</label><select data-v48-hg-enhancement>${nOptions(100,p.enhancement)}</select></div>
-      <div class="v48-gear-cell"><label>MASTERY</label><select data-v48-hg-mastery>${nOptions(legendary?20:10,p.mastery)}</select></div>
-      <div class="v48-gear-cell"><label>EMPOWERMENT</label><select data-v48-hg-empowerment ${legendary?'':'disabled'}>${empowermentOptions(legendary?p.empowerment:0)}</select></div>
+      <div class="v48-gear-cell"><label>MASTERY</label><select data-v48-hg-mastery>${nOptions(20,p.mastery)}</select></div>
+      <div class="v48-gear-cell" data-v48-empower-cell ${legendary?'':'hidden'}><label>EMPOWERMENT</label><select data-v48-hg-empowerment ${legendary?'':'disabled'}>${empowermentOptions(legendary?p.empowerment:0)}</select></div>
     </div><div class="v48-buff-note" data-v48-buff-preview>${esc(expeditionEmpowerText(t,k,p.empowerment))}</div></div>
   </div>`;
 }
@@ -733,7 +744,7 @@ async function openBattle(){
         <button type="button" class="v48-toggle ${mainMode==='maxed'?'active':''}" data-v48-set-mode="main:maxed">MAXED</button>
         <button type="button" class="v48-toggle ${mainMode==='custom'?'active':''}" data-v48-set-mode="main:custom">CUSTOM</button>
       </div>
-      <small>MAXED = all 12 pieces at current endgame maximum. CUSTOM lets you enter each piece.</small>
+      <small>Mastery stays 0–20 for Gold or Red. Empowerment appears only on Legendary / Red gear.</small>
       <div data-v48-set-body="main">${mainMode==='custom'?customGearChooserHTML('main',hg.main.data):''}</div>
     </div>
 
@@ -764,7 +775,7 @@ function captureOpenGearEditor(setName){
     battleDraft[setName].data[t][k]={
       quality,
       enhancement:clamp($('[data-v48-hg-enhancement]',row)?.value,0,100),
-      mastery:clamp($('[data-v48-hg-mastery]',row)?.value,0,quality==='Legendary'?20:10),
+      mastery:clamp($('[data-v48-hg-mastery]',row)?.value,0,20),
       empowerment:quality==='Legendary'?Number($('[data-v48-hg-empowerment]',row)?.value||0):0
     };
   });
@@ -814,7 +825,7 @@ async function saveBattle(){
     const old=normalizeHeroGear(accountData.hero_gear||{});
     const hero_gear={
       ...old,
-      version:'v48.2',
+      version:'v48.3',
       main:{mode:mainMode,data:mainMode==='maxed'?maxHeroGearSet():collectGearSet('main')},
       second:{
         mode:secondMode,
@@ -844,12 +855,14 @@ function refreshMasteryControl(row){
   const q=$('[data-v48-hg-quality]',row)?.value||'Mythic';
   const m=$('[data-v48-hg-mastery]',row),e=$('[data-v48-hg-empowerment]',row);
   if(m){
-    const cur=clamp(m.value,0,q==='Legendary'?20:10);
-    m.innerHTML=nOptions(q==='Legendary'?20:10,cur);
+    const cur=clamp(m.value,0,20);
+    m.innerHTML=nOptions(20,cur);
   }
   if(e){
     e.disabled=q!=='Legendary';
     if(q!=='Legendary')e.value='0';
+    const cell=e.closest('[data-v48-empower-cell]');
+    if(cell)cell.hidden=q!=='Legendary';
   }
   const rowKey=String(row.dataset.v48Piece||'').split(':');
   const preview=$('[data-v48-buff-preview]',row);
@@ -858,6 +871,10 @@ function refreshMasteryControl(row){
 
 document.addEventListener('click',e=>{
   if(e.target.closest?.('[data-v48-close]')||e.target.id==='v48-overlay'){closeOverlay();return}
+
+  if(e.target.closest?.('#nexa-profile-edit-btn,.nexa-profile-edit-btn')){
+    [40,140,320,700].forEach(ms=>setTimeout(hideLegacyDeploymentEditor,ms));
+  }
 
   const cm=e.target.closest?.('[data-v48-category-max]');
   if(cm){
@@ -911,7 +928,7 @@ window.addEventListener('pageshow',()=>scheduleRefresh(300));
 async function boot(){
   injectCSS();
   await refreshData();
-  [80,250,600,1200,2200].forEach(ms=>setTimeout(()=>{ensureTools();decorateBadges()},ms));
+  [80,250,600,1200,2200].forEach(ms=>setTimeout(()=>{ensureTools();decorateBadges();organizeHeader();hideLegacyDeploymentEditor()},ms));
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 

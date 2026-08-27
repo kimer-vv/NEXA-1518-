@@ -1,4 +1,4 @@
-/* NEXA V49.4 — SINGLE-OWNER ADMIN ACCESS + OPERATIONAL/BATTLE MEMBER LISTS
+/* NEXA V49.5 — STATE HOME HANDOFF + STABLE OPERATIONAL/BATTLE ROLE OWNERS
    NEW FILE: nexa-v49-state-hub.js
 
    Owns:
@@ -22,8 +22,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V494_STATE_HUB__) return;
-window.__NEXA_V494_STATE_HUB__=true;
+if(window.__NEXA_V495_STATE_HUB__) return;
+window.__NEXA_V495_STATE_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -186,6 +186,9 @@ function installCSS(){
   .nexa-v49-role-section{border:1px solid rgba(125,95,255,.24);border-radius:17px;padding:12px;margin-top:10px;background:rgba(7,13,31,.78)}
   .nexa-v49-role-section-head{display:flex;align-items:center;justify-content:space-between;gap:9px;margin-bottom:8px}
   .nexa-v49-role-section-head h4{margin:0;font-size:.98rem}
+  #admin-roles>.nexa-v49-admin-host{display:block!important;width:100%!important}
+  #admin-roles>.nexa-v49-admin-host .nexa-v49-panel{display:block!important}
+  #admin-roles>.nexa-v49-admin-host .nexa-v49-role-section{display:block!important}
   .nexa-v49-member-list{display:grid;gap:8px}
   .nexa-v49-member-card{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px;border:1px solid rgba(255,255,255,.09);border-radius:14px;background:#081027}
   .nexa-v49-member-avatar{width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid rgba(111,199,255,.55);background:#101733}
@@ -203,6 +206,10 @@ function installCSS(){
   @media(max-width:560px){.nexa-v49-rolegrid{grid-template-columns:1fr}.nexa-v49-searchrow{grid-template-columns:1fr}.nexa-v49-actions{display:grid}}
   `;
   document.head.appendChild(s);
+}
+
+function refreshHomeVisualOwner(){
+  try{window.NEXA_HOME_VISUALS_REFRESH?.()}catch(_){}
 }
 
 function updateStateLabels(st=activeState()){
@@ -235,11 +242,14 @@ function liveEmpty(st){
   if(count)count.textContent='—';
 }
 function transferEmpty(st){
-  const host=$('#home-transfer-events');if(!host)return;
+  let host=$('#home-transfer-events');
+  if(!host){refreshHomeVisualOwner();host=$('#home-transfer-events')}
+  if(!host)return;
   host.innerHTML=`<article class="event"><div class="event-row"><div><h3>Transfer Center</h3><div class="muted">Transfer cycles and recruiting information for State ${esc(st)} will appear here when active.</div></div></div></article>`;
 }
 async function syncStateHome(){
   const st=activeState();if(!st)return;
+  refreshHomeVisualOwner();
   updateStateLabels(st);
   const c=sb();if(!c)return;
   try{
@@ -249,6 +259,7 @@ async function syncStateHome(){
       if(t)t.textContent='State Hub Setup Incomplete';
       if(m)m.textContent=`State ${st} needs one additional admin confirmation before full activation.`;
       transferEmpty(st);
+      refreshHomeVisualOwner();
       return;
     }
     const [{data:live,error:le},{data:trans,error:te}]=await Promise.all([
@@ -270,6 +281,7 @@ async function syncStateHome(){
         host.innerHTML=`<article class="event"><div class="event-row"><div><h3>${esc(trans.title||'Transfer Center')}</h3><div class="muted">State ${esc(st)} • ${esc(status)}${trans.applications_open?' • Applications Open':''}</div></div></div></article>`;
       }else transferEmpty(st);
     }
+    refreshHomeVisualOwner();
   }catch(err){console.warn('[NEXA V49] state home',err?.message||err)}
 }
 
@@ -746,8 +758,25 @@ function refreshAdminOwners(){
   renderRoles();
 }
 
+function scheduleAdminOwners(){
+  /* Administration legacy code can repaint its tab content when the modal/tab
+     opens. Reclaim only after those explicit UI actions; no observer/polling. */
+  [0,120,360].forEach(ms=>setTimeout(()=>{
+    relabelOperationalRolesUI();
+    renderAdminAccess();
+    renderRoles();
+  },ms));
+}
+
 function bind(){
   document.addEventListener('click',async e=>{
+    const adminOwnerTrigger=e.target.closest?.(
+      '[data-admin-tab="roles"],[data-admin-tab="permissions"],'+
+      '[data-admin-tab="access"],[data-admin-section="roles"],'+
+      '[data-admin-section="permissions"],[data-open-admin],#open-admin'
+    );
+    if(adminOwnerTrigger) scheduleAdminOwners();
+
     const emblemButton=e.target.closest?.('[data-v25-emblems]');
     if(emblemButton){
       e.preventDefault();
@@ -817,7 +846,7 @@ function bind(){
   });
 
   window.addEventListener('nexa:active-state-changed',()=>{
-    syncStateHome();accountFormForState();refreshAdminOwners();
+    syncStateHome();accountFormForState();scheduleAdminOwners();
   });
   window.addEventListener('pageshow',()=>setTimeout(syncStateHome,100));
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncStateHome()});
@@ -838,6 +867,7 @@ async function boot(){
   renderAdminAccess();
   renderRoles();
   relabelOperationalRolesUI();
+  scheduleAdminOwners();
 
   /* Old index Home sync was globally hard-coded to 1518. From V49 onward the
      active Fleet State is the source of truth. */

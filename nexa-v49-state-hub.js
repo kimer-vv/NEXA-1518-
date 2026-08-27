@@ -1,4 +1,4 @@
-/* NEXA V49.8 — ADMIN DIRECTORY ONLY / LEGACY V25 HOST HARD-OFF
+/* NEXA V49.9 — ADMIN DIRECTORY CLEAN INTRO OWNER
    NEW FILE: nexa-v49-state-hub.js
 
    Owns:
@@ -22,8 +22,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V498_STATE_HUB__) return;
-window.__NEXA_V498_STATE_HUB__=true;
+if(window.__NEXA_V499_STATE_HUB__) return;
+window.__NEXA_V499_STATE_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -816,17 +816,21 @@ function purgeLegacyAdminUI(){
     'Find a player and manage Operational Roles and module access from one place.',
     "Alliance Rank is managed inside each Alliance Passport. Operational Roles describe a person's work in NEXA and never grant module access automatically."
   ];
+
   $$('*',modal).forEach(el=>{
-    if(el.closest('.nexa-v49-admin-host'))return;
-    const txt=String(el.textContent||'').trim().replace(/\\s+/g,' ');
-    if(obsolete.includes(txt)){
-      el.style.setProperty('display','none','important');
-      el.setAttribute('aria-hidden','true');
-    }
+    const txt=String(el.textContent||'').trim().replace(/\s+/g,' ');
+    if(!obsolete.includes(txt))return;
+
+    const holder=
+      el.closest('.nexa-v25-panel,.nexa-v27-role-card,.setting-card,.module-action-card,.glass,.card,.panel')||
+      el.parentElement||
+      el;
+
+    holder.style.setProperty('display','none','important');
+    holder.setAttribute('aria-hidden','true');
   });
 
   $$('input[placeholder="Search Player Name or Game ID"]',modal).forEach(el=>{
-    if(el.closest('.nexa-v49-admin-host'))return;
     const holder=el.closest('.nexa-v25-host,.nexa-v25-panel,.setting-card,.card,.panel')||el;
     holder.style.setProperty('display','none','important');
     holder.setAttribute('aria-hidden','true');

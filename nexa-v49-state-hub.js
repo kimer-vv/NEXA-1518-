@@ -1,4 +1,4 @@
-/* NEXA V49.3 — ADMIN ACCESS / OPERATIONAL ROLES / BATTLE ROLES / ALLIANCE EMBLEMS
+/* NEXA V49.4 — SINGLE-OWNER ADMIN ACCESS + OPERATIONAL/BATTLE MEMBER LISTS
    NEW FILE: nexa-v49-state-hub.js
 
    Owns:
@@ -22,8 +22,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V493_STATE_HUB__) return;
-window.__NEXA_V493_STATE_HUB__=true;
+if(window.__NEXA_V494_STATE_HUB__) return;
+window.__NEXA_V494_STATE_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -161,7 +161,7 @@ function installCSS(){
     background:rgba(70,34,10,.28);color:#ffd2ac;font-size:.78rem;line-height:1.45}
 
   /* The old Administration host remains intact but is no longer the owner of Access/Roles. */
-  #admin-permissions>.nexa-v25-host,#admin-roles>.nexa-v25-host{display:none!important}
+  #admin-permissions .nexa-v25-host,#admin-roles .nexa-v25-host{display:none!important}
   .nexa-v49-admin-host{min-height:220px}
   .nexa-v49-panel{border:1px solid rgba(132,95,255,.27);border-radius:18px;padding:14px;margin-bottom:11px;
     background:linear-gradient(145deg,rgba(14,19,46,.88),rgba(5,9,24,.94));color:#fff}
@@ -183,6 +183,17 @@ function installCSS(){
   .nexa-v49-rolegrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:10px}
   .nexa-v49-rolecard{border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:11px;background:#081027}
   .nexa-v49-rolecard h4{font-size:.88rem}.nexa-v49-copyrow{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:10px 0}
+  .nexa-v49-role-section{border:1px solid rgba(125,95,255,.24);border-radius:17px;padding:12px;margin-top:10px;background:rgba(7,13,31,.78)}
+  .nexa-v49-role-section-head{display:flex;align-items:center;justify-content:space-between;gap:9px;margin-bottom:8px}
+  .nexa-v49-role-section-head h4{margin:0;font-size:.98rem}
+  .nexa-v49-member-list{display:grid;gap:8px}
+  .nexa-v49-member-card{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px;border:1px solid rgba(255,255,255,.09);border-radius:14px;background:#081027}
+  .nexa-v49-member-avatar{width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid rgba(111,199,255,.55);background:#101733}
+  .nexa-v49-member-copy{min-width:0}
+  .nexa-v49-member-copy b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .nexa-v49-member-copy small{display:block;margin-top:2px;color:#8f9ab8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .nexa-v49-addmember{border:1px solid rgba(82,215,255,.34);border-radius:10px;padding:8px 10px;background:#0d1c39;color:#9beaff;font-size:.72rem;font-weight:900;white-space:nowrap}
+  .nexa-v49-empty{padding:12px;border:1px dashed rgba(140,150,200,.18);border-radius:12px;color:#7f8ba9;text-align:center;font-size:.77rem}
   .nexa-v49-emblem-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
   .nexa-v49-emblem{position:relative;aspect-ratio:1;border:1px solid rgba(255,255,255,.13);border-radius:15px;background:#081027;padding:7px;display:grid;place-items:center;overflow:hidden}
   .nexa-v49-emblem img{width:100%;height:100%;object-fit:contain}
@@ -480,10 +491,32 @@ async function selectStateAccount(st){
 }
 
 async function adminSearch(query){
-  return await rpc('nexa_search_state_players',{p_state:activeState(),p_query:String(query||'')})||[];
+  return await rpc('nexa_search_state_players_v2',{p_state:activeState(),p_query:String(query||'')})||[];
 }
+function memberAvatar(p){
+  return String(p?.profile_photo_url||'').trim() ||
+    `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(String(p?.in_game_name||'NEXA'))}`;
+}
+function memberMeta(p){
+  return [p?.alliance_tag||'No Alliance',p?.alliance_role||'—',p?.player_id?`ID ${p.player_id}`:''].filter(Boolean).join(' • ');
+}
+function memberCard(p,removeAttrs=''){
+  return `<div class="nexa-v49-member-card">
+    <img class="nexa-v49-member-avatar" src="${esc(memberAvatar(p))}" alt="">
+    <div class="nexa-v49-member-copy"><b>${esc(p.in_game_name||'Player')}</b><small>${esc(memberMeta(p))}</small></div>
+    ${removeAttrs?`<button class="nexa-v49-x" ${removeAttrs} title="Remove">×</button>`:''}
+  </div>`;
+}
+function claimAdminSection(sectionId){
+  const section=$(sectionId);if(!section)return;
+  Array.from(section.children).forEach(ch=>{
+    if(!ch.classList?.contains('nexa-v49-admin-host'))ch.style.setProperty('display','none','important');
+  });
+}
+
 function adminHost(sectionId){
   const section=$(sectionId);if(!section)return null;
+  claimAdminSection(sectionId);
   let host=$(':scope>.nexa-v49-admin-host',section);
   if(!host){host=document.createElement('div');host.className='nexa-v49-admin-host';section.appendChild(host)}
   return host;
@@ -548,17 +581,21 @@ async function openAllianceEmblemPicker(allianceId){
 }
 
 function infoDialog(kind){
-  if(kind==='ops'){
+  if(kind==='access'){
+    dialog(`<button class="nexa-v49-close" type="button">×</button><h3>NEXA Access</h3>
+      <p>NEXA Access controls who can open and manage Administration for this State Hub.</p>
+      <div class="nexa-v49-warning">Administrative Access does not assign Operational Roles or Battle Roles. Those are managed separately.</div>`);
+  }else if(kind==='ops'){
     dialog(`<button class="nexa-v49-close" type="button">×</button><h3>Operational Roles</h3>
-      <p><b>Battle Strategy</b> — access to battle-strategy tools and strategy configuration.</p>
-      <p><b>Battle Planning</b> — access to team planning, Team Builder and battle assignments.</p>
-      <p><b>Ministry Scheduler</b> — access to Ministry scheduling tools.</p>
-      <p><b>Transfer</b> — access to Transfer management tools.</p>
-      <div class="nexa-v49-warning">Operational Roles grant access to the tools related to that role. Administrative Access is managed separately in NEXA Access.</div>`);
+      <p><b>Battle Strategy</b> — strategy tools and battle configuration.</p>
+      <p><b>Battle Planning</b> — Battle Planning, Team Builder and assignments.</p>
+      <p><b>Ministry Scheduler</b> — Ministry scheduling tools.</p>
+      <p><b>Transfer</b> — Transfer management tools.</p>
+      <div class="nexa-v49-warning">Assigning an Operational Role automatically enables the tools connected to that responsibility. NEXA Access is separate.</div>`);
   }else{
     dialog(`<button class="nexa-v49-close" type="button">×</button><h3>Battle Roles</h3>
-      <p><b>Rally Lead</b> and <b>Joiner</b> classify how a player participates in battle.</p>
-      <div class="nexa-v49-warning">Battle Roles do not grant Administrative Access. They are used by Forms, Battle Planning / Team Builder and battle assignments.</div>`);
+      <p><b>Rally Lead</b> and <b>Joiner</b> classify how players participate in battle and are used by Forms, Battle Planning / Team Builder and assignments.</p>
+      <div class="nexa-v49-warning">Battle Roles do not grant Administrative Access.</div>`);
   }
 }
 
@@ -566,15 +603,18 @@ async function renderAdminAccess(){
   const host=adminHost('#admin-permissions');if(!host)return;
   host.innerHTML='<div class="nexa-v49-panel">Loading Administrative Access…</div>';
   try{
-    const admins=await rpc('nexa_list_state_admins',{p_state:activeState()})||[];
+    const admins=await rpc('nexa_list_state_admins_v2',{p_state:activeState()})||[];
     host.innerHTML=`<section class="nexa-v49-panel">
-      <h3>Administrative Access</h3>
-      <div class="nexa-v49-muted">Grant or remove Administrative Access for State ${esc(activeState())}. This access is separate from Operational and Battle Roles.</div>
-      <div class="nexa-v49-searchrow"><input id="v49-admin-search" placeholder="Search IGN or Game ID"><button data-v49-find-admin>SEARCH</button></div>
+      <div class="nexa-v49-heading"><h3>NEXA Access</h3><button class="nexa-v49-info" type="button" data-v49-info="access">i</button></div>
+      <div class="nexa-v49-muted">Grant or remove Administrative Access to NEXA Administration for State ${esc(activeState())}. Operational Roles and Battle Roles are managed separately.</div>
+      <div class="nexa-v49-searchrow"><input id="v49-admin-search" inputmode="numeric" placeholder="Search Game ID"><button data-v49-find-admin>SEARCH</button></div>
       <div id="v49-admin-results"></div>
     </section>
-    <section class="nexa-v49-panel"><h4>Current State Hub Admins</h4>
-      <div id="v49-admin-list">${admins.map(a=>`<div class="nexa-v49-person"><div><b>${esc(a.in_game_name||'Admin')}</b><small>ID ${esc(a.player_id||'—')} • ${esc(a.alliance_tag||'No Alliance')} • ${esc(String(a.admin_kind||'admin').toUpperCase())}</small></div>${a.admin_kind==='founder'?'':`<button class="nexa-v49-x" title="Remove Administrative Access" data-v49-revoke-admin="${esc(a.user_id)}">×</button>`}</div>`).join('')||'<div class="nexa-v49-muted">No administrators found.</div>'}</div>
+    <section class="nexa-v49-panel">
+      <h4>Current Administrators</h4>
+      <div class="nexa-v49-member-list">
+        ${admins.map(a=>memberCard(a,a.admin_kind==='founder'?'':`data-v49-revoke-admin="${esc(a.user_id)}"`)).join('')||'<div class="nexa-v49-empty">No administrators found.</div>'}
+      </div>
     </section>`;
   }catch(e){host.innerHTML=`<div class="nexa-v49-panel">${esc(e.message||String(e))}</div>`}
 }
@@ -583,7 +623,7 @@ async function findAdminCandidate(){
   const out=$('#v49-admin-results',host);if(!out)return;
   try{
     const rows=await adminSearch(q);
-    out.innerHTML=rows.map(p=>`<div class="nexa-v49-person"><div><b>${esc(p.in_game_name)}</b><small>ID ${esc(p.player_id)} • ${esc(p.alliance_tag||'No Alliance')}</small></div><button class="nexa-v49-mini" data-v49-grant-admin="${esc(p.player_id)}">GRANT</button></div>`).join('')||'<div class="nexa-v49-muted">No matching player in this State Hub.</div>';
+    out.innerHTML=rows.map(p=>`<div class="nexa-v49-member-card"><img class="nexa-v49-member-avatar" src="${esc(memberAvatar(p))}" alt=""><div class="nexa-v49-member-copy"><b>${esc(p.in_game_name)}</b><small>${esc(memberMeta(p))}</small></div><button class="nexa-v49-mini" data-v49-grant-admin="${esc(p.player_id)}">GRANT</button></div>`).join('')||'<div class="nexa-v49-empty">No matching player in this State Hub.</div>';
   }catch(e){out.textContent=e.message||String(e)}
 }
 
@@ -595,31 +635,50 @@ const OP_LABELS={
 };
 async function renderRoles(){
   const host=adminHost('#admin-roles');if(!host)return;
-  host.innerHTML='<div class="nexa-v49-panel">Loading State Roles…</div>';
+  host.innerHTML='<div class="nexa-v49-panel">Loading Operational Roles…</div>';
   try{
     const [ops,battle,players]=await Promise.all([
-      rpc('nexa_list_state_operational_roles',{p_state:activeState()}),
-      rpc('nexa_list_state_battle_roles',{p_state:activeState()}),
+      rpc('nexa_list_state_operational_roles_v2',{p_state:activeState()}),
+      rpc('nexa_list_state_battle_roles_v2',{p_state:activeState()}),
       adminSearch('')
     ]);
     const byRole={};Object.keys(OP_LABELS).forEach(k=>byRole[k]=[]);
     (ops||[]).forEach(x=>(byRole[x.role]||=[]).push(x));
     const alliances=[...new Set((players||[]).map(x=>x.alliance_tag).filter(Boolean))].sort();
     host.dataset.v49Battle=JSON.stringify(battle||[]);
+
     host.innerHTML=`<section class="nexa-v49-panel">
       <div class="nexa-v49-heading"><h3>Operational Roles</h3><button class="nexa-v49-info" type="button" data-v49-info="ops">i</button></div>
-      <div class="nexa-v49-muted">Assign a responsibility once. Each Operational Role automatically enables the tools connected to that responsibility.</div>
-      <div class="nexa-v49-searchrow"><input id="v49-op-player" placeholder="IGN or Game ID"><select id="v49-op-role">${Object.entries(OP_LABELS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></div>
-      <div class="nexa-v49-actions"><button class="nexa-v49-primary" data-v49-add-op>ADD OPERATIONAL ROLE</button></div>
-      <div class="nexa-v49-rolegrid">${Object.entries(OP_LABELS).map(([k,label])=>`<div class="nexa-v49-rolecard"><h4>${label}</h4>${(byRole[k]||[]).map(p=>`<div class="nexa-v49-person"><div><b>${esc(p.in_game_name||'Player')}</b><small>ID ${esc(p.player_id||'—')}</small></div><button class="nexa-v49-x" data-v49-remove-op="${esc(p.player_id)}" data-role="${k}">×</button></div>`).join('')||'<div class="nexa-v49-muted">No players assigned.</div>'}</div>`).join('')}</div>
+      <div class="nexa-v49-muted">Each Operational Role automatically enables its corresponding NEXA tools. Add members by Game ID.</div>
+
+      ${Object.entries(OP_LABELS).map(([key,label])=>`
+        <div class="nexa-v49-role-section">
+          <div class="nexa-v49-role-section-head">
+            <h4>${label}</h4>
+            <button class="nexa-v49-addmember" type="button" data-v49-role-add="${key}">+ ADD MEMBER</button>
+          </div>
+          <div class="nexa-v49-member-list">
+            ${(byRole[key]||[]).map(p=>memberCard(p,`data-v49-remove-op="${esc(p.player_id)}" data-role="${key}"`)).join('')||'<div class="nexa-v49-empty">No members assigned.</div>'}
+          </div>
+        </div>`).join('')}
     </section>
+
     <section class="nexa-v49-panel">
       <div class="nexa-v49-heading"><h3>Battle Roles</h3><button class="nexa-v49-info" type="button" data-v49-info="battle">i</button></div>
-      <div class="nexa-v49-muted">Rally Lead and Joiner classifications for Forms, Battle Planning and team assignments.</div>
-      <div class="nexa-v49-searchrow"><input id="v49-battle-player" placeholder="IGN or Game ID"><select id="v49-battle-role"><option value="rally_lead">Rally Lead</option><option value="joiner">Joiner</option></select></div>
-      <div class="nexa-v49-actions"><button class="nexa-v49-primary" data-v49-add-battle>ADD BATTLE ROLE</button></div>
-      <div class="nexa-v49-copyrow"><select id="v49-battle-alliance"><option value="">All Alliances</option>${alliances.map(a=>`<option value="${esc(a)}">${esc(a)}</option>`).join('')}</select><select id="v49-battle-view-role"><option value="rally_lead">Rally Leads</option><option value="joiner">Joiners</option></select><button class="nexa-v49-mini" data-v49-copy-battle>COPY</button></div>
-      <div id="v49-battle-list"></div>
+      <div class="nexa-v49-muted">Rally Lead and Joiner classifications for Forms, Battle Planning / Team Builder and battle assignments.</div>
+      <div class="nexa-v49-copyrow">
+        <select id="v49-battle-alliance"><option value="">All Alliances</option>${alliances.map(a=>`<option value="${esc(a)}">${esc(a)}</option>`).join('')}</select>
+        <button class="nexa-v49-mini" data-v49-copy-battle>COPY</button>
+      </div>
+
+      <div class="nexa-v49-role-section">
+        <div class="nexa-v49-role-section-head"><h4>Rally Lead</h4><button class="nexa-v49-addmember" type="button" data-v49-battle-add="rally_lead">+ ADD MEMBER</button></div>
+        <div id="v49-battle-rally-list" class="nexa-v49-member-list"></div>
+      </div>
+      <div class="nexa-v49-role-section">
+        <div class="nexa-v49-role-section-head"><h4>Joiner</h4><button class="nexa-v49-addmember" type="button" data-v49-battle-add="joiner">+ ADD MEMBER</button></div>
+        <div id="v49-battle-joiner-list" class="nexa-v49-member-list"></div>
+      </div>
     </section>`;
     renderBattleList();
   }catch(e){host.innerHTML=`<div class="nexa-v49-panel">${esc(e.message||String(e))}</div>`}
@@ -628,17 +687,41 @@ function renderBattleList(){
   const host=adminHost('#admin-roles');if(!host)return;
   let rows=[];try{rows=JSON.parse(host.dataset.v49Battle||'[]')}catch{}
   const alliance=$('#v49-battle-alliance',host)?.value||'';
-  const role=$('#v49-battle-view-role',host)?.value||'rally_lead';
-  const filtered=rows.filter(x=>x.role===role&&(!alliance||String(x.alliance_tag||'')===alliance));
-  const out=$('#v49-battle-list',host);if(!out)return;
-  if(alliance){
-    out.innerHTML=filtered.map(p=>`<div class="nexa-v49-person"><div><b>${esc(p.in_game_name)}</b><small>${esc(p.alliance_tag||'No Alliance')} • ID ${esc(p.player_id)}</small></div><button class="nexa-v49-x" data-v49-remove-battle="${esc(p.player_id)}" data-role="${role}">×</button></div>`).join('')||'<div class="nexa-v49-muted">No players in this view.</div>';
-  }else{
-    const groups=new Map();
-    filtered.forEach(p=>{const a=p.alliance_tag||'No Alliance';if(!groups.has(a))groups.set(a,[]);groups.get(a).push(p)});
-    out.innerHTML=[...groups.entries()].map(([a,ps])=>`<div class="nexa-v49-rolecard" style="margin-top:8px"><h4>${esc(a)}</h4>${ps.map(p=>`<div class="nexa-v49-person"><div><b>${esc(p.in_game_name)}</b><small>ID ${esc(p.player_id)}</small></div><button class="nexa-v49-x" data-v49-remove-battle="${esc(p.player_id)}" data-role="${role}">×</button></div>`).join('')}</div>`).join('')||'<div class="nexa-v49-muted">No players in this view.</div>';
-  }
+
+  const paint=(role,target)=>{
+    const filtered=rows.filter(x=>x.role===role&&(!alliance||String(x.alliance_tag||'')===alliance));
+    const out=$(target,host);if(!out)return;
+    if(!alliance){
+      const groups=new Map();
+      filtered.forEach(p=>{const a=p.alliance_tag||'No Alliance';if(!groups.has(a))groups.set(a,[]);groups.get(a).push(p)});
+      out.innerHTML=[...groups.entries()].map(([a,ps])=>`<div><div class="nexa-v49-muted" style="margin:5px 0 6px;font-weight:900">${esc(a)}</div>${ps.map(p=>memberCard(p,`data-v49-remove-battle="${esc(p.player_id)}" data-role="${role}"`)).join('')}</div>`).join('')||'<div class="nexa-v49-empty">No members assigned.</div>';
+    }else{
+      out.innerHTML=filtered.map(p=>memberCard(p,`data-v49-remove-battle="${esc(p.player_id)}" data-role="${role}"`)).join('')||'<div class="nexa-v49-empty">No members assigned.</div>';
+    }
+  };
+
+  paint('rally_lead','#v49-battle-rally-list');
+  paint('joiner','#v49-battle-joiner-list');
 }
+function addRoleMemberDialog({kind,role,label}){
+  const ov=dialog(`<button class="nexa-v49-close" type="button">×</button>
+    <h3>Add Member — ${esc(label)}</h3>
+    <p>Enter the player's Game ID for State ${esc(activeState())}.</p>
+    <label class="nexa-v49-field">Game ID<input id="v49-add-role-id" inputmode="numeric" placeholder="Numbers only"></label>
+    <div class="nexa-v49-actions"><button class="nexa-v49-primary" type="button" data-v49-confirm-role-add>ADD MEMBER</button></div>
+    <div class="nexa-v49-status"></div>`);
+  $('[data-v49-confirm-role-add]',ov).onclick=async()=>{
+    const status=$('.nexa-v49-status',ov),gameId=String($('#v49-add-role-id',ov)?.value||'').replace(/\D/g,'');
+    if(!gameId){status.textContent='Enter a Game ID.';return}
+    try{
+      const player=await resolvePlayer(gameId);
+      if(kind==='op')await rpc('nexa_set_state_operational_role',{p_state:activeState(),p_game_id:player.player_id,p_role:role,p_enabled:true});
+      else await rpc('nexa_set_state_battle_role',{p_state:activeState(),p_game_id:player.player_id,p_role:role,p_enabled:true});
+      ov.remove();await renderRoles();
+    }catch(err){status.textContent=err.message||String(err)}
+  };
+}
+
 async function resolvePlayer(text){
   const q=String(text||'').trim();if(!q)throw new Error('Enter an IGN or Game ID.');
   const rows=await adminSearch(q);
@@ -689,6 +772,10 @@ function bind(){
     const ra=e.target.closest?.('[data-v49-revoke-admin]');if(ra){if(confirm('Remove Administrative Access for this person?')){try{await rpc('nexa_revoke_state_admin',{p_state:activeState(),p_target:ra.dataset.v49RevokeAdmin});await renderAdminAccess()}catch(err){alert(err.message)}}return}
 
     const info=e.target.closest?.('[data-v49-info]');if(info){infoDialog(info.dataset.v49Info);return}
+    const addOp=e.target.closest?.('[data-v49-role-add]');
+    if(addOp){addRoleMemberDialog({kind:'op',role:addOp.dataset.v49RoleAdd,label:OP_LABELS[addOp.dataset.v49RoleAdd]||'Operational Role'});return}
+    const addBattle=e.target.closest?.('[data-v49-battle-add]');
+    if(addBattle){addRoleMemberDialog({kind:'battle',role:addBattle.dataset.v49BattleAdd,label:addBattle.dataset.v49BattleAdd==='rally_lead'?'Rally Lead':'Joiner'});return}
     if(e.target.closest?.('[data-v49-add-op]')){
       try{
         const host=adminHost('#admin-roles'),p=await resolvePlayer($('#v49-op-player',host).value),role=$('#v49-op-role',host).value;
@@ -704,8 +791,10 @@ function bind(){
     }
     const rb=e.target.closest?.('[data-v49-remove-battle]');if(rb){try{await rpc('nexa_set_state_battle_role',{p_state:activeState(),p_game_id:rb.dataset.v49RemoveBattle,p_role:rb.dataset.role,p_enabled:false});await renderRoles()}catch(err){alert(err.message)}return}
     if(e.target.closest?.('[data-v49-copy-battle]')){
-      const host=adminHost('#admin-roles'),out=$('#v49-battle-list',host);
-      const text=(out?.innerText||'').replace(/\n×/g,'').trim();
+      const host=adminHost('#admin-roles');
+      const rally=$('#v49-battle-rally-list',host)?.innerText||'';
+      const joiner=$('#v49-battle-joiner-list',host)?.innerText||'';
+      const text=`RALLY LEADS\n${rally}\n\nJOINERS\n${joiner}`.replace(/\n×/g,'').trim();
       try{await navigator.clipboard.writeText(text);alert('Battle Role list copied.')}catch{alert(text||'Nothing to copy.')}return
     }
 
@@ -724,7 +813,7 @@ function bind(){
   },true);
 
   document.addEventListener('change',e=>{
-    if(e.target?.matches?.('#v49-battle-alliance,#v49-battle-view-role'))renderBattleList();
+    if(e.target?.matches?.('#v49-battle-alliance'))renderBattleList();
   });
 
   window.addEventListener('nexa:active-state-changed',()=>{

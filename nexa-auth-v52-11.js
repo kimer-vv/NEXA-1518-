@@ -1,9 +1,10 @@
 (() => {
 'use strict';
-// NEXA V52.18 — HIDDEN OWNER ACCESS / 2S NEXA LONG PRESS — 2026-08-25
+// NEXA V52.19 — OWNER RECOVERY SESSION BRIDGE / 2S NEXA LONG PRESS — 2026-08-27
 
 const SUPABASE_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const SUPABASE_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
+const OWNER_SESSION_KEY='nexa_owner_recovery_verified_v1';
 let sb,gate;
 const $=id=>document.getElementById(id);
 
@@ -145,7 +146,29 @@ function hide(){gate?.classList.add('hidden');document.body.style.overflow=''}
 
 async function api(path,body={},token=''){const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{})},body:JSON.stringify(body),cache:'no-store'});const raw=await r.text();let data={};try{data=raw?JSON.parse(raw):{}}catch{}if(!r.ok)throw new Error(data.error||raw||`Request failed (${r.status})`);return data}
 async function status(session){if(!session?.access_token)return{allowed:false};try{return await api('/api/nexa-auth-status',{},session.access_token)}catch{return{allowed:false}}}
-async function reconcile(){const {data:{session}}=await sb.auth.getSession();if(!session){show('login');document.documentElement.classList.remove('nexa-auth-boot');return}const st=await status(session);if(st.allowed){hide();document.documentElement.classList.remove('nexa-auth-boot');return}await sb.auth.signOut();show('login');document.documentElement.classList.remove('nexa-auth-boot')}
+
+function verifiedOwnerRecovery(session){
+  if(!session?.access_token)return false;
+  const provider=String(session.user?.app_metadata?.provider||'').toLowerCase();
+  return provider==='discord' && sessionStorage.getItem(OWNER_SESSION_KEY)==='1';
+}
+
+async function reconcile(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){show('login');document.documentElement.classList.remove('nexa-auth-boot');return}
+
+  if(await verifiedOwnerRecovery(session)){
+    hide();
+    document.documentElement.classList.remove('nexa-auth-boot');
+    return;
+  }
+
+  const st=await status(session);
+  if(st.allowed){hide();document.documentElement.classList.remove('nexa-auth-boot');return}
+  await sb.auth.signOut();
+  show('login');
+  document.documentElement.classList.remove('nexa-auth-boot')
+}
 
 function verifyGameAccount(gameId,state){return new Promise(resolve=>{document.querySelector('.nexa-verify-overlay')?.remove();const ov=document.createElement('div');ov.className='nexa-verify-overlay';ov.innerHTML=`<div class="nexa-verify-card"><h3>Verify Your Game Account</h3><p>Confirm these details before creating the account.</p><div class="nexa-verify-values"><span>Game ID: <b>${gameId}</b></span><span>State: <b>${state}</b></span></div><div class="nexa-verify-actions"><button type="button" data-edit>EDIT</button><button type="button" class="yes" data-yes>YES, THIS IS CORRECT</button></div></div>`;document.body.appendChild(ov);ov.querySelector('[data-edit]').onclick=()=>{ov.remove();resolve(false)};ov.querySelector('[data-yes]').onclick=()=>{ov.remove();resolve(true)}})}
 
@@ -189,24 +212,20 @@ async function create(e){
   }catch(e){msg(e.message,'error')}
 }
 
-
 function installHiddenOwnerAccess(){
   const bot=document.querySelector('.nexa-auth-guide-bot');
   if(!bot || bot.dataset.ownerPressBound==='1')return;
   bot.dataset.ownerPressBound='1';
 
   let timer=0;
-  let triggered=false;
 
   const clear=()=>{
     if(timer){clearTimeout(timer);timer=0}
   };
 
   const start=()=>{
-    triggered=false;
     clear();
     timer=setTimeout(()=>{
-      triggered=true;
       location.href='/owner-access.html';
     },2000);
   };
@@ -217,7 +236,6 @@ function installHiddenOwnerAccess(){
   bot.addEventListener('pointerleave',clear);
   bot.addEventListener('contextmenu',e=>e.preventDefault());
 
-  // Keyboard fallback for desktop without adding visible UI.
   bot.tabIndex=0;
   bot.setAttribute('aria-label','NEXA');
   bot.addEventListener('keydown',e=>{

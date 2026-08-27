@@ -1,4 +1,4 @@
-/* NEXA V47.23 — UNIFIED HOME CARD OWNER / TRANSFER SAME SIGNAL PATH
+/* NEXA V47.24 — TRANSFER SINGLE VISUAL OWNER / LEGACY INNER PAINTER OFF
    COMPLETE REPLACEMENT for: nexa-v47-visual-assets.js
 
    Owns:
@@ -25,8 +25,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4723_CONTROL_HUB__) return;
-window.__NEXA_V4723_CONTROL_HUB__=true;
+if(window.__NEXA_V4724_CONTROL_HUB__) return;
+window.__NEXA_V4724_CONTROL_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -360,6 +360,34 @@ function installCSS(){
     line-height:1.35!important
   }
 
+  /* V47.24 — V44/V45 legacy still styles the INNER .event.
+     V47 owns the outer Transfer card, so the inner event is now always
+     a content-only container. Specificity is intentionally higher than
+     legacy #home-transfers-section .event rules. */
+  #home #home-transfers-section.nexa-v4717-transfer-clean #home-transfer-events > .event,
+  #home #home-transfers-section.nexa-v4717-transfer-clean #home-transfer-events > .event > .event-row{
+    position:static!important;
+    overflow:visible!important;
+    border:0!important;
+    border-radius:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+    margin:0!important;
+    padding:0!important;
+  }
+  #home #home-transfers-section.nexa-v4717-transfer-clean #home-transfer-events > .event::before,
+  #home #home-transfers-section.nexa-v4717-transfer-clean #home-transfer-events > .event::after{
+    content:none!important;
+    display:none!important;
+  }
+  #home #home-transfers-section.nexa-v4717-transfer-clean > .nexa-v4711-top-accent{
+    top:0!important;
+    z-index:30!important;
+  }
+  #home #home-transfers-section.nexa-v4717-transfer-clean > .nexa-v4711-left-accent{
+    z-index:30!important;
+  }
+
   /* Active information = signal breath/blink. Nothing active stays completely static. */
   .nexa-v477-tech-card[data-nexa-active="1"]{
     border-color:rgba(var(--tech-rgb),.90)!important;
@@ -585,6 +613,21 @@ function neutralizeV453(card){
   });
 }
 
+function neutralizeTransferInner(card){
+  if(!card)return;
+  const event=$('#home-transfer-events > .event',card);
+  const row=$('#home-transfer-events > .event > .event-row',card);
+  [event,row].filter(Boolean).forEach(el=>{
+    el.style.setProperty('border','0','important');
+    el.style.setProperty('background','transparent','important');
+    el.style.setProperty('box-shadow','none','important');
+    el.style.setProperty('margin','0','important');
+    el.style.setProperty('padding','0','important');
+    el.style.setProperty('border-radius','0','important');
+    el.style.setProperty('overflow','visible','important');
+  });
+}
+
 function decorateCard(card,type){
   if(!card)return;
   removeOldDecor(card);
@@ -596,6 +639,7 @@ function decorateCard(card,type){
   if(type==='transfer'){
     card.removeAttribute('style');
     card.classList.add('nexa-v4715-transfer-root');
+    neutralizeTransferInner(card);
     const inner=$(':scope > .glass',card);
     if(inner){
       inner.style.setProperty('border','0','important');
@@ -661,6 +705,7 @@ function ensureTransferCard(){
 function decorateHomeCards(){
   decorateCard($('#home-svs-section'),'live');
   const transferCard=ensureTransferCard();
+  neutralizeTransferInner(transferCard);
   decorateCard(transferCard,'transfer');
 
   const nodes=$$('h1,h2,h3,h4,strong,b');

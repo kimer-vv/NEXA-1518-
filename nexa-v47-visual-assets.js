@@ -1,12 +1,12 @@
-/* NEXA V47.10 — HOME CARD CONSISTENCY / TRANSFER ALIGNMENT + ACTIVE PULSE
+/* NEXA V47.11 — HOME ACCENTS OWNED IN DOM / TRANSFER CONFLICT REMOVED
    COMPLETE REPLACEMENT for: nexa-v47-visual-assets.js
 
    Owns:
    - NEXA identity / Home branding
    - Home command-card visual family
    - no decorative card icons; border glow is the visual cue
-   - static top glow + left signal line on all 4 Home cards
-   - Transfer forced to use the exact same accent system as the others
+   - real DOM top glow + left signal line on all 4 Home cards
+   - removes Transfer pseudo-element conflict from legacy index CSS
    - soft blinking/pulsing signal only when a card has active information
    - Chief Gear asset resolver
    - Alliance emblem asset globals
@@ -24,8 +24,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4710_CONTROL_HUB__) return;
-window.__NEXA_V4710_CONTROL_HUB__=true;
+if(window.__NEXA_V4711_CONTROL_HUB__) return;
+window.__NEXA_V4711_CONTROL_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -216,26 +216,21 @@ function installCSS(){
   .nexa-v477-tech-card[data-nexa-tech="pulse"]{--tech:#39dfff;--tech-rgb:57,223,255}
   .nexa-v477-tech-card[data-nexa-tech="alliance"]{--tech:#a76cff;--tech-rgb:167,108,255}
 
-  #home-transfers-section.nexa-v477-tech-card::before{
-    left:-1px!important;top:18px!important;width:3px!important;height:40px!important;opacity:1!important
-  }
-  #home-transfers-section.nexa-v477-tech-card::after{
-    left:18px!important;top:-1px!important;width:42px!important;height:2px!important;display:block!important;opacity:1!important
-  }
-
   /*
-    V47.9 visual rule:
-    - EVERY card gets the same static left signal line.
-    - EVERY card gets the same static top glow.
-    - When the card has active information, both accents + the outer glow pulse softly.
-    This is intentionally simple and Safari-safe.
+    V47.11 accent ownership:
+    actual child elements, NOT ::before/::after.
+    Transfer had legacy ID-level pseudo CSS in index.html, so pseudo ownership was unreliable.
+    All four cards now use the exact same DOM accents.
   */
-  .nexa-v477-tech-card::before{
-    content:""!important;
-    display:block!important;
+  .nexa-v4711-left-accent,
+  .nexa-v4711-top-accent{
     position:absolute!important;
     z-index:8!important;
     pointer-events:none!important;
+    display:block!important
+  }
+
+  .nexa-v4711-left-accent{
     left:-1px!important;
     top:18px!important;
     width:3px!important;
@@ -257,32 +252,40 @@ function installCSS(){
     opacity:.98!important
   }
 
-  .nexa-v477-tech-card::after{
-    content:""!important;
-    display:block!important;
-    position:absolute!important;
-    z-index:8!important;
-    pointer-events:none!important;
-    left:20px!important;
+  .nexa-v4711-top-accent{
+    left:18px!important;
     top:-1px!important;
-    width:58px!important;
+    width:42px!important;
     height:2px!important;
     border-radius:999px!important;
     background:linear-gradient(
       90deg,
       transparent,
-      rgba(var(--tech-rgb),.50),
+      rgba(var(--tech-rgb),.40),
       rgba(var(--tech-rgb),1),
       #fff,
       rgba(var(--tech-rgb),1),
-      rgba(var(--tech-rgb),.50),
+      rgba(var(--tech-rgb),.40),
       transparent
     )!important;
     box-shadow:
       0 0 5px rgba(var(--tech-rgb),.95),
       0 0 12px rgba(var(--tech-rgb),.58),
       0 0 22px rgba(var(--tech-rgb),.20)!important;
-    opacity:.95!important
+    opacity:1!important
+  }
+
+  /* Disable legacy Home-card pseudo decoration. Actual accents above own the visuals. */
+  #home-svs-section::before,
+  #home-svs-section::after,
+  #home-transfers-section::before,
+  #home-transfers-section::after,
+  #nexa-v302-pulse::before,
+  #nexa-v302-pulse::after,
+  #nexa-v31-alliance::before,
+  #nexa-v31-alliance::after{
+    content:none!important;
+    display:none!important
   }
 
   /* Active information = signal breath/blink. Nothing active stays completely static. */
@@ -290,8 +293,8 @@ function installCSS(){
     border-color:rgba(var(--tech-rgb),.90)!important;
     animation:nexaV479ActiveCardPulse 1.85s ease-in-out infinite!important
   }
-  .nexa-v477-tech-card[data-nexa-active="1"]::before,
-  .nexa-v477-tech-card[data-nexa-active="1"]::after{
+  .nexa-v477-tech-card[data-nexa-active="1"] > .nexa-v4711-left-accent,
+  .nexa-v477-tech-card[data-nexa-active="1"] > .nexa-v4711-top-accent{
     animation:nexaV479SignalBlink 1.85s ease-in-out infinite!important
   }
 
@@ -345,8 +348,8 @@ function installCSS(){
 
   @media (prefers-reduced-motion: reduce){
     .nexa-v477-tech-card[data-nexa-active="1"],
-    .nexa-v477-tech-card[data-nexa-active="1"]::before,
-    .nexa-v477-tech-card[data-nexa-active="1"]::after{
+    .nexa-v477-tech-card[data-nexa-active="1"] > .nexa-v4711-left-accent,
+    .nexa-v477-tech-card[data-nexa-active="1"] > .nexa-v4711-top-accent{
       animation:none!important
     }
   }
@@ -375,8 +378,9 @@ function installCSS(){
   }
 
   @media(prefers-reduced-motion:reduce){
-    .nexa-v477-tech-card::after,
-    .nexa-v477-tech-card[data-nexa-active="1"]{
+    .nexa-v477-tech-card[data-nexa-active="1"],
+    .nexa-v4711-left-accent,
+    .nexa-v4711-top-accent{
       animation:none!important
     }
   }`;
@@ -469,12 +473,31 @@ function isEmptyState(type,text){
   return true;
 }
 
+function ensureCardAccents(card){
+  if(!card)return;
+  let left=$(':scope > .nexa-v4711-left-accent',card);
+  let top=$(':scope > .nexa-v4711-top-accent',card);
+  if(!left){
+    left=document.createElement('span');
+    left.className='nexa-v4711-left-accent';
+    left.setAttribute('aria-hidden','true');
+    card.prepend(left);
+  }
+  if(!top){
+    top=document.createElement('span');
+    top.className='nexa-v4711-top-accent';
+    top.setAttribute('aria-hidden','true');
+    card.prepend(top);
+  }
+}
+
 function decorateCard(card,type){
   if(!card)return;
   removeOldDecor(card);
 
   card.classList.add('nexa-v477-tech-card');
   card.dataset.nexaTech=type;
+  ensureCardAccents(card);
 
   $$(':scope > .nexa-v477-card-icon',card).forEach(x=>x.remove());
 

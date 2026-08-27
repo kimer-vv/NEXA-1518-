@@ -1,4 +1,4 @@
-/* NEXA V49.1 — STATE HUB / FLEET / STATE-SCOPED ACCESS OWNER + UI LIFECYCLE
+/* NEXA V49.2 — STATE HUB / FLEET / NEXA DESTRUCTIVE MODALS
    NEW FILE: nexa-v49-state-hub.js
 
    Owns:
@@ -22,8 +22,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V491_STATE_HUB__) return;
-window.__NEXA_V491_STATE_HUB__=true;
+if(window.__NEXA_V492_STATE_HUB__) return;
+window.__NEXA_V492_STATE_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -384,15 +384,36 @@ function secondAdminDialog(st){
 async function removeState(st){
   const rows=await ownAccounts();
   const n=rows.filter(x=>stateNum(x.state_number)===st).length;
-  const ok=confirm(`REMOVE STATE ${st} FROM YOUR FLEET?\n\nThis will permanently delete all ${n} NEXA account${n===1?'':'s'} you have in State ${st} and the saved account data attached to them.\n\nOnly want to delete one account? Open that State's Account Constellation and choose Delete Account instead.\n\nThis does NOT delete the State Hub for other players.\n\nThis action cannot be undone.`);
-  if(!ok)return;
-  try{
-    await rpc('nexa_remove_state_from_fleet',{p_state:st});
-    const left=await ownAccounts();
-    const next=left.find(x=>x.is_main)||left[0];
-    if(next){setActiveState(next.state_number);setActiveAccount(next.id)}else{localStorage.removeItem(ACTIVE_STATE_KEY);setActiveAccount('')}
-    location.reload();
-  }catch(e){alert(e.message||String(e))}
+
+  const ov=dialog(`<button class="nexa-v49-close" type="button">×</button>
+    <h3>Remove State ${esc(st)} from Fleet?</h3>
+    <p>This will permanently delete your <b>${esc(n)} NEXA account${n===1?'':'s'}</b> and saved account data for State ${esc(st)}.</p>
+    <div class="nexa-v49-warning"><b>Only want to delete one account?</b><br>Open State ${esc(st)} and choose <b>Delete Account</b> instead.</div>
+    <p>This removes State ${esc(st)} only from <b>your NEXA Fleet</b>. It does not delete the State Hub for other players.</p>
+    <div class="nexa-v49-actions">
+      <button class="nexa-v49-secondary" type="button" data-v49-cancel-remove>CANCEL</button>
+      <button class="nexa-v49-danger" type="button" data-v49-confirm-remove>REMOVE STATE</button>
+    </div>
+    <div class="nexa-v49-status"></div>`);
+
+  $('[data-v49-cancel-remove]',ov).onclick=()=>ov.remove();
+  $('[data-v49-confirm-remove]',ov).onclick=async()=>{
+    const status=$('.nexa-v49-status',ov);
+    const btn=$('[data-v49-confirm-remove]',ov);
+    btn.disabled=true;
+    status.textContent=`Removing State ${st} from your Fleet…`;
+    try{
+      await rpc('nexa_remove_state_from_fleet',{p_state:st});
+      const left=await ownAccounts();
+      const next=left.find(x=>x.is_main)||left[0];
+      if(next){setActiveState(next.state_number);setActiveAccount(next.id)}
+      else{localStorage.removeItem(ACTIVE_STATE_KEY);setActiveAccount('')}
+      location.reload();
+    }catch(e){
+      btn.disabled=false;
+      status.textContent=e.message||String(e);
+    }
+  };
 }
 async function deleteAccount(id){
   const rows=await ownAccounts(),a=rows.find(x=>String(x.id)===String(id));if(!a)return;
@@ -424,14 +445,9 @@ async function enhanceFleet(){
     const wrap=document.createElement('div');wrap.className='nexa-v49-fleet-group';
     ship.parentNode.insertBefore(wrap,ship);wrap.appendChild(ship);
     const remove=document.createElement('button');remove.type='button';remove.className='nexa-v49-remove-state';
-    remove.dataset.v49RemoveState=String(st);remove.innerHTML='× REMOVE STATE FROM FLEET';
+    remove.dataset.v49RemoveState=String(st);remove.innerHTML='× REMOVE STATE';
     wrap.appendChild(remove);
   });
-  if(!$('[data-v49-fleet-note]',list)){
-    const note=document.createElement('div');note.dataset.v49FleetNote='1';note.className='nexa-v49-warning';
-    note.innerHTML='<b>Fleet Management</b><br>Remove a State here to delete all of your NEXA accounts in that State. To delete only one account, open that State and use Delete Account.';
-    list.appendChild(note);
-  }
   if(!$('[data-v49-add-state]',list)){
     const add=document.createElement('button');add.type='button';add.className='nexa-v49-add-state';
     add.dataset.v49AddState='1';add.textContent='+ ADD STATE TO FLEET';

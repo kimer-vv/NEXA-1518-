@@ -1,4 +1,4 @@
-/* NEXA V49.0 — STATE HUB / FLEET / STATE-SCOPED ACCESS OWNER
+/* NEXA V49.1 — STATE HUB / FLEET / STATE-SCOPED ACCESS OWNER + UI LIFECYCLE
    NEW FILE: nexa-v49-state-hub.js
 
    Owns:
@@ -22,8 +22,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V490_STATE_HUB__) return;
-window.__NEXA_V490_STATE_HUB__=true;
+if(window.__NEXA_V491_STATE_HUB__) return;
+window.__NEXA_V491_STATE_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -409,6 +409,13 @@ async function deleteAccount(id){
   }catch(e){alert(e.message||String(e))}
 }
 
+function scheduleV49Enhancers(){
+  [260,700,1400].forEach(ms=>setTimeout(()=>{
+    enhanceFleet();
+    enhanceAccountManager();
+  },ms));
+}
+
 async function enhanceFleet(){
   const ov=$('#nexa-v4484-fleet'),list=$('[data-fleet-list]',ov);if(!ov||!list)return;
   $$('[data-fleet-state]',list).forEach(ship=>{
@@ -417,9 +424,14 @@ async function enhanceFleet(){
     const wrap=document.createElement('div');wrap.className='nexa-v49-fleet-group';
     ship.parentNode.insertBefore(wrap,ship);wrap.appendChild(ship);
     const remove=document.createElement('button');remove.type='button';remove.className='nexa-v49-remove-state';
-    remove.dataset.v49RemoveState=String(st);remove.textContent='REMOVE STATE FROM FLEET';
+    remove.dataset.v49RemoveState=String(st);remove.innerHTML='× REMOVE STATE FROM FLEET';
     wrap.appendChild(remove);
   });
+  if(!$('[data-v49-fleet-note]',list)){
+    const note=document.createElement('div');note.dataset.v49FleetNote='1';note.className='nexa-v49-warning';
+    note.innerHTML='<b>Fleet Management</b><br>Remove a State here to delete all of your NEXA accounts in that State. To delete only one account, open that State and use Delete Account.';
+    list.appendChild(note);
+  }
   if(!$('[data-v49-add-state]',list)){
     const add=document.createElement('button');add.type='button';add.className='nexa-v49-add-state';
     add.dataset.v49AddState='1';add.textContent='+ ADD STATE TO FLEET';
@@ -598,7 +610,15 @@ function bind(){
     /* Existing UI can render Fleet/Account/Admin asynchronously after the click.
        These are single follow-up paints, not polling. */
     requestAnimationFrame(()=>{enhanceFleet();enhanceAccountManager();});
-    setTimeout(()=>{enhanceFleet();enhanceAccountManager();},120);
+    scheduleV49Enhancers();
+  },true);
+
+  document.addEventListener('animationstart',e=>{
+    if(e.target?.closest?.('#nexa-v4484-fleet'))scheduleV49Enhancers();
+  },true);
+
+  document.addEventListener('focusin',e=>{
+    if(e.target?.closest?.('#nexa-v4484-fleet,#accounts-modal'))scheduleV49Enhancers();
   },true);
 
   document.addEventListener('change',e=>{

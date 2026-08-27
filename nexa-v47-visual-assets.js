@@ -1,4 +1,4 @@
-/* NEXA V47.11 — HOME ACCENTS OWNED IN DOM / TRANSFER CONFLICT REMOVED
+/* NEXA V47.12 — HOME CARD OWNER / REAL ACCENTS + COLOR-LOCKED BORDERS
    COMPLETE REPLACEMENT for: nexa-v47-visual-assets.js
 
    Owns:
@@ -6,6 +6,7 @@
    - Home command-card visual family
    - no decorative card icons; border glow is the visual cue
    - real DOM top glow + left signal line on all 4 Home cards
+   - inline-important palette lock so legacy ID rules cannot recolor borders
    - removes Transfer pseudo-element conflict from legacy index CSS
    - soft blinking/pulsing signal only when a card has active information
    - Chief Gear asset resolver
@@ -24,8 +25,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4711_CONTROL_HUB__) return;
-window.__NEXA_V4711_CONTROL_HUB__=true;
+if(window.__NEXA_V4712_CONTROL_HUB__) return;
+window.__NEXA_V4712_CONTROL_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -497,6 +498,18 @@ function decorateCard(card,type){
 
   card.classList.add('nexa-v477-tech-card');
   card.dataset.nexaTech=type;
+  ensureCardAccents(card);
+
+  const palette={
+    live:['255,79,200','#ff4fc8'],
+    transfer:['255,157,61','#ff9d3d'],
+    pulse:['57,223,255','#39dfff'],
+    alliance:['167,108,255','#a76cff']
+  }[type]||['155,99,255','#9b63ff'];
+
+  card.style.setProperty('--tech-rgb',palette[0],'important');
+  card.style.setProperty('--tech',palette[1],'important');
+  card.style.setProperty('border-color',`rgba(${palette[0]},.54)`,'important');
   ensureCardAccents(card);
 
   $$(':scope > .nexa-v477-card-icon',card).forEach(x=>x.remove());

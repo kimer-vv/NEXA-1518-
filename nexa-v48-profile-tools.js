@@ -1,4 +1,4 @@
-/* NEXA V48.4 — PROFILE LAYOUT FINAL + CONTINUOUS MASTERY + CLEAN MAX
+/* NEXA V48.5 — PROFILE CLEANUP / SINGLE CHARM + ALLIANCE DEDUPE
    COMPLETE REPLACEMENT for: nexa-v48-profile-tools.js
 
    Extends stable V33.6 without taking Profile ownership.
@@ -16,8 +16,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V484_PROFILE_TOOLS__) return;
-window.__NEXA_V484_PROFILE_TOOLS__=true;
+if(window.__NEXA_V485_PROFILE_TOOLS__) return;
+window.__NEXA_V485_PROFILE_TOOLS__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -147,17 +147,17 @@ function injectCSS(){
   .v48-select-row .visual{width:42px;height:42px;display:grid;place-items:center;position:relative}
   .v48-select-row .visual>img{max-width:42px;max-height:42px;width:100%;height:100%;object-fit:contain;border-radius:9px;background:rgba(255,255,255,.025)}
   .v48-select-row .visual.charm-trio{
-    display:flex;align-items:center;justify-content:center;gap:2px;width:44px;height:42px
+    display:flex;align-items:center;justify-content:center;width:44px;height:42px
   }
   .v48-charm-gem{
-    width:12px;height:25px;border-radius:7px 7px 9px 9px;display:grid;place-items:center;
-    border:1px solid rgba(170,118,255,.52);
-    background:linear-gradient(180deg,rgba(133,83,255,.40),rgba(32,18,72,.70));
-    color:#eee7ff;font-size:7px;font-weight:1000;line-height:1;
-    box-shadow:inset 0 0 9px rgba(168,99,255,.17),0 0 7px rgba(124,86,255,.10)
+    width:28px;height:34px;border-radius:10px 10px 12px 12px;display:grid;place-items:center;
+    border:1px solid rgba(170,118,255,.58);
+    background:
+      radial-gradient(circle at 50% 28%,rgba(238,224,255,.34),transparent 28%),
+      linear-gradient(180deg,rgba(143,83,255,.50),rgba(35,18,80,.78));
+    color:#f4edff;font-size:10px;font-weight:1000;line-height:1;
+    box-shadow:inset 0 0 12px rgba(181,112,255,.20),0 0 9px rgba(124,86,255,.13)
   }
-  .v48-charm-gem:nth-child(2){transform:translateY(-2px)}
-  .v48-charm-gem small{font-size:5px;color:#d9caff;letter-spacing:0}
   .v48-select-row b{display:block;font-size:11px}
   .v48-select-row small{display:block;color:#8793b5;font-size:7px;margin-top:3px;line-height:1.35}
 
@@ -400,8 +400,8 @@ function visualFor(i,cat){
     return `<span class="visual"><img src="${esc(chiefT6Asset(i))}" alt="${esc(i.name)} T6" onerror="this.onerror=null;this.src='${esc(i.image_url||'')}'"></span>`;
   }
   if(cat==='charms'){
-    return `<span class="visual charm-trio" aria-label="Three Level 18 Charms">
-      ${[0,1,2].map(()=>`<span class="v48-charm-gem">18</span>`).join('')}
+    return `<span class="visual charm-trio" aria-label="Level 18 Charm">
+      <span class="v48-charm-gem">18</span>
     </span>`;
   }
   const src=i.image_url||'';
@@ -485,6 +485,49 @@ function hideLegacyDeploymentEditor(){
   });
 }
 
+
+function hideDuplicateAllianceEditor(){
+  const modal=$('#nexa-profile-modal');
+  if(!modal)return;
+
+  const selects=$$('select',modal).filter(s=>!s.closest('#v48-overlay') && s.offsetParent!==null);
+  if(!selects.length)return;
+
+  const rowFor=sel=>sel.closest(
+    'label,.field,.form-field,.form-group,.nexa-field,.nexa-profile-field,.nexa-edit-field,.input-group,.passport-field,.profile-field'
+  )||sel.parentElement;
+
+  const info=selects.map(sel=>{
+    const row=rowFor(sel);
+    const key=[
+      sel.id,sel.name,sel.getAttribute('data-field'),sel.getAttribute('aria-label'),
+      row?.textContent
+    ].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();
+    return {sel,row,key};
+  }).filter(x=>/\balliance\b/i.test(x.key));
+
+  if(info.length<2)return;
+
+  const canonical=info.find(x=>/change\s+alliance/i.test(x.key))||info[0];
+
+  info.forEach(x=>{
+    if(x===canonical || x.row===canonical.row)return;
+    const text=String(x.row?.textContent||'').replace(/\s+/g,' ').trim();
+    const isLegacy=/^alliance\b/i.test(text) || (
+      /\balliance\b/i.test(x.key) && !/change\s+alliance/i.test(x.key)
+    );
+    if(!isLegacy)return;
+
+    if(x.row){
+      x.row.style.display='none';
+      x.row.setAttribute('data-v485-hidden-legacy-alliance','1');
+    }else{
+      x.sel.style.display='none';
+      x.sel.setAttribute('data-v485-hidden-legacy-alliance','1');
+    }
+  });
+}
+
 function organizeHeader(){
   const modal=$('#nexa-profile-modal');if(!modal)return;
   removeGuide(modal);
@@ -513,7 +556,7 @@ function decorateBadges(){
   });
 }
 function scheduleRefresh(ms=180){
-  setTimeout(async()=>{await refreshData();ensureTools();decorateBadges();organizeHeader();hideLegacyDeploymentEditor()},ms);
+  setTimeout(async()=>{await refreshData();ensureTools();decorateBadges();organizeHeader();hideLegacyDeploymentEditor();hideDuplicateAllianceEditor()},ms);
 }
 async function repaintProfileInPlace(){
   await refreshData();
@@ -521,6 +564,7 @@ async function repaintProfileInPlace(){
   decorateBadges();
   organizeHeader();
   hideLegacyDeploymentEditor();
+  hideDuplicateAllianceEditor();
   const modal=$('#nexa-profile-modal');
   if(modal){
     modal.classList.remove('hidden');
@@ -834,7 +878,7 @@ async function saveBattle(){
     const old=normalizeHeroGear(accountData.hero_gear||{});
     const hero_gear={
       ...old,
-      version:'v48.4',
+      version:'v48.5',
       main:{mode:mainMode,data:mainMode==='maxed'?maxHeroGearSet():collectGearSet('main')},
       second:{
         mode:secondMode,
@@ -882,7 +926,10 @@ document.addEventListener('click',e=>{
   if(e.target.closest?.('[data-v48-close]')||e.target.id==='v48-overlay'){closeOverlay();return}
 
   if(e.target.closest?.('#nexa-profile-edit-btn,.nexa-profile-edit-btn')){
-    [40,140,320,700].forEach(ms=>setTimeout(hideLegacyDeploymentEditor,ms));
+    [40,140,320,700].forEach(ms=>setTimeout(()=>{
+      hideLegacyDeploymentEditor();
+      hideDuplicateAllianceEditor();
+    },ms));
   }
 
   const cm=e.target.closest?.('[data-v48-category-max]');
@@ -937,7 +984,7 @@ window.addEventListener('pageshow',()=>scheduleRefresh(300));
 async function boot(){
   injectCSS();
   await refreshData();
-  [80,250,600,1200,2200].forEach(ms=>setTimeout(()=>{ensureTools();decorateBadges();organizeHeader();hideLegacyDeploymentEditor()},ms));
+  [80,250,600,1200,2200].forEach(ms=>setTimeout(()=>{ensureTools();decorateBadges();organizeHeader();hideLegacyDeploymentEditor();hideDuplicateAllianceEditor()},ms));
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 

@@ -1,12 +1,12 @@
-/* NEXA V47.8 — CLEAN HOME CARDS / VISIBLE TRAVELLING BORDER GLOW
+/* NEXA V47.9 — HOME CARD ACCENTS / STATIC IDLE + ACTIVE SIGNAL PULSE
    COMPLETE REPLACEMENT for: nexa-v47-visual-assets.js
 
    Owns:
    - NEXA identity / Home branding
    - Home command-card visual family
    - no decorative card icons; border glow is the visual cue
-   - animated border glow on inactive cards
-   - brighter pulse on active cards
+   - static top glow + left signal line on inactive cards
+   - soft blinking/pulsing signal only when a card has active information
    - Chief Gear asset resolver
    - Alliance emblem asset globals
 
@@ -23,8 +23,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V478_CONTROL_HUB__) return;
-window.__NEXA_V478_CONTROL_HUB__=true;
+if(window.__NEXA_V479_CONTROL_HUB__) return;
+window.__NEXA_V479_CONTROL_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -207,66 +207,106 @@ function installCSS(){
       0 0 14px rgba(var(--tech-rgb),.10)!important
   }
 
-  /* Live gets a distinct fuchsia identity. */
   .nexa-v477-tech-card[data-nexa-tech="live"]{--tech:#ff4fc8;--tech-rgb:255,79,200}
   .nexa-v477-tech-card[data-nexa-tech="transfer"]{--tech:#ff9d3d;--tech-rgb:255,157,61}
   .nexa-v477-tech-card[data-nexa-tech="pulse"]{--tech:#39dfff;--tech-rgb:57,223,255}
   .nexa-v477-tech-card[data-nexa-tech="alliance"]{--tech:#a76cff;--tech-rgb:167,108,255}
 
   /*
-    Safari-safe travelling glow:
-    one short luminous segment physically travels the perimeter.
-    No mask-composite / conic-mask, so it cannot turn into diagonal bars.
+    V47.9 visual rule:
+    - EVERY card gets the same static left signal line.
+    - EVERY card gets the same static top glow.
+    - When the card has active information, both accents + the outer glow pulse softly.
+    This is intentionally simple and Safari-safe.
   */
-  .nexa-v477-tech-card::after{
+  .nexa-v477-tech-card::before{
     content:""!important;
+    display:block!important;
     position:absolute!important;
     z-index:8!important;
     pointer-events:none!important;
-    left:14px!important;
+    left:-1px!important;
+    top:18px!important;
+    width:3px!important;
+    height:46px!important;
+    border-radius:0 999px 999px 0!important;
+    background:linear-gradient(
+      180deg,
+      transparent 0%,
+      rgba(var(--tech-rgb),.55) 12%,
+      rgba(var(--tech-rgb),1) 42%,
+      #fff 50%,
+      rgba(var(--tech-rgb),1) 58%,
+      rgba(var(--tech-rgb),.55) 88%,
+      transparent 100%
+    )!important;
+    box-shadow:
+      0 0 5px rgba(var(--tech-rgb),.92),
+      0 0 12px rgba(var(--tech-rgb),.54)!important;
+    opacity:.95!important
+  }
+
+  .nexa-v477-tech-card::after{
+    content:""!important;
+    display:block!important;
+    position:absolute!important;
+    z-index:8!important;
+    pointer-events:none!important;
+    left:20px!important;
     top:-1px!important;
-    width:38px!important;
+    width:58px!important;
     height:2px!important;
     border-radius:999px!important;
-    background:linear-gradient(90deg,transparent,rgba(var(--tech-rgb),1),#fff,rgba(var(--tech-rgb),1),transparent)!important;
+    background:linear-gradient(
+      90deg,
+      transparent,
+      rgba(var(--tech-rgb),.50),
+      rgba(var(--tech-rgb),1),
+      #fff,
+      rgba(var(--tech-rgb),1),
+      rgba(var(--tech-rgb),.50),
+      transparent
+    )!important;
     box-shadow:
       0 0 5px rgba(var(--tech-rgb),.95),
-      0 0 12px rgba(var(--tech-rgb),.62),
-      0 0 22px rgba(var(--tech-rgb),.28)!important;
-    animation:nexaV478BorderRun 5.4s linear infinite!important;
-    transform-origin:center!important
+      0 0 12px rgba(var(--tech-rgb),.58),
+      0 0 22px rgba(var(--tech-rgb),.20)!important;
+    opacity:.95!important
   }
 
-  @keyframes nexaV478BorderRun{
-    0%   {left:14px;top:-1px;width:38px;height:2px;transform:none}
-    23%  {left:calc(100% - 52px);top:-1px;width:38px;height:2px;transform:none}
-    25%  {left:calc(100% - 1px);top:14px;width:2px;height:38px;transform:none}
-    48%  {left:calc(100% - 1px);top:calc(100% - 52px);width:2px;height:38px;transform:none}
-    50%  {left:calc(100% - 52px);top:calc(100% - 1px);width:38px;height:2px;transform:none}
-    73%  {left:14px;top:calc(100% - 1px);width:38px;height:2px;transform:none}
-    75%  {left:-1px;top:calc(100% - 52px);width:2px;height:38px;transform:none}
-    98%  {left:-1px;top:14px;width:2px;height:38px;transform:none}
-    100% {left:14px;top:-1px;width:38px;height:2px;transform:none}
-  }
-
-  /* Active card: stronger whole border + soft pulse, travelling light remains. */
+  /* Active information = signal breath/blink. Nothing active stays completely static. */
   .nexa-v477-tech-card[data-nexa-active="1"]{
-    border-color:rgba(var(--tech-rgb),.88)!important;
-    animation:nexaV478ActivePulse 1.9s ease-in-out infinite!important
+    border-color:rgba(var(--tech-rgb),.90)!important;
+    animation:nexaV479ActiveCardPulse 1.85s ease-in-out infinite!important
   }
+  .nexa-v477-tech-card[data-nexa-active="1"]::before,
   .nexa-v477-tech-card[data-nexa-active="1"]::after{
-    animation-duration:3.5s!important
+    animation:nexaV479SignalBlink 1.85s ease-in-out infinite!important
   }
-  @keyframes nexaV478ActivePulse{
+
+  @keyframes nexaV479ActiveCardPulse{
     0%,100%{
       box-shadow:
-        inset 0 0 30px rgba(var(--tech-rgb),.07),
-        0 0 15px rgba(var(--tech-rgb),.20)!important
+        inset 0 0 0 1px rgba(255,255,255,.018),
+        inset 0 0 30px rgba(var(--tech-rgb),.06),
+        0 0 13px rgba(var(--tech-rgb),.16)!important
     }
     50%{
       box-shadow:
-        inset 0 0 36px rgba(var(--tech-rgb),.12),
-        0 0 26px rgba(var(--tech-rgb),.36)!important
+        inset 0 0 0 1px rgba(255,255,255,.025),
+        inset 0 0 38px rgba(var(--tech-rgb),.13),
+        0 0 28px rgba(var(--tech-rgb),.38)!important
+    }
+  }
+
+  @keyframes nexaV479SignalBlink{
+    0%,100%{
+      opacity:.66!important;
+      filter:brightness(.92)!important
+    }
+    50%{
+      opacity:1!important;
+      filter:brightness(1.45)!important
     }
   }
 
@@ -285,21 +325,19 @@ function installCSS(){
     text-shadow:0 0 11px rgba(var(--tech-rgb),.16)!important
   }
 
-  /* Remove every old/home decorative symbol. Glow is the only cue. */
-  #home-svs-section::before,
-  #home-transfers-section::before{
-    content:none!important;
-    display:none!important
-  }
-  #home-transfers-section::after{
-    /* V47.8 owns this pseudo for the travelling glow, never the old ⇄ watermark */
-    content:""!important;
-    display:block!important
-  }
+  /* Remove old icon elements. Pseudo-elements are reserved only for the two signal accents above. */
   .nexa-v477-tech-card > .nexa-v477-card-icon,
   .nexa-v477-tech-card > .nexa-v475-tech-icon,
   .nexa-v477-tech-card > .nexa-v474-tech-icon{
     display:none!important
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .nexa-v477-tech-card[data-nexa-active="1"],
+    .nexa-v477-tech-card[data-nexa-active="1"]::before,
+    .nexa-v477-tech-card[data-nexa-active="1"]::after{
+      animation:none!important
+    }
   }
 
   /* Preserve Chief Gear presentation */

@@ -1,4 +1,4 @@
-/* NEXA V49.13 — ADMIN OWNER CONTENT FIX / LEGACY SECTIONS QUARANTINED
+/* NEXA V49.14 — TRANSFER PRIVACY + ACCESS COPY CLEANUP
    NEW FILE: nexa-v49-state-hub.js
 
    Owns:
@@ -22,8 +22,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V4913_STATE_HUB__) return;
-window.__NEXA_V4913_STATE_HUB__=true;
+if(window.__NEXA_V4914_STATE_HUB__) return;
+window.__NEXA_V4914_STATE_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -261,7 +261,7 @@ function refreshHomeVisualOwner(){
 function updateStateLabels(st=activeState()){
   if(!st)return;
   const transferHead=$('#home-transfers-section .head span');
-  if(transferHead)transferHead.textContent=`State ${st}`;
+  if(transferHead)transferHead.textContent='Private Access';
   const liveHead=$('#home-svs-section .head span');
   if(liveHead)liveHead.textContent=`State ${st}`;
   const footer=$('#home .footer')||$('.footer');
@@ -271,6 +271,33 @@ function updateStateLabels(st=activeState()){
       .replace(/Your state\. One hub\. Everything connected\./i,'Your state. One hub. Everything connected.')
       .replace(/NEXA(?:\s*[•·]\s*|\s+)State\s+\d+/i,`NEXA • State ${st}`);
   }
+}
+
+async function canSeeTransferHome(){
+  try{
+    return await rpc('can_manage_transfers')===true;
+  }catch(_){
+    return true;
+  }
+}
+
+function positionTransferAfterAllianceSignal(){
+  const transfer=$('#home-transfers-section');
+  if(!transfer)return;
+  const anchor=$('#nexa-v31-alliance')
+    || $$('.section').find(el=>/alliance signal/i.test(String(el.textContent||'')))
+    || null;
+  if(anchor&&anchor.parentNode&&anchor.nextElementSibling!==transfer){
+    anchor.insertAdjacentElement('afterend',transfer);
+  }
+}
+
+async function syncTransferVisibility(){
+  const transfer=$('#home-transfers-section');
+  if(!transfer)return;
+  const allowed=await canSeeTransferHome();
+  transfer.classList.toggle('hidden',!allowed);
+  transfer.style.setProperty('display',allowed?'block':'none',allowed?'important':'important');
 }
 
 async function hubStatus(st=activeState()){
@@ -291,10 +318,12 @@ function transferEmpty(st){
   let host=$('#home-transfer-events');
   if(!host){refreshHomeVisualOwner();host=$('#home-transfer-events')}
   if(!host)return;
-  host.innerHTML=`<article class="event"><div class="event-row"><div><h3>Transfer Center</h3><div class="muted">Transfer cycles and recruiting information for State ${esc(st)} will appear here when active.</div></div></article>`;
+  host.innerHTML=`<article class="event"><div class="event-row"><div><h3>Transfer Center</h3><div class="muted">Transfer cycles and recruiting information will appear here when active.</div></div></article>`;
 }
 async function syncStateHome(){
   const st=activeState();if(!st)return;
+  positionTransferAfterAllianceSignal();
+  await syncTransferVisibility();
   refreshHomeVisualOwner();
   updateStateLabels(st);
   const c=sb();if(!c)return;
@@ -324,7 +353,7 @@ async function syncStateHome(){
     if(host){
       if(trans){
         const status=String(trans.status||'upcoming').replace(/_/g,' ').toUpperCase();
-        host.innerHTML=`<article class="event"><div class="event-row"><div><h3>${esc(trans.title||'Transfer Center')}</h3><div class="muted">State ${esc(st)} • ${esc(status)}${trans.applications_open?' • Applications Open':''}</div></div></article>`;
+        host.innerHTML=`<article class="event"><div class="event-row"><div><h3>${esc(trans.title||'Transfer Center')}</h3><div class="muted">${esc(status)}${trans.applications_open?' • Applications Open':''}</div></div></article>`;
       }else transferEmpty(st);
     }
     refreshHomeVisualOwner();
@@ -689,7 +718,7 @@ async function openAllianceEmblemPicker(allianceId){
 function infoDialog(kind){
   if(kind==='access'){
     dialog(`<button class="nexa-v49-close" type="button">×</button><h3>NEXA Access</h3>
-      <p>NEXA Access controls who can open and manage Administration for this State Hub.</p>
+      <p>NEXA Access controls who can open and manage Administration for the current State Hub.</p>
       <div class="nexa-v49-warning">Administrative Access does not assign Operational Roles or Battle Roles. Those are managed separately.</div>`);
   }else if(kind==='ops'){
     dialog(`<button class="nexa-v49-close" type="button">×</button><h3>Operational Roles</h3>
@@ -712,7 +741,7 @@ async function renderAdminAccess(){
     const admins=await rpc('nexa_list_state_admins_v2',{p_state:activeState()})||[];
     host.innerHTML=`<section class="nexa-v49-panel">
       <div class="nexa-v49-heading"><h3>NEXA Access</h3><button class="nexa-v49-info" type="button" data-v49-info="access">i</button></div>
-      <div class="nexa-v49-muted">Administration access only for State ${esc(activeState())}. Search a player by Game ID, grant access, and manage current administrators below. Operational Roles and Battle Roles are separate.</div>
+      <div class="nexa-v49-muted">Administration access for the current State Hub. Search a player by Game ID, grant access, and manage current administrators below. Operational Roles and Battle Roles are separate.</div>
       <div class="nexa-v49-searchrow"><input id="v49-admin-search" inputmode="numeric" placeholder="Search Game ID"><button data-v49-find-admin>SEARCH</button></div>
       <div id="v49-admin-results"></div>
     </section>

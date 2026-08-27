@@ -1,4 +1,4 @@
-/* NEXA V47.16 — HOME CARD OWNER / TRANSFER FORCED ROOT ACCENT
+/* NEXA V47.17 — HOME TRANSFER DELETE + CLEAN REBUILD
    COMPLETE REPLACEMENT for: nexa-v47-visual-assets.js
 
    Owns:
@@ -25,8 +25,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4716_CONTROL_HUB__) return;
-window.__NEXA_V4716_CONTROL_HUB__=true;
+if(window.__NEXA_V4717_CONTROL_HUB__) return;
+window.__NEXA_V4717_CONTROL_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -313,6 +313,107 @@ function installCSS(){
     display:none!important
   }
 
+
+  /* V47.17 — Home Transfer is rebuilt from zero. Old inner .glass/.events markup no longer owns visuals. */
+  #home-transfers-section.nexa-v4717-transfer-clean{
+    display:block!important;
+    position:relative!important;
+    margin:18px 0!important;
+    padding:20px 24px 19px 26px!important;
+    min-height:0!important;
+    border:1px solid rgba(255,157,61,.54)!important;
+    border-radius:20px!important;
+    overflow:hidden!important;
+    isolation:isolate!important;
+    background:
+      linear-gradient(90deg,rgba(255,157,61,.12),rgba(255,157,61,0) 14px),
+      radial-gradient(circle at 24px 0px,rgba(255,255,255,.16),transparent 42px),
+      radial-gradient(circle at 8% 12%,rgba(255,157,61,.10),transparent 34%),
+      radial-gradient(circle at 91% 76%,rgba(255,157,61,.06),transparent 37%),
+      linear-gradient(145deg,rgba(27,15,27,.97),rgba(14,12,27,.98))!important;
+    box-shadow:
+      inset 0 0 0 1px rgba(255,255,255,.018),
+      inset 0 1px 0 rgba(255,157,61,.16),
+      inset 0 0 28px rgba(255,157,61,.035),
+      0 0 14px rgba(255,157,61,.10)!important
+  }
+  #home-transfers-section.nexa-v4717-transfer-clean > .head,
+  #home-transfers-section.nexa-v4717-transfer-clean > .glass,
+  #home-transfers-section.nexa-v4717-transfer-clean > .nexa-transfer-home-actions{
+    display:none!important
+  }
+  #home-transfers-section .nexa-v4717-transfer-kicker{
+    display:block!important;
+    margin:0 0 5px!important;
+    color:#ffb36d!important;
+    font-size:12px!important;
+    line-height:1.15!important;
+    font-weight:950!important;
+    letter-spacing:.18em!important
+  }
+  #home-transfers-section #home-transfer-events{
+    display:block!important;
+    margin:0!important;
+    padding:0!important;
+    border:0!important;
+    background:transparent!important;
+    box-shadow:none!important
+  }
+  #home-transfers-section #home-transfer-events article,
+  #home-transfers-section #home-transfer-events .event{
+    display:block!important;
+    margin:0!important;
+    padding:0!important;
+    border:0!important;
+    background:transparent!important;
+    box-shadow:none!important
+  }
+  #home-transfers-section #home-transfer-events .event-row{
+    display:block!important;
+    margin:0!important;
+    padding:0!important
+  }
+  #home-transfers-section #home-transfer-events h3{
+    margin:0 0 6px!important;
+    color:#fff!important;
+    font-size:27px!important;
+    line-height:1.06!important;
+    font-weight:950!important;
+    letter-spacing:-.02em!important
+  }
+  #home-transfers-section #home-transfer-events .muted{
+    margin:0!important;
+    color:#c9c9d6!important;
+    font-size:16px!important;
+    line-height:1.35!important;
+    font-weight:650!important
+  }
+  #home-transfers-section .nexa-v4717-left,
+  #home-transfers-section .nexa-v4717-top{
+    position:absolute!important;
+    z-index:20!important;
+    display:block!important;
+    pointer-events:none!important
+  }
+  #home-transfers-section .nexa-v4717-left{
+    left:-1px!important;
+    top:18px!important;
+    width:3px!important;
+    height:40px!important;
+    border-radius:0 999px 999px 0!important;
+    background:linear-gradient(180deg,transparent,rgba(255,157,61,.45) 12%,#ff9d3d 42%,#fff 50%,#ff9d3d 58%,rgba(255,157,61,.45) 88%,transparent)!important;
+    box-shadow:0 0 5px rgba(255,157,61,.92),0 0 12px rgba(255,157,61,.54)!important
+  }
+  #home-transfers-section .nexa-v4717-top{
+    left:18px!important;
+    top:-1px!important;
+    width:42px!important;
+    height:2px!important;
+    border-radius:999px!important;
+    background:linear-gradient(90deg,transparent,rgba(255,157,61,.40),#ff9d3d,#fff,#ff9d3d,rgba(255,157,61,.40),transparent)!important;
+    box-shadow:0 0 5px rgba(255,157,61,.95),0 0 12px rgba(255,157,61,.58),0 0 22px rgba(255,157,61,.20)!important
+  }
+
   /* Active information = signal breath/blink. Nothing active stays completely static. */
   .nexa-v477-tech-card[data-nexa-active="1"]{
     border-color:rgba(var(--tech-rgb),.90)!important;
@@ -538,30 +639,6 @@ function neutralizeV453(card){
   });
 }
 
-function forceTransferRootAccent(card,type){
-  if(!card||type!=='transfer')return;
-  let el=card.querySelector(':scope > .nexa-v4716-transfer-top');
-  if(!el){
-    el=document.createElement('span');
-    el.className='nexa-v4716-transfer-top';
-    card.appendChild(el);
-  }
-  const st=el.style;
-  st.setProperty('position','absolute','important');
-  st.setProperty('z-index','2147483646','important');
-  st.setProperty('left','18px','important');
-  st.setProperty('top','0px','important');
-  st.setProperty('width','42px','important');
-  st.setProperty('height','3px','important');
-  st.setProperty('display','block','important');
-  st.setProperty('pointer-events','none','important');
-  st.setProperty('border-radius','999px','important');
-  st.setProperty('opacity','1','important');
-  st.setProperty('transform','translateZ(0)','important');
-  st.setProperty('background','linear-gradient(90deg,transparent,rgba(255,157,61,.42),rgba(255,157,61,1),#fff,rgba(255,157,61,1),rgba(255,157,61,.42),transparent)','important');
-  st.setProperty('box-shadow','0 0 5px rgba(255,157,61,.98),0 0 12px rgba(255,157,61,.64),0 0 24px rgba(255,157,61,.24)','important');
-}
-
 function decorateCard(card,type){
   if(!card)return;
   removeOldDecor(card);
@@ -595,7 +672,6 @@ function decorateCard(card,type){
   card.style.setProperty('border-color',`rgba(${palette[0]},.54)`,'important');
   card.style.setProperty('background',v4713CardBackground(palette[0]),'important');
   ensureCardAccents(card);
-  forceTransferRootAccent(card,type);
 
   $$(':scope > .nexa-v477-card-icon',card).forEach(x=>x.remove());
 
@@ -607,9 +683,34 @@ function decorateCard(card,type){
   if(copy&&copy!==card)copy.classList.add('nexa-v477-tech-copy');
 }
 
+function rebuildTransferCard(){
+  const card=$('#home-transfers-section');
+  if(!card)return;
+
+  /* Keep only the outer section id as the data hook. Everything visual inside is recreated. */
+  card.className='section nexa-v4717-transfer-clean';
+  card.removeAttribute('style');
+  card.dataset.nexaTech='transfer';
+
+  card.innerHTML=`
+    <span class="nexa-v4717-left" aria-hidden="true"></span>
+    <span class="nexa-v4717-top" aria-hidden="true"></span>
+    <span class="nexa-v4717-transfer-kicker">TRANSFERS</span>
+    <div id="home-transfer-events">
+      <article class="event">
+        <div class="event-row">
+          <div>
+            <h3>Transfer Center</h3>
+            <div class="muted">Transfer cycles and recruiting information will appear here when a transfer cycle is active.</div>
+          </div>
+        </div>
+      </article>
+    </div>`;
+}
+
 function decorateHomeCards(){
   decorateCard($('#home-svs-section'),'live');
-  decorateCard($('#home-transfers-section'),'transfer');
+  rebuildTransferCard();
 
   const nodes=$$('h1,h2,h3,h4,strong,b');
   RULES.forEach(rule=>{

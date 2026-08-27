@@ -1,11 +1,12 @@
-/* NEXA V47.9 — HOME CARD ACCENTS / STATIC IDLE + ACTIVE SIGNAL PULSE
+/* NEXA V47.10 — HOME CARD CONSISTENCY / TRANSFER ALIGNMENT + ACTIVE PULSE
    COMPLETE REPLACEMENT for: nexa-v47-visual-assets.js
 
    Owns:
    - NEXA identity / Home branding
    - Home command-card visual family
    - no decorative card icons; border glow is the visual cue
-   - static top glow + left signal line on inactive cards
+   - static top glow + left signal line on all 4 Home cards
+   - Transfer forced to use the exact same accent system as the others
    - soft blinking/pulsing signal only when a card has active information
    - Chief Gear asset resolver
    - Alliance emblem asset globals
@@ -23,8 +24,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V479_CONTROL_HUB__) return;
-window.__NEXA_V479_CONTROL_HUB__=true;
+if(window.__NEXA_V4710_CONTROL_HUB__) return;
+window.__NEXA_V4710_CONTROL_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -194,15 +195,18 @@ function installCSS(){
     isolation:isolate!important;
     overflow:hidden!important;
     box-sizing:border-box!important;
-    border:1px solid rgba(var(--tech-rgb),.52)!important;
+    border:1px solid rgba(var(--tech-rgb),.54)!important;
     border-radius:20px!important;
     padding-left:16px!important;
     background:
+      linear-gradient(90deg,rgba(var(--tech-rgb),.12),rgba(var(--tech-rgb),0) 14px),
+      radial-gradient(circle at 24px 0px,rgba(255,255,255,.16),transparent 42px),
       radial-gradient(circle at 8% 12%,rgba(var(--tech-rgb),.10),transparent 34%),
       radial-gradient(circle at 91% 76%,rgba(var(--tech-rgb),.06),transparent 37%),
       linear-gradient(145deg,rgba(10,17,42,.96),rgba(3,8,24,.98))!important;
     box-shadow:
       inset 0 0 0 1px rgba(255,255,255,.018),
+      inset 0 1px 0 rgba(var(--tech-rgb),.16),
       inset 0 0 28px rgba(var(--tech-rgb),.035),
       0 0 14px rgba(var(--tech-rgb),.10)!important
   }
@@ -211,6 +215,13 @@ function installCSS(){
   .nexa-v477-tech-card[data-nexa-tech="transfer"]{--tech:#ff9d3d;--tech-rgb:255,157,61}
   .nexa-v477-tech-card[data-nexa-tech="pulse"]{--tech:#39dfff;--tech-rgb:57,223,255}
   .nexa-v477-tech-card[data-nexa-tech="alliance"]{--tech:#a76cff;--tech-rgb:167,108,255}
+
+  #home-transfers-section.nexa-v477-tech-card::before{
+    left:-1px!important;top:18px!important;width:3px!important;height:40px!important;opacity:1!important
+  }
+  #home-transfers-section.nexa-v477-tech-card::after{
+    left:18px!important;top:-1px!important;width:42px!important;height:2px!important;display:block!important;opacity:1!important
+  }
 
   /*
     V47.9 visual rule:
@@ -228,22 +239,22 @@ function installCSS(){
     left:-1px!important;
     top:18px!important;
     width:3px!important;
-    height:46px!important;
+    height:40px!important;
     border-radius:0 999px 999px 0!important;
     background:linear-gradient(
       180deg,
       transparent 0%,
-      rgba(var(--tech-rgb),.55) 12%,
+      rgba(var(--tech-rgb),.45) 12%,
       rgba(var(--tech-rgb),1) 42%,
       #fff 50%,
       rgba(var(--tech-rgb),1) 58%,
-      rgba(var(--tech-rgb),.55) 88%,
+      rgba(var(--tech-rgb),.45) 88%,
       transparent 100%
     )!important;
     box-shadow:
       0 0 5px rgba(var(--tech-rgb),.92),
       0 0 12px rgba(var(--tech-rgb),.54)!important;
-    opacity:.95!important
+    opacity:.98!important
   }
 
   .nexa-v477-tech-card::after{

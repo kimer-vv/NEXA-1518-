@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NEXA • Owner Access</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;
+  font-family:Inter,system-ui,sans-serif;color:#fff;
+  background:radial-gradient(circle at 20% 20%,#27145a 0,transparent 35%),linear-gradient(145deg,#060817,#0b1028)
+}
+.card{
+  width:min(440px,100%);padding:26px;border-radius:24px;background:rgba(10,14,34,.92);
+  border:1px solid rgba(142,119,255,.38);box-shadow:0 24px 70px rgba(0,0,0,.45)
+}
+h1{margin:0 0 7px}.muted{color:#a3accd;line-height:1.5}
+.btn{
+  width:100%;border:0;border-radius:14px;padding:13px 16px;color:#fff;font-weight:900;
+  background:linear-gradient(135deg,#5865f2,#773dff);cursor:pointer;margin-top:15px
+}
+.btn.secondary{background:#111936;border:1px solid rgba(255,255,255,.12)}
+.back{display:block;text-align:center;margin-top:14px;color:#a9b1d2;text-decoration:none;font-size:13px}
+.msg{margin-top:13px;min-height:20px;color:#aab3d5;font-size:13px;line-height:1.45}
+.spinner{display:none;width:18px;height:18px;margin:14px auto 2px;border-radius:50%;border:2px solid rgba(255,255,255,.18);border-top-color:#8fc8ff;animation:spin .8s linear infinite}
+.spinner.on{display:block}@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<section class="card">
+  <h1>🔒 Owner Access</h1>
+  <p class="muted">Authorized Owner recovery only. Discord verifies your identity; NEXA still checks Owner permission before granting access.</p>
+  <button id="discord" class="btn" type="button">Continue with Discord</button>
+  <div id="spin" class="spinner"></div>
+  <div id="msg" class="msg"></div>
+  <a class="back" href="/">← Back to NEXA</a>
+</section>
+
+<script>
+(() => {
+'use strict';
+
+const SUPABASE_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
+const SUPABASE_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const msg=document.getElementById('msg');
+const spin=document.getElementById('spin');
+const btn=document.getElementById('discord');
+const PENDING_KEY='nexa_owner_oauth_pending_v1';
+
+function setStatus(text,loading=false){
+  msg.textContent=text||'';
+  spin.classList.toggle('on',!!loading);
+  btn.disabled=!!loading;
+}
+
+async function getSessionAfterCallback(){
+  const url=new URL(location.href);
+  const code=url.searchParams.get('code');
+  const oauthError=url.searchParams.get('error_description')||url.searchParams.get('error');
+
+  if(oauthError) throw new Error(oauthError);
+
+  if(code){
+    const {data,error}=await sb.auth.exchangeCodeForSession(code);
+    if(error) throw error;
+    history.replaceState({},'',location.pathname);
+    return data?.session||null;
+  }
+
+  const {data,error}=await sb.auth.getSession();
+  if(error) throw error;
+  return data?.session||null;
+}
+
+async function verifyOwner(session){
+  if(!session?.access_token) return false;
+
+  setStatus('Verifying Owner access…',true);
+
+  const r=await fetch('/api/nexa-owner-bypass',{
+    method:'POST',
+    headers:{Authorization:'Bearer '+session.access_token}
+  });
+
+  const data=await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(data.error||'Owner access was not authorized.');
+
+  localStorage.removeItem(PENDING_KEY);
+  sessionStorage.setItem('nexa_show_returning_welcome','1');
+  sessionStorage.setItem('nexa_returning_welcome_owner','1');
+
+  setStatus('Owner access verified. Opening NEXA…',true);
+  location.replace('/');
+  return true;
+}
+
+async function finishCallback(){
+  const hasCallback =
+    location.search.includes('code=') ||
+    location.hash.includes('access_token=') ||
+    localStorage.getItem(PENDING_KEY)==='1';
+
+  if(!hasCallback) return;
+
+  try{
+    setStatus('Finishing Discord sign-in…',true);
+    const session=await getSessionAfterCallback();
+    if(session) await verifyOwner(session);
+    else setStatus('Discord returned, but no NEXA session was created. Please try Continue with Discord again.');
+  }catch(e){
+    localStorage.removeItem(PENDING_KEY);
+    setStatus(e.message||String(e));
+  }
+}
+
+btn.addEventListener('click',async()=>{
+  try{
+    setStatus('Opening Discord…',true);
+    localStorage.setItem(PENDING_KEY,'1');
+
+    /*
+      Redirect to the site root on purpose.
+      The root is the Supabase Site URL / safest allow-listed destination.
+      index.html immediately forwards an Owner OAuth callback back here
+      while preserving ?code= / #access_token.
+    */
+    const {error}=await sb.auth.signInWithOAuth({
+      provider:'discord',
+      options:{redirectTo:location.origin+'/'}
+    });
+    if(error) throw error;
+  }catch(e){
+    localStorage.removeItem(PENDING_KEY);
+    setStatus(e.message||String(e));
+  }
+});
+
+finishCallback();
+})();
+</script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-/* NEXA V48.5 — PROFILE CLEANUP / SINGLE CHARM + ALLIANCE DEDUPE
+/* NEXA V48.6 — BATTLE DATA BASE CAPACITY NOTICE
    COMPLETE REPLACEMENT for: nexa-v48-profile-tools.js
 
    Extends stable V33.6 without taking Profile ownership.
@@ -16,8 +16,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V485_PROFILE_TOOLS__) return;
-window.__NEXA_V485_PROFILE_TOOLS__=true;
+if(window.__NEXA_V486_PROFILE_TOOLS__) return;
+window.__NEXA_V486_PROFILE_TOOLS__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -82,6 +82,32 @@ function injectCSS(){
   }
   .v48-tool-btn.max-all{border:1px solid rgba(80,225,255,.48);color:#9af3ff;box-shadow:0 0 13px rgba(53,215,255,.09)}
   .v48-tool-btn.battle{border:1px solid rgba(193,105,255,.48);color:#e9c5ff;box-shadow:0 0 13px rgba(180,76,255,.08)}
+  .v48-base-capacity-note{
+    margin:0 0 12px;
+    padding:10px 12px;
+    border:1px solid rgba(84,220,255,.26);
+    border-radius:12px;
+    background:linear-gradient(135deg,rgba(15,60,94,.28),rgba(23,20,72,.22));
+    box-shadow:inset 0 0 14px rgba(72,205,255,.05);
+    color:#cdd9f2;
+    font-size:.74rem;
+    line-height:1.42
+  }
+  .v48-base-capacity-note strong{
+    display:block;
+    margin-bottom:4px;
+    color:#76ecff;
+    font-size:.78rem;
+    font-weight:1000;
+    letter-spacing:.09em;
+    text-transform:uppercase;
+    text-shadow:0 0 10px rgba(67,219,255,.20)
+  }
+  .v48-base-capacity-note .base{
+    color:#fff;
+    font-weight:1000;
+    letter-spacing:.03em
+  }
 
   #v48-category-tools{
     position:relative;z-index:4;display:flex;justify-content:flex-end;align-items:center;
@@ -783,13 +809,17 @@ async function openBattle(){
   battleDraft=structuredClone(hg);
   const mainMode=hg.main.mode,secondMode=hg.second.mode;
   const body=`<div class="v48-battle-grid">
-    <div class="v48-field"><label>RALLY CAPACITY</label>
-      <input type="number" inputmode="numeric" min="0" step="1" data-v48-rally value="${esc(accountData.rally_capacity??'')}" placeholder="Example: 1250000">
-      <small>Maximum troop capacity when you start a rally.</small>
+    <div class="v48-base-capacity-note">
+      <strong>BASE CAPACITY ONLY</strong>
+      Enter your <span class="base">BASE</span> Deployment and Rally Capacity. Do not include Pet, 10%, 20%, or temporary buffs. NEXA calculates boosts automatically.
     </div>
-    <div class="v48-field"><label>DEPLOYMENT CAPACITY</label>
+    <div class="v48-field"><label>RALLY CAPACITY — BASE</label>
+      <input type="number" inputmode="numeric" min="0" step="1" data-v48-rally value="${esc(accountData.rally_capacity??'')}" placeholder="Example: 1250000">
+      <small>Base troop capacity when you start a rally.</small>
+    </div>
+    <div class="v48-field"><label>DEPLOYMENT CAPACITY — BASE</label>
       <input type="number" inputmode="numeric" min="0" step="1" data-v48-deploy value="${esc(accountData.deployment_capacity??'')}" placeholder="Example: 189000">
-      <small>Maximum troops in a normal march/deployment.</small>
+      <small>Base troops in a normal march/deployment.</small>
     </div>
 
     <div class="v48-field" data-v48-set-card="main"><label>MAIN MARCH HERO GEAR</label>
@@ -878,7 +908,7 @@ async function saveBattle(){
     const old=normalizeHeroGear(accountData.hero_gear||{});
     const hero_gear={
       ...old,
-      version:'v48.5',
+      version:'v48.6',
       main:{mode:mainMode,data:mainMode==='maxed'?maxHeroGearSet():collectGearSet('main')},
       second:{
         mode:secondMode,

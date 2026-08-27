@@ -1,4 +1,4 @@
-/* NEXA V49.5 — STATE HOME HANDOFF + STABLE OPERATIONAL/BATTLE ROLE OWNERS
+/* NEXA V49.6 — VISUAL NEXA ACCESS + OPERATIONAL/BATTLE ROLE OWNER
    NEW FILE: nexa-v49-state-hub.js
 
    Owns:
@@ -22,8 +22,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V495_STATE_HUB__) return;
-window.__NEXA_V495_STATE_HUB__=true;
+if(window.__NEXA_V496_STATE_HUB__) return;
+window.__NEXA_V496_STATE_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -160,8 +160,20 @@ function installCSS(){
   .nexa-v49-warning{margin:11px 0;padding:11px;border:1px solid rgba(255,152,76,.28);border-radius:12px;
     background:rgba(70,34,10,.28);color:#ffd2ac;font-size:.78rem;line-height:1.45}
 
-  /* The old Administration host remains intact but is no longer the owner of Access/Roles. */
-  #admin-permissions .nexa-v25-host,#admin-roles .nexa-v25-host{display:none!important}
+  /* V49.6 — Access/Roles are visual member directories. Legacy checklist/form UI is not an owner. */
+  #admin-permissions,#admin-roles{position:relative!important}
+  #admin-permissions>.nexa-v49-admin-host,
+  #admin-roles>.nexa-v49-admin-host{
+    display:block!important;
+    position:relative!important;
+    z-index:40!important;
+    width:100%!important;
+    min-height:220px!important
+  }
+  #admin-permissions>.nexa-v25-host,
+  #admin-roles>.nexa-v25-host,
+  #admin-permissions>.nexa-v27-role-card,
+  #admin-roles>.nexa-v27-role-card{display:none!important}
   .nexa-v49-admin-host{min-height:220px}
   .nexa-v49-panel{border:1px solid rgba(132,95,255,.27);border-radius:18px;padding:14px;margin-bottom:11px;
     background:linear-gradient(145deg,rgba(14,19,46,.88),rgba(5,9,24,.94));color:#fff}
@@ -190,8 +202,19 @@ function installCSS(){
   #admin-roles>.nexa-v49-admin-host .nexa-v49-panel{display:block!important}
   #admin-roles>.nexa-v49-admin-host .nexa-v49-role-section{display:block!important}
   .nexa-v49-member-list{display:grid;gap:8px}
-  .nexa-v49-member-card{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px;border:1px solid rgba(255,255,255,.09);border-radius:14px;background:#081027}
-  .nexa-v49-member-avatar{width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid rgba(111,199,255,.55);background:#101733}
+  .nexa-v49-member-card{
+    display:grid;grid-template-columns:54px minmax(0,1fr) auto;gap:11px;align-items:center;
+    padding:11px;border:1px solid rgba(111,126,255,.23);border-radius:16px;
+    background:
+      radial-gradient(circle at 8% 20%,rgba(64,211,255,.09),transparent 32%),
+      linear-gradient(145deg,rgba(10,18,43,.96),rgba(5,9,25,.98));
+    box-shadow:inset 0 0 18px rgba(81,93,255,.035),0 0 14px rgba(74,113,255,.045)
+  }
+  .nexa-v49-member-avatar{
+    width:54px;height:54px;border-radius:50%;object-fit:cover;
+    border:2px solid rgba(111,199,255,.62);background:#101733;
+    box-shadow:0 0 12px rgba(64,205,255,.18),0 0 20px rgba(121,76,255,.10)
+  }
   .nexa-v49-member-copy{min-width:0}
   .nexa-v49-member-copy b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .nexa-v49-member-copy small{display:block;margin-top:2px;color:#8f9ab8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -522,7 +545,14 @@ function memberCard(p,removeAttrs=''){
 function claimAdminSection(sectionId){
   const section=$(sectionId);if(!section)return;
   Array.from(section.children).forEach(ch=>{
-    if(!ch.classList?.contains('nexa-v49-admin-host'))ch.style.setProperty('display','none','important');
+    if(ch.classList?.contains('nexa-v49-admin-host')){
+      ch.style.setProperty('display','block','important');
+      ch.style.setProperty('position','relative','important');
+      ch.style.setProperty('z-index','40','important');
+    }else{
+      ch.style.setProperty('display','none','important');
+      ch.setAttribute('aria-hidden','true');
+    }
   });
 }
 
@@ -618,7 +648,7 @@ async function renderAdminAccess(){
     const admins=await rpc('nexa_list_state_admins_v2',{p_state:activeState()})||[];
     host.innerHTML=`<section class="nexa-v49-panel">
       <div class="nexa-v49-heading"><h3>NEXA Access</h3><button class="nexa-v49-info" type="button" data-v49-info="access">i</button></div>
-      <div class="nexa-v49-muted">Grant or remove Administrative Access to NEXA Administration for State ${esc(activeState())}. Operational Roles and Battle Roles are managed separately.</div>
+      <div class="nexa-v49-muted">Administration access only for State ${esc(activeState())}. Search a player by Game ID, grant access, and manage current administrators below. Operational Roles and Battle Roles are separate.</div>
       <div class="nexa-v49-searchrow"><input id="v49-admin-search" inputmode="numeric" placeholder="Search Game ID"><button data-v49-find-admin>SEARCH</button></div>
       <div id="v49-admin-results"></div>
     </section>
@@ -759,9 +789,12 @@ function refreshAdminOwners(){
 }
 
 function scheduleAdminOwners(){
-  /* Administration legacy code can repaint its tab content when the modal/tab
-     opens. Reclaim only after those explicit UI actions; no observer/polling. */
-  [0,120,360].forEach(ms=>setTimeout(()=>{
+  /* Legacy Administration carousel paints synchronously from its arrows.
+     Reclaim immediately after that user navigation and once after its transition.
+     Finite event follow-up only: no observer and no polling. */
+  [0,90,240].forEach(ms=>setTimeout(()=>{
+    claimAdminSection('#admin-permissions');
+    claimAdminSection('#admin-roles');
     relabelOperationalRolesUI();
     renderAdminAccess();
     renderRoles();
@@ -771,6 +804,7 @@ function scheduleAdminOwners(){
 function bind(){
   document.addEventListener('click',async e=>{
     const adminOwnerTrigger=e.target.closest?.(
+      '#admin-modal .nexa-v25-arrow,#admin-modal .nexa-v25-nav,'+
       '[data-admin-tab="roles"],[data-admin-tab="permissions"],'+
       '[data-admin-tab="access"],[data-admin-section="roles"],'+
       '[data-admin-section="permissions"],[data-open-admin],#open-admin'
@@ -844,6 +878,10 @@ function bind(){
   document.addEventListener('change',e=>{
     if(e.target?.matches?.('#v49-battle-alliance'))renderBattleList();
   });
+
+  document.addEventListener('pointerup',e=>{
+    if(e.target?.closest?.('#admin-modal .nexa-v25-arrow'))scheduleAdminOwners();
+  },true);
 
   window.addEventListener('nexa:active-state-changed',()=>{
     syncStateHome();accountFormForState();scheduleAdminOwners();

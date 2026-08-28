@@ -1,4 +1,4 @@
-/* NEXA V49.19 — ADMIN MOUNT-ON-DEMAND / TRANSFER PRIVATE ACCESS
+/* NEXA V49.20 — V41 LIBRARY COLLISION GUARD / TRANSFER AUTH STABILITY
    NEW FILE: nexa-v49-state-hub.js
 
    Owns:
@@ -22,8 +22,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V4919_STATE_HUB__) return;
-window.__NEXA_V4919_STATE_HUB__=true;
+if(window.__NEXA_V4920_STATE_HUB__) return;
+window.__NEXA_V4920_STATE_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -350,30 +350,61 @@ function updateStateLabels(st=activeState()){
 }
 
 async function canSeeTransferHome(){
+  const st=activeState();
+  const cacheKey=`nexa_v4920_transfer_allowed_${st||'state'}`;
+  let authoritative=false;
+
+  /* First use the already-established native admin helpers when available. */
+  try{
+    if(typeof window.nexaAmIOwner==='function'){
+      authoritative=true;
+      if(await window.nexaAmIOwner()){localStorage.setItem(cacheKey,'1');return true}
+    }
+  }catch(_){}
+  try{
+    if(typeof window.nexaAmIAdmin==='function'){
+      authoritative=true;
+      if(await window.nexaAmIAdmin()){localStorage.setItem(cacheKey,'1');return true}
+    }
+  }catch(_){}
+
   try{
     const role=String(await rpc('current_nexa_role')||'').trim().toLowerCase();
-    if(role==='owner'||role==='admin')return true;
+    authoritative=true;
+    if(role==='owner'||role==='admin'){localStorage.setItem(cacheKey,'1');return true}
   }catch(_){}
 
   try{
-    if(await rpc('can_manage_transfers')===true)return true;
+    const canTransfer=await rpc('can_manage_transfers');
+    authoritative=true;
+    if(canTransfer===true){localStorage.setItem(cacheKey,'1');return true}
   }catch(_){}
 
   try{
-    const st=activeState();
-    if(!st)return false;
-    const admins=await rpc('nexa_list_state_admins_v2',{p_state:st})||[];
-    const accounts=cachedAccounts.length?cachedAccounts:await ownAccounts();
-    const aid=String(window.NEXA_ACTIVE_ACCOUNT_ID||localStorage.getItem(ACTIVE_ACCOUNT_KEY)||'');
-    const current=accounts.find(x=>String(x.id)===aid&&stateNum(x.state_number)===st)
-      ||accounts.find(x=>stateNum(x.state_number)===st&&x.is_main)
-      ||accounts.find(x=>stateNum(x.state_number)===st);
-    const pid=String(current?.player_id||'').trim();
-    if(!pid)return false;
-    return admins.some(a=>String(a?.player_id||a?.game_id||'').trim()===pid);
-  }catch(_){
+    if(st){
+      const admins=await rpc('nexa_list_state_admins_v2',{p_state:st})||[];
+      authoritative=true;
+      const accounts=cachedAccounts.length?cachedAccounts:await ownAccounts();
+      const aid=String(window.NEXA_ACTIVE_ACCOUNT_ID||localStorage.getItem(ACTIVE_ACCOUNT_KEY)||'');
+      const current=accounts.find(x=>String(x.id)===aid&&stateNum(x.state_number)===st)
+        ||accounts.find(x=>stateNum(x.state_number)===st&&x.is_main)
+        ||accounts.find(x=>stateNum(x.state_number)===st);
+      const pid=String(current?.player_id||'').trim();
+      if(pid&&admins.some(a=>String(a?.player_id||a?.game_id||'').trim()===pid)){
+        localStorage.setItem(cacheKey,'1');
+        return true;
+      }
+    }
+  }catch(_){}
+
+  /* If every live check completed and access is absent, revoke the cache.
+     If auth/Supabase is only temporarily unavailable during reload, keep the
+     last confirmed allowed state instead of flashing then disappearing. */
+  if(authoritative){
+    localStorage.removeItem(cacheKey);
     return false;
   }
+  return localStorage.getItem(cacheKey)==='1';
 }
 
 function ensureTransferOwner(){
@@ -1118,9 +1149,69 @@ async function toggleOwnedHomeMenu(){
   menu.classList.add('open');toggle.classList.add('open');menu.setAttribute('aria-hidden','false');toggle.setAttribute('aria-expanded','true');
 }
 
+function installV41LibraryCollisionGuard(){
+  if(window.__NEXA_V4920_V41_LIBRARY_GUARD__)return;
+  window.__NEXA_V4920_V41_LIBRARY_GUARD__=true;
+
+  const ORDER=['alliances','library','permissions','roles','system'];
+  const LABEL={
+    'alliances':'alliances',
+    'library':'library',
+    'nexa access':'permissions',
+    'operational roles':'roles',
+    'roles':'roles',
+    'system operations':'system'
+  };
+
+  const hardLibrary=()=>{
+    hideAdminOwners();
+
+    /* V41.2's embedded Library is the collision source. Kill its frame before
+       leaving so NEXA Access cannot remain above the Library document. */
+    const wrap=$('#internal-module-frame-wrap');
+    const frame=$('#internal-module-frame');
+    wrap?.classList.add('hidden');
+    wrap?.classList.remove('nexa-v412-library');
+    if(frame)try{frame.src='about:blank'}catch(_){}
+
+    location.assign('library.html?admin=1');
+  };
+
+  const route=e=>{
+    const direct=e.target?.closest?.('a[href*="library.html"],button[data-v25-href*="library.html"],[data-admin-tab="library"]');
+    if(direct){
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      hardLibrary();
+      return;
+    }
+
+    /* V41.2 creates its own arrow nav with data-dir and calls
+       openAdminSection('library') from an onclick handler. Catch it at WINDOW
+       capture phase, before V41's document listener or target onclick fires. */
+    const arrow=e.target?.closest?.('#nexa-v412-admin-nav button[data-dir]');
+    if(!arrow)return;
+
+    const currentLabel=String($('#nexa-v412-admin-nav b')?.textContent||'').trim().toLowerCase();
+    const current=LABEL[currentLabel];
+    const i=ORDER.indexOf(current);
+    const dir=Number(arrow.dataset.dir||0);
+    const target=ORDER[i+dir];
+
+    if(target==='library'){
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      hardLibrary();
+    }
+  };
+
+  window.addEventListener('pointerdown',route,true);
+  window.addEventListener('click',route,true);
+}
+
 function installLibraryArrowKillSwitch(){
-  if(window.__NEXA_V4919_LIBRARY_ARROW_KILL__)return;
-  window.__NEXA_V4919_LIBRARY_ARROW_KILL__=true;
+  if(window.__NEXA_V4920_LIBRARY_ARROW_KILL__)return;
+  window.__NEXA_V4920_LIBRARY_ARROW_KILL__=true;
 
   const route=e=>{
     const target=e.target?.closest?.('#admin-modal [data-v25-href]');
@@ -1139,8 +1230,8 @@ function installLibraryArrowKillSwitch(){
 }
 
 function installLegacyNavIntercept(){
-  if(window.__NEXA_V4919_ADMIN_NAV_INTERCEPT__)return;
-  window.__NEXA_V4919_ADMIN_NAV_INTERCEPT__=true;
+  if(window.__NEXA_V4920_ADMIN_NAV_INTERCEPT__)return;
+  window.__NEXA_V4920_ADMIN_NAV_INTERCEPT__=true;
 
   window.addEventListener('click',e=>{
     const menuToggle=e.target?.closest?.('#nexa-home-menu-toggle');
@@ -1216,6 +1307,7 @@ function installLegacyNavIntercept(){
 
 function bind(){
   retireLegacyTransfer();
+  installV41LibraryCollisionGuard();
   installLibraryArrowKillSwitch();
   installLegacyNavIntercept();
   document.addEventListener('click',async e=>{
@@ -1294,7 +1386,7 @@ function bind(){
   window.addEventListener('nexa:active-state-changed',()=>{
     syncStateHome();accountFormForState();scheduleAdminOwners();
   });
-  window.addEventListener('pageshow',()=>setTimeout(syncStateHome,100));
+  window.addEventListener('pageshow',()=>{setTimeout(syncStateHome,100);setTimeout(syncTransferVisibility,700);setTimeout(syncTransferVisibility,1800)});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncStateHome()});
 }
 
@@ -1304,6 +1396,9 @@ async function boot(){
   try{await restoreActiveContext()}catch(e){console.warn('[NEXA V49] restore',e?.message||e)}
   updateStateLabels();
   ensureTransferOwner();
+  /* Auth/session hydration on iPhone can finish after the first Home paint.
+     Recheck permission without changing the card owner. */
+  [250,800,1600,3000].forEach(ms=>setTimeout(()=>syncTransferVisibility(),ms));
   buildOwnedHomeMenuRoot();
   accountFormForState();
   enhanceAccountManager();
@@ -1351,7 +1446,15 @@ async function boot(){
   }
 }
 
-window.addEventListener('load',()=>retireLegacyTransfer(),{once:true});
+window.addEventListener('load',()=>{
+  retireLegacyTransfer();
+  setTimeout(syncTransferVisibility,300);
+  setTimeout(syncTransferVisibility,1200);
+  try{
+    const c=sb();
+    c?.auth?.onAuthStateChange?.(()=>setTimeout(syncTransferVisibility,180));
+  }catch(_){}
+},{once:true});
 window.addEventListener('pageshow',()=>{retireLegacyTransfer();hideAdminOwners()});
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});

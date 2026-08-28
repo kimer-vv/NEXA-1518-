@@ -1,4 +1,4 @@
-/* NEXA V47.28 — NEW TRANSFER OWNER / NEON GREEN / LEGACY TRANSFER DEAD
+/* NEXA V47.30 — COMPACT NEON TRANSFER / LEGACY TRANSFER VISUALS DEAD
    COMPLETE REPLACEMENT for: nexa-v47-visual-assets.js
 
    Owns:
@@ -25,8 +25,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4729_CONTROL_HUB__) return;
-window.__NEXA_V4729_CONTROL_HUB__=true;
+if(window.__NEXA_V4730_CONTROL_HUB__) return;
+window.__NEXA_V4730_CONTROL_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -189,7 +189,11 @@ function installCSS(){
   }
 
   /* V47.28: the original orange Transfer block is retired. V49 creates the only live Transfer card. */
-  #home-transfers-section{display:none!important;visibility:hidden!important;pointer-events:none!important}
+  #home-transfers-section,
+  #nexa-v430-transfer-card,
+  #nexa-transfer-card,
+  .nexa-v453-transfer,
+  [data-nexa-transfer]:not(#nexa-v49-transfer-card){display:none!important;visibility:hidden!important;pointer-events:none!important}
 
   /* UNIFIED HOME CARD FAMILY — no icons, glow is the visual cue */
   .nexa-v477-tech-card{
@@ -810,4 +814,4 @@ document.addEventListener('click',e=>{
   }
 },true);
 
-})(); 
+})();

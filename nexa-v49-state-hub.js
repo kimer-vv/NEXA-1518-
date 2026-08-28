@@ -1,4 +1,4 @@
-/* NEXA V49.17 — LEGACY TRANSFER PURGE / LIBRARY HANDOFF HARDENED
+/* NEXA V49.18 — ADMIN OWNER ISOLATION / TRANSFER ACCESS RESTORE
    NEW FILE: nexa-v49-state-hub.js
 
    Owns:
@@ -22,8 +22,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V4917_STATE_HUB__) return;
-window.__NEXA_V4917_STATE_HUB__=true;
+if(window.__NEXA_V4918_STATE_HUB__) return;
+window.__NEXA_V4918_STATE_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -188,8 +188,8 @@ function installCSS(){
   .nexa-v49-legacy-quarantine{display:none!important}
   #admin-modal #admin-permissions.nexa-v49-legacy-quarantine,
   #admin-modal #admin-roles.nexa-v49-legacy-quarantine{display:none!important}
-  #admin-modal.nexa-v25-admin .nexa-v49-owner-section{display:none!important}
-  #admin-modal.nexa-v25-admin .nexa-v49-owner-section.nexa-v49-owner-active.nexa-v25-active{display:block!important}
+  #admin-modal .nexa-v49-owner-section{display:none!important}
+  #admin-modal .nexa-v49-owner-section.nexa-v49-owner-active{display:block!important}
   .nexa-v49-owner-nav{
     position:sticky;top:0;z-index:70;display:grid;grid-template-columns:1fr auto 1fr;
     gap:8px;align-items:center;padding:9px 0 13px;
@@ -349,7 +349,29 @@ function updateStateLabels(st=activeState()){
 }
 
 async function canSeeTransferHome(){
-  try{return await rpc('can_manage_transfers')===true}catch(_){return false}
+  try{
+    if(await rpc('can_manage_transfers')===true)return true;
+  }catch(_){}
+
+  /* Administration access also counts as authorized private Transfer visibility.
+     The state remains internal; no state number is exposed in Home copy. */
+  try{
+    const st=activeState();
+    if(!st)return false;
+
+    const admins=await rpc('nexa_list_state_admins_v2',{p_state:st})||[];
+    const accounts=cachedAccounts.length?cachedAccounts:await ownAccounts();
+    const current=accounts.find(x=>stateNum(x.state_number)===st && String(x.id)===String(window.NEXA_ACTIVE_ACCOUNT_ID||localStorage.getItem(ACTIVE_ACCOUNT_KEY)||''))
+      || accounts.find(x=>stateNum(x.state_number)===st&&x.is_main)
+      || accounts.find(x=>stateNum(x.state_number)===st);
+
+    const pid=String(current?.player_id||'').trim();
+    if(!pid)return false;
+
+    return admins.some(a=>String(a?.player_id||a?.game_id||a?.id||'').trim()===pid);
+  }catch(_){
+    return false;
+  }
 }
 
 function ensureTransferOwner(){
@@ -699,7 +721,7 @@ function ownerSection(sectionId){
   if(!owner){
     owner=document.createElement('section');
     owner.id=ownerId;
-    owner.className='admin-section nexa-v49-owner-section';
+    owner.className='nexa-v49-owner-section';
     legacy.insertAdjacentElement('afterend',owner);
   }
   return owner;
@@ -730,7 +752,7 @@ function showOwnerSection(kind){
   [accessOwner,rolesOwner].filter(Boolean).forEach(el=>{
     const on=(kind==='access'&&el===accessOwner)||(kind==='roles'&&el===rolesOwner);
     el.classList.toggle('nexa-v49-owner-active',on);
-    el.classList.toggle('nexa-v25-active',on);
+    el.classList.remove('nexa-v25-active');
     el.classList.toggle('hidden',!on);
     el.style.setProperty('display',on?'block':'none','important');
   });
@@ -1003,6 +1025,11 @@ function scheduleAdminOwners(){
       return;
     }
     hideAdminOwners();
+    ['#nexa-v49-access-owner-section','#nexa-v49-roles-owner-section'].forEach(sel=>{
+      const el=$(sel);if(!el)return;
+      el.classList.remove('nexa-v25-active');
+      el.style.setProperty('display','none','important');
+    });
     relabelOperationalRolesUI();
   },ms));
 }

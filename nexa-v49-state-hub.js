@@ -1,4 +1,4 @@
-/* NEXA V49.22 — DIRECT-ROUTE ADMIN TAKEOVER / TRANSFER AUTH BRIDGE
+/* NEXA V49.23 — URL-LOCKED ADMIN OWNER / LEGACY CHILDREN QUARANTINE
    NEW FILE: nexa-v49-state-hub.js
 
    Owns:
@@ -22,8 +22,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V4922_STATE_HUB__) return;
-window.__NEXA_V4922_STATE_HUB__=true;
+if(window.__NEXA_V4923_STATE_HUB__) return;
+window.__NEXA_V4923_STATE_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -163,6 +163,20 @@ function installCSS(){
 
   /* V49.6 — Access/Roles are visual member directories. Legacy checklist/form UI is not an owner. */
   #admin-permissions,#admin-roles{position:relative!important}
+  #admin-permissions.nexa-v49-live-section > *:not(.nexa-v25-nav):not(.nexa-v49-admin-host),
+  #admin-roles.nexa-v49-live-section > *:not(.nexa-v25-nav):not(.nexa-v49-admin-host){
+    display:none!important;
+    visibility:hidden!important;
+    pointer-events:none!important
+  }
+  #admin-permissions.nexa-v49-live-section > .nexa-v49-admin-host,
+  #admin-roles.nexa-v49-live-section > .nexa-v49-admin-host{
+    display:block!important;
+    visibility:visible!important;
+    opacity:1!important;
+    pointer-events:auto!important
+  }
+
   #admin-permissions>.nexa-v49-admin-host,
   #admin-roles>.nexa-v49-admin-host{
     display:block!important;
@@ -351,7 +365,7 @@ function updateStateLabels(st=activeState()){
 
 async function canSeeTransferHome(){
   const st=activeState();
-  const cacheKey=`nexa_v4922_transfer_allowed_${st||'state'}`;
+  const cacheKey=`nexa_v4923_transfer_allowed_${st||'state'}`;
 
   try{
     /* First use the authenticated index owner/module helpers. They run on the
@@ -767,7 +781,10 @@ function ownerSection(sectionId){
   /* Keep all old Access / Roles renderer blocks dead. */
   Array.from(section.children).forEach(child=>{
     if(child.classList?.contains('nexa-v49-admin-host'))return;
+    if(child.classList?.contains('nexa-v25-nav'))return;
     child.style.setProperty('display','none','important');
+    child.style.setProperty('visibility','hidden','important');
+    child.style.setProperty('pointer-events','none','important');
     child.setAttribute?.('aria-hidden','true');
   });
 
@@ -1093,23 +1110,49 @@ function refreshAdminOwners(){
   if(activeAdminOwner==='roles')renderRoles();
 }
 
-function scheduleAdminOwners(){
-  [0,70,160].forEach(ms=>setTimeout(()=>{
-    const title=String($('#admin-modal .nexa-v25-title')?.textContent||'').trim().toLowerCase();
+function requestedAdminOwner(){
+  try{
+    const p=new URLSearchParams(location.search);
+    if(p.get('admin')!=='administration')return null;
+    const tab=String(p.get('tab')||'').toLowerCase();
+    if(tab==='permissions'||tab==='access')return 'access';
+    if(tab==='roles')return 'roles';
+  }catch(_){}
+  return null;
+}
 
+function scheduleAdminOwners(){
+  [0,80,180,420,900,1600,2600].forEach(ms=>setTimeout(()=>{
+    const requested=requestedAdminOwner();
+
+    /* A direct Administration URL is authoritative. Older V26 renderers may
+       finish network work later, but they are never allowed to take ownership
+       away from the requested V49 page. */
+    if(requested==='access'){
+      if(activeAdminOwner!=='access')showOwnerSection('access');
+      else ownerSection('#admin-permissions');
+      renderAdminAccess();
+      return;
+    }
+    if(requested==='roles'){
+      if(activeAdminOwner!=='roles')showOwnerSection('roles');
+      else ownerSection('#admin-roles');
+      renderRoles();
+      return;
+    }
+
+    const title=String($('#admin-modal .nexa-v25-title')?.textContent||'').trim().toLowerCase();
     if(title.includes('nexa access')){
       if(activeAdminOwner!=='access')showOwnerSection('access');
       renderAdminAccess();
       return;
     }
-
     if(title.includes('operational roles')||title==='roles'){
       if(activeAdminOwner!=='roles')showOwnerSection('roles');
       renderRoles();
       return;
     }
 
-    /* Any other A/L/S page must contain zero V49 Access/Role UI. */
     hideAdminOwners();
     relabelOperationalRolesUI();
   },ms));
@@ -1202,8 +1245,8 @@ async function toggleOwnedHomeMenu(){
 }
 
 function installV26OwnerIntercept(){
-  if(window.__NEXA_V4922_V26_OWNER_INTERCEPT__)return;
-  window.__NEXA_V4922_V26_OWNER_INTERCEPT__=true;
+  if(window.__NEXA_V4923_V26_OWNER_INTERCEPT__)return;
+  window.__NEXA_V4923_V26_OWNER_INTERCEPT__=true;
 
   const route=e=>{
     const go=e.target?.closest?.('#admin-modal [data-v25-go]');
@@ -1242,8 +1285,8 @@ function installV26OwnerIntercept(){
 }
 
 function installLegacyNavIntercept(){
-  if(window.__NEXA_V4922_ADMIN_NAV_INTERCEPT__)return;
-  window.__NEXA_V4922_ADMIN_NAV_INTERCEPT__=true;
+  if(window.__NEXA_V4923_ADMIN_NAV_INTERCEPT__)return;
+  window.__NEXA_V4923_ADMIN_NAV_INTERCEPT__=true;
 
   window.addEventListener('click',e=>{
     const menuToggle=e.target?.closest?.('#nexa-home-menu-toggle');
@@ -1320,7 +1363,7 @@ function installLegacyNavIntercept(){
 function clearTransferSessionAuth(){
   try{
     Object.keys(sessionStorage).forEach(k=>{
-      if(k.startsWith('nexa_v4922_transfer_allowed_'))sessionStorage.removeItem(k);
+      if(k.startsWith('nexa_v4923_transfer_allowed_'))sessionStorage.removeItem(k);
     });
   }catch(_){}
 }
@@ -1480,7 +1523,7 @@ window.addEventListener('load',()=>{
 },{once:true});
 window.addEventListener('pageshow',()=>{
   retireLegacyTransfer();
-  [0,120,420,900].forEach(ms=>setTimeout(scheduleAdminOwners,ms));
+  scheduleAdminOwners();
   [100,500,1200].forEach(ms=>setTimeout(syncTransferVisibility,ms));
 });
 

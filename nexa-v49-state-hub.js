@@ -1,4 +1,4 @@
-/* NEXA V49.21 — ORIGINAL ADMIN SECTIONS OWNER / STICKY PRIVATE TRANSFER
+/* NEXA V49.22 — DIRECT-ROUTE ADMIN TAKEOVER / TRANSFER AUTH BRIDGE
    NEW FILE: nexa-v49-state-hub.js
 
    Owns:
@@ -22,8 +22,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V4921_STATE_HUB__) return;
-window.__NEXA_V4921_STATE_HUB__=true;
+if(window.__NEXA_V4922_STATE_HUB__) return;
+window.__NEXA_V4922_STATE_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -351,39 +351,57 @@ function updateStateLabels(st=activeState()){
 
 async function canSeeTransferHome(){
   const st=activeState();
-  const cacheKey=`nexa_v4921_transfer_allowed_${st||'state'}`;
+  const cacheKey=`nexa_v4922_transfer_allowed_${st||'state'}`;
 
   try{
+    /* First use the authenticated index owner/module helpers. They run on the
+       same client/session that already rendered the signed-in Profile on iOS. */
+    try{
+      if(typeof window.nexaAmIOwner==='function' && await window.nexaAmIOwner()){
+        sessionStorage.setItem(cacheKey,'1');
+        return true;
+      }
+    }catch(_){}
+    try{
+      if(typeof window.nexaAmIAdmin==='function' && await window.nexaAmIAdmin()){
+        sessionStorage.setItem(cacheKey,'1');
+        return true;
+      }
+    }catch(_){}
+    try{
+      if(typeof window.nexaGetModuleAccess==='function'){
+        const access=await window.nexaGetModuleAccess();
+        if(access?.transfers===true){
+          sessionStorage.setItem(cacheKey,'1');
+          return true;
+        }
+      }
+    }catch(_){}
+
     const c=sb();
     const session=(await c?.auth?.getSession?.())?.data?.session||null;
-    if(!session?.user){
-      sessionStorage.removeItem(cacheKey);
-      return false;
+
+    if(session?.user){
+      try{
+        const allowed=await rpc('can_manage_transfers');
+        if(allowed===true){
+          sessionStorage.setItem(cacheKey,'1');
+          return true;
+        }
+      }catch(_){}
+
+      try{
+        const role=String(await rpc('current_nexa_role')||'').trim().toLowerCase();
+        if(role==='owner'||role==='admin'||role==='super_admin'){
+          sessionStorage.setItem(cacheKey,'1');
+          return true;
+        }
+      }catch(_){}
     }
 
-    /* Production source of truth. Once true in this signed-in session/state,
-       keep it true until sign-out or state change instead of flashing away
-       during Safari auth/RPC hydration. */
-    try{
-      const allowed=await rpc('can_manage_transfers');
-      if(allowed===true){
-        sessionStorage.setItem(cacheKey,'1');
-        return true;
-      }
-    }catch(_){}
-
-    if(sessionStorage.getItem(cacheKey)==='1')return true;
-
-    /* Owner/admin fallback if the transfer RPC is temporarily unavailable. */
-    try{
-      const role=String(await rpc('current_nexa_role')||'').trim().toLowerCase();
-      if(role==='owner'||role==='admin'||role==='super_admin'){
-        sessionStorage.setItem(cacheKey,'1');
-        return true;
-      }
-    }catch(_){}
-
-    return false;
+    /* Do not turn a confirmed authorized Home card back off during Safari
+       hydration. Sign-out/state-change explicitly clears this cache. */
+    return sessionStorage.getItem(cacheKey)==='1';
   }catch(_){
     return sessionStorage.getItem(cacheKey)==='1';
   }
@@ -424,6 +442,9 @@ async function syncTransferVisibility(){
   card.classList.toggle('hidden',!allowed);
   card.setAttribute('aria-hidden',allowed?'false':'true');
   card.style.setProperty('display',allowed?'block':'none','important');
+  card.style.setProperty('visibility',allowed?'visible':'hidden','important');
+  card.style.setProperty('opacity',allowed?'1':'0','important');
+  card.style.setProperty('pointer-events',allowed?'auto':'none','important');
 
   if(allowed){
     positionTransferAfterAllianceSignal();
@@ -1102,6 +1123,10 @@ function openV49AdminSection(key){
   else renderRoles();
 }
 
+window.NEXA_V49_OPEN_ADMIN_SECTION=openV49AdminSection;
+window.NEXA_V49_HIDE_ADMIN_OWNERS=hideAdminOwners;
+window.NEXA_V49_REFRESH_ADMIN_OWNERS=scheduleAdminOwners;
+
 function ownedMenuNodes(){return {toggle:$('#nexa-home-menu-toggle'),menu:$('#nexa-home-menu'),card:$('#nexa-home-menu-card')}}
 function closeOwnedMenu(){
   const {toggle,menu}=ownedMenuNodes();
@@ -1177,8 +1202,8 @@ async function toggleOwnedHomeMenu(){
 }
 
 function installV26OwnerIntercept(){
-  if(window.__NEXA_V4921_V26_OWNER_INTERCEPT__)return;
-  window.__NEXA_V4921_V26_OWNER_INTERCEPT__=true;
+  if(window.__NEXA_V4922_V26_OWNER_INTERCEPT__)return;
+  window.__NEXA_V4922_V26_OWNER_INTERCEPT__=true;
 
   const route=e=>{
     const go=e.target?.closest?.('#admin-modal [data-v25-go]');
@@ -1217,8 +1242,8 @@ function installV26OwnerIntercept(){
 }
 
 function installLegacyNavIntercept(){
-  if(window.__NEXA_V4921_ADMIN_NAV_INTERCEPT__)return;
-  window.__NEXA_V4921_ADMIN_NAV_INTERCEPT__=true;
+  if(window.__NEXA_V4922_ADMIN_NAV_INTERCEPT__)return;
+  window.__NEXA_V4922_ADMIN_NAV_INTERCEPT__=true;
 
   window.addEventListener('click',e=>{
     const menuToggle=e.target?.closest?.('#nexa-home-menu-toggle');
@@ -1295,7 +1320,7 @@ function installLegacyNavIntercept(){
 function clearTransferSessionAuth(){
   try{
     Object.keys(sessionStorage).forEach(k=>{
-      if(k.startsWith('nexa_v4921_transfer_allowed_'))sessionStorage.removeItem(k);
+      if(k.startsWith('nexa_v4922_transfer_allowed_'))sessionStorage.removeItem(k);
     });
   }catch(_){}
 }
@@ -1399,10 +1424,13 @@ async function boot(){
   enhanceAccountManager();
   enhanceFleet();
 
-  /* Access and Operational Roles exist only while their own page is active. */
+  /* Access and Operational Roles exist only while their own page is active.
+     V26's direct ?admin=administration route activates at ~700ms, so V49 must
+     perform its final ownership pass AFTER that one-time route activation. */
   hideAdminOwners();
   relabelOperationalRolesUI();
   scheduleAdminOwners();
+  [820,980,1250].forEach(ms=>setTimeout(scheduleAdminOwners,ms));
 
   /* Old index Home sync was globally hard-coded to 1518. From V49 onward the
      active Fleet State is the source of truth. */
@@ -1450,7 +1478,11 @@ window.addEventListener('load',()=>{
     c?.auth?.onAuthStateChange?.((event)=>{if(event==='SIGNED_OUT')clearTransferSessionAuth();setTimeout(syncTransferVisibility,180)});
   }catch(_){}
 },{once:true});
-window.addEventListener('pageshow',()=>{retireLegacyTransfer();hideAdminOwners()});
+window.addEventListener('pageshow',()=>{
+  retireLegacyTransfer();
+  [0,120,420,900].forEach(ms=>setTimeout(scheduleAdminOwners,ms));
+  [100,500,1200].forEach(ms=>setTimeout(syncTransferVisibility,ms));
+});
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
 else boot();

@@ -1,4 +1,4 @@
-/* NEXA V49.16 — COMPACT MENU / CLEAN LIBRARY HANDOFF / TRANSFER OWNER
+/* NEXA V49.17 — LEGACY TRANSFER PURGE / LIBRARY HANDOFF HARDENED
    NEW FILE: nexa-v49-state-hub.js
 
    Owns:
@@ -22,8 +22,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V4916_STATE_HUB__) return;
-window.__NEXA_V4916_STATE_HUB__=true;
+if(window.__NEXA_V4917_STATE_HUB__) return;
+window.__NEXA_V4917_STATE_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -290,13 +290,31 @@ function installCSS(){
 }
 
 function retireLegacyTransfer(){
-  const old=$('#home-transfers-section');
-  if(!old)return;
-  old.classList.add('hidden');
-  old.setAttribute('aria-hidden','true');
-  old.style.setProperty('display','none','important');
-  old.style.setProperty('visibility','hidden','important');
-  old.style.setProperty('pointer-events','none','important');
+  const candidates=new Set();
+
+  [
+    '#home-transfers-section',
+    '#nexa-v430-transfer-card',
+    '#nexa-transfer-card',
+    '.nexa-v453-transfer',
+    '[data-nexa-transfer]'
+  ].forEach(sel=>$$(sel).forEach(el=>candidates.add(el)));
+
+  $$('#home .section, main.shell > .section').forEach(el=>{
+    if(el?.id==='nexa-v49-transfer-card')return;
+    if(el?.closest?.('#nexa-v49-transfer-card'))return;
+    const t=String(el?.textContent||'').replace(/\s+/g,' ').trim();
+    if(/\bTRANSFER CENTER\b/i.test(t)||/^TRANSFERS?\b/i.test(t))candidates.add(el);
+  });
+
+  candidates.forEach(el=>{
+    if(!el||el.id==='nexa-v49-transfer-card'||el.closest?.('#nexa-v49-transfer-card'))return;
+    el.setAttribute('aria-hidden','true');
+    el.style.setProperty('display','none','important');
+    el.style.setProperty('visibility','hidden','important');
+    el.style.setProperty('pointer-events','none','important');
+    el.remove();
+  });
 }
 
 function destroyAdminOwnerViews(){
@@ -427,6 +445,7 @@ async function syncStateHome(){
       }else transferEmpty(st);
     }
     refreshHomeVisualOwner();
+    retireLegacyTransfer();
   }catch(err){console.warn('[NEXA V49] state home',err?.message||err)}
 }
 
@@ -972,8 +991,18 @@ function refreshAdminOwners(){
 
 function scheduleAdminOwners(){
   [0,120].forEach(ms=>setTimeout(()=>{
-    ownerSection('#admin-permissions');
-    ownerSection('#admin-roles');
+    const title=String($('#admin-modal .nexa-v25-title')?.textContent||'').trim().toLowerCase();
+    if(title.includes('nexa access')){
+      showOwnerSection('access');
+      renderAdminAccess();
+      return;
+    }
+    if(title.includes('operational roles')||title==='roles'){
+      showOwnerSection('roles');
+      renderRoles();
+      return;
+    }
+    hideAdminOwners();
     relabelOperationalRolesUI();
   },ms));
 }
@@ -1075,6 +1104,12 @@ function installLegacyNavIntercept(){
     if(adminClose && (/close/i.test(adminClose.className||'') || /×|✕|x/i.test(String(adminClose.textContent||'').trim()))){
       hideAdminOwners();
       [0,120].forEach(ms=>setTimeout(()=>{const {menu}=ownedMenuNodes();if(menu?.classList.contains('open'))buildOwnedHomeMenuRoot()},ms));
+    }
+
+    const legacyArrow=e.target?.closest?.('#admin-modal .nexa-v25-arrow');
+    if(legacyArrow){
+      hideAdminOwners();
+      requestAnimationFrame(()=>hideAdminOwners());
     }
 
     const ownerGo=e.target?.closest?.('[data-v49-owner-section]');
@@ -1244,7 +1279,7 @@ async function boot(){
   await syncStateHome();
   /* One delayed final paint wins over the legacy async Home loader that may still
      be finishing its original 1518 request during DOMContentLoaded. */
-  setTimeout(syncStateHome,650);
+  setTimeout(()=>{syncStateHome();retireLegacyTransfer();},650);
 
   bind();
 
@@ -1272,6 +1307,9 @@ async function boot(){
     }catch(_){}
   }
 }
+
+window.addEventListener('load',()=>retireLegacyTransfer(),{once:true});
+window.addEventListener('pageshow',()=>{retireLegacyTransfer();hideAdminOwners()});
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
 else boot();

@@ -25,8 +25,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4728_CONTROL_HUB__) return;
-window.__NEXA_V4728_CONTROL_HUB__=true;
+if(window.__NEXA_V4729_CONTROL_HUB__) return;
+window.__NEXA_V4729_CONTROL_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -348,8 +348,8 @@ function installCSS(){
   #nexa-v49-transfer-card.nexa-v4717-transfer-clean{
     display:block!important;
     position:relative!important;
-    margin:18px 0!important;
-    padding:20px 24px 19px 26px!important;
+    margin:10px 0 0!important;
+    padding:14px 18px 14px 26px!important;
     min-height:0!important;
     border-radius:20px!important;
     overflow:hidden!important;
@@ -380,12 +380,15 @@ function installCSS(){
     box-shadow:none!important
   }
   #nexa-v49-transfer-card.nexa-v4717-transfer-clean h3{
-    margin:0 0 5px!important;
-    color:#fff!important
+    margin:0 0 4px!important;
+    color:#fff!important;
+    font-size:18px!important;
+    line-height:1.08!important
   }
   #nexa-v49-transfer-card.nexa-v4717-transfer-clean .muted{
     color:#c0c4d4!important;
-    line-height:1.35!important
+    font-size:12px!important;
+    line-height:1.30!important
   }
 
   /* V47.24 — V44/V45 legacy still styles the INNER .event.
@@ -653,8 +656,8 @@ function lockTransferVisual(card){
   card.style.setProperty('overflow','hidden','important');
   card.style.setProperty('border','1px solid rgba(53,255,149,.72)','important');
   card.style.setProperty('border-radius','20px','important');
-  card.style.setProperty('padding','20px 24px 19px 26px','important');
-  card.style.setProperty('margin','18px 0','important');
+  card.style.setProperty('padding','14px 18px 14px 26px','important');
+  card.style.setProperty('margin','10px 0 0','important');
   card.style.setProperty('box-shadow','inset 0 0 34px rgba(53,255,149,.12),0 0 24px rgba(53,255,149,.22),0 0 44px rgba(53,255,149,.10)','important');
 
   card.style.setProperty('background',`

@@ -1,4 +1,4 @@
-/* NEXA V49.20 — V41 LIBRARY COLLISION GUARD / TRANSFER AUTH STABILITY
+/* NEXA V49.21 — ORIGINAL ADMIN SECTIONS OWNER / STICKY PRIVATE TRANSFER
    NEW FILE: nexa-v49-state-hub.js
 
    Owns:
@@ -22,8 +22,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V4920_STATE_HUB__) return;
-window.__NEXA_V4920_STATE_HUB__=true;
+if(window.__NEXA_V4921_STATE_HUB__) return;
+window.__NEXA_V4921_STATE_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -320,7 +320,7 @@ function retireLegacyTransfer(){
 
 function destroyAdminOwnerViews(){
   hideAdminOwners();
-  ['#nexa-v49-access-owner-section','#nexa-v49-roles-owner-section'].forEach(sel=>$(sel)?.remove());
+  ['#admin-permissions.nexa-v49-live-section','#admin-roles.nexa-v49-live-section'].forEach(sel=>$(sel)?.remove());
 }
 
 function leaveForLibrary(){
@@ -351,60 +351,42 @@ function updateStateLabels(st=activeState()){
 
 async function canSeeTransferHome(){
   const st=activeState();
-  const cacheKey=`nexa_v4920_transfer_allowed_${st||'state'}`;
-  let authoritative=false;
+  const cacheKey=`nexa_v4921_transfer_allowed_${st||'state'}`;
 
-  /* First use the already-established native admin helpers when available. */
   try{
-    if(typeof window.nexaAmIOwner==='function'){
-      authoritative=true;
-      if(await window.nexaAmIOwner()){localStorage.setItem(cacheKey,'1');return true}
+    const c=sb();
+    const session=(await c?.auth?.getSession?.())?.data?.session||null;
+    if(!session?.user){
+      sessionStorage.removeItem(cacheKey);
+      return false;
     }
-  }catch(_){}
-  try{
-    if(typeof window.nexaAmIAdmin==='function'){
-      authoritative=true;
-      if(await window.nexaAmIAdmin()){localStorage.setItem(cacheKey,'1');return true}
-    }
-  }catch(_){}
 
-  try{
-    const role=String(await rpc('current_nexa_role')||'').trim().toLowerCase();
-    authoritative=true;
-    if(role==='owner'||role==='admin'){localStorage.setItem(cacheKey,'1');return true}
-  }catch(_){}
-
-  try{
-    const canTransfer=await rpc('can_manage_transfers');
-    authoritative=true;
-    if(canTransfer===true){localStorage.setItem(cacheKey,'1');return true}
-  }catch(_){}
-
-  try{
-    if(st){
-      const admins=await rpc('nexa_list_state_admins_v2',{p_state:st})||[];
-      authoritative=true;
-      const accounts=cachedAccounts.length?cachedAccounts:await ownAccounts();
-      const aid=String(window.NEXA_ACTIVE_ACCOUNT_ID||localStorage.getItem(ACTIVE_ACCOUNT_KEY)||'');
-      const current=accounts.find(x=>String(x.id)===aid&&stateNum(x.state_number)===st)
-        ||accounts.find(x=>stateNum(x.state_number)===st&&x.is_main)
-        ||accounts.find(x=>stateNum(x.state_number)===st);
-      const pid=String(current?.player_id||'').trim();
-      if(pid&&admins.some(a=>String(a?.player_id||a?.game_id||'').trim()===pid)){
-        localStorage.setItem(cacheKey,'1');
+    /* Production source of truth. Once true in this signed-in session/state,
+       keep it true until sign-out or state change instead of flashing away
+       during Safari auth/RPC hydration. */
+    try{
+      const allowed=await rpc('can_manage_transfers');
+      if(allowed===true){
+        sessionStorage.setItem(cacheKey,'1');
         return true;
       }
-    }
-  }catch(_){}
+    }catch(_){}
 
-  /* If every live check completed and access is absent, revoke the cache.
-     If auth/Supabase is only temporarily unavailable during reload, keep the
-     last confirmed allowed state instead of flashing then disappearing. */
-  if(authoritative){
-    localStorage.removeItem(cacheKey);
+    if(sessionStorage.getItem(cacheKey)==='1')return true;
+
+    /* Owner/admin fallback if the transfer RPC is temporarily unavailable. */
+    try{
+      const role=String(await rpc('current_nexa_role')||'').trim().toLowerCase();
+      if(role==='owner'||role==='admin'||role==='super_admin'){
+        sessionStorage.setItem(cacheKey,'1');
+        return true;
+      }
+    }catch(_){}
+
     return false;
+  }catch(_){
+    return sessionStorage.getItem(cacheKey)==='1';
   }
-  return localStorage.getItem(cacheKey)==='1';
 }
 
 function ensureTransferOwner(){
@@ -434,13 +416,19 @@ function positionTransferAfterAllianceSignal(){
 }
 
 async function syncTransferVisibility(){
-  const transfer=ensureTransferOwner();if(!transfer)return false;
+  const card=ensureTransferOwner();
+  if(!card)return;
+
   const allowed=await canSeeTransferHome();
-  transfer.classList.toggle('nexa-v49-transfer-visible',allowed);
-  transfer.classList.toggle('hidden',!allowed);
-  transfer.style.setProperty('display',allowed?'block':'none','important');
-  transfer.setAttribute('aria-hidden',allowed?'false':'true');
-  return allowed;
+  card.classList.toggle('nexa-v49-transfer-visible',allowed);
+  card.classList.toggle('hidden',!allowed);
+  card.setAttribute('aria-hidden',allowed?'false':'true');
+  card.style.setProperty('display',allowed?'block':'none','important');
+
+  if(allowed){
+    positionTransferAfterAllianceSignal();
+    refreshHomeVisualOwner();
+  }
 }
 
 async function hubStatus(st=activeState()){
@@ -744,30 +732,53 @@ function ownerSection(sectionId){
   const kind=sectionId==='#admin-permissions'?'access':'roles';
   if(activeAdminOwner!==kind)return null;
 
-  const legacy=legacySection(sectionId);
-  if(!legacy)return null;
+  const section=legacySection(sectionId);
+  if(!section)return null;
 
-  legacy.classList.add('nexa-v49-legacy-quarantine');
-  legacy.style.setProperty('display','none','important');
-  legacy.setAttribute('aria-hidden','true');
+  /* V49 uses the ORIGINAL Administration section itself.
+     This lets the existing A -> L -> N -> R -> S shell hide/show one section
+     instead of leaving a sibling owner mounted underneath Library. */
+  section.classList.add('nexa-v49-live-section','nexa-v49-owner-active');
+  section.classList.remove('hidden');
+  section.classList.add('nexa-v25-active');
+  section.setAttribute('aria-hidden','false');
 
-  const ownerId=kind==='access'?'nexa-v49-access-owner-section':'nexa-v49-roles-owner-section';
-  let owner=$('#'+ownerId);
-  if(!owner){
-    owner=document.createElement('section');
-    owner.id=ownerId;
-    owner.className='nexa-v49-owner-section nexa-v49-owner-active';
-    owner.setAttribute('aria-hidden','false');
-    legacy.insertAdjacentElement('afterend',owner);
-  }
-  owner.classList.remove('hidden');
-  owner.style.setProperty('display','block','important');
-  return owner;
+  /* Keep all old Access / Roles renderer blocks dead. */
+  Array.from(section.children).forEach(child=>{
+    if(child.classList?.contains('nexa-v49-admin-host'))return;
+    child.style.setProperty('display','none','important');
+    child.setAttribute?.('aria-hidden','true');
+  });
+
+  return section;
+}
+
+function cleanupAdminOwner(kind=null){
+  const targets=kind
+    ? [kind==='access'?'#admin-permissions':'#admin-roles']
+    : ['#admin-permissions','#admin-roles'];
+
+  targets.forEach(sel=>{
+    const section=$(sel);
+    if(!section)return;
+
+    section.querySelector(':scope>.nexa-v49-admin-host')?.remove();
+    section.classList.remove('nexa-v49-live-section','nexa-v49-owner-active');
+
+    /* Restore legacy children only so Alliances/Library/System shell logic is
+       never contaminated by V49. Access/Role old UI remains hidden while V49
+       owns those exact pages. */
+    Array.from(section.children).forEach(child=>{
+      if(child.classList?.contains('nexa-v49-admin-host'))return;
+      child.style.removeProperty('display');
+      child.removeAttribute?.('aria-hidden');
+    });
+  });
 }
 
 function hideAdminOwners(){
   activeAdminOwner=null;
-  ['#nexa-v49-access-owner-section','#nexa-v49-roles-owner-section'].forEach(sel=>$(sel)?.remove());
+  cleanupAdminOwner();
 }
 
 function showOwnerSection(kind){
@@ -777,9 +788,10 @@ function showOwnerSection(kind){
   activeAdminOwner=kind;
 
   const sectionId=kind==='access'?'#admin-permissions':'#admin-roles';
-  const owner=ownerSection(sectionId);
-  if(!owner)return;
+  const section=ownerSection(sectionId);
+  if(!section)return;
 
+  /* Match the existing Administration shell's visibility contract. */
   ['#admin-events','#admin-forms','#admin-alliances','#admin-library','#admin-system','#admin-announcements']
     .forEach(sel=>{
       const el=$(sel);if(!el)return;
@@ -787,22 +799,33 @@ function showOwnerSection(kind){
       el.classList.remove('nexa-v25-active');
     });
 
+  section.classList.remove('hidden');
+  section.classList.add('nexa-v25-active');
+
   const modal=$('#admin-modal');
   modal?.classList.add('module-view','nexa-v25-admin');
   $('#admin-module-chooser')?.classList.add('hidden');
   $('#svs-admin-content')?.classList.remove('hidden');
+
+  const title=$('.nexa-v25-title span',section) || $('.nexa-v25-title',section);
+  if(title)title.textContent=kind==='access'?'NEXA Access':'Operational Roles';
 }
 
 function adminHost(sectionId){
   const kind=sectionId==='#admin-permissions'?'access':'roles';
   if(activeAdminOwner!==kind)return null;
-  const section=ownerSection(sectionId);if(!section)return null;
+
+  const section=ownerSection(sectionId);
+  if(!section)return null;
+
   let host=$(':scope>.nexa-v49-admin-host',section);
   if(!host){
     host=document.createElement('div');
     host.className='nexa-v49-admin-host';
     section.appendChild(host);
   }
+  host.style.removeProperty('display');
+  host.removeAttribute('aria-hidden');
   return host;
 }
 
@@ -1050,18 +1073,22 @@ function refreshAdminOwners(){
 }
 
 function scheduleAdminOwners(){
-  [0,80,180].forEach(ms=>setTimeout(()=>{
+  [0,70,160].forEach(ms=>setTimeout(()=>{
     const title=String($('#admin-modal .nexa-v25-title')?.textContent||'').trim().toLowerCase();
+
     if(title.includes('nexa access')){
       if(activeAdminOwner!=='access')showOwnerSection('access');
       renderAdminAccess();
       return;
     }
+
     if(title.includes('operational roles')||title==='roles'){
       if(activeAdminOwner!=='roles')showOwnerSection('roles');
       renderRoles();
       return;
     }
+
+    /* Any other A/L/S page must contain zero V49 Access/Role UI. */
     hideAdminOwners();
     relabelOperationalRolesUI();
   },ms));
@@ -1149,80 +1176,40 @@ async function toggleOwnedHomeMenu(){
   menu.classList.add('open');toggle.classList.add('open');menu.setAttribute('aria-hidden','false');toggle.setAttribute('aria-expanded','true');
 }
 
-function installV41LibraryCollisionGuard(){
-  if(window.__NEXA_V4920_V41_LIBRARY_GUARD__)return;
-  window.__NEXA_V4920_V41_LIBRARY_GUARD__=true;
-
-  const ORDER=['alliances','library','permissions','roles','system'];
-  const LABEL={
-    'alliances':'alliances',
-    'library':'library',
-    'nexa access':'permissions',
-    'operational roles':'roles',
-    'roles':'roles',
-    'system operations':'system'
-  };
-
-  const hardLibrary=()=>{
-    hideAdminOwners();
-
-    /* V41.2's embedded Library is the collision source. Kill its frame before
-       leaving so NEXA Access cannot remain above the Library document. */
-    const wrap=$('#internal-module-frame-wrap');
-    const frame=$('#internal-module-frame');
-    wrap?.classList.add('hidden');
-    wrap?.classList.remove('nexa-v412-library');
-    if(frame)try{frame.src='about:blank'}catch(_){}
-
-    location.assign('library.html?admin=1');
-  };
+function installV26OwnerIntercept(){
+  if(window.__NEXA_V4921_V26_OWNER_INTERCEPT__)return;
+  window.__NEXA_V4921_V26_OWNER_INTERCEPT__=true;
 
   const route=e=>{
-    const direct=e.target?.closest?.('a[href*="library.html"],button[data-v25-href*="library.html"],[data-admin-tab="library"]');
-    if(direct){
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      hardLibrary();
-      return;
+    const go=e.target?.closest?.('#admin-modal [data-v25-go]');
+    const href=e.target?.closest?.('#admin-modal [data-v25-href]');
+
+    if(go){
+      const key=String(go.dataset.v25Go||'').toLowerCase();
+
+      if(key==='access'||key==='roles'){
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        openV49AdminSection(key);
+        return;
+      }
+
+      /* Alliances/System remain owned by the stable V26 shell. Before V26
+         handles them, remove all V49 owner content from the original sections. */
+      if(key==='alliances'||key==='system'){
+        hideAdminOwners();
+        return;
+      }
     }
 
-    /* V41.2 creates its own arrow nav with data-dir and calls
-       openAdminSection('library') from an onclick handler. Catch it at WINDOW
-       capture phase, before V41's document listener or target onclick fires. */
-    const arrow=e.target?.closest?.('#nexa-v412-admin-nav button[data-dir]');
-    if(!arrow)return;
-
-    const currentLabel=String($('#nexa-v412-admin-nav b')?.textContent||'').trim().toLowerCase();
-    const current=LABEL[currentLabel];
-    const i=ORDER.indexOf(current);
-    const dir=Number(arrow.dataset.dir||0);
-    const target=ORDER[i+dir];
-
-    if(target==='library'){
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      hardLibrary();
+    if(href){
+      const target=String(href.dataset.v25Href||href.getAttribute('data-v25-href')||'');
+      if(/library\.html/i.test(target)){
+        /* Library is a real page. Remove V49 from the original Access/Role
+           sections, then let V26 perform its normal navigation. */
+        hideAdminOwners();
+      }
     }
-  };
-
-  window.addEventListener('pointerdown',route,true);
-  window.addEventListener('click',route,true);
-}
-
-function installLibraryArrowKillSwitch(){
-  if(window.__NEXA_V4920_LIBRARY_ARROW_KILL__)return;
-  window.__NEXA_V4920_LIBRARY_ARROW_KILL__=true;
-
-  const route=e=>{
-    const target=e.target?.closest?.('#admin-modal [data-v25-href]');
-    if(!target)return;
-    const href=String(target.dataset.v25Href||target.getAttribute('data-v25-href')||'');
-    if(!/library\.html/i.test(href))return;
-
-    e.preventDefault();
-    e.stopImmediatePropagation();
-    hideAdminOwners();
-    location.assign('library.html?admin=1');
   };
 
   window.addEventListener('pointerdown',route,true);
@@ -1230,8 +1217,8 @@ function installLibraryArrowKillSwitch(){
 }
 
 function installLegacyNavIntercept(){
-  if(window.__NEXA_V4920_ADMIN_NAV_INTERCEPT__)return;
-  window.__NEXA_V4920_ADMIN_NAV_INTERCEPT__=true;
+  if(window.__NEXA_V4921_ADMIN_NAV_INTERCEPT__)return;
+  window.__NEXA_V4921_ADMIN_NAV_INTERCEPT__=true;
 
   window.addEventListener('click',e=>{
     const menuToggle=e.target?.closest?.('#nexa-home-menu-toggle');
@@ -1305,10 +1292,17 @@ function installLegacyNavIntercept(){
   },true);
 }
 
+function clearTransferSessionAuth(){
+  try{
+    Object.keys(sessionStorage).forEach(k=>{
+      if(k.startsWith('nexa_v4921_transfer_allowed_'))sessionStorage.removeItem(k);
+    });
+  }catch(_){}
+}
+
 function bind(){
   retireLegacyTransfer();
-  installV41LibraryCollisionGuard();
-  installLibraryArrowKillSwitch();
+  installV26OwnerIntercept();
   installLegacyNavIntercept();
   document.addEventListener('click',async e=>{
     const adminOwnerTrigger=e.target.closest?.(
@@ -1384,6 +1378,7 @@ function bind(){
   },true);
 
   window.addEventListener('nexa:active-state-changed',()=>{
+    clearTransferSessionAuth();
     syncStateHome();accountFormForState();scheduleAdminOwners();
   });
   window.addEventListener('pageshow',()=>{setTimeout(syncStateHome,100);setTimeout(syncTransferVisibility,700);setTimeout(syncTransferVisibility,1800)});
@@ -1452,7 +1447,7 @@ window.addEventListener('load',()=>{
   setTimeout(syncTransferVisibility,1200);
   try{
     const c=sb();
-    c?.auth?.onAuthStateChange?.(()=>setTimeout(syncTransferVisibility,180));
+    c?.auth?.onAuthStateChange?.((event)=>{if(event==='SIGNED_OUT')clearTransferSessionAuth();setTimeout(syncTransferVisibility,180)});
   }catch(_){}
 },{once:true});
 window.addEventListener('pageshow',()=>{retireLegacyTransfer();hideAdminOwners()});

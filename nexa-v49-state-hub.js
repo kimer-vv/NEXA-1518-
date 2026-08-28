@@ -1,4 +1,4 @@
-/* NEXA V49.15 — SINGLE OWNERS: ADMIN / MENU / EMBLEMS / TRANSFER
+/* NEXA V49.16 — COMPACT MENU / CLEAN LIBRARY HANDOFF / TRANSFER OWNER
    NEW FILE: nexa-v49-state-hub.js
 
    Owns:
@@ -22,8 +22,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V4915_STATE_HUB__) return;
-window.__NEXA_V4915_STATE_HUB__=true;
+if(window.__NEXA_V4916_STATE_HUB__) return;
+window.__NEXA_V4916_STATE_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -251,33 +251,69 @@ function installCSS(){
   .nexa-v49-copyrow select{flex:1;min-width:150px;padding:9px;border-radius:10px;background:#081027;color:#fff;border:1px solid rgba(255,255,255,.12)}
   /* V49.15 — one live Transfer card; old index Transfer is retired. */
   #home-transfers-section{display:none!important;visibility:hidden!important;pointer-events:none!important}
-  #nexa-v49-transfer-card{display:none;position:relative!important;overflow:hidden!important;margin:18px 0!important}
+  #nexa-v49-transfer-card{display:none;position:relative!important;overflow:hidden!important;margin:10px 0 0!important}
   #nexa-v49-transfer-card.nexa-v49-transfer-visible{display:block!important}
   #nexa-v49-transfer-card .nexa-v49-transfer-kicker{color:#79ffb9;font-size:10px;font-weight:950;letter-spacing:.18em;margin:0 0 6px}
   #nexa-v49-transfer-card #nexa-v49-transfer-events{position:relative;z-index:3}
   #nexa-v49-transfer-card .event,#nexa-v49-transfer-card .event-row{border:0!important;background:transparent!important;box-shadow:none!important;margin:0!important;padding:0!important}
 
-  /* V49.15 — current menu content with the selected-row visual language the user preferred. */
-  #nexa-home-menu-card .nexa-v49-menu-root,#nexa-home-menu-card .nexa-v49-menu-sub{display:grid;gap:4px}
-  #nexa-home-menu-card .nexa-v49-menu-label{padding:14px 18px 7px;color:#8f86bb;font-size:10px;font-weight:950;letter-spacing:.22em}
-  #nexa-home-menu-card .nexa-v49-menu-sep{height:1px;background:rgba(255,255,255,.08);margin:10px 12px}
-  #nexa-home-menu-card .nexa-v49-menu-item{position:relative;width:100%;box-sizing:border-box;border:0;border-radius:15px;padding:14px 20px;background:transparent;color:#d9d9f2;text-align:left;font:inherit;font-weight:850;letter-spacing:.01em;display:flex;align-items:center;gap:10px}
+  /* V49.16 — current menu, compact on iPhone, with its own vertical scroll. */
+  #nexa-home-menu-card{
+    max-height:min(70dvh,600px)!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    -webkit-overflow-scrolling:touch!important;
+    overscroll-behavior:contain!important;
+    scrollbar-width:thin!important
+  }
+  #nexa-home-menu-card .nexa-v49-menu-root,#nexa-home-menu-card .nexa-v49-menu-sub{display:grid;gap:2px}
+  #nexa-home-menu-card .nexa-v49-menu-label{padding:9px 14px 5px;color:#8f86bb;font-size:9px;font-weight:950;letter-spacing:.20em}
+  #nexa-home-menu-card .nexa-v49-menu-sep{height:1px;background:rgba(255,255,255,.08);margin:7px 10px}
+  #nexa-home-menu-card .nexa-v49-menu-item{
+    position:relative;width:100%;box-sizing:border-box;border:0;border-radius:14px;padding:10px 14px;
+    min-height:42px;background:transparent;color:#d9d9f2;text-align:left;font-size:14px!important;
+    line-height:1.15!important;font-weight:850;letter-spacing:.01em;display:flex;align-items:center;gap:9px
+  }
   #nexa-home-menu-card .nexa-v49-menu-item .label{min-width:0;flex:1}
-  #nexa-home-menu-card .nexa-v49-menu-item .dot{width:8px;height:8px;border-radius:50%;background:#707ca7;box-shadow:0 0 8px rgba(112,124,167,.28)}
-  #nexa-home-menu-card .nexa-v49-menu-item .arrow{color:#5edcff;font-size:18px;font-weight:950}
+  #nexa-home-menu-card .nexa-v49-menu-item .dot{width:7px;height:7px;border-radius:50%;background:#707ca7;box-shadow:0 0 8px rgba(112,124,167,.28)}
+  #nexa-home-menu-card .nexa-v49-menu-item .arrow{color:#5edcff;font-size:16px;font-weight:950}
   #nexa-home-menu-card .nexa-v49-menu-item.selected,
-  #nexa-home-menu-card .nexa-v49-menu-item:active{background:linear-gradient(90deg,rgba(80,53,173,.90),rgba(21,84,139,.88));box-shadow:inset 5px 0 0 #59e8ff,0 0 20px rgba(65,130,255,.10);color:#fff}
+  #nexa-home-menu-card .nexa-v49-menu-item:active{background:linear-gradient(90deg,rgba(80,53,173,.90),rgba(21,84,139,.88));box-shadow:inset 4px 0 0 #59e8ff,0 0 18px rgba(65,130,255,.10);color:#fff}
   #nexa-home-menu-card .nexa-v49-menu-item.selected .dot{background:#69e4ff;box-shadow:0 0 12px #69e4ff}
-  #nexa-home-menu-card .nexa-v49-menu-item.alliance{background:linear-gradient(90deg,rgba(88,36,132,.82),rgba(30,28,86,.88));color:#fff}
+  #nexa-home-menu-card .nexa-v49-menu-item.alliance{background:linear-gradient(90deg,rgba(88,36,132,.82),rgba(30,28,86,.88));color:#fff;font-size:15px!important}
   #nexa-home-menu-card .nexa-v49-menu-item.report{color:#ff91c8}
-  #nexa-home-menu-card .nexa-v49-menu-head{display:flex;align-items:center;gap:10px;padding:8px 10px 12px;color:#b8b4d6;font-size:12px;font-weight:950;letter-spacing:.12em}
-  #nexa-home-menu-card .nexa-v49-menu-back{width:36px;height:36px;border-radius:50%;border:1px solid rgba(95,212,255,.30);background:#0a1730;color:#8be9ff;font-weight:950}
+  #nexa-home-menu-card .nexa-v49-menu-head{display:flex;align-items:center;gap:9px;padding:6px 8px 9px;color:#b8b4d6;font-size:11px;font-weight:950;letter-spacing:.11em}
+  #nexa-home-menu-card .nexa-v49-menu-back{width:32px;height:32px;border-radius:50%;border:1px solid rgba(95,212,255,.30);background:#0a1730;color:#8be9ff;font-weight:950}
   @media(max-width:560px){.nexa-v49-rolegrid{grid-template-columns:1fr}.nexa-v49-searchrow{grid-template-columns:1fr}.nexa-v49-actions{display:grid}}
   `;
   document.head.appendChild(s);
 }
 
+function retireLegacyTransfer(){
+  const old=$('#home-transfers-section');
+  if(!old)return;
+  old.classList.add('hidden');
+  old.setAttribute('aria-hidden','true');
+  old.style.setProperty('display','none','important');
+  old.style.setProperty('visibility','hidden','important');
+  old.style.setProperty('pointer-events','none','important');
+}
+
+function destroyAdminOwnerViews(){
+  hideAdminOwners();
+  ['#nexa-v49-access-owner-section','#nexa-v49-roles-owner-section'].forEach(sel=>$(sel)?.remove());
+}
+
+function leaveForLibrary(){
+  destroyAdminOwnerViews();
+  const modal=$('#admin-modal');
+  modal?.classList.remove('nexa-v25-admin','module-view');
+  sessionStorage.setItem('nexa_v4916_clean_library','1');
+  location.replace('library.html?admin=1');
+}
+
 function refreshHomeVisualOwner(){
+  retireLegacyTransfer();
   try{window.NEXA_HOME_VISUALS_REFRESH?.()}catch(_){}
 }
 
@@ -299,6 +335,7 @@ async function canSeeTransferHome(){
 }
 
 function ensureTransferOwner(){
+  retireLegacyTransfer();
   let card=$('#nexa-v49-transfer-card');
   if(card)return card;
   card=document.createElement('section');
@@ -981,7 +1018,7 @@ function currentAllianceTag(){
 }
 function openOwnedAdministrationMenu(){ownedMenuSubview('ADMINISTRATION',[
   ['Alliances',()=>ownedMenuGo('index.html?admin=administration&tab=alliances')],
-  ['Library',()=>ownedMenuGo('library.html?admin=1')],
+  ['Library',()=>{closeOwnedMenu();leaveForLibrary()}],
   ['NEXA Access',()=>ownedMenuGo('index.html?admin=administration&tab=permissions')],
   ['Operational Roles',()=>ownedMenuGo('index.html?admin=administration&tab=roles')],
   ['System Operations',()=>ownedMenuGo('index.html?admin=administration&tab=system')]
@@ -1049,7 +1086,7 @@ function installLegacyNavIntercept(){
 
     if(e.target?.closest?.('[data-v49-owner-library]')){
       e.preventDefault();e.stopImmediatePropagation();
-      location.href='library.html?admin=1';
+      leaveForLibrary();
       return;
     }
 
@@ -1075,7 +1112,15 @@ function installLegacyNavIntercept(){
     }
     if(key==='alliances'||key==='system')hideAdminOwners();
     const href=e.target?.closest?.('[data-v25-href]');
-    if(href)hideAdminOwners();
+    if(href){
+      const target=String(href.dataset.v25Href||href.getAttribute('href')||'');
+      if(/library\.html/i.test(target)){
+        e.preventDefault();e.stopImmediatePropagation();
+        leaveForLibrary();
+        return;
+      }
+      hideAdminOwners();
+    }
 
     const oldManage=e.target?.closest?.('[data-v25-manage-access]');
     if(oldManage){
@@ -1086,6 +1131,7 @@ function installLegacyNavIntercept(){
 }
 
 function bind(){
+  retireLegacyTransfer();
   installLegacyNavIntercept();
   document.addEventListener('click',async e=>{
     const adminOwnerTrigger=e.target.closest?.(

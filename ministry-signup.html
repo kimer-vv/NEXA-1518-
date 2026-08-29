@@ -18,13 +18,18 @@ body{margin:0;background:radial-gradient(circle at 5% 18%,rgba(44,194,255,.07),t
 .ms-info{margin:14px 0 14px 18px;padding:14px 15px;border:1px solid rgba(72,221,255,.28);border-radius:16px;background:rgba(23,55,91,.15);font-size:.9rem;line-height:1.48;color:#dbe3ff}
 .ms-account,.ms-section{border:1px solid rgba(255,255,255,.12);border-radius:20px;background:rgba(10,14,30,.58);padding:16px;margin:12px 0 12px 18px}
 .ms-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.ms-section h3{margin:3px 0 0;font-size:1.05rem}
-.ms-toggle{display:flex!important;align-items:center!important;gap:8px!important;white-space:nowrap;font-weight:850}.ms-toggle input{width:22px!important;height:22px!important;margin:0!important}
-.ms-fields{display:grid;gap:13px;margin-top:15px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08)}.ms-fields.hidden{display:none}
+.ms-toggle{display:flex!important;align-items:center!important;gap:8px!important;white-space:nowrap;font-weight:850}.ms-toggle input{width:22px!important;height:22px!important;margin:0!important;accent-color:#368dff}
+.ms-fields{display:grid;gap:15px;margin-top:15px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08)}.ms-fields.hidden,.ms-t12-fields.hidden{display:none}
 .ms-fields label,.ms-account label{display:grid;gap:7px;font-weight:800}.ms-fields small,.ms-helper{font-weight:500;color:var(--ms-muted);line-height:1.4}
-.ms-fields input,.ms-fields select,.ms-account select{width:100%;min-height:46px;font-size:16px}
-.ms-two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.ms-actions{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0 0 18px}.ms-actions .btn{min-height:46px;flex:1 1 210px}
+.ms-fields input[type="number"],.ms-fields select,.ms-account select{width:100%;min-height:48px;padding:11px 13px;border:1px solid rgba(119,142,210,.28);border-radius:13px;background:linear-gradient(145deg,rgba(8,17,38,.96),rgba(7,10,27,.96));color:#f7f9ff;font-size:16px;outline:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.015)}
+.ms-fields input[type="number"]:focus,.ms-fields select:focus,.ms-account select:focus{border-color:rgba(72,221,255,.68);box-shadow:0 0 0 3px rgba(72,221,255,.08)}
+.ms-fields select,.ms-account select{color-scheme:dark}
+.ms-fields option,.ms-account option{background:#081126;color:#fff}
+.ms-two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ms-t12{margin-top:2px;padding:14px;border:1px solid rgba(72,221,255,.18);border-radius:16px;background:rgba(8,20,40,.42)}.ms-t12-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.ms-t12-head strong{line-height:1.35}.ms-t12-fields{display:grid;gap:13px;margin-top:14px;padding-top:13px;border-top:1px solid rgba(255,255,255,.07)}
+.ms-actions{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0 0 18px}.ms-actions .btn{min-height:46px;flex:1 1 210px}
 .ms-message{min-height:22px;margin:12px 0 0 18px;font-weight:750}.ms-message.ok{color:#79edbf}.ms-message.err{color:#ff9bbd}.ms-submit-note{margin:8px 0 0 18px;color:var(--ms-muted);font-size:.80rem;line-height:1.4}
-@media(max-width:560px){.ms-section-head{align-items:flex-start}.ms-two{grid-template-columns:1fr}.ms-shell:before{left:18px}}
+@media(max-width:560px){.ms-section-head{align-items:flex-start}.ms-two{grid-template-columns:1fr}.ms-shell:before{left:18px}.ms-t12-head{flex-direction:column}.ms-t12-head .ms-toggle{align-self:flex-start}}
 </style>
 </head>
 <body>
@@ -34,18 +39,191 @@ body{margin:0;background:radial-gradient(circle at 5% 18%,rgba(44,194,255,.07),t
 <div class="ms-info">Speedups are requested in <b>minutes</b> because NEXA uses the total minutes, together with the resources you plan to use, to estimate your expected SvS score and help leadership prioritize ministry appointments.</div>
 <section class="ms-account"><label>WOS Account<select id="account" required><option value="">Loading accounts…</option></select></label><div id="auth-help" class="ms-helper"></div></section>
 <form id="form">
-<section class="ms-section"><div class="ms-section-head"><div><div class="ms-day">DAY 1 • CONSTRUCTION</div><h3>VP · Vice President</h3></div><label class="ms-toggle"><input id="construction-requested" type="checkbox"> Request VP</label></div><div id="construction-fields" class="ms-fields hidden"><div class="ms-helper">Only complete this section if you are requesting this ministry appointment.</div><label>Construction Speedups (minutes)<input id="construction-speedups" type="number" min="0" inputmode="numeric" value="0"><small>Enter the total number of Construction Speedup minutes shown in-game.</small></label><div class="ms-two"><label>Fire Crystals<input id="construction-fc" type="number" min="0" inputmode="numeric" value="0"></label><label>Refined Fire Crystals<input id="construction-rfc" type="number" min="0" inputmode="numeric" value="0"></label></div><label>Preferred UTC Time Window<select id="construction-frame"></select></label><label>Preferred UTC Time — Optional<select id="construction-time"></select></label></div></section>
-<section class="ms-section"><div class="ms-section-head"><div><div class="ms-day">DAY 2 • RESEARCH</div><h3>VP · Vice President</h3></div><label class="ms-toggle"><input id="research-requested" type="checkbox"> Request VP</label></div><div id="research-fields" class="ms-fields hidden"><div class="ms-helper">Only complete this section if you are requesting this ministry appointment.</div><label>Research Speedups (minutes)<input id="research-speedups" type="number" min="0" inputmode="numeric" value="0"><small>Enter the total number of Research Speedup minutes shown in-game.</small></label><label>Fire Crystal Shards<input id="research-shards" type="number" min="0" inputmode="numeric" value="0"></label><label>Preferred UTC Time Window<select id="research-frame"></select></label><label>Preferred UTC Time — Optional<select id="research-time"></select></label></div></section>
-<section class="ms-section"><div class="ms-section-head"><div><div class="ms-day">DAY 4 • TRAINING</div><h3>MOE · Minister of Education</h3></div><label class="ms-toggle"><input id="training-requested" type="checkbox"> Request MOE</label></div><div id="training-fields" class="ms-fields hidden"><div class="ms-helper">Only complete this section if you are requesting this ministry appointment.</div><label>What are you training or promoting?<select id="training-selection"><option value="">Select</option><option value="new_t8">New T8</option><option value="new_t9">New T9</option><option value="new_t10">New T10</option><option value="new_t11">New T11</option><option value="new_t12">New T12</option><option value="t8_to_t9">T8 → T9</option><option value="t9_to_t10">T9 → T10</option><option value="t10_to_t11">T10 → T11</option><option value="t11_to_t12">T11 → T12</option></select></label><label>Training Speedups (minutes)<input id="training-speedups" type="number" min="0" inputmode="numeric" value="0"><small>Enter the total number of Training Speedup minutes shown in-game.</small></label><label>Preferred UTC Time Window<select id="training-frame"></select></label><label>Preferred UTC Time — Optional<select id="training-time"></select></label></div></section>
+
+<section class="ms-section">
+  <div class="ms-section-head"><div><div class="ms-day">DAY 1 • CONSTRUCTION</div><h3>VP · Vice President</h3></div><label class="ms-toggle"><input id="construction-requested" type="checkbox"> Request VP</label></div>
+  <div id="construction-fields" class="ms-fields hidden">
+    <div class="ms-helper">Only complete this section if you are requesting this ministry appointment.</div>
+    <label>How many minutes of Construction Speedups are you planning to spend?<input id="construction-speedups" type="number" min="0" inputmode="numeric" value="0"><small>Enter the total number of Construction Speedup minutes shown in-game.</small></label>
+    <label>How many Fire Crystals are you planning to spend?<input id="construction-fc" type="number" min="0" inputmode="numeric" value="0"></label>
+    <label>How many Refined Fire Crystals are you planning to spend?<input id="construction-rfc" type="number" min="0" inputmode="numeric" value="0"></label>
+    <label>What UTC time frame would you prefer for your Ministry position?<select id="construction-frame"></select></label>
+    <label>Do you have a specific UTC time that works for you? — Optional<select id="construction-time"></select></label>
+  </div>
+</section>
+
+<section class="ms-section">
+  <div class="ms-section-head"><div><div class="ms-day">DAY 2 • RESEARCH</div><h3>VP · Vice President</h3></div><label class="ms-toggle"><input id="research-requested" type="checkbox"> Request VP</label></div>
+  <div id="research-fields" class="ms-fields hidden">
+    <div class="ms-helper">Only complete this section if you are requesting this ministry appointment.</div>
+    <label>How many minutes of Research Speedups are you planning to spend?<input id="research-speedups" type="number" min="0" inputmode="numeric" value="0"><small>Enter the total number of Research Speedup minutes shown in-game.</small></label>
+    <label>How many Fire Crystal Shards are you planning to spend?<input id="research-shards" type="number" min="0" inputmode="numeric" value="0"></label>
+    <label>What UTC time frame would you prefer for your Ministry position?<select id="research-frame"></select></label>
+    <label>Do you have a specific UTC time that works for you? — Optional<select id="research-time"></select></label>
+  </div>
+</section>
+
+<section class="ms-section">
+  <div class="ms-section-head"><div><div class="ms-day">DAY 4 • TRAINING</div><h3>MOE · Minister of Education</h3></div><label class="ms-toggle"><input id="training-requested" type="checkbox"> Request MOE</label></div>
+  <div id="training-fields" class="ms-fields hidden">
+    <div class="ms-helper">Only complete this section if you are requesting this ministry appointment.</div>
+    <label>What are you training or promoting?<select id="training-selection"><option value="">Select</option><option value="new_t8">New T8</option><option value="new_t9">New T9</option><option value="new_t10">New T10</option><option value="new_t11">New T11</option><option value="t8_to_t9">T8 → T9</option><option value="t9_to_t10">T9 → T10</option><option value="t10_to_t11">T10 → T11</option></select></label>
+    <label>How many minutes of Training Speedups are you planning to spend?<input id="training-speedups" type="number" min="0" inputmode="numeric" value="0"><small>Enter the total number of Training Speedup minutes shown in-game.</small></label>
+    <label>What UTC time frame would you prefer for your Ministry position?<select id="training-frame"></select></label>
+    <label>Do you have a specific UTC time that works for you? — Optional<select id="training-time"></select></label>
+
+    <div class="ms-t12">
+      <div class="ms-t12-head">
+        <strong>Are you upgrading troops to T12 during this SvS?</strong>
+        <label class="ms-toggle"><input id="upgrading-t12" type="checkbox"> Yes</label>
+      </div>
+      <div id="t12-fields" class="ms-t12-fields hidden">
+        <label>How many Refined Fire Crystals are you planning to spend on T12?<input id="t12-rfc" type="number" min="0" inputmode="numeric" value="0"></label>
+        <label>How many Fire Crystal Shards are you planning to spend on T12?<input id="t12-shards" type="number" min="0" inputmode="numeric" value="0"></label>
+      </div>
+    </div>
+  </div>
+</section>
+
 <div class="ms-actions"><button id="submit" class="btn" type="submit">Submit Ministry Sign-Up</button><button id="copy-link" class="btn secondary" type="button">Copy Form Link</button></div><div id="submit-note" class="ms-submit-note"></div><div id="message" class="ms-message"></div>
 </form></main>
 <script>
-(()=>{'use strict';const sb=window.supabase.createClient('https://dfxcxboxrkfmrnsgpyin.supabase.co','sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-');const $=id=>document.getElementById(id);const frames=['','00:00–04:00 UTC','04:00–08:00 UTC','08:00–12:00 UTC','12:00–16:00 UTC','16:00–20:00 UTC','20:00–23:30 UTC'];const times=['',...Array.from({length:48},(_,i)=>`${String(Math.floor(i/2)).padStart(2,'0')}:${i%2?'30':'00'}`)];let liveEvent=null,sessionUser=null;function options(list,blank){return list.map((x,i)=>`<option value="${x}">${i===0?blank:x+(blank.includes('UTC time')?' UTC':'')}</option>`).join('')}['construction','research','training'].forEach(k=>{$(`${k}-frame`).innerHTML=options(frames,'Select');$(`${k}-time`).innerHTML=options(times,'Optional — select UTC time');$(`${k}-requested`).addEventListener('change',()=>{$(`${k}-fields`).classList.toggle('hidden',!$(`${k}-requested`).checked)})});function n(id){return Math.max(0,Number($(id).value)||0)}function setMsg(text,ok=false){const el=$('message');el.textContent=text;el.className='ms-message '+(ok?'ok':'err')}function timeValue(id){return $(id).value||null}
-function updateSubmitState(){const canSubmit=!!sessionUser&&!!liveEvent&&liveEvent.prep_form_open!==false&&!!$('account').value;$('submit').disabled=!canSubmit;if(!sessionUser)$('submit-note').textContent='Preview mode: sign in to NEXA to submit this form.';else if(!liveEvent)$('submit-note').textContent='Preview mode: no live SvS event. The complete form remains available for review; submission will activate when an SvS event is live.';else if(liveEvent.prep_form_open===false)$('submit-note').textContent='This form is visible for review, but Ministry Sign-Up is currently closed for the live SvS event.';else if(!$('account').value)$('submit-note').textContent='Select a WOS Account to submit.';else $('submit-note').textContent='Ministry Sign-Up is open for the current live SvS event.'}
-async function fillExisting(){if(!liveEvent||!$('account').value)return;const {data}=await sb.from('prep_requests').select('*').eq('event_id',liveEvent.id).eq('player_account_id',$('account').value).maybeSingle();const x=data||{};for(const k of ['construction','research','training']){$(`${k}-requested`).checked=!!x[`${k}_requested`];$(`${k}-fields`).classList.toggle('hidden',!$(`${k}-requested`).checked)}$('construction-speedups').value=x.construction_speedup_minutes||0;$('construction-fc').value=x.construction_fire_crystals||0;$('construction-rfc').value=x.construction_refined_fire_crystals||0;$('construction-frame').value=x.construction_time_frame||'';$('construction-time').value=(x.construction_specific_time||'').slice(0,5);$('research-speedups').value=x.research_speedup_minutes||0;$('research-shards').value=x.research_fire_crystal_shards||0;$('research-frame').value=x.research_time_frame||'';$('research-time').value=(x.research_specific_time||'').slice(0,5);$('training-selection').value=x.training_selection||'';$('training-speedups').value=x.training_speedup_minutes||0;$('training-frame').value=x.training_time_frame||'';$('training-time').value=(x.training_specific_time||'').slice(0,5)}
-async function load(){const {data:{session}}=await sb.auth.getSession();sessionUser=session?.user||null;if(sessionUser){const {data:accounts,error:accountError}=await sb.from('player_accounts').select('id,user_id,in_game_name,player_id,state_number,custom_alliance_tag,alliances(tag)').eq('user_id',sessionUser.id).order('created_at');if(accountError){$('account').innerHTML='<option value="">Unable to load accounts</option>';$('auth-help').textContent=accountError.message}else if(!accounts?.length){$('account').innerHTML='<option value="">No WOS accounts found</option>';$('auth-help').textContent='Add a WOS Account in NEXA to connect Ministry requests to your profile.'}else{const activeState=Number(localStorage.getItem('nexa_active_state_v49')||0);const visibleAccounts=activeState?accounts.filter(a=>Number(a.state_number||0)===activeState):accounts;const rows=visibleAccounts.length?visibleAccounts:accounts;$('account').innerHTML=rows.map(a=>`<option value="${a.id}">${a.in_game_name} • ${a.alliances?.tag||a.custom_alliance_tag||'Not Listed'} • ID ${a.player_id}</option>`).join('');$('auth-help').textContent=activeState&&visibleAccounts.length?'Showing your WOS Accounts for the active State.':'Choose the WOS Account this Ministry request belongs to.'}}else{$('account').innerHTML='<option value="">Sign in to NEXA to select an account</option>';$('auth-help').textContent='The full form remains visible in preview mode. Sign in when you are ready to submit.'}try{await sb.rpc('refresh_auto_ended_events')}catch(_){}const {data:event,error:eventErr}=await sb.from('svs_events').select('*').eq('status','live').order('prep_monday',{ascending:false}).limit(1).maybeSingle();if(eventErr){$('event-meta').textContent='Preview mode • Unable to confirm live SvS status.';$('event-meta').classList.add('ms-preview')}else if(!event){$('event-meta').textContent='Preview mode • No live SvS event. Form remains available for review.';$('event-meta').classList.add('ms-preview')}else{liveEvent=event;$('event-meta').textContent=`SvS against State ${event.opponent_state} • Prep Monday ${event.prep_monday} UTC`;$('event-meta').classList.remove('ms-preview')}$('account').addEventListener('change',async()=>{updateSubmitState();await fillExisting()});updateSubmitState();if(liveEvent&&$('account').value)await fillExisting()}
-$('form').addEventListener('submit',async e=>{e.preventDefault();if(!sessionUser)return setMsg('Sign in to NEXA before submitting.');if(!liveEvent)return setMsg('No live SvS event is available for submission yet. You can still review the complete form.');if(liveEvent.prep_form_open===false)return setMsg('Ministry Sign-Up is currently closed for the live SvS event.');if(!$('account').value)return setMsg('Select a WOS Account.');if(!$('construction-requested').checked&&!$('research-requested').checked&&!$('training-requested').checked)return setMsg('Select at least one ministry request.');if($('training-requested').checked&&!$('training-selection').value)return setMsg('Select what you are training or promoting.');const payload={event_id:liveEvent.id,user_id:sessionUser.id,player_account_id:$('account').value,construction_requested:$('construction-requested').checked,construction_speedup_minutes:$('construction-requested').checked?n('construction-speedups'):0,construction_fire_crystals:$('construction-requested').checked?n('construction-fc'):0,construction_refined_fire_crystals:$('construction-requested').checked?n('construction-rfc'):0,construction_time_frame:$('construction-requested').checked?$('construction-frame').value:'',construction_specific_time:$('construction-requested').checked?timeValue('construction-time'):null,research_requested:$('research-requested').checked,research_speedup_minutes:$('research-requested').checked?n('research-speedups'):0,research_fire_crystal_shards:$('research-requested').checked?n('research-shards'):0,research_time_frame:$('research-requested').checked?$('research-frame').value:'',research_specific_time:$('research-requested').checked?timeValue('research-time'):null,training_requested:$('training-requested').checked,training_selection:$('training-requested').checked?$('training-selection').value:'',training_speedup_minutes:$('training-requested').checked?n('training-speedups'):0,training_time_frame:$('training-requested').checked?$('training-frame').value:'',training_specific_time:$('training-requested').checked?timeValue('training-time'):null};$('submit').disabled=true;const {error}=await sb.from('prep_requests').upsert(payload,{onConflict:'event_id,player_account_id'});updateSubmitState();if(error)return setMsg(error.message);setMsg('Ministry Sign-Up submitted successfully ✓',true);$('message').scrollIntoView({behavior:'smooth',block:'center'})});
-$('copy-link').addEventListener('click',async()=>{const url=new URL('ministry-signup.html?direct=1',location.href).href;try{await navigator.clipboard.writeText(url);setMsg('Form link copied ✓',true)}catch{setMsg(url,true)}});load();})();
+(()=>{
+'use strict';
+const sb=window.supabase.createClient('https://dfxcxboxrkfmrnsgpyin.supabase.co','sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-');
+const $=id=>document.getElementById(id);
+const frames=['','00:00–04:00 UTC','04:00–08:00 UTC','08:00–12:00 UTC','12:00–16:00 UTC','16:00–20:00 UTC','20:00–23:30 UTC'];
+const times=['',...Array.from({length:48},(_,i)=>`${String(Math.floor(i/2)).padStart(2,'0')}:${i%2?'30':'00'}`)];
+let liveEvent=null,sessionUser=null;
+function options(list,blank){return list.map((x,i)=>`<option value="${x}">${i===0?blank:x+(blank.includes('UTC time')?' UTC':'')}</option>`).join('')}
+['construction','research','training'].forEach(k=>{
+  $(`${k}-frame`).innerHTML=options(frames,'Select');
+  $(`${k}-time`).innerHTML=options(times,'Optional — select UTC time');
+  $(`${k}-requested`).addEventListener('change',()=>{$(`${k}-fields`).classList.toggle('hidden',!$(`${k}-requested`).checked)})
+});
+$('upgrading-t12').addEventListener('change',()=>{$('t12-fields').classList.toggle('hidden',!$('upgrading-t12').checked)});
+function n(id){return Math.max(0,Number($(id).value)||0)}
+function setMsg(text,ok=false){const el=$('message');el.textContent=text;el.className='ms-message '+(ok?'ok':'err')}
+function timeValue(id){return $(id).value||null}
+function updateSubmitState(){
+  const canSubmit=!!sessionUser&&!!liveEvent&&liveEvent.prep_form_open!==false&&!!$('account').value;
+  $('submit').disabled=!canSubmit;
+  if(!sessionUser)$('submit-note').textContent='Preview mode: sign in to NEXA to submit this form.';
+  else if(!liveEvent)$('submit-note').textContent='Preview mode: no live SvS event. The complete form remains available for review; submission will activate when an SvS event is live.';
+  else if(liveEvent.prep_form_open===false)$('submit-note').textContent='This form is visible for review, but Ministry Sign-Up is currently closed for the live SvS event.';
+  else if(!$('account').value)$('submit-note').textContent='Select a WOS Account to submit.';
+  else $('submit-note').textContent='Ministry Sign-Up is open for the current live SvS event.';
+}
+async function fillExisting(){
+  if(!liveEvent||!$('account').value)return;
+  const {data}=await sb.from('prep_requests').select('*').eq('event_id',liveEvent.id).eq('player_account_id',$('account').value).maybeSingle();
+  const x=data||{};
+  for(const k of ['construction','research','training']){
+    $(`${k}-requested`).checked=!!x[`${k}_requested`];
+    $(`${k}-fields`).classList.toggle('hidden',!$(`${k}-requested`).checked)
+  }
+  $('construction-speedups').value=x.construction_speedup_minutes||0;
+  $('construction-fc').value=x.construction_fire_crystals||0;
+  $('construction-rfc').value=x.construction_refined_fire_crystals||0;
+  $('construction-frame').value=x.construction_time_frame||'';
+  $('construction-time').value=(x.construction_specific_time||'').slice(0,5);
+  $('research-speedups').value=x.research_speedup_minutes||0;
+  $('research-shards').value=x.research_fire_crystal_shards||0;
+  $('research-frame').value=x.research_time_frame||'';
+  $('research-time').value=(x.research_specific_time||'').slice(0,5);
+  $('training-selection').value=x.training_selection||'';
+  $('training-speedups').value=x.training_speedup_minutes||0;
+  $('training-frame').value=x.training_time_frame||'';
+  $('training-time').value=(x.training_specific_time||'').slice(0,5);
+  $('upgrading-t12').checked=!!x.upgrading_t12;
+  $('t12-fields').classList.toggle('hidden',!$('upgrading-t12').checked);
+  $('t12-rfc').value=x.t12_refined_fire_crystals||0;
+  $('t12-shards').value=x.t12_fire_crystal_shards||0;
+}
+async function load(){
+  const {data:{session}}=await sb.auth.getSession();
+  sessionUser=session?.user||null;
+  if(sessionUser){
+    const {data:accounts,error:accountError}=await sb.from('player_accounts').select('id,user_id,in_game_name,player_id,state_number,custom_alliance_tag,alliances(tag)').eq('user_id',sessionUser.id).order('created_at');
+    if(accountError){
+      $('account').innerHTML='<option value="">Unable to load accounts</option>';
+      $('auth-help').textContent=accountError.message
+    }else if(!accounts?.length){
+      $('account').innerHTML='<option value="">No WOS accounts found</option>';
+      $('auth-help').textContent='Add a WOS Account in NEXA to connect Ministry requests to your profile.'
+    }else{
+      const activeState=Number(localStorage.getItem('nexa_active_state_v49')||0);
+      const visibleAccounts=activeState?accounts.filter(a=>Number(a.state_number||0)===activeState):accounts;
+      const rows=visibleAccounts.length?visibleAccounts:accounts;
+      $('account').innerHTML=rows.map(a=>`<option value="${a.id}">${a.in_game_name} • ${a.alliances?.tag||a.custom_alliance_tag||'Not Listed'} • ID ${a.player_id}</option>`).join('');
+      $('auth-help').textContent=activeState&&visibleAccounts.length?'Showing your WOS Accounts for the active State.':'Choose the WOS Account this Ministry request belongs to.'
+    }
+  }else{
+    $('account').innerHTML='<option value="">Sign in to NEXA to select an account</option>';
+    $('auth-help').textContent='The full form remains visible in preview mode. Sign in when you are ready to submit.'
+  }
+  try{await sb.rpc('refresh_auto_ended_events')}catch(_){}
+  const {data:event,error:eventErr}=await sb.from('svs_events').select('*').eq('status','live').order('prep_monday',{ascending:false}).limit(1).maybeSingle();
+  if(eventErr){
+    $('event-meta').textContent='Preview mode • Unable to confirm live SvS status.';
+    $('event-meta').classList.add('ms-preview')
+  }else if(!event){
+    $('event-meta').textContent='Preview mode • No live SvS event. Form remains available for review.';
+    $('event-meta').classList.add('ms-preview')
+  }else{
+    liveEvent=event;
+    $('event-meta').textContent=`SvS against State ${event.opponent_state} • Prep Monday ${event.prep_monday} UTC`;
+    $('event-meta').classList.remove('ms-preview')
+  }
+  $('account').addEventListener('change',async()=>{updateSubmitState();await fillExisting()});
+  updateSubmitState();
+  if(liveEvent&&$('account').value)await fillExisting()
+}
+$('form').addEventListener('submit',async e=>{
+  e.preventDefault();
+  if(!sessionUser)return setMsg('Sign in to NEXA before submitting.');
+  if(!liveEvent)return setMsg('No live SvS event is available for submission yet. You can still review the complete form.');
+  if(liveEvent.prep_form_open===false)return setMsg('Ministry Sign-Up is currently closed for the live SvS event.');
+  if(!$('account').value)return setMsg('Select a WOS Account.');
+  if(!$('construction-requested').checked&&!$('research-requested').checked&&!$('training-requested').checked)return setMsg('Select at least one ministry request.');
+  if($('training-requested').checked&&!$('training-selection').value&&!$('upgrading-t12').checked)return setMsg('Select what you are training/promoting, or indicate that you are upgrading to T12.');
+  const payload={
+    event_id:liveEvent.id,
+    user_id:sessionUser.id,
+    player_account_id:$('account').value,
+    construction_requested:$('construction-requested').checked,
+    construction_speedup_minutes:$('construction-requested').checked?n('construction-speedups'):0,
+    construction_fire_crystals:$('construction-requested').checked?n('construction-fc'):0,
+    construction_refined_fire_crystals:$('construction-requested').checked?n('construction-rfc'):0,
+    construction_time_frame:$('construction-requested').checked?$('construction-frame').value:'',
+    construction_specific_time:$('construction-requested').checked?timeValue('construction-time'):null,
+    research_requested:$('research-requested').checked,
+    research_speedup_minutes:$('research-requested').checked?n('research-speedups'):0,
+    research_fire_crystal_shards:$('research-requested').checked?n('research-shards'):0,
+    research_time_frame:$('research-requested').checked?$('research-frame').value:'',
+    research_specific_time:$('research-requested').checked?timeValue('research-time'):null,
+    training_requested:$('training-requested').checked,
+    training_selection:$('training-requested').checked?$('training-selection').value:'',
+    training_speedup_minutes:$('training-requested').checked?n('training-speedups'):0,
+    training_time_frame:$('training-requested').checked?$('training-frame').value:'',
+    training_specific_time:$('training-requested').checked?timeValue('training-time'):null,
+    upgrading_t12:$('training-requested').checked&&$('upgrading-t12').checked,
+    t12_refined_fire_crystals:$('training-requested').checked&&$('upgrading-t12').checked?n('t12-rfc'):0,
+    t12_fire_crystal_shards:$('training-requested').checked&&$('upgrading-t12').checked?n('t12-shards'):0
+  };
+  $('submit').disabled=true;
+  const {error}=await sb.from('prep_requests').upsert(payload,{onConflict:'event_id,player_account_id'});
+  updateSubmitState();
+  if(error)return setMsg(error.message);
+  setMsg('Ministry Sign-Up submitted successfully ✓',true);
+  $('message').scrollIntoView({behavior:'smooth',block:'center'})
+});
+$('copy-link').addEventListener('click',async()=>{
+  const url=new URL('ministry-signup.html?direct=1',location.href).href;
+  try{await navigator.clipboard.writeText(url);setMsg('Form link copied ✓',true)}catch{setMsg(url,true)}
+});
+load();
+})();
 </script>
 </body>
 </html>

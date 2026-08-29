@@ -1,4 +1,4 @@
-/* NEXA V50.3 — FIRE CRYSTAL BADGE POSITION FIX
+/* NEXA V50.4 — TROOP GRID SAVE SYNC + FIRE CRYSTAL BADGE FIX
    Support module for stable Profile owner V33.6.
    Does NOT take Profile ownership.
    Restores:
@@ -10,8 +10,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V503_TROOP_SUMMARY__) return;
-window.__NEXA_V503_TROOP_SUMMARY__=true;
+if(window.__NEXA_V504_TROOP_SUMMARY__) return;
+window.__NEXA_V504_TROOP_SUMMARY__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -244,7 +244,19 @@ function decorateGrid(){
     const planet=$('.v33-planet',btn);
     if(!planet)return;
     planet.querySelectorAll('.nexa-v502-fc-badge,.nexa-v502-fc-label').forEach(x=>x.remove());
+
     const p=inventoryByItem.get(String(btn.dataset.v33Item))||{};
+    const tier=clamp(Number(p.tier||1),1,12);
+    const name=String($('b',btn)?.textContent||'').toLowerCase();
+    const type=name.includes('infantry')?'infantry':name.includes('lancer')?'lancer':'marksman';
+
+    // Keep the OUTER troop portrait synced with the saved tier.
+    const portrait=window.NEXA_TROOP_ASSETS?.getPortrait?.(type,tier)
+      ||window.NEXA_TROOP_PORTRAITS?.[type]?.['t'+tier]
+      ||'';
+    const mainImg=Array.from(planet.querySelectorAll('img')).find(x=>!x.classList.contains('nexa-v502-fc-badge'));
+    if(mainImg&&portrait&&mainImg.getAttribute('src')!==portrait)mainImg.setAttribute('src',portrait);
+
     const fc=clamp(Number(p.fc_level??profileFC),0,10);
     if(!fc)return;
     const n=String(fc).padStart(2,'0');
@@ -298,8 +310,15 @@ async function refreshAll(){
 }
 
 document.addEventListener('click',e=>{
+  const saveBtn=e.target.closest?.('[data-v33-save]');
+  if(saveBtn){
+    // V33 saves asynchronously, then repaints its grid. Re-read Supabase after the save
+    // and repaint only the troop portrait/badge so the outside card matches the saved detail.
+    setTimeout(refreshAll,350);
+    setTimeout(refreshAll,900);
+  }
   if(e.target.closest?.(
-    '[data-v33-item],[data-v33-troop-tier],[data-v33-troop-fc],[data-v33-t11],[data-v33-t12],[data-v33-troop-skill],[data-v33-save],[data-v33-reset],[data-v33-prev],[data-v33-next],[data-v33-cat]'
+    '[data-v33-item],[data-v33-troop-tier],[data-v33-troop-fc],[data-v33-t11],[data-v33-t12],[data-v33-troop-skill],[data-v33-reset],[data-v33-prev],[data-v33-next],[data-v33-cat]'
   )){
     queueMicrotask(refreshVisuals);
   }

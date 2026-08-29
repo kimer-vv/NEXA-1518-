@@ -1,4 +1,4 @@
-/* NEXA V50.4 — TROOP GRID SAVE SYNC + FIRE CRYSTAL BADGE FIX
+/* NEXA V50.5 — T11/T12 OUTER GRID PORTRAIT SYNC
    Support module for stable Profile owner V33.6.
    Does NOT take Profile ownership.
    Restores:
@@ -10,8 +10,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V504_TROOP_SUMMARY__) return;
-window.__NEXA_V504_TROOP_SUMMARY__=true;
+if(window.__NEXA_V505_TROOP_SUMMARY__) return;
+window.__NEXA_V505_TROOP_SUMMARY__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -246,16 +246,21 @@ function decorateGrid(){
     planet.querySelectorAll('.nexa-v502-fc-badge,.nexa-v502-fc-label').forEach(x=>x.remove());
 
     const p=inventoryByItem.get(String(btn.dataset.v33Item))||{};
-    const tier=clamp(Number(p.tier||1),1,12);
+    const baseTier=clamp(Number(p.tier||1),1,12);
+    const effectiveTier=p.t12_unlocked?12:(p.t11_unlocked?11:baseTier);
     const name=String($('b',btn)?.textContent||'').toLowerCase();
     const type=name.includes('infantry')?'infantry':name.includes('lancer')?'lancer':'marksman';
 
-    // Keep the OUTER troop portrait synced with the saved tier.
-    const portrait=window.NEXA_TROOP_ASSETS?.getPortrait?.(type,tier)
-      ||window.NEXA_TROOP_PORTRAITS?.[type]?.['t'+tier]
+    // T11/T12 are stored as unlock flags while the base tier can remain T10.
+    // The OUTER card must therefore use the effective troop tier, not p.tier alone.
+    const portrait=window.NEXA_TROOP_ASSETS?.getPortrait?.(type,effectiveTier)
+      ||window.NEXA_TROOP_PORTRAITS?.[type]?.['t'+effectiveTier]
       ||'';
     const mainImg=Array.from(planet.querySelectorAll('img')).find(x=>!x.classList.contains('nexa-v502-fc-badge'));
     if(mainImg&&portrait&&mainImg.getAttribute('src')!==portrait)mainImg.setAttribute('src',portrait);
+
+    const meta=$('small',btn);
+    if(meta)meta.textContent=`${type.toUpperCase()} • T${effectiveTier}`;
 
     const fc=clamp(Number(p.fc_level??profileFC),0,10);
     if(!fc)return;

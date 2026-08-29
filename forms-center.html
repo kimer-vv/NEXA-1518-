@@ -6,85 +6,54 @@
 <title>NEXA • Forms Center</title>
 <link rel="stylesheet" href="style.css">
 <style>
-body{background:#02030b}
-.fc-shell{max-width:760px;margin:0 auto;padding:24px 18px 70px}
-.fc-back{display:inline-block;color:#2497ff;font-weight:800;text-decoration:none;margin-bottom:14px}
-.fc-head{display:grid;gap:7px;margin-bottom:18px}
-.fc-head h1{margin:0;font-size:clamp(2rem,7vw,3.1rem);line-height:1.02;letter-spacing:-.03em}
-.fc-head p{margin:0;color:var(--muted);line-height:1.5}
-.fc-tabs{display:flex;gap:8px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-.fc-tabs::-webkit-scrollbar{display:none}.fc-tab{flex:0 0 auto;white-space:nowrap;border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:10px 14px;background:rgba(8,12,28,.42);color:inherit;font-weight:850}.fc-tab.active{border-color:rgba(137,98,255,.8);box-shadow:0 0 20px rgba(112,66,255,.18)}
-.fc-panel{display:none}.fc-panel.active{display:block}.fc-card{padding:16px;border:1px solid rgba(255,255,255,.12);border-radius:18px;background:rgba(10,14,30,.42);margin:12px 0}.fc-card h2,.fc-card h3{margin:2px 0 6px}.fc-card p{margin:0;color:var(--muted);line-height:1.45}.fc-kicker{font-size:10px;font-weight:950;letter-spacing:.14em;color:#9da9ca}.fc-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}.fc-actions .btn{min-height:44px}.fc-note{font-size:.85rem;color:var(--muted);margin-top:9px}.fc-coming{opacity:.72}
+:root{--fc-accent:#48ddff;--fc-accent2:#6d82ff;--fc-muted:#aeb7d1}
+*{box-sizing:border-box}
+body{margin:0;min-height:100dvh;background:radial-gradient(circle at 5% 22%,rgba(44,194,255,.08),transparent 28%),radial-gradient(circle at 95% 8%,rgba(104,78,255,.10),transparent 32%),#02030b;color:#fff}
+.fc-shell{width:min(760px,100%);min-height:100dvh;margin:0 auto;padding:26px 18px 90px;position:relative}
+.fc-shell:before{content:"";position:fixed;left:max(18px,calc((100vw - 760px)/2 + 18px));top:170px;bottom:110px;width:3px;border-radius:99px;background:linear-gradient(180deg,var(--fc-accent),#6f68ff 62%,transparent);box-shadow:0 0 18px rgba(72,221,255,.42);pointer-events:none}
+.fc-top{display:grid;grid-template-columns:48px 1fr 48px;gap:12px;align-items:center;margin-bottom:22px}
+.fc-round{width:48px;height:48px;border-radius:50%;border:1px solid rgba(72,221,255,.36);background:rgba(8,19,41,.82);color:#bff6ff;font-size:28px;font-weight:900;display:grid;place-items:center;text-decoration:none}
+.fc-close{border-color:rgba(255,103,186,.55);background:rgba(63,11,53,.66);color:#ff8bd0;font-size:24px}
+.fc-titlewrap{text-align:center}.fc-kicker{color:#aab4d1;font-size:10px;font-weight:950;letter-spacing:.20em}.fc-titlewrap h1{margin:5px 0 0;font-size:clamp(2rem,8vw,3rem);line-height:1;letter-spacing:-.03em}
+.fc-info{width:36px;height:36px;margin:0 auto 10px;border-radius:50%;border:1px solid rgba(72,221,255,.60);display:grid;place-items:center;color:var(--fc-accent);font-weight:950}
+.fc-nav{display:flex;justify-content:center;gap:12px;margin:10px 0 18px}.fc-nav button{width:76px;height:52px;border-radius:28px;border:1px solid rgba(109,130,255,.45);background:rgba(7,11,31,.80);color:#dbe5ff;font-size:28px;font-weight:900}.fc-nav button:disabled{opacity:.22}
+.fc-description{margin:0 8px 26px 26px;padding:16px 18px;border:1px solid rgba(91,220,255,.30);border-radius:20px;background:linear-gradient(145deg,rgba(8,20,40,.80),rgba(8,8,27,.90));color:var(--fc-muted);line-height:1.48;font-weight:650}
+.fc-list{display:grid;gap:14px;margin-left:26px}.fc-card{padding:18px;border:1px solid rgba(255,255,255,.13);border-radius:22px;background:linear-gradient(145deg,rgba(9,17,38,.88),rgba(6,7,21,.96));box-shadow:0 18px 48px rgba(0,0,0,.16)}
+.fc-card .tag{color:#9ca9cc;font-size:10px;font-weight:950;letter-spacing:.16em}.fc-card h2{margin:6px 0 7px;font-size:1.45rem}.fc-card p{margin:0;color:var(--fc-muted);line-height:1.46}
+.fc-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}.fc-actions a,.fc-actions button{min-height:46px;padding:11px 16px;border-radius:15px;border:1px solid rgba(72,221,255,.36);background:linear-gradient(135deg,rgba(25,76,112,.72),rgba(36,30,97,.80));color:#fff;text-decoration:none;font-weight:900;font-size:.92rem}.fc-actions button{background:rgba(8,14,35,.76);color:var(--fc-accent)}
+.fc-status{min-height:18px;margin-top:8px;color:#82f0ff;font-size:.78rem}.fc-empty{padding:22px;border:1px dashed rgba(72,221,255,.22);border-radius:20px;color:var(--fc-muted);background:rgba(5,10,24,.55);line-height:1.5}
+@media(max-width:560px){.fc-shell{padding-left:14px;padding-right:14px}.fc-shell:before{left:18px}.fc-description,.fc-list{margin-left:18px}.fc-actions>*{flex:1 1 130px;text-align:center}}
 </style>
 </head>
 <body>
 <main class="fc-shell">
-<a class="fc-back" href="index.html">← NEXA</a>
-<header class="fc-head">
-  <h1>Forms Center</h1>
-  <p>Sign-ups, applications, surveys and responses in one place.</p>
-</header>
-
-<nav class="fc-tabs" aria-label="Forms Center sections">
-  <button class="fc-tab active" data-fc-tab="svs" type="button">SvS</button>
-  <button class="fc-tab" data-fc-tab="fdt" type="button">FDT</button>
-  <button class="fc-tab" data-fc-tab="tal" type="button">TAL</button>
-  <button class="fc-tab" data-fc-tab="transfer" type="button">Transfer</button>
-  <button class="fc-tab" data-fc-tab="surveys" type="button">Surveys</button>
-  <button class="fc-tab" data-fc-tab="responses" type="button">Responses</button>
-</nav>
-
-<section class="fc-panel active" data-fc-panel="svs">
-  <article class="fc-card">
-    <div class="fc-kicker">SVS • BATTLE PHASE</div>
-    <h2>Battle Sign-Up</h2>
-    <p>Submit Battle Phase availability, role and combat information.</p>
-    <div class="fc-actions">
-      <a class="btn" href="battle-form.html?direct=1&event_type=svs">Open Form</a>
-      <button class="btn secondary" data-copy="battle-form.html?direct=1&event_type=svs" type="button">Copy Link</button>
-    </div>
-    <div class="fc-note" data-copy-status></div>
-  </article>
-  <article class="fc-card">
-    <div class="fc-kicker">SVS • PREPARATION PHASE</div>
-    <h2>Ministry Sign-Up</h2>
-    <p>Request VP or MOE appointments for Construction, Research and Training days.</p>
-    <div class="fc-actions">
-      <a class="btn" href="ministry-signup.html?direct=1">Open Form</a>
-      <button class="btn secondary" data-copy="ministry-signup.html?direct=1" type="button">Copy Link</button>
-    </div>
-    <div class="fc-note" data-copy-status></div>
-  </article>
-</section>
-
-<section class="fc-panel" data-fc-panel="fdt"><article class="fc-card fc-coming"><div class="fc-kicker">FDT</div><h3>FDT Sign-Up</h3><p>Reserved for the FDT form workflow.</p></article></section>
-<section class="fc-panel" data-fc-panel="tal"><article class="fc-card fc-coming"><div class="fc-kicker">TAL</div><h3>TAL Sign-Up</h3><p>Reserved for the TAL form workflow.</p></article></section>
-<section class="fc-panel" data-fc-panel="transfer"><article class="fc-card"><div class="fc-kicker">TRANSFER</div><h3>Transfer Application</h3><p>Transfer applications remain connected to the existing Transfer workflow.</p><div class="fc-actions"><a class="btn secondary" href="transfer-application.html">Open Application</a></div></article></section>
-<section class="fc-panel" data-fc-panel="surveys"><article class="fc-card fc-coming"><div class="fc-kicker">SURVEYS</div><h3>Surveys</h3><p>Leadership surveys and reusable questionnaires will live here.</p></article></section>
-<section class="fc-panel" data-fc-panel="responses"><article class="fc-card"><div class="fc-kicker">MANAGEMENT VIEW</div><h3>Responses</h3><p>Review submitted form responses from the central response workspace.</p><div class="fc-actions"><a class="btn" href="event-operations.html?tab=responses">Open Responses</a></div></article></section>
+  <div class="fc-top">
+    <a class="fc-round" href="index.html" aria-label="Back to NEXA">‹</a>
+    <div class="fc-titlewrap"><div class="fc-info">i</div><div class="fc-kicker">FORMS CENTER</div><h1 id="section-title">SvS</h1></div>
+    <a class="fc-round fc-close" href="index.html" aria-label="Close">×</a>
+  </div>
+  <div class="fc-nav"><button id="prev" type="button" aria-label="Previous section">‹</button><button id="next" type="button" aria-label="Next section">›</button></div>
+  <section id="description" class="fc-description"></section>
+  <section id="content" class="fc-list"></section>
 </main>
 <script>
 (()=>{
 'use strict';
-const qs=new URLSearchParams(location.search);
-const initial=qs.get('section')||'svs';
-function show(name){
-  document.querySelectorAll('[data-fc-tab]').forEach(b=>b.classList.toggle('active',b.dataset.fcTab===name));
-  document.querySelectorAll('[data-fc-panel]').forEach(p=>p.classList.toggle('active',p.dataset.fcPanel===name));
-  history.replaceState(null,'',name==='svs'?'forms-center.html':`forms-center.html?section=${encodeURIComponent(name)}`);
-}
-document.querySelectorAll('[data-fc-tab]').forEach(b=>b.addEventListener('click',()=>show(b.dataset.fcTab)));
-document.querySelectorAll('[data-copy]').forEach(btn=>btn.addEventListener('click',async()=>{
-  const url=new URL(btn.dataset.copy,location.href).href;
-  const status=btn.closest('.fc-card')?.querySelector('[data-copy-status]');
-  try{
-    await navigator.clipboard.writeText(url);
-    if(status)status.textContent='Link copied ✓';
-  }catch{
-    if(status)status.textContent=url;
-  }
-}));
-if(document.querySelector(`[data-fc-tab="${initial}"]`))show(initial);
+const SECTIONS=[
+  {key:'svs',title:'SvS',desc:'SvS forms for Preparation Phase and Battle Phase. Forms remain visible here even when an SvS event is not currently live.',cards:[
+    {tag:'SVS • BATTLE PHASE',title:'Battle Sign-Up',desc:'Submit Battle Phase availability, role and combat information.',href:'battle-form.html?direct=1&event_type=svs'},
+    {tag:'SVS • PREPARATION PHASE',title:'Ministry Sign-Up',desc:'Request VP or MOE appointments for Construction, Research and Training days.',href:'ministry-signup.html?direct=1'}]},
+  {key:'fdt',title:'FDT',desc:'FDT sign-ups and response workflows will live in this section.',coming:'FDT Sign-Up is reserved for the FDT workflow.'},
+  {key:'tal',title:'TAL',desc:'TAL sign-ups and response workflows will live in this section.',coming:'TAL Sign-Up is reserved for the TAL workflow.'},
+  {key:'transfer',title:'Transfer',desc:'Transfer applications remain connected to the existing NEXA Transfer workflow.',cards:[{tag:'TRANSFER',title:'Transfer Application',desc:'Open the current Transfer application workflow.',href:'transfer-application.html'}]},
+  {key:'surveys',title:'Surveys',desc:'Leadership surveys and reusable questionnaires will live in this section.',coming:'Survey forms will appear here as they are created.'}
+];
+const qs=new URLSearchParams(location.search);let index=SECTIONS.findIndex(x=>x.key===(qs.get('section')||'svs'));if(index<0)index=0;const $=id=>document.getElementById(id);
+function cardHtml(c){return `<article class="fc-card"><div class="tag">${c.tag}</div><h2>${c.title}</h2><p>${c.desc}</p><div class="fc-actions"><a href="${c.href}">Open Form</a><button type="button" data-copy="${c.href}">Copy Link</button></div><div class="fc-status"></div></article>`}
+function render(){const s=SECTIONS[index];$('section-title').textContent=s.title;$('description').textContent=s.desc;$('prev').disabled=index===0;$('next').disabled=index===SECTIONS.length-1;$('content').innerHTML=s.cards?.map(cardHtml).join('')||`<div class="fc-empty">${s.coming||'No forms in this section yet.'}</div>`;history.replaceState(null,'',`forms-center.html?section=${encodeURIComponent(s.key)}`)}
+$('prev').onclick=()=>{if(index>0){index--;render()}};$('next').onclick=()=>{if(index<SECTIONS.length-1){index++;render()}};
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-copy]');if(!b)return;const url=new URL(b.dataset.copy,location.href).href;const status=b.closest('.fc-card')?.querySelector('.fc-status');try{await navigator.clipboard.writeText(url);if(status)status.textContent='Link copied ✓'}catch{if(status)status.textContent=url}});
+render();
 })();
 </script>
 </body>

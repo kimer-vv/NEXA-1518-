@@ -1240,6 +1240,13 @@ function openOwnedAdministrationMenu(){ownedMenuSubview('ADMINISTRATION',[
 function openOwnedEventFormsMenu(){ownedMenuSubview('EVENT FORMS',[
   ['Forms',()=>ownedMenuGo('event-operations.html?tab=forms')],['Responses',()=>ownedMenuGo('event-operations.html?tab=responses')]
 ])}
+function openOwnedFormsCenterMenu(){ownedMenuSubview('FORMS CENTER',[
+  ['SvS',()=>ownedMenuGo('forms-center.html?section=svs')],
+  ['FDT',()=>ownedMenuGo('forms-center.html?section=fdt')],
+  ['TAL',()=>ownedMenuGo('forms-center.html?section=tal')],
+  ['Transfer',()=>ownedMenuGo('forms-center.html?section=transfer')],
+  ['Surveys',()=>ownedMenuGo('forms-center.html?section=surveys')]
+])}
 function openOwnedSvsMenu(){ownedMenuSubview('SVS',[
   ['Event Setup',()=>ownedMenuGo('index.html?admin=svs&tab=events')],['Forms',()=>ownedMenuGo('index.html?admin=svs&tab=forms')],['Schedule Setup',()=>ownedMenuGo('index.html?admin=svs&tab=schedule')],['History',()=>ownedMenuGo('index.html?admin=svs&tab=history')]
 ])}
@@ -1258,7 +1265,7 @@ async function buildOwnedHomeMenuRoot(){
   ownedMenuSep(wrap);ownedMenuLabel(wrap,'TOOLS');
   ownedMenuButton(wrap,'Administration',openOwnedAdministrationMenu,{submenu:true});
 ownedMenuButton(wrap,'Event Forms',openOwnedEventFormsMenu,{submenu:true});
-ownedMenuButton(wrap,'Forms Center',()=>ownedMenuGo('forms-center.html'));
+ownedMenuButton(wrap,'Forms Center',openOwnedFormsCenterMenu,{submenu:true});
 ownedMenuButton(wrap,'SVS',openOwnedSvsMenu,{submenu:true});
   ownedMenuButton(wrap,'FDT',()=>alert('FDT module will be added in the next event phase.'));
   ownedMenuButton(wrap,'TAL',()=>alert('TAL module will be added in the next event phase.'));

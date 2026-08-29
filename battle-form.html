@@ -7,16 +7,21 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/human-gate.js"></script>
 <style>
- .role-grid,.troop-grid,.hero-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
- .choice-card,.hero-card{border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:14px;background:rgba(10,14,30,.38)}
- .availability{display:grid;grid-template-columns:1fr;gap:10px;width:100%;min-width:0}
- .availability label{display:flex!important;flex-direction:row!important;gap:12px;align-items:center;min-width:0;width:100%;box-sizing:border-box;padding:14px 16px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:rgba(10,14,30,.30);font-size:15px!important;line-height:1.25}
- .availability label input[type="checkbox"],.role-grid input[type="radio"],.hero-grid input[type="checkbox"],.troop-grid input[type="checkbox"]{display:inline-block!important;width:24px!important;height:24px!important;min-width:24px!important;flex:0 0 24px!important;margin:0!important;padding:0!important;accent-color:#1597ff}
- .availability label span{display:block;min-width:0;overflow-wrap:normal;word-break:normal;white-space:normal;font-weight:800;color:#d7d9e8}
- .availability .availability-special{border-color:rgba(145,110,255,.34);background:rgba(89,55,170,.10)}
- .role-grid .choice-card{display:flex!important;flex-direction:row!important;align-items:center;gap:10px}
- @media(max-width:700px){.availability{grid-template-columns:minmax(0,1fr)}.availability label{padding:13px 14px;border-radius:15px}.availability label span{font-size:15px}}
- .hero-detail{margin-top:10px}.compact-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.hidden{display:none!important}
+.role-grid,.troop-grid,.hero-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.choice-card,.hero-card{border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:14px;background:rgba(10,14,30,.38)}
+.availability{display:grid;grid-template-columns:1fr;gap:10px;width:100%;min-width:0}
+.availability label{display:flex!important;flex-direction:row!important;gap:12px;align-items:center;min-width:0;width:100%;box-sizing:border-box;padding:14px 16px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:rgba(10,14,30,.30);font-size:15px!important;line-height:1.25}
+.availability label input[type="checkbox"],.role-grid input[type="radio"],.hero-grid input[type="checkbox"]{display:inline-block!important;width:24px!important;height:24px!important;min-width:24px!important;flex:0 0 24px!important;margin:0!important;padding:0!important;accent-color:#1597ff}
+.availability label span{display:block;min-width:0;white-space:normal;font-weight:800;color:#d7d9e8}
+.availability .availability-special{border-color:rgba(145,110,255,.34);background:rgba(89,55,170,.10)}
+.role-grid .choice-card{display:flex!important;flex-direction:row!important;align-items:center;gap:10px}
+.hero-detail{margin-top:10px}.compact-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.hidden{display:none!important}
+.troop-card{display:grid;gap:10px}
+.troop-card>strong{font-size:17px}
+.troop-quality-select{width:100%}
+.troop-class-hint{font-size:12px;opacity:.72;margin-top:4px}
+.skill-wrap{margin-top:2px}
+@media(max-width:700px){.availability{grid-template-columns:minmax(0,1fr)}.availability label{padding:13px 14px;border-radius:15px}.availability label span{font-size:15px}.compact-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -27,375 +32,265 @@
 <div id="message" class="form-message"></div>
 <div id="closed" class="empty-state hidden">The Battle Form is not currently open.</div>
 <form id="form" class="account-form hidden">
- <label id="account-wrap">Account<select id="account"></select></label>
- <div id="identity" class="setting-card"></div>
+<label id="account-wrap">Account<select id="account"></select></label>
+<div id="identity" class="setting-card"></div>
 
- <h3>Availability</h3><p class="muted">Select every UTC block when you expect to be available.</p>
- <div id="availability" class="availability"></div>
+<h3>Availability</h3><p class="muted">Select every UTC block when you expect to be available.</p>
+<div id="availability" class="availability"></div>
 
- <div id="battle-details">
- <h3>Battle Role</h3>
- <div class="role-grid">
-  <label class="choice-card"><input type="radio" name="role" value="joiner" required> <b>Joiner</b></label>
-  <label class="choice-card"><input type="radio" name="role" value="rally_lead" required> <b>Rally Lead</b></label>
- </div>
+<div id="battle-details">
+<h3>Battle Role</h3>
+<div class="role-grid">
+<label class="choice-card"><input type="radio" name="role" value="joiner" required> <b>Joiner</b></label>
+<label class="choice-card"><input type="radio" name="role" value="rally_lead" required> <b>Rally Lead</b></label>
+</div>
 
- <section id="joiner" class="hidden">
-  <h3>Troop Quality</h3>
-  <div class="troop-grid" id="troops"></div>
-  <label id="deployment-wrap" class="hidden">Deployment Capacity
-    <input id="deployment" type="number" min="0" inputmode="numeric" placeholder="Example: 125000">
-    <small id="deployment-preview" class="muted" style="display:block;margin-top:5px"></small>
-  </label>
-  <h3>Lv. 5 Rally Joiner Heroes</h3><p class="muted">Select every configured hero you have with the required rally skill at Level 5.</p>
-  <div id="joiner-heroes" class="hero-grid"></div>
-  <div id="joiner-experts-wrap" class="hidden"><h3>Experts</h3><div id="joiner-experts" class="hero-grid"></div></div>
- </section>
+<h3>Troop Quality</h3>
+<p class="muted">Choose the current quality for Infantry, Lancer and Marksman. T12 selections also require Skill Level.</p>
+<div class="troop-grid" id="troops"></div>
 
- <section id="rally" class="hidden">
-  <h3>Rally Lead Heroes</h3><p class="muted">For each hero you have, mark Fully Maxed. If not maxed, report Stars, Skills and Widget.</p>
-  <div id="rally-heroes" class="hero-grid"></div>
-  <div id="rally-experts-wrap" class="hidden"><h3>Experts</h3><div id="rally-experts" class="hero-grid"></div></div>
- </section>
+<section id="joiner" class="hidden">
+<label id="deployment-wrap" class="hidden">Deployment Capacity
+<input id="deployment" type="number" min="0" inputmode="numeric" placeholder="Example: 125000">
+<small id="deployment-preview" class="muted" style="display:block;margin-top:5px"></small>
+</label>
+<h3>Lv. 5 Rally Joiner Heroes</h3><p class="muted">Select every configured hero you have with the required rally skill at Level 5.</p>
+<div id="joiner-heroes" class="hero-grid"></div>
+<div id="joiner-experts-wrap" class="hidden"><h3>Experts</h3><div id="joiner-experts" class="hero-grid"></div></div>
+</section>
 
- <label id="discord-wrap" class="hidden">Available in Discord Voice Chat?
-   <select id="discord"><option value="">Select…</option><option value="yes">Yes</option><option value="no">No</option><option value="if_needed">If needed</option></select>
- </label>
- </div>
- <section id="custom-questions-wrap" class="hidden">
-   <h3>Event Questions</h3>
-   <div id="custom-questions"></div>
- </section>
- <div id="template-preview-note" class="form-message hidden"></div>
- <div class="form-actions"><button id="submit-btn" class="btn" type="submit">Submit Battle Form</button></div>
+<section id="rally" class="hidden">
+<h3>Rally Lead Heroes</h3><p class="muted">For each configured hero you have, report only the requested battle details.</p>
+<div id="rally-heroes" class="hero-grid"></div>
+<div id="rally-experts-wrap" class="hidden"><h3>Experts</h3><div id="rally-experts" class="hero-grid"></div></div>
+</section>
+
+<label id="discord-wrap" class="hidden">Available in Discord Voice Chat?
+<select id="discord"><option value="">Select…</option><option value="yes">Yes</option><option value="no">No</option><option value="if_needed">If needed</option></select>
+</label>
+</div>
+
+<section id="custom-questions-wrap" class="hidden">
+<h3>Event Questions</h3>
+<div id="custom-questions"></div>
+</section>
+<div id="template-preview-note" class="form-message hidden"></div>
+<div class="form-actions"><button id="submit-btn" class="btn" type="submit">Submit Battle Form</button></div>
 </form>
 </section>
 </main>
+
 <script>
 const sb=window.supabase.createClient("https://dfxcxboxrkfmrnsgpyin.supabase.co","sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-");
-const $=id=>document.getElementById(id); let eventData,settings,items=[],accounts=[],eventType='svs',eventTypeInfo=null,customQuestions=[],savedLayouts={};
+const $=id=>document.getElementById(id);
+let eventData,settings,items=[],accounts=[],eventType='svs',eventTypeInfo=null,customQuestions=[];
 const NOT_AVAILABLE_MARKER='__NEXA_NOT_AVAILABLE_OPTION__';
-function configuredAvailabilityBlocks(){return (settings?.availability_blocks||[]).filter(b=>b?.label&&b.label!==NOT_AVAILABLE_MARKER)}
-function notAvailableEnabled(){return settings?.not_available_enabled===true || (settings?.availability_blocks||[]).some(b=>b?.label===NOT_AVAILABLE_MARKER)}
+
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-function opt(n,max){return '<option value="">—</option>'+Array.from({length:max},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')}
 function role(){return document.querySelector('input[name=role]:checked')?.value}
-function compactNumber(value){
- const n=Number(value||0);
- if(!Number.isFinite(n)||n<=0)return '';
- const abs=Math.abs(n);
- const fmt=(v,suffix)=>`${Number(v.toFixed(v>=100?0:v>=10?1:2))}${suffix}`;
- if(abs>=1e9)return fmt(n/1e9,'B');
- if(abs>=1e6)return fmt(n/1e6,'M');
- if(abs>=1e3)return fmt(n/1e3,'K');
- return n.toLocaleString();
+function opt(max){return '<option value="">—</option>'+Array.from({length:max},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')}
+function compactNumber(value){const n=Number(value||0);if(!Number.isFinite(n)||n<=0)return'';const f=(v,s)=>`${Number(v.toFixed(v>=100?0:v>=10?1:2))}${s}`;if(n>=1e9)return f(n/1e9,'B');if(n>=1e6)return f(n/1e6,'M');if(n>=1e3)return f(n/1e3,'K');return n.toLocaleString()}
+function updateDeploymentPreview(){const el=$('deployment-preview');if(el)el.textContent=$('deployment')?.value?`≈ ${compactNumber($('deployment').value)}`:''}
+function renderIdentity(){const a=accounts.find(x=>String(x.id)===$('account').value);if(a)$('identity').innerHTML=`<b>${esc(a.in_game_name)}</b><div class="muted">${esc(a.alliances?.tag||a.custom_alliance_tag||'Not listed')} • Player ID ${esc(a.player_id)}</div>`}
+
+function configuredAvailabilityBlocks(){
+  const blocks=(settings?.availability_blocks||[]).filter(b=>b?.label&&b.label!==NOT_AVAILABLE_MARKER);
+  if(blocks.length)return blocks;
+  const start=Number(settings?.availability_start_hour),end=Number(settings?.availability_end_hour),slot=Number(settings?.availability_slot_minutes||60);
+  if(Number.isFinite(start)&&Number.isFinite(end)&&slot>0)return generateAvailabilityBlocks(start,end,slot);
+  return [];
 }
-function updateDeploymentPreview(){
- const el=$('deployment-preview');
- if(!el)return;
- const raw=$('deployment')?.value||'';
- el.textContent=raw ? `≈ ${compactNumber(raw)}` : '';
+function hhmm(total){const m=((total%1440)+1440)%1440;return `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`}
+function generateAvailabilityBlocks(startHour,endHour,slotMinutes){
+  const out=[],start=Math.round(startHour*60),end=Math.round(endHour*60);
+  if(end<=start)return out;
+  for(let t=start;t<end;t+=slotMinutes){const next=Math.min(t+slotMinutes,end);out.push({label:`${hhmm(t)}–${hhmm(next)} UTC`})}
+  return out;
 }
-function renderIdentity(){
- const a=accounts.find(x=>String(x.id)===$('account').value); if(!a)return;
- $('identity').innerHTML=`<b>${esc(a.in_game_name)}</b><div class="muted">${esc(a.alliances?.tag||a.custom_alliance_tag||'Not listed')} • Player ID ${esc(a.player_id)}</div>`;
-}
+function notAvailableEnabled(){return settings?.not_available_enabled===true||(settings?.availability_blocks||[]).some(b=>b?.label===NOT_AVAILABLE_MARKER)}
 function isNotAvailable(){return $('not-available')?.checked===true}
-function setBattleDetailsState(){
- const notAvailable=isNotAvailable();
- $('battle-details')?.classList.toggle('hidden',notAvailable);
- document.querySelectorAll('input[name=role]').forEach(x=>x.required=!notAvailable);
-}
+function setBattleDetailsState(){const off=isNotAvailable();$('battle-details')?.classList.toggle('hidden',off);document.querySelectorAll('input[name=role]').forEach(x=>x.required=!off)}
+
 function renderAvailability(){
  const blocks=configuredAvailabilityBlocks();let html='';
- if(settings?.full_availability_enabled && blocks.length) html+=`<label class="availability-special"><input type="checkbox" id="full-avail"><span>Full Availability</span></label>`;
- if(notAvailableEnabled()) html+=`<label class="availability-special"><input type="checkbox" id="not-available"><span>Not Available</span></label>`;
- html+=blocks.map((b,i)=>`<label><input class="avail" type="checkbox" value="${esc(b.label)}"><span>${esc(b.label)}</span></label>`).join('');
- $('availability').innerHTML=html;
- $('full-avail')?.addEventListener('change',e=>{
-  if(e.target.checked){if($('not-available'))$('not-available').checked=false;document.querySelectorAll('.avail').forEach(x=>x.checked=true)}
-  else document.querySelectorAll('.avail').forEach(x=>x.checked=false);
-  setBattleDetailsState();
- });
- $('not-available')?.addEventListener('change',e=>{
-  if(e.target.checked){if($('full-avail'))$('full-avail').checked=false;document.querySelectorAll('.avail').forEach(x=>x.checked=false)}
-  setBattleDetailsState();
- });
- document.querySelectorAll('.avail').forEach(x=>x.addEventListener('change',()=>{
-  if(x.checked&&$('not-available')){$('not-available').checked=false;setBattleDetailsState()}
-  const all=[...document.querySelectorAll('.avail')];
-  if($('full-avail'))$('full-avail').checked=all.length>0&&all.every(a=>a.checked);
- }));
+ if(settings?.full_availability_enabled&&blocks.length)html+=`<label class="availability-special"><input type="checkbox" id="full-avail"><span>Full Availability</span></label>`;
+ if(notAvailableEnabled())html+=`<label class="availability-special"><input type="checkbox" id="not-available"><span>Not Available</span></label>`;
+ html+=blocks.map(b=>`<label><input class="avail" type="checkbox" value="${esc(b.label)}"><span>${esc(b.label)}</span></label>`).join('');
+ $('availability').innerHTML=html||'<div class="muted">No availability blocks configured yet.</div>';
+ $('full-avail')?.addEventListener('change',e=>{if(e.target.checked){if($('not-available'))$('not-available').checked=false;document.querySelectorAll('.avail').forEach(x=>x.checked=true)}else document.querySelectorAll('.avail').forEach(x=>x.checked=false);setBattleDetailsState()});
+ $('not-available')?.addEventListener('change',e=>{if(e.target.checked){if($('full-avail'))$('full-avail').checked=false;document.querySelectorAll('.avail').forEach(x=>x.checked=false)}setBattleDetailsState()});
+ document.querySelectorAll('.avail').forEach(x=>x.addEventListener('change',()=>{if(x.checked&&$('not-available'))$('not-available').checked=false;const all=[...document.querySelectorAll('.avail')];if($('full-avail'))$('full-avail').checked=all.length>0&&all.every(a=>a.checked);setBattleDetailsState()}));
  setBattleDetailsState();
 }
-function troopCard(type,label){
- return `<div class="choice-card"><b>${label}</b><label>Level<select class="troop-level" data-type="${type}"><option value="">Select…</option><option>FC10</option><option>T11</option><option>T12</option></select></label><label class="skill-wrap hidden">T12 Skill<select class="troop-skill" data-type="${type}">${opt(0,settings?.t12_max_skill||5)}</select></label></div>`;
+
+const TROOP_PRESETS={
+ pre_fc:[
+  {group:'Regular',value:'below_t8',label:'Below T8',tier:null,class:'regular'},
+  {group:'Regular',value:'t8',label:'T8',tier:8,class:'regular'},
+  {group:'Regular',value:'t9',label:'T9',tier:9,class:'regular'},
+  {group:'Regular',value:'t10',label:'T10',tier:10,class:'regular'}
+ ],
+ early_fc:[
+  {group:'Regular',value:'below_t10',label:'Below T10',tier:null,class:'regular'},
+  {group:'Regular',value:'t10',label:'T10',tier:10,class:'regular'},
+  {group:'Regular',value:'fc1',label:'FC1',fc:1,class:'regular'},
+  {group:'Regular',value:'fc2',label:'FC2',fc:2,class:'regular'},
+  {group:'Regular',value:'fc3',label:'FC3',fc:3,class:'regular'}
+ ],
+ mid_fc:[
+  {group:'Regular',value:'below_fc1',label:'Below FC1',class:'regular'},
+  ...Array.from({length:5},(_,i)=>({group:'Regular',value:`fc${i+1}`,label:`FC${i+1}`,fc:i+1,class:'regular'}))
+ ],
+ advanced_fc:[
+  {group:'Regular',value:'fc5_or_below',label:'FC5 or Below',class:'regular'},
+  ...[6,7,8].map(n=>({group:'Regular',value:`fc${n}`,label:`FC${n}`,fc:n,class:'regular'})),
+  ...[5,6,7,8].map(n=>({group:'Helios (T11)',value:`fc${n}_helios`,label:`FC${n}`,fc:n,tier:11,class:'helios'}))
+ ],
+ late_fc:[
+  {group:'Regular',value:'fc8_or_below',label:'FC8 or Below',class:'regular'},
+  ...[9,10].map(n=>({group:'Regular',value:`fc${n}`,label:`FC${n}`,fc:n,class:'regular'})),
+  ...[8,9,10].map(n=>({group:'Helios (T11)',value:`fc${n}_helios`,label:`FC${n}`,fc:n,tier:11,class:'helios'}))
+ ],
+ exalted:[
+  {group:'Regular',value:'fc8_or_below',label:'FC8 or Below',class:'regular'},
+  {group:'Regular',value:'fc9',label:'FC9',fc:9,class:'regular'},
+  {group:'Regular',value:'fc10',label:'FC10',fc:10,class:'regular'},
+  ...[8,9,10].map(n=>({group:'Helios (T11)',value:`fc${n}_helios`,label:`FC${n}`,fc:n,tier:11,class:'helios'})),
+  {group:'Exalted (T12)',value:'fc10_exalted',label:'FC10',fc:10,tier:12,class:'exalted'}
+ ]
+};
+function troopOptions(){
+ const custom=Array.isArray(settings?.troop_quality_options)?settings.troop_quality_options.filter(x=>x?.value&&x?.label):[];
+ return custom.length?custom:(TROOP_PRESETS[settings?.troop_era_preset||'exalted']||TROOP_PRESETS.exalted);
 }
-function renderTroops(){$('troops').innerHTML=troopCard('infantry','Infantry')+troopCard('lancer','Lancer')+troopCard('marksman','Marksman');document.querySelectorAll('.troop-level').forEach(s=>s.onchange=()=>s.closest('.choice-card').querySelector('.skill-wrap').classList.toggle('hidden',s.value!=='T12'))}
+function groupedTroopOptions(){
+ const groups={};for(const o of troopOptions()){const g=o.group||'Regular';(groups[g]??=[]).push(o)}return groups
+}
+function troopCard(type,label){
+ const groups=groupedTroopOptions();
+ const optionHtml=Object.entries(groups).map(([g,list])=>`<optgroup label="${esc(g)}">${list.map(o=>`<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('')}</optgroup>`).join('');
+ return `<div class="choice-card troop-card"><strong>${label}</strong><label>Troop Quality<select class="troop-level troop-quality-select" data-type="${type}"><option value="">Select…</option>${optionHtml}</select></label><div class="troop-class-hint">Regular • Helios (T11) • Exalted (T12), according to this form's era.</div><label class="skill-wrap hidden">T12 Skill Level<select class="troop-skill" data-type="${type}"><option value="0">SL0</option><option value="1">SL1</option><option value="2">SL2</option><option value="3">SL3</option></select></label></div>`;
+}
+function renderTroops(){
+ $('troops').innerHTML=troopCard('infantry','Infantry')+troopCard('lancer','Lancer')+troopCard('marksman','Marksman');
+ document.querySelectorAll('.troop-level').forEach(s=>s.onchange=()=>{const o=troopOptions().find(x=>x.value===s.value);s.closest('.choice-card').querySelector('.skill-wrap').classList.toggle('hidden',o?.class!=='exalted')});
+}
+function collectTroopQuality(){
+ const out={};
+ for(const t of ['infantry','lancer','marksman']){
+  const sel=document.querySelector(`.troop-level[data-type="${t}"]`),value=sel?.value;
+  if(!value)throw new Error('Select Infantry, Lancer and Marksman troop quality.');
+  const meta=troopOptions().find(x=>x.value===value)||{};
+  const sl=meta.class==='exalted'?Number(document.querySelector(`.troop-skill[data-type="${t}"]`)?.value||0):null;
+  out[t]={level:value,label:meta.label||value,class:meta.class||'regular',tier:meta.tier??null,fc:meta.fc??null,skill:sl,skill_level:sl};
+ }
+ return out;
+}
+
 function itemList(type){return items.filter(x=>x.item_type===type&&x.is_active!==false).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0))}
 function renderJoinerHeroes(){$('joiner-heroes').innerHTML=itemList('joiner_hero').map(h=>`<label class="hero-card"><input class="joiner-hero" type="checkbox" value="${h.id}" data-name="${esc(h.name)}"> <b>${esc(h.name)}</b></label>`).join('')||'<div class="muted">No Joiner Heroes configured yet.</div>'}
 function renderRallyHeroes(){
- $('rally-heroes').innerHTML=itemList('rally_hero').map(h=>`<div class="hero-card rally-hero" data-id="${h.id}" data-name="${esc(h.name)}"><label><input class="has-hero" type="checkbox"> <b>${esc(h.name)}</b></label><div class="hero-detail hidden"><label>Fully Maxed?<select class="fully"><option value="">Select…</option><option value="yes">Yes</option><option value="no">No</option></select></label><div class="not-max hidden compact-grid"><label>Stars<select class="stars">${opt(0,5)}</select></label><label>Skills<select class="skills">${opt(0,5)}</select></label><label>Widget<select class="widget">${opt(0,10)}</select></label></div></div></div>`).join('')||'<div class="muted">No Rally Lead Heroes configured yet.</div>';
+ $('rally-heroes').innerHTML=itemList('rally_hero').map(h=>`<div class="hero-card rally-hero" data-id="${h.id}" data-name="${esc(h.name)}"><label><input class="has-hero" type="checkbox"> <b>${esc(h.name)}</b></label><div class="hero-detail hidden"><label>Fully Maxed?<select class="fully"><option value="">Select…</option><option value="yes">Yes</option><option value="no">No</option></select></label><div class="not-max hidden compact-grid"><label>Stars<select class="stars">${opt(5)}</select></label><label>Skills<select class="skills">${opt(5)}</select></label><label>Widget<select class="widget">${opt(10)}</select></label></div></div></div>`).join('')||'<div class="muted">No Rally Lead Heroes configured yet.</div>';
  document.querySelectorAll('.rally-hero').forEach(c=>{c.querySelector('.has-hero').onchange=e=>c.querySelector('.hero-detail').classList.toggle('hidden',!e.target.checked);c.querySelector('.fully').onchange=e=>c.querySelector('.not-max').classList.toggle('hidden',e.target.value!=='no')});
 }
 function renderExperts(type,container){
- $(container).innerHTML=itemList(type).map(h=>`<div class="hero-card expert" data-id="${h.id}" data-name="${esc(h.name)}" data-max="${h.max_level||10}"><label><input class="has-expert" type="checkbox"> <b>${esc(h.name)}</b></label><div class="hero-detail hidden"><label>Maxed?<select class="expert-maxed"><option value="">Select…</option><option value="yes">Yes</option><option value="no">No</option></select></label><label class="expert-level-wrap hidden">Current Level<select class="expert-level">${opt(0,h.max_level||10)}</select></label></div></div>`).join('')||'<div class="muted">No Experts configured yet.</div>';
+ $(container).innerHTML=itemList(type).map(h=>`<div class="hero-card expert" data-id="${h.id}" data-name="${esc(h.name)}" data-max="${h.max_level||100}"><label><input class="has-expert" type="checkbox"> <b>${esc(h.name)}</b></label><div class="hero-detail hidden"><label>Maxed?<select class="expert-maxed"><option value="">Select…</option><option value="yes">Yes</option><option value="no">No</option></select></label><label class="expert-level-wrap hidden">Current Level<input class="expert-level" type="number" min="0" max="${h.max_level||100}" inputmode="numeric"></label></div></div>`).join('')||'<div class="muted">No Experts configured yet.</div>';
  $(container).querySelectorAll('.expert').forEach(c=>{c.querySelector('.has-expert').onchange=e=>c.querySelector('.hero-detail').classList.toggle('hidden',!e.target.checked);c.querySelector('.expert-maxed').onchange=e=>c.querySelector('.expert-level-wrap').classList.toggle('hidden',e.target.value!=='no')});
 }
+function collectExperts(container){return [...$(container).querySelectorAll('.expert')].filter(c=>c.querySelector('.has-expert').checked).map(c=>({id:Number(c.dataset.id)||c.dataset.id,name:c.dataset.name,maxed:c.querySelector('.expert-maxed').value==='yes',level:c.querySelector('.expert-maxed').value==='yes'?Number(c.dataset.max):Number(c.querySelector('.expert-level').value||0),max_level:Number(c.dataset.max)}))}
 
 function questionMatchesEvent(q,key){return (q.event_scopes||[]).includes('all')||(q.event_scopes||[]).includes(key)}
 function questionMatchesRole(q,r){return q.role_scope==='both'||q.role_scope===r}
 function renderCustomQuestions(){
- const r=role(); const wrap=$('custom-questions-wrap'),box=$('custom-questions');
+ const r=role(),wrap=$('custom-questions-wrap'),box=$('custom-questions');
  if(!r){wrap.classList.add('hidden');box.innerHTML='';return}
  const qs=customQuestions.filter(q=>q.is_active&&questionMatchesEvent(q,eventType)&&questionMatchesRole(q,r));
  if(!qs.length){wrap.classList.add('hidden');box.innerHTML='';return}
  wrap.classList.remove('hidden');
- box.innerHTML=qs.map(q=>{
-   const id=`custom-q-${q.id}`,req=q.is_required?' required':'';
-   const opts=Array.isArray(q.options)?q.options:[];
-   let input='';
-   if(q.answer_type==='number') input=`<input id="${id}" data-qid="${q.id}" class="custom-answer" type="number"${req}>`;
-   else if(q.answer_type==='dropdown') input=`<select id="${id}" data-qid="${q.id}" class="custom-answer"${req}><option value="">Select…</option>${opts.map(o=>`<option value="${esc(o)}">${esc(o)}</option>`).join('')}</select>`;
-   else if(q.answer_type==='single_choice') input=`<div class="hero-grid">${opts.map((o,i)=>`<label class="choice-card"><input data-qid="${q.id}" class="custom-answer-radio" type="radio" name="custom_${q.id}" value="${esc(o)}"${q.is_required&&i===0?' required':''}> <b>${esc(o)}</b></label>`).join('')}</div>`;
-   else if(q.answer_type==='checkboxes') input=`<div class="hero-grid">${opts.map(o=>`<label class="choice-card"><input data-qid="${q.id}" class="custom-answer-check" type="checkbox" value="${esc(o)}"> <b>${esc(o)}</b></label>`).join('')}</div>`;
-   else input=`<input id="${id}" data-qid="${q.id}" class="custom-answer" type="text"${req}>`;
-   return `<div class="setting-card custom-q" data-id="${q.id}"><label><b>${esc(q.question_text)}</b>${q.is_required?' <small class="muted">Required</small>':''}${input}</label></div>`;
- }).join('');
+ box.innerHTML=qs.map(q=>{const id=`custom-q-${q.id}`,req=q.is_required?' required':'',opts=Array.isArray(q.options)?q.options:[];let input='';
+ if(q.answer_type==='number')input=`<input id="${id}" data-qid="${q.id}" class="custom-answer" type="number"${req}>`;
+ else if(q.answer_type==='dropdown')input=`<select id="${id}" data-qid="${q.id}" class="custom-answer"${req}><option value="">Select…</option>${opts.map(o=>`<option value="${esc(o)}">${esc(o)}</option>`).join('')}</select>`;
+ else if(q.answer_type==='single_choice')input=`<div class="hero-grid">${opts.map((o,i)=>`<label class="choice-card"><input data-qid="${q.id}" class="custom-answer-radio" type="radio" name="custom_${q.id}" value="${esc(o)}"${q.is_required&&i===0?' required':''}> <b>${esc(o)}</b></label>`).join('')}</div>`;
+ else if(q.answer_type==='checkboxes')input=`<div class="hero-grid">${opts.map(o=>`<label class="choice-card"><input data-qid="${q.id}" class="custom-answer-check" type="checkbox" value="${esc(o)}"> <b>${esc(o)}</b></label>`).join('')}</div>`;
+ else input=`<input id="${id}" data-qid="${q.id}" class="custom-answer" type="text"${req}>`;
+ return `<div class="setting-card custom-q" data-id="${q.id}"><label><b>${esc(q.question_text)}</b>${q.is_required?' <small class="muted">Required</small>':''}${input}</label></div>`}).join('');
 }
-function collectCustomAnswers(){
- const out={};
- for(const q of customQuestions.filter(q=>q.is_active&&questionMatchesEvent(q,eventType)&&questionMatchesRole(q,role()))){
-   if(q.answer_type==='single_choice') out[q.id]=document.querySelector(`input[name="custom_${q.id}"]:checked`)?.value||'';
-   else if(q.answer_type==='checkboxes') out[q.id]=[...document.querySelectorAll(`.custom-answer-check[data-qid="${q.id}"]:checked`)].map(x=>x.value);
-   else out[q.id]=document.querySelector(`.custom-answer[data-qid="${q.id}"]`)?.value||'';
-   if(q.is_required && (Array.isArray(out[q.id])?out[q.id].length===0:!String(out[q.id]??'').trim())) throw new Error(`Answer required: ${q.question_text}`);
- }
- return out;
-}
+function collectCustomAnswers(){const out={};for(const q of customQuestions.filter(q=>q.is_active&&questionMatchesEvent(q,eventType)&&questionMatchesRole(q,role()))){if(q.answer_type==='single_choice')out[q.id]=document.querySelector(`input[name="custom_${q.id}"]:checked`)?.value||'';else if(q.answer_type==='checkboxes')out[q.id]=[...document.querySelectorAll(`.custom-answer-check[data-qid="${q.id}"]:checked`)].map(x=>x.value);else out[q.id]=document.querySelector(`.custom-answer[data-qid="${q.id}"]`)?.value||'';if(q.is_required&&(Array.isArray(out[q.id])?out[q.id].length===0:!String(out[q.id]??'').trim()))throw new Error(`Answer required: ${q.question_text}`)}return out}
+
 async function loadReusableTemplate(){
- const params=new URLSearchParams(location.search); eventType=params.get('event_type')||'svs';
- const [et,tpl,qs]=await Promise.all([
-   sb.from('event_operation_types').select('*').eq('event_key',eventType).maybeSingle(),
-   sb.from('event_form_templates').select('settings').eq('event_type_key',eventType).maybeSingle(),
-   sb.from('event_form_questions').select('*').eq('is_active',true).order('created_at',{ascending:true})
- ]);
+ const params=new URLSearchParams(location.search);eventType=params.get('event_type')||'svs';
+ const [et,tpl,qs]=await Promise.all([sb.from('event_operation_types').select('*').eq('event_key',eventType).maybeSingle(),sb.from('event_form_templates').select('settings').eq('event_type_key',eventType).maybeSingle(),sb.from('event_form_questions').select('*').eq('is_active',true).order('created_at',{ascending:true})]);
  if(et.error)throw et.error;if(tpl.error)throw tpl.error;if(qs.error)throw qs.error;
- eventTypeInfo=et.data||{event_key:eventType,name:eventType.toUpperCase(),is_active:true};
- customQuestions=(qs.data||[]).filter(q=>questionMatchesEvent(q,eventType));
- return tpl.data?.settings||null;
+ eventTypeInfo=et.data||{event_key:eventType,name:eventType.toUpperCase(),is_active:true};customQuestions=(qs.data||[]).filter(q=>questionMatchesEvent(q,eventType));return tpl.data?.settings||null;
 }
 
-$('nexa-back').onclick=()=>{try{const p=new URLSearchParams(location.search);const r=document.referrer?new URL(document.referrer):null;if(r&&r.origin===location.origin){history.back();return}if(p.get('from')==='form-settings'){location.href='battle-settings.html?event_type='+encodeURIComponent(p.get('event_type')||'svs');return}if(p.get('from')==='event-operations'){location.href='event-operations.html';return}}catch{}location.href='event-operations.html'};
-
+$('nexa-back').onclick=()=>{try{const p=new URLSearchParams(location.search),r=document.referrer?new URL(document.referrer):null;if(r&&r.origin===location.origin){history.back();return}if(p.get('from')==='form-settings'){location.href='battle-settings.html?event_type='+encodeURIComponent(p.get('event_type')||'svs');return}if(p.get('from')==='event-operations'){location.href='event-operations.html';return}}catch{}location.href='event-operations.html'};
 const previewMode=new URLSearchParams(location.search).get('preview')==='1';
-function applyPreviewMode(){
-  if(!previewMode)return;
-  const note=$('template-preview-note');
-  if(note){
-    note.classList.remove('hidden');
-    note.textContent='Preview Mode — choose Joiner or Rally Lead to review the questions. Responses cannot be submitted.';
-  }
-  const submit=$('submit-btn');
-  if(submit)submit.style.display='none';
-  document.querySelectorAll('#form input,#form select,#form textarea,#form button').forEach(el=>{
-    const isRole=el.matches('input[name="role"]');
-    if(!isRole)el.disabled=true;
-  });
-  document.querySelectorAll('input[name="role"]').forEach(el=>{
-    el.disabled=false;
-    const label=el.closest('label');
-    if(label)label.style.opacity='1';
-  });
-}
+function applyPreviewMode(){if(!previewMode)return;const note=$('template-preview-note');if(note){note.classList.remove('hidden');note.textContent='Preview Mode — choose Joiner or Rally Lead to review the questions. Responses cannot be submitted.'}if($('submit-btn'))$('submit-btn').style.display='none';document.querySelectorAll('#form input,#form select,#form textarea,#form button').forEach(el=>{if(!el.matches('input[name="role"]'))el.disabled=true});document.querySelectorAll('input[name="role"]').forEach(el=>el.disabled=false)}
+
+function normalizedSettings(base={}){return {
+ availability_blocks:base.availability_blocks||[],
+ availability_start_hour:base.availability_start_hour,
+ availability_end_hour:base.availability_end_hour,
+ availability_slot_minutes:base.availability_slot_minutes||60,
+ full_availability_enabled:base.full_availability_enabled??true,
+ not_available_enabled:base.not_available_enabled??true,
+ deployment_capacity_enabled:!!base.deployment_capacity_enabled,
+ discord_voice_enabled:base.discord_voice_enabled??true,
+ joiner_experts_enabled:base.joiner_experts_enabled??true,
+ rally_experts_enabled:base.rally_experts_enabled??true,
+ troop_era_preset:base.troop_era_preset||'exalted',
+ troop_quality_options:Array.isArray(base.troop_quality_options)?base.troop_quality_options:[],
+ items:base.items||{}
+}}
 
 async function init(){
- const {data:{session}}=await sb.auth.getSession(); if(!session){$('message').textContent='Please sign in to NEXA before opening the Battle Form.';return;}
- let reusable=null;
- try{reusable=await loadReusableTemplate()}catch(err){$('message').textContent='Could not load Battle Form template: '+err.message;return}
+ const {data:{session}}=await sb.auth.getSession();if(!session){$('message').textContent='Please sign in to NEXA before opening the Battle Form.';return}
+ let reusable=null;try{reusable=await loadReusableTemplate()}catch(err){$('message').textContent='Could not load Battle Form template: '+err.message;return}
  const {data:a,error:accountError}=await sb.from('player_accounts').select('id,in_game_name,player_id,alliance_id,custom_alliance_tag,alliances(tag)').eq('user_id',session.user.id).order('in_game_name');
- if(accountError){$('message').textContent=accountError.message;return}
- accounts=a||[]; if(!accounts.length){$('message').textContent='No registered NEXA player account was found for your login.';return;}
- $('account').innerHTML=accounts.map(a=>`<option value="${a.id}">${esc(a.in_game_name)} • ${esc(a.alliances?.tag||a.custom_alliance_tag||'Not listed')}</option>`).join('');
- $('account-wrap').classList.toggle('hidden',accounts.length===1);$('account').onchange=renderIdentity;renderIdentity();
+ if(accountError){$('message').textContent=accountError.message;return}accounts=a||[];if(!accounts.length){$('message').textContent='No registered NEXA player account was found for your login.';return}
+ $('account').innerHTML=accounts.map(a=>`<option value="${a.id}">${esc(a.in_game_name)} • ${esc(a.alliances?.tag||a.custom_alliance_tag||'Not listed')}</option>`).join('');$('account-wrap').classList.toggle('hidden',accounts.length===1);$('account').onchange=renderIdentity;renderIdentity();
 
  if(eventType==='svs'){
-   await sb.rpc('refresh_auto_ended_events');
+  await sb.rpc('refresh_auto_ended_events');
+  async function current(){for(const f of [['is_live',true],['status','live']]){let q=sb.from('svs_events').select('*').eq(f[0],f[1]).order('prep_monday',{ascending:false}).limit(1).maybeSingle();const r=await q;if(r.error)throw r.error;if(r.data?.id)return r.data}const q=await sb.from('svs_events').select('*').neq('status','ended').order('prep_monday',{ascending:false}).limit(1).maybeSingle();if(q.error)throw q.error;return q.data||null}
+  try{eventData=await current()}catch(err){$('message').textContent='Could not identify the current SvS event: '+err.message;return}
+  $('event-meta').textContent=eventData?`SvS vs ${eventData.opponent_state} • Battle availability is shown in UTC`:'SvS Battle Form Template • no current SvS is attached';
+ }else $('event-meta').textContent=`${esc(eventTypeInfo?.name||eventType)} Battle Form • reusable Event Operations template`;
 
-   async function resolveCurrentSvsForBattleForm(){
-     let q=await sb.from('svs_events').select('*')
-       .eq('is_live',true)
-       .order('prep_monday',{ascending:false})
-       .limit(1).maybeSingle();
-     if(q.error) throw q.error;
-     if(q.data?.id) return q.data;
-
-     q=await sb.from('svs_events').select('*')
-       .eq('status','live')
-       .order('prep_monday',{ascending:false})
-       .limit(1).maybeSingle();
-     if(q.error) throw q.error;
-     if(q.data?.id) return q.data;
-
-     q=await sb.from('svs_events').select('*')
-       .neq('status','ended')
-       .order('prep_monday',{ascending:false})
-       .limit(1).maybeSingle();
-     if(q.error) throw q.error;
-     return q.data||null;
-   }
-
-   try{
-     eventData=await resolveCurrentSvsForBattleForm();
-   }catch(err){
-     $('message').textContent='Could not identify the current SvS event: '+err.message;
-     return;
-   }
-
-   if(eventData)$('event-meta').textContent=`SvS vs ${eventData.opponent_state} • Battle availability is shown in UTC`;
-   else $('event-meta').textContent='SvS Battle Form Template • no current SvS is attached';
- }else{
-   $('event-meta').textContent=`${esc(eventTypeInfo?.name||eventType)} Battle Form • reusable Event Operations template`;
- }
-
- // Reusable Event Operations template is the source of truth when saved.
- if(reusable){
-   settings={availability_blocks:reusable.availability_blocks||[],full_availability_enabled:reusable.full_availability_enabled??true,not_available_enabled:reusable.not_available_enabled??true,deployment_capacity_enabled:!!reusable.deployment_capacity_enabled,discord_voice_enabled:reusable.discord_voice_enabled??true,joiner_experts_enabled:reusable.joiner_experts_enabled??true,rally_experts_enabled:reusable.rally_experts_enabled??true,t12_max_skill:reusable.t12_max_skill||5};
-   items=[];
-   for(const [type,list] of Object.entries(reusable.items||{})) for(const [i,x] of (list||[]).entries()) items.push({...x,id:x.id||(`${type}_${i}`),item_type:type,sort_order:i,is_active:x.is_active??true});
- }else if(eventType==='svs' && eventData){
-   const [{data:oldSettings},{data:oldItems}]=await Promise.all([
-     sb.from('battle_form_settings').select('*').eq('event_id',eventData.id).maybeSingle(),
-     sb.from('battle_form_items').select('*').eq('event_id',eventData.id).order('sort_order')
-   ]);
-   settings=oldSettings||{availability_blocks:[],full_availability_enabled:true,not_available_enabled:true,deployment_capacity_enabled:false,discord_voice_enabled:true,joiner_experts_enabled:false,rally_experts_enabled:true,t12_max_skill:5};
-   items=oldItems||[];
- }else{
-   settings={availability_blocks:[],full_availability_enabled:true,not_available_enabled:true,deployment_capacity_enabled:false,discord_voice_enabled:true,joiner_experts_enabled:true,rally_experts_enabled:true,t12_max_skill:5};items=[];
- }
+ if(reusable){settings=normalizedSettings(reusable);items=[];for(const [type,list] of Object.entries(reusable.items||{}))for(const [i,x] of (list||[]).entries())items.push({...x,id:x.id||`${type}_${i}`,item_type:type,sort_order:i,is_active:x.is_active??true})}
+ else if(eventType==='svs'&&eventData){const [{data:oldSettings},{data:oldItems}]=await Promise.all([sb.from('battle_form_settings').select('*').eq('event_id',eventData.id).maybeSingle(),sb.from('battle_form_items').select('*').eq('event_id',eventData.id).order('sort_order')]);settings=normalizedSettings(oldSettings||{});items=oldItems||[]}
+ else{settings=normalizedSettings({});items=[]}
 
  renderAvailability();renderTroops();renderJoinerHeroes();renderRallyHeroes();renderExperts('joiner_expert','joiner-experts');renderExperts('rally_expert','rally-experts');
- $('deployment-wrap').classList.toggle('hidden',!settings.deployment_capacity_enabled);
- $('discord-wrap').classList.toggle('hidden',!settings.discord_voice_enabled);
- $('joiner-experts-wrap').classList.toggle('hidden',!settings.joiner_experts_enabled);
- $('rally-experts-wrap').classList.toggle('hidden',!settings.rally_experts_enabled);
- $('deployment')?.addEventListener('input',updateDeploymentPreview);updateDeploymentPreview();
- $('form').classList.remove('hidden');applyPreviewMode();
+ $('deployment-wrap').classList.toggle('hidden',!settings.deployment_capacity_enabled);$('discord-wrap').classList.toggle('hidden',!settings.discord_voice_enabled);$('joiner-experts-wrap').classList.toggle('hidden',!settings.joiner_experts_enabled);$('rally-experts-wrap').classList.toggle('hidden',!settings.rally_experts_enabled);
+ $('deployment')?.addEventListener('input',updateDeploymentPreview);updateDeploymentPreview();$('form').classList.remove('hidden');applyPreviewMode();
 }
 document.addEventListener('change',e=>{if(e.target.name==='role'){const r=role();$('joiner').classList.toggle('hidden',r!=='joiner');$('rally').classList.toggle('hidden',r!=='rally_lead');renderCustomQuestions()}});
 
-async function saveEventOperationsResponse({user,accountId,roleValue,availabilityValue,notAvailableValue,responseData}){
-  const row={
-    event_type_key:eventType,
-    user_id:user.id,
-    player_account_id:accountId,
-    role:roleValue,
-    availability:availabilityValue,
-    not_available:notAvailableValue,
-    response_data:responseData,
-    updated_at:new Date().toISOString()
-  };
-  const {error}=await sb.from('event_operation_responses').upsert(row,{onConflict:'event_type_key,player_account_id'});
-  return error;
-}
-
-
-async function verifyBattleResponseSaved(eventId,playerAccountId){
-  const {data,error}=await sb.from('battle_form_responses')
-    .select('id,event_id,player_account_id,role,updated_at')
-    .eq('event_id',eventId)
-    .eq('player_account_id',String(playerAccountId))
-    .maybeSingle();
-  if(error) throw error;
-  return data||null;
-}
+async function saveEventOperationsResponse({user,accountId,roleValue,availabilityValue,notAvailableValue,responseData}){const row={event_type_key:eventType,user_id:user.id,player_account_id:accountId,role:roleValue,availability:availabilityValue,not_available:notAvailableValue,response_data:responseData,updated_at:new Date().toISOString()};const {error}=await sb.from('event_operation_responses').upsert(row,{onConflict:'event_type_key,player_account_id'});return error}
+async function verifyBattleResponseSaved(eventId,playerAccountId){const {data,error}=await sb.from('battle_form_responses').select('id,event_id,player_account_id,role,updated_at').eq('event_id',eventId).eq('player_account_id',String(playerAccountId)).maybeSingle();if(error)throw error;return data||null}
 
 $('form').onsubmit=async e=>{
- e.preventDefault();$('message').textContent='Saving…';
- if(eventType==='svs'&&!eventData){$('message').textContent='There is no active SvS event to receive this response.';return}
- const {data:{user}}=await sb.auth.getUser();
- const notAvailable=isNotAvailable();
- const r=notAvailable?'joiner':role();
- if(!r){$('message').textContent='Select a Battle Role.';return;}
- const availability=notAvailable?['Not Available']:[...document.querySelectorAll('.avail:checked')].map(x=>x.value);
- if(!notAvailable&&$('full-avail')?.checked && configuredAvailabilityBlocks().length) availability.splice(0,availability.length,...configuredAvailabilityBlocks().map(x=>x.label));
- if(!availability.length){$('message').textContent='Select at least one availability block or choose Not Available.';return;}
- let troop_quality=null,joiner_heroes=[],rally_heroes=[],experts=[],custom_answers={};
- try{custom_answers=collectCustomAnswers()}catch(err){$('message').textContent=err.message;return}
+ e.preventDefault();$('message').textContent='Saving…';if(eventType==='svs'&&!eventData){$('message').textContent='There is no active SvS event to receive this response.';return}
+ const {data:{user}}=await sb.auth.getUser(),notAvailable=isNotAvailable(),r=notAvailable?'joiner':role();if(!r){$('message').textContent='Select a Battle Role.';return}
+ const availability=notAvailable?['Not Available']:[...document.querySelectorAll('.avail:checked')].map(x=>x.value);if(!notAvailable&&$('full-avail')?.checked&&configuredAvailabilityBlocks().length)availability.splice(0,availability.length,...configuredAvailabilityBlocks().map(x=>x.label));if(!availability.length){$('message').textContent='Select at least one availability block or choose Not Available.';return}
+ let troop_quality=null,joiner_heroes=[],rally_heroes=[],experts=[],custom_answers={};try{custom_answers=collectCustomAnswers()}catch(err){$('message').textContent=err.message;return}
  if(notAvailable){
-  if(eventType!=='svs'){
-    const responseData={role:'joiner',availability:['Not Available'],availability_mode:'not_available',full_availability:false,troop_quality:null,deployment_capacity:null,joiner_heroes:[],rally_heroes:[],experts:[],discord_voice:null,custom_answers:{}};
-    const error=await saveEventOperationsResponse({user,accountId:$('account').value,roleValue:'joiner',availabilityValue:['Not Available'],notAvailableValue:true,responseData});
-    if(error){$('message').textContent=error.message;$('message').scrollIntoView({behavior:'smooth',block:'center'});return;}
-  }else{
-    const payload={event_id:eventData.id,user_id:user.id,player_account_id:$('account').value,role:'joiner',availability:['Not Available'],availability_mode:'not_available',troop_quality:null,deployment_capacity:null,joiner_heroes:[],rally_heroes:[],experts:[],discord_voice:null,custom_answers:{},updated_at:new Date().toISOString()};
-    let {error}=await sb.from('battle_form_responses').upsert(payload,{onConflict:'event_id,player_account_id'});
-    if(!error){
-      try{
-        const saved=await verifyBattleResponseSaved(eventData.id,$('account').value);
-        if(!saved) error=new Error('NEXA could not verify the saved Battle Form response.');
-      }catch(err){ error=err; }
-    }
-    if(error){$('message').textContent=error.message;$('message').scrollIntoView({behavior:'smooth',block:'center'});return;}
-  }
-  $('message').textContent='Battle Form submitted successfully ✓ Your response has been saved as Not Available.';
-  $('message').scrollIntoView({behavior:'smooth',block:'center'});
-  return;
+  const responseData={role:'joiner',availability:['Not Available'],availability_mode:'not_available',full_availability:false,troop_quality:null,deployment_capacity:null,joiner_heroes:[],rally_heroes:[],experts:[],discord_voice:null,custom_answers:{}};
+  let error=eventType!=='svs'?await saveEventOperationsResponse({user,accountId:$('account').value,roleValue:'joiner',availabilityValue:['Not Available'],notAvailableValue:true,responseData}):(await sb.from('battle_form_responses').upsert({event_id:eventData.id,user_id:user.id,player_account_id:$('account').value,...responseData,updated_at:new Date().toISOString()},{onConflict:'event_id,player_account_id'})).error;
+  if(error){$('message').textContent=error.message;return}$('message').textContent='Battle Form submitted successfully ✓ Your response has been saved as Not Available.';return;
  }
- if(r==='joiner'){
-  troop_quality={};for(const t of ['infantry','lancer','marksman']){const level=document.querySelector(`.troop-level[data-type="${t}"]`).value;if(!level){$('message').textContent='Select Infantry, Lancer and Marksman troop levels.';return;}const skill=level==='T12'?Number(document.querySelector(`.troop-skill[data-type="${t}"]`).value||0):null;if(level==='T12'&&!skill){$('message').textContent='Select the T12 skill level for every T12 troop type.';return;}troop_quality[t]={level,skill};}
-  joiner_heroes=[...document.querySelectorAll('.joiner-hero:checked')].map(x=>({id:Number(x.value),name:x.dataset.name,skill_level:5}));
-  if(settings.joiner_experts_enabled) experts=collectExperts('joiner-experts');
- }else{
-  rally_heroes=[...document.querySelectorAll('.rally-hero')].filter(c=>c.querySelector('.has-hero').checked).map(c=>({id:Number(c.dataset.id),name:c.dataset.name,fully_maxed:c.querySelector('.fully').value==='yes',stars:c.querySelector('.fully').value==='no'?Number(c.querySelector('.stars').value||0):5,skills:c.querySelector('.fully').value==='no'?Number(c.querySelector('.skills').value||0):5,widget:c.querySelector('.fully').value==='no'?Number(c.querySelector('.widget').value||0):10}));
-  if(settings.rally_experts_enabled) experts=collectExperts('rally-experts');
- }
- const fullAvailability=!!($('full-avail')?.checked && !notAvailable);
- const baseResponse={
-   role:r,
-   availability,
-   availability_mode:fullAvailability?'full':'custom',
-   full_availability:fullAvailability,
-   troop_quality,
-   // Deployment Capacity is a Joiner field. Rally Leaders should not save it.
-   deployment_capacity:r==='joiner'&&settings.deployment_capacity_enabled&&$('deployment').value
-     ? Number($('deployment').value)
-     : null,
-   joiner_heroes,
-   rally_heroes,
-   experts,
-   discord_voice:settings.discord_voice_enabled?($('discord').value||null):null,
-   custom_answers
- };
+ try{troop_quality=collectTroopQuality()}catch(err){$('message').textContent=err.message;return}
+ if(r==='joiner'){joiner_heroes=[...document.querySelectorAll('.joiner-hero:checked')].map(x=>({id:Number(x.value)||x.value,name:x.dataset.name,skill_level:5}));if(settings.joiner_experts_enabled)experts=collectExperts('joiner-experts')}
+ else{rally_heroes=[...document.querySelectorAll('.rally-hero')].filter(c=>c.querySelector('.has-hero').checked).map(c=>({id:Number(c.dataset.id)||c.dataset.id,name:c.dataset.name,fully_maxed:c.querySelector('.fully').value==='yes',stars:c.querySelector('.fully').value==='no'?Number(c.querySelector('.stars').value||0):5,skills:c.querySelector('.fully').value==='no'?Number(c.querySelector('.skills').value||0):5,widget:c.querySelector('.fully').value==='no'?Number(c.querySelector('.widget').value||0):10}));if(settings.rally_experts_enabled)experts=collectExperts('rally-experts')}
+ const fullAvailability=!!($('full-avail')?.checked&&!notAvailable);
+ const baseResponse={role:r,availability,availability_mode:fullAvailability?'full':'custom',full_availability:fullAvailability,troop_quality,deployment_capacity:r==='joiner'&&settings.deployment_capacity_enabled&&$('deployment').value?Number($('deployment').value):null,joiner_heroes,rally_heroes,experts,discord_voice:settings.discord_voice_enabled?($('discord').value||null):null,custom_answers};
  let error=null;
- if(eventType!=='svs'){
-   error=await saveEventOperationsResponse({
-     user,
-     accountId:$('account').value,
-     roleValue:r,
-     availabilityValue:availability,
-     notAvailableValue:false,
-     responseData:baseResponse
-   });
- }else{
-   const payload={event_id:eventData.id,user_id:user.id,player_account_id:$('account').value,...baseResponse,updated_at:new Date().toISOString()};
-   ({error}=await sb.from('battle_form_responses').upsert(payload,{onConflict:'event_id,player_account_id'}));
-   if(!error){
-     try{
-       const saved=await verifyBattleResponseSaved(eventData.id,$('account').value);
-       if(!saved) error=new Error('NEXA could not verify the saved Battle Form response.');
-     }catch(err){ error=err; }
-   }
- }
- if(error){
-   $('message').textContent=error.message;
-   $('message').scrollIntoView({behavior:'smooth',block:'center'});
-   return;
- }
- $('message').textContent='Battle Form submitted successfully ✓ Your response has been saved.';
- $('message').scrollIntoView({behavior:'smooth',block:'center'});
+ if(eventType!=='svs')error=await saveEventOperationsResponse({user,accountId:$('account').value,roleValue:r,availabilityValue:availability,notAvailableValue:false,responseData:baseResponse});
+ else{({error}=await sb.from('battle_form_responses').upsert({event_id:eventData.id,user_id:user.id,player_account_id:$('account').value,...baseResponse,updated_at:new Date().toISOString()},{onConflict:'event_id,player_account_id'}));if(!error){try{if(!await verifyBattleResponseSaved(eventData.id,$('account').value))error=new Error('NEXA could not verify the saved Battle Form response.')}catch(err){error=err}}}
+ if(error){$('message').textContent=error.message;return}$('message').textContent='Battle Form submitted successfully ✓ Your response has been saved.';
 };
-function collectExperts(container){return [...$(container).querySelectorAll('.expert')].filter(c=>c.querySelector('.has-expert').checked).map(c=>({id:Number(c.dataset.id),name:c.dataset.name,maxed:c.querySelector('.expert-maxed').value==='yes',level:c.querySelector('.expert-maxed').value==='yes'?Number(c.dataset.max):Number(c.querySelector('.expert-level').value||0),max_level:Number(c.dataset.max)}))}
 init();
 </script>
 </body></html>

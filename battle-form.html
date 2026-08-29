@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>NEXA • Battle Form</title>
+<title>NEXA • Battle Sign-Up</title>
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/human-gate.js"></script>
@@ -45,6 +45,23 @@ body{margin:0;background:radial-gradient(circle at 5% 18%,rgba(44,194,255,.07),t
 .form-actions{margin-top:18px!important}.form-actions .btn{min-height:46px;width:100%}.form-message{margin-left:18px!important}
 .bf-guide-modal{position:fixed;inset:0;z-index:99999;display:grid;place-items:center;padding:18px;background:rgba(0,2,13,.86);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px)}.bf-guide-modal.hidden{display:none}.bf-guide-card{width:min(520px,100%);padding:20px;border:1px solid rgba(72,221,255,.38);border-radius:24px;background:linear-gradient(155deg,#0b1531,#050817);box-shadow:0 30px 90px rgba(0,0,0,.65)}.bf-guide-card h2{margin:0 40px 8px 0}.bf-guide-card p{color:#b1bdd8;line-height:1.55}.bf-guide-close{float:right;width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.16);background:#0c1330;color:#fff;font-weight:950;font-size:18px}
 @media(max-width:560px){.shell:before{left:18px}.hero-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+
+/* V4 consolidated Battle Sign-Up visual cleanup */
+#discord-wrap{display:grid!important;gap:9px!important;margin-top:14px!important;margin-bottom:18px!important;font-weight:800}
+#discord-wrap.hidden{display:none!important}
+#discord-wrap select{display:block!important;margin:0!important;width:100%!important}
+#custom-questions-wrap{border:0!important;background:transparent!important;padding:0!important;margin-top:0!important;display:grid!important;gap:14px!important}
+#custom-questions-wrap.hidden{display:none!important}
+#custom-questions{display:grid;gap:14px;width:100%}
+.custom-q{margin:0!important;width:100%!important;max-width:100%!important;padding:16px!important;border:1px solid rgba(255,255,255,.12)!important;border-radius:20px!important;background:rgba(10,14,30,.58)!important;box-sizing:border-box!important}
+.custom-q label{display:grid!important;gap:9px!important;font-weight:800}
+.custom-q input[type="text"],.custom-q input[type="number"],.custom-q select{width:100%!important;min-height:48px!important;padding:11px 13px!important;border:1px solid rgba(119,142,210,.28)!important;border-radius:13px!important;background:linear-gradient(145deg,rgba(8,17,38,.96),rgba(7,10,27,.96))!important;color:#f7f9ff!important;font-size:16px!important}
+.custom-q .hero-grid{margin-top:2px}
+.hero-card{min-width:0!important}
+.bf-portrait{width:74px!important;height:74px!important}
+#joiner-heroes .hero-card,#joiner-experts .hero-card,#rally-heroes .hero-card,#rally-experts .hero-card{min-height:132px;justify-items:center;text-align:center}
+#joiner-experts .hero-card label,#rally-experts .hero-card label,#rally-heroes .hero-card label{display:flex!important;align-items:center!important;justify-content:center!important;gap:8px!important}
+@media(max-width:560px){#custom-questions{gap:12px}.custom-q{padding:15px!important}}
 
 </style>
 </head>
@@ -95,7 +112,6 @@ body{margin:0;background:radial-gradient(circle at 5% 18%,rgba(44,194,255,.07),t
 </div>
 
 <section id="custom-questions-wrap" class="hidden">
-<h3>Event Questions</h3>
 <div id="custom-questions"></div>
 </section>
 <div id="template-preview-note" class="form-message hidden"></div>
@@ -213,8 +229,21 @@ function collectTroopQuality(){
  return out;
 }
 
-function itemList(type){return items.filter(x=>x.item_type===type&&x.is_active!==false).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0))}
+function itemList(type){return items.filter(x=>x.item_type===type&&x.is_active!==false&&!(type.includes('hero')&&String(x.name||'').trim().toLowerCase()==='eugene')).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0))}
 function itemPortrait(h){const src=h.image_url||h.image||'';return src?`<img class="bf-portrait" src="${esc(src)}" alt="${esc(h.name)}">`:''}
+async function enrichItemsFromLibrary(){
+ const need=items.some(x=>['joiner_hero','rally_hero','joiner_expert','rally_expert'].includes(x.item_type)&&!x.image_url);
+ if(!need)return;
+ const q=await sb.from('nexa_library_items').select('item_type,name,image_url').in('item_type',['hero','expert']).eq('is_active',true);
+ if(q.error)return;
+ const lookup=new Map((q.data||[]).map(x=>[`${x.item_type}:${String(x.name||'').trim().toLowerCase()}`,x.image_url||'']));
+ items=items.map(x=>{
+   const kind=x.item_type?.includes('hero')?'hero':x.item_type?.includes('expert')?'expert':null;
+   if(!kind||x.image_url)return x;
+   const image=lookup.get(`${kind}:${String(x.name||'').trim().toLowerCase()}`)||'';
+   return image?{...x,image_url:image}:x;
+ });
+}
 function renderJoinerHeroes(){$('joiner-heroes').innerHTML=itemList('joiner_hero').map(h=>`<label class="hero-card">${itemPortrait(h)}<span class="bf-name">${esc(h.name)}</span><input class="joiner-hero" type="checkbox" value="${h.id}" data-name="${esc(h.name)}"></label>`).join('')||'<div class="muted">No Joiner Heroes configured yet.</div>'}
 function renderRallyHeroes(){
  $('rally-heroes').innerHTML=itemList('rally_hero').map(h=>`<div class="hero-card rally-hero" data-id="${h.id}" data-name="${esc(h.name)}">${itemPortrait(h)}<label><input class="has-hero" type="checkbox"> <b>${esc(h.name)}</b></label><div class="hero-detail hidden"><label>Fully Maxed?<select class="fully"><option value="">Select…</option><option value="yes">Yes</option><option value="no">No</option></select></label><div class="not-max hidden compact-grid"><label>Stars<select class="stars">${opt(5)}</select></label><label>Skills<select class="skills">${opt(5)}</select></label><label>Widget<select class="widget">${opt(10)}</select></label></div></div></div>`).join('')||'<div class="muted">No Rally Lead Heroes configured yet.</div>';
@@ -240,7 +269,7 @@ function renderCustomQuestions(){
  else if(q.answer_type==='single_choice')input=`<div class="hero-grid">${opts.map((o,i)=>`<label class="choice-card"><input data-qid="${q.id}" class="custom-answer-radio" type="radio" name="custom_${q.id}" value="${esc(o)}"${q.is_required&&i===0?' required':''}> <b>${esc(o)}</b></label>`).join('')}</div>`;
  else if(q.answer_type==='checkboxes')input=`<div class="hero-grid">${opts.map(o=>`<label class="choice-card"><input data-qid="${q.id}" class="custom-answer-check" type="checkbox" value="${esc(o)}"> <b>${esc(o)}</b></label>`).join('')}</div>`;
  else input=`<input id="${id}" data-qid="${q.id}" class="custom-answer" type="text"${req}>`;
- return `<div class="setting-card custom-q" data-id="${q.id}"><label><b>${esc(q.question_text)}</b>${q.is_required?' <small class="muted">Required</small>':''}${input}</label></div>`}).join('');
+ return `<div class="custom-q" data-id="${q.id}"><label><b>${esc(q.question_text)}</b>${q.is_required?'<small class="muted">Required</small>':''}${input}</label></div>`}).join('');
 }
 function collectCustomAnswers(){const out={};for(const q of customQuestions.filter(q=>q.is_active&&questionMatchesEvent(q,eventType)&&questionMatchesRole(q,role()))){if(q.answer_type==='single_choice')out[q.id]=document.querySelector(`input[name="custom_${q.id}"]:checked`)?.value||'';else if(q.answer_type==='checkboxes')out[q.id]=[...document.querySelectorAll(`.custom-answer-check[data-qid="${q.id}"]:checked`)].map(x=>x.value);else out[q.id]=document.querySelector(`.custom-answer[data-qid="${q.id}"]`)?.value||'';if(q.is_required&&(Array.isArray(out[q.id])?out[q.id].length===0:!String(out[q.id]??'').trim()))throw new Error(`Answer required: ${q.question_text}`)}return out}
 
@@ -292,11 +321,13 @@ async function init(){
  else if(eventType==='svs'&&eventData){const [{data:oldSettings},{data:oldItems}]=await Promise.all([sb.from('battle_form_settings').select('*').eq('event_id',eventData.id).maybeSingle(),sb.from('battle_form_items').select('*').eq('event_id',eventData.id).order('sort_order')]);settings=normalizedSettings(oldSettings||{});items=oldItems||[]}
  else{settings=normalizedSettings({});items=[]}
 
- renderAvailability();renderTroops();renderJoinerHeroes();renderRallyHeroes();renderExperts('joiner_expert','joiner-experts');renderExperts('rally_expert','rally-experts');
+ await enrichItemsFromLibrary();renderAvailability();renderTroops();renderJoinerHeroes();renderRallyHeroes();renderExperts('joiner_expert','joiner-experts');renderExperts('rally_expert','rally-experts');
  const vis=settings.base_visibility||{};
  document.querySelector('#form>h3')?.classList.toggle('hidden',vis.availability===false);document.querySelector('#form>p.muted')?.classList.toggle('hidden',vis.availability===false);$('availability').classList.toggle('hidden',vis.availability===false);
  document.querySelector('#battle-details>h3:nth-of-type(2)')?.classList.toggle('hidden',vis.troop_quality===false);$('troops').classList.toggle('hidden',vis.troop_quality===false);
- $('deployment-wrap').classList.toggle('hidden',!settings.deployment_capacity_enabled);$('discord-wrap').classList.toggle('hidden',!settings.discord_voice_enabled);$('joiner-experts-wrap').classList.toggle('hidden',!settings.joiner_experts_enabled);$('rally-experts-wrap').classList.toggle('hidden',!settings.rally_experts_enabled);
+ $('deployment-wrap').classList.toggle('hidden',!settings.deployment_capacity_enabled||vis.deployment===false);$('discord-wrap').classList.toggle('hidden',!settings.discord_voice_enabled||vis.discord===false);$('joiner-experts-wrap').classList.toggle('hidden',!settings.joiner_experts_enabled||vis.joiner_experts===false);$('rally-experts-wrap').classList.toggle('hidden',!settings.rally_experts_enabled||vis.rally_experts===false);
+ if(vis.joiner_heroes===false){$('joiner-heroes').classList.add('hidden');$('joiner').querySelector('h3')?.classList.add('hidden');$('joiner').querySelector('p.muted')?.classList.add('hidden')}
+ if(vis.rally_heroes===false){$('rally-heroes').classList.add('hidden');$('rally').querySelector('h3')?.classList.add('hidden');$('rally').querySelector('p.muted')?.classList.add('hidden')}
  $('deployment')?.addEventListener('input',updateDeploymentPreview);updateDeploymentPreview();$('form').classList.remove('hidden');applyPreviewMode();
 }
 document.addEventListener('change',e=>{if(e.target.name==='role'){const r=role();$('joiner').classList.toggle('hidden',r!=='joiner');$('rally').classList.toggle('hidden',r!=='rally_lead');renderCustomQuestions()}});

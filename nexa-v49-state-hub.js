@@ -1257,8 +1257,9 @@ async function buildOwnedHomeMenuRoot(){
   ownedMenuButton(wrap,'Report Bugs',()=>{closeOwnedMenu();const b=$('#nexa-v4481-report-bugs')||$$('button,a').find(x=>/^report bugs$/i.test(String(x.textContent||'').trim()));b?.click()},{kind:'report'});
   ownedMenuSep(wrap);ownedMenuLabel(wrap,'TOOLS');
   ownedMenuButton(wrap,'Administration',openOwnedAdministrationMenu,{submenu:true});
-  ownedMenuButton(wrap,'Event Forms',openOwnedEventFormsMenu,{submenu:true});
-  ownedMenuButton(wrap,'SVS',openOwnedSvsMenu,{submenu:true});
+ownedMenuButton(wrap,'Event Forms',openOwnedEventFormsMenu,{submenu:true});
+ownedMenuButton(wrap,'Forms Center',()=>ownedMenuGo('forms-center.html'));
+ownedMenuButton(wrap,'SVS',openOwnedSvsMenu,{submenu:true});
   ownedMenuButton(wrap,'FDT',()=>alert('FDT module will be added in the next event phase.'));
   ownedMenuButton(wrap,'TAL',()=>alert('TAL module will be added in the next event phase.'));
   ownedMenuButton(wrap,'Team Builder',openOwnedTeamMenu,{submenu:true});

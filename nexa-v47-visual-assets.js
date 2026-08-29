@@ -1,4 +1,4 @@
-/* NEXA V47.31 — HOME-MATCH TRANSFER / COMPACT NEON CARD
+/* NEXA V47.32 — HOME-MATCH TRANSFER / TRUE COMPACT NEON CARD
    COMPLETE REPLACEMENT for: nexa-v47-visual-assets.js
 
    Owns:
@@ -18,6 +18,13 @@
    - Home menu
    - robot / drone systems owned elsewhere
 
+   V47.32:
+   - Transfer stays below Alliance Signal
+   - permission/state logic remains owned by V49
+   - Transfer uses the same compact signal-accent dimensions as the Home card family
+   - Transfer kicker/title/body are reduced to the compact Home scale
+   - removes V47.31's oversized inline padding/accent ownership
+
    No MutationObserver.
    No touchmove preventDefault.
    No manual scrollLeft.
@@ -25,8 +32,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4731_CONTROL_HUB__) return;
-window.__NEXA_V4731_CONTROL_HUB__=true;
+if(window.__NEXA_V4732_CONTROL_HUB__) return;
+window.__NEXA_V4732_CONTROL_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -188,14 +195,14 @@ function installCSS(){
     filter:drop-shadow(0 0 13px rgba(114,100,255,.34)) drop-shadow(0 0 24px rgba(178,75,255,.16))
   }
 
-  /* V47.28: the original orange Transfer block is retired. V49 creates the only live Transfer card. */
+  /* Original orange Transfer is retired. V49 creates the only live Transfer card. */
   #home-transfers-section,
   #nexa-v430-transfer-card,
   #nexa-transfer-card,
   .nexa-v453-transfer,
   [data-nexa-transfer]:not(#nexa-v49-transfer-card){display:none!important;visibility:hidden!important;pointer-events:none!important}
 
-  /* UNIFIED HOME CARD FAMILY — no icons, glow is the visual cue */
+  /* UNIFIED HOME CARD FAMILY */
   .nexa-v477-tech-card{
     --tech:#9b63ff;
     --tech-rgb:155,99,255;
@@ -228,32 +235,30 @@ function installCSS(){
     border-color:rgba(53,255,149,.74)!important;
     box-shadow:
       inset 0 0 0 1px rgba(255,255,255,.024),
-      inset 0 0 36px rgba(53,255,149,.10),
-      0 0 20px rgba(53,255,149,.22),
-      0 0 44px rgba(53,255,149,.12)!important
-  }
-  .nexa-v477-tech-card[data-nexa-tech="transfer"] > .nexa-v4711-left-accent{
-    width:4px!important;
-    height:52px!important;
-    box-shadow:
-      0 0 8px rgba(53,255,149,.95),
-      0 0 18px rgba(53,255,149,.72),
-      0 0 30px rgba(53,255,149,.26)!important
-  }
-  .nexa-v477-tech-card[data-nexa-tech="transfer"] > .nexa-v4711-top-accent{
-    width:58px!important;
-    height:3px!important;
-    box-shadow:
-      0 0 8px rgba(53,255,149,.98),
-      0 0 18px rgba(53,255,149,.74),
-      0 0 34px rgba(53,255,149,.30)!important
+      inset 0 0 30px rgba(53,255,149,.08),
+      0 0 17px rgba(53,255,149,.19),
+      0 0 36px rgba(53,255,149,.09)!important
   }
 
-  /*
-    V47.13: V44/V45.3 used .nexa-v453-home-card on both outer and inner Home nodes.
-    That second visual owner is why Transfer kept its old long orange line while Live lost
-    its line. V47 is now the only Home-card visual owner.
-  */
+  /* V47.32: Transfer now uses the same accent footprint as the family.
+     Keep the green intensity, not the old oversized 52px/58px geometry. */
+  .nexa-v477-tech-card[data-nexa-tech="transfer"] > .nexa-v4711-left-accent{
+    width:3px!important;
+    height:40px!important;
+    box-shadow:
+      0 0 6px rgba(53,255,149,.96),
+      0 0 14px rgba(53,255,149,.60),
+      0 0 24px rgba(53,255,149,.20)!important
+  }
+  .nexa-v477-tech-card[data-nexa-tech="transfer"] > .nexa-v4711-top-accent{
+    width:42px!important;
+    height:2px!important;
+    box-shadow:
+      0 0 6px rgba(53,255,149,.98),
+      0 0 14px rgba(53,255,149,.62),
+      0 0 25px rgba(53,255,149,.22)!important
+  }
+
   #home .nexa-v453-home-card::before,
   #home .nexa-v453-home-card::after{
     content:none!important;
@@ -268,17 +273,9 @@ function installCSS(){
     box-shadow:none!important
   }
 
-  /* Old DOM accent spans are intentionally hidden. V47.13 paints the two accents
-     directly into the card background so Safari cannot lose them behind inner cards. */
   .nexa-v4711-left-accent,
   .nexa-v4711-top-accent{display:none!important}
 
-  /*
-    V47.11 accent ownership:
-    actual child elements, NOT ::before/::after.
-    Transfer had legacy ID-level pseudo CSS in index.html, so pseudo ownership was unreliable.
-    All four cards now use the exact same DOM accents.
-  */
   .nexa-v4711-left-accent,
   .nexa-v4711-top-accent{
     position:absolute!important;
@@ -332,7 +329,6 @@ function installCSS(){
     opacity:1!important
   }
 
-  /* Disable legacy Home-card pseudo decoration. Actual accents above own the visuals. */
   #home-svs-section::before,
   #home-svs-section::after,
   #nexa-v49-transfer-card::before,
@@ -345,28 +341,28 @@ function installCSS(){
     display:none!important
   }
 
-
-  /* V47.23 — Transfer keeps only content/layout ownership here.
-     The exact same .nexa-v477-tech-card + .nexa-v4711-* visual path
-     used by Live/Pulse/Alliance now owns its border and two signal glows. */
+  /* V47.32 — compact Transfer content/layout only.
+     V49 remains the permission/data/position owner. */
   #nexa-v49-transfer-card.nexa-v4717-transfer-clean{
     display:block!important;
     position:relative!important;
     margin:10px 0 0!important;
-    padding:14px 18px 14px 26px!important;
+    padding:11px 16px 11px 16px!important;
     min-height:0!important;
+    height:auto!important;
     border-radius:20px!important;
     overflow:hidden!important;
     isolation:isolate!important
   }
+  #nexa-v49-transfer-card.nexa-v4717-transfer-clean > .nexa-v49-transfer-kicker,
   #nexa-v49-transfer-card.nexa-v4717-transfer-clean > .nexa-v4717-transfer-kicker{
     display:block!important;
-    margin:0 0 6px!important;
+    margin:0 0 4px!important;
     color:#79ffb9!important;
-    font-size:10px!important;
+    font-size:9px!important;
     line-height:1!important;
     font-weight:950!important;
-    letter-spacing:.18em!important
+    letter-spacing:.15em!important
   }
   #nexa-v49-transfer-card.nexa-v4717-transfer-clean #nexa-v49-transfer-events,
   #nexa-v49-transfer-card.nexa-v4717-transfer-clean #nexa-v49-transfer-events .event,
@@ -384,41 +380,41 @@ function installCSS(){
     box-shadow:none!important
   }
   #nexa-v49-transfer-card.nexa-v4717-transfer-clean h3{
-    margin:0 0 4px!important;
+    margin:0 0 3px!important;
     color:#fff!important;
-    font-size:18px!important;
+    font-size:16px!important;
     line-height:1.08!important
   }
   #nexa-v49-transfer-card.nexa-v4717-transfer-clean .muted{
+    margin:0!important;
     color:#c0c4d4!important;
-    font-size:12px!important;
-    line-height:1.30!important
+    font-size:11px!important;
+    line-height:1.34!important
   }
 
-  /* V47.31 — Match Transfer footprint/typography to the other Home cards. */
   #home #nexa-v49-transfer-card{
     margin:10px 0 0!important;
-    padding:14px 18px 14px 26px!important;
+    padding:11px 16px!important;
     min-height:0!important;
     height:auto!important;
     border-radius:20px!important
   }
   #home #nexa-v49-transfer-card .nexa-v49-transfer-kicker,
   #home #nexa-v49-transfer-card .nexa-v4717-transfer-kicker{
-    margin:0 0 5px!important;
-    font-size:10px!important;
+    margin:0 0 4px!important;
+    font-size:9px!important;
     line-height:1!important;
-    letter-spacing:.18em!important
+    letter-spacing:.15em!important
   }
   #home #nexa-v49-transfer-card h3{
-    margin:0 0 4px!important;
-    font-size:18px!important;
+    margin:0 0 3px!important;
+    font-size:16px!important;
     line-height:1.08!important
   }
   #home #nexa-v49-transfer-card .muted{
     margin:0!important;
-    font-size:12px!important;
-    line-height:1.28!important
+    font-size:11px!important;
+    line-height:1.34!important
   }
   #home #nexa-v49-transfer-card #nexa-v49-transfer-events{
     margin:0!important;
@@ -426,10 +422,6 @@ function installCSS(){
     min-height:0!important
   }
 
-  /* V47.24 — V44/V45 legacy still styles the INNER .event.
-     V47 owns the outer Transfer card, so the inner event is now always
-     a content-only container. Specificity is intentionally higher than
-     legacy #nexa-v49-transfer-card .event rules. */
   #home #nexa-v49-transfer-card.nexa-v4717-transfer-clean #nexa-v49-transfer-events > .event,
   #home #nexa-v49-transfer-card.nexa-v4717-transfer-clean #nexa-v49-transfer-events > .event > .event-row{
     position:static!important;
@@ -439,23 +431,21 @@ function installCSS(){
     background:transparent!important;
     box-shadow:none!important;
     margin:0!important;
-    padding:0!important;
+    padding:0!important
   }
   #home #nexa-v49-transfer-card.nexa-v4717-transfer-clean #nexa-v49-transfer-events > .event::before,
   #home #nexa-v49-transfer-card.nexa-v4717-transfer-clean #nexa-v49-transfer-events > .event::after{
     content:none!important;
-    display:none!important;
+    display:none!important
   }
   #home #nexa-v49-transfer-card.nexa-v4717-transfer-clean > .nexa-v4711-top-accent{
     top:0!important;
-    z-index:30!important;
+    z-index:30!important
   }
   #home #nexa-v49-transfer-card.nexa-v4717-transfer-clean > .nexa-v4711-left-accent{
-    z-index:30!important;
+    z-index:30!important
   }
 
-
-  /* Active information = signal breath/blink. Nothing active stays completely static. */
   .nexa-v477-tech-card[data-nexa-active="1"]{
     border-color:rgba(var(--tech-rgb),.90)!important;
     animation:nexaV479ActiveCardPulse 1.85s ease-in-out infinite!important
@@ -506,7 +496,6 @@ function installCSS(){
     text-shadow:0 0 11px rgba(var(--tech-rgb),.16)!important
   }
 
-  /* Remove old icon elements. Pseudo-elements are reserved only for the two signal accents above. */
   .nexa-v477-tech-card > .nexa-v477-card-icon,
   .nexa-v477-tech-card > .nexa-v475-tech-icon,
   .nexa-v477-tech-card > .nexa-v474-tech-icon{
@@ -539,6 +528,7 @@ function installCSS(){
     .nexa-v477-control-copy strong{font-size:11px!important}
     .nexa-v477-control-copy small{font-size:7.5px!important}
     .nexa-v477-tech-card{padding-left:14px!important}
+    #home #nexa-v49-transfer-card{padding:10px 14px!important}
     #nexa-profile-modal .v33-item[data-type="chief_gear"] .v33-planet{
       width:min(21vw,78px)!important;height:min(21vw,78px)!important;max-width:78px!important;max-height:78px!important
     }
@@ -658,7 +648,6 @@ function ensureCardAccents(card){
   }
 }
 
-
 function v4713CardBackground(rgb){
   return [
     `linear-gradient(180deg,transparent 0%,rgba(${rgb},.45) 12%,rgba(${rgb},1) 42%,#fff 50%,rgba(${rgb},1) 58%,rgba(${rgb},.45) 88%,transparent 100%) 0 18px / 3px 40px no-repeat`,
@@ -687,29 +676,24 @@ function lockTransferVisual(card){
   card.dataset.nexaTech='transfer';
 
   card.style.setProperty('--nexa-card-rgb','53,255,149');
+  card.style.setProperty('--tech-rgb','53,255,149','important');
+  card.style.setProperty('--tech','#35ff95','important');
   card.style.setProperty('position','relative','important');
   card.style.setProperty('overflow','hidden','important');
   card.style.setProperty('border','1px solid rgba(53,255,149,.72)','important');
   card.style.setProperty('border-radius','20px','important');
-  card.style.setProperty('padding','14px 18px 14px 26px','important');
+  card.style.setProperty('padding','11px 16px','important');
   card.style.setProperty('margin','10px 0 0','important');
-  card.style.setProperty('box-shadow','inset 0 0 34px rgba(53,255,149,.12),0 0 24px rgba(53,255,149,.22),0 0 44px rgba(53,255,149,.10)','important');
+  card.style.setProperty('min-height','0','important');
+  card.style.setProperty('height','auto','important');
+  card.style.setProperty(
+    'box-shadow',
+    'inset 0 0 30px rgba(53,255,149,.08),0 0 17px rgba(53,255,149,.19),0 0 36px rgba(53,255,149,.09)',
+    'important'
+  );
 
-  card.style.setProperty('background',`
-    linear-gradient(180deg,
-      transparent 0%,rgba(53,255,149,.42) 12%,#35ff95 42%,#fff 50%,
-      #35ff95 58%,rgba(53,255,149,.42) 88%,transparent 100%
-    ) 0 18px / 4px 52px no-repeat,
-    linear-gradient(90deg,
-      transparent 0%,rgba(53,255,149,.42) 14%,#35ff95 38%,#fff 50%,
-      #35ff95 62%,rgba(53,255,149,.42) 86%,transparent 100%
-    ) 18px 0 / 58px 3px no-repeat,
-    linear-gradient(90deg,rgba(53,255,149,.13),rgba(53,255,149,0) 16px),
-    radial-gradient(circle at 25px 0,rgba(255,255,255,.18),transparent 43px),
-    radial-gradient(circle at 8% 12%,rgba(53,255,149,.12),transparent 34%),
-    radial-gradient(circle at 92% 76%,rgba(53,255,149,.08),transparent 35%),
-    linear-gradient(145deg,rgba(8,24,22,.98),rgba(3,11,20,.99))
-  `,'important');
+  /* Same geometry as the other V47 Home cards, only green. */
+  card.style.setProperty('background',v4713CardBackground('53,255,149'),'important');
 
   const event=$('#nexa-v49-transfer-events > .event',card);
   const row=$('#nexa-v49-transfer-events > .event > .event-row',card);

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>NEXA • Battle Form Settings</title>
+<title>NEXA • Edit SvS Battle Form</title>
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/human-gate.js"></script>
@@ -15,20 +15,35 @@ body.embed main.shell{padding:0!important;max-width:none!important}body.embed .b
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 5% 18%,rgba(44,194,255,.07),transparent 27%),radial-gradient(circle at 95% 10%,rgba(104,78,255,.08),transparent 32%),#02030b;color:#fff}
 .shell{max-width:720px!important;margin:0 auto!important;padding:24px 16px 80px!important;position:relative!important}.shell:before{content:"";position:fixed;left:max(18px,calc((100vw - 720px)/2 + 18px));top:220px;bottom:90px;width:3px;border-radius:99px;background:linear-gradient(180deg,var(--bs-accent),#6d82ff 70%,transparent);box-shadow:0 0 18px rgba(72,221,255,.38);pointer-events:none}.shell>.back{display:inline-block!important;color:var(--bs-accent)!important;font-weight:900!important;text-decoration:none!important;margin:0 0 16px 18px!important}.glass{border:0!important;box-shadow:none!important;background:transparent!important;padding:0!important}.panel-head:first-child{margin:0 0 16px 18px!important}.panel-head:first-child h1{margin:0!important;font-size:clamp(2rem,7vw,3rem)!important}.panel-head:first-child:before{content:"FORMS CENTER • EDIT FORM";display:block;font-size:10px;letter-spacing:.14em;font-weight:950;color:#a5b2d2;margin-bottom:6px}.setting-card,.battle-grid{margin-left:18px!important}.setting-card{background:rgba(10,14,30,.58)!important;border-radius:20px!important}.battle-grid{grid-template-columns:1fr!important}.option-line{background:rgba(8,16,35,.48)}input,select,textarea{color-scheme:dark}.library-visual{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}.lib-pick{display:grid;justify-items:center;gap:7px;padding:10px 6px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:rgba(8,16,35,.48);text-align:center}.lib-pick input{width:22px;height:22px;accent-color:#1597ff}.lib-pick img{width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid #7658ff;background:#111936;box-shadow:0 0 18px rgba(118,88,255,.28)}.lib-pick b{font-size:11px;line-height:1.2}.base-grid{display:grid;gap:9px}.section-chip{font-size:10px;letter-spacing:.12em;color:#8fefff;font-weight:950;margin-bottom:7px}.form-actions{margin-left:18px!important}.hidden{display:none!important}@media(max-width:560px){.shell:before{left:18px}.library-visual{grid-template-columns:repeat(3,minmax(0,1fr))}.setting-card,.battle-grid,.form-actions{margin-left:18px!important}}
 
+/* V4 consolidated Forms Center cleanup */
+.setting-card,.battle-grid,.form-actions{width:calc(100% - 18px)!important;max-width:calc(100% - 18px)!important;box-sizing:border-box!important}
+.battle-grid .setting-card{width:100%!important;max-width:100%!important;margin-left:0!important}
+.question-grid{grid-template-columns:1fr!important}
+.q-card{width:100%;box-sizing:border-box}
+.q-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.q-actions .tiny-btn{min-width:86px}
+.q-actions .delete-question{border-color:rgba(255,104,150,.35);color:#ff9fbd}
+.question-editor{display:grid;gap:13px;margin-top:14px;padding:16px;border:1px solid rgba(255,255,255,.12);border-radius:18px;background:rgba(8,16,35,.48);width:100%;box-sizing:border-box}
+.question-editor.hidden{display:none!important}
+.question-editor label{display:grid;gap:7px;font-weight:800}
+.question-editor input,.question-editor select,.question-editor textarea{width:100%;min-height:46px;padding:10px 12px;border:1px solid rgba(119,142,210,.28);border-radius:13px;background:#081126;color:#fff;font-size:16px}
+.editor-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.editor-head h3{margin:3px 0 6px}
+.required-toggle{display:flex!important;flex-direction:row!important;width:max-content!important}
+.question-toolbar>.btn{width:100%;max-width:380px}
+@media(max-width:560px){.setting-card,.battle-grid,.form-actions{width:calc(100% - 18px)!important;max-width:calc(100% - 18px)!important}.editor-head{display:grid}.question-toolbar>.btn{max-width:none}}
+
 </style>
 </head>
 <body><script>if(new URLSearchParams(location.search).get("embed")==="1")document.body.classList.add("embed")</script>
 <main class="shell">
 <a class="back" href="javascript:void(0)" id="nexa-back">‹ Forms Center</a>
 <section class="glass">
-<div class="panel-head"><div><h1>Edit Battle Form</h1><p class="muted">Choose what the form shows, select Heroes and Experts from Library, and add reusable questions.</p></div></div>
+<div class="panel-head"><div><h1>Edit SvS Battle Form</h1><p class="muted">Choose what the Battle Sign-Up shows, select Heroes and Experts, and add questions for Joiners, Rally Leads or both.</p></div></div>
 <div id="state" class="form-message"></div>
 
-<div class="setting-card" style="margin-top:12px">
-<h3>Event Type</h3>
-<label>Editing Battle Form for<select id="event"></select></label>
-<div id="event-template-note" class="save-status"></div>
-</div>
+<input id="event" type="hidden" value="svs">
+<div id="event-template-note" class="save-status" style="margin-left:18px">SvS Battle Sign-Up • reusable form settings</div>
 
 <div class="setting-card" style="margin-top:14px">
 <h3>Availability</h3>
@@ -86,33 +101,26 @@ body.embed main.shell{padding:0!important;max-width:none!important}body.embed .b
 <div class="setting-card"><div class="section-chip">LIBRARY • RALLY LEAD</div><h3>Rally Lead Experts</h3><div id="rally-experts" class="library-visual"></div></div>
 </div>
 
-<div class="setting-card" style="margin-top:14px">
+<div class="setting-card question-section" style="margin-top:14px">
 <div class="question-toolbar">
-  <div><h3 style="margin-bottom:4px">Event Questions</h3><p class="muted" style="margin:0">Extra reusable questions stay here. Battle Role, Availability and Troop Quality are fixed NEXA base fields.</p></div>
-  <div class="section-actions" style="margin-top:0"><button id="create-event-question" class="btn" type="button">+ Create New Question</button><button id="add-from-library" class="btn secondary" type="button">Add From Library</button></div>
+  <div><div class="section-chip">BATTLE SIGN-UP</div><h3 style="margin-bottom:4px">Additional Questions</h3><p class="muted" style="margin:0">Create questions only for this SvS Battle Sign-Up. They appear in the normal form flow, not in a separate player-facing section.</p></div>
+  <button id="create-event-question" class="btn" type="button">+ Create New Question</button>
 </div>
 <div id="question-load-note" class="save-status"></div>
 <div id="event-question-list" class="question-grid"></div>
 
-<form id="inline-question-editor" class="setting-card hidden" style="margin-top:14px">
-  <div class="panel-head"><div><h3 id="inline-editor-title">New Question</h3><p class="muted">Create it here; NEXA also saves it to Question Library.</p></div><button id="cancel-inline-question" class="btn secondary" type="button">Cancel</button></div>
+<form id="inline-question-editor" class="question-editor hidden">
+  <div class="editor-head"><div><div class="section-chip">FORMS CENTER • EDIT QUESTION</div><h3 id="inline-editor-title">New Question</h3><p class="muted">Set who sees it and how they answer.</p></div><button id="cancel-inline-question" class="btn secondary" type="button">Cancel</button></div>
   <input id="inline-question-id" type="hidden">
   <label>Question<input id="inline-question-text" maxlength="240" required placeholder="Type the question players will see"></label>
   <div class="builder-grid" style="margin-top:12px">
-    <div><b>Events</b><div id="inline-event-checks" class="check-row" style="margin-top:8px"></div></div>
-    <label>Applies to Role<select id="inline-role-scope"><option value="both">Joiner + Rally</option><option value="joiner">Joiner only</option><option value="rally_lead">Rally only</option></select></label>
+    <label>Applies to Role<select id="inline-role-scope"><option value="both">Joiner + Rally Lead</option><option value="joiner">Joiner only</option><option value="rally_lead">Rally Lead only</option></select></label>
     <label>Answer Type<select id="inline-answer-type"><option value="short_text">Short Text</option><option value="number">Number</option><option value="dropdown">Dropdown</option><option value="single_choice">Single Choice</option><option value="checkboxes">Checkboxes</option></select></label>
   </div>
   <div id="inline-options-wrap" class="hidden"><div class="question-toolbar" style="margin-top:12px"><b>Answer Options</b><button id="inline-add-option" class="btn secondary" type="button">+ Add Option</button></div><div id="inline-option-editor" class="option-editor"></div></div>
-  <div class="check-row" style="margin-top:14px"><label class="check-pill"><input id="inline-required" type="checkbox"> Required</label><label class="check-pill"><input id="inline-permanent" type="checkbox" checked> Permanent / Reusable</label><label class="check-pill"><input id="inline-active" type="checkbox" checked> Active</label><label class="check-pill"><input id="inline-show-on-card" type="checkbox"> Show on Response Card</label><label class="check-pill"><input id="inline-priority-field" type="checkbox"> Priority Field</label></div>
+  <label class="check-pill required-toggle" style="margin-top:14px"><input id="inline-required" type="checkbox"> Required</label>
   <div class="section-actions"><button class="btn" type="submit">Save Question</button></div><div id="inline-editor-status" class="save-status"></div>
 </form>
-
-<div id="library-picker" class="setting-card hidden" style="margin-top:14px">
-  <div class="panel-head"><div><h3>Add From Question Library</h3><p class="muted">Reuse a question instead of creating it again.</p></div><button id="close-library-picker" class="btn secondary" type="button">Close</button></div>
-  <label>Add question to<select id="library-target-event"></select></label>
-  <div id="library-picker-list" class="library-list"></div>
-</div>
 </div>
 
 <div class="form-actions" style="margin-top:18px">
@@ -153,13 +161,13 @@ function renderTroopPreview(){const era=ERAS[selectedEra()]||ERAS.exalted,groups
 function libraryTypeFor(type){return type.includes('hero')?'hero':'expert'}
 function selectedNames(type){return new Set(dbItems.filter(x=>x.item_type===type&&x.is_active!==false).map(x=>x.name))}
 function renderType(type){
- const box=$(map[type]),kind=libraryTypeFor(type),selected=selectedNames(type),rows=libraryItems.filter(x=>x.item_type===kind&&x.is_active!==false&&x.is_visible!==false).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)||String(a.name).localeCompare(String(b.name)));
+ const box=$(map[type]),kind=libraryTypeFor(type),selected=selectedNames(type),rows=libraryItems.filter(x=>x.item_type===kind&&x.is_active!==false&&x.is_visible!==false&&!(kind==='hero'&&String(x.name||'').trim().toLowerCase()==='eugene')).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)||String(a.name).localeCompare(String(b.name)));
  box.innerHTML=rows.length?rows.map(x=>{const fallback='https://ui-avatars.com/api/?name='+encodeURIComponent(x.name)+'&background=111a38&color=cabaff&bold=true';return `<label class="lib-pick"><img src="${esc(x.image_url||fallback)}" alt="${esc(x.name)}"><b>${esc(x.name)}</b><input class="library-choice" type="checkbox" data-type="${type}" data-name="${esc(x.name)}" data-image="${esc(x.image_url||'')}" ${selected.has(x.name)?'checked':''}></label>`}).join(''):`<div class="muted">No ${kind==='hero'?'Heroes':'Experts'} are available in Library.</div>`
 }
 function syncType(type){const other=dbItems.filter(x=>x.item_type!==type),mine=[...$(map[type]).querySelectorAll('.library-choice:checked')].map((x,i)=>({item_type:type,name:x.dataset.name,image_url:x.dataset.image||null,sort_order:i,max_level:type.includes('expert')?100:null,is_active:true}));dbItems=[...other,...mine]}
 async function loadLibraryCatalog(){const q=await sb.from('nexa_library_items').select('id,item_type,name,image_url,generation,rarity,sort_order,is_active,is_visible').in('item_type',['hero','expert']).eq('is_active',true).order('sort_order').order('name');if(q.error){$('state').textContent='Could not load Library: '+q.error.message;libraryItems=[];return}libraryItems=q.data||[]}
 async function guard(){const {data:{session}}=await sb.auth.getSession();if(!session){location.href='index.html';return false}const {data:role}=await sb.rpc('current_nexa_role');if(!['owner','admin','scheduler'].includes(String(role||'').toLowerCase())){location.href='index.html';return false}return true}
-async function loadEventTypes(){const q=await sb.from('event_operation_types').select('*').order('sort_order',{ascending:true});if(q.error){$('state').textContent=q.error.message;return}eventTypes=(q.data||[]).filter(x=>x.is_active).map(x=>({key:x.event_key,name:x.name}));const requested=new URLSearchParams(location.search).get('event_type')||'svs';$('event').innerHTML=eventTypes.map(x=>`<option value="${esc(x.key)}">${esc(x.name)}</option>`).join('');$('event').value=eventTypes.some(x=>x.key===requested)?requested:(eventTypes[0]?.key||'svs')}
+async function loadEventTypes(){eventTypes=[{key:'svs',name:'SvS'}];$('event').value='svs'}
 async function seedSvSIfAvailable(){
  try{
   const ev=await sb.from('svs_events').select('id').neq('status','ended').order('prep_monday',{ascending:false}).limit(1).maybeSingle();
@@ -230,40 +238,52 @@ async function loadTemplate(){
  for(const t of Object.keys(map))for(const [n,x] of (template.items?.[t]||[]).entries())dbItems.push({...x,item_type:t,sort_order:n});
  Object.keys(map).forEach(renderType);
  renderSlotPreview();renderEraGrid();
- $('event-template-note').textContent=`Editing ${eventName(key)} Battle Form Template • reusable across events`;
+ $('event-template-note').textContent='SvS Battle Sign-Up • reusable form settings';
  renderQuestions();
 }
 function collectTemplate(){for(const t of Object.keys(map))syncType(t);const start=timeToHour($('availability-start').value),end=timeToHour($('availability-end').value),mins=Number($('slot-minutes').value)||60,era=selectedEra();return {...template,availability_start_hour:start,availability_end_hour:end,availability_slot_minutes:mins,availability_blocks:slots(start,end,mins),full_availability_enabled:$('full-enabled').checked,not_available_enabled:$('not-available-enabled').checked,troop_era_preset:era,troop_quality_options:ERAS[era].options,deployment_capacity_enabled:$('deployment-enabled').checked,discord_voice_enabled:$('discord-enabled').checked,joiner_experts_enabled:$('joiner-experts-enabled').checked,rally_experts_enabled:$('rally-experts-enabled').checked,base_visibility:{availability:$('show-availability').checked,troop_quality:$('show-troop-quality').checked,deployment:$('show-deployment').checked,discord:$('show-discord').checked,joiner_heroes:$('show-joiner-heroes').checked,rally_heroes:$('show-rally-heroes').checked,joiner_experts:$('show-joiner-experts').checked,rally_experts:$('show-rally-experts').checked},t12_max_skill:3,items:Object.fromEntries(Object.keys(map).map(t=>[t,dbItems.filter(x=>x.item_type===t&&x.name).map((x,i)=>({...x,sort_order:i}))]))}}
 async function persistTemplate(id='state'){const key=$('event').value,settings=collectTemplate();if(settings.availability_end_hour<=settings.availability_start_hour){$(id).textContent='End Time must be after Start Time.';return false}const q=await sb.from('event_form_templates').upsert({event_type_key:key,settings,updated_at:new Date().toISOString()},{onConflict:'event_type_key'});if(q.error){$(id).textContent='Could not save: '+q.error.message;return false}localStorage.setItem('nexa_form_template_'+key,JSON.stringify(settings));template=settings;$(id).textContent='Saved ✓';return true}
-function questionMatchesEvent(q,key){const scopes=q.event_scopes||[];return scopes.includes('all')||scopes.includes(key)}
-function renderEventSelectors(){const active=eventTypes;const target=$('library-target-event');if(target){const val=target.value||$('event').value;target.innerHTML=active.map(x=>`<option value="${esc(x.key)}">${esc(x.name)}</option>`).join('');target.value=active.some(x=>x.key===val)?val:$('event').value}renderInlineEventChecks()}
-function renderInlineEventChecks(){const selected=[...document.querySelectorAll('.inline-event-check:checked')].map(x=>x.value);$('inline-event-checks').innerHTML=`<label class="check-pill"><input class="inline-event-check inline-all-events" type="checkbox" value="all"> All Events</label>`+eventTypes.map(x=>`<label class="check-pill"><input class="inline-event-check" type="checkbox" value="${esc(x.key)}"> ${esc(x.name)}</label>`).join('');document.querySelectorAll('.inline-event-check').forEach(x=>x.checked=selected.includes(x.value))}
-function inlineQuestionCard(q){return `<article class="q-card ${q.is_active?'':'inactive'}"><div class="q-title">${esc(q.question_text)}</div><div class="q-meta">${esc((q.role_scope||'both').replace('_',' '))} • ${esc((q.answer_type||'short_text').replaceAll('_',' '))}${q.is_required?' • Required':''}${q.is_permanent?' • Permanent':''}${q.show_on_response_card?' • Response Card':''}${q.is_priority_field?' • Priority':''}</div><div class="section-actions"><button class="tiny-btn inline-edit-question" data-id="${q.id}" type="button">Edit</button></div></article>`}
-function renderQuestions(){if(!$('event-question-list'))return;const key=$('event').value,shown=questions.filter(q=>q.is_active&&questionMatchesEvent(q,key));$('event-question-list').innerHTML=shown.length?shown.map(inlineQuestionCard).join(''):`<div class="muted">No extra questions saved for ${esc(eventName(key))}.</div>`;renderLibraryPicker()}
-async function loadQuestions(){const q=await sb.from('event_form_questions').select('*').order('created_at',{ascending:true});if(q.error){$('question-load-note').textContent='Could not load Question Library: '+q.error.message;questions=[];renderQuestions();return}questions=q.data||[];$('question-load-note').textContent='';renderQuestions()}
+function questionMatchesEvent(q,key='svs'){const scopes=q.event_scopes||[];return scopes.includes('all')||scopes.includes(key)}
+function inlineQuestionCard(q){return `<article class="q-card"><div class="q-title">${esc(q.question_text)}</div><div class="q-meta">${esc((q.role_scope||'both').replace('_',' '))} • ${esc((q.answer_type||'short_text').replaceAll('_',' '))}${q.is_required?' • Required':''}</div><div class="q-actions"><button class="tiny-btn inline-edit-question" data-id="${q.id}" type="button">Edit</button><button class="tiny-btn delete-question" data-id="${q.id}" type="button">Delete</button></div></article>`}
+function renderQuestions(){if(!$('event-question-list'))return;const shown=questions.filter(q=>q.is_active&&questionMatchesEvent(q,'svs'));$('event-question-list').innerHTML=shown.length?shown.map(inlineQuestionCard).join(''):'<div class="muted">No additional questions yet.</div>'}
+async function loadQuestions(){const q=await sb.from('event_form_questions').select('*').order('created_at',{ascending:true});if(q.error){$('question-load-note').textContent='Could not load questions: '+q.error.message;questions=[];renderQuestions();return}questions=q.data||[];$('question-load-note').textContent='';renderQuestions()}
 let inlineOptionDraft=[];
 function inlineNeedsOptions(){return ['dropdown','single_choice','checkboxes'].includes($('inline-answer-type').value)}
 function inlineToggleOptions(){$('inline-options-wrap').classList.toggle('hidden',!inlineNeedsOptions())}
 function inlineSyncOptions(){inlineOptionDraft=[...document.querySelectorAll('#inline-option-editor .option-value')].map(x=>x.value.trim())}
 function inlineRenderOptions(){$('inline-option-editor').innerHTML=inlineOptionDraft.map((o,i)=>`<div class="option-edit-row"><span>☰</span><input class="option-value" value="${esc(o)}" placeholder="Option ${i+1}"><button class="tiny-btn inline-remove-option" data-i="${i}" type="button">×</button></div>`).join('')||'<div class="muted">No options yet.</div>'}
-function inlineOpenEditor(q=null){$('inline-question-editor').classList.remove('hidden');$('library-picker').classList.add('hidden');renderInlineEventChecks();$('inline-editor-title').textContent=q?.id?'Edit Question':'New Question';$('inline-question-id').value=q?.id||'';$('inline-question-text').value=q?.question_text||'';const scopes=q?.event_scopes||[$('event').value];document.querySelectorAll('.inline-event-check').forEach(x=>x.checked=scopes.includes(x.value));$('inline-role-scope').value=q?.role_scope||'both';$('inline-answer-type').value=q?.answer_type||'short_text';$('inline-required').checked=!!q?.is_required;$('inline-permanent').checked=q?.is_permanent??true;$('inline-active').checked=q?.is_active??true;$('inline-show-on-card').checked=!!q?.show_on_response_card;$('inline-priority-field').checked=!!q?.is_priority_field;inlineOptionDraft=Array.isArray(q?.options)?[...q.options]:[];inlineRenderOptions();inlineToggleOptions();$('inline-question-editor').scrollIntoView({behavior:'smooth',block:'start'})}
-function renderLibraryPicker(){if(!$('library-picker-list'))return;const target=$('library-target-event')?.value||$('event').value;const available=questions.filter(q=>q.is_active&&!questionMatchesEvent(q,target));$('library-picker-list').innerHTML=available.length?available.map(q=>`<div class="library-row"><div><b>${esc(q.question_text)}</b><div class="q-meta">${esc((q.role_scope||'both').replace('_',' '))}</div></div><button class="btn secondary inline-library-add" data-id="${q.id}" type="button">Add</button></div>`).join(''):'<div class="muted">No reusable questions available for this event yet.</div>'}
+function inlineOpenEditor(q=null){$('inline-question-editor').classList.remove('hidden');$('inline-editor-title').textContent=q?.id?'Edit Question':'New Question';$('inline-question-id').value=q?.id||'';$('inline-question-text').value=q?.question_text||'';$('inline-role-scope').value=q?.role_scope||'both';$('inline-answer-type').value=q?.answer_type||'short_text';$('inline-required').checked=!!q?.is_required;inlineOptionDraft=Array.isArray(q?.options)?[...q.options]:[];inlineRenderOptions();inlineToggleOptions();$('inline-question-editor').scrollIntoView({behavior:'smooth',block:'start'})}
 $('availability-start').onchange=renderSlotPreview;$('availability-end').onchange=renderSlotPreview;$('slot-minutes').onchange=renderSlotPreview;$('era-grid').onchange=e=>{if(e.target.name==='troop-era')renderTroopPreview()};
-$('save-availability').onclick=()=>persistTemplate('availability-status');$('save-options').onclick=()=>persistTemplate('options-status');$('save-all').onclick=async()=>{$('save-all-status').textContent='Saving…';await persistTemplate('save-all-status')};$('event').onchange=async()=>{await loadTemplate();renderEventSelectors();renderQuestions()};
+$('save-availability').onclick=()=>persistTemplate('availability-status');$('save-options').onclick=()=>persistTemplate('options-status');$('save-all').onclick=async()=>{$('save-all-status').textContent='Saving…';await persistTemplate('save-all-status')};
 $('create-event-question').onclick=()=>inlineOpenEditor();
 $('cancel-inline-question').onclick=()=>$('inline-question-editor').classList.add('hidden');
 $('inline-answer-type').onchange=inlineToggleOptions;
-$('inline-event-checks').onchange=e=>{if(e.target.classList.contains('inline-all-events')&&e.target.checked)document.querySelectorAll('.inline-event-check:not(.inline-all-events)').forEach(x=>x.checked=false);else if(e.target.classList.contains('inline-event-check')&&!e.target.classList.contains('inline-all-events')&&e.target.checked)document.querySelector('.inline-all-events').checked=false};
 $('inline-add-option').onclick=()=>{inlineSyncOptions();inlineOptionDraft.push('');inlineRenderOptions()};
 $('inline-option-editor').onclick=e=>{if(e.target.classList.contains('inline-remove-option')){inlineSyncOptions();inlineOptionDraft.splice(Number(e.target.dataset.i),1);inlineRenderOptions()}};
-$('event-question-list').onclick=e=>{if(e.target.classList.contains('inline-edit-question')){const q=questions.find(x=>String(x.id)===String(e.target.dataset.id));if(q)inlineOpenEditor(q)}};
-$('inline-question-editor').onsubmit=async e=>{e.preventDefault();$('inline-editor-status').textContent='Saving…';inlineSyncOptions();const scopes=[...document.querySelectorAll('.inline-event-check:checked')].map(x=>x.value);if(!scopes.length){$('inline-editor-status').textContent='Select at least one event.';return}const options=inlineNeedsOptions()?inlineOptionDraft.filter(Boolean):[];if(inlineNeedsOptions()&&!options.length){$('inline-editor-status').textContent='Add at least one answer option.';return}const payload={question_text:$('inline-question-text').value.trim(),event_scopes:scopes,role_scope:$('inline-role-scope').value,answer_type:$('inline-answer-type').value,options,is_required:$('inline-required').checked,is_permanent:$('inline-permanent').checked,is_active:$('inline-active').checked,show_on_response_card:$('inline-show-on-card').checked,is_priority_field:$('inline-priority-field').checked,updated_at:new Date().toISOString()};const id=$('inline-question-id').value;const r=id?await sb.from('event_form_questions').update(payload).eq('id',id):await sb.from('event_form_questions').insert(payload);if(r.error){$('inline-editor-status').textContent='Could not save question: '+r.error.message;return}$('inline-editor-status').textContent='Saved ✓';await loadQuestions();setTimeout(()=>$('inline-question-editor').classList.add('hidden'),300)};
-$('add-from-library').onclick=()=>{$('library-picker').classList.remove('hidden');$('inline-question-editor').classList.add('hidden');renderEventSelectors();renderLibraryPicker()};
-$('close-library-picker').onclick=()=>$('library-picker').classList.add('hidden');
-$('library-target-event').onchange=renderLibraryPicker;
-$('library-picker-list').onclick=async e=>{if(!e.target.classList.contains('inline-library-add'))return;const q=questions.find(x=>String(x.id)===String(e.target.dataset.id));if(!q)return;const target=$('library-target-event').value,scopes=[...new Set([...(q.event_scopes||[]),target])];const {error}=await sb.from('event_form_questions').update({event_scopes:scopes,updated_at:new Date().toISOString()}).eq('id',q.id);if(error){$('question-load-note').textContent=error.message;return}await loadQuestions()};
-$('preview-battle-form').onclick=()=>location.href=`battle-form.html?preview=1&event_type=${encodeURIComponent($('event').value||'svs')}&from=form-settings`;
+$('event-question-list').onclick=async e=>{
+ const edit=e.target.closest('.inline-edit-question'),del=e.target.closest('.delete-question');
+ if(edit){const q=questions.find(x=>String(x.id)===String(edit.dataset.id));if(q)inlineOpenEditor(q);return}
+ if(del){
+   const q=questions.find(x=>String(x.id)===String(del.dataset.id));if(!q)return;
+   if(!confirm(`Delete "${q.question_text}" from the SvS Battle Sign-Up?`))return;
+   del.disabled=true;
+   const r=await sb.from('event_form_questions').update({is_active:false,updated_at:new Date().toISOString()}).eq('id',q.id);
+   if(r.error){$('question-load-note').textContent='Could not delete question: '+r.error.message;del.disabled=false;return}
+   await loadQuestions();
+ }
+};
+$('inline-question-editor').onsubmit=async e=>{
+ e.preventDefault();$('inline-editor-status').textContent='Saving…';inlineSyncOptions();
+ const options=inlineNeedsOptions()?inlineOptionDraft.filter(Boolean):[];
+ if(inlineNeedsOptions()&&!options.length){$('inline-editor-status').textContent='Add at least one answer option.';return}
+ const payload={question_text:$('inline-question-text').value.trim(),event_scopes:['svs'],role_scope:$('inline-role-scope').value,answer_type:$('inline-answer-type').value,options,is_required:$('inline-required').checked,is_permanent:false,is_active:true,show_on_response_card:false,is_priority_field:false,updated_at:new Date().toISOString()};
+ const id=$('inline-question-id').value;
+ const r=id?await sb.from('event_form_questions').update(payload).eq('id',id):await sb.from('event_form_questions').insert(payload);
+ if(r.error){$('inline-editor-status').textContent='Could not save question: '+r.error.message;return}
+ $('inline-editor-status').textContent='Saved ✓';await loadQuestions();setTimeout(()=>$('inline-question-editor').classList.add('hidden'),250)
+};
+$('preview-battle-form').onclick=()=>location.href='battle-form.html?preview=1&event_type=svs&from=form-settings';
 $('nexa-back').onclick=()=>{try{const r=document.referrer?new URL(document.referrer):null;if(r&&r.origin===location.origin){history.back();return}}catch{}location.href='event-operations.html'};
-(async()=>{if(await guard()){await loadEventTypes();await loadLibraryCatalog();renderEventSelectors();await loadTemplate();await loadQuestions()}})();
+(async()=>{if(await guard()){await loadEventTypes();await loadLibraryCatalog();await loadTemplate();await loadQuestions()}})();
 </script>
 </body></html>

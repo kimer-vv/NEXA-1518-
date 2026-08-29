@@ -6,35 +6,133 @@
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{--ms-accent:#48ddff;--ms-muted:#aeb7d1}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 5% 18%,rgba(44,194,255,.07),transparent 27%),radial-gradient(circle at 95% 10%,rgba(104,78,255,.08),transparent 32%),#02030b;color:#fff}.ms-shell{max-width:720px;margin:0 auto;padding:24px 16px 80px;position:relative}.ms-shell:before{content:"";position:fixed;left:max(18px,calc((100vw - 720px)/2 + 18px));top:220px;bottom:90px;width:3px;border-radius:99px;background:linear-gradient(180deg,var(--ms-accent),#6d82ff 70%,transparent);box-shadow:0 0 18px rgba(72,221,255,.38);pointer-events:none}.ms-back{display:inline-block;color:var(--ms-accent);font-weight:900;text-decoration:none;margin:0 0 16px 18px}.ms-hero{display:grid;gap:7px;margin:0 0 16px 18px}.ms-hero h1{margin:0;font-size:clamp(2rem,7vw,3rem);line-height:1.02}.ms-hero p{margin:0;color:var(--ms-muted);line-height:1.5}.ms-day{font-size:10px;letter-spacing:.14em;font-weight:950;color:#a5b2d2}.ms-card{border:1px solid rgba(255,255,255,.12);border-radius:20px;background:rgba(10,14,30,.58);padding:16px;margin:12px 0 12px 18px}.ms-card h3{margin:3px 0 8px}.muted{color:var(--ms-muted);line-height:1.45}.toggle-list{display:grid;gap:9px}.toggle-row{display:flex!important;align-items:center!important;gap:10px!important;padding:11px 12px;border:1px solid rgba(255,255,255,.1);border-radius:13px;background:rgba(8,16,35,.48);font-weight:800}.toggle-row input{width:22px!important;height:22px!important;accent-color:#1597ff}.section-tabs{display:flex;gap:7px;overflow-x:auto;margin:12px 0}.section-tabs button{white-space:nowrap;border:1px solid rgba(255,255,255,.14);border-radius:999px;background:#0c1230;color:#dbe5ff;padding:9px 12px;font-weight:850}.section-tabs button.active{border-color:#48ddff;color:#bdf8ff;background:rgba(31,91,121,.35)}.q-list{display:grid;gap:10px}.q-card{padding:12px;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(8,16,35,.48)}.q-card b{display:block}.q-meta{font-size:11px;color:#99a6c7;margin-top:5px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.actions .btn{flex:1 1 160px}.editor{display:grid;gap:12px;margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08)}.editor.hidden{display:none}.editor label{display:grid;gap:7px;font-weight:800}.editor input,.editor select,.editor textarea{width:100%;min-height:46px;padding:10px 12px;border:1px solid rgba(119,142,210,.28);border-radius:13px;background:#081126;color:#fff;font-size:16px}.opt-list{display:grid;gap:8px}.opt-row{display:grid;grid-template-columns:1fr auto;gap:8px}.preview-section{border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:13px;margin-top:10px;background:rgba(8,16,35,.42)}.status{min-height:20px;margin:10px 0 0 18px;color:#82f0ff;font-size:.82rem}.hidden{display:none!important}@media(max-width:560px){.ms-shell:before{left:18px}}
+:root{--ms-accent:#48ddff;--ms-muted:#aeb7d1}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 5% 18%,rgba(44,194,255,.07),transparent 27%),radial-gradient(circle at 95% 10%,rgba(104,78,255,.08),transparent 32%),#02030b;color:#fff}
+.ms-shell{max-width:720px;margin:0 auto;padding:24px 16px 80px;position:relative}
+.ms-shell:before{content:"";position:fixed;left:max(18px,calc((100vw - 720px)/2 + 18px));top:220px;bottom:90px;width:3px;border-radius:99px;background:linear-gradient(180deg,var(--ms-accent),#6d82ff 70%,transparent);box-shadow:0 0 18px rgba(72,221,255,.38);pointer-events:none}
+.ms-back{display:inline-block;color:var(--ms-accent);font-weight:900;text-decoration:none;margin:0 0 16px 18px}
+.ms-hero{display:grid;gap:7px;margin:0 0 16px 18px}.ms-hero h1{margin:0;font-size:clamp(2rem,7vw,3rem);line-height:1.02}.ms-hero p{margin:0;color:var(--ms-muted);line-height:1.5}
+.ms-day{font-size:10px;letter-spacing:.14em;font-weight:950;color:#a5b2d2}.ms-day.cyan{color:#8fefff}
+.ms-card{width:calc(100% - 18px);max-width:calc(100% - 18px);border:1px solid rgba(255,255,255,.12);border-radius:20px;background:rgba(10,14,30,.58);padding:16px;margin:12px 0 12px 18px;box-sizing:border-box}
+.ms-card h3{margin:3px 0 8px}.muted{color:var(--ms-muted);line-height:1.45}
+.day-title{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding-bottom:13px;margin-bottom:13px;border-bottom:1px solid rgba(255,255,255,.08)}
+.day-title h3{margin:3px 0 0}.day-badge{white-space:nowrap;font-size:10px;font-weight:950;color:#8fefff;border:1px solid rgba(72,221,255,.24);border-radius:999px;padding:6px 8px;background:rgba(15,66,91,.18)}
+.subhead{font-size:11px;font-weight:950;letter-spacing:.12em;color:#9aa8ca;margin:13px 0 8px}
+.toggle-list,.q-list{display:grid;gap:9px}
+.toggle-row{display:flex!important;align-items:center!important;gap:10px!important;padding:11px 12px;border:1px solid rgba(255,255,255,.1);border-radius:13px;background:rgba(8,16,35,.48);font-weight:800}
+.toggle-row input{width:22px!important;height:22px!important;accent-color:#1597ff;flex:0 0 22px}
+.toggle-row span{min-width:0}.toggle-row small{display:block;color:#8793b5;font-size:10px;margin-top:3px}
+.q-card{width:100%;padding:12px;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(8,16,35,.48)}
+.q-card b{display:block}.q-meta{font-size:11px;color:#99a6c7;margin-top:5px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.actions .btn{flex:1 1 150px}
+.delete-q{border-color:rgba(255,104,150,.35)!important;color:#ff9fbd!important}
+.editor{display:grid;gap:12px}.editor.hidden{display:none}
+.editor label{display:grid;gap:7px;font-weight:800}.editor input,.editor select,.editor textarea{width:100%;min-height:46px;padding:10px 12px;border:1px solid rgba(119,142,210,.28);border-radius:13px;background:#081126;color:#fff;font-size:16px;color-scheme:dark}
+.opt-list{display:grid;gap:8px}.opt-row{display:grid;grid-template-columns:1fr auto;gap:8px}
+.status{min-height:20px;margin:10px 0 0 18px;color:#82f0ff;font-size:.82rem}
+.empty-note{color:#7f8aa9;font-size:12px;padding:8px 0}
+@media(max-width:560px){.ms-shell:before{left:18px}.day-title{align-items:flex-start}.ms-card{width:calc(100% - 18px);max-width:calc(100% - 18px)}}
 </style>
 </head>
 <body>
 <main class="ms-shell">
 <a class="ms-back" href="forms-center.html?section=svs">‹ Forms Center</a>
-<header class="ms-hero"><div class="ms-day">FORMS CENTER • EDIT FORM</div><h1>Edit Ministry Sign-Up</h1><p>Keep NEXA base questions protected. Show or hide them, then add extra questions by section.</p></header>
-<section class="ms-card"><div class="ms-day">BASE QUESTIONS</div><h3>Show / Hide</h3><p class="muted">If WOS changes later, hide a base question instead of rewriting it.</p><div id="base-list" class="toggle-list"></div></section>
-<section class="ms-card"><div class="ms-day">CUSTOM QUESTIONS</div><h3>Add by Section</h3><div id="section-tabs" class="section-tabs"></div><div id="q-list" class="q-list"></div><div class="actions"><button id="add-q" class="btn" type="button">+ Add Question</button></div>
-<form id="q-editor" class="editor hidden"><input id="q-id" type="hidden"><label>Question<textarea id="q-text" rows="2" maxlength="240" required></textarea></label><label>Section<select id="q-section"><option value="general">General</option><option value="construction">Day 1 • Construction</option><option value="research">Day 2 • Research</option><option value="training">Day 4 • Training</option></select></label><label>Answer Type<select id="q-type"><option value="short_text">Short Text</option><option value="number">Number</option><option value="dropdown">Dropdown / Choose One</option><option value="single_choice">Single Choice</option><option value="checkboxes">Checkboxes / Choose Multiple</option></select></label><label class="toggle-row"><input id="q-required" type="checkbox"> Required</label><div id="options-wrap" class="hidden"><div class="actions"><b>Answer Options</b><button id="add-option" class="btn secondary" type="button">+ Option</button></div><div id="opt-list" class="opt-list"></div></div><div class="actions"><button class="btn" type="submit">Save Question</button><button id="cancel-q" class="btn secondary" type="button">Cancel</button></div></form></section>
-<section class="ms-card"><div class="ms-day">PREVIEW</div><h3>Ministry Sign-Up Structure</h3><div id="preview"></div></section>
-<div class="actions" style="margin-left:18px"><button id="save-all" class="btn" type="button">Save Ministry Form</button><a class="btn secondary" href="ministry-signup.html?direct=1" style="text-align:center;text-decoration:none">Open Form</a></div><div id="status" class="status"></div>
+<header class="ms-hero"><div class="ms-day">FORMS CENTER • EDIT FORM</div><h1>Edit Ministry Sign-Up</h1><p>Each Ministry day has its own questions. Show or hide protected NEXA questions, then add anything extra you need for that day.</p></header>
+
+<div id="section-blocks"></div>
+
+<section id="editor-card" class="ms-card hidden">
+  <div class="ms-day cyan">FORMS CENTER • EDIT QUESTION</div>
+  <h3 id="editor-title">New Question</h3>
+  <form id="q-editor" class="editor">
+    <input id="q-id" type="hidden">
+    <label>Question<textarea id="q-text" rows="2" maxlength="240" required placeholder="Type the question players will see"></textarea></label>
+    <label>Section<select id="q-section"><option value="general">General</option><option value="construction">Day 1 • Construction</option><option value="research">Day 2 • Research</option><option value="training">Day 4 • Training</option></select></label>
+    <label>Answer Type<select id="q-type"><option value="short_text">Short Text</option><option value="number">Number</option><option value="dropdown">Dropdown / Choose One</option><option value="single_choice">Single Choice</option><option value="checkboxes">Checkboxes / Choose Multiple</option></select></label>
+    <label class="toggle-row"><input id="q-required" type="checkbox"> Required</label>
+    <div id="options-wrap" class="hidden"><div class="actions"><b>Answer Options</b><button id="add-option" class="btn secondary" type="button">+ Option</button></div><div id="opt-list" class="opt-list"></div></div>
+    <div class="actions"><button class="btn" type="submit">Save Question</button><button id="cancel-q" class="btn secondary" type="button">Cancel</button></div>
+  </form>
+</section>
+
+<div class="actions" style="margin-left:18px;width:calc(100% - 18px)"><button id="save-all" class="btn" type="button">Save Ministry Form</button><a class="btn secondary" href="ministry-signup.html?direct=1" style="text-align:center;text-decoration:none">Open Form</a></div>
+<div id="status" class="status"></div>
 </main>
 <script>
 (()=>{'use strict';
-const sb=window.supabase.createClient('https://dfxcxboxrkfmrnsgpyin.supabase.co','sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-');const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-const BASE=[['construction_speedups','Day 1 • Construction','Construction Speedups'],['construction_fc','Day 1 • Construction','Fire Crystals'],['construction_rfc','Day 1 • Construction','Refined Fire Crystals'],['construction_frame','Day 1 • Construction','Preferred UTC Time Frame'],['construction_time','Day 1 • Construction','Specific UTC Time'],['research_speedups','Day 2 • Research','Research Speedups'],['research_shards','Day 2 • Research','Fire Crystal Shards'],['research_frame','Day 2 • Research','Preferred UTC Time Frame'],['research_time','Day 2 • Research','Specific UTC Time'],['training_selection','Day 4 • Training','Training / Promotion Type'],['training_speedups','Day 4 • Training','Training Speedups'],['training_frame','Day 4 • Training','Preferred UTC Time Frame'],['training_time','Day 4 • Training','Specific UTC Time'],['upgrading_t12','Day 4 • Training','Upgrading to T12'],['t12_rfc','Day 4 • Training','T12 Refined Fire Crystals'],['t12_shards','Day 4 • Training','T12 Fire Crystal Shards']];
-const SECTIONS=[['general','General'],['construction','Construction'],['research','Research'],['training','Training']];let rootSettings={},cfg={base_visibility:{},custom_questions:[]},active='general',draftOpts=[];
+const sb=window.supabase.createClient('https://dfxcxboxrkfmrnsgpyin.supabase.co','sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-');
+const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const BASE=[
+ ['construction_speedups','construction','Construction Speedups'],
+ ['construction_fc','construction','Fire Crystals'],
+ ['construction_rfc','construction','Refined Fire Crystals'],
+ ['construction_frame','construction','Preferred UTC Time Frame'],
+ ['construction_time','construction','Specific UTC Time'],
+ ['research_speedups','research','Research Speedups'],
+ ['research_shards','research','Fire Crystal Shards'],
+ ['research_frame','research','Preferred UTC Time Frame'],
+ ['research_time','research','Specific UTC Time'],
+ ['training_selection','training','Training / Promotion Type'],
+ ['training_speedups','training','Training Speedups'],
+ ['training_frame','training','Preferred UTC Time Frame'],
+ ['training_time','training','Specific UTC Time'],
+ ['upgrading_t12','training','Upgrading to T12'],
+ ['t12_rfc','training','T12 Refined Fire Crystals'],
+ ['t12_shards','training','T12 Fire Crystal Shards']
+];
+const SECTIONS=[
+ ['construction','DAY 1 • CONSTRUCTION','VP · Vice President'],
+ ['research','DAY 2 • RESEARCH','VP · Vice President'],
+ ['training','DAY 4 • TRAINING','MOE · Minister of Education'],
+ ['general','GENERAL','General Questions']
+];
+let rootSettings={},cfg={base_visibility:{},custom_questions:[]},draftOpts=[];
 function defaults(){return {base_visibility:Object.fromEntries(BASE.map(x=>[x[0],true])),custom_questions:[]}}
-function renderBase(){$('base-list').innerHTML=BASE.map(([k,s,n])=>`<label class="toggle-row"><input type="checkbox" data-base="${k}" ${cfg.base_visibility?.[k]!==false?'checked':''}><span><b>${esc(n)}</b><small style="display:block;color:#8793b5">${esc(s)}</small></span></label>`).join('')}
-function renderTabs(){$('section-tabs').innerHTML=SECTIONS.map(([k,n])=>`<button type="button" data-sec="${k}" class="${active===k?'active':''}">${n}</button>`).join('')}
-function renderQuestions(){const rows=(cfg.custom_questions||[]).filter(q=>q.section===active);$('q-list').innerHTML=rows.length?rows.map(q=>`<div class="q-card"><b>${esc(q.text)}</b><div class="q-meta">${esc(q.type.replaceAll('_',' '))}${q.required?' • Required':''}</div><div class="actions"><button class="btn secondary edit-q" data-id="${q.id}" type="button">Edit</button><button class="btn secondary del-q" data-id="${q.id}" type="button">Remove</button></div></div>`).join(''):'<div class="muted">No custom questions in this section.</div>'}
-function renderPreview(){const groups={construction:[],research:[],training:[],general:[]};for(const [k,s,n] of BASE){if(cfg.base_visibility?.[k]===false)continue;const sec=s.includes('Construction')?'construction':s.includes('Research')?'research':'training';groups[sec].push(n)}for(const q of cfg.custom_questions||[])groups[q.section||'general'].push(q.text);$('preview').innerHTML=SECTIONS.map(([k,n])=>groups[k].length?`<div class="preview-section"><b>${n}</b>${groups[k].map(x=>`<div class="q-meta">• ${esc(x)}</div>`).join('')}</div>`:'').join('')}
-function rerender(){renderBase();renderTabs();renderQuestions();renderPreview()}
-function needsOpts(){return ['dropdown','single_choice','checkboxes'].includes($('q-type').value)}function renderOpts(){$('options-wrap').classList.toggle('hidden',!needsOpts());$('opt-list').innerHTML=draftOpts.map((o,i)=>`<div class="opt-row"><input class="opt" value="${esc(o)}" placeholder="Option ${i+1}"><button class="btn secondary del-opt" data-i="${i}" type="button">×</button></div>`).join('')}
-function openEditor(q){$('q-editor').classList.remove('hidden');$('q-id').value=q?.id||'';$('q-text').value=q?.text||'';$('q-section').value=q?.section||active;$('q-type').value=q?.type||'short_text';$('q-required').checked=!!q?.required;draftOpts=[...(q?.options||[])];renderOpts();$('q-editor').scrollIntoView({behavior:'smooth',block:'center'})}
-$('section-tabs').onclick=e=>{const b=e.target.closest('[data-sec]');if(!b)return;active=b.dataset.sec;renderTabs();renderQuestions()};$('base-list').onchange=e=>{const x=e.target.closest('[data-base]');if(!x)return;cfg.base_visibility[x.dataset.base]=x.checked;renderPreview()};$('add-q').onclick=()=>openEditor();$('cancel-q').onclick=()=>$('q-editor').classList.add('hidden');$('q-type').onchange=renderOpts;$('add-option').onclick=()=>{draftOpts=[...document.querySelectorAll('.opt')].map(x=>x.value);draftOpts.push('');renderOpts()};$('opt-list').onclick=e=>{const b=e.target.closest('.del-opt');if(!b)return;draftOpts=[...document.querySelectorAll('.opt')].map(x=>x.value);draftOpts.splice(Number(b.dataset.i),1);renderOpts()};$('q-list').onclick=e=>{const edit=e.target.closest('.edit-q'),del=e.target.closest('.del-q');if(edit){const q=cfg.custom_questions.find(x=>String(x.id)===String(edit.dataset.id));if(q)openEditor(q)}if(del){cfg.custom_questions=cfg.custom_questions.filter(x=>String(x.id)!==String(del.dataset.id));rerender()}};
-$('q-editor').onsubmit=e=>{e.preventDefault();const id=$('q-id').value||`mq_${Date.now()}`,options=needsOpts()?[...document.querySelectorAll('.opt')].map(x=>x.value.trim()).filter(Boolean):[];const q={id,text:$('q-text').value.trim(),section:$('q-section').value,type:$('q-type').value,required:$('q-required').checked,options};cfg.custom_questions=cfg.custom_questions.filter(x=>String(x.id)!==String(id));cfg.custom_questions.push(q);active=q.section;$('q-editor').classList.add('hidden');rerender()};
-async function load(){const {data:{session}}=await sb.auth.getSession();if(!session){location.href='index.html';return}const {data:role}=await sb.rpc('current_nexa_role');if(!['owner','admin','scheduler'].includes(String(role||'').toLowerCase())){location.href='forms-center.html?section=svs';return}const q=await sb.from('event_form_templates').select('settings').eq('event_type_key','svs').maybeSingle();if(q.error){$('status').textContent=q.error.message;return}rootSettings=q.data?.settings||{};cfg={...defaults(),...(rootSettings.ministry_form||{}),base_visibility:{...defaults().base_visibility,...(rootSettings.ministry_form?.base_visibility||{})},custom_questions:Array.isArray(rootSettings.ministry_form?.custom_questions)?rootSettings.ministry_form.custom_questions:[]};rerender()}
-$('save-all').onclick=async()=>{$('status').textContent='Saving…';const settings={...rootSettings,ministry_form:cfg};const q=await sb.from('event_form_templates').upsert({event_type_key:'svs',settings,updated_at:new Date().toISOString()},{onConflict:'event_type_key'});$('status').textContent=q.error?'Could not save: '+q.error.message:'Saved ✓'};load();
+function sectionHtml([key,kicker,title]){
+ const bases=BASE.filter(x=>x[1]===key);
+ const custom=(cfg.custom_questions||[]).filter(q=>(q.section||'general')===key);
+ const baseHtml=bases.length?`<div class="subhead">BASE QUESTIONS • SHOW / HIDE</div><div class="toggle-list">${bases.map(([id,,name])=>`<label class="toggle-row"><input type="checkbox" data-base="${id}" ${cfg.base_visibility?.[id]!==false?'checked':''}><span>${esc(name)}<small>Protected NEXA question</small></span></label>`).join('')}</div>`:'';
+ const qHtml=`<div class="subhead">ADDITIONAL QUESTIONS</div><div class="q-list">${custom.length?custom.map(q=>`<div class="q-card"><b>${esc(q.text)}</b><div class="q-meta">${esc((q.type||'short_text').replaceAll('_',' '))}${q.required?' • Required':''}</div><div class="actions"><button class="btn secondary edit-q" data-id="${q.id}" type="button">Edit</button><button class="btn secondary delete-q" data-id="${q.id}" type="button">Delete</button></div></div>`).join(''):'<div class="empty-note">No additional questions in this section.</div>'}</div><div class="actions"><button class="btn add-q" data-section="${key}" type="button">+ Add Question</button></div>`;
+ return `<section class="ms-card" data-section-card="${key}"><div class="day-title"><div><div class="ms-day cyan">${kicker}</div><h3>${title}</h3></div><span class="day-badge">${bases.length} base</span></div>${baseHtml}${qHtml}</section>`
+}
+function renderSections(){$('section-blocks').innerHTML=SECTIONS.map(sectionHtml).join('')}
+function needsOpts(){return ['dropdown','single_choice','checkboxes'].includes($('q-type').value)}
+function syncOpts(){draftOpts=[...document.querySelectorAll('#opt-list .opt')].map(x=>x.value.trim())}
+function renderOpts(){$('options-wrap').classList.toggle('hidden',!needsOpts());$('opt-list').innerHTML=draftOpts.map((o,i)=>`<div class="opt-row"><input class="opt" value="${esc(o)}" placeholder="Option ${i+1}"><button class="btn secondary del-opt" data-i="${i}" type="button">×</button></div>`).join('')}
+function openEditor(section,q=null){
+ $('editor-card').classList.remove('hidden');$('editor-title').textContent=q?'Edit Question':'New Question';$('q-id').value=q?.id||'';$('q-text').value=q?.text||'';$('q-section').value=q?.section||section||'general';$('q-type').value=q?.type||'short_text';$('q-required').checked=!!q?.required;draftOpts=[...(q?.options||[])];renderOpts();$('editor-card').scrollIntoView({behavior:'smooth',block:'start'})
+}
+$('section-blocks').addEventListener('change',e=>{const x=e.target.closest('[data-base]');if(!x)return;cfg.base_visibility[x.dataset.base]=x.checked});
+$('section-blocks').addEventListener('click',e=>{
+ const add=e.target.closest('.add-q'),edit=e.target.closest('.edit-q'),del=e.target.closest('.delete-q');
+ if(add){openEditor(add.dataset.section);return}
+ if(edit){const q=cfg.custom_questions.find(x=>String(x.id)===String(edit.dataset.id));if(q)openEditor(q.section,q);return}
+ if(del){const q=cfg.custom_questions.find(x=>String(x.id)===String(del.dataset.id));if(!q)return;if(!confirm(`Delete "${q.text}"?`))return;cfg.custom_questions=cfg.custom_questions.filter(x=>String(x.id)!==String(q.id));renderSections()}
+});
+$('cancel-q').onclick=()=>{$('editor-card').classList.add('hidden')};
+$('q-type').onchange=renderOpts;
+$('add-option').onclick=()=>{syncOpts();draftOpts.push('');renderOpts()};
+$('opt-list').onclick=e=>{const b=e.target.closest('.del-opt');if(!b)return;syncOpts();draftOpts.splice(Number(b.dataset.i),1);renderOpts()};
+$('q-editor').onsubmit=e=>{
+ e.preventDefault();syncOpts();const id=$('q-id').value||`mq_${Date.now()}`,options=needsOpts()?draftOpts.filter(Boolean):[];
+ if(needsOpts()&&!options.length){$('status').textContent='Add at least one answer option.';return}
+ const q={id,text:$('q-text').value.trim(),section:$('q-section').value,type:$('q-type').value,required:$('q-required').checked,options};
+ cfg.custom_questions=cfg.custom_questions.filter(x=>String(x.id)!==String(id));cfg.custom_questions.push(q);$('editor-card').classList.add('hidden');$('status').textContent='Question updated. Save Ministry Form when you are ready.';renderSections()
+};
+async function load(){
+ const {data:{session}}=await sb.auth.getSession();if(!session){location.href='index.html';return}
+ const {data:role}=await sb.rpc('current_nexa_role');if(!['owner','admin','scheduler'].includes(String(role||'').toLowerCase())){location.href='forms-center.html?section=svs';return}
+ const q=await sb.from('event_form_templates').select('settings').eq('event_type_key','svs').maybeSingle();if(q.error){$('status').textContent=q.error.message;return}
+ rootSettings=q.data?.settings||{};const d=defaults();cfg={...d,...(rootSettings.ministry_form||{}),base_visibility:{...d.base_visibility,...(rootSettings.ministry_form?.base_visibility||{})},custom_questions:Array.isArray(rootSettings.ministry_form?.custom_questions)?rootSettings.ministry_form.custom_questions:[]};renderSections()
+}
+$('save-all').onclick=async()=>{
+ $('status').textContent='Saving…';const settings={...rootSettings,ministry_form:cfg};
+ const q=await sb.from('event_form_templates').upsert({event_type_key:'svs',settings,updated_at:new Date().toISOString()},{onConflict:'event_type_key'});
+ if(q.error){$('status').textContent='Could not save: '+q.error.message;return}
+ rootSettings=settings;$('status').textContent='Saved ✓'
+};
+load();
 })();
-</script></body></html>
+</script>
+</body></html>

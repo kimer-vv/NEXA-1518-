@@ -1,4 +1,4 @@
-/* NEXA V47.30 — COMPACT NEON TRANSFER / LEGACY TRANSFER VISUALS DEAD
+/* NEXA V47.31 — HOME-MATCH TRANSFER / COMPACT NEON CARD
    COMPLETE REPLACEMENT for: nexa-v47-visual-assets.js
 
    Owns:
@@ -25,8 +25,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4730_CONTROL_HUB__) return;
-window.__NEXA_V4730_CONTROL_HUB__=true;
+if(window.__NEXA_V4731_CONTROL_HUB__) return;
+window.__NEXA_V4731_CONTROL_HUB__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -393,6 +393,37 @@ function installCSS(){
     color:#c0c4d4!important;
     font-size:12px!important;
     line-height:1.30!important
+  }
+
+  /* V47.31 — Match Transfer footprint/typography to the other Home cards. */
+  #home #nexa-v49-transfer-card{
+    margin:10px 0 0!important;
+    padding:14px 18px 14px 26px!important;
+    min-height:0!important;
+    height:auto!important;
+    border-radius:20px!important
+  }
+  #home #nexa-v49-transfer-card .nexa-v49-transfer-kicker,
+  #home #nexa-v49-transfer-card .nexa-v4717-transfer-kicker{
+    margin:0 0 5px!important;
+    font-size:10px!important;
+    line-height:1!important;
+    letter-spacing:.18em!important
+  }
+  #home #nexa-v49-transfer-card h3{
+    margin:0 0 4px!important;
+    font-size:18px!important;
+    line-height:1.08!important
+  }
+  #home #nexa-v49-transfer-card .muted{
+    margin:0!important;
+    font-size:12px!important;
+    line-height:1.28!important
+  }
+  #home #nexa-v49-transfer-card #nexa-v49-transfer-events{
+    margin:0!important;
+    padding:0!important;
+    min-height:0!important
   }
 
   /* V47.24 — V44/V45 legacy still styles the INNER .event.

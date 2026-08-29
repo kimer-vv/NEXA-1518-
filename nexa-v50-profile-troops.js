@@ -1,4 +1,4 @@
-/* NEXA V50.2 — TROOP SUMMARY + FIRE CRYSTAL VISUALS
+/* NEXA V50.3 — FIRE CRYSTAL BADGE POSITION FIX
    Support module for stable Profile owner V33.6.
    Does NOT take Profile ownership.
    Restores:
@@ -10,8 +10,8 @@
 */
 (()=>{
 'use strict';
-if(window.__NEXA_V502_TROOP_SUMMARY__) return;
-window.__NEXA_V502_TROOP_SUMMARY__=true;
+if(window.__NEXA_V503_TROOP_SUMMARY__) return;
+window.__NEXA_V503_TROOP_SUMMARY__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -203,17 +203,29 @@ function ensureCSS(){
   const st=document.createElement('style');
   st.id='nexa-v502-css';
   st.textContent=`
-    .nexa-v502-fc-badge{
-      position:absolute!important;right:-8px!important;bottom:-7px!important;z-index:12!important;
-      width:31px!important;height:31px!important;object-fit:contain!important;border-radius:0!important;
-      padding:0!important;background:transparent!important;
-      filter:drop-shadow(0 0 6px rgba(112,215,255,.62))!important;
+    #v33-grid .v33-item[data-type="troop"] .v33-planet > img.nexa-v502-fc-badge{
+      position:absolute!important;
+      right:-4px!important;
+      bottom:-4px!important;
+      z-index:12!important;
+      width:27px!important;
+      height:27px!important;
+      max-width:27px!important;
+      max-height:27px!important;
+      min-width:0!important;
+      min-height:0!important;
+      object-fit:contain!important;
+      object-position:center!important;
+      border-radius:0!important;
+      padding:0!important;
+      margin:0!important;
+      background:transparent!important;
+      transform:none!important;
+      filter:drop-shadow(0 0 5px rgba(112,215,255,.62))!important;
       pointer-events:none!important
     }
     .nexa-v502-fc-label{
-      position:absolute;right:-10px;bottom:-11px;z-index:13;min-width:17px;text-align:center;
-      font-size:6px;font-weight:1000;line-height:1;color:#dffaff;text-shadow:0 0 5px #42dfff;
-      pointer-events:none
+      display:none!important
     }
     .nexa-v502-buffs{display:grid;gap:7px;margin-top:9px}
     .nexa-v502-buff{

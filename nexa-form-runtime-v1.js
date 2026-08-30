@@ -1,8 +1,8 @@
-/* NEXA FORM RUNTIME V3.1 — INTERNAL/PUBLIC ROUTING / CLEAN UTC DEADLINES / MOBILE FORM FIXES */
+/* NEXA FORM RUNTIME V3.2 — TAL COLLAPSIBLE TIME SLOTS / INTERNAL-PUBLIC ROUTING / MOBILE FORM FIXES */
 (()=>{
 'use strict';
-if(window.__NEXA_FORM_RUNTIME_V31__) return;
-window.__NEXA_FORM_RUNTIME_V31__=true;
+if(window.__NEXA_FORM_RUNTIME_V32__) return;
+window.__NEXA_FORM_RUNTIME_V32__=true;
 
 const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
@@ -38,6 +38,7 @@ function addGlobalCSS(){
  body.nexa-tal-page .card{width:calc(100% - 18px)!important;max-width:calc(100% - 18px)!important;box-sizing:border-box!important;overflow:hidden!important}
  body.nexa-tal-page input[type=date]{width:100%!important;max-width:100%!important;box-sizing:border-box!important}
  body.nexa-tal-page .slots{display:grid!important;grid-template-columns:1fr!important;gap:8px!important;width:100%!important;min-width:0!important;overflow:hidden!important}
+ body.nexa-tal-page .slots.hidden{display:none!important}
  body.nexa-tal-page .slots label{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:10px!important;width:100%!important;min-width:0!important;margin:0!important;padding:10px 12px!important;border:1px solid rgba(255,255,255,.10)!important;border-radius:12px!important;box-sizing:border-box!important}
  body.nexa-tal-page .slots label input{width:23px!important;height:23px!important;min-width:23px!important;flex:0 0 23px!important;margin:0!important}
  body.nexa-tal-page .slots label span,body.nexa-tal-page .slots label{white-space:normal!important;overflow-wrap:anywhere!important}

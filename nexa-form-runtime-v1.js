@@ -1,8 +1,8 @@
-/* NEXA FORM RUNTIME V3.0 — INTERNAL/PUBLIC ROUTING / CLEAN UTC DEADLINES / MOBILE FORM FIXES */
+/* NEXA FORM RUNTIME V3.1 — INTERNAL/PUBLIC ROUTING / CLEAN UTC DEADLINES / MOBILE FORM FIXES */
 (()=>{
 'use strict';
-if(window.__NEXA_FORM_RUNTIME_V3__) return;
-window.__NEXA_FORM_RUNTIME_V3__=true;
+if(window.__NEXA_FORM_RUNTIME_V31__) return;
+window.__NEXA_FORM_RUNTIME_V31__=true;
 
 const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
@@ -27,8 +27,8 @@ function addGlobalCSS(){
  .nexa-deadline-date{display:grid!important;gap:7px!important;margin:0 0 14px!important}
  .nexa-deadline-time-title{font-size:.92rem!important;font-weight:950!important;color:#dbe3ff!important;margin:0 0 8px!important}
  .nexa-deadline-time{display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important}
- .nexa-deadline-v3 label{min-width:0!important}.nexa-deadline-v3 input[type=date],.nexa-deadline-v3 select{width:100%!important;min-width:0!important;max-width:100%!important;min-height:48px!important;padding:10px 12px!important;box-sizing:border-box!important;border-radius:13px!important;background:#081126!important;color:#fff!important;font-size:16px!important;border:1px solid rgba(119,142,210,.32)!important}
- .nexa-deadline-utc{margin:10px 0 14px!important;color:#8fefff!important;font-weight:950!important}.nexa-deadline-v3 button{width:100%!important;min-height:48px!important;border-radius:14px!important}
+ .nexa-deadline-v3 label{min-width:0!important}.nexa-deadline-v3 input[type=date],.nexa-deadline-v3 select{display:block!important;width:100%!important;min-width:0!important;min-inline-size:0!important;max-width:100%!important;min-height:48px!important;padding:10px 12px!important;box-sizing:border-box!important;overflow:hidden!important;border-radius:13px!important;background:#081126!important;color:#fff!important;font-size:16px!important;border:1px solid rgba(119,142,210,.32)!important}
+ .nexa-deadline-utc{margin:10px 0 14px!important;color:#8fefff!important;font-weight:950!important}.nexa-deadline-v3 button{width:100%!important;min-height:50px!important;border-radius:15px!important;border:1px solid rgba(75,213,231,.62)!important;background:linear-gradient(135deg,rgba(19,104,111,.92),rgba(32,75,118,.93) 54%,rgba(61,49,139,.92))!important;color:#fff!important;font-weight:950!important}.nexa-deadline-enable input{accent-color:#54f0b5!important}
  .nexa-public-deadline{width:calc(100% - 36px)!important;max-width:684px!important;margin:12px 18px 16px!important;padding:13px 15px!important;box-sizing:border-box!important;border:1px solid rgba(72,221,255,.28)!important;border-radius:15px!important;background:rgba(8,18,38,.78)!important;line-height:1.4!important;font-weight:850!important}
  body.nexa-tal-page .head,body.nexa-tal-page .panel-head{display:block!important;position:static!important;width:calc(100% - 36px)!important;max-width:none!important;margin:18px 0 20px 18px!important;padding:0!important;text-align:left!important;columns:auto!important;column-count:1!important}
  body.nexa-tal-page .head>* ,body.nexa-tal-page .panel-head>*{display:block!important;float:none!important;position:static!important;width:auto!important;max-width:100%!important;margin-left:0!important;margin-right:0!important;transform:none!important;text-align:left!important}
@@ -151,8 +151,7 @@ function deadlineEditor(row){
  <button id="nd3-save" type="button" class="btn">Save Deadline</button><div id="nd3-status" style="min-height:18px;margin-top:8px;color:#8ef0cf"></div>`;
  let anchor=null;
  if(path.includes('tal-settings'))anchor=$('#save')?.closest('section');
-else if(path.includes('fdt-settings'))anchor=$('.save-box');
-else anchor=$('.form-actions,.save-box,.actions')||$('main')?.lastElementChild;
+ else anchor=$('.form-actions,.actions,.save-box')||$('main')?.lastElementChild;
  if(anchor?.parentNode)anchor.parentNode.insertBefore(sec,anchor);
  else ($('main')||document.body).appendChild(sec);
  $('#nd3-save').onclick=async()=>{

@@ -1,3 +1,4 @@
+/* NEXA HUMAN GATE V2.2 — ASCII STATUS TEXT / ENCODING SAFE */
 (()=>{
 'use strict';
 const SITE_KEY="0x4AAAAAAEQbiQbUBfI6Fc5x";
@@ -20,13 +21,13 @@ function css(){
 function gate(){
  css();let el=document.getElementById('nexa-human-gate');if(el)return el;
  el=document.createElement('div');el.id='nexa-human-gate';
- el.innerHTML=`<div class="nh-card"><h1>Verify you're human</h1><p>Complete this quick verification to continue to NEXA.</p><div id="nexa-human-widget"></div><div id="nexa-human-status">Checking your sessionâ¦</div></div>`;
+ el.innerHTML=`<div class="nh-card"><h1>Verify you're human</h1><p>Complete this quick verification to continue to NEXA.</p><div id="nexa-human-widget"></div><div id="nexa-human-status">Checking your session...</div></div>`;
  document.documentElement.appendChild(el);document.documentElement.style.overflow='hidden';return el;
 }
 function unlock(){document.getElementById('nexa-human-gate')?.remove();document.documentElement.style.overflow=''}
 async function hasSession(){try{const r=await fetch(SESSION_URL,{credentials:'same-origin',cache:'no-store'});return r.ok}catch{return false}}
 function loadTurnstile(){return new Promise((resolve,reject)=>{if(window.turnstile)return resolve();const existing=document.querySelector('script[data-nexa-turnstile]');if(existing){existing.addEventListener('load',resolve,{once:true});existing.addEventListener('error',reject,{once:true});return}const s=document.createElement('script');s.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';s.async=true;s.defer=true;s.dataset.nexaTurnstile='1';s.onload=resolve;s.onerror=reject;document.head.appendChild(s)})}
-async function verifyToken(token,widgetId){const status=document.getElementById('nexa-human-status');if(status)status.textContent='Verifyingâ¦';try{const r=await fetch(VERIFY_URL,{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({token})});const body=await r.json().catch(()=>({}));if(!r.ok)throw new Error(body.error||'Verification failed.');unlock()}catch(err){if(status){status.textContent=err.message||'Verification failed. Please try again.';status.classList.add('nh-error')}try{window.turnstile.reset(widgetId)}catch{}}}
+async function verifyToken(token,widgetId){const status=document.getElementById('nexa-human-status');if(status)status.textContent='Verifying...';try{const r=await fetch(VERIFY_URL,{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({token})});const body=await r.json().catch(()=>({}));if(!r.ok)throw new Error(body.error||'Verification failed.');unlock()}catch(err){if(status){status.textContent=err.message||'Verification failed. Please try again.';status.classList.add('nh-error')}try{window.turnstile.reset(widgetId)}catch{}}}
 async function start(){loadFormRuntime();gate();if(await hasSession())return unlock();const status=document.getElementById('nexa-human-status');if(status)status.textContent='';try{await loadTurnstile();let widgetId;widgetId=window.turnstile.render('#nexa-human-widget',{sitekey:SITE_KEY,theme:'auto',action:'nexa_site_access',callback:(token)=>verifyToken(token,widgetId),'error-callback':()=>{const x=document.getElementById('nexa-human-status');if(x){x.textContent='Verification could not load. Please try again.';x.classList.add('nh-error')}},'expired-callback':()=>{const x=document.getElementById('nexa-human-status');if(x)x.textContent='Verification expired. Please try again.'}})}catch{if(status){status.textContent='Verification could not load. Please refresh the page.';status.classList.add('nh-error')}}}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();

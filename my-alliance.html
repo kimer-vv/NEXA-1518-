@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- NEXA MY ALLIANCE V1.1 — CLEAN EVENT AREAS / FOUNDRY + CANYON WORKSPACE -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -27,6 +28,12 @@ body{background:#02030a;color:#f8f7ff}
 .ma-tab{flex:0 0 auto;white-space:nowrap;border:1px solid rgba(255,255,255,.10);background:rgba(8,12,29,.75);color:#9ca8c1;border-radius:999px;padding:10px 13px;font-size:10px;font-weight:950}
 .ma-tab.active{color:#d8ffea;border-color:rgba(var(--ma-rgb),.58);background:rgba(16,68,48,.30);box-shadow:0 0 14px rgba(var(--ma-rgb),.10)}
 .ma-panel{display:none}.ma-panel.active{display:block}
+.ma-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:2px 0 10px;padding:14px;border:1px solid rgba(var(--ma-rgb),.18);border-radius:18px;background:linear-gradient(145deg,rgba(7,15,31,.94),rgba(4,8,21,.97));box-shadow:0 0 22px rgba(var(--ma-rgb),.06)}
+.ma-section-head h2{margin:0 0 4px;font-size:17px}
+.ma-section-head .ma-muted{max-width:620px}
+.ma-event-tabs{display:flex;gap:8px;margin:0 0 10px}
+.ma-event-tab{flex:1;border:1px solid rgba(255,255,255,.10);background:rgba(8,12,29,.82);color:#a5afc5;border-radius:13px;padding:11px 10px;font-size:10px;font-weight:950}
+.ma-event-tab.active{color:#d8ffea;border-color:rgba(var(--ma-rgb),.55);background:rgba(16,68,48,.28);box-shadow:0 0 14px rgba(var(--ma-rgb),.09)}
 .ma-card{position:relative;border:1px solid rgba(var(--ma-rgb),.20);border-radius:18px;padding:14px;margin-bottom:10px;background:linear-gradient(145deg,rgba(10,17,38,.90),rgba(4,8,22,.95))}
 .ma-card h3,.ma-card h4{margin:0 0 5px}
 .ma-muted{color:#93a0bb;font-size:11px;line-height:1.45}
@@ -78,17 +85,15 @@ body{background:#02030a;color:#f8f7ff}
     <button class="ma-tab active" data-tab="members">Members</button>
     <button class="ma-tab" data-tab="pending">Pending Members</button>
     <button class="ma-tab" data-tab="pulse">NEXA Pulse</button>
-    <button class="ma-tab" data-tab="history">Pulse History</button>
     <button class="ma-tab" data-tab="schedule">Event Schedule</button>
     <button class="ma-tab" data-tab="events">Alliance Events</button>
   </nav>
 
-  <section class="ma-panel active" data-panel="members"><div id="membersHost"></div></section>
-  <section class="ma-panel" data-panel="pending"><div id="pendingHost"></div></section>
-  <section class="ma-panel" data-panel="pulse"><div id="pulseHost"></div></section>
-  <section class="ma-panel" data-panel="history"><div id="historyHost"></div></section>
-  <section class="ma-panel" data-panel="schedule"><div id="scheduleHost"></div></section>
-  <section class="ma-panel" data-panel="events"><div id="eventsHost"></div></section>
+  <section class="ma-panel active" data-panel="members"><div class="ma-section-head"><div><h2>Members</h2><div class="ma-muted">Verified alliance roster and leadership member management.</div></div></div><div id="membersHost"></div></section>
+  <section class="ma-panel" data-panel="pending"><div class="ma-section-head"><div><h2>Pending Members</h2><div class="ma-muted">Review pending alliance members, approve them, and assign their alliance rank.</div></div></div><div id="pendingHost"></div></section>
+  <section class="ma-panel" data-panel="pulse"><div class="ma-section-head"><div><h2>NEXA Pulse</h2><div class="ma-muted">Live response tracking for alliance forms and current event participation.</div></div></div><div id="pulseHost"></div></section>
+  <section class="ma-panel" data-panel="schedule"><div class="ma-section-head"><div><h2>Event Schedule</h2><div class="ma-muted">Recurring alliance event times. This is scheduling only; strategy belongs under Alliance Events.</div></div></div><div id="scheduleHost"></div></section>
+  <section class="ma-panel" data-panel="events"><div class="ma-section-head"><div><h2>Alliance Events</h2><div class="ma-muted">Alliance event strategy and planning workspace. Foundry and Canyon are kept separate from Event Schedule.</div></div></div><div id="eventsHost"></div></section>
 </main>
 
 <script>
@@ -103,7 +108,7 @@ const activeState=()=>Number(String(localStorage.getItem('nexa_active_state_v49'
 const activeAccountId=()=>String(localStorage.getItem('nexa_active_account_v49')||window.NEXA_ACTIVE_ACCOUNT_ID||'');
 async function rpc(name,args={}){const {data,error}=await sb.rpc(name,args);if(error)throw error;return data}
 function modal(html){const ov=document.createElement('div');ov.className='ma-modal';ov.innerHTML='<div class="ma-dialog">'+html+'</div>';document.body.appendChild(ov);ov.addEventListener('click',e=>{if(e.target===ov)ov.remove()});return ov}
-function setTab(tab){$$('.ma-tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));$$('.ma-panel').forEach(p=>p.classList.toggle('active',p.dataset.panel===tab));if(tab==='pending')loadPending();if(tab==='schedule')loadSchedule();if(tab==='pulse')loadPulse();if(tab==='history')loadHistory();if(tab==='events')loadAllianceEvents()}
+function setTab(tab){$$('.ma-tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));$$('.ma-panel').forEach(p=>p.classList.toggle('active',p.dataset.panel===tab));if(tab==='pending')loadPending();if(tab==='schedule')loadSchedule();if(tab==='pulse')loadPulse();if(tab==='events')loadAllianceEvents()}
 
 async function boot(){
  const {data:{user}}=await sb.auth.getUser(); if(!user){location.href='index.html';return}
@@ -226,26 +231,34 @@ async function loadPulse(){
    $$('[data-pulse-tab]').forEach(b=>b.onclick=()=>{$$('[data-pulse-tab]').forEach(x=>x.classList.toggle('active',x===b));render(b.dataset.pulseTab)});
  }catch(e){host.innerHTML=`<div class="ma-card ma-empty">${esc(e.message)}</div>`}
 }
-async function loadHistory(){
- const host=$('#historyHost');
- try{
-   const {data,error}=await sb.from('svs_events').select('id,title,opponent_state,status,prep_monday,ended_at').eq('state_number',activeState()).eq('status','ended').order('prep_monday',{ascending:false}).limit(12);
-   if(error)throw error;
-   host.innerHTML=(data||[]).length?(data||[]).map(e=>`<div class="ma-card"><h4>${esc(e.title||'SvS vs State '+e.opponent_state)}</h4><div class="ma-muted">${esc(e.prep_monday||'')} • Ended</div></div>`).join(''):'<div class="ma-card ma-empty">No Pulse history yet.</div>';
- }catch(e){host.innerHTML=`<div class="ma-card ma-empty">${esc(e.message)}</div>`}
-}
 async function loadAllianceEvents(){
  const host=$('#eventsHost');
- try{
-   const {data,error}=await sb.from('svs_events').select('id,title,opponent_state,status,prep_monday').eq('state_number',activeState()).order('prep_monday',{ascending:false}).limit(12);
-   if(error)throw error;
-   host.innerHTML=`<div class="ma-card"><h3>Alliance Events</h3><div class="ma-muted">Actual alliance event activity stays separate from the recurring Event Schedule.</div></div>`+((data||[]).map(e=>`<div class="ma-card"><div class="ma-row"><div><h4>${esc(e.title||'SvS vs State '+e.opponent_state)}</h4><div class="ma-muted">${esc(e.prep_monday||'')}</div></div><span class="ma-rank">${esc(e.status)}</span></div></div>`).join('')||'<div class="ma-card ma-empty">No alliance events available.</div>');
- }catch(e){host.innerHTML=`<div class="ma-card ma-empty">${esc(e.message)}</div>`}
+ host.innerHTML=`<div class="ma-event-tabs">
+   <button class="ma-event-tab active" data-alliance-event="foundry">Foundry</button>
+   <button class="ma-event-tab" data-alliance-event="canyon">Canyon</button>
+ </div>
+ <div id="allianceEventBody"></div>`;
+ const renderEvent=kind=>{
+   const isFoundry=kind==='foundry';
+   $('#allianceEventBody').innerHTML=`<div class="ma-card">
+     <div class="ma-kicker">ALLIANCE EVENT</div>
+     <h3>${isFoundry?'Foundry':'Canyon'}</h3>
+     <div class="ma-muted">${isFoundry
+       ?'Reserved for Foundry strategy, teams, assignments, instructions, and event planning.'
+       :'Reserved for Canyon strategy, teams, assignments, instructions, and event planning.'}</div>
+   </div>
+   <div class="ma-card ma-empty">${isFoundry?'Foundry':'Canyon'} workspace is ready for the strategy tools we add next.</div>`;
+ };
+ renderEvent('foundry');
+ $$('[data-alliance-event]',host).forEach(b=>b.onclick=()=>{
+   $$('[data-alliance-event]',host).forEach(x=>x.classList.toggle('active',x===b));
+   renderEvent(b.dataset.allianceEvent);
+ });
 }
 
 $('#tabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)setTab(b.dataset.tab)});
 $('#backBtn').onclick=()=>location.href='index.html';
-$('#guideBtn').onclick=()=>modal(`<h3>My Alliance Guide</h3><p class="ma-muted"><b>Members</b> is your verified alliance roster. Leadership can manage ranks, move members, or remove them.</p><p class="ma-muted"><b>Pending Members</b> is where leadership approves new members and assigns their rank.</p><p class="ma-muted"><b>NEXA Pulse</b> is the live alliance workspace for current event responses, including Battle Sign-Up and Ministry Sign-Up.</p><p class="ma-muted"><b>Pulse History</b> keeps past event activity.</p><p class="ma-muted"><b>Event Schedule</b> stores recurring Bear Trap, Foundry, Canyon, and custom event times. R5 can edit them and choose whether they are exposed to Transfer later.</p><p class="ma-muted"><b>Alliance Events</b> is for actual alliance event activity, separate from recurring schedule settings.</p><div class="ma-actions"><button class="ma-btn" onclick="this.closest('.ma-modal').remove()">Got it</button></div>`);
+$('#guideBtn').onclick=()=>modal(`<h3>My Alliance Guide</h3><p class="ma-muted"><b>Members</b> is your verified alliance roster. Leadership can manage ranks, move members, or remove them.</p><p class="ma-muted"><b>Pending Members</b> is where leadership approves new members and assigns their rank.</p><p class="ma-muted"><b>NEXA Pulse</b> is the live alliance workspace for current event responses, including Battle Sign-Up and Ministry Sign-Up.</p><p class="ma-muted"><b>Event Schedule</b> stores recurring Bear Trap, Foundry, Canyon, and custom event times. R5 can edit them and choose whether they are exposed to Transfer later.</p><p class="ma-muted"><b>Alliance Events</b> is the strategy and planning area for alliance events. Foundry and Canyon have their own workspaces here and do not read the server Event Schedule.</p><div class="ma-actions"><button class="ma-btn" onclick="this.closest('.ma-modal').remove()">Got it</button></div>`);
 
 boot().catch(e=>{$('#allianceTitle').textContent='Unable to load';$('#allianceSub').textContent=e.message});
 })();

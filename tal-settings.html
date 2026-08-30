@@ -1,5 +1,5 @@
-    <!doctype html>
-    <!-- NEXA TAL SETTINGS V2.2 — FINAL POLISH / UNIFIED NEXA VISUALS -->
+   <!doctype html>
+    <!-- NEXA TAL SETTINGS V2.3 — NATIVE DEADLINE / WIDE UNIFIED FORM -->
     <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
     <title>NEXA • Edit TAL Form</title><link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="/human-gate.js"></script>
@@ -40,16 +40,51 @@ input[type=date]{display:block!important;width:100%!important;max-width:100%!imp
     <section class="card"><small>LIBRARY • JOINER</small><h3>Joiner Experts</h3><div id="je" class="lib"></div></section>
     <section class="card"><small>LIBRARY • RALLY LEADER</small><h3>Rally Leader Experts</h3><div id="re" class="lib"></div></section>
     <section class="card"><h3>TAL Questions</h3><p>Show or hide the fixed TAL-specific questions.</p><label class="check"><input id="tele" type="checkbox"> Advanced Teleporters</label><label class="check"><input id="sub" type="checkbox"> Substitute availability</label><label class="check"><input id="voice" type="checkbox"> Voice Chat</label><label class="check"><input id="notes" type="checkbox"> Additional Notes</label></section>
+    <section id="nexa-deadline-v3" class="nexa-deadline-v3">
+      <h3>Form Deadline</h3>
+      <p>Optional. The date and time below are always interpreted as UTC, never as the editor's local timezone.</p>
+      <label class="nexa-deadline-enable"><input id="nd3-enabled" type="checkbox"> Enable Deadline</label>
+      <label class="nexa-deadline-date"><b>Date (UTC)</b><input id="nd3-date" type="date"></label>
+      <div class="nexa-deadline-time-title">Time (UTC)</div>
+      <div class="nexa-deadline-time">
+        <label><b>Hour</b><select id="nd3-hour"></select></label>
+        <label><b>Minute</b><select id="nd3-minute"><option>00</option><option>15</option><option>30</option><option>45</option></select></label>
+      </div>
+      <div class="nexa-deadline-utc">24-hour UTC</div>
+      <div class="nexa-deadline-note">This deadline saves with the main Save Form button.</div>
+    </section>
     <section class="card"><button id="save" class="btn" type="button">Save TAL Form</button><div id="status" class="status"></div><div class="actions"><a class="btn" href="tal-form.html?internal=1&preview=member">Preview as NEXA Member</a><a class="btn" href="tal-form.html?public=1&preview=guest">Preview as Guest</a></div></section>
     </main><script>
     const sb=window.supabase.createClient('https://dfxcxboxrkfmrnsgpyin.supabase.co','sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-'),$=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    function initDeadlineControls(s={}){
+      const h=document.getElementById('nd3-hour'),m=document.getElementById('nd3-minute'),d=document.getElementById('nd3-date'),en=document.getElementById('nd3-enabled');
+      if(!h||!m||!d||!en)return;
+      h.innerHTML=Array.from({length:24},(_,i)=>`<option>${String(i).padStart(2,'0')}</option>`).join('');
+      const x=s.deadline_at?new Date(s.deadline_at):null;
+      en.checked=!!s.deadline_enabled;
+      if(x&&!Number.isNaN(x.getTime())){
+        d.value=`${x.getUTCFullYear()}-${String(x.getUTCMonth()+1).padStart(2,'0')}-${String(x.getUTCDate()).padStart(2,'0')}`;
+        h.value=String(x.getUTCHours()).padStart(2,'0');
+        m.value=['00','15','30','45'].includes(String(x.getUTCMinutes()).padStart(2,'0'))?String(x.getUTCMinutes()).padStart(2,'0'):'00';
+      }else{
+        h.value='18';m.value='00';
+      }
+    }
+    function deadlineFields(){
+      const en=document.getElementById('nd3-enabled');
+      if(!en||!en.checked)return {deadline_enabled:false,deadline_at:null};
+      const d=document.getElementById('nd3-date')?.value||'';
+      if(!d)throw new Error('Choose a UTC deadline date.');
+      const hh=document.getElementById('nd3-hour')?.value||'00',mm=document.getElementById('nd3-minute')?.value||'00';
+      return {deadline_enabled:true,deadline_at:new Date(`${d}T${hh}:${mm}:00Z`).toISOString()};
+    }
     const names=['Elimination Round 1','Elimination Round 2','Elimination Round 3','Elimination Round 4','Championship Round 1','Championship Round 2','Championship Round 3'],offset=[0,2,4,6,8,10,12],defaults=['02:00','07:00','12:00','14:00','19:00'];let row,settings={},library=[],slots=[];
     function calc(){const b=$('base').value;if(!b){$('rounds').innerHTML='';return}const d=new Date(b+'T00:00:00Z');$('rounds').innerHTML=names.map((n,i)=>{const x=new Date(d);x.setUTCDate(x.getUTCDate()+offset[i]);return `<div class="round"><b>${n}</b><div>${x.toISOString().slice(0,10)} UTC</div></div>`}).join('')}
     function bucket(k){return new Set((settings.items?.[k]||[]).map(x=>String(x.name||'').toLowerCase()))}
     function renderLib(kind,k,id){const sel=bucket(k);const rows=library.filter(x=>x.item_type===kind&&x.is_active!==false&&x.is_visible!==false&&!(kind==='hero'&&String(x.name||'').trim().toLowerCase()==='eugene'));$(id).innerHTML=rows.map(x=>`<label class="pick">${x.image_url?`<img src="${esc(x.image_url)}">`:''}<b>${esc(x.name)}</b><input class="lib-${k}" type="checkbox" data-name="${esc(x.name)}" data-image="${esc(x.image_url||'')}" ${sel.has(String(x.name).toLowerCase())?'checked':''}></label>`).join('')}
     function selected(k){return [...document.querySelectorAll(`.lib-${k}:checked`)].map((x,i)=>({name:x.dataset.name,image_url:x.dataset.image,is_active:true,sort_order:i}))}
     function renderTimes(){$('times').innerHTML=slots.map((x,i)=>`<label class="time"><input class="ts" type="checkbox" value="${x}" checked><b>${x} UTC</b><button type="button" data-rm="${i}">×</button></label>`).join('');document.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{slots.splice(+b.dataset.rm,1);renderTimes()})}
-    async function load(){const [q,l]=await Promise.all([sb.from('event_form_templates').select('*').eq('event_type_key','tal').maybeSingle(),sb.from('nexa_library_items').select('id,item_type,name,image_url,is_active,is_visible,sort_order').in('item_type',['hero','expert']).eq('is_active',true).order('sort_order')]);row=q.data;settings=row?.settings||{};library=l.data||[];slots=(settings.tal_time_slots||defaults).filter(x=>x!=='09:00');if(!slots.includes('19:00'))slots.push('19:00');$('base').value=settings.tal_base_date||'';$('era').value=settings.troop_era_preset||'exalted';const v=settings.tal_visibility||{};$('tele').checked=v.teleporters!==false;$('sub').checked=v.substitute!==false;$('voice').checked=v.voice!==false;$('notes').checked=v.notes!==false;renderTimes();renderLib('hero','joiner_hero','jh');renderLib('hero','rally_hero','rh');renderLib('expert','joiner_expert','je');renderLib('expert','rally_expert','re');calc()}
+    async function load(){const [q,l]=await Promise.all([sb.from('event_form_templates').select('*').eq('event_type_key','tal').maybeSingle(),sb.from('nexa_library_items').select('id,item_type,name,image_url,is_active,is_visible,sort_order').in('item_type',['hero','expert']).eq('is_active',true).order('sort_order')]);row=q.data;settings=row?.settings||{};library=l.data||[];initDeadlineControls(settings);slots=(settings.tal_time_slots||defaults).filter(x=>x!=='09:00');if(!slots.includes('19:00'))slots.push('19:00');$('base').value=settings.tal_base_date||'';$('era').value=settings.troop_era_preset||'exalted';const v=settings.tal_visibility||{};$('tele').checked=v.teleporters!==false;$('sub').checked=v.substitute!==false;$('voice').checked=v.voice!==false;$('notes').checked=v.notes!==false;renderTimes();renderLib('hero','joiner_hero','jh');renderLib('hero','rally_hero','rh');renderLib('expert','joiner_expert','je');renderLib('expert','rally_expert','re');calc()}
     $('newh').innerHTML=Array.from({length:24},(_,i)=>`<option>${String(i).padStart(2,'0')}</option>`).join('');$('base').onchange=calc;$('addtime').onclick=()=>{const x=`${$('newh').value}:${$('newm').value}`;if(!slots.includes(x)){slots.push(x);slots.sort();renderTimes()}};
-    $('save').onclick=async()=>{if(!row)return;$('status').textContent='Saving…';const next={...settings,tal_base_date:$('base').value||null,tal_time_slots:slots,troop_era_preset:$('era').value,t12_max_skill:3,items:{joiner_hero:selected('joiner_hero'),rally_hero:selected('rally_hero'),joiner_expert:selected('joiner_expert'),rally_expert:selected('rally_expert')},tal_visibility:{teleporters:$('tele').checked,substitute:$('sub').checked,voice:$('voice').checked,notes:$('notes').checked}};const q=await sb.from('event_form_templates').update({settings:next,updated_at:new Date().toISOString()}).eq('id',row.id);$('status').textContent=q.error?q.error.message:'Saved ✓';if(!q.error)settings=next};load();
+    $('save').onclick=async()=>{if(!row)return;$('status').textContent='Saving…';let dl;try{dl=deadlineFields()}catch(e){$('status').textContent=e.message;return}const next={...settings,...dl,tal_base_date:$('base').value||null,tal_time_slots:slots,troop_era_preset:$('era').value,t12_max_skill:3,items:{joiner_hero:selected('joiner_hero'),rally_hero:selected('rally_hero'),joiner_expert:selected('joiner_expert'),rally_expert:selected('rally_expert')},tal_visibility:{teleporters:$('tele').checked,substitute:$('sub').checked,voice:$('voice').checked,notes:$('notes').checked}};const q=await sb.from('event_form_templates').update({settings:next,updated_at:new Date().toISOString()}).eq('id',row.id);$('status').textContent=q.error?q.error.message:'Saved ✓';if(!q.error)settings=next};load();
     </script></body></html>

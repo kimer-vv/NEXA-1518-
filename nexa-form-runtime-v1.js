@@ -1,38 +1,114 @@
-/* NEXA FORM RUNTIME V1.0 — DEADLINES / COUNTDOWNS / GUEST ACCESS / T12 SKILL BRIDGE
-       Shared owner for form deadline behavior. No MutationObserver, no touchmove preventDefault, no manual scrollLeft.
-    */
+/* NEXA FORM RUNTIME V2.0 — PUBLIC/INTERNAL ROUTING / UTC DEADLINES / GUEST LIFECYCLE */
     (()=>{
     'use strict';
-    if(window.__NEXA_FORM_RUNTIME_V1__)return;window.__NEXA_FORM_RUNTIME_V1__=true;
+    if(window.__NEXA_FORM_RUNTIME_V2__) return;
+    window.__NEXA_FORM_RUNTIME_V2__=true;
     const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
     const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
-    const $=(s,r=document)=>r?.querySelector?.(s)||null;
-    const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
-    let client=null,timer=null;
-    function sb(){if(client)return client;if(window.supabase?.createClient)client=window.supabase.createClient(SB_URL,SB_KEY);return client}
-    function pageKey(){const p=location.pathname.toLowerCase();if(p.includes('fdt'))return'fdt';if(p.includes('tal'))return'tal';if(p.includes('battle'))return'svs';return''}
-    function deadline(settings){if(settings?.deadline_enabled!==true||!settings?.deadline_at)return null;const d=new Date(settings.deadline_at);return Number.isFinite(d.getTime())?d:null}
-    function remaining(d){return d?d.getTime()-Date.now():Infinity}
-    function formatLeft(ms){if(ms<=0)return'CLOSED';const total=Math.floor(ms/60000),m=total%60,h=Math.floor(total/60)%24,d=Math.floor(total/1440);return d>0?`${d}D ${h}H`:h>0?`${h}H ${m}M`:`${m}M`}
-    function tone(ms){if(ms<=0)return'closed';if(ms<=86400000)return'red';if(ms<=4*86400000)return'yellow';return'green'}
-    function css(){if($('#nexa-form-runtime-css'))return;const s=document.createElement('style');s.id='nexa-form-runtime-css';s.textContent=`
-    .nexa-deadline-banner{margin:0 0 16px 18px;padding:13px 15px;border-radius:17px;border:1px solid rgba(255,255,255,.12);background:rgba(8,15,35,.72);display:flex;align-items:center;justify-content:space-between;gap:12px}.nexa-deadline-banner small{display:block;color:#aeb7d1;font-size:9px;font-weight:950;letter-spacing:.15em}.nexa-deadline-banner b{font-size:1.05rem}.nexa-deadline-badge{display:inline-flex;align-items:center;justify-content:center;min-height:27px;padding:5px 9px;border-radius:999px;font-size:10px;font-weight:950;letter-spacing:.06em;border:1px solid currentColor}.nexa-deadline-badge.green{color:#65efad;background:rgba(19,111,70,.16)}.nexa-deadline-badge.yellow{color:#ffd45f;background:rgba(121,90,9,.16)}.nexa-deadline-badge.red{color:#ff728e;background:rgba(126,24,48,.18);box-shadow:0 0 14px rgba(255,70,105,.12)}.nexa-deadline-badge.closed{color:#aeb7d1;background:rgba(100,105,125,.12)}.nexa-form-closed{margin:16px 0 0 18px;padding:18px;border:1px solid rgba(255,90,120,.30);border-radius:20px;background:rgba(90,15,35,.14);color:#ffd7df}.nexa-deadline-editor{margin-top:14px;padding:14px;border:1px solid rgba(84,240,181,.22);border-radius:16px;background:rgba(7,18,36,.45);display:grid;gap:10px}.nexa-deadline-editor label{display:grid;gap:7px;font-weight:850}.nexa-deadline-editor input[type=datetime-local]{width:100%;min-height:46px;padding:10px 12px;border:1px solid rgba(119,142,210,.28);border-radius:13px;background:#081126;color:#fff;color-scheme:dark;font-size:16px}.nexa-deadline-editor .row{display:flex;gap:9px;align-items:center}.nexa-deadline-editor .row input{width:22px;height:22px}.nexa-deadline-status{min-height:18px;color:#82efc5;font-size:12px;font-weight:850}.nexa-pulse-deadline{margin-left:8px;vertical-align:middle}
-    `;document.head.appendChild(s)}
-    async function getTemplate(key){const c=sb();if(!c||!key)return null;const q=await c.from('event_form_templates').select('id,event_type_key,settings').eq('event_type_key',key).maybeSingle();return q.error?null:q.data}
-    function isoLocalValue(iso){if(!iso)return'';const d=new Date(iso);if(!Number.isFinite(d.getTime()))return'';const pad=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`}
-    function addBanner(settings){const d=deadline(settings);if(!d)return;let host=$('#nexa-form-deadline');if(!host){host=document.createElement('div');host.id='nexa-form-deadline';host.className='nexa-deadline-banner';const anchor=$('#entry-gate')||$('form')||$('main');if(anchor?.parentNode)anchor.parentNode.insertBefore(host,anchor)}function paint(){const ms=remaining(d);host.innerHTML=`<div><small>FORM DEADLINE</small><b>${d.toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</b></div><span class="nexa-deadline-badge ${tone(ms)}">${formatLeft(ms)}</span>`;if(ms<=0)closePublicForm()}paint();clearInterval(timer);timer=setInterval(paint,30000)}
-    function closePublicForm(){const key=pageKey();if(key==='fdt')localStorage.removeItem('nexa_fdt_guest_identity_v1');if(key==='tal')localStorage.removeItem('nexa_tal_guest_identity_v1');const gate=$('#entry-gate'),form=$('form');if(gate)gate.classList.add('hidden');if(form)form.classList.add('hidden');if(!$('#nexa-form-closed')){const x=document.createElement('div');x.id='nexa-form-closed';x.className='nexa-form-closed';x.innerHTML='<b>Form Closed</b><div>This sign-up is no longer accepting or editing responses.</div>';const m=$('main');m?.appendChild(x)}}
-    async function installEditor(key,settings,templateId){if(!key||!templateId)return;const saveButton=$('#save')||$('#save-options')||$('#save-availability');if(!saveButton)return;if($('#nexa-deadline-editor'))return;const box=document.createElement('section');box.id='nexa-deadline-editor';box.className='nexa-deadline-editor';box.innerHTML=`<div><b>Form Deadline</b><div style="color:#aeb7d1;font-size:12px;margin-top:4px">Optional. When the deadline reaches zero, public access and editing close automatically.</div></div><label class="row"><input id="nexa-deadline-enabled" type="checkbox"> Enable Deadline</label><label>Deadline date & time<input id="nexa-deadline-at" type="datetime-local"></label><button id="nexa-save-deadline" class="btn secondary" type="button">Save Deadline</button><div id="nexa-deadline-status" class="nexa-deadline-status"></div>`;saveButton.closest('section,.setting-card,.card')?.before(box);$('#nexa-deadline-enabled').checked=settings?.deadline_enabled===true;$('#nexa-deadline-at').value=isoLocalValue(settings?.deadline_at);$('#nexa-save-deadline').onclick=async()=>{const enabled=$('#nexa-deadline-enabled').checked,val=$('#nexa-deadline-at').value,status=$('#nexa-deadline-status');if(enabled&&!val){status.textContent='Choose a deadline date and time.';return}status.textContent='Saving…';const next={...(settings||{}),deadline_enabled:enabled,deadline_at:enabled?new Date(val).toISOString():null};const c=sb();const q=await c.from('event_form_templates').update({settings:next,updated_at:new Date().toISOString()}).eq('id',templateId);status.textContent=q.error?q.error.message:'Saved ✓';if(!q.error)settings=next}}
-    function fixT12Guest(){if(pageKey()!=='fdt')return;$$('.guest-troop').forEach(sel=>{const card=sel.closest('.guest-card');if(!card||$('.nexa-fdt-sl',card))return;const wrap=document.createElement('label');wrap.className='nexa-fdt-sl hidden';wrap.innerHTML=`<b>T12 Skill Level</b><select class="guest-troop-skill" data-troop="${sel.dataset.troop||''}"><option value="0">SL0</option><option value="1">SL1</option><option value="2">SL2</option><option value="3">SL3</option></select>`;card.appendChild(wrap);const sync=()=>{const isT12=/exalted|t12/i.test(sel.value);wrap.classList.toggle('hidden',!isT12);if(!isT12)wrap.querySelector('select').value='0'};sel.addEventListener('change',sync);sync()})}
-    async function persistGuestOnSubmit(key){if(!['fdt','tal'].includes(key))return;document.addEventListener('submit',async e=>{const form=e.target;if(!form||form.tagName!=='FORM')return;const name=$('#guest-name')?.value?.trim(),game=$('#guest-id')?.value?.trim(),alliance=$('#guest-alliance')?.value?.trim();if(!name||!game||!alliance)return;let tokenKey=`nexa_${key}_guest_token_v1`,token=localStorage.getItem(tokenKey);if(!token){token=crypto.randomUUID();localStorage.setItem(tokenKey,token)};const data={event_type_key:key,guest_token:token,game_id:game,in_game_name:name,alliance_tag:alliance,role:$('input[name=role]:checked')?.value||null,response_data:{saved_from:'public_form',saved_at:new Date().toISOString()}};const c=sb();if(c)await c.from('event_form_guest_responses').upsert(data,{onConflict:'event_type_key,guest_token'})},true)}
-    async function homePulse(){
-      if(!/(^|\/)index\.html$/.test(location.pathname)&&location.pathname!=='/' )return;
-      const c=sb();if(!c)return;const q=await c.from('event_form_templates').select('event_type_key,settings').in('event_type_key',['svs','fdt','tal']);if(q.error)return;
-      const active=(q.data||[]).map(x=>({key:x.event_type_key,d:deadline(x.settings||{})})).filter(x=>x.d&&remaining(x.d)>0).sort((a,b)=>a.d-b.d);if(!active.length)return;
-      const host=$('#home-event-meta')||$('#home-event-title');if(!host)return;let row=$('#nexa-home-form-deadlines');if(!row){row=document.createElement('div');row.id='nexa-home-form-deadlines';row.style.cssText='display:flex;gap:6px;flex-wrap:wrap;margin-top:7px';host.insertAdjacentElement('afterend',row)}
-      function paint(){row.innerHTML=active.map(x=>{const ms=remaining(x.d),label=x.key==='svs'?'SVS BATTLE':x.key.toUpperCase();return `<span class="nexa-deadline-badge ${tone(ms)}">${label} FORM · ${formatLeft(ms)}</span>`}).join('')}
-      paint();setInterval(paint,30000)
+    const sb=window.supabase?.createClient?.(SB_URL,SB_KEY);
+    const q=new URLSearchParams(location.search);
+    const publicMode=q.get('public')==='1';
+    const internalMode=q.get('internal')==='1';
+    const path=location.pathname.toLowerCase();
+    const eventKey=path.includes('tal-')?'tal':path.includes('fdt-')?'fdt':path.includes('battle-')?'svs':'';
+    const isSettings=path.includes('settings');
+    const $=(s,r=document)=>r.querySelector(s);
+
+    function hidePublicNavigation(){
+     if(!publicMode)return;
+     document.querySelectorAll('a.back,.back,.ma-back,[href*="forms-center"],[href="index.html"]').forEach(x=>x.style.display='none');
     }
-    async function boot(){css();const key=pageKey();if(key){const t=await getTemplate(key);if(t){addBanner(t.settings||{});await installEditor(key,t.settings||{},t.id)}persistGuestOnSubmit(key);setTimeout(fixT12Guest,450);setTimeout(fixT12Guest,1400)}else homePulse()}
+    async function template(){
+     if(!sb||!eventKey)return null;
+     const {data}=await sb.from('event_form_templates').select('id,event_type_key,settings').eq('event_type_key',eventKey).maybeSingle();
+     return data||null;
+    }
+    function deadlineOpen(s){
+     if(!s?.deadline_enabled||!s?.deadline_at)return true;
+     return Date.now()<new Date(s.deadline_at).getTime();
+    }
+    function fmtUTC(iso){
+     if(!iso)return '';
+     const d=new Date(iso);
+     return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')} · ${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')} UTC`;
+    }
+    function addPublicDeadline(s){
+     if(!publicMode||!s?.deadline_enabled||!s?.deadline_at)return;
+     const head=$('header,.panel-head,.fdt-head,.head');
+     if(!head)return;
+     const box=document.createElement('div');
+     box.className='nexa-public-deadline';
+     box.style.cssText='margin:14px 0;padding:12px 14px;border:1px solid rgba(72,221,255,.28);border-radius:14px;background:rgba(8,18,38,.72);font-weight:850';
+     head.insertAdjacentElement('afterend',box);
+     const tick=()=>{
+       const ms=new Date(s.deadline_at)-Date.now();
+       if(ms<=0){box.textContent=`Form Closed · ${fmtUTC(s.deadline_at)}`; closePublic();return}
+       const d=Math.floor(ms/86400000),h=Math.floor(ms/3600000)%24,m=Math.floor(ms/60000)%60;
+       box.textContent=`Form Deadline · ${fmtUTC(s.deadline_at)} · ${d?d+'d ':''}${h}h ${m}m remaining`;
+     };
+     tick();setInterval(tick,30000);
+    }
+    function closePublic(){
+     if(!publicMode)return;
+     const form=$('form');
+     if(form)form.style.display='none';
+     const gate=$('#entry-gate,#gate,.fdt-entry-gate');
+     if(gate)gate.style.display='none';
+     if(!$('#nexa-closed')){
+      const n=document.createElement('section');n.id='nexa-closed';
+      n.style.cssText='margin:18px;padding:20px;border:1px solid rgba(255,100,138,.35);border-radius:18px;background:rgba(35,8,20,.7)';
+      n.innerHTML='<h2>Form Closed</h2><p>This form is no longer accepting new responses or edits.</p>';
+      ($('main')||document.body).appendChild(n);
+     }
+     if(eventKey)localStorage.removeItem(`nexa_guest_${eventKey}_v2`);
+    }
+    function utcDeadlineEditor(row){
+     if(!isSettings||!row||eventKey==='')return;
+     if($('#nexa-deadline-v2'))return;
+     const s=row.settings||{}, d=s.deadline_at?new Date(s.deadline_at):null;
+     const date=d?`${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`:'';
+     const hh=d?String(d.getUTCHours()).padStart(2,'0'):'18', mm=d?String(d.getUTCMinutes()).padStart(2,'0'):'00';
+     const sec=document.createElement('section');sec.id='nexa-deadline-v2';sec.className='setting-card card';
+     sec.style.cssText='margin-top:14px;padding:16px;border:1px solid rgba(72,221,255,.28);border-radius:18px;background:rgba(8,18,38,.72)';
+     sec.innerHTML=`<h3>Form Deadline</h3><p style="opacity:.72">Optional. Public access and Guest editing close automatically at this UTC deadline.</p>
+     <label style="display:flex;gap:9px;align-items:center;margin:12px 0"><input id="nd-enabled" type="checkbox" ${s.deadline_enabled?'checked':''}> Enable Deadline</label>
+     <div style="display:grid;grid-template-columns:1fr 92px 92px;gap:8px">
+     <label>Date (UTC)<input id="nd-date" type="date" value="${date}"></label>
+     <label>Hour<select id="nd-hour">${Array.from({length:24},(_,i)=>`<option ${String(i).padStart(2,'0')===hh?'selected':''}>${String(i).padStart(2,'0')}</option>`).join('')}</select></label>
+     <label>Minute<select id="nd-minute">${['00','15','30','45'].map(x=>`<option ${x===mm?'selected':''}>${x}</option>`).join('')}</select></label>
+     </div><div style="margin-top:7px;font-weight:900;color:#8fefff">24-hour UTC</div>
+     <button id="nd-save" type="button" style="width:100%;min-height:46px;margin-top:12px">Save Deadline</button><div id="nd-status"></div>`;
+     const anchor=$('.form-actions,.actions')||$('main')?.lastElementChild;
+     (anchor?.parentNode||$('main')||document.body).insertBefore(sec,anchor||null);
+     $('#nd-save').onclick=async()=>{
+      const st=$('#nd-status');st.textContent='Saving…';
+      const enabled=$('#nd-enabled').checked, dt=$('#nd-date').value;
+      let iso=null;
+      if(enabled){
+       if(!dt){st.textContent='Choose a UTC date.';return}
+       iso=new Date(`${dt}T${$('#nd-hour').value}:${$('#nd-minute').value}:00Z`).toISOString();
+      }
+      const next={...(row.settings||{}),deadline_enabled:enabled,deadline_at:iso};
+      const {error}=await sb.from('event_form_templates').update({settings:next,updated_at:new Date().toISOString()}).eq('id',row.id);
+      st.textContent=error?error.message:'Saved ✓';
+      if(!error)row.settings=next;
+     };
+    }
+    async function internalBypass(){
+     if(!internalMode||isSettings)return;
+     const {data:{session}}=await sb.auth.getSession();
+     if(!session)return;
+     const btn=$('#member,#nexa-member,#continue-nexa,[data-entry="member"]');
+     if(btn) setTimeout(()=>btn.click(),50);
+    }
+    async function boot(){
+     hidePublicNavigation();
+     const row=await template();
+     if(row){
+       if(publicMode){addPublicDeadline(row.settings);if(!deadlineOpen(row.settings))closePublic()}
+       if(isSettings)utcDeadlineEditor(row);
+     }
+     internalBypass();
+    }
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
     })();

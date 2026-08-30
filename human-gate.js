@@ -1,4 +1,4 @@
-/* NEXA HUMAN GATE V2.3 — RUNTIME V5 CACHE BUST / ASCII STATUS TEXT */
+/* NEXA HUMAN GATE V2.5 — RUNTIME V7 CACHE BUST / ASCII STATUS TEXT */
 (()=>{
 'use strict';
 const SITE_KEY="0x4AAAAAAEQbiQbUBfI6Fc5x";
@@ -7,7 +7,7 @@ const SESSION_URL='/api/human-session';
 function loadFormRuntime(){
  if(document.querySelector('script[data-nexa-form-runtime]'))return;
  const s=document.createElement('script');
- s.src='/nexa-form-runtime-v1.js?v=5';
+ s.src='/nexa-form-runtime-v1.js?v=7';
  s.defer=true;
  s.dataset.nexaFormRuntime='1';
  document.head.appendChild(s);

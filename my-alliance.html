@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>My Alliance • NEXA</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--ma:#39ff9a;--ma-rgb:57,255,154}
+body{background:#02030a;color:#f8f7ff}
+.ma-wrap{width:min(980px,calc(100% - 24px));margin:0 auto;padding:18px 0 calc(70px + env(safe-area-inset-bottom))}
+.ma-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.ma-back{border:0;background:transparent;color:#8deeff;font-weight:900;padding:8px 0}
+.ma-guide{width:30px;height:30px;border-radius:50%;border:1px solid rgba(var(--ma-rgb),.45);background:rgba(7,28,24,.8);color:#9bffca;font-weight:1000}
+.ma-hero{position:relative;overflow:hidden;border:1px solid rgba(var(--ma-rgb),.45);border-radius:22px;padding:18px;background:radial-gradient(circle at 10% 0%,rgba(var(--ma-rgb),.12),transparent 34%),linear-gradient(145deg,rgba(9,24,34,.94),rgba(4,7,20,.97));box-shadow:0 0 28px rgba(var(--ma-rgb),.10)}
+.ma-hero:before{content:"";position:absolute;left:-1px;top:20px;width:3px;height:54px;border-radius:0 999px 999px 0;background:linear-gradient(180deg,transparent,rgba(var(--ma-rgb),1),#fff,rgba(var(--ma-rgb),1),transparent);box-shadow:0 0 8px rgba(var(--ma-rgb),.9),0 0 18px rgba(var(--ma-rgb),.45)}
+.ma-id{display:grid;grid-template-columns:58px 1fr;gap:12px;align-items:center}
+.ma-emblem{width:58px;height:58px;border-radius:18px;object-fit:contain;background:rgba(255,255,255,.03);border:1px solid rgba(var(--ma-rgb),.22)}
+.ma-kicker{font-size:8px;letter-spacing:.18em;color:#86f9bd;font-weight:1000}
+.ma-title{font-size:25px;font-weight:1000;margin:3px 0}
+.ma-sub{font-size:11px;color:#9facbf}
+.ma-counts{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}
+.ma-chip{padding:7px 10px;border-radius:999px;border:1px solid rgba(var(--ma-rgb),.18);background:rgba(8,28,26,.45);font-size:9px;color:#c9ffe1}
+.ma-tabs{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:14px 0 10px}
+.ma-tabs::-webkit-scrollbar{display:none}
+.ma-tab{flex:0 0 auto;white-space:nowrap;border:1px solid rgba(255,255,255,.10);background:rgba(8,12,29,.75);color:#9ca8c1;border-radius:999px;padding:10px 13px;font-size:10px;font-weight:950}
+.ma-tab.active{color:#d8ffea;border-color:rgba(var(--ma-rgb),.58);background:rgba(16,68,48,.30);box-shadow:0 0 14px rgba(var(--ma-rgb),.10)}
+.ma-panel{display:none}.ma-panel.active{display:block}
+.ma-card{position:relative;border:1px solid rgba(var(--ma-rgb),.20);border-radius:18px;padding:14px;margin-bottom:10px;background:linear-gradient(145deg,rgba(10,17,38,.90),rgba(4,8,22,.95))}
+.ma-card h3,.ma-card h4{margin:0 0 5px}
+.ma-muted{color:#93a0bb;font-size:11px;line-height:1.45}
+.ma-row{display:flex;gap:8px;align-items:center;justify-content:space-between}
+.ma-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.ma-btn{border:1px solid rgba(var(--ma-rgb),.34);background:rgba(14,67,49,.30);color:#c9ffe0;border-radius:11px;padding:9px 11px;font-size:9px;font-weight:950}
+.ma-btn.secondary{border-color:rgba(130,112,255,.28);background:rgba(32,28,76,.35);color:#d9d0ff}
+.ma-btn.danger{border-color:rgba(255,100,138,.36);background:rgba(72,15,35,.38);color:#ffc0d0}
+.ma-input,.ma-select{width:100%;box-sizing:border-box;min-height:40px;padding:9px 10px;border-radius:11px;border:1px solid rgba(122,143,203,.24);background:#080f25;color:white;font:inherit;font-size:11px}
+.ma-field{display:grid;gap:5px;margin-top:9px}
+.ma-field label{font-size:8px;font-weight:950;letter-spacing:.11em;color:#9eb0cd}
+.ma-member{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center}
+.ma-avatar{width:44px;height:44px;border-radius:14px;object-fit:cover;background:#12172d;border:1px solid rgba(255,255,255,.09)}
+.ma-rank{font-size:9px;font-weight:1000;color:#8dffd0}
+.ma-member-tools{display:grid;gap:8px;margin-top:11px;padding-top:10px;border-top:1px solid rgba(255,255,255,.07)}
+.ma-empty{text-align:center;padding:24px 14px;color:#8490aa;font-size:11px}
+.ma-event{border:1px solid rgba(var(--ma-rgb),.17);border-radius:16px;padding:12px;margin-top:9px;background:rgba(7,17,29,.48)}
+.ma-event-head{display:grid;grid-template-columns:minmax(0,1fr) 92px auto;gap:8px;align-items:end}
+.ma-slot-list{display:grid;gap:7px;margin-top:10px}
+.ma-remove{width:32px;height:32px;border-radius:10px;border:1px solid rgba(255,103,142,.28);background:rgba(75,17,34,.35);color:#ffc0ce}
+.ma-toggle{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.ma-switch{position:relative;width:54px;height:30px;flex:0 0 54px}
+.ma-switch input{opacity:0;width:0;height:0}
+.ma-slider{position:absolute;inset:0;border-radius:999px;background:#1a2138;border:1px solid rgba(255,255,255,.12);transition:.18s}
+.ma-slider:before{content:"";position:absolute;width:22px;height:22px;left:3px;top:3px;border-radius:50%;background:#828ca5;transition:.18s}
+.ma-switch input:checked+.ma-slider{background:rgba(28,119,76,.42);border-color:rgba(var(--ma-rgb),.55);box-shadow:0 0 15px rgba(var(--ma-rgb),.10)}
+.ma-switch input:checked+.ma-slider:before{transform:translateX(24px);background:#8cffbf;box-shadow:0 0 10px rgba(var(--ma-rgb),.5)}
+.ma-savebar{position:sticky;bottom:10px;z-index:10;margin-top:12px}
+.ma-savebar .ma-btn{width:100%;min-height:46px;border-radius:14px;background:linear-gradient(135deg,rgba(27,111,76,.78),rgba(17,79,80,.70));box-shadow:0 10px 30px rgba(0,0,0,.35),0 0 18px rgba(var(--ma-rgb),.12)}
+.ma-modal{position:fixed;inset:0;z-index:2147483647;display:grid;place-items:center;padding:15px;background:rgba(0,2,12,.82);backdrop-filter:blur(8px)}
+.ma-dialog{width:min(500px,100%);max-height:88dvh;overflow:auto;border:1px solid rgba(var(--ma-rgb),.35);border-radius:21px;padding:16px;background:linear-gradient(155deg,#0c1730,#050817);box-shadow:0 24px 80px rgba(0,0,0,.65)}
+.ma-status{min-height:18px;margin-top:8px;color:#8effca;font-size:10px;text-align:center}
+@media(max-width:580px){.ma-event-head{grid-template-columns:minmax(0,1fr) 82px}.ma-event-head .ma-remove{grid-column:2}.ma-title{font-size:22px}}
+</style>
+</head>
+<body>
+<div class="nebula-bg"></div><div class="starfield"></div>
+<main class="ma-wrap">
+  <div class="ma-top"><button class="ma-back" id="backBtn">← Home</button><button class="ma-guide" id="guideBtn">i</button></div>
+  <section class="ma-hero">
+    <div class="ma-id">
+      <img class="ma-emblem" id="emblem" alt="">
+      <div><div class="ma-kicker">MY ALLIANCE</div><div class="ma-title" id="allianceTitle">Loading…</div><div class="ma-sub" id="allianceSub">Connecting to your active WOS Account</div></div>
+    </div>
+    <div class="ma-counts" id="counts"></div>
+  </section>
+
+  <nav class="ma-tabs" id="tabs">
+    <button class="ma-tab active" data-tab="members">Members</button>
+    <button class="ma-tab" data-tab="pending">Pending Members</button>
+    <button class="ma-tab" data-tab="pulse">NEXA Pulse</button>
+    <button class="ma-tab" data-tab="history">Pulse History</button>
+    <button class="ma-tab" data-tab="schedule">Event Schedule</button>
+    <button class="ma-tab" data-tab="events">Alliance Events</button>
+  </nav>
+
+  <section class="ma-panel active" data-panel="members"><div id="membersHost"></div></section>
+  <section class="ma-panel" data-panel="pending"><div id="pendingHost"></div></section>
+  <section class="ma-panel" data-panel="pulse"><div id="pulseHost"></div></section>
+  <section class="ma-panel" data-panel="history"><div id="historyHost"></div></section>
+  <section class="ma-panel" data-panel="schedule"><div id="scheduleHost"></div></section>
+  <section class="ma-panel" data-panel="events"><div id="eventsHost"></div></section>
+</main>
+
+<script>
+(()=>{'use strict';
+const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
+const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
+const sb=window.supabase.createClient(SB_URL,SB_KEY);
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
+const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+let passport=null,allPassports=[],schedule=null;
+const activeState=()=>Number(String(localStorage.getItem('nexa_active_state_v49')||window.NEXA_ACTIVE_STATE||1518).replace(/\D/g,''))||1518;
+const activeAccountId=()=>String(localStorage.getItem('nexa_active_account_v49')||window.NEXA_ACTIVE_ACCOUNT_ID||'');
+async function rpc(name,args={}){const {data,error}=await sb.rpc(name,args);if(error)throw error;return data}
+function modal(html){const ov=document.createElement('div');ov.className='ma-modal';ov.innerHTML='<div class="ma-dialog">'+html+'</div>';document.body.appendChild(ov);ov.addEventListener('click',e=>{if(e.target===ov)ov.remove()});return ov}
+function setTab(tab){$$('.ma-tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));$$('.ma-panel').forEach(p=>p.classList.toggle('active',p.dataset.panel===tab));if(tab==='pending')loadPending();if(tab==='schedule')loadSchedule();if(tab==='pulse')loadPulse();if(tab==='history')loadHistory();if(tab==='events')loadAllianceEvents()}
+
+async function boot(){
+ const {data:{user}}=await sb.auth.getUser(); if(!user){location.href='index.html';return}
+ allPassports=await rpc('nexa_list_alliance_passports');
+ const {data:accounts,error}=await sb.from('player_accounts').select('id,alliance_id,state_number,is_main').eq('user_id',user.id); if(error)throw error;
+ const aid=activeAccountId();
+ const account=(accounts||[]).find(a=>String(a.id)===aid)||(accounts||[]).find(a=>Number(a.state_number)===activeState()&&a.is_main)||(accounts||[]).find(a=>Number(a.state_number)===activeState())||(accounts||[])[0];
+ if(!account?.alliance_id){$('#allianceTitle').textContent='No Alliance';$('#allianceSub').textContent='Your active WOS Account is not assigned to a NEXA alliance.';return}
+ passport=(allPassports||[]).find(a=>Number(a.id)===Number(account.alliance_id));
+ if(!passport){$('#allianceTitle').textContent='Alliance unavailable';return}
+ renderHero();renderMembers();loadPending();
+}
+
+function renderHero(){
+ $('#allianceTitle').textContent=`${passport.tag}${passport.name?' • '+passport.name:''}`;
+ $('#allianceSub').textContent=`State ${passport.stateNumber||activeState()} • Alliance Hub`;
+ $('#emblem').src=passport.emblemUrl||'/assets/nexa/alliances/Alliance_01_Stellar_Guardians.png';
+ $('#counts').innerHTML=`<span class="ma-chip">${passport.registeredMembers||0} Members</span><span class="ma-chip">${passport.pendingMembers||0} Pending</span>${passport.serverRank?`<span class="ma-chip">Rank #${esc(passport.serverRank)}</span>`:''}`;
+}
+
+function renderMembers(){
+ const host=$('#membersHost'), members=passport?.members||[];
+ if(!members.length){host.innerHTML='<div class="ma-card ma-empty">No verified members yet.</div>';return}
+ host.innerHTML=members.map(m=>`<article class="ma-card">
+   <div class="ma-member"><img class="ma-avatar" src="${esc(m.photo||'')}" onerror="this.style.visibility='hidden'"><div><h4>${esc(m.name)}</h4><div class="ma-muted">ID ${esc(m.gameId)}</div></div><div class="ma-rank">${esc(m.rank||'R3')}</div></div>
+   ${passport.canAssignRanks?`<div class="ma-member-tools"><div class="ma-row"><select class="ma-select" data-rank="${esc(m.accountId)}">${['R5','R4','R3','R2','R1'].map(r=>`<option ${r===String(m.rank).toUpperCase()?'selected':''}>${r}</option>`).join('')}</select><button class="ma-btn" data-save-rank="${esc(m.accountId)}">Save Rank</button></div><div class="ma-actions"><button class="ma-btn secondary" data-move="${esc(m.accountId)}">Move Alliance</button><button class="ma-btn danger" data-remove="${esc(m.accountId)}">Remove Member</button></div></div>`:''}
+ </article>`).join('');
+ $$('[data-save-rank]',host).forEach(b=>b.onclick=()=>saveRank(b.dataset.saveRank));
+ $$('[data-remove]',host).forEach(b=>b.onclick=()=>removeMember(b.dataset.remove));
+ $$('[data-move]',host).forEach(b=>b.onclick=()=>moveMember(b.dataset.move));
+}
+async function reloadPassport(){allPassports=await rpc('nexa_list_alliance_passports');passport=allPassports.find(a=>Number(a.id)===Number(passport.id));renderHero();renderMembers()}
+async function saveRank(id){const sel=$(`[data-rank="${CSS.escape(id)}"]`);try{await rpc('nexa_manage_alliance_member',{p_account_id:id,p_action:'rank',p_new_rank:sel.value,p_target_alliance_id:null});await reloadPassport()}catch(e){alert(e.message)}}
+async function removeMember(id){if(!confirm('Remove this member from the alliance?'))return;try{await rpc('nexa_manage_alliance_member',{p_account_id:id,p_action:'remove',p_new_rank:null,p_target_alliance_id:null});await reloadPassport()}catch(e){alert(e.message)}}
+function moveMember(id){
+ const options=(allPassports||[]).filter(a=>Number(a.id)!==Number(passport.id)&&a.active).map(a=>`<option value="${a.id}">${esc(a.tag)}${a.name?' • '+esc(a.name):''}</option>`).join('');
+ const ov=modal(`<h3>Move Alliance</h3><p class="ma-muted">Choose the member's destination alliance.</p><div class="ma-field"><label>DESTINATION</label><select class="ma-select" id="moveTarget">${options}</select></div><div class="ma-actions"><button class="ma-btn secondary" id="cancelMove">Cancel</button><button class="ma-btn" id="confirmMove">Move Member</button></div>`);
+ $('#cancelMove',ov).onclick=()=>ov.remove();
+ $('#confirmMove',ov).onclick=async()=>{try{await rpc('nexa_manage_alliance_member',{p_account_id:id,p_action:'move',p_new_rank:null,p_target_alliance_id:Number($('#moveTarget',ov).value)});ov.remove();await reloadPassport()}catch(e){alert(e.message)}};
+}
+
+async function loadPending(){
+ const host=$('#pendingHost'); if(!passport)return;
+ try{
+   const pending=await rpc('nexa_list_pending_alliance_members',{p_alliance_id:Number(passport.id)});
+   if(!pending.length){host.innerHTML='<div class="ma-card ma-empty">No pending members.</div>';return}
+   host.innerHTML=pending.map(p=>`<article class="ma-card"><div class="ma-member"><img class="ma-avatar" src="${esc(p.photo||'')}" onerror="this.style.visibility='hidden'"><div><h4>${esc(p.name)}</h4><div class="ma-muted">ID ${esc(p.gameId)}</div></div><div class="ma-rank">Pending</div></div><div class="ma-actions"><button class="ma-btn" data-approve="${p.accountId}">Approve</button><button class="ma-btn danger" data-reject="${p.accountId}">Reject</button></div></article>`).join('');
+   $$('[data-approve]',host).forEach(b=>b.onclick=()=>approvePending(b.dataset.approve));
+   $$('[data-reject]',host).forEach(b=>b.onclick=()=>rejectPending(b.dataset.reject));
+ }catch(e){host.innerHTML=`<div class="ma-card ma-empty">${esc(e.message)}</div>`}
+}
+function approvePending(id){
+ const ov=modal(`<h3>Approve Member</h3><p class="ma-muted">Choose the alliance rank before approving.</p><div class="ma-field"><label>ALLIANCE RANK</label><select class="ma-select" id="approveRank"><option>R4</option><option selected>R3</option><option>R2</option><option>R1</option></select></div><div class="ma-actions"><button class="ma-btn secondary" id="cancelApprove">Cancel</button><button class="ma-btn" id="confirmApprove">Approve Member</button></div>`);
+ $('#cancelApprove',ov).onclick=()=>ov.remove();
+ $('#confirmApprove',ov).onclick=async()=>{try{const rank=$('#approveRank',ov).value;await rpc('nexa_manage_alliance_member',{p_account_id:id,p_action:'approve',p_new_rank:null,p_target_alliance_id:null});await rpc('nexa_manage_alliance_member',{p_account_id:id,p_action:'rank',p_new_rank:rank,p_target_alliance_id:null});ov.remove();await reloadPassport();await loadPending()}catch(e){alert(e.message)}};
+}
+async function rejectPending(id){if(!confirm('Reject this pending member?'))return;try{await rpc('nexa_reject_alliance_member',{p_account_id:id});await reloadPassport();await loadPending()}catch(e){alert(e.message)}}
+
+function normalizeSchedule(data){
+ let ev=Array.isArray(data?.events)?data.events:[];
+ if(!ev.length)ev=[
+   {key:'bear_trap',name:'Bear Trap',slots:[],isCustom:false,sortOrder:10},
+   {key:'foundry',name:'Foundry',slots:[],isCustom:false,sortOrder:20},
+   {key:'canyon',name:'Canyon',slots:[],isCustom:false,sortOrder:30}
+ ];
+ return {showInTransfer:!!data?.showInTransfer,canEdit:!!data?.canEdit,events:ev.map((e,i)=>({...e,slots:Array.isArray(e.slots)?e.slots:[],sortOrder:e.sortOrder??(i+1)*10}))};
+}
+async function loadSchedule(){
+ const host=$('#scheduleHost'); if(!passport)return;
+ try{schedule=normalizeSchedule(await rpc('nexa_get_alliance_event_schedule',{p_alliance_id:Number(passport.id)}));renderSchedule()}
+ catch(e){host.innerHTML=`<div class="ma-card ma-empty">${esc(e.message)}</div>`}
+}
+function renderSchedule(){
+ const host=$('#scheduleHost');
+ host.innerHTML=`<div class="ma-card"><div class="ma-toggle"><div><h3>Show in Transfer</h3><div class="ma-muted">When ON, Transfer can display this alliance's saved event schedule. The Transfer form itself will be connected later.</div></div><label class="ma-switch"><input id="showTransfer" type="checkbox" ${schedule.showInTransfer?'checked':''} ${schedule.canEdit?'':'disabled'}><span class="ma-slider"></span></label></div></div>
+ <div class="ma-card"><h3>Event Schedule</h3><div class="ma-muted">Set recurring Bear Trap, Foundry, Canyon, or custom event times. Times are stored in UTC and can be edited any time.</div><div id="eventList"></div>${schedule.canEdit?'<div class="ma-actions"><button class="ma-btn secondary" id="addEvent">+ Add Event</button></div>':''}</div>
+ ${schedule.canEdit?'<div class="ma-savebar"><button class="ma-btn" id="saveSchedule">Save Event Schedule</button><div class="ma-status" id="scheduleStatus"></div></div>':''}`;
+ renderEventList();
+ if(schedule.canEdit){$('#addEvent').onclick=addCustomEvent;$('#saveSchedule').onclick=saveSchedule}
+}
+function renderEventList(){
+ const list=$('#eventList');
+ list.innerHTML=schedule.events.map((e,idx)=>`<div class="ma-event" data-event="${idx}"><div class="ma-event-head"><div class="ma-field"><label>EVENT</label><input class="ma-input" data-name="${idx}" value="${esc(e.name)}" ${!e.isCustom?'readonly':''}></div><div class="ma-field"><label>TIME SLOTS</label><select class="ma-select" data-count="${idx}" ${schedule.canEdit?'':'disabled'}>${Array.from({length:8},(_,i)=>`<option value="${i+1}" ${(e.slots.length||1)===i+1?'selected':''}>${i+1}</option>`).join('')}</select></div>${e.isCustom&&schedule.canEdit?`<button class="ma-remove" data-delete-event="${idx}">×</button>`:''}</div><div class="ma-slot-list" data-slots="${idx}"></div></div>`).join('');
+ schedule.events.forEach((e,i)=>{if(!e.slots.length)e.slots=[''];renderSlots(i)});
+ $$('[data-count]',list).forEach(s=>s.onchange=()=>{const i=Number(s.dataset.count),n=Number(s.value),old=schedule.events[i].slots||[];schedule.events[i].slots=Array.from({length:n},(_,x)=>old[x]||'');renderSlots(i)});
+ $$('[data-delete-event]',list).forEach(b=>b.onclick=()=>{schedule.events.splice(Number(b.dataset.deleteEvent),1);renderSchedule()});
+}
+function renderSlots(i){
+ const host=$(`[data-slots="${i}"]`); if(!host)return;
+ host.innerHTML=(schedule.events[i].slots||[]).map((v,j)=>`<div class="ma-field"><label>${esc(schedule.events[i].name)} ${j+1} • UTC</label><input class="ma-input" type="time" value="${esc(v||'')}" data-time="${i}:${j}" ${schedule.canEdit?'':'disabled'}></div>`).join('');
+ $$(`[data-time^="${i}:"]`,host).forEach(inp=>inp.oninput=()=>{const [a,b]=inp.dataset.time.split(':').map(Number);schedule.events[a].slots[b]=inp.value});
+}
+function addCustomEvent(){schedule.events.push({key:'custom_'+Date.now(),name:'New Event',slots:[''],isCustom:true,sortOrder:(schedule.events.length+1)*10});renderSchedule()}
+async function saveSchedule(){
+ const st=$('#scheduleStatus');st.textContent='Saving…';
+ schedule.events.forEach((e,i)=>{const n=$(`[data-name="${i}"]`);if(n)e.name=n.value.trim()||e.name;e.slots=(e.slots||[]).filter(Boolean);e.sortOrder=(i+1)*10});
+ try{await rpc('nexa_save_alliance_event_schedule',{p_alliance_id:Number(passport.id),p_events:schedule.events,p_show_in_transfer:$('#showTransfer').checked});st.textContent='Saved';await loadSchedule()}
+ catch(e){st.textContent=e.message}
+}
+
+async function loadPulse(){
+ const host=$('#pulseHost');
+ try{
+   const {data:events,error}=await sb.from('svs_events').select('id,title,opponent_state,status,battle_form_open,prep_form_open,prep_monday').eq('state_number',activeState()).in('status',['live','upcoming']).order('prep_monday',{ascending:true}).limit(1);
+   if(error)throw error; const ev=events?.[0];
+   if(!ev){host.innerHTML='<div class="ma-card ma-empty">No active SvS Pulse right now.</div>';return}
+   const members=(passport.members||[]).map(m=>m.accountId); let battle=[],ministry=[];
+   if(members.length){
+     const br=await sb.from('battle_form_responses').select('player_account_id').eq('event_id',ev.id).in('player_account_id',members); battle=br.data||[];
+     const pr=await sb.from('prep_requests').select('player_account_id').eq('event_id',ev.id).in('player_account_id',members); ministry=pr.data||[];
+   }
+   host.innerHTML=`<div class="ma-card"><div class="ma-kicker">SVS PULSE</div><h3>${esc(ev.title||'SvS vs State '+ev.opponent_state)}</h3><div class="ma-muted">Response monitoring for your alliance.</div></div><div class="ma-card"><div class="ma-tabs" style="padding:0 0 10px"><button class="ma-tab active" data-pulse-tab="battle">Battle Sign-Up</button><button class="ma-tab" data-pulse-tab="ministry">Ministry Sign-Up</button></div><div id="pulseList"></div></div>`;
+   const render=kind=>{
+     const set=new Set((kind==='battle'?battle:ministry).map(x=>String(x.player_account_id)));
+     const completed=(passport.members||[]).filter(m=>set.has(String(m.accountId))), missing=(passport.members||[]).filter(m=>!set.has(String(m.accountId)));
+     $('#pulseList').innerHTML=`<div class="ma-row"><strong>Completed</strong><span class="ma-rank">${completed.length}</span></div><div class="ma-muted">${completed.map(m=>esc(m.name)).join(' • ')||'None yet'}</div><div style="height:10px"></div><div class="ma-row"><strong>Missing</strong><span class="ma-rank">${missing.length}</span></div><div class="ma-muted">${missing.map(m=>esc(m.name)).join(' • ')||'None'}</div>${passport.canAssignRanks?'<div class="ma-actions"><button class="ma-btn secondary" id="fillMember">Fill for a Member</button></div>':''}`;
+     $('#fillMember')?.addEventListener('click',()=>alert('Fill for a Member is reserved here for the Forms Center response workflow and will be connected when the external/public form routing is built.'));
+   };
+   render('battle');
+   $$('[data-pulse-tab]').forEach(b=>b.onclick=()=>{$$('[data-pulse-tab]').forEach(x=>x.classList.toggle('active',x===b));render(b.dataset.pulseTab)});
+ }catch(e){host.innerHTML=`<div class="ma-card ma-empty">${esc(e.message)}</div>`}
+}
+async function loadHistory(){
+ const host=$('#historyHost');
+ try{
+   const {data,error}=await sb.from('svs_events').select('id,title,opponent_state,status,prep_monday,ended_at').eq('state_number',activeState()).eq('status','ended').order('prep_monday',{ascending:false}).limit(12);
+   if(error)throw error;
+   host.innerHTML=(data||[]).length?(data||[]).map(e=>`<div class="ma-card"><h4>${esc(e.title||'SvS vs State '+e.opponent_state)}</h4><div class="ma-muted">${esc(e.prep_monday||'')} • Ended</div></div>`).join(''):'<div class="ma-card ma-empty">No Pulse history yet.</div>';
+ }catch(e){host.innerHTML=`<div class="ma-card ma-empty">${esc(e.message)}</div>`}
+}
+async function loadAllianceEvents(){
+ const host=$('#eventsHost');
+ try{
+   const {data,error}=await sb.from('svs_events').select('id,title,opponent_state,status,prep_monday').eq('state_number',activeState()).order('prep_monday',{ascending:false}).limit(12);
+   if(error)throw error;
+   host.innerHTML=`<div class="ma-card"><h3>Alliance Events</h3><div class="ma-muted">Actual alliance event activity stays separate from the recurring Event Schedule.</div></div>`+((data||[]).map(e=>`<div class="ma-card"><div class="ma-row"><div><h4>${esc(e.title||'SvS vs State '+e.opponent_state)}</h4><div class="ma-muted">${esc(e.prep_monday||'')}</div></div><span class="ma-rank">${esc(e.status)}</span></div></div>`).join('')||'<div class="ma-card ma-empty">No alliance events available.</div>');
+ }catch(e){host.innerHTML=`<div class="ma-card ma-empty">${esc(e.message)}</div>`}
+}
+
+$('#tabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)setTab(b.dataset.tab)});
+$('#backBtn').onclick=()=>location.href='index.html';
+$('#guideBtn').onclick=()=>modal(`<h3>My Alliance Guide</h3><p class="ma-muted"><b>Members</b> is your verified alliance roster. Leadership can manage ranks, move members, or remove them.</p><p class="ma-muted"><b>Pending Members</b> is where leadership approves new members and assigns their rank.</p><p class="ma-muted"><b>NEXA Pulse</b> is the live alliance workspace for current event responses, including Battle Sign-Up and Ministry Sign-Up.</p><p class="ma-muted"><b>Pulse History</b> keeps past event activity.</p><p class="ma-muted"><b>Event Schedule</b> stores recurring Bear Trap, Foundry, Canyon, and custom event times. R5 can edit them and choose whether they are exposed to Transfer later.</p><p class="ma-muted"><b>Alliance Events</b> is for actual alliance event activity, separate from recurring schedule settings.</p><div class="ma-actions"><button class="ma-btn" onclick="this.closest('.ma-modal').remove()">Got it</button></div>`);
+
+boot().catch(e=>{$('#allianceTitle').textContent='Unable to load';$('#allianceSub').textContent=e.message});
+})();
+</script>
+</body>
+</html>

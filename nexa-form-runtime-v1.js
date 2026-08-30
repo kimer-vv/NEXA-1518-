@@ -151,7 +151,8 @@ function deadlineEditor(row){
  <button id="nd3-save" type="button" class="btn">Save Deadline</button><div id="nd3-status" style="min-height:18px;margin-top:8px;color:#8ef0cf"></div>`;
  let anchor=null;
  if(path.includes('tal-settings'))anchor=$('#save')?.closest('section');
- else anchor=$('.form-actions,.actions,.save-box')||$('main')?.lastElementChild;
+else if(path.includes('fdt-settings'))anchor=$('.save-box');
+else anchor=$('.form-actions,.save-box,.actions')||$('main')?.lastElementChild;
  if(anchor?.parentNode)anchor.parentNode.insertBefore(sec,anchor);
  else ($('main')||document.body).appendChild(sec);
  $('#nd3-save').onclick=async()=>{

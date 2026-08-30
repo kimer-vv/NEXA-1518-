@@ -1260,7 +1260,7 @@ async function buildOwnedHomeMenuRoot(){
   const {card}=ownedMenuNodes();if(!card)return;
   card.innerHTML='';const wrap=document.createElement('div');wrap.className='nexa-v49-menu-root';card.appendChild(wrap);
   const tag=currentAllianceTag();
-  ownedMenuButton(wrap,`My Alliance${tag?' • '+tag:''}`,()=>ownedMenuGo('index.html?admin=administration&tab=alliances'),{kind:'alliance'});
+  ownedMenuButton(wrap,`My Alliance${tag?' • '+tag:''}`,()=>ownedMenuGo('my-alliance.html'),{kind:'alliance'});
   ownedMenuButton(wrap,'Report Bugs',()=>{closeOwnedMenu();const b=$('#nexa-v4481-report-bugs')||$$('button,a').find(x=>/^report bugs$/i.test(String(x.textContent||'').trim()));b?.click()},{kind:'report'});
   ownedMenuSep(wrap);ownedMenuLabel(wrap,'TOOLS');
   ownedMenuButton(wrap,'Administration',openOwnedAdministrationMenu,{submenu:true});

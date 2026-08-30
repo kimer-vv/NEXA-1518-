@@ -1,8 +1,8 @@
-/* NEXA FORM RUNTIME V4.2 — UNIFIED FORMS VISUALS / UTC DEADLINES / MINISTRY SCHEDULE */
+/* NEXA FORM RUNTIME V4.3 — WIDE UNIFIED FORMS / NATIVE DEADLINE SUPPORT / MINISTRY SCHEDULE */
 (()=>{
 'use strict';
-if(window.__NEXA_FORM_RUNTIME_V42__) return;
-window.__NEXA_FORM_RUNTIME_V42__=true;
+if(window.__NEXA_FORM_RUNTIME_V43__) return;
+window.__NEXA_FORM_RUNTIME_V43__=true;
 
 const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
@@ -21,7 +21,7 @@ function addGlobalCSS(){
  if($('#nexa-runtime-v4-css'))return;
  const s=document.createElement('style');s.id='nexa-runtime-v4-css';
  s.textContent=`
- .nexa-deadline-v3{width:calc(100% - 36px)!important;max-width:684px!important;margin:16px 0 16px 18px!important;padding:18px!important;box-sizing:border-box!important;border:1px solid rgba(72,221,255,.34)!important;border-radius:20px!important;background:rgba(7,16,35,.78)!important;overflow:hidden!important}
+ .nexa-deadline-v3{width:calc(100% - 18px)!important;max-width:702px!important;margin:16px 0 16px 18px!important;padding:18px!important;box-sizing:border-box!important;border:1px solid rgba(72,221,255,.34)!important;border-radius:20px!important;background:rgba(7,16,35,.78)!important;overflow:hidden!important}
  .nexa-deadline-v3 h3{margin:0 0 8px!important;font-size:1.35rem!important}.nexa-deadline-v3 p{margin:0 0 16px!important;line-height:1.45!important;color:#aeb7d1!important}
  .nexa-deadline-enable{display:flex!important;align-items:center!important;gap:10px!important;margin:0 0 16px!important;font-weight:900!important}
  .nexa-deadline-enable input{width:24px!important;height:24px!important;min-height:24px!important;flex:0 0 24px!important;accent-color:#54f0b5!important}
@@ -29,7 +29,7 @@ function addGlobalCSS(){
  .nexa-deadline-time{display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important}.nexa-deadline-v3 label{min-width:0!important}
  .nexa-deadline-v3 input[type=date],.nexa-deadline-v3 select{display:block!important;width:100%!important;min-width:0!important;min-inline-size:0!important;max-width:100%!important;min-height:48px!important;padding:10px 12px!important;box-sizing:border-box!important;overflow:hidden!important;border-radius:13px!important;background:#081126!important;color:#fff!important;font-size:16px!important;border:1px solid rgba(119,142,210,.32)!important}
  .nexa-deadline-utc{margin:10px 0 8px!important;color:#8fefff!important;font-weight:950!important}.nexa-deadline-note{font-size:12px!important;line-height:1.45!important;color:#9ca9c9!important}
- .nexa-public-deadline{width:calc(100% - 36px)!important;max-width:684px!important;margin:12px 18px 16px!important;padding:13px 15px!important;box-sizing:border-box!important;border:1px solid rgba(72,221,255,.28)!important;border-radius:15px!important;background:rgba(8,18,38,.78)!important;line-height:1.4!important;font-weight:850!important}
+ .nexa-public-deadline{width:calc(100% - 18px)!important;max-width:702px!important;margin:12px 18px 16px!important;padding:13px 15px!important;box-sizing:border-box!important;border:1px solid rgba(72,221,255,.28)!important;border-radius:15px!important;background:rgba(8,18,38,.78)!important;line-height:1.4!important;font-weight:850!important}
  body.nexa-tal-page .head,body.nexa-tal-page .panel-head{display:block!important;position:static!important;width:calc(100% - 36px)!important;max-width:none!important;margin:18px 0 20px 18px!important;padding:0!important;text-align:left!important;columns:auto!important;column-count:1!important}
  body.nexa-tal-page .head>* ,body.nexa-tal-page .panel-head>*{display:block!important;float:none!important;position:static!important;width:auto!important;max-width:100%!important;margin-left:0!important;margin-right:0!important;transform:none!important;text-align:left!important}
  body.nexa-tal-page .head h1,body.nexa-tal-page .panel-head h1{font-size:clamp(2rem,8vw,3rem)!important;line-height:1.04!important;margin:7px 0!important}
@@ -53,10 +53,10 @@ function addGlobalCSS(){
  body:has(.head) main.sh>.card,
  body:has(.ms-hero) .ms-card,
  body:has(.ms-hero) main.ms-shell>.actions{
-   width:calc(100% - 36px)!important;
-   max-width:684px!important;
+   width:calc(100% - 18px)!important;
+   max-width:702px!important;
    margin-left:18px!important;
-   margin-right:18px!important;
+   margin-right:0!important;
    box-sizing:border-box!important;
  }
  body:has(.setting-card) .battle-grid .setting-card{width:100%!important;max-width:100%!important;margin-left:0!important;margin-right:0!important}
@@ -88,7 +88,7 @@ function addGlobalCSS(){
  @media(max-width:560px){
    body:has(.setting-card) .setting-card,body:has(.setting-card) .battle-grid,body:has(.setting-card) .form-actions,
    body:has(.fdt-head) .card,body:has(.head) main.sh>.card,body:has(.ms-hero) .ms-card,body:has(.ms-hero) main.ms-shell>.actions{
-     width:calc(100% - 36px)!important;max-width:calc(100% - 36px)!important;margin-left:18px!important;margin-right:18px!important;
+     width:calc(100% - 18px)!important;max-width:calc(100% - 18px)!important;margin-left:18px!important;margin-right:0!important;
    }
  }
 

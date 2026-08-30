@@ -1,8 +1,8 @@
-/* NEXA FORM RUNTIME V4.0 — UNIFIED DEADLINE SAVE / UTC CONFIRMATION / PUBLIC ACCESS / TAL COLLAPSIBLE TIMES */
+/* NEXA FORM RUNTIME V4.2 — UNIFIED FORMS VISUALS / UTC DEADLINES / MINISTRY SCHEDULE */
 (()=>{
 'use strict';
-if(window.__NEXA_FORM_RUNTIME_V40__) return;
-window.__NEXA_FORM_RUNTIME_V40__=true;
+if(window.__NEXA_FORM_RUNTIME_V42__) return;
+window.__NEXA_FORM_RUNTIME_V42__=true;
 
 const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
@@ -21,7 +21,7 @@ function addGlobalCSS(){
  if($('#nexa-runtime-v4-css'))return;
  const s=document.createElement('style');s.id='nexa-runtime-v4-css';
  s.textContent=`
- .nexa-deadline-v3{width:calc(100% - 18px)!important;max-width:calc(100% - 18px)!important;margin:16px 0 16px 18px!important;padding:18px!important;box-sizing:border-box!important;border:1px solid rgba(72,221,255,.34)!important;border-radius:20px!important;background:rgba(7,16,35,.78)!important;overflow:hidden!important}
+ .nexa-deadline-v3{width:calc(100% - 36px)!important;max-width:684px!important;margin:16px 0 16px 18px!important;padding:18px!important;box-sizing:border-box!important;border:1px solid rgba(72,221,255,.34)!important;border-radius:20px!important;background:rgba(7,16,35,.78)!important;overflow:hidden!important}
  .nexa-deadline-v3 h3{margin:0 0 8px!important;font-size:1.35rem!important}.nexa-deadline-v3 p{margin:0 0 16px!important;line-height:1.45!important;color:#aeb7d1!important}
  .nexa-deadline-enable{display:flex!important;align-items:center!important;gap:10px!important;margin:0 0 16px!important;font-weight:900!important}
  .nexa-deadline-enable input{width:24px!important;height:24px!important;min-height:24px!important;flex:0 0 24px!important;accent-color:#54f0b5!important}
@@ -44,6 +44,54 @@ function addGlobalCSS(){
  .nexa-confirm-card h3{margin:0 0 10px}.nexa-confirm-main{font-weight:950;color:#8fefff;font-size:17px;margin:10px 0}.nexa-confirm-local{padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.05);color:#d6dcef;margin:10px 0 14px}
  .nexa-confirm-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.nexa-confirm-actions button{min-height:46px;border-radius:13px;border:1px solid rgba(72,221,255,.34);background:linear-gradient(135deg,rgba(19,104,111,.82),rgba(61,49,139,.78));color:#fff;font-weight:950}.nexa-confirm-actions .cancel{background:rgba(255,255,255,.05)}
  @media(max-width:560px){.nexa-deadline-time{grid-template-columns:1fr 1fr!important}}
+
+ /* One visual family for every Edit Form */
+ body:has(.setting-card) .setting-card,
+ body:has(.setting-card) .battle-grid,
+ body:has(.setting-card) .form-actions,
+ body:has(.fdt-head) .card,
+ body:has(.head) main.sh>.card,
+ body:has(.ms-hero) .ms-card,
+ body:has(.ms-hero) main.ms-shell>.actions{
+   width:calc(100% - 36px)!important;
+   max-width:684px!important;
+   margin-left:18px!important;
+   margin-right:18px!important;
+   box-sizing:border-box!important;
+ }
+ body:has(.setting-card) .battle-grid .setting-card{width:100%!important;max-width:100%!important;margin-left:0!important;margin-right:0!important}
+ body:has(.setting-card) .setting-card,
+ body:has(.fdt-head) .card,
+ body:has(.head) main.sh>.card,
+ body:has(.ms-hero) .ms-card{
+   padding:18px!important;
+   border-radius:20px!important;
+   border:1px solid rgba(72,221,255,.20)!important;
+   background:rgba(8,16,35,.68)!important;
+   overflow:hidden!important;
+ }
+ body:has(.fdt-head) .shell,body:has(.panel-head) .shell,body:has(.head) .sh,body:has(.ms-hero) .ms-shell{max-width:720px!important;margin:0 auto!important;padding-left:16px!important;padding-right:16px!important}
+ body:has(.setting-card) input,body:has(.setting-card) select,body:has(.setting-card) textarea,
+ body:has(.fdt-head) input,body:has(.fdt-head) select,body:has(.fdt-head) textarea,
+ body:has(.head) main.sh input,body:has(.head) main.sh select,body:has(.head) main.sh textarea,
+ body:has(.ms-hero) input,body:has(.ms-hero) select,body:has(.ms-hero) textarea{
+   width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;
+   min-height:48px!important;padding:10px 12px!important;border-radius:13px!important;
+   background:#081126!important;color:#fff!important;border:1px solid rgba(119,142,210,.32)!important;font-size:16px!important;color-scheme:dark!important;
+ }
+ body:has(.setting-card) input[type=date],body:has(.fdt-head) input[type=date],body:has(.head) main.sh input[type=date],body:has(.ms-hero) input[type=date]{
+   display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;min-inline-size:0!important;padding:10px 12px!important;
+ }
+ .nexa-unified-time-grid{display:grid!important;grid-template-columns:1fr 1fr!important;gap:12px!important}
+ .nexa-unified-date{display:grid!important;gap:7px!important;margin-bottom:14px!important}
+ .nexa-unified-time-grid label{display:grid!important;gap:7px!important;min-width:0!important}
+ @media(max-width:560px){
+   body:has(.setting-card) .setting-card,body:has(.setting-card) .battle-grid,body:has(.setting-card) .form-actions,
+   body:has(.fdt-head) .card,body:has(.head) main.sh>.card,body:has(.ms-hero) .ms-card,body:has(.ms-hero) main.ms-shell>.actions{
+     width:calc(100% - 36px)!important;max-width:calc(100% - 36px)!important;margin-left:18px!important;margin-right:18px!important;
+   }
+ }
+
  `;
  document.head.appendChild(s);
 }
@@ -125,11 +173,23 @@ function deadlineEditor(row){
  if(anchor?.parentNode)anchor.parentNode.insertBefore(sec,anchor);else($('main')||document.body).appendChild(sec);
 }
 function isPrimarySave(el){
- const b=el?.closest?.('button,input[type="button"],input[type="submit"]');if(!b)return null;
- const txt=(b.textContent||b.value||'').trim().toLowerCase();
- const inFinal=!!b.closest('.form-actions,.save-box')||b.id==='save';
- if(!inFinal)return null;
- return /^save form\b/.test(txt)||txt.includes('save & publish')||txt.includes('save and publish')||txt==='save';
+ const b=el?.closest?.('button,input[type="button"],input[type="submit"],a.btn');if(!b)return null;
+ if(b.closest('#nexa-deadline-v3,.nexa-confirm-backdrop'))return null;
+ if(b.disabled||b.getAttribute('aria-disabled')==='true')return null;
+ const txt=(b.textContent||b.value||b.getAttribute('aria-label')||'').trim().toLowerCase();
+ if(!txt)return null;
+ const looksLikeSave=txt.includes('save')||txt.includes('publish');
+ const looksLikePreview=txt.includes('preview')||txt.includes('open form')||txt.includes('copy link')||txt.includes('remove')||txt.includes('restore')||txt.includes('unpublish');
+ if(!looksLikeSave||looksLikePreview)return null;
+ return b;
+}
+function showSmallAlert(message){
+ $('#nexa-deadline-confirm')?.remove();
+ const wrap=document.createElement('div');wrap.id='nexa-deadline-confirm';wrap.className='nexa-confirm-backdrop';
+ wrap.innerHTML=`<div class="nexa-confirm-card"><h3>Deadline Needed</h3><p style="color:#aeb7d1;line-height:1.45">${message}</p><div class="nexa-confirm-actions" style="grid-template-columns:1fr"><button class="yes" type="button">OK</button></div></div>`;
+ document.body.appendChild(wrap);
+ wrap.querySelector('.yes').onclick=()=>wrap.remove();
+ wrap.addEventListener('click',e=>{if(e.target===wrap)wrap.remove()});
 }
 function showDeadlineConfirm(v,onYes){
  $('#nexa-deadline-confirm')?.remove();
@@ -145,22 +205,23 @@ function showDeadlineConfirm(v,onYes){
  wrap.querySelector('.yes').onclick=()=>{wrap.remove();onYes()};
 }
 async function syncDeadlineAfterNativeSave(row,v,beforeUpdated){
- for(let i=0;i<16;i++){
-  await new Promise(r=>setTimeout(r,250));
-  const {data}=await sb.from('event_form_templates').select('settings,updated_at').eq('id',row.id).maybeSingle();
-  if(data&&(data.updated_at!==beforeUpdated||i===15)){
-    const next={...(data.settings||{}),deadline_enabled:v.enabled,deadline_at:v.iso};
-    await sb.from('event_form_templates').update({settings:next,updated_at:new Date().toISOString()}).eq('id',row.id);
-    row.settings=next;row.updated_at=new Date().toISOString();return;
-  }
+ let latest=null;
+ for(let i=0;i<10;i++){
+  await new Promise(r=>setTimeout(r,220));
+  const {data}=await sb.from('event_form_templates').select('settings,updated_at').eq('event_type_key',eventKey).maybeSingle();
+  if(data){latest=data;if(data.updated_at!==beforeUpdated)break;}
  }
+ const base=latest?.settings||row.settings||{};
+ const next={...base,deadline_enabled:v.enabled,deadline_at:v.iso};
+ await sb.from('event_form_templates').update({settings:next,updated_at:new Date().toISOString()}).eq('event_type_key',eventKey);
+ row.settings=next;row.updated_at=new Date().toISOString();
 }
 function bindUnifiedDeadlineSave(row){
  if(!isSettings||!deadlineKey||!row)return;
  document.addEventListener('click',e=>{
    const b=isPrimarySave(e.target);if(!b)return;
    const v=deadlineValue();
-   if(v.error){e.preventDefault();e.stopImmediatePropagation();alert(v.error);return}
+   if(v.error){e.preventDefault();e.stopImmediatePropagation();showSmallAlert(v.error);return}
    if(b.dataset.nexaDeadlineConfirmed==='1'){
      const before=row.updated_at;
      setTimeout(()=>syncDeadlineAfterNativeSave(row,v,before),0);
@@ -171,12 +232,81 @@ function bindUnifiedDeadlineSave(row){
      showDeadlineConfirm(v,()=>{
        b.dataset.nexaDeadlineConfirmed='1';
        b.click();
-       setTimeout(()=>delete b.dataset.nexaDeadlineConfirmed,0);
+       setTimeout(()=>delete b.dataset.nexaDeadlineConfirmed,250);
      });
    }else{
      const before=row.updated_at;
      setTimeout(()=>syncDeadlineAfterNativeSave(row,v,before),0);
    }
+ },true);
+}
+
+function ministryScheduleValue(){
+ const dt=$('#nms-date')?.value||'';
+ if(!dt)return {error:'Choose the Ministry schedule start date in UTC.'};
+ const iso=new Date(`${dt}T${$('#nms-hour')?.value||'00'}:${$('#nms-minute')?.value||'00'}:00Z`).toISOString();
+ return {iso};
+}
+function ministryScheduleEditor(row){
+ if(!isSettings||eventKey!=='ministry'||!row)return;
+ if($('#nexa-ministry-schedule'))return;
+ const s=row.settings||{},d=s.ministry_schedule_start_at?new Date(s.ministry_schedule_start_at):null;
+ const date=d?`${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`:'';
+ const hh=d?String(d.getUTCHours()).padStart(2,'0'):'00',mm=d?String(d.getUTCMinutes()).padStart(2,'0'):'00';
+ const sec=document.createElement('section');sec.id='nexa-ministry-schedule';sec.className='ms-card nexa-deadline-v3';
+ sec.innerHTML=`<h3>Ministry Schedule Start</h3>
+ <p>Set the UTC date and time when the Ministry schedule begins. NEXA uses this as the calendar anchor for Day 1 Construction, Day 2 Research and Day 4 Training.</p>
+ <label class="nexa-unified-date"><b>Date (UTC)</b><input id="nms-date" type="date" value="${date}"></label>
+ <div class="nexa-deadline-time-title">Time (UTC)</div>
+ <div class="nexa-unified-time-grid">
+   <label><b>Hour</b><select id="nms-hour">${Array.from({length:24},(_,i)=>{const x=String(i).padStart(2,'0');return `<option ${x===hh?'selected':''}>${x}</option>`}).join('')}</select></label>
+   <label><b>Minute</b><select id="nms-minute">${['00','15','30','45'].map(x=>`<option ${x===mm?'selected':''}>${x}</option>`).join('')}</select></label>
+ </div>
+ <div class="nexa-deadline-utc">24-hour UTC</div>
+ <div class="nexa-deadline-note">This is not a general form deadline. The Ministry sections close automatically from this UTC schedule.</div>`;
+ const anchor=$('#section-blocks')||$('.ms-card');
+ if(anchor?.parentNode)anchor.parentNode.insertBefore(sec,anchor);else($('main')||document.body).appendChild(sec);
+}
+async function syncMinistryScheduleAfterSave(row,v,beforeUpdated){
+ let latest=null;
+ for(let i=0;i<10;i++){
+   await new Promise(r=>setTimeout(r,220));
+   const {data}=await sb.from('event_form_templates').select('settings,updated_at').eq('event_type_key','ministry').maybeSingle();
+   if(data){latest=data;if(data.updated_at!==beforeUpdated)break;}
+ }
+ const next={...(latest?.settings||row.settings||{}),ministry_schedule_start_at:v.iso};
+ await sb.from('event_form_templates').update({settings:next,updated_at:new Date().toISOString()}).eq('event_type_key','ministry');
+ row.settings=next;row.updated_at=new Date().toISOString();
+}
+function showMinistryConfirm(v,onYes){
+ $('#nexa-deadline-confirm')?.remove();
+ const wrap=document.createElement('div');wrap.id='nexa-deadline-confirm';wrap.className='nexa-confirm-backdrop';
+ wrap.innerHTML=`<div class="nexa-confirm-card"><h3>Confirm Ministry Schedule</h3>
+ <div>Ministry schedule begins:</div><div class="nexa-confirm-main">${fmtUTC(v.iso)}</div>
+ <div class="nexa-confirm-local"><b>Local reference on this device:</b><br>${localReference(v.iso)}</div>
+ <p style="color:#aeb7d1;line-height:1.45">NEXA will use this UTC moment to calculate Day 1, Day 2 and Day 4 section closures. Is this schedule correct?</p>
+ <div class="nexa-confirm-actions"><button class="cancel" type="button">Cancel</button><button class="yes" type="button">Yes, Save Form</button></div></div>`;
+ document.body.appendChild(wrap);
+ wrap.querySelector('.cancel').onclick=()=>wrap.remove();
+ wrap.addEventListener('click',e=>{if(e.target===wrap)wrap.remove()});
+ wrap.querySelector('.yes').onclick=()=>{wrap.remove();onYes()};
+}
+function bindMinistryScheduleSave(row){
+ if(!isSettings||eventKey!=='ministry'||!row)return;
+ document.addEventListener('click',e=>{
+   const b=e.target.closest('button,input[type="button"],input[type="submit"]');if(!b)return;
+   const txt=(b.textContent||b.value||'').trim().toLowerCase();
+   if(!(b.id==='save-all'||txt.includes('save ministry form')))return;
+   const v=ministryScheduleValue();
+   if(v.error){e.preventDefault();e.stopImmediatePropagation();showSmallAlert(v.error);return}
+   if(b.dataset.nexaMinistryConfirmed==='1'){
+      const before=row.updated_at;setTimeout(()=>syncMinistryScheduleAfterSave(row,v,before),0);return;
+   }
+   e.preventDefault();e.stopImmediatePropagation();
+   showMinistryConfirm(v,()=>{
+      b.dataset.nexaMinistryConfirmed='1';b.click();
+      setTimeout(()=>delete b.dataset.nexaMinistryConfirmed,250);
+   });
  },true);
 }
 async function internalBypass(){
@@ -194,6 +324,7 @@ async function boot(){
      else if(deadlineKey){publicDeadline(row.settings);if(!openDeadline(row.settings))closePublic('closed')}
    }
    if(isSettings&&deadlineKey){deadlineEditor(row);bindUnifiedDeadlineSave(row)}
+   if(isSettings&&eventKey==='ministry'){ministryScheduleEditor(row);bindMinistryScheduleSave(row)}
  }
  internalBypass();
 }

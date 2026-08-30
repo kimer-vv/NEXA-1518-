@@ -6,7 +6,7 @@ const SESSION_URL='/api/human-session';
 function loadFormRuntime(){
  if(document.querySelector('script[data-nexa-form-runtime]'))return;
  const s=document.createElement('script');
- s.src='/nexa-form-runtime-v1.js?v=3';
+ s.src='/nexa-form-runtime-v1.js?v=4';
  s.defer=true;
  s.dataset.nexaFormRuntime='1';
  document.head.appendChild(s);

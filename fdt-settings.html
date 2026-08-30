@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- NEXA FDT SETTINGS V1.5 — FINAL POLISH / UNIFIED NEXA VISUALS -->
+<!-- NEXA FDT SETTINGS V1.6 — NATIVE DEADLINE / WIDE UNIFIED FORM -->
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -61,6 +61,20 @@ input[type=date]{display:block!important;width:100%!important;max-width:100%!imp
 <section class="card"><h3>Additional Questions</h3><p class="muted">Create questions only for FDT. These responses are stored with the FDT submission and can be consumed by Responses and Battle Planning later.</p><button id="add-q" class="btn" type="button">+ Create New Question</button><div id="q-list" class="question-list"></div>
 <form id="q-editor" class="editor hidden"><input id="qid" type="hidden"><label>Question<input id="qtext" maxlength="240" required></label><label>Applies to Role<select id="qrole"><option value="both">Joiner + Rally Leader</option><option value="joiner">Joiner</option><option value="rally_lead">Rally Leader</option></select></label><label>Answer Type<select id="qtype"><option value="short_text">Short Text</option><option value="number">Number</option><option value="dropdown">Dropdown</option><option value="single_choice">Single Choice</option><option value="checkboxes">Checkboxes</option></select></label><label id="opts-wrap" class="hidden">Options<textarea id="qopts" placeholder="One option per line"></textarea></label><label class="check"><input id="qrequired" type="checkbox"> Required</label><div class="actions"><button class="btn" type="submit">Save Question</button><button id="cancel-q" class="btn secondary" type="button">Cancel</button></div></form></section>
 
+<section id="nexa-deadline-v3" class="nexa-deadline-v3">
+  <h3>Form Deadline</h3>
+  <p>Optional. The date and time below are always interpreted as UTC, never as the editor's local timezone.</p>
+  <label class="nexa-deadline-enable"><input id="nd3-enabled" type="checkbox"> Enable Deadline</label>
+  <label class="nexa-deadline-date"><b>Date (UTC)</b><input id="nd3-date" type="date"></label>
+  <div class="nexa-deadline-time-title">Time (UTC)</div>
+  <div class="nexa-deadline-time">
+    <label><b>Hour</b><select id="nd3-hour"></select></label>
+    <label><b>Minute</b><select id="nd3-minute"><option>00</option><option>15</option><option>30</option><option>45</option></select></label>
+  </div>
+  <div class="nexa-deadline-utc">24-hour UTC</div>
+  <div class="nexa-deadline-note">This deadline saves with the main Save Form button.</div>
+</section>
+
 <section class="card save-box"><button id="save" class="btn" type="button">Save FDT Form</button><div id="save-confirm" class="save-confirm" aria-live="polite"></div><div class="preview-grid"><a class="btn secondary" href="fdt-form.html?preview=member">Preview as NEXA Member</a><a class="btn secondary" href="fdt-form.html?preview=guest">Preview as Guest / Public</a></div></section>
 </main>
 <script>
@@ -79,11 +93,33 @@ function qMatch(q){const s=q.event_scopes||[];return s.includes('fdt')}
 function renderQ(){const rows=questions.filter(q=>q.is_active&&qMatch(q));$('q-list').innerHTML=rows.length?rows.map(q=>`<article class="q"><b>${esc(q.question_text)}</b><div class="q-meta">${esc(q.role_scope)} • ${esc(q.answer_type)}${q.is_required?' • Required':''}</div><div class="q-actions"><button class="tiny edit-q" type="button" data-id="${q.id}">Edit</button><button class="tiny del-q" type="button" data-id="${q.id}">Delete</button></div></article>`).join(''):'<div class="muted">No additional FDT questions yet.</div>'}
 function openEditor(q=null){$('q-editor').classList.remove('hidden');$('qid').value=q?.id||'';$('qtext').value=q?.question_text||'';$('qrole').value=q?.role_scope||'both';$('qtype').value=q?.answer_type||'short_text';$('qrequired').checked=!!q?.is_required;$('qopts').value=(q?.options||[]).join('\n');toggleOpts();$('qtext').focus()}
 function toggleOpts(){$('opts-wrap').classList.toggle('hidden',!['dropdown','single_choice','checkboxes'].includes($('qtype').value))}
-function collectSettings(){const pick=bucket=>[...document.querySelectorAll(`.lib-${bucket}:checked`)].map((x,i)=>({id:x.value,name:x.dataset.name,image_url:x.dataset.image,is_active:true,item_type:bucket.includes('expert')?'expert':'hero',sort_order:i}));return {...settings,availability_blocks:blocks(),availability_start_hour:mins($('start').value)/60,availability_end_hour:mins($('end').value)/60,availability_slot_minutes:Number($('slot').value)||60,full_availability_enabled:$('full-enabled').checked,not_available_enabled:$('na-enabled').checked,troop_era_preset:document.querySelector('input[name=era]:checked')?.value||'exalted',fdt_visibility:{healing:$('show-healing').checked,voice:$('show-voice').checked,support:$('show-support').checked,assignment:$('show-assignment').checked,notes:$('show-notes').checked},fdt_items:{joiner_hero:pick('joiner_hero'),rally_hero:pick('rally_hero'),joiner_expert:pick('joiner_expert'),rally_expert:pick('rally_expert')}}}
-async function saveSettings(){const next=collectSettings(),out=$('save-confirm');$('state').textContent='';out.textContent='Saving…';if(!next.availability_blocks.length){out.textContent='End Time must be after Start Time.';return}const {error}=await sb.from('event_form_templates').upsert({event_type_key:'fdt',settings:next,updated_at:new Date().toISOString()},{onConflict:'event_type_key'});if(error){out.textContent='Could not save: '+error.message;return}settings=next;out.textContent='Saved ✓';setTimeout(()=>{if(out.textContent==='Saved ✓')out.textContent=''},5000)}
-async function init(){fillUtcSelects();const [t,l,q]=await Promise.all([sb.from('event_form_templates').select('settings').eq('event_type_key','fdt').maybeSingle(),sb.from('nexa_library_items').select('id,item_type,name,image_url,is_visible,is_active,sort_order').in('item_type',['hero','expert']).eq('is_active',true),sb.from('event_form_questions').select('*').order('sort_order')]);if(t.error||l.error||q.error){$('state').textContent=(t.error||l.error||q.error).message;return}settings=t.data?.settings||{};library=l.data||[];questions=q.data||[];const bs=settings.availability_blocks||[];if(bs.length){const first=bs[0].label?.slice(0,5),last=bs.at(-1).label?.match(/–(\d\d:\d\d)/)?.[1];if(first)$('start').value=first;if(last)$('end').value=last}$('slot').value=String(settings.availability_slot_minutes||60);$('full-enabled').checked=settings.full_availability_enabled!==false;$('na-enabled').checked=settings.not_available_enabled!==false;const v=settings.fdt_visibility||{};$('show-healing').checked=v.healing!==false;$('show-voice').checked=v.voice!==false;$('show-support').checked=v.support!==false;$('show-assignment').checked=v.assignment!==false;$('show-notes').checked=v.notes!==false;renderSlots();renderEras();renderLibrary();renderQ()}
+function initDeadlineControls(s={}){
+  const h=document.getElementById('nd3-hour'),m=document.getElementById('nd3-minute'),d=document.getElementById('nd3-date'),en=document.getElementById('nd3-enabled');
+  if(!h||!m||!d||!en)return;
+  h.innerHTML=Array.from({length:24},(_,i)=>`<option>${String(i).padStart(2,'0')}</option>`).join('');
+  const x=s.deadline_at?new Date(s.deadline_at):null;
+  en.checked=!!s.deadline_enabled;
+  if(x&&!Number.isNaN(x.getTime())){
+    d.value=`${x.getUTCFullYear()}-${String(x.getUTCMonth()+1).padStart(2,'0')}-${String(x.getUTCDate()).padStart(2,'0')}`;
+    h.value=String(x.getUTCHours()).padStart(2,'0');
+    m.value=['00','15','30','45'].includes(String(x.getUTCMinutes()).padStart(2,'0'))?String(x.getUTCMinutes()).padStart(2,'0'):'00';
+  }else{
+    h.value='18';m.value='00';
+  }
+}
+function deadlineFields(){
+  const en=document.getElementById('nd3-enabled');
+  if(!en||!en.checked)return {deadline_enabled:false,deadline_at:null};
+  const d=document.getElementById('nd3-date')?.value||'';
+  if(!d)throw new Error('Choose a UTC deadline date.');
+  const hh=document.getElementById('nd3-hour')?.value||'00',mm=document.getElementById('nd3-minute')?.value||'00';
+  return {deadline_enabled:true,deadline_at:new Date(`${d}T${hh}:${mm}:00Z`).toISOString()};
+}
+function collectSettings(){const pick=bucket=>[...document.querySelectorAll(`.lib-${bucket}:checked`)].map((x,i)=>({id:x.value,name:x.dataset.name,image_url:x.dataset.image,is_active:true,item_type:bucket.includes('expert')?'expert':'hero',sort_order:i}));return {...settings,...deadlineFields(),availability_blocks:blocks(),availability_start_hour:mins($('start').value)/60,availability_end_hour:mins($('end').value)/60,availability_slot_minutes:Number($('slot').value)||60,full_availability_enabled:$('full-enabled').checked,not_available_enabled:$('na-enabled').checked,troop_era_preset:document.querySelector('input[name=era]:checked')?.value||'exalted',fdt_visibility:{healing:$('show-healing').checked,voice:$('show-voice').checked,support:$('show-support').checked,assignment:$('show-assignment').checked,notes:$('show-notes').checked},fdt_items:{joiner_hero:pick('joiner_hero'),rally_hero:pick('rally_hero'),joiner_expert:pick('joiner_expert'),rally_expert:pick('rally_expert')}}}
+async function saveSettings(){const out=$('save-confirm');let next;try{next=collectSettings()}catch(e){out.textContent=e.message;return}$('state').textContent='';out.textContent='Saving…';if(!next.availability_blocks.length){out.textContent='End Time must be after Start Time.';return}const {error}=await sb.from('event_form_templates').upsert({event_type_key:'fdt',settings:next,updated_at:new Date().toISOString()},{onConflict:'event_type_key'});if(error){out.textContent='Could not save: '+error.message;return}settings=next;out.textContent='Saved ✓';setTimeout(()=>{if(out.textContent==='Saved ✓')out.textContent=''},5000)}
+async function init(){fillUtcSelects();const [t,l,q]=await Promise.all([sb.from('event_form_templates').select('settings').eq('event_type_key','fdt').maybeSingle(),sb.from('nexa_library_items').select('id,item_type,name,image_url,is_visible,is_active,sort_order').in('item_type',['hero','expert']).eq('is_active',true),sb.from('event_form_questions').select('*').order('sort_order')]);if(t.error||l.error||q.error){$('state').textContent=(t.error||l.error||q.error).message;return}settings=t.data?.settings||{};library=l.data||[];questions=q.data||[];initDeadlineControls(settings);const bs=settings.availability_blocks||[];if(bs.length){const first=bs[0].label?.slice(0,5),last=bs.at(-1).label?.match(/–(\d\d:\d\d)/)?.[1];if(first)$('start').value=first;if(last)$('end').value=last}$('slot').value=String(settings.availability_slot_minutes||60);$('full-enabled').checked=settings.full_availability_enabled!==false;$('na-enabled').checked=settings.not_available_enabled!==false;const v=settings.fdt_visibility||{};$('show-healing').checked=v.healing!==false;$('show-voice').checked=v.voice!==false;$('show-support').checked=v.support!==false;$('show-assignment').checked=v.assignment!==false;$('show-notes').checked=v.notes!==false;renderSlots();renderEras();renderLibrary();renderQ()}
 ['start','end','slot'].forEach(id=>$(id).addEventListener('change',renderSlots));$('save').onclick=saveSettings;$('add-q').onclick=()=>openEditor();$('cancel-q').onclick=()=>$('q-editor').classList.add('hidden');$('qtype').onchange=toggleOpts;
 $('q-list').onclick=async e=>{const edit=e.target.closest('.edit-q'),del=e.target.closest('.del-q');if(edit){openEditor(questions.find(q=>String(q.id)===edit.dataset.id));return}if(del){const q=questions.find(x=>String(x.id)===del.dataset.id);if(!q)return;if(!confirm('Delete this FDT question?'))return;const {error}=await sb.from('event_form_questions').update({is_active:false,updated_at:new Date().toISOString()}).eq('id',q.id);if(error){$('state').textContent=error.message;return}q.is_active=false;renderQ()}};
 $('q-editor').onsubmit=async e=>{e.preventDefault();const id=$('qid').value,typ=$('qtype').value,options=['dropdown','single_choice','checkboxes'].includes(typ)?$('qopts').value.split('\n').map(x=>x.trim()).filter(Boolean):[];const row={question_text:$('qtext').value.trim(),event_scopes:['fdt'],role_scope:$('qrole').value,answer_type:typ,options,is_required:$('qrequired').checked,is_permanent:false,is_active:true,updated_at:new Date().toISOString()};let res;if(id)res=await sb.from('event_form_questions').update(row).eq('id',id).select().single();else res=await sb.from('event_form_questions').insert(row).select().single();if(res.error){$('state').textContent=res.error.message;return}const ix=questions.findIndex(q=>String(q.id)===String(res.data.id));if(ix>=0)questions[ix]=res.data;else questions.push(res.data);$('q-editor').classList.add('hidden');renderQ();$('state').textContent='Question saved ✓'};
 init();
-</script></body></html> 
+</script></body></html>

@@ -49,8 +49,8 @@ body.embed main.shell{padding:0!important;max-width:none!important}body.embed .b
 <h3>Availability</h3>
 <p class="muted">Enter the start and end once. NEXA divides the window into slots automatically.</p>
 <div class="time-grid">
-<label>Start Time (UTC)<input id="availability-start" type="time" step="1800" value="11:00"></label>
-<label>End Time (UTC)<input id="availability-end" type="time" step="1800" value="15:00"></label>
+<label>Start Time (UTC)<select id="availability-start"></select></label>
+<label>End Time (UTC)<select id="availability-end"></select></label>
 <label>Slot Length<select id="slot-minutes"><option value="30">30 minutes</option><option value="60" selected>1 hour</option><option value="90">90 minutes</option><option value="120">2 hours</option></select></label>
 </div>
 <div id="slot-preview" class="preview-slots"></div>
@@ -154,6 +154,16 @@ function defaultTemplate(){return {availability_start_hour:11,availability_end_h
 function eventName(k){return eventTypes.find(x=>x.key===k)?.name||k}
 function timeToHour(s){const [h,m]=String(s||'00:00').split(':').map(Number);return h+(m||0)/60}
 function hourToTime(h){const total=Math.round(Number(h||0)*60),hh=Math.floor(total/60)%24,mm=total%60;return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`}
+function fillBattleUtcSelects(){
+  const html=Array.from({length:48},(_,i)=>{
+    const h=String(Math.floor(i/2)).padStart(2,'0');
+    const m=i%2?'30':'00';
+    return `<option value="${h}:${m}">${h}:${m}</option>`;
+  }).join('');
+  $('availability-start').innerHTML=html;
+  $('availability-end').innerHTML=html;
+}
+fillBattleUtcSelects();:${String(mm).padStart(2,'0')}`}
 function slots(start,end,mins){const out=[],a=Math.round(start*60),b=Math.round(end*60);if(b<=a)return out;const fmt=t=>`${String(Math.floor(t/60)%24).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`;for(let t=a;t<b;t+=mins){const n=Math.min(t+mins,b);out.push({label:`${fmt(t)}–${fmt(n)} UTC`})}return out}
 function renderSlotPreview(){const list=slots(timeToHour($('availability-start').value),timeToHour($('availability-end').value),Number($('slot-minutes').value)||60);$('slot-preview').innerHTML=list.length?list.map(x=>`<div class="preview-slot">${esc(x.label)}</div>`).join(''):'<div class="muted">End Time must be after Start Time.</div>'}
 function renderEraGrid(){const current=$('troop-era')?.value||template.troop_era_preset||'exalted';$('era-grid').innerHTML=Object.entries(ERAS).map(([k,v])=>`<label class="era-card"><input type="radio" name="troop-era" value="${k}" ${k===current?'checked':''}> ${esc(v.name)}</label>`).join('');renderTroopPreview()}

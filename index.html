@@ -5227,14 +5227,49 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
 }
 
   function buildTransfer(){
-    const wrap=makeSubmenu('TRANSFER MANAGEMENT');
-    addButton(wrap,'Event Management',()=>go('transfer-admin.html?tab=events'));
-    addButton(wrap,'Applications',()=>go('transfer-admin.html?tab=applications'));
-    addButton(wrap,'Transfer Roster',()=>go('transfer-admin.html?tab=roster'));
-    addButton(wrap,'Waiting List',()=>go('transfer-admin.html?tab=waiting'));
-    addButton(wrap,'Recruiting Alliances',()=>go('transfer-admin.html?tab=alliances'));
-    addButton(wrap,'History',()=>go('transfer-admin.html?tab=history'));
+  const wrap=makeSubmenu('TRANSFER MANAGEMENT');
+  addButton(wrap,'Event Management',()=>go('transfer-admin.html?tab=events'));
+  addButton(wrap,'Applications',()=>go('transfer-admin.html?tab=applications'));
+  addButton(wrap,'Transfer Roster',()=>go('transfer-admin.html?tab=roster'));
+  addButton(wrap,'Waiting List',()=>go('transfer-admin.html?tab=waiting'));
+  addButton(wrap,'Recruiting Alliances',()=>go('transfer-admin.html?tab=alliances'));
+  addButton(wrap,'History',()=>go('transfer-admin.html?tab=history'));
+}
+
+async function buildTransferHub(){
+  const wrap=makeSubmenu('TRANSFERS');
+
+  addButton(
+    wrap,
+    'Transfer Center',
+    ()=>go('transfer-center.html'),
+    {primary:true}
+  );
+
+  let canManage=false;
+
+  try{
+    const r=await supabaseClient.rpc('can_manage_transfers');
+    canManage=r?.data===true;
+  }catch(_){}
+
+  if(canManage){
+    addButton(
+      wrap,
+      'Transfer Workspace',
+      ()=>go('transfer-workspace.html')
+    );
+
+    sep(wrap);
+
+    addButton(
+      wrap,
+      'Legacy Transfer Management',
+      buildTransfer,
+      {submenu:true}
+    );
   }
+}
 
   async function buildRoot(){
     if(!card) return;
@@ -5259,10 +5294,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
       $('home-svs-section')?.scrollIntoView({behavior:'smooth',block:'center'});
     });
 
-    addButton(wrap,'Transfers',function(){
-      closeMenu();
-      $('home-transfers-section')?.scrollIntoView({behavior:'smooth',block:'center'});
-    });
+    addButton(wrap,'Transfers',buildTransferHub,{submenu:true});
 
     let owner=false, admin=false, canSvs=false, canTransfers=false, signedIn=false, hasGameAccount=false;
     try{
@@ -5309,11 +5341,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
         addButton(wrap,'TAL',function(){ alert('TAL module will be added in the next event phase.'); });
         addButton(wrap,'Battle Planning',buildTeamBuilder,{submenu:true});
       }
-      if(signedIn){
-        addButton(wrap,'Transfer Workspace',()=>go('transfer-workspace.html'));
-        addButton(wrap,'Transfer Center',()=>go('transfer-center.html'));
-        addButton(wrap,'Transfer Management',buildTransfer,{submenu:true});
-      }
+      /* Transfer navigation is owned by the main Transfers submenu above. */
     }
 
     try{

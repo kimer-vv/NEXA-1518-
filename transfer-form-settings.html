@@ -1,244 +1,54 @@
 <!doctype html>
-<!-- TARGET GITHUB FILE: transfer-form-v2.html -->
-<!-- NEXA TRANSFER APPLICATION V2.2 — LANDING / EXACT STATE EVENTS / SAFE EDIT -->
+<!-- TARGET GITHUB FILE: transfer-form-settings.html -->
+<!-- NEXA TRANSFER FORM SETTINGS V1.0 — EVENT-SCOPED CUSTOMIZATION -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#03050e">
-<title>NEXA • Transfer Application</title>
+<title>NEXA • Transfer Form Settings</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{--c:#59e4ff;--v:#9078ff;--m:#aab4d0;--good:#78efb9;--warn:#ffd66d;--bad:#ff91ab}
-*{box-sizing:border-box}
-body{margin:0;min-height:100dvh;background:radial-gradient(circle at 8% 4%,rgba(89,228,255,.08),transparent 31%),radial-gradient(circle at 94% 3%,rgba(144,120,255,.12),transparent 34%),#03050e;color:#fff;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-.shell{width:min(800px,100%);margin:auto;padding:22px 16px 100px}
-.brand{text-align:center;padding:8px 0 18px}.brand small{display:block;color:#92a2c8;font-size:10px;letter-spacing:.2em;font-weight:950}.brand h1{margin:7px 0 5px;font-size:clamp(2rem,7vw,3.2rem)}.brand p{margin:0;color:var(--m)}
-.card{margin:0 0 14px;padding:17px;border-radius:22px;border:1px solid rgba(255,255,255,.11);background:rgba(8,15,34,.9)}.card h2,.card h3{margin:0 0 8px}.card p{color:var(--m);line-height:1.5}
-.landing{padding:22px}.landing h2{font-size:clamp(1.55rem,5vw,2.15rem)}.landing-actions{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:18px}
-.philosophy{text-align:center;padding:15px;border-radius:17px;border:1px solid rgba(144,120,255,.3);background:linear-gradient(135deg,rgba(144,120,255,.10),rgba(89,228,255,.04));color:#e9e3ff;font-weight:900;font-size:1.02rem;line-height:1.45}
-.events{margin-top:15px;border:1px solid rgba(89,228,255,.28);border-radius:18px;background:linear-gradient(135deg,rgba(12,28,56,.78),rgba(26,17,60,.72));overflow:hidden;box-shadow:0 0 28px rgba(89,228,255,.06)}
-.events summary{cursor:pointer;list-style:none;padding:16px 17px;font-size:1.08rem;font-weight:950;color:#f4f7ff;display:flex;align-items:center;justify-content:space-between;gap:10px}
-.events summary::-webkit-details-marker{display:none}.events summary:after{content:"Tap to read";font-size:10px;letter-spacing:.08em;color:#85ebff;border:1px solid rgba(89,228,255,.25);border-radius:999px;padding:5px 8px;white-space:nowrap}
-.events[open] summary:after{content:"Hide"}
-.events-body{padding:0 17px 17px}.event-block{padding:14px 0;border-top:1px solid rgba(255,255,255,.09)}.event-block h3{margin:0 0 7px;font-size:1rem}.event-block p{margin:0;color:#bec7dc;line-height:1.55}.state-first{margin:15px 0 0!important;color:#eef1ff!important;font-weight:900}
-.sectionTag{font-size:10px;letter-spacing:.14em;color:#8fefff;font-weight:950}.grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}.field{display:grid;gap:6px;margin-top:11px;color:#bdc6dc;font-size:12px;font-weight:850}.field.full{grid-column:1/-1}
-.field input,.field select,.field textarea{width:100%;border-radius:13px;border:1px solid rgba(255,255,255,.14);background:#070d20;color:#fff;padding:12px;font:inherit}.field textarea{min-height:92px;resize:vertical}
-.helper{font-size:11px;color:#8792ad;line-height:1.45}.power-preview{display:inline-flex;align-items:center;min-height:24px;width:max-content;max-width:100%;padding:4px 8px;border-radius:999px;border:1px solid rgba(89,228,255,.2);background:rgba(89,228,255,.06);color:#9cefff;font-size:11px;font-weight:900}
-.choices{display:grid;gap:8px;margin-top:10px}.choice{display:flex;gap:9px;align-items:flex-start;padding:11px;border-radius:14px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.035);color:#dbe2f3}.choice input{margin-top:2px}
-.hidden{display:none!important}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.btn{border:1px solid rgba(89,228,255,.34);border-radius:13px;min-height:44px;padding:10px 14px;background:linear-gradient(135deg,rgba(25,76,112,.72),rgba(36,30,97,.82));color:#fff;text-decoration:none;font-weight:900;display:inline-flex;align-items:center;justify-content:center}.btn.secondary{background:rgba(255,255,255,.045)}.btn:disabled{opacity:.45}
-.notice{padding:12px;border-radius:14px;border:1px solid rgba(255,214,109,.23);background:rgba(255,214,109,.06);color:#ffe6a5;line-height:1.45}.status{margin-top:10px;min-height:20px;color:#8df2ff}
-.schedule-card{margin-top:10px;padding:13px;border-radius:15px;border:1px solid rgba(89,228,255,.18);background:rgba(89,228,255,.045)}.schedule-card small{display:block;color:#89a3c7;font-size:9px;font-weight:950;letter-spacing:.12em}.schedule-card b{display:block;margin-top:5px}.schedule-lines{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}.schedule-chip{padding:6px 9px;border-radius:999px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.10);font-size:11px;color:#dbe5f5}
-.summary{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}.sum{padding:10px;border-radius:13px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}.sum small{display:block;color:#8e99b7;font-size:9px;letter-spacing:.1em}.sum b{display:block;margin-top:4px}
-.credential{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;padding:9px;border-radius:12px;background:#050b1b;border:1px solid rgba(89,228,255,.16);margin-top:7px}
-.modal{position:fixed;inset:0;z-index:9999;display:none;place-items:center;padding:18px;background:rgba(0,0,0,.75)}.modal.open{display:grid}.modalCard{width:min(480px,100%);max-height:90dvh;overflow:auto;padding:19px;border-radius:22px;border:1px solid rgba(89,228,255,.3);background:linear-gradient(180deg,#091226,#05091a)}
-@media(max-width:650px){.grid,.summary,.landing-actions{grid-template-columns:1fr}}
+:root{--c:#59e4ff;--m:#aab4d0}*{box-sizing:border-box}body{margin:0;min-height:100dvh;background:radial-gradient(circle at 7% 4%,rgba(89,228,255,.08),transparent 32%),radial-gradient(circle at 94% 2%,rgba(140,115,255,.11),transparent 34%),#03050e;color:#fff;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.shell{width:min(760px,100%);margin:auto;padding:22px 16px 90px}.top{display:grid;grid-template-columns:46px 1fr 46px;gap:10px;align-items:center}.round{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;color:#dffbff;text-decoration:none;background:#081127;border:1px solid rgba(89,228,255,.28);font-size:24px}.title{text-align:center}.title small{font-size:10px;letter-spacing:.18em;color:#95a4c7;font-weight:950}.title h1{margin:4px 0}.card{margin-top:14px;padding:17px;border-radius:22px;border:1px solid rgba(255,255,255,.11);background:rgba(8,15,34,.9)}.card h2,.card h3{margin:0 0 8px}.card p{color:var(--m)}.field{display:grid;gap:6px;margin-top:11px;color:#bbc5dc;font-size:12px;font-weight:850}.field input,.field textarea,.field select{width:100%;border-radius:13px;border:1px solid rgba(255,255,255,.14);background:#070d20;color:#fff;padding:12px}.field textarea{min-height:110px}.sectionRow{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.07)}.sectionRow:last-child{border-bottom:0}.sectionRow small{color:#8792ad}.toggle{appearance:none;width:48px;height:28px;border-radius:999px;background:#202943;border:1px solid rgba(255,255,255,.14);position:relative;transition:.2s}.toggle:before{content:"";position:absolute;width:20px;height:20px;border-radius:50%;background:#e9f5ff;top:3px;left:4px;transition:.2s}.toggle:checked{background:rgba(51,151,183,.65);border-color:rgba(89,228,255,.5)}.toggle:checked:before{left:22px}.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}.btn{border:1px solid rgba(89,228,255,.34);border-radius:13px;min-height:44px;padding:10px 14px;background:linear-gradient(135deg,rgba(25,76,112,.72),rgba(36,30,97,.82));color:#fff;font-weight:900;text-decoration:none}.btn.secondary{background:rgba(255,255,255,.045)}.status{margin-top:10px;min-height:18px;color:#8cf2ff}.preview{padding:12px;border-radius:14px;border:1px solid rgba(89,228,255,.17);background:rgba(89,228,255,.04);color:#c8d5ea}
 </style>
 </head>
 <body>
 <main class="shell">
- <div class="brand"><small>NEXA TRANSFER APPLICATION</small><h1 id="welcome">Transfer Application</h1><p id="destination">Loading destination…</p></div>
- <section class="card" id="closedCard"><h2>Checking public access…</h2><p>Please wait.</p></section>
-
- <section class="card landing hidden" id="landing">
-   <div class="sectionTag">TRANSFER APPLICATION</div>
-   <h2 id="landingTitle">State Transfer Application</h2>
-   <p>Choose whether you want to submit a new application or reopen one you already submitted.</p>
-   <div class="landing-actions">
-     <button class="btn" id="startApply" type="button">Apply</button>
-     <button class="btn secondary" id="startEdit" type="button">Edit My Application</button>
-   </div>
- </section>
-
- <div id="appRoot" class="hidden">
-  <section class="card">
-    <h2 id="introTitle">About the Destination State</h2>
-    <p id="introText"></p>
-    <div class="philosophy" id="philosophy"></div>
-    <details class="events" id="eventsBox">
-      <summary id="eventsSummary">How does the destination state run major events?</summary>
-      <div class="events-body">
-        <div class="event-block">
-          <h3>Frostdragon Tyrant (FDT)</h3>
-          <p>We select a state roster of around 60 players from across our alliances. Selection considers account strength, activity, reliability, available RSS/gems, event readiness, and Discord availability. Our goal is to build the strongest and most dependable team possible for the state.</p>
-        </div>
-        <div class="event-block">
-          <h3>Tundra Arms League (TAL)</h3>
-          <p>TAL is organized at the state level. We build our primary competitive team first, followed by another strong team for additional brackets. When possible, additional teams are created so more players across the state can participate and earn rewards.</p>
-        </div>
-        <div class="event-block">
-          <h3>Sunfire Castle & Presidency</h3>
-          <p>Sunfire and Presidency follow a shared state structure, with Presidency rotating among our leading alliances. During certain competitive situations, assignments may be adjusted strategically when that gives the state a stronger advantage.</p>
-        </div>
-        <div class="event-block">
-          <h3>SvS — Prep & Battle</h3>
-          <p>SvS is a state-wide effort from Prep through Battle. During Prep, we coordinate strategic resource use. During Battle, our top three alliances rotate responsibility for fighting for or defending the Castle/Star, and Presidency rotates as part of that shared structure.</p>
-        </div>
-        <p class="state-first" id="stateFirst">In major coordinated events, we play for the state first.</p>
-      </div>
-    </details>
-    <label class="choice"><input id="stateUnderstanding" type="checkbox"> <span id="stateUnderstandingText">I understand this coordinated State-first approach.</span></label>
-  </section>
-
-  <form id="transferForm">
-   <section class="card" data-section="applicant"><div class="sectionTag">1 • APPLICANT & REFERRAL</div><h2>Applicant & Referral</h2>
-    <label class="field">Who is completing this form?<select id="completedBy" required><option value="self">Myself</option><option value="staff">Leadership / Transfer Staff completing for another player</option></select><span class="helper" id="staffRouteHelp">The staff route is available only to authorized Transfer Staff in Direct mode.</span></label>
-    <div id="staffFields" class="grid hidden"><label class="field">Your in-game name<input id="staffName"></label><label class="field">Your alliance<input id="staffAlliance"></label></div>
-    <label class="field">Were you referred by someone in this state?<select id="referred"><option value="false">No</option><option value="true">Yes</option></select></label>
-    <label class="field hidden" id="referredByWrap">Who referred you?<input id="referredBy"></label>
-   </section>
-
-   <section class="card" data-section="player"><div class="sectionTag">2 • PLAYER INFORMATION</div><h2>Player Information</h2><div class="grid">
-    <label class="field">In-game name<input id="ign" required></label><label class="field">Player ID<input id="playerId" inputmode="numeric" required></label>
-    <label class="field">Current State<input id="currentState" inputmode="numeric" required></label><label class="field">Current Alliance <span class="helper">Optional</span><input id="currentAlliance"></label>
-    <label class="field full">Discord username <span class="helper">Optional, but recommended so Transfer Staff has another way to contact you if additional information is needed.</span><input id="discord"></label>
-   </div></section>
-
-   <section class="card" data-section="strength"><div class="sectionTag">3 • ACCOUNT STRENGTH</div><h2>Account Strength</h2><div class="grid">
-    <label class="field">Furnace Level<select id="furnace" required><option value="">Select Furnace Level</option><option value="fc8">Fire Crystal 8 (FC8)</option><option value="fc9">Fire Crystal 9 (FC9)</option><option value="fc10">Fire Crystal 10 (FC10)</option></select></label>
-    <label class="field">Current Total Power<input id="power" inputmode="numeric" placeholder="Enter full number" required><span class="power-preview" id="powerPreview">Enter your full power number</span></label>
-    <label class="field full">Which best describes your account?<select id="progression" required><option value="">Select</option><option value="actively_progressing">Still actively progressing</option><option value="well_developed">Well developed</option><option value="highly_developed">Highly developed / Near max / Maxed</option></select></label>
-    <label class="field full hidden" id="labyrinthWrap">Labyrinth Score<input id="labyrinth" inputmode="numeric"><span class="helper">Required for highly developed / near max / maxed accounts.</span></label>
-    <label class="field">Infantry<select id="infantry"><option value="t10_or_below">T10 or below</option><option value="t11_helios">T11 Helios</option><option value="t12_exalted">T12 Exalted</option></select></label>
-    <label class="field">Lancer<select id="lancer"><option value="t10_or_below">T10 or below</option><option value="t11_helios">T11 Helios</option><option value="t12_exalted">T12 Exalted</option></select></label>
-    <label class="field">Marksman<select id="marksman"><option value="t10_or_below">T10 or below</option><option value="t11_helios">T11 Helios</option><option value="t12_exalted">T12 Exalted</option></select></label>
-    <label class="field">Transfer Passes<select id="passes"><option value="yes">Yes</option><option value="no">No</option><option value="will_have_before_transfer">Not yet, but I will before transfer</option></select></label>
-    <label class="field full">If needed to meet the Ordinary Power Cap, would you be willing to reduce troop power?<select id="reducePower"><option value="yes">Yes</option><option value="no">No</option><option value="not_sure">Not sure</option></select><span class="helper">Transfer Power Caps can vary by cycle. This only tells Transfer Staff whether you would be willing to reduce troop power if needed.</span></label>
-   </div></section>
-
-   <section class="card" data-section="placement"><div class="sectionTag">4 • PLACEMENT & AVAILABILITY</div><h2>Placement & Availability</h2>
-    <label class="field">Alliance preference<select id="alliancePreference"><option value="specific">I want to join a specific recruiting alliance</option><option value="flexible">Any recruiting alliance / I’m flexible</option></select></label>
-    <label class="field" id="allianceSelectWrap">Recruiting alliance<select id="allianceSelect"></select></label>
-    <div class="schedule-card" id="allianceScheduleCard">
-      <small>SELECTED ALLIANCE EVENT SCHEDULE</small>
-      <b id="allianceScheduleTitle">Select an alliance</b>
-      <div class="schedule-lines" id="allianceSchedule"></div>
-    </div>
-    <div id="utcRangesWrap" class="hidden"><div class="field">UTC time ranges that work for major events</div><div class="choices" id="utcRanges"></div></div>
-    <label class="field">Discord Voice<select id="discordVc"><option value="yes">Yes</option><option value="listen_only">Listen Only</option><option value="no">No</option></select></label>
-   </section>
-
-   <section class="card" data-section="group"><div class="sectionTag">5 • GROUP TRANSFER</div><h2>Group Transfer</h2>
-    <label class="field">Are you planning to transfer with a group?<select id="withGroup"><option value="false">No</option><option value="true">Yes</option></select></label>
-    <div id="groupFields" class="grid hidden">
-     <label class="field">Group name / leader<input id="groupName"></label><label class="field">Approximate group size<input id="groupSize" inputmode="numeric"></label>
-     <label class="field">Are other members submitting individual applications?<select id="groupSubmitting"><option value="yes">Yes</option><option value="no">No</option><option value="some">Some of them</option></select></label>
-     <label class="field">Does your group need to be placed together in the same alliance?<select id="groupPlacement"><option value="together">Yes</option><option value="preferred">Preferred, but not required</option><option value="not_required">No</option></select></label>
-     <label class="field full">Would you still transfer if the entire group cannot be accepted?<select id="groupWithoutAll"><option value="yes">Yes</option><option value="no">No</option><option value="depends">It depends</option></select></label>
-    </div>
-   </section>
-
-   <section class="card" data-section="timing"><div class="sectionTag">6 • TRANSFER TIMING</div><h2>Transfer Timing</h2>
-    <label class="field">Which transfer cycle are you applying for?<select id="applicationCycle"><option value="current">Current Transfer Cycle</option><option value="next">Next Transfer Cycle</option></select></label>
-   </section>
-
-   <section class="card" data-section="additional"><div class="sectionTag">7 • ADDITIONAL INFORMATION</div><h2>Additional Information</h2>
-    <label class="field">Current State Coordinates X/Y <span class="helper">Optional</span><input id="coordinates" placeholder="X:123 Y:456"></label>
-    <label class="field">Anything else Transfer Staff should know? <span class="helper">Optional</span><textarea id="additional"></textarea></label>
-   </section>
-
-   <section class="card" data-section="confirmation"><div class="sectionTag">8 • FINAL CONFIRMATION</div><h2>Final Confirmation</h2>
-    <label class="choice"><input id="confirmInfo" type="checkbox" required> I confirm the information I provided is accurate.</label>
-    <label class="choice"><input id="confirmNoGuarantee" type="checkbox" required> I understand submitting an application does not guarantee acceptance or placement in a specific alliance.</label>
-    <label class="choice"><input id="confirmRoute" type="checkbox" required> I understand Transfer Staff may determine the appropriate transfer route for my account.</label>
-    <div class="notice" style="margin-top:12px"><b>Important:</b> Please do not kill or dismiss troops before speaking with Transfer Staff. If a power reduction is needed, our team will review your account first and advise you on the appropriate next step.</div>
-    <h3 style="margin-top:16px">Application Summary</h3><div class="summary" id="summary"></div>
-    <div class="actions"><button class="btn secondary" type="button" id="refreshSummary">Refresh Summary</button><button class="btn" type="submit" id="submitBtn">Submit Application</button></div><div class="status" id="formStatus"></div>
-   </section>
-  </form>
- </div>
+<div class="top"><a class="round" href="forms-center.html?section=transfer">‹</a><div class="title"><small>TRANSFER FORM</small><h1>Customize</h1></div><a class="round" href="transfer-workspace.html">×</a></div>
+<section class="card"><h2>Primary Transfer Application</h2><p>This customization is scoped to the selected Transfer cycle. The permanent NEXA Transfer Application template stays unchanged.</p><div class="preview" id="cycleInfo">Loading cycle…</div></section>
+<section class="card"><h3>Introduction</h3><label class="field">Welcome text<textarea id="introText"></textarea></label><label class="field">Philosophy<textarea id="philosophy"></textarea></label><div class="sectionRow"><div><b>Major coordinated events</b><br><small>Expandable FDT / TAL / Sunfire / SvS information.</small></div><input class="toggle" id="showMajorEvents" type="checkbox"></div></section>
+<section class="card"><h3>Sections</h3><p>Keep the normal form compact by hiding only the sections you do not want this cycle.</p><div id="sections"></div></section>
+<section class="card"><h3>Cycle-specific Notes</h3><label class="field">Public note <span style="color:#8792ad">Optional</span><textarea id="publicNote" placeholder="Anything applicants should know for this cycle."></textarea></label><div class="actions"><button class="btn" id="save">Save Form</button><a class="btn secondary" id="preview" target="_blank">Preview Public Form</a></div><div class="status" id="status"></div></section>
 </main>
-
-<div class="modal" id="editModal"><div class="modalCard"><h3>Edit My Application</h3><p class="helper">Enter all four credentials exactly as saved after submission.</p>
-<label class="field">Application ID<input id="editApplicationId"></label><label class="field">Game ID<input id="editPlayerId"></label><label class="field">NEXA Auth Code<input id="editAuthCode"></label><label class="field">Edit Token<input id="editToken"></label>
-<div class="actions"><button class="btn secondary" id="editCancel" type="button">Cancel</button><button class="btn" id="editLoad" type="button">Open Application</button></div><div class="status" id="editStatus"></div></div></div>
-
-<div class="modal" id="successModal"><div class="modalCard"><h2>Application Submitted ✓</h2><p>Save these credentials. You will need all of them to reopen your application.</p><div id="credentials"></div><div class="actions"><button class="btn" id="copyCredentials" type="button">Copy Credentials</button><button class="btn secondary" id="successClose" type="button">Done</button></div></div></div>
-
 <script>
 (()=>{
 'use strict';
 const SB=window.supabase.createClient('https://dfxcxboxrkfmrnsgpyin.supabase.co','sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-');
-const $=id=>document.getElementById(id),q=new URLSearchParams(location.search),eventId=q.get('event'),direct=q.get('direct')==='1';
-let event=null,workspace=null,recruiting=[],alliances=[],editing=null,editingHash='';
-const utc=['00:00–04:00','04:00–08:00','08:00–12:00','12:00–16:00','16:00–20:00','20:00–24:00'];
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const val=id=>$(id)?.value??'',bool=id=>$(id)?.value==='true';
-function rand(chars=6){const a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',b=new Uint32Array(chars);crypto.getRandomValues(b);return Array.from(b,x=>a[x%a.length]).join('')}
-function token(){return `${rand(4)}-${rand(4)}-${rand(4)}`}
-async function hash(s){const bytes=new TextEncoder().encode(String(s).trim());const out=await crypto.subtle.digest('SHA-256',bytes);return Array.from(new Uint8Array(out),b=>b.toString(16).padStart(2,'0')).join('')}
-function formatCompact(n){n=Number(n||0);if(!n)return'';if(n>=1e9)return(n/1e9).toFixed(2).replace(/0+$/,'').replace(/\.$/,'')+'B';if(n>=1e6)return(n/1e6).toFixed(2).replace(/0+$/,'').replace(/\.$/,'')+'M';if(n>=1e3)return(n/1e3).toFixed(1).replace(/\.0$/,'')+'K';return n.toLocaleString()}
+const $=id=>document.getElementById(id),q=new URLSearchParams(location.search);
+const defs=[['applicant','Applicant & Referral'],['player','Player Information'],['strength','Account Strength'],['placement','Placement & Availability'],['group','Group Transfer'],['timing','Transfer Timing'],['additional','Additional Information'],['confirmation','Final Confirmation']];
+let event=null,workspace=null,canManage=false;
 async function load(){
- if(!eventId){closed('This Transfer link is missing its cycle ID.');return}
- const er=await SB.from('transfer_events').select('*').eq('id',eventId).maybeSingle();if(er.error||!er.data){closed('This Transfer application is not publicly available right now.');return}event=er.data;
- if(!direct&&!event.public_access_enabled){closed('Public access to this Transfer application is temporarily unavailable. Saved applications are not affected.');return}
- const wr=await SB.from('transfer_workspaces').select('*').eq('id',event.workspace_id).maybeSingle();workspace=wr.data||{state_number:event.destination_state,display_name:'State '+event.destination_state,primary_form_settings:{}};
- if(direct){const c=await SB.rpc('can_manage_transfer_workspace',{p_workspace_id:event.workspace_id});if(c.data!==true){closed('Transfer Staff access required for Direct mode.');return}}
- const rr=await SB.from('transfer_recruiting_alliances').select('*').eq('transfer_event_id',event.id).eq('is_recruiting',true).order('sort_order');recruiting=rr.data||[];
- if(recruiting.length){const ids=recruiting.map(x=>x.alliance_id);const ar=await SB.from('alliances').select('id,tag,name').in('id',ids);alliances=ar.data||[]}
- configure();
+ let id=q.get('event');
+ if(id){const r=await SB.from('transfer_events').select('*').eq('id',id).maybeSingle();event=r.data}
+ if(!event){const wr=await SB.from('transfer_workspaces').select('*').eq('state_number',1518).maybeSingle();workspace=wr.data;if(workspace){const er=await SB.from('transfer_events').select('*').eq('workspace_id',workspace.id).neq('status','archived').order('created_at',{ascending:false}).limit(1).maybeSingle();event=er.data}}
+ if(!event){$('cycleInfo').textContent='No active/upcoming Transfer cycle found.';$('save').disabled=true;return}
+ if(!workspace){const wr=await SB.from('transfer_workspaces').select('*').eq('id',event.workspace_id).maybeSingle();workspace=wr.data}
+ const c=await SB.rpc('can_manage_transfer_workspace',{p_workspace_id:event.workspace_id});canManage=c.data===true;if(!canManage){$('cycleInfo').textContent='Transfer Staff access required.';$('save').disabled=true;return}
+ const fs=event.form_settings||{},ws=workspace?.primary_form_settings||{};
+ $('cycleInfo').textContent=`State ${event.destination_state} • ${event.cycle_kind==='next'?'Next Transfer Cycle':'Current Transfer Cycle'} • ${event.public_access_enabled?'Public Access Open':'Public Access Removed'}`;
+ $('introText').value=fs.intro_text||ws.intro_text||'We’re building an active, competitive, and team-oriented state. We value players who contribute, communicate, prepare for important events, and understand that some competitions require a State-first approach.';
+ $('philosophy').value=fs.philosophy||ws.philosophy||'Strong accounts matter, but character, teamwork, and the player behind the account matter just as much.';
+ $('showMajorEvents').checked=fs.show_major_events!==false;
+ $('publicNote').value=fs.public_note||'';
+ $('sections').innerHTML=defs.map(([k,t])=>`<div class="sectionRow"><div><b>${t}</b><br><small>${k==='confirmation'?'Final confirmations remain recommended.':'Show or hide this section for the current cycle.'}</small></div><input class="toggle" type="checkbox" data-section="${k}" ${fs.sections?.[k]?.show===false?'':'checked'}></div>`).join('');
+ $('preview').href=`transfer-form-v2.html?direct=1&event=${encodeURIComponent(event.id)}`;
 }
-function closed(msg){$('closedCard').innerHTML=`<h2>Transfer Application</h2><p>${esc(msg)}</p>`}
-function configure(){
- $('closedCard').classList.add('hidden');
- const st=workspace.state_number;
- $('welcome').textContent=`State ${st} Transfer Application`;
- $('destination').textContent=`Apply to transfer to State ${st}`;
- $('landingTitle').textContent=`State ${st} Transfer Application`;
- $('introTitle').textContent=`About State ${st}`;
- $('eventsSummary').textContent=`How does State ${st} run major events?`;
- $('stateFirst').textContent=`In major coordinated events, we play for ${st} first.`;
- $('stateUnderstandingText').textContent=`I understand and am comfortable with State ${st}'s coordinated approach to major events.`;
- const ws=workspace.primary_form_settings||{},fs=event.form_settings||{};
- $('introText').textContent=fs.intro_text||ws.intro_text||'We’re building an active, competitive, and team-oriented state. We value players who contribute, communicate, prepare for important events, and understand that some competitions require a State-first approach.';
- $('philosophy').textContent='Our Philosophy: '+(fs.philosophy||ws.philosophy||'Strong accounts matter, but character, teamwork, and the player behind the account matter just as much.');
- const sec=fs.sections||{};document.querySelectorAll('[data-section]').forEach(x=>{if(sec[x.dataset.section]?.show===false)x.classList.add('hidden')});
- $('eventsBox').classList.toggle('hidden',fs.show_major_events===false||ws.show_major_events===false);
- $('allianceSelect').innerHTML=recruiting.length?recruiting.map(r=>{const a=alliances.find(x=>String(x.id)===String(r.alliance_id));return `<option value="${r.alliance_id}">${esc(a?.tag||'Alliance')}${a?.name?' • '+esc(a.name):''}</option>`}).join(''):'<option value="">No recruiting alliance listed</option>';
- $('utcRanges').innerHTML=utc.map((x,i)=>`<label class="choice"><input type="checkbox" name="utcRange" value="${i}"> ${x}</label>`).join('');
- showSchedule();refreshSummary();updatePowerPreview();
- if(direct){showApplication()}else{$('landing').classList.remove('hidden')}
-}
-function showApplication(){$('landing').classList.add('hidden');$('appRoot').classList.remove('hidden');window.scrollTo({top:0,behavior:'smooth'})}
-$('startApply').onclick=showApplication;
-$('startEdit').onclick=()=>$('editModal').classList.add('open');
-$('completedBy').onchange=()=>{$('staffFields').classList.toggle('hidden',val('completedBy')!=='staff')};
-$('referred').onchange=()=>{$('referredByWrap').classList.toggle('hidden',!bool('referred'))};
-$('progression').onchange=()=>{$('labyrinthWrap').classList.toggle('hidden',val('progression')!=='highly_developed')};
-$('alliancePreference').onchange=toggleAlliance;
-function toggleAlliance(){const flex=val('alliancePreference')==='flexible';$('allianceSelectWrap').classList.toggle('hidden',flex);$('allianceScheduleCard').classList.toggle('hidden',flex);$('utcRangesWrap').classList.toggle('hidden',!flex)}
-$('allianceSelect').onchange=showSchedule;
-function showSchedule(){
- const r=recruiting.find(x=>String(x.alliance_id)===String(val('allianceSelect'))),a=alliances.find(x=>String(x.id)===String(val('allianceSelect')));
- $('allianceScheduleTitle').textContent=a?`${a.tag}${a.name?' • '+a.name:''}`:'Select an alliance';
- const raw=String(r?.schedule_notes||'').trim();
- const pieces=raw?raw.split(/\n|;|\|/).map(x=>x.trim()).filter(Boolean):[];
- $('allianceSchedule').innerHTML=pieces.length?pieces.map(x=>`<span class="schedule-chip">${esc(x)}</span>`).join(''):'<span class="helper">No event schedule has been added yet.</span>';
-}
-$('withGroup').onchange=()=>{$('groupFields').classList.toggle('hidden',!bool('withGroup'))};
-$('power').addEventListener('input',()=>{const digits=val('power').replace(/\D/g,'');if(val('power')!==digits)$('power').value=digits;updatePowerPreview()});
-function updatePowerPreview(){const n=Number(val('power').replace(/\D/g,''));$('powerPreview').textContent=n?`${n.toLocaleString()}  •  ${formatCompact(n)}`:'Enter your full power number'}
-function payload(){
- const flexible=val('alliancePreference')==='flexible',ranges=[...document.querySelectorAll('[name="utcRange"]:checked')].map(x=>utc[Number(x.value)]);
- return {completed_by:val('completedBy'),staff_name:val('staffName'),staff_alliance:val('staffAlliance'),referred:bool('referred'),referred_by:val('referredBy'),in_game_name:val('ign').trim(),player_id:val('playerId').trim(),current_state:val('currentState').trim(),current_alliance:val('currentAlliance').trim(),discord_username:val('discord').trim(),furnace_level:val('furnace'),current_power:val('power').replace(/\D/g,''),account_progression:val('progression'),labyrinth_score:val('labyrinth').replace(/\D/g,''),advanced_infantry:val('infantry'),advanced_lancer:val('lancer'),advanced_marksman:val('marksman'),transfer_passes:val('passes'),willing_to_reduce_power:val('reducePower'),flexible_alliance:flexible,preferred_alliance_id:flexible?'':val('allianceSelect'),preferred_utc_ranges:ranges,discord_vc:val('discordVc'),transferring_with_group:bool('withGroup'),group_name:val('groupName'),group_leader:val('groupName'),group_size:val('groupSize'),group_members_submitting:val('groupSubmitting'),group_placement_preference:val('groupPlacement'),transfer_without_full_group:val('groupWithoutAll'),application_cycle:val('applicationCycle'),coordinates:val('coordinates').trim(),additional_information:val('additional').trim(),state_playstyle:$('stateUnderstanding').checked,confirms_information:$('confirmInfo').checked,confirms_no_guarantee:$('confirmNoGuarantee').checked,confirms_transfer_route:$('confirmRoute').checked};
-}
-function furnaceLabel(v){return({fc8:'FC8',fc9:'FC9',fc10:'FC10'})[v]||v||'—'}
-function refreshSummary(){const p=payload(),a=alliances.find(x=>String(x.id)===String(p.preferred_alliance_id));$('summary').innerHTML=[['IGN',p.in_game_name||'—'],['Current State',p.current_state||'—'],['Power',p.current_power?`${Number(p.current_power).toLocaleString()} • ${formatCompact(p.current_power)}`:'—'],['Furnace',furnaceLabel(p.furnace_level)],['Alliance',p.flexible_alliance?'Flexible':(a?.tag||'—')],['Transfer Cycle',p.application_cycle==='next'?'Next Cycle':'Current Cycle'],['Group',p.transferring_with_group?`Yes${p.group_size?' • '+p.group_size:''}`:'No']].map(([k,v])=>`<div class="sum"><small>${k}</small><b>${esc(v)}</b></div>`).join('')}
-$('refreshSummary').onclick=refreshSummary;document.getElementById('transferForm').addEventListener('input',refreshSummary);
-function validate(p){if(!$('stateUnderstanding').checked)return 'Please confirm the coordinated State-first approach.';if(!p.in_game_name||!p.player_id||!p.current_state||!p.furnace_level||!p.current_power||!p.account_progression)return 'Please complete all required Player Information and Account Strength fields.';if(p.account_progression==='highly_developed'&&!p.labyrinth_score)return 'Labyrinth Score is required for highly developed / near max / maxed accounts.';if(!p.confirms_information||!p.confirms_no_guarantee||!p.confirms_transfer_route)return 'Please complete all Final Confirmation items.';if(p.completed_by==='staff'&&!direct)return 'Only authorized Transfer Staff can submit for another player.';return ''}
-$('transferForm').onsubmit=async e=>{e.preventDefault();const p=payload(),err=validate(p);if(err){$('formStatus').textContent=err;return}$('submitBtn').disabled=true;$('formStatus').textContent=editing?'Saving changes…':'Submitting…';
- if(editing){const r=await SB.rpc('public_transfer_application_update',{p_application_id:editing.application_id,p_player_id:p.player_id,p_auth_code:editing.auth_code,p_edit_token_hash:editingHash,p_payload:p});$('submitBtn').disabled=false;if(r.error||r.data?.ok!==true){$('formStatus').textContent=r.error?.message||'Unable to update this application.';return}$('formStatus').textContent='Application updated ✓';return}
- const applicationId=`TR-${workspace.state_number}-${rand(6)}`,authCode=`NX-${rand(5)}`,editToken=token(),editHash=await hash(editToken);const preferred=p.preferred_alliance_id?[Number(p.preferred_alliance_id)]:[];
- const row={application_id:applicationId,transfer_event_id:event.id,workspace_id:event.workspace_id,completed_by:p.completed_by,referred:p.referred,referred_by:p.referred_by||null,in_game_name:p.in_game_name,player_id:p.player_id,current_state:Number(p.current_state),current_alliance:p.current_alliance||null,discord_username:p.discord_username||null,furnace_level:p.furnace_level,current_power:Number(p.current_power),willing_to_reduce_power:p.willing_to_reduce_power,labyrinth_score:p.labyrinth_score?Number(p.labyrinth_score):null,transfer_passes:p.transfer_passes,preferred_alliance_ids:preferred,flexible_alliance:p.flexible_alliance,preferred_utc_ranges:p.preferred_utc_ranges,discord_vc:p.discord_vc,transferring_with_group:p.transferring_with_group,group_name:p.group_name||null,group_leader:p.group_leader||null,group_size:p.group_size||null,group_members_submitting:p.group_members_submitting||null,transfer_without_full_group:p.transfer_without_full_group||null,coordinates:p.coordinates||null,additional_information:p.additional_information||null,state_playstyle:p.state_playstyle?'state_first':null,confirms_information:p.confirms_information,account_progression:p.account_progression,no_t11_t12:[p.advanced_infantry,p.advanced_lancer,p.advanced_marksman].every(x=>x==='t10_or_below'),edit_token_hash:editHash,application_bucket:p.application_cycle==='next'?'next_cycle':'inbox',invite_status:'not_sent',application_cycle:p.application_cycle,advanced_infantry:p.advanced_infantry,advanced_lancer:p.advanced_lancer,advanced_marksman:p.advanced_marksman,group_placement_preference:p.group_placement_preference||null,confirms_no_guarantee:p.confirms_no_guarantee,confirms_transfer_route:p.confirms_transfer_route,application_payload:p,auth_code:authCode};
- const ins=await SB.from('transfer_applications').insert(row);$('submitBtn').disabled=false;if(ins.error){$('formStatus').textContent=ins.error.message;return}
- showCredentials(applicationId,p.player_id,authCode,editToken);$('formStatus').textContent='Application submitted ✓';
+$('save').onclick=async()=>{
+ if(!event||!canManage)return;
+ const sections={};document.querySelectorAll('[data-section]').forEach(x=>sections[x.dataset.section]={show:x.checked});
+ const next={...(event.form_settings||{}),intro_text:$('introText').value.trim(),philosophy:$('philosophy').value.trim(),show_major_events:$('showMajorEvents').checked,public_note:$('publicNote').value.trim(),sections};
+ $('status').textContent='Saving…';const r=await SB.from('transfer_events').update({form_settings:next,updated_at:new Date().toISOString()}).eq('id',event.id).select('*').single();
+ if(r.error){$('status').textContent=r.error.message;return}event=r.data;$('status').textContent='Transfer Form saved ✓';
 };
-let credentialText='';function showCredentials(id,pid,code,tok){credentialText=`NEXA Transfer Application Credentials\nApplication ID: ${id}\nGame ID: ${pid}\nNEXA Auth Code: ${code}\nEdit Token: ${tok}`;$('credentials').innerHTML=`<div class="credential">Application ID: ${esc(id)}</div><div class="credential">Game ID: ${esc(pid)}</div><div class="credential">NEXA Auth Code: ${esc(code)}</div><div class="credential">Edit Token: ${esc(tok)}</div>`;$('successModal').classList.add('open')}
-$('copyCredentials').onclick=async()=>{try{await navigator.clipboard.writeText(credentialText);$('copyCredentials').textContent='Copied ✓'}catch(_){$('copyCredentials').textContent='Select and copy the credentials above'}};
-$('successClose').onclick=()=>$('successModal').classList.remove('open');
-$('editCancel').onclick=()=>$('editModal').classList.remove('open');
-$('editLoad').onclick=async()=>{const aid=val('editApplicationId').trim(),pid=val('editPlayerId').trim(),code=val('editAuthCode').trim(),tok=val('editToken').trim();if(!aid||!pid||!code||!tok){$('editStatus').textContent='Enter all four credentials.';return}const h=await hash(tok);$('editStatus').textContent='Checking…';const r=await SB.rpc('public_transfer_application_lookup',{p_application_id:aid,p_player_id:pid,p_auth_code:code,p_edit_token_hash:h});const out=r.data||{};if(r.error||out?.ok!==true){$('editStatus').textContent=out?.error==='closed'?'Public editing is temporarily unavailable.':'Credentials not found.';return}editing={application_id:aid,auth_code:code};editingHash=h;fill(out.payload||{});$('editModal').classList.remove('open');$('submitBtn').textContent='Save Changes';$('formStatus').textContent='Editing existing application.';showApplication()};
-function fill(p){const set=(id,v)=>{if($(id)&&v!==undefined&&v!==null)$(id).value=String(v)};set('completedBy',p.completed_by||'self');set('staffName',p.staff_name);set('staffAlliance',p.staff_alliance);set('referred',String(!!p.referred));set('referredBy',p.referred_by);set('ign',p.in_game_name);set('playerId',p.player_id);set('currentState',p.current_state);set('currentAlliance',p.current_alliance);set('discord',p.discord_username);set('furnace',p.furnace_level);set('power',p.current_power);set('progression',p.account_progression);set('labyrinth',p.labyrinth_score);set('infantry',p.advanced_infantry);set('lancer',p.advanced_lancer);set('marksman',p.advanced_marksman);set('passes',p.transfer_passes);set('reducePower',p.willing_to_reduce_power);set('alliancePreference',p.flexible_alliance?'flexible':'specific');set('allianceSelect',p.preferred_alliance_id);set('discordVc',p.discord_vc);set('withGroup',String(!!p.transferring_with_group));set('groupName',p.group_name);set('groupSize',p.group_size);set('groupSubmitting',p.group_members_submitting);set('groupPlacement',p.group_placement_preference);set('groupWithoutAll',p.transfer_without_full_group);set('applicationCycle',p.application_cycle);set('coordinates',p.coordinates);set('additional',p.additional_information);$('stateUnderstanding').checked=!!p.state_playstyle;$('confirmInfo').checked=!!p.confirms_information;$('confirmNoGuarantee').checked=!!p.confirms_no_guarantee;$('confirmRoute').checked=!!p.confirms_transfer_route;document.querySelectorAll('[name="utcRange"]').forEach(x=>x.checked=(p.preferred_utc_ranges||[]).includes(utc[Number(x.value)]));$('staffFields').classList.toggle('hidden',val('completedBy')!=='staff');$('referredByWrap').classList.toggle('hidden',!bool('referred'));$('groupFields').classList.toggle('hidden',!bool('withGroup'));$('labyrinthWrap').classList.toggle('hidden',val('progression')!=='highly_developed');toggleAlliance();showSchedule();updatePowerPreview();refreshSummary()}
 load();
 })();
 </script>

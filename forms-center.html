@@ -1,6 +1,6 @@
 <!doctype html>
 <!-- TARGET GITHUB FILE: forms-center.html -->
-<!-- NEXA FORMS CENTER V6.4 — TRANSFER CENTER + NEXA MODAL -->
+<!-- NEXA FORMS CENTER V6.5 — TRANSFER ADMIN STATE + CENTER PUBLISHING -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>NEXA • Forms Center</title><link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -44,7 +44,6 @@ function card(c){
    <button data-transfer-publish ${disabled||!open?'disabled':''}>${listed?'Remove from Transfer Center':'Publish in Transfer Center'}</button>
    <a class="${disabled?'disabled':''}" href="${l.edit}">Edit Form</a>
    <button class="${open?'danger':'restore'}" data-transfer-access ${disabled?'disabled':''}>${open?'Remove Public Access':'Restore Public Access'}</button>
-   <a class="${disabled?'disabled':''}" href="transfer-workspace.html${transferWorkspace?`?workspace=${encodeURIComponent(transferWorkspace.id)}`:''}">Transfer Workspace</a>
   </div><div class="status"></div></article>`;
  }
  const s=settingsFor(c.key),hasKey=!!c.key,open=accessOpen(s),published=s.published_to_nexa===true,copy=c.copy||c.open||'#';
@@ -59,8 +58,23 @@ function card(c){
 function render(){const s=SECTIONS[i];$('title').textContent=s.t;$('desc').textContent=s.d;$('prev').disabled=i===0;$('next').disabled=i===SECTIONS.length-1;$('list').innerHTML=s.c.length?s.c.map(card).join(''):'<div class="desc">No forms in this section yet.</div>';history.replaceState(null,'',`forms-center.html?section=${s.k}`)}
 async function reload(){
  const r=await SB.from('event_form_templates').select('event_type_key,settings').in('event_type_key',['svs','fdt','tal','ministry']);if(!r.error)for(const x of r.data||[])templates[x.event_type_key]=x;
- const wr=await SB.from('transfer_workspaces').select('*').eq('state_number',1518).maybeSingle();transferWorkspace=wr.data||null;
- if(transferWorkspace){const er=await SB.from('transfer_events').select('*').eq('workspace_id',transferWorkspace.id).neq('status','archived').order('created_at',{ascending:false}).limit(1).maybeSingle();transferEvent=er.data||null}
+ transferWorkspace=null;transferEvent=null;
+ const tr=await SB.rpc('get_transfer_form_admin_state');
+ const st=tr.data||null;
+ if(!tr.error&&st?.ok===true){
+   transferWorkspace={id:st.workspace_id,state_number:st.state_number,display_name:st.display_name};
+   if(st.event_id){
+     transferEvent={
+       id:st.event_id,
+       workspace_id:st.workspace_id,
+       destination_state:st.destination_state,
+       cycle_kind:st.cycle_kind||'current',
+       public_access_enabled:st.public_access_enabled===true,
+       listed_in_transfer_center:st.listed_in_transfer_center===true,
+       status:st.status
+     };
+   }
+ }
  render();
 }
 async function saveSettings(key,next){const r=await SB.from('event_form_templates').update({settings:next,updated_at:new Date().toISOString()}).eq('event_type_key',key);if(r.error)throw r.error;templates[key]={event_type_key:key,settings:next}}

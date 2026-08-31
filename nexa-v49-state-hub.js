@@ -1,4 +1,4 @@
-/* NEXA V49.24 — ISOLATED ADMIN STAGE / NO LEGACY BODY COLLISION
+/* NEXA V49.25 — TRANSFER MENU OWNER FIX
    NEW FILE: nexa-v49-state-hub.js
 
    Owns:
@@ -1253,9 +1253,48 @@ function openOwnedSvsMenu(){ownedMenuSubview('SVS',[
 function openOwnedTeamMenu(){ownedMenuSubview('TEAM BUILDER',[
   ['Build Teams',()=>ownedMenuGo('team-builder.html')],['Manage Teams',()=>ownedMenuGo('alliance-teams.html')],['Team View',()=>ownedMenuGo('team-layout.html')]
 ])}
-function openOwnedTransferMenu(){ownedMenuSubview('TRANSFER MANAGEMENT',[
-  ['Event Management',()=>ownedMenuGo('transfer-admin.html?tab=events')],['Applications',()=>ownedMenuGo('transfer-admin.html?tab=applications')],['Transfer Roster',()=>ownedMenuGo('transfer-admin.html?tab=roster')],['Waiting List',()=>ownedMenuGo('transfer-admin.html?tab=waiting')],['Recruiting Alliances',()=>ownedMenuGo('transfer-admin.html?tab=alliances')],['History',()=>ownedMenuGo('transfer-admin.html?tab=history')]
+async function canManageTransferWorkspace(){
+  try{
+    const c=sb();
+    if(!c?.rpc)return false;
+    try{await c.auth?.getSession?.()}catch(_){}
+    const {data,error}=await c.rpc('can_manage_transfers');
+    return !error && data===true;
+  }catch(_){
+    return false;
+  }
+}
+
+function openOwnedLegacyTransferMenu(){ownedMenuSubview('LEGACY TRANSFER MANAGEMENT',[
+  ['Event Management',()=>ownedMenuGo('transfer-admin.html?tab=events')],
+  ['Applications',()=>ownedMenuGo('transfer-admin.html?tab=applications')],
+  ['Transfer Roster',()=>ownedMenuGo('transfer-admin.html?tab=roster')],
+  ['Waiting List',()=>ownedMenuGo('transfer-admin.html?tab=waiting')],
+  ['Recruiting Alliances',()=>ownedMenuGo('transfer-admin.html?tab=alliances')],
+  ['History',()=>ownedMenuGo('transfer-admin.html?tab=history')]
 ])}
+
+async function openOwnedTransferMenu(){
+  const items=[
+    ['Transfer Center',()=>ownedMenuGo('transfer-center.html')]
+  ];
+
+  if(await canManageTransferWorkspace()){
+    const st=activeState();
+    items.push([
+      'Transfer Workspace',
+      ()=>ownedMenuGo(`transfer-workspace.html${st?`?state=${encodeURIComponent(st)}`:''}`)
+    ]);
+  }
+
+  items.push([
+    'Legacy Transfer Management',
+    openOwnedLegacyTransferMenu,
+    true
+  ]);
+
+  ownedMenuSubview('TRANSFERS',items);
+}
 async function buildOwnedHomeMenuRoot(){
   const {card}=ownedMenuNodes();if(!card)return;
   card.innerHTML='';const wrap=document.createElement('div');wrap.className='nexa-v49-menu-root';card.appendChild(wrap);
@@ -1270,7 +1309,7 @@ ownedMenuButton(wrap,'SVS',openOwnedSvsMenu,{submenu:true});
   ownedMenuButton(wrap,'FDT',()=>alert('FDT module will be added in the next event phase.'));
   ownedMenuButton(wrap,'TAL',()=>alert('TAL module will be added in the next event phase.'));
   ownedMenuButton(wrap,'Team Builder',openOwnedTeamMenu,{submenu:true});
-  if(await canSeeTransferHome())ownedMenuButton(wrap,'Transfer Management',openOwnedTransferMenu,{submenu:true});
+  if(await canSeeTransferHome())ownedMenuButton(wrap,'Transfers',openOwnedTransferMenu,{submenu:true});
   ownedMenuSep(wrap);
   ownedMenuButton(wrap,'Logout',async()=>{closeOwnedMenu();try{await sb()?.auth?.signOut()}catch(_){}location.reload()});
 }

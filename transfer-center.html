@@ -1,6 +1,6 @@
 <!doctype html>
 <!-- TARGET GITHUB FILE: transfer-center.html -->
-<!-- NEXA TRANSFER CENTER V1.0 — MEMBER-FACING PUBLISHED APPLICATIONS -->
+<!-- NEXA TRANSFER CENTER V1.1 — PUBLISHED CARDS / RPC NORMALIZATION -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -11,8 +11,7 @@
 <style>
 :root{--c:#59e4ff;--v:#9078ff;--m:#aab4d0}*{box-sizing:border-box}
 body{margin:0;min-height:100dvh;background:radial-gradient(circle at 8% 3%,rgba(89,228,255,.08),transparent 31%),radial-gradient(circle at 94% 4%,rgba(144,120,255,.11),transparent 34%),#03050e;color:#fff;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-.shell{width:min(850px,100%);margin:auto;padding:24px 16px 96px}
-.top{display:grid;grid-template-columns:46px 1fr 46px;gap:11px;align-items:center}.round{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;text-decoration:none;color:#dffbff;background:#081127;border:1px solid rgba(89,228,255,.28);font-size:24px}.title{text-align:center}.title small{display:block;color:#93a2c5;font-size:10px;letter-spacing:.18em;font-weight:950}.title h1{margin:5px 0;font-size:clamp(2rem,7vw,3rem)}
+.shell{width:min(850px,100%);margin:auto;padding:24px 16px 96px}.top{display:grid;grid-template-columns:46px 1fr 46px;gap:11px;align-items:center}.round{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;text-decoration:none;color:#dffbff;background:#081127;border:1px solid rgba(89,228,255,.28);font-size:24px}.title{text-align:center}.title small{display:block;color:#93a2c5;font-size:10px;letter-spacing:.18em;font-weight:950}.title h1{margin:5px 0;font-size:clamp(2rem,7vw,3rem)}
 .intro{margin:18px 0;padding:16px;border-radius:20px;border:1px solid rgba(89,228,255,.16);background:rgba(8,15,34,.76);color:var(--m);line-height:1.5}
 .list{display:grid;gap:14px}.card{padding:18px;border-radius:22px;border:1px solid rgba(255,255,255,.11);background:linear-gradient(145deg,rgba(11,20,44,.94),rgba(14,10,38,.92));box-shadow:0 20px 60px rgba(0,0,0,.25)}.tag{font-size:10px;letter-spacing:.15em;color:#8fefff;font-weight:950}.card h2{margin:7px 0 5px}.card p{margin:5px 0;color:var(--m)}.meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.pill{padding:5px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.04);font-size:10px;font-weight:900;color:#dce5f5}.actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}.btn{min-height:46px;border-radius:14px;border:1px solid rgba(89,228,255,.34);background:linear-gradient(135deg,rgba(25,76,112,.72),rgba(36,30,97,.82));color:#fff;text-decoration:none;font-weight:900;display:grid;place-items:center;padding:9px;text-align:center}.btn.secondary{background:rgba(255,255,255,.045)}.empty{padding:28px;text-align:center;color:#8e99b7;border:1px dashed rgba(255,255,255,.14);border-radius:20px}.status{font-size:12px;color:#88efff;min-height:18px;margin-top:8px}
 @media(max-width:560px){.actions{grid-template-columns:1fr}}
@@ -21,7 +20,7 @@ body{margin:0;min-height:100dvh;background:radial-gradient(circle at 8% 3%,rgba(
 <body>
 <main class="shell">
  <div class="top"><a class="round" href="index.html">‹</a><div class="title"><small>NEXA</small><h1>Transfer Center</h1></div><a class="round" href="index.html">×</a></div>
- <div class="intro">Published Transfer applications appear here. You can view the application or copy its public link for someone who wants to apply. Submitting on behalf of another player is limited to authorized Transfer Staff.</div>
+ <div class="intro">Published Transfer applications appear here. View the application or copy the public link for someone who wants to apply.</div>
  <div id="list" class="list"><div class="empty">Loading published Transfer applications…</div></div>
 </main>
 <script>
@@ -30,16 +29,22 @@ body{margin:0;min-height:100dvh;background:radial-gradient(circle at 8% 3%,rgba(
 const SB=window.supabase.createClient('https://dfxcxboxrkfmrnsgpyin.supabase.co','sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-');
 const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>{n=Number(n||0);if(!n)return'Not set';return n>=1e9?(n/1e9).toFixed(2).replace(/\.00$/,'')+'B':n>=1e6?(n/1e6).toFixed(1).replace(/\.0$/,'')+'M':n.toLocaleString()};
+function normalize(data){
+ if(Array.isArray(data))return data;
+ if(Array.isArray(data?.get_transfer_center_cards))return data.get_transfer_center_cards;
+ if(Array.isArray(data?.cards))return data.cards;
+ if(data&&typeof data==='object'&&data.event_id)return[data];
+ return[];
+}
 function linkFor(x){return new URL(`transfer-form-v2.html?public=1&event=${encodeURIComponent(x.event_id)}`,location.href).href}
 async function load(){
- const r=await SB.rpc('get_transfer_center_cards');const rows=Array.isArray(r.data)?r.data:[];
+ const r=await SB.rpc('get_transfer_center_cards');const rows=normalize(r.data);
  if(r.error){$('list').innerHTML=`<div class="empty">Unable to load Transfer Center.</div>`;return}
  if(!rows.length){$('list').innerHTML='<div class="empty">No Transfer applications are published in Transfer Center right now.</div>';return}
- $('list').innerHTML=rows.map(x=>`<article class="card" data-event="${esc(x.event_id)}"><div class="tag">TRANSFER • STATE ${esc(x.destination_state)}</div><h2>State ${esc(x.destination_state)} Transfer Application</h2><p>Apply to transfer to State ${esc(x.destination_state)}.</p><div class="meta"><span class="pill">${x.cycle_kind==='next'?'Next Transfer Cycle':'Current Transfer Cycle'}</span><span class="pill">Ordinary Cap · ${fmt(x.power_cap)}</span></div><div class="actions"><a class="btn" href="${linkFor(x)}">View Form</a><button class="btn secondary" type="button" data-copy="${linkFor(x)}">Copy Link</button></div><div class="status"></div></article>`).join('');
+ $('list').innerHTML=rows.map(x=>`<article class="card"><div class="tag">TRANSFER • STATE ${esc(x.destination_state)}</div><h2>State ${esc(x.destination_state)} Transfer Application</h2><p>Apply to transfer to State ${esc(x.destination_state)}.</p><div class="meta"><span class="pill">${x.cycle_kind==='next'?'Next Transfer Cycle':'Current Transfer Cycle'}</span><span class="pill">Ordinary Cap · ${fmt(x.power_cap)}</span></div><div class="actions"><a class="btn" href="${linkFor(x)}">View Form</a><button class="btn secondary" type="button" data-copy="${linkFor(x)}">Copy Link</button></div><div class="status"></div></article>`).join('');
 }
 document.addEventListener('click',async e=>{const b=e.target.closest('[data-copy]');if(!b)return;try{await navigator.clipboard.writeText(b.dataset.copy);const old=b.textContent;b.textContent='Copied ✓';setTimeout(()=>b.textContent=old,1200)}catch(_){b.closest('.card').querySelector('.status').textContent=b.dataset.copy}});
 load();
 })();
 </script>
-</body>
-</html>
+</body></html>

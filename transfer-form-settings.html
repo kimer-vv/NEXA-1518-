@@ -1,0 +1,55 @@
+<!doctype html>
+<!-- TARGET GITHUB FILE: transfer-form-settings.html -->
+<!-- NEXA TRANSFER FORM SETTINGS V1.0 — EVENT-SCOPED CUSTOMIZATION -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>NEXA • Transfer Form Settings</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--c:#59e4ff;--m:#aab4d0}*{box-sizing:border-box}body{margin:0;min-height:100dvh;background:radial-gradient(circle at 7% 4%,rgba(89,228,255,.08),transparent 32%),radial-gradient(circle at 94% 2%,rgba(140,115,255,.11),transparent 34%),#03050e;color:#fff;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.shell{width:min(760px,100%);margin:auto;padding:22px 16px 90px}.top{display:grid;grid-template-columns:46px 1fr 46px;gap:10px;align-items:center}.round{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;color:#dffbff;text-decoration:none;background:#081127;border:1px solid rgba(89,228,255,.28);font-size:24px}.title{text-align:center}.title small{font-size:10px;letter-spacing:.18em;color:#95a4c7;font-weight:950}.title h1{margin:4px 0}.card{margin-top:14px;padding:17px;border-radius:22px;border:1px solid rgba(255,255,255,.11);background:rgba(8,15,34,.9)}.card h2,.card h3{margin:0 0 8px}.card p{color:var(--m)}.field{display:grid;gap:6px;margin-top:11px;color:#bbc5dc;font-size:12px;font-weight:850}.field input,.field textarea,.field select{width:100%;border-radius:13px;border:1px solid rgba(255,255,255,.14);background:#070d20;color:#fff;padding:12px}.field textarea{min-height:110px}.sectionRow{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.07)}.sectionRow:last-child{border-bottom:0}.sectionRow small{color:#8792ad}.toggle{appearance:none;width:48px;height:28px;border-radius:999px;background:#202943;border:1px solid rgba(255,255,255,.14);position:relative;transition:.2s}.toggle:before{content:"";position:absolute;width:20px;height:20px;border-radius:50%;background:#e9f5ff;top:3px;left:4px;transition:.2s}.toggle:checked{background:rgba(51,151,183,.65);border-color:rgba(89,228,255,.5)}.toggle:checked:before{left:22px}.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}.btn{border:1px solid rgba(89,228,255,.34);border-radius:13px;min-height:44px;padding:10px 14px;background:linear-gradient(135deg,rgba(25,76,112,.72),rgba(36,30,97,.82));color:#fff;font-weight:900;text-decoration:none}.btn.secondary{background:rgba(255,255,255,.045)}.status{margin-top:10px;min-height:18px;color:#8cf2ff}.preview{padding:12px;border-radius:14px;border:1px solid rgba(89,228,255,.17);background:rgba(89,228,255,.04);color:#c8d5ea}
+</style>
+</head>
+<body>
+<main class="shell">
+<div class="top"><a class="round" href="forms-center.html?section=transfer">‹</a><div class="title"><small>TRANSFER FORM</small><h1>Customize</h1></div><a class="round" href="transfer-workspace.html">×</a></div>
+<section class="card"><h2>Primary Transfer Application</h2><p>This customization is scoped to the selected Transfer cycle. The permanent NEXA Transfer Application template stays unchanged.</p><div class="preview" id="cycleInfo">Loading cycle…</div></section>
+<section class="card"><h3>Introduction</h3><label class="field">Welcome text<textarea id="introText"></textarea></label><label class="field">Philosophy<textarea id="philosophy"></textarea></label><div class="sectionRow"><div><b>Major coordinated events</b><br><small>Expandable FDT / TAL / Sunfire / SvS information.</small></div><input class="toggle" id="showMajorEvents" type="checkbox"></div></section>
+<section class="card"><h3>Sections</h3><p>Keep the normal form compact by hiding only the sections you do not want this cycle.</p><div id="sections"></div></section>
+<section class="card"><h3>Cycle-specific Notes</h3><label class="field">Public note <span style="color:#8792ad">Optional</span><textarea id="publicNote" placeholder="Anything applicants should know for this cycle."></textarea></label><div class="actions"><button class="btn" id="save">Save Form</button><a class="btn secondary" id="preview" target="_blank">Preview Public Form</a></div><div class="status" id="status"></div></section>
+</main>
+<script>
+(()=>{
+'use strict';
+const SB=window.supabase.createClient('https://dfxcxboxrkfmrnsgpyin.supabase.co','sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-');
+const $=id=>document.getElementById(id),q=new URLSearchParams(location.search);
+const defs=[['applicant','Applicant & Referral'],['player','Player Information'],['strength','Account Strength'],['placement','Placement & Availability'],['group','Group Transfer'],['timing','Transfer Timing'],['additional','Additional Information'],['confirmation','Final Confirmation']];
+let event=null,workspace=null,canManage=false;
+async function load(){
+ let id=q.get('event');
+ if(id){const r=await SB.from('transfer_events').select('*').eq('id',id).maybeSingle();event=r.data}
+ if(!event){const wr=await SB.from('transfer_workspaces').select('*').eq('state_number',1518).maybeSingle();workspace=wr.data;if(workspace){const er=await SB.from('transfer_events').select('*').eq('workspace_id',workspace.id).neq('status','archived').order('created_at',{ascending:false}).limit(1).maybeSingle();event=er.data}}
+ if(!event){$('cycleInfo').textContent='No active/upcoming Transfer cycle found.';$('save').disabled=true;return}
+ if(!workspace){const wr=await SB.from('transfer_workspaces').select('*').eq('id',event.workspace_id).maybeSingle();workspace=wr.data}
+ const c=await SB.rpc('can_manage_transfer_workspace',{p_workspace_id:event.workspace_id});canManage=c.data===true;if(!canManage){$('cycleInfo').textContent='Transfer Staff access required.';$('save').disabled=true;return}
+ const fs=event.form_settings||{},ws=workspace?.primary_form_settings||{};
+ $('cycleInfo').textContent=`State ${event.destination_state} • ${event.cycle_kind==='next'?'Next Transfer Cycle':'Current Transfer Cycle'} • ${event.public_access_enabled?'Public Access Open':'Public Access Removed'}`;
+ $('introText').value=fs.intro_text||ws.intro_text||'We’re building an active, competitive, and team-oriented state. We value players who contribute, communicate, prepare for important events, and understand that some competitions require a State-first approach.';
+ $('philosophy').value=fs.philosophy||ws.philosophy||'Strong accounts matter, but character, teamwork, and the player behind the account matter just as much.';
+ $('showMajorEvents').checked=fs.show_major_events!==false;
+ $('publicNote').value=fs.public_note||'';
+ $('sections').innerHTML=defs.map(([k,t])=>`<div class="sectionRow"><div><b>${t}</b><br><small>${k==='confirmation'?'Final confirmations remain recommended.':'Show or hide this section for the current cycle.'}</small></div><input class="toggle" type="checkbox" data-section="${k}" ${fs.sections?.[k]?.show===false?'':'checked'}></div>`).join('');
+ $('preview').href=`transfer-form-v2.html?direct=1&event=${encodeURIComponent(event.id)}`;
+}
+$('save').onclick=async()=>{
+ if(!event||!canManage)return;
+ const sections={};document.querySelectorAll('[data-section]').forEach(x=>sections[x.dataset.section]={show:x.checked});
+ const next={...(event.form_settings||{}),intro_text:$('introText').value.trim(),philosophy:$('philosophy').value.trim(),show_major_events:$('showMajorEvents').checked,public_note:$('publicNote').value.trim(),sections};
+ $('status').textContent='Saving…';const r=await SB.from('transfer_events').update({form_settings:next,updated_at:new Date().toISOString()}).eq('id',event.id).select('*').single();
+ if(r.error){$('status').textContent=r.error.message;return}event=r.data;$('status').textContent='Transfer Form saved ✓';
+};
+load();
+})();
+</script>
+</body></html>

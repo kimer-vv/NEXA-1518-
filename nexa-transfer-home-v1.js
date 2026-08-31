@@ -1,4 +1,4 @@
-/* NEXA TRANSFER HOME V1.3 — AUTH-READY WORKSPACE MENU + STATE ROUTING
+/* NEXA TRANSFER HOME V1.4 — OWNED HOME MENU + WORKSPACE ROUTING
    - Transfer Center stays member-facing.
    - Transfer Workspace appears only after verified NEXA transfer permission or a Transfer Staff session.
    - Waits for Supabase auth restoration before deciding NEXA permission.
@@ -7,8 +7,8 @@
    - No MutationObserver. No touchmove preventDefault. No manual scrollLeft.
 */
 (()=>{'use strict';
-if(window.__NEXA_TRANSFER_HOME_V13__)return;
-window.__NEXA_TRANSFER_HOME_V13__=true;
+if(window.__NEXA_TRANSFER_HOME_V14__)return;
+window.__NEXA_TRANSFER_HOME_V14__=true;
 
 const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
@@ -101,6 +101,51 @@ function injectWorkspaceMenu(){
 function scheduleMenuInjection(){
   [40,140,350,750,1400,2200].forEach(ms=>setTimeout(injectWorkspaceMenu,ms));
 }
+
+function rewriteOwnedTransferMenu(){
+  if(!permissionResolved||!canWorkspace)return false;
+
+  const nodes=[...document.querySelectorAll('button,a')];
+  const legacy=nodes.find(el=>{
+    if(el.offsetParent===null)return false;
+    const t=el.textContent.replace(/\s+/g,' ').trim();
+    return t==='Transfer Management'||t==='Legacy Transfer Management';
+  });
+  if(!legacy)return false;
+
+  const host=legacy.parentElement;
+  if(!host)return false;
+
+  if(host.querySelector('[data-nexa-transfer-center-owned]') &&
+     host.querySelector('[data-nexa-transfer-workspace-owned]')) return true;
+
+  const center=legacy.cloneNode(true);
+  center.textContent='Transfer Center';
+  center.dataset.nexaTransferCenterOwned='1';
+  center.removeAttribute('onclick');
+  center.addEventListener('click',e=>{
+    e.preventDefault();
+    e.stopPropagation();
+    location.href='transfer-center.html';
+  },true);
+
+  const workspace=legacy.cloneNode(true);
+  workspace.textContent='Transfer Workspace';
+  workspace.dataset.nexaTransferWorkspaceOwned='1';
+  workspace.removeAttribute('onclick');
+  workspace.addEventListener('click',e=>{
+    e.preventDefault();
+    e.stopPropagation();
+    location.href=workspaceLink();
+  },true);
+
+  legacy.replaceWith(center,workspace);
+  return true;
+}
+function scheduleOwnedMenuRewrite(){
+  [20,70,160,320,650,1100].forEach(ms=>setTimeout(rewriteOwnedTransferMenu,ms));
+}
+
 async function renderCenterAndWorkspaceCard(){
   const c=sb();
   const state=activeState();
@@ -149,7 +194,20 @@ async function renderCenterAndWorkspaceCard(){
   }
 
   scheduleMenuInjection();
+  scheduleOwnedMenuRewrite();
 }
+
+
+document.addEventListener('click',e=>{
+  const t=e.target.closest('button,a');
+  if(!t||!permissionResolved||!canWorkspace)return;
+  const label=t.textContent.replace(/\s+/g,' ').trim();
+  if(label==='Transfer Management'||label==='Legacy Transfer Management'){
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    location.href=workspaceLink();
+  }
+},true);
 
 document.addEventListener('click',e=>{
   const t=e.target.closest('button,a');
@@ -157,6 +215,7 @@ document.addEventListener('click',e=>{
   const label=t.textContent.replace(/\s+/g,' ').trim();
   if(label==='Transfers'||label==='Transfer Center'||label==='HOME'){
     scheduleMenuInjection();
+    scheduleOwnedMenuRewrite();
   }
 },true);
 

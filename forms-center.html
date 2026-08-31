@@ -1,6 +1,6 @@
 <!doctype html>
 <!-- TARGET GITHUB FILE: forms-center.html -->
-<!-- NEXA FORMS CENTER V6.5 — TRANSFER ADMIN STATE + CENTER PUBLISHING -->
+<!-- NEXA FORMS CENTER V6.6 — TRANSFER CENTER PUBLISH AUTO-RESTORES PUBLIC ACCESS -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>NEXA • Forms Center</title><link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -41,7 +41,7 @@ function card(c){
   <div class="actions">
    <a class="${disabled?'disabled':''}" href="${l.open}">Open Form</a>
    <button data-copy="${l.copy}" ${disabled||!open?'disabled':''}>Copy Link</button>
-   <button data-transfer-publish ${disabled||!open?'disabled':''}>${listed?'Remove from Transfer Center':'Publish in Transfer Center'}</button>
+   <button data-transfer-publish ${disabled?'disabled':''}>${listed?'Remove from Transfer Center':'Publish in Transfer Center'}</button>
    <a class="${disabled?'disabled':''}" href="${l.edit}">Edit Form</a>
    <button class="${open?'danger':'restore'}" data-transfer-access ${disabled?'disabled':''}>${open?'Remove Public Access':'Restore Public Access'}</button>
   </div><div class="status"></div></article>`;
@@ -86,7 +86,7 @@ document.addEventListener('click',async e=>{
  const pub=e.target.closest('[data-publish]');if(pub){const key=pub.dataset.publish,current=settingsFor(key),next={...current,public_access_removed:false,public_access_enabled:true,published_to_nexa:current.published_to_nexa!==true};try{await saveSettings(key,next);render()}catch(err){cardStatus(key,err.message||'Unable to update NEXA publishing.')}return}
  const ac=e.target.closest('[data-access]');if(ac){const key=ac.dataset.access,current=settingsFor(key),open=accessOpen(current);if(open){const ok=await confirmBox({title:'Remove Public Access?',text:'Public links will stop accepting responses.',warn:'Saved responses will not be deleted. Internal Open Form access stays available.',yes:'Remove Access'});if(!ok)return;try{await saveSettings(key,{...current,public_access_removed:true,public_access_enabled:false,published_to_nexa:false});render()}catch(err){cardStatus(key,err.message||'Unable to remove public access.')}}else{try{await saveSettings(key,{...current,public_access_removed:false,public_access_enabled:true,published_to_nexa:false});render()}catch(err){cardStatus(key,err.message||'Unable to restore public access.')}}return}
  const ta=e.target.closest('[data-transfer-access]');if(ta&&transferEvent){const open=transferEvent.public_access_enabled===true;if(open){const ok=await confirmBox({title:'Remove Public Access?',text:'The Transfer link will temporarily stop accepting applications.',warn:'Saved applications stay intact. Restore access whenever you are ready.',yes:'Remove Access'});if(!ok)return}const patch=open?{public_access_enabled:false,listed_in_transfer_center:false}:{public_access_enabled:true};const r=await SB.from('transfer_events').update(patch).eq('id',transferEvent.id).select('*').single();if(r.error){cardStatus('transfer',r.error.message);return}transferEvent=r.data;render();return}
- const tp=e.target.closest('[data-transfer-publish]');if(tp&&transferEvent){const next=!transferEvent.listed_in_transfer_center;if(next){const ok=await confirmBox({title:'Publish in Transfer Center?',text:'The application will be visible inside the State Transfer Center.',warn:'This does not publish it to NEXA Pulse.',yes:'Publish'});if(!ok)return}const r=await SB.from('transfer_events').update({listed_in_transfer_center:next}).eq('id',transferEvent.id).select('*').single();if(r.error){cardStatus('transfer',r.error.message);return}transferEvent=r.data;render();return}
+ const tp=e.target.closest('[data-transfer-publish]');if(tp&&transferEvent){const next=!transferEvent.listed_in_transfer_center;if(next){const restoring=transferEvent.public_access_enabled!==true;const ok=await confirmBox({title:'Publish in Transfer Center?',text:'The application will be visible inside the State Transfer Center.',warn:restoring?'Publishing here will also restore Public Access. This does not publish it to NEXA Pulse.':'This does not publish it to NEXA Pulse.',yes:'Publish'});if(!ok)return}const patch=next?{listed_in_transfer_center:true,public_access_enabled:true}:{listed_in_transfer_center:false};const r=await SB.from('transfer_events').update(patch).eq('id',transferEvent.id).select('*').single();if(r.error){cardStatus('transfer',r.error.message);return}transferEvent=r.data;render();return}
 });
 reload();setInterval(reload,30000);
 })();

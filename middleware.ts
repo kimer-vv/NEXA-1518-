@@ -53,6 +53,7 @@ export default async function middleware(request: Request) {
   if (
     path === '/maintenance.html' ||
     path === '/owner-access.html' ||
+    path === '/transfer-workspace.html' ||
     path.startsWith('/owner-recovery-') ||
     path.startsWith('/api/nexa-owner-') ||
     path.startsWith('/api/nexa-system-settings') ||

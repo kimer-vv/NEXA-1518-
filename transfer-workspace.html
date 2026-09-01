@@ -51,7 +51,7 @@ button,input,select,textarea{font:inherit}.hidden{display:none!important}.shell{
 
   <section class="hero">
     <div class="heroGrid">
-      <div><div class="state" id="stateLabel">STATE —</div><h2 id="workspaceTitle">Loading workspace…</h2><p class="muted">Friendly transfer operations, one workspace.</p></div>
+      <div><h2 id="workspaceTitle">State —</h2><p class="muted">Friendly transfer operations, one workspace.</p></div>
       <div>
         <div class="stats">
           <div class="stat"><small>CLASSIFICATION</small><b id="heroCycle">—</b></div>
@@ -278,7 +278,7 @@ function renderCycleState(){
  $('cycleOpenBtn')?.addEventListener('click',()=>{cycleMode=expired||!hasEvent?'new':'edit';cycleEditing=true;fillCycleEditor(cycleMode==='edit');renderCycleState()});
 }
 function renderAll(){
- $('stateLabel').textContent=`STATE ${workspace.state_number}`;$('workspaceTitle').textContent=workspace.display_name||`State ${workspace.state_number}`;
+$('workspaceTitle').textContent=`State ${event?.destination_state||workspace.state_number||'—'}`;
  $('heroCycle').textContent=event?classificationLabel(event.leadership_status):'Not prepared';$('heroApps').textContent=apps.length;$('heroPublic').textContent=event?.public_access_enabled?'OPEN':'CLOSED';$('heroActive').textContent=workspace.is_active?'ACTIVE':'INACTIVE';
  document.querySelectorAll('[data-public]').forEach(b=>b.classList.toggle('active',(b.dataset.public==='yes')===!!event?.public_access_enabled));$('publicQuick').style.opacity=canManage()?1:.68;
  fillCycleEditor(true);renderCycleState();renderFolders();renderApps();renderCounts();renderProfiles();renderAccess();renderHistory();$('workspaceLink').value=workspaceUrl();$('formIntegration').classList.toggle('hidden',!canManage());$('addAlliance').classList.toggle('hidden',!canManage());
@@ -498,6 +498,6 @@ document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelect
 (async()=>{await resolveWorkspace();if(token&&await restoreSession())await chooseWorkspaceAndLoad();else showAuth()})();
 })();
 </script>
-<script src="nexa-transfer-discord-integration-v1.js?v=1.1"></script>
+<script src="nexa-transfer-discord-integration-v1.js?v=1.2"></script>
 </body>
 </html>

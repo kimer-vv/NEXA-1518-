@@ -1,4 +1,4 @@
-// NEXA DISCORD BOT V1.3 — SINGLE ENDPOINT / INTERACTIONS + REGISTER + TICK
+ NEXA DISCORD BOT V1.3.1 — SINGLE ENDPOINT / INTERACTIONS + REGISTER + TICK
 import {
   rawBody,verifyDiscord,ephemeral,publicReply,subcommand,db,getConfigByGuild,
   getCurrentEvent,currentApps,selectedApps,inviteCounts,inviteReport,
@@ -312,10 +312,6 @@ async function timeline(cfg){
 }
 
 async function runTick(){
-if(!['GET','POST'].includes(req.method)){
-    
-  }
-
   try{
     const cfgs=await db.select(
       'transfer_discord_integrations',
@@ -327,18 +323,14 @@ if(!['GET','POST'].includes(req.method)){
       await timeline(cfg);
     }
 
-    return res.status(200).json({
+    return {
       ok:true,
       processed:(cfgs||[]).length,
       at:nowIso()
-    });
+    };
   }catch(e){
     console.error(e);
-
-    return res.status(500).json({
-      ok:false,
-      error:e.message
-    });
+    throw e;
   }
 }
 

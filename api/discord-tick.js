@@ -1,8 +1,8 @@
-// NEXA DISCORD BOT V1.1 — AUTOMATIC APPLICATION ALERTS + TRANSFER TIMELINE
+// NEXA DISCORD BOT V1.2 — AUTOMATIC APPLICATION ALERTS + TRANSFER TIMELINE
 import {
   db,getCurrentEvent,selectedApps,inviteCounts,channelFor,sendChannel,
   fmtPower,phaseTimes,workspaceUrl
-} from './_discord-common.js';
+} from '../lib/discord-common.js';
 
 const nowIso=()=>new Date().toISOString();
 

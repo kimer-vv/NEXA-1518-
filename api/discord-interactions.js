@@ -9,10 +9,7 @@ import {
 
 const commands=[
  {name:'help',description:'See how the NEXA Transfer Bot works and view all commands'},
- {name:'transfer',description:'Transfer event setup and quick status',options:[
-  {type:1,name:'start',description:'Schedule Transfer start using the Game/Server reset date',options:[
-   {type:3,name:'server_date',description:'Optional Game/Server date (YYYY-MM-DD)',required:false}
-  ]},
+ {name:'transfer',description:'Transfer event setup and quick status',  {type:1,name:'start',description:'Schedule Transfer start using the Game/Server reset date'},
   {type:1,name:'status',description:'Show the current Transfer cycle status'},
   {type:1,name:'reminders',description:'Turn Transfer reminders on or off',options:[{type:3,name:'setting',description:'Reminder status',required:true,choices:[{name:'On',value:'on'},{name:'Off',value:'off'}]}]},
   {type:1,name:'channels',description:'Assign a Discord channel to one message category',options:[

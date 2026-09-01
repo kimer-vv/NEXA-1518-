@@ -55,6 +55,7 @@ export default async function middleware(request: Request) {
     path.startsWith('/owner-recovery-') ||
     path.startsWith('/api/nexa-owner-') ||
     path.startsWith('/api/nexa-system-settings') ||
+    path.startsWith('/api/discord-') ||
     path === '/favicon.ico' ||
     /\.(?:css|js|png|jpg|jpeg|webp|svg|ico|woff2?)$/i.test(path)
   ) return next();

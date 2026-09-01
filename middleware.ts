@@ -1,6 +1,7 @@
 import { next } from '@vercel/functions';
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://dfxcxboxrkfmrnsgpyin.supabase.co';
+const ENV = ((globalThis as any).process?.env || {}) as Record<string,string | undefined>;
+const SUPABASE_URL = ENV.SUPABASE_URL || 'https://dfxcxboxrkfmrnsgpyin.supabase.co';
 
 function bytesToHex(bytes: Uint8Array) {
   return Array.from(bytes).map(b => b.toString(16).padStart(2,'0')).join('');
@@ -19,7 +20,7 @@ function cookieValue(req: Request, name: string) {
   return hit ? decodeURIComponent(hit.slice(name.length+1)) : '';
 }
 async function bypassOK(req: Request) {
-  const secret = process.env.NEXA_MAINTENANCE_COOKIE_SECRET || '';
+  const secret = ENV.NEXA_MAINTENANCE_COOKIE_SECRET || '';
   if (!secret) return false;
   const value = cookieValue(req,'nexa_owner_bypass');
   const [exp,sig] = value.split('.');
@@ -28,7 +29,7 @@ async function bypassOK(req: Request) {
   return expected === sig;
 }
 async function maintenanceEnabled() {
-  const service = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  const service = ENV.SUPABASE_SERVICE_ROLE_KEY || '';
   if (!service) return false; // fail-open so Owner is never locked out by missing env
   try {
     const r = await fetch(`${SUPABASE_URL}/rest/v1/nexa_system_settings?key=eq.maintenance_mode&select=value&limit=1`, {

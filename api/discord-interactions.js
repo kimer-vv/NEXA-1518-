@@ -1,4 +1,4 @@
-// NEXA DISCORD BOT V1.5.2 — FINAL EMBED UI / APPLICANTS OVERVIEW / OPEN TRANSFER WORDING
+// NEXA DISCORD BOT V1.5.3 — TRANSFER END / CANCEL SCHEDULE / CONSOLIDATED OPERATIONS
 import {
   rawBody,verifyDiscord,subcommand,db,getConfigByGuild,
   getCurrentEvent,currentApps,selectedApps,recruitingAlliances,inviteCounts,inviteReport,
@@ -11,6 +11,7 @@ const commands=[
  {name:'help',description:'See how the NEXA Transfer Bot works and view all commands'},
  {name:'transfer',description:'Transfer event setup and quick status',options:[
   {type:1,name:'start',description:'Schedule Transfer start using the Game/Server reset date'},
+  {type:1,name:'end',description:'Cancel a scheduled start or end the active Transfer timeline'},
   {type:1,name:'status',description:'Show the current Transfer cycle status'},
   {type:1,name:'reminders',description:'Turn Transfer reminders on or off',options:[{type:3,name:'setting',description:'Reminder status',required:true,choices:[{name:'On',value:'on'},{name:'Off',value:'off'}]}]},
   {type:1,name:'channels',description:'Assign a Discord channel to one message category',options:[
@@ -122,6 +123,20 @@ async function saveStart(cfg,date){
     enabled:true,event_start_at:start,last_sent:markPastTimeline(start),updated_at:nowIso()
   });
   return {start,t:phaseTimes(start)};
+}
+async function clearTransferStart(cfg){
+  await db.update('transfer_discord_integrations',`workspace_id=eq.${cfg.workspace_id}`,{event_start_at:null,last_sent:{},updated_at:nowIso()});
+}
+function transferEndConfirmEmbed(cfg){
+  if(!cfg.event_start_at)return errorEmbed(cfg,'No Transfer Timeline Scheduled','There is no scheduled or active Transfer timeline to cancel or end.');
+  const start=new Date(cfg.event_start_at),started=Date.now()>=start.getTime();
+  return embed(cfg,{
+    title:started?'🏁 End Transfer Event?':'🛑 Cancel Scheduled Transfer Start?',
+    description:started?'This stops all future automatic Transfer announcements. Applicants, placements, invites, and the Transfer cycle are not deleted.':'This removes the scheduled start date so no automatic Transfer phase announcements will begin. Applicants and Transfer data are not deleted.',
+    color:started?COLORS.warning:COLORS.muted,
+    fields:[field('🌌 Scheduled Start',discordTime(start),false)],
+    footer:'This action only controls the Discord Transfer timeline.'
+  });
 }
 async function applicantByGameId(cfg,event,gameId){const rows=await db.select('transfer_applications',`workspace_id=eq.${cfg.workspace_id}&transfer_event_id=eq.${event.id}&player_id=eq.${encodeURIComponent(gameId)}&select=*&limit=2`);return rows?.[0]||null}
 async function validateAlliance(cfg,tag){
@@ -303,6 +318,18 @@ export default async function handler(req,res){
         return res.status(200).json(responseEmbed(embed(cfg,{title:'🔗 Transfer Form Link',description:`${formUrl(eventId)}\n\nCopy and share this link wherever you need.`,color:COLORS.info,footer:'NEXA Transfer Bot'})));
       }
       if(id==='start_cancel')return res.status(200).json(updateEmbed(embed(cfg,{title:'❌ Transfer Start Cancelled',description:'No changes were made to the Transfer timeline.',color:COLORS.muted,footer:'NEXA Transfer Bot'}),[]));
+      if(id==='transfer_end_cancel')return res.status(200).json(updateEmbed(embed(cfg,{title:'↩️ No Changes Made',description:'The Transfer timeline was left unchanged.',color:COLORS.muted,footer:'NEXA Transfer Bot'}),[]));
+      if(id==='transfer_end_confirm'){
+        if(!cfg.event_start_at)return res.status(200).json(updateEmbed(errorEmbed(cfg,'No Transfer Timeline Scheduled','There is no scheduled or active Transfer timeline to cancel or end.'),[]));
+        const start=new Date(cfg.event_start_at),started=Date.now()>=start.getTime();
+        if(started){
+          const e=embed(cfg,{title:'🌌 Transfer Event Ended',description:'This Transfer cycle has ended.',color:COLORS.milestone,footer:'Transfer cycle completed.',timestamp:true});
+          await sendChannel(channelFor(cfg,'reminders'),{embeds:[e],allowed_mentions:{parse:[]}});
+        }
+        await clearTransferStart(cfg);
+        const done=successEmbed(cfg,started?'Transfer Event Ended':'Scheduled Start Cancelled',started?'Future automatic Transfer announcements have been stopped. Transfer data and applicants were kept.':'The scheduled start date was removed. No automatic Transfer phase announcements will begin until a new start is scheduled.');
+        return res.status(200).json(updateEmbed(done,workspaceOnlyComponents(cfg)));
+      }
       if(id.startsWith('start_pick:')){
         const choice=id.split(':')[1];
         if(choice==='choose')return res.status(200).json({type:9,data:{custom_id:'start_date_modal',title:'Choose Transfer Start Date',components:[{type:1,components:[{type:4,custom_id:'server_date',label:'Game/Server reset date (YYYY-MM-DD)',style:1,min_length:10,max_length:10,required:true,placeholder:'2026-09-08'}]}]}});
@@ -341,7 +368,7 @@ export default async function handler(req,res){
 
     if(body.data.name==='help'){
       const e=embed(cfg,{title:'🌌 NEXA Transfer Bot — Help',description:'Discord handles quick Transfer operations. Use **Transfer Workspace** for complete management.',color:COLORS.info,fields:[
-        field('🌌 Transfer','`/transfer start` · `/transfer status`\n`/transfer reminders` · `/transfer channels`',false),
+        field('🌌 Transfer','`/transfer start` · `/transfer end` · `/transfer status`\n`/transfer reminders` · `/transfer channels`',false),
         field('👤 Applicants','`/applicants unassigned` · `/applicants list`\n`/applicant view` · `/applicant move`',false),
         field('📨 Invites','`/invite sent` · `/invite pending` · `/invite list`',false)
       ]});
@@ -350,12 +377,18 @@ export default async function handler(req,res){
 
     if(body.data.name==='transfer'){
       if(name==='start')return res.status(200).json(startChoiceResponse(cfg));
+      if(name==='end'){
+        if(!cfg.event_start_at)return res.status(200).json(responseEmbed(errorEmbed(cfg,'No Transfer Timeline Scheduled','There is no scheduled or active Transfer timeline to cancel or end.')));
+        const e=transferEndConfirmEmbed(cfg);
+        return res.status(200).json(responseEmbed(e,{components:[actionRow(customButton(Date.now()>=new Date(cfg.event_start_at).getTime()?'End Event':'Cancel Scheduled Start','transfer_end_confirm',4,'⚠️'),customButton('Keep Timeline','transfer_end_cancel',2))]}));
+      }
       if(name==='status'){
         const event=await getCurrentEvent(cfg.workspace_id);if(!event)return res.status(200).json(responseEmbed(errorEmbed(cfg,'No Active Transfer Cycle','No active Transfer cycle was found.')));
-        const apps=await currentApps(cfg.workspace_id,event.id),selected=apps.filter(a=>['ordinary','special'].includes(a.application_bucket)),counts=inviteCounts(event,selected),state=phaseState(cfg.event_start_at),unassigned=apps.filter(a=>a.application_bucket==='inbox'&&a.application_cycle!=='next').length,sent=selected.filter(a=>a.invite_status==='sent').length,pending=selected.length-sent;
+        const apps=await currentApps(cfg.workspace_id,event.id),selected=apps.filter(a=>['ordinary','special'].includes(a.application_bucket)),counts=inviteCounts(event,selected),state=cfg.event_start_at?phaseState(cfg.event_start_at):null,unassigned=apps.filter(a=>a.application_bucket==='inbox'&&a.application_cycle!=='next').length,sent=selected.filter(a=>a.invite_status==='sent').length,pending=selected.length-sent;
         const times=(cfg.invite_reminder_times||[]).length?cfg.invite_reminder_times.join(', ')+' UTC':'Not set';
         const warning=Number(cfg.phase3_reminder_minutes||0)>0?`${cfg.phase3_reminder_minutes} minutes before Open Transfer`:'Not set';
-        const e=embed(cfg,{title:'📊 Transfer Status',description:`Current phase: **${state.phase}**${state.next?`\nNext transition: ${discordTime(state.next)}`:''}`,color:COLORS.info,fields:[
+        const timelineText=state?`Current phase: **${state.phase}**${state.next?`\nNext transition: ${discordTime(state.next)}`:''}`:'Transfer timeline: **Not scheduled**';
+        const e=embed(cfg,{title:'📊 Transfer Status',description:timelineText,color:COLORS.info,fields:[
           field('📥 Applicant Queue',`Unassigned: **${unassigned}**`,true),
           field('🎟️ Invite Availability',`Ordinary: **${counts.ordinaryLeft}**\nSpecial: **${counts.specialLeft}**`,true),
           field('📨 Invite Operations',`Sent: **${sent}**\nPending: **${pending}**`,true),

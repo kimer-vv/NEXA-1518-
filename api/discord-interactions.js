@@ -1,10 +1,41 @@
-// NEXA DISCORD BOT V1 — INTERACTIONS ENDPOINT
-import {rawBody,verifyDiscord,ephemeral,publicReply,subcommand,db,getConfigByGuild,getCurrentEvent,getSelectedApps,inviteReport,isoFromUtc,markElapsed} from './_discord-common.js';
+// NEXA DISCORD BOT V1.1 — INTERACTIONS ENDPOINT
+import {
+  rawBody,verifyDiscord,ephemeral,publicReply,subcommand,db,getConfigByGuild,
+  getCurrentEvent,currentApps,selectedApps,inviteCounts,inviteReport,
+  eventStartFromServerDate,phaseState,phaseTimes,markPastTimeline,discordTime,
+  miniApplicant,placementLabel,progressionLabel,hasT12,fmtPower,workspaceUrl
+} from './_discord-common.js';
 
 export const config={api:{bodyParser:false}};
 const ALLOWED_GUILD=process.env.DISCORD_GUILD_ID;
 
-function validTimes(v){if(!v)return[];const out=[...new Set(String(v).split(',').map(x=>x.trim()).filter(x=>/^([01]\d|2[0-3]):[0-5]\d$/.test(x)))];return out.slice(0,24)}
+function findFocused(options=[]){
+  for(const o of options){
+    if(o.focused)return o;
+    if(o.options){
+      const x=findFocused(o.options);
+      if(x)return x;
+    }
+  }
+  return null;
+}
+function safe(s){return String(s??'').slice(0,100)}
+async function applicantByGameId(cfg,event,gameId){
+  const rows=await db.select(
+    'transfer_applications',
+    `workspace_id=eq.${cfg.workspace_id}&transfer_event_id=eq.${event.id}&player_id=eq.${encodeURIComponent(gameId)}&select=*&limit=2`
+  );
+  return rows?.[0]||null;
+}
+function listFooter(cfg){
+  return `\n\n**Need the full picture?** Open NEXA Transfer Workspace for complete applicant details:\n${workspaceUrl(cfg.workspace_id)}`;
+}
+function listCards(apps,cfg,title){
+  const max=10,shown=apps.slice(0,max);
+  let text=`**${title}**\n\n${shown.length?shown.map(miniApplicant).join('\n\n'):'No applicants found.'}`;
+  if(apps.length>max)text+=`\n\n…and ${apps.length-max} more.`;
+  return text+listFooter(cfg);
+}
 
 export default async function handler(req,res){
   if(req.method!=='POST')return res.status(405).json({error:'POST only'});
@@ -12,65 +43,409 @@ export default async function handler(req,res){
     const raw=await rawBody(req);
     const sig=req.headers['x-signature-ed25519'];
     const ts=req.headers['x-signature-timestamp'];
-    if(!verifyDiscord(raw,Array.isArray(sig)?sig[0]:sig,Array.isArray(ts)?ts[0]:ts))return res.status(401).send('invalid request signature');
+
+    if(!verifyDiscord(
+      raw,
+      Array.isArray(sig)?sig[0]:sig,
+      Array.isArray(ts)?ts[0]:ts
+    )){
+      return res.status(401).send('invalid request signature');
+    }
+
     const body=JSON.parse(raw.toString('utf8'));
-    if(body.type===1)return res.status(200).json({type:1});
-    if(body.type!==2)return res.status(200).json(ephemeral('Unsupported interaction.'));
-    if(ALLOWED_GUILD&&body.guild_id!==ALLOWED_GUILD)return res.status(200).json(ephemeral('This bot is not configured for this server.'));
+
+    if(body.type===1){
+      return res.status(200).json({type:1});
+    }
+
+    if(ALLOWED_GUILD&&body.guild_id!==ALLOWED_GUILD){
+      return res.status(200).json(ephemeral('This bot is not configured for this server.'));
+    }
+
     const cfg=await getConfigByGuild(body.guild_id);
-    if(!cfg)return res.status(200).json(ephemeral('This Discord server is not connected to a NEXA Transfer Workspace yet.'));
+    if(!cfg){
+      return res.status(200).json(ephemeral('This Discord server is not connected to a NEXA Transfer Workspace yet.'));
+    }
+
+    if(body.type===4){
+      const focused=findFocused(body.data?.options||[]);
+      if(focused?.name!=='alliance'){
+        return res.status(200).json({type:8,data:{choices:[]}});
+      }
+
+      const event=await getCurrentEvent(cfg.workspace_id);
+      if(!event){
+        return res.status(200).json({type:8,data:{choices:[]}});
+      }
+
+      const rows=await db.select(
+        'transfer_recruiting_alliances',
+        `transfer_event_id=eq.${event.id}&is_active=eq.true&select=tag,name&order=sort_order.asc`
+      );
+
+      const q=String(focused.value||'').toLowerCase();
+      const choices=(rows||[])
+        .filter(x=>!q||String(x.tag||'').toLowerCase().includes(q)||String(x.name||'').toLowerCase().includes(q))
+        .slice(0,25)
+        .map(x=>({
+          name:safe(`${x.tag}${x.name?' · '+x.name:''}`),
+          value:String(x.tag)
+        }));
+
+      return res.status(200).json({type:8,data:{choices}});
+    }
+
+    if(body.type!==2){
+      return res.status(200).json(ephemeral('Unsupported interaction.'));
+    }
+
     const {name,options}=subcommand(body.data);
+
+    if(body.data.name==='help'){
+      const text=[
+        '**🌌 NEXA Transfer Bot — Help**',
+        'A quick companion for **NEXA Transfer Workspace**. Use Discord for fast checks and common actions; use NEXA for complete applications and full Transfer management.',
+        '',
+        '**Transfer**',
+        '`/transfer start` — Set the Transfer start using the **Game/Server reset date**. The bot calculates Phase 1, Phase 2, Phase 3, and Event End automatically.',
+        '`/transfer status` — Show a quick cycle summary.',
+        '`/transfer reminders` — Turn reminders On/Off. **Reminder times are scheduled in NEXA Transfer Workspace → Integrations → Discord** using Invite Check Times (UTC) and Final Invite Warning.',
+        '`/transfer channels` — Pick a message category and assign the Discord channel where it should post.',
+        '',
+        '**Applicants**',
+        '`/applicants unassigned` — Show applicants still waiting for placement.',
+        '`/applicants list` — View applicants by placement.',
+        '`/applicant view` — View a quick applicant card by Game ID.',
+        '`/applicant move` — Move to Ordinary, Special, Not Selected, or Next Transfer Cycle. Alliance is optional.',
+        '',
+        '**Invites**',
+        '`/invite sent` — Mark an invite sent.',
+        '`/invite pending` — Keep it pending or mark Over Power Cap.',
+        '`/invite list` — Show Invites Sent and Still Pending.',
+        '',
+        `**Full details:** ${workspaceUrl(cfg.workspace_id)}`
+      ].join('\n');
+
+      return res.status(200).json(ephemeral(text));
+    }
+
     if(body.data.name==='transfer'){
       if(name==='start'){
-        const start=isoFromUtc(String(options.date||''),String(options.time||''));
-        if(!start)return res.status(200).json(ephemeral('Use UTC/Game Time. Date must be YYYY-MM-DD and time must be HH:MM.'));
-        const last=markElapsed(start,cfg.phase2_reminder_minutes,cfg.phase3_reminder_minutes);
-        await db.update('transfer_discord_integrations',`workspace_id=eq.${cfg.workspace_id}`,{enabled:true,event_start_at:start,last_sent:last,updated_at:new Date().toISOString()});
-        return res.status(200).json(ephemeral(`Transfer reminders activated ✓\nEvent Start: ${String(options.date)} ${String(options.time)} UTC`));
+        const start=eventStartFromServerDate(String(options.server_date||''));
+
+        if(!start){
+          return res.status(200).json(ephemeral(
+            'Use the Game/Server reset date as YYYY-MM-DD. Do not use your local calendar date.'
+          ));
+        }
+
+        const last=markPastTimeline(start);
+
+        await db.update(
+          'transfer_discord_integrations',
+          `workspace_id=eq.${cfg.workspace_id}`,
+          {
+            enabled:true,
+            event_start_at:start,
+            last_sent:last,
+            updated_at:new Date().toISOString()
+          }
+        );
+
+        const t=phaseTimes(start);
+
+        return res.status(200).json(ephemeral(
+          `Transfer timeline saved ✓\n`+
+          `Server Start: **${options.server_date} at reset (00:00 UTC)**\n`+
+          `Phase 2: ${discordTime(t.phase2)}\n`+
+          `Phase 3: ${discordTime(t.phase3)}\n`+
+          `Event End: ${discordTime(t.end)}\n\n`+
+          `The bot uses Game/Server time, not your local time.`
+        ));
       }
+
+      if(name==='status'){
+        const event=await getCurrentEvent(cfg.workspace_id);
+
+        if(!event){
+          return res.status(200).json(ephemeral('No active Transfer cycle was found.'));
+        }
+
+        const apps=await currentApps(cfg.workspace_id,event.id);
+        const selected=apps.filter(a=>['ordinary','special'].includes(a.application_bucket));
+        const counts=inviteCounts(event,selected);
+        const state=phaseState(cfg.event_start_at);
+        const unassigned=apps.filter(a=>a.application_bucket==='inbox'&&a.application_cycle!=='next').length;
+        const sent=selected.filter(a=>a.invite_status==='sent').length;
+        const pending=selected.length-sent;
+
+        const times=(cfg.invite_reminder_times||[]).length
+          ? cfg.invite_reminder_times.join(', ')+' UTC'
+          : 'Not set';
+
+        const warning=Number(cfg.phase3_reminder_minutes||0)>0
+          ? `${cfg.phase3_reminder_minutes} minutes before Phase 3`
+          : 'Not set';
+
+        const text=
+          `**🌌 Transfer Status**\n`+
+          `Phase: **${state.phase}**${state.next?`\nNext transition: ${discordTime(state.next)}`:''}\n\n`+
+          `Unassigned Applicants: **${unassigned}**\n`+
+          `Ordinary Invites Available: **${counts.ordinaryLeft}**\n`+
+          `Special Invites Available: **${counts.specialLeft}**\n`+
+          `Invites Sent: **${sent}** · Pending: **${pending}**\n\n`+
+          `Reminders: **${cfg.reminders_enabled?'On':'Off'}**\n`+
+          `Invite Check Times: **${times}**\n`+
+          `Final Invite Warning: **${warning}**`;
+
+        return res.status(200).json(publicReply(text));
+      }
+
       if(name==='reminders'){
-        const times=validTimes(options.invite_times);
-        if(options.invite_times&&times.length===0)return res.status(200).json(ephemeral('Invite times must look like 06:00, 12:30, 18:00 using UTC/Game Time.'));
-        const patch={updated_at:new Date().toISOString()};
-        if(options.phase2_before_minutes!==undefined)patch.phase2_reminder_minutes=Number(options.phase2_before_minutes);
-        if(options.phase3_before_minutes!==undefined)patch.phase3_reminder_minutes=Number(options.phase3_before_minutes);
-        if(options.invite_times!==undefined)patch.invite_reminder_times=times;
-        if(options.special_plan!==undefined)patch.special_invite_plan=String(options.special_plan);
-        await db.update('transfer_discord_integrations',`workspace_id=eq.${cfg.workspace_id}`,patch);
-        return res.status(200).json(ephemeral(`Reminder settings saved ✓\nInvite reminder times: ${times.length?times.join(', ')+' UTC':'unchanged / none supplied'}`));
+        const on=String(options.setting)==='on';
+
+        await db.update(
+          'transfer_discord_integrations',
+          `workspace_id=eq.${cfg.workspace_id}`,
+          {
+            reminders_enabled:on,
+            updated_at:new Date().toISOString()
+          }
+        );
+
+        return res.status(200).json(ephemeral(
+          `Transfer reminders are now **${on?'ON':'OFF'}**.\n`+
+          `Reminder times are configured in **NEXA Transfer Workspace → Integrations → Discord**.`
+        ));
       }
+
       if(name==='channels'){
-        const patch={channel_mode:String(options.mode||'single'),updated_at:new Date().toISOString()};
-        if(options.single_channel)patch.single_channel_id=String(options.single_channel);
-        if(options.applications_channel)patch.applications_channel_id=String(options.applications_channel);
-        if(options.reminders_channel)patch.reminders_channel_id=String(options.reminders_channel);
-        if(options.invites_channel)patch.invites_channel_id=String(options.invites_channel);
-        await db.update('transfer_discord_integrations',`workspace_id=eq.${cfg.workspace_id}`,patch);
-        return res.status(200).json(ephemeral(`Discord channel mode saved: ${patch.channel_mode} ✓`));
+        const category=String(options.category);
+        const channel=String(options.channel);
+
+        const field=
+          category==='applications'
+            ? 'applications_channel_id'
+            : category==='reminders'
+              ? 'reminders_channel_id'
+              : 'invites_channel_id';
+
+        await db.update(
+          'transfer_discord_integrations',
+          `workspace_id=eq.${cfg.workspace_id}`,
+          {
+            [field]:channel,
+            updated_at:new Date().toISOString()
+          }
+        );
+
+        const label=
+          category==='applications'
+            ? 'New Applications'
+            : category==='reminders'
+              ? 'Transfer Reminders'
+              : 'Invite Operations';
+
+        return res.status(200).json(ephemeral(
+          `${label} → <#${channel}> ✓`
+        ));
       }
     }
+
+    if(body.data.name==='applicants'){
+      const event=await getCurrentEvent(cfg.workspace_id);
+
+      if(!event){
+        return res.status(200).json(ephemeral('No active Transfer cycle was found.'));
+      }
+
+      const apps=await currentApps(cfg.workspace_id,event.id);
+
+      if(name==='unassigned'){
+        const rows=apps.filter(a=>a.application_bucket==='inbox'&&a.application_cycle!=='next');
+
+        return res.status(200).json(publicReply(
+          listCards(rows,cfg,`📥 Unassigned Applicants · ${rows.length}`)
+        ));
+      }
+
+      if(name==='list'){
+        const placement=String(options.placement||'all');
+        let rows=apps;
+        let title='Applicants';
+
+        if(placement==='inbox'){
+          rows=apps.filter(a=>a.application_bucket==='inbox'&&a.application_cycle!=='next');
+          title='📥 Unassigned Applicants';
+        }else if(placement==='next_cycle'){
+          rows=apps.filter(a=>a.application_bucket==='next_cycle'||a.application_cycle==='next');
+          title='⏭️ Next Transfer Cycle';
+        }else if(placement!=='all'){
+          rows=apps.filter(a=>a.application_bucket===placement);
+          title=`📂 ${
+            placement==='not_selected'
+              ? 'Not Selected'
+              : placement[0].toUpperCase()+placement.slice(1)
+          }`;
+        }
+
+        return res.status(200).json(publicReply(
+          listCards(rows,cfg,`${title} · ${rows.length}`)
+        ));
+      }
+    }
+
+    if(body.data.name==='applicant'){
+      const event=await getCurrentEvent(cfg.workspace_id);
+
+      if(!event){
+        return res.status(200).json(ephemeral('No active Transfer cycle was found.'));
+      }
+
+      const a=await applicantByGameId(
+        cfg,
+        event,
+        String(options.game_id||'').trim()
+      );
+
+      if(!a){
+        return res.status(200).json(ephemeral(
+          `No current applicant found with Game ID ${options.game_id}.`
+        ));
+      }
+
+      if(name==='view'){
+        const text=
+          `**👤 ${a.in_game_name||'Applicant'}** · \`${a.player_id||'—'}\`\n`+
+          `From: State ${a.current_state||'—'}${a.current_alliance?` · ${a.current_alliance}`:''}\n`+
+          `Furnace: **${a.furnace_level||'—'}** · Power: **${fmtPower(a.current_power)}**\n`+
+          `T12: **${hasT12(a)?'Yes':'No'}** · Account Progress: **${progressionLabel(a.account_progression)}**\n`+
+          `Placement: **${placementLabel(a)}**\n`+
+          `Assigned Alliance: **${a.assigned_alliance_tag||'Unassigned'}**\n`+
+          `Invite: **${
+            a.invite_status==='sent'
+              ? 'Sent'
+              : a.invite_pending_reason==='over_power'
+                ? 'Pending · Over Power Cap'
+                : 'Pending'
+          }**`+
+          listFooter(cfg);
+
+        return res.status(200).json(publicReply(text));
+      }
+
+      if(name==='move'){
+        const placement=String(options.placement);
+        const alliance=options.alliance?String(options.alliance):null;
+
+        const patch={
+          application_bucket:placement,
+          application_cycle:placement==='next_cycle'?'next':'current',
+          assigned_alliance_tag:['ordinary','special'].includes(placement)?alliance:null,
+          updated_at:new Date().toISOString()
+        };
+
+        await db.update(
+          'transfer_applications',
+          `id=eq.${a.id}`,
+          patch
+        );
+
+        const placementText=
+          placement==='next_cycle'
+            ? 'Next Transfer Cycle'
+            : placement==='not_selected'
+              ? 'Not Selected'
+              : placement[0].toUpperCase()+placement.slice(1);
+
+        const allianceText=
+          alliance
+            ? ` · Alliance: **${alliance}**`
+            : ['ordinary','special'].includes(placement)
+              ? ' · Alliance: **Unassigned**'
+              : '';
+
+        return res.status(200).json(ephemeral(
+          `${a.in_game_name||a.player_id} moved to **${placementText}**${allianceText} ✓`
+        ));
+      }
+    }
+
     if(body.data.name==='invite'){
       const event=await getCurrentEvent(cfg.workspace_id);
-      if(!event)return res.status(200).json(ephemeral('No active Transfer cycle was found.'));
-      if(name==='list'){
-        const apps=await getSelectedApps(cfg.workspace_id,event.id);
-        return res.status(200).json(publicReply(inviteReport(apps)));
+
+      if(!event){
+        return res.status(200).json(ephemeral('No active Transfer cycle was found.'));
       }
-      if(name==='sent'||name==='pending'){
-        const gameId=String(options.game_id||'').trim();
-        const rows=await db.select('transfer_applications',`workspace_id=eq.${cfg.workspace_id}&transfer_event_id=eq.${event.id}&player_id=eq.${encodeURIComponent(gameId)}&select=id,in_game_name,player_id,application_bucket,invite_status,current_power&limit=2`);
-        if(!rows?.length)return res.status(200).json(ephemeral(`No current applicant found with Game ID ${gameId}.`));
-        const a=rows[0];
-        if(!['ordinary','special'].includes(a.application_bucket))return res.status(200).json(ephemeral(`${a.in_game_name||gameId} is not currently in Ordinary or Special.`));
-        if(name==='sent'){
-          await db.update('transfer_applications',`id=eq.${a.id}`,{invite_status:'sent',invite_pending_reason:null,invite_sent_at:new Date().toISOString(),updated_at:new Date().toISOString()});
-          return res.status(200).json(ephemeral(`Invite marked as sent to ${a.in_game_name||gameId} ✓`));
-        }
+
+      if(name==='list'){
+        const apps=await selectedApps(cfg.workspace_id,event.id);
+
+        return res.status(200).json(publicReply(
+          inviteReport(apps)+listFooter(cfg)
+        ));
+      }
+
+      const a=await applicantByGameId(
+        cfg,
+        event,
+        String(options.game_id||'').trim()
+      );
+
+      if(!a){
+        return res.status(200).json(ephemeral(
+          `No current applicant found with Game ID ${options.game_id}.`
+        ));
+      }
+
+      if(!['ordinary','special'].includes(a.application_bucket)){
+        return res.status(200).json(ephemeral(
+          `${a.in_game_name||a.player_id} is not currently in Ordinary or Special.`
+        ));
+      }
+
+      if(name==='sent'){
+        await db.update(
+          'transfer_applications',
+          `id=eq.${a.id}`,
+          {
+            invite_status:'sent',
+            invite_pending_reason:null,
+            invite_sent_at:new Date().toISOString(),
+            updated_at:new Date().toISOString()
+          }
+        );
+
+        return res.status(200).json(ephemeral(
+          `Invite marked as sent to **${a.in_game_name||a.player_id}** ✓`
+        ));
+      }
+
+      if(name==='pending'){
         const reason=String(options.reason||'not_sent');
-        await db.update('transfer_applications',`id=eq.${a.id}`,{invite_status:'not_sent',invite_pending_reason:reason,invite_sent_at:null,updated_at:new Date().toISOString()});
-        return res.status(200).json(ephemeral(`${a.in_game_name||gameId} remains pending${reason==='over_power'?' — Over Power Cap':''}.`));
+
+        await db.update(
+          'transfer_applications',
+          `id=eq.${a.id}`,
+          {
+            invite_status:'not_sent',
+            invite_pending_reason:reason,
+            invite_sent_at:null,
+            updated_at:new Date().toISOString()
+          }
+        );
+
+        return res.status(200).json(ephemeral(
+          `**${a.in_game_name||a.player_id}** remains pending${reason==='over_power'?' · Over Power Cap':''} ✓`
+        ));
       }
     }
+
     return res.status(200).json(ephemeral('Command not recognized.'));
-  }catch(e){console.error(e);return res.status(200).json(ephemeral('NEXA could not complete that command. Check the bot configuration.'))}
+  }catch(e){
+    console.error(e);
+    return res.status(200).json(ephemeral(
+      'NEXA could not complete that command. Check the bot configuration.'
+    ));
+  }
 }

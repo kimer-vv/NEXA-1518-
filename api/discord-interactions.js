@@ -45,7 +45,7 @@ const safe=s=>String(s??'').slice(0,100);
 const actionRow=(...components)=>({type:1,components});
 const linkButton=(label,url,emoji)=>({type:2,style:5,label,url,...(emoji?{emoji:{name:emoji}}:{})});
 const customButton=(label,custom_id,style=2,emoji)=>({type:2,style,label,custom_id,...(emoji?{emoji:{name:emoji}}:{})});
-const response=(content,{ephemeral:true,components=[]}={})=>({type:4,data:{content,components,allowed_mentions:{parse:[]},...(ephemeral?{flags:64}:{})}});
+const response=(content,{ephemeral=true,components=[]}={})=>({type:4,data:{content,components,allowed_mentions:{parse:[]},...(ephemeral?{flags:64}:{})}});
 const updateResponse=(content,components=[])=>({type:7,data:{content,components,allowed_mentions:{parse:[]}}});
 
 function findFocused(options=[]){for(const o of options){if(o.focused)return o;if(o.options){const x=findFocused(o.options);if(x)return x}}return null}

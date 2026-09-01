@@ -1,6 +1,6 @@
 <!doctype html>
 <!-- TARGET GITHUB FILE: transfer-workspace.html -->
-<!-- NEXA TRANSFER WORKSPACE V4.2 — COMPACT CYCLE / SMART APPLICANT CARDS / ALLIANCE COUNTERS / READ-ONLY ORDERED DETAIL -->
+<!-- NEXA TRANSFER WORKSPACE V4.3 — CLEAN GROUP TRANSFER DETAIL / MAIN CONTACT -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -377,7 +377,7 @@ function renderApps(){
    c.querySelector('[data-delete-card]')?.addEventListener('click',e=>{e.stopPropagation();confirmGalaxy('Delete Application',`Delete ${a.in_game_name||'this application'} permanently? This cannot be undone.`,'Delete Application',()=>deleteApplication(a))});
    c.querySelector('[data-copy-discord]')?.addEventListener('click',e=>{e.stopPropagation();copyText(a.discord_username,e.currentTarget)});
    c.querySelector('[data-copy-coords]')?.addEventListener('click',e=>{e.stopPropagation();copyText(coordinateDisplay(a.coordinates),e.currentTarget)});
-   c.querySelector('[data-group-info]')?.addEventListener('click',e=>{e.stopPropagation();openQuick(`${a.in_game_name||'Applicant'} • Group Transfer`,'GROUP TRANSFER',[['Group name',a.group_name],['Group leader',a.group_leader],['Group size',a.group_size],['Members submitting applications',a.group_members_submitting],['Placement together',a.group_placement_preference],['Transfer without full group',a.transfer_without_full_group]].filter(([,v])=>v!==null&&v!==undefined&&v!=='') )});
+   c.querySelector('[data-group-info]')?.addEventListener('click',e=>{e.stopPropagation();const p=(a.application_payload&&typeof a.application_payload==='object')?a.application_payload:{};openQuick(`${a.in_game_name||'Applicant'} • Group Transfer`,'GROUP TRANSFER',[['Main Contact — IGN',p.group_contact_ign||a.group_leader],['Main Contact — State',p.group_contact_state],['Main Contact — Alliance',p.group_contact_alliance],['Main Contact — Discord',p.group_contact_discord],['Group Size',a.group_size],['Same Alliance Preference',a.group_placement_preference],['Transfer if some members are not accepted',a.transfer_without_full_group]].filter(([,v])=>v!==null&&v!==undefined&&v!=='') )});
    c.querySelector('[data-referral-info]')?.addEventListener('click',e=>{e.stopPropagation();openQuick(`${a.in_game_name||'Applicant'} • Referral`,'REFERRED',[['Referred',a.referred?'Yes':'No'],['Referred by',a.referred_by||'Not specified']])});
  });
 }
@@ -423,13 +423,14 @@ function openApplicant(a){
    detailItem('Discord Voice',a.discord_vc)
  ]);
  html+=detailSection('5 • GROUP TRANSFER',[
-   detailItem('Are you transferring with a group?',a.transferring_with_group?'Yes':'No'),
-   a.transferring_with_group?detailItem('Group name',a.group_name):'',
-   a.transferring_with_group?detailItem('Group leader',a.group_leader):'',
-   a.transferring_with_group?detailItem('Group size',a.group_size):'',
-   a.transferring_with_group?detailItem('Are individual members submitting applications?',a.group_members_submitting):'',
-   a.transferring_with_group?detailItem('Placement together',a.group_placement_preference):'',
-   a.transferring_with_group?detailItem('Would you transfer if the entire group is not accepted?',a.transfer_without_full_group):''
+   detailItem('Are you transferring with other players as a group?',a.transferring_with_group?'Yes':'No'),
+   a.transferring_with_group?detailItem('Main Contact — In-game Name',p.group_contact_ign||a.group_leader):'',
+   a.transferring_with_group?detailItem('Main Contact — State',p.group_contact_state):'',
+   a.transferring_with_group?detailItem('Main Contact — Alliance',p.group_contact_alliance):'',
+   a.transferring_with_group?detailItem('Main Contact — Discord',p.group_contact_discord,p.group_contact_discord||null):'',
+   a.transferring_with_group?detailItem('How many players are in your group?',a.group_size):'',
+   a.transferring_with_group?detailItem('Do you need to be placed in the same alliance?',a.group_placement_preference==='together'?'Required':a.group_placement_preference==='preferred'?'Preferred':a.group_placement_preference==='not_required'?'Not necessary':a.group_placement_preference):'',
+   a.transferring_with_group?detailItem('Would you still transfer if some members of your group are not accepted?',a.transfer_without_full_group):''
  ]);
  html+=detailSection('6 • ADDITIONAL INFORMATION',[
    detailItem('Current city coordinates',coordinateDisplay(a.coordinates),a.coordinates?coordinateDisplay(a.coordinates):null),

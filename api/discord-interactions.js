@@ -1,4 +1,4 @@
-// NEXA DISCORD BOT V1.5 — EMBED UI / CONSOLIDATED TRANSFER OPERATIONS
+// NEXA DISCORD BOT V1.5.1 — REFINED EMBED UI / CONSOLIDATED TRANSFER OPERATIONS
 import {
   rawBody,verifyDiscord,subcommand,db,getConfigByGuild,
   getCurrentEvent,currentApps,selectedApps,recruitingAlliances,inviteCounts,inviteReport,
@@ -55,7 +55,7 @@ const linkButton=(label,url,emoji)=>({type:2,style:5,label,url,...(emoji?{emoji:
 const customButton=(label,custom_id,style=2,emoji)=>({type:2,style,label,custom_id,...(emoji?{emoji:{name:emoji}}:{})});
 const field=(name,value,inline=false)=>({name:String(name),value:String(value??'—'),inline});
 
-function embed(cfg,{title='NEXA Transfer Workspace',description,color=COLORS.info,fields=[],footer='Tap the title to open Transfer Workspace.',timestamp=false}={}){
+function embed(cfg,{title='NEXA Transfer Workspace',description,color=COLORS.info,fields=[],footer='Tap the title to open the Workspace.',timestamp=false}={}){
   const e={title,url:workspaceUrl(cfg.workspace_id),description,color,fields,footer:{text:footer}};
   if(timestamp)e.timestamp=nowIso();
   return e;
@@ -92,7 +92,7 @@ function startPreviewEmbed(cfg,date){
       field('🕛 Server Start','00:00 UTC',true),
       field('📍 Your Local Time',discordTime(d),false)
     ],
-    footer:'Discord displays the local-time field in your device timezone. Tap the title to open Transfer Workspace.'
+    footer:'Discord displays the local-time field in your device timezone. Tap the title to open the Workspace.'
   });
 }
 function startChoiceResponse(cfg){
@@ -198,7 +198,7 @@ async function timeline(cfg){
       const apps=await selectedApps(cfg.workspace_id,event.id),counts=inviteCounts(event,apps),pendingOps=apps.filter(a=>a.invite_status!=='sent').length;
       const leadText=warningMinutes>=60&&warningMinutes%60===0?`${warningMinutes/60} hour${warningMinutes===60?'':'s'}`:`${warningMinutes} minutes`;
       await postOnce(cfg,last,'phase3_final_warning',{
-        embeds:[embed(cfg,{title:'🚨 Final Invite Warning',description:`**${leadText} until Open Transfer begins.**\nReview any remaining invitation operations before Phase 3 opens.`,color:COLORS.warning,fields:inviteFields(counts,pendingOps),timestamp:true})],
+        embeds:[embed(cfg,{title:'🚨 Final Invite Warning',description:`**${leadText} until Open Transfer begins.**\nReview any remaining invitation operations before Open Transfer begins.`,color:COLORS.warning,fields:inviteFields(counts,pendingOps),timestamp:true})],
         components:announcementComponents(cfg,event)
       });
     }
@@ -329,11 +329,13 @@ export default async function handler(req,res){
         const event=await getCurrentEvent(cfg.workspace_id);if(!event)return res.status(200).json(responseEmbed(errorEmbed(cfg,'No Active Transfer Cycle','No active Transfer cycle was found.')));
         const apps=await currentApps(cfg.workspace_id,event.id),selected=apps.filter(a=>['ordinary','special'].includes(a.application_bucket)),counts=inviteCounts(event,selected),state=phaseState(cfg.event_start_at),unassigned=apps.filter(a=>a.application_bucket==='inbox'&&a.application_cycle!=='next').length,sent=selected.filter(a=>a.invite_status==='sent').length,pending=selected.length-sent;
         const times=(cfg.invite_reminder_times||[]).length?cfg.invite_reminder_times.join(', ')+' UTC':'Not set';
-        const warning=Number(cfg.phase3_reminder_minutes||0)>0?`${cfg.phase3_reminder_minutes} minutes before Phase 3`:'Not set';
+        const warning=Number(cfg.phase3_reminder_minutes||0)>0?`${cfg.phase3_reminder_minutes} minutes before Open Transfer`:'Not set';
         const e=embed(cfg,{title:'📊 Transfer Status',description:`Current phase: **${state.phase}**${state.next?`\nNext transition: ${discordTime(state.next)}`:''}`,color:COLORS.info,fields:[
-          field('📥 Unassigned',unassigned,true),field('🎟️ Ordinary Available',counts.ordinaryLeft,true),field('⭐ Special Available',counts.specialLeft,true),
-          field('✅ Invites Sent',sent,true),field('⏳ Pending',pending,true),field('🔔 Reminders',cfg.reminders_enabled?'On':'Off',true),
-          field('🕐 Invite Check Times',times,false),field('🚨 Final Warning',warning,false)
+          field('📥 Applicant Queue',`Unassigned: **${unassigned}**`,true),
+          field('🎟️ Invite Availability',`Ordinary: **${counts.ordinaryLeft}**\nSpecial: **${counts.specialLeft}**`,true),
+          field('📨 Invite Operations',`Sent: **${sent}**\nPending: **${pending}**`,true),
+          field('🔔 Reminders',`**${cfg.reminders_enabled?'On':'Off'}**\n${times}`,true),
+          field('🚨 Final Warning',warning,true)
         ]});
         return res.status(200).json(responseEmbed(e,{ephemeral:false,components:workspaceOnlyComponents(cfg)}));
       }

@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- NEXA MY ALLIANCE V1.1 — CLEAN EVENT AREAS / FOUNDRY + CANYON WORKSPACE -->
+<!-- NEXA MY ALLIANCE V1.2 — MEMBER SCHEDULE ONLY / TRANSFER DECOUPLED -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -184,8 +184,7 @@ async function loadSchedule(){
 }
 function renderSchedule(){
  const host=$('#scheduleHost');
- host.innerHTML=`<div class="ma-card"><div class="ma-toggle"><div><h3>Show in Transfer</h3><div class="ma-muted">When ON, Transfer can display this alliance's saved event schedule. The Transfer form itself will be connected later.</div></div><label class="ma-switch"><input id="showTransfer" type="checkbox" ${schedule.showInTransfer?'checked':''} ${schedule.canEdit?'':'disabled'}><span class="ma-slider"></span></label></div></div>
- <div class="ma-card"><h3>Event Schedule</h3><div class="ma-muted">Set recurring Bear Trap, Foundry, Canyon, or custom event times. Times are stored in UTC and can be edited any time.</div><div id="eventList"></div>${schedule.canEdit?'<div class="ma-actions"><button class="ma-btn secondary" id="addEvent">+ Add Event</button></div>':''}</div>
+ host.innerHTML=`<div class="ma-card"><h3>Event Schedule</h3><div class="ma-muted">Recurring alliance event times for members. Transfer recruiting schedules are managed separately in Transfer Workspace → Integrations → Recruiting Alliances.</div><div id="eventList"></div>${schedule.canEdit?'<div class="ma-actions"><button class="ma-btn secondary" id="addEvent">+ Add Event</button></div>':''}</div>
  ${schedule.canEdit?'<div class="ma-savebar"><button class="ma-btn" id="saveSchedule">Save Event Schedule</button><div class="ma-status" id="scheduleStatus"></div></div>':''}`;
  renderEventList();
  if(schedule.canEdit){$('#addEvent').onclick=addCustomEvent;$('#saveSchedule').onclick=saveSchedule}
@@ -206,7 +205,7 @@ function addCustomEvent(){schedule.events.push({key:'custom_'+Date.now(),name:'N
 async function saveSchedule(){
  const st=$('#scheduleStatus');st.textContent='Saving…';
  schedule.events.forEach((e,i)=>{const n=$(`[data-name="${i}"]`);if(n)e.name=n.value.trim()||e.name;e.slots=(e.slots||[]).filter(Boolean);e.sortOrder=(i+1)*10});
- try{await rpc('nexa_save_alliance_event_schedule',{p_alliance_id:Number(passport.id),p_events:schedule.events,p_show_in_transfer:$('#showTransfer').checked});st.textContent='Saved';await loadSchedule()}
+ try{await rpc('nexa_save_alliance_event_schedule',{p_alliance_id:Number(passport.id),p_events:schedule.events,p_show_in_transfer:false});st.textContent='Saved';await loadSchedule()}
  catch(e){st.textContent=e.message}
 }
 
@@ -259,7 +258,7 @@ async function loadAllianceEvents(){
 
 $('#tabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)setTab(b.dataset.tab)});
 $('#backBtn').onclick=()=>location.href='index.html';
-$('#guideBtn').onclick=()=>modal(`<h3>My Alliance Guide</h3><p class="ma-muted"><b>Members</b> is your verified alliance roster. Leadership can manage ranks, move members, or remove them.</p><p class="ma-muted"><b>Pending Members</b> is where leadership approves new members and assigns their rank.</p><p class="ma-muted"><b>NEXA Pulse</b> is the live alliance workspace for current event responses, including Battle Sign-Up and Ministry Sign-Up.</p><p class="ma-muted"><b>Event Schedule</b> stores recurring Bear Trap, Foundry, Canyon, and custom event times. R5 can edit them and choose whether they are exposed to Transfer later.</p><p class="ma-muted"><b>Alliance Events</b> is the strategy and planning area for alliance events. Foundry and Canyon have their own workspaces here and do not read the server Event Schedule.</p><div class="ma-actions"><button class="ma-btn" onclick="this.closest('.ma-modal').remove()">Got it</button></div>`);
+$('#guideBtn').onclick=()=>modal(`<h3>My Alliance Guide</h3><p class="ma-muted"><b>Members</b> is your verified alliance roster. Leadership can manage ranks, move members, or remove them.</p><p class="ma-muted"><b>Pending Members</b> is where leadership approves new members and assigns their rank.</p><p class="ma-muted"><b>NEXA Pulse</b> is the live alliance workspace for current event responses, including Battle Sign-Up and Ministry Sign-Up.</p><p class="ma-muted"><b>Event Schedule</b> stores recurring Bear Trap, Foundry, Canyon, and custom event times for alliance members. Transfer recruiting schedules are managed separately in Transfer Workspace.</p><p class="ma-muted"><b>Alliance Events</b> is the strategy and planning area for alliance events. Foundry and Canyon have their own workspaces here and do not read the server Event Schedule.</p><div class="ma-actions"><button class="ma-btn" onclick="this.closest('.ma-modal').remove()">Got it</button></div>`);
 
 boot().catch(e=>{$('#allianceTitle').textContent='Unable to load';$('#allianceSub').textContent=e.message});
 })();

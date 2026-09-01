@@ -1,4 +1,4 @@
-// NEXA DISCORD BOT V1.5.1 — REFINED EMBED UI / CONSOLIDATED TRANSFER OPERATIONS
+// NEXA DISCORD BOT V1.5.2 — FINAL EMBED UI / APPLICANTS OVERVIEW / OPEN TRANSFER WORDING
 import {
   rawBody,verifyDiscord,subcommand,db,getConfigByGuild,
   getCurrentEvent,currentApps,selectedApps,recruitingAlliances,inviteCounts,inviteReport,
@@ -142,6 +142,31 @@ function listEmbed(cfg,apps,title){
   const description=shown.length?shown.map(miniApplicant).join('\n\n'):'No applicants found.';
   return embed(cfg,{title,description:description+(apps.length>max?`\n\n…and **${apps.length-max} more**.`:''),color:COLORS.applicant});
 }
+function overviewLine(a,{showAlliance=false}={}){
+  const name=a.in_game_name||'Applicant',id=a.player_id||'—';
+  return `• **${name}** · \`${id}\`${showAlliance?` · 🛡️ **${a.assigned_alliance_tag||'Not assigned'}**`:''}`;
+}
+function overviewValue(rows,{showAlliance=false}={}){
+  if(!rows.length)return 'None';
+  const max=12,shown=rows.slice(0,max),tail=rows.length>max?`\n…and **${rows.length-max} more**.`:'';
+  return shown.map(a=>overviewLine(a,{showAlliance})).join('\n')+tail;
+}
+function applicantsOverviewEmbed(cfg,apps){
+  const unassigned=apps.filter(a=>a.application_bucket==='inbox'&&a.application_cycle!=='next');
+  const ordinary=apps.filter(a=>a.application_bucket==='ordinary'&&a.application_cycle!=='next');
+  const special=apps.filter(a=>a.application_bucket==='special'&&a.application_cycle!=='next');
+  const total=unassigned.length+ordinary.length+special.length;
+  return embed(cfg,{
+    title:`👥 Current Applicants Overview · ${total}`,
+    description:'Applicants currently awaiting placement or assigned for this Transfer cycle.',
+    color:COLORS.applicant,
+    fields:[
+      field(`📥 Unassigned · ${unassigned.length}`,overviewValue(unassigned),false),
+      field(`🎟️ Ordinary · ${ordinary.length}`,overviewValue(ordinary,{showAlliance:true}),false),
+      field(`⭐ Special · ${special.length}`,overviewValue(special,{showAlliance:true}),false)
+    ]
+  });
+}
 async function saveLast(cfg,last){await db.update('transfer_discord_integrations',`workspace_id=eq.${cfg.workspace_id}`,{last_sent:last,updated_at:nowIso()})}
 async function postOnce(cfg,last,key,payload,type='reminders'){
   if(last[key])return false;
@@ -205,12 +230,12 @@ async function timeline(cfg){
   }
 
   if(n>=t.phase3.getTime())await postOnce(cfg,last,'phase3_open',{
-    embeds:[embed(cfg,{title:'🚪 Transfer Phase 3 Is Open',description:'**Open Transfer is now active.**',color:COLORS.milestone,timestamp:true})],
+    embeds:[embed(cfg,{title:'🚪 Open Transfer Is Active',description:'Open Transfer is now active.',color:COLORS.milestone,timestamp:true})],
     components:announcementComponents(cfg,event)
   });
 
   if(n>=t.end.getTime())await postOnce(cfg,last,'event_end',{
-    embeds:[embed(cfg,{title:'🌌 Transfer Event Ended',description:'This Transfer cycle has ended.',color:COLORS.milestone,footer:'NEXA Transfer Bot',timestamp:true})]
+    embeds:[embed(cfg,{title:'🌌 Transfer Event Ended',description:'This Transfer cycle has ended.',color:COLORS.milestone,footer:'Transfer cycle completed.',timestamp:true})]
   });
 
   if(cfg.reminders_enabled&&n>=t.phase2.getTime()&&n<t.phase3.getTime()){
@@ -219,7 +244,7 @@ async function timeline(cfg){
       const apps=await selectedApps(cfg.workspace_id,event.id),counts=inviteCounts(event,apps),pendingOps=apps.filter(a=>a.invite_status!=='sent').length;
       if(counts.ordinaryLeft>0||counts.specialLeft>0){
         await sendChannel(channelFor(cfg,'reminders'),{
-          embeds:[embed(cfg,{title:'📋 Invite Check',description:'Current invitation status during Phase 2.',color:COLORS.invite,fields:inviteFields(counts,pendingOps),timestamp:true})],
+          embeds:[embed(cfg,{title:'📋 Invite Check',description:'Current invitation status during the Invitational Phase.',color:COLORS.invite,fields:inviteFields(counts,pendingOps),timestamp:true})],
           components:announcementComponents(cfg,event),allowed_mentions:{parse:[]}
         });
       }
@@ -289,8 +314,8 @@ export default async function handler(req,res){
         const e=successEmbed(cfg,'Transfer Timeline Saved','Automatic phase announcements are now scheduled.',[
           field('🌌 Server Start',`${serverDateLabel(date)} · 00:00 UTC`,false),
           field('📍 Your Local Time',discordTime(new Date(saved.start)),false),
-          field('📨 Phase 2',discordTime(saved.t.phase2),true),
-          field('🚪 Phase 3',discordTime(saved.t.phase3),true),
+          field('📨 Invitational Phase',discordTime(saved.t.phase2),true),
+          field('🚪 Open Transfer',discordTime(saved.t.phase3),true),
           field('🏁 Event End',discordTime(saved.t.end),false)
         ]);
         return res.status(200).json(updateEmbed(e,workspaceOnlyComponents(cfg)));
@@ -362,10 +387,12 @@ export default async function handler(req,res){
         return res.status(200).json(responseEmbed(listEmbed(cfg,rows,`📥 Unassigned Applicants · ${rows.length}`),{ephemeral:false,components:workspaceOnlyComponents(cfg)}));
       }
       if(name==='list'){
-        const placement=String(options.placement||'all');let rows=apps,title='👥 Applicants';
+        const placement=String(options.placement||'all');
+        if(placement==='all')return res.status(200).json(responseEmbed(applicantsOverviewEmbed(cfg,apps),{ephemeral:false,components:workspaceOnlyComponents(cfg)}));
+        let rows=apps,title='👥 Applicants';
         if(placement==='inbox'){rows=apps.filter(a=>a.application_bucket==='inbox'&&a.application_cycle!=='next');title='📥 Unassigned Applicants'}
         else if(placement==='next_cycle'){rows=apps.filter(a=>a.application_bucket==='next_cycle'||a.application_cycle==='next');title='⏭️ Next Transfer Cycle'}
-        else if(placement!=='all'){rows=apps.filter(a=>a.application_bucket===placement);title=`📂 ${placement==='not_selected'?'Not Selected':placement[0].toUpperCase()+placement.slice(1)}`}
+        else {rows=apps.filter(a=>a.application_bucket===placement);title=`📂 ${placement==='not_selected'?'Not Selected':placement[0].toUpperCase()+placement.slice(1)}`}
         return res.status(200).json(responseEmbed(listEmbed(cfg,rows,`${title} · ${rows.length}`),{ephemeral:false,components:workspaceOnlyComponents(cfg)}));
       }
     }

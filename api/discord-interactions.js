@@ -1,4 +1,4 @@
- NEXA DISCORD BOT V1.3.1 — SINGLE ENDPOINT / INTERACTIONS + REGISTER + TICK
+ // NEXA DISCORD BOT V1.3.1 — SINGLE ENDPOINT / INTERACTIONS + REGISTER + TICK
 import {
   rawBody,verifyDiscord,ephemeral,publicReply,subcommand,db,getConfigByGuild,
   getCurrentEvent,currentApps,selectedApps,inviteCounts,inviteReport,

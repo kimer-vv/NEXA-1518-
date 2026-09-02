@@ -1,4 +1,4 @@
-// NEXA DISCORD BOT V1.5.3 — TRANSFER END / CANCEL SCHEDULE / CONSOLIDATED OPERATIONS
+// NEXA DISCORD BOT V1.5.4 — WORKSPACE TEST NOTIFICATIONS / GLOBAL COMMANDS
 import {
   rawBody,verifyDiscord,subcommand,db,getConfigByGuild,
   getCurrentEvent,currentApps,selectedApps,recruitingAlliances,inviteCounts,inviteReport,
@@ -275,6 +275,29 @@ async function runTick(){
 }
 async function registerGuildCommands(guild){const app=env('DISCORD_APPLICATION_ID');const result=await discord(`/applications/${app}/guilds/${guild}/commands`,{method:'PUT',body:commands});return{ok:true,scope:'guild',guild_id:guild,commands:result.map(x=>({id:x.id,name:x.name}))}}
 async function registerGlobalCommands(){const app=env('DISCORD_APPLICATION_ID');const result=await discord(`/applications/${app}/commands`,{method:'PUT',body:commands});return{ok:true,scope:'global',commands:result.map(x=>({id:x.id,name:x.name}))}}
+async function sendWorkspaceTest(workspaceId,staffToken,kind){
+  if(!workspaceId||!staffToken)throw new Error('Staff session required');
+  const allowed=await db.rpc('transfer_staff_access_ok',{p_workspace_id:workspaceId,p_token:staffToken,p_manager:true});
+  if(allowed!==true)throw new Error('Admin or Owner access required');
+  const rows=await db.select('transfer_discord_integrations',`workspace_id=eq.${encodeURIComponent(workspaceId)}&select=*&limit=1`);
+  const cfg=rows?.[0];
+  if(!cfg?.guild_id||cfg.enabled!==true)throw new Error('Discord integration is not enabled');
+  let type='reminders',payload;
+  if(kind==='application'){
+    type='applications';
+    payload={embeds:[embed(cfg,{title:'🧪 TEST · New Transfer Application',description:'This is a test of the **New Applications** notification route.',color:COLORS.applicant,fields:[field('🎮 Game ID','`123456789`',true),field('🏰 Current State','State 1500',true),field('🛡️ Alliance','TEST',true),field('🔥 Furnace','FC10',true),field('⚡ Power','1.2B',true),field('👥 Group Transfer','No',true)],footer:'TEST MESSAGE · No applicant was created.',timestamp:true})],components:workspaceOnlyComponents(cfg,'Open Transfer Workspace'),allowed_mentions:{parse:[]}};
+  }else if(kind==='invite'){
+    type='invites';
+    payload={embeds:[embed(cfg,{title:'🧪 TEST · Invite Operations',description:'This is a test of the **Invite Operations** notification route.',color:COLORS.invite,fields:[field('🎟️ Ordinary Invites','2 available',true),field('⭐ Special Invites','1 available',true),field('📋 Pending Operations','3',true)],footer:'TEST MESSAGE · No invite status was changed.',timestamp:true})],components:workspaceOnlyComponents(cfg,'Open Transfer Workspace'),allowed_mentions:{parse:[]}};
+  }else{
+    type='reminders';
+    payload={embeds:[embed(cfg,{title:'🧪 TEST · Transfer Announcement',description:'This is a test of the **Transfer Announcements** notification route. Your live Transfer timeline was not changed.',color:COLORS.milestone,fields:[field('🌌 Route','Transfer Announcements',true),field('✅ Status','Connected',true)],footer:'TEST MESSAGE · No Transfer phase was started or changed.',timestamp:true})],components:workspaceOnlyComponents(cfg,'Open Transfer Workspace'),allowed_mentions:{parse:[]}};
+  }
+  const channelId=channelFor(cfg,type);
+  if(!channelId)throw new Error(`No ${type} channel is configured`);
+  const sent=await sendChannel(channelId,payload);
+  return{ok:true,kind,type,channel_id:channelId,message_id:sent?.id||null};
+}
 
 export default async function handler(req,res){
   if(req.method==='GET'){
@@ -282,6 +305,14 @@ export default async function handler(req,res){
       const url=new URL(req.url||'/api/discord-interactions','http://localhost'),action=url.searchParams.get('action');
       if(action==='register')return res.status(200).json(await registerGuildCommands(url.searchParams.get('guild_id')||env('DISCORD_GUILD_ID')));
       if(action==='register-global')return res.status(200).json(await registerGlobalCommands());
+      if(action==='workspace-test'){
+        const workspaceId=String(url.searchParams.get('workspace_id')||'').trim();
+        const kind=String(url.searchParams.get('kind')||'announcement').trim();
+        const auth=String(req.headers.authorization||'');
+        const staffToken=auth.startsWith('Bearer ')?auth.slice(7).trim():'';
+        try{return res.status(200).json(await sendWorkspaceTest(workspaceId,staffToken,kind))}
+        catch(e){const msg=String(e.message||e);const status=/required|denied|access/i.test(msg)?403:400;return res.status(status).json({ok:false,error:msg})}
+      }
       if(action==='workspace-channels'){
         const workspaceId=String(url.searchParams.get('workspace_id')||'').trim();
         const auth=String(req.headers.authorization||'');

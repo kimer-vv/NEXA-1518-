@@ -302,7 +302,10 @@ function renderCycleState(){
  const recruitingTags=recruiting.filter(r=>r.is_recruiting).map(r=>allProfiles.find(p=>String(p.alliance_id)===String(r.alliance_id))?.tag).filter(Boolean);
  const status=!hasEvent?'NO ACTIVE CYCLE':expired?'CLOSED':'OPEN';
  const button=!hasEvent?'Open Cycle':expired?'Open Next Cycle':'Edit Cycle';
- $('cycleSummary').innerHTML=`<div class="cycleSummaryHead"><div><span class="cycleStatusChip ${expired?'closed':''}">${status}</span><h3 style="margin:8px 0 4px">${expired?'Transfer Cycle Closed':hasEvent?'Active Transfer Cycle':'Transfer Cycle'}</h3><div class="muted">${expired?'Deadline reached. The previous cycle remains available in History.':hasEvent?'Saved cycle summary. Open Edit only when you need to change it.':'No cycle is currently configured.'}</div></div>${canManage()?`<button class="btn mini" id="cycleOpenBtn">${button}</button>`:''}</div>
+ $('cycleSummary').innerHTML=`<div class="cycleSummaryHead"><div><span class="cycleStatusChip ${expired?'closed':''}">${status}</span><h3 style="margin:8px 0 4px">${expired?'Transfer Cycle Closed':hasEvent?'Active Transfer Cycle':'Transfer Cycle'}</h3><div class="muted">${expired?'Deadline reached. The previous cycle remains available in History.':hasEvent?'Saved cycle summary. Open Edit only when you need to change it.':'No cycle is currently configured.'}</div></div>${canManage()?`<div class="actions" style="margin:0">
+  <button class="btn mini" id="cycleOpenBtn">${button}</button>
+  ${hasEvent&&!expired?`<button class="btn danger mini" id="cycleEndBtn">End Transfer Cycle</button>`:''}
+</div>`:''}</div>
  ${hasEvent?`<div class="cycleSummaryGrid">
    <div class="cycleSummaryItem"><small>CLASSIFICATION</small><b>${esc(classificationLabel(event.leadership_status))}</b></div>
    <div class="cycleSummaryItem"><small>ORDINARY POWER CAP</small><b>${event.power_cap?`${Number(event.power_cap).toLocaleString()} • ${fmt(event.power_cap)}`:'—'}</b></div>
@@ -312,7 +315,14 @@ function renderCycleState(){
    <div class="cycleSummaryItem"><small>INVITES SENT</small><b>${apps.filter(a=>a.invite_status==='sent').length}</b></div>
    <div class="cycleSummaryItem" style="grid-column:1/-1"><small>RECRUITING ALLIANCES</small><b>${esc(recruitingTags.join(' • ')||'—')}</b></div>
  </div>`:''}`;
- $('cycleOpenBtn')?.addEventListener('click',()=>{cycleMode=expired||!hasEvent?'new':'edit';cycleEditing=true;fillCycleEditor(cycleMode==='edit');renderCycleState()});
+$('cycleEndBtn')?.addEventListener('click',()=>{
+  confirmGalaxy(
+    'End Transfer Cycle',
+    'End this Transfer Cycle now? It will be closed and moved to History. This cannot be undone.',
+    'End Transfer Cycle',
+    endTransferCycle
+  );
+})
 }
 function renderAll(){
 $('workspaceTitle').textContent=`State ${event?.destination_state||workspace.state_number||'—'}`;

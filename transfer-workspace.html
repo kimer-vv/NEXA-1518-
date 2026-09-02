@@ -1,6 +1,6 @@
 <!doctype html>
 <!-- TARGET GITHUB FILE: transfer-workspace.html -->
-<!-- NEXA TRANSFER WORKSPACE V5.0 — PERSISTENT INTAKE / INDEPENDENT CYCLES / RECOVERABLE ARCHIVE -->
+<!-- NEXA TRANSFER WORKSPACE V5.1 — RECOVERABLE INDIVIDUAL ARCHIVE / CLEAR ALL / HISTORY DELETE -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -233,11 +233,11 @@ button,input,select,textarea{font:inherit}.hidden{display:none!important}.shell{
 <div class="modal" id="quickInfoModal"><div class="modalCard"><div class="appTop"><div><div class="tag" id="quickInfoTag">DETAIL</div><h3 id="quickInfoTitle">Applicant Detail</h3></div><button class="round" data-close="quickInfoModal">×</button></div><div id="quickInfoBody" class="detailGrid"></div><div class="actions"><button class="btn secondary" data-close="quickInfoModal">Close</button></div></div></div>
 <div class="modal" id="historyModal"><div class="modalCard"><div class="appTop"><div><div class="tag">ARCHIVED TRANSFER CYCLE</div><h3 id="historyModalTitle">History</h3></div><button class="round" data-close="historyModal">×</button></div><div id="historyDetail"></div><div class="actions"><button class="btn secondary" data-close="historyModal">Close</button></div></div></div>
 <div class="modal" id="clearWorkspaceModal"><div class="modalCard">
-  <div class="tag">OWNER / ACCESS MANAGEMENT</div><h3>Clear Transfer Workspace</h3>
-  <div class="notice">This does not permanently delete applicants. Ordinary and Special applicants remain inside Transfer History. New Applications and Not Selected move to Applicant Archive. Next Transfer Cycle and applications received after the finished cycle date are not affected.</div>
+  <div class="tag">OWNER / ACCESS MANAGEMENT</div><h3>Clear All Eligible Applicants</h3>
+  <div class="notice">Clear All does not permanently delete applicants. Ordinary and Special applicants remain inside Transfer History. Every eligible New Application and Not Selected applicant from the finished cycle moves to Applicant Archive. Next Transfer Cycle and applications received after the finished cycle cutoff are not affected.</div>
   <label class="field">NEXA Password<input id="clearWorkspacePassword" type="password" autocomplete="current-password"></label>
   <label class="field">Type CLEAR to continue<input id="clearWorkspaceConfirmation" autocomplete="off" autocapitalize="characters"></label>
-  <div class="actions"><button class="btn secondary" data-close="clearWorkspaceModal">Cancel</button><button class="btn danger" id="clearWorkspaceConfirm" type="button">Archive & Clear</button></div>
+  <div class="actions"><button class="btn secondary" data-close="clearWorkspaceModal">Cancel</button><button class="btn danger" id="clearWorkspaceConfirm" type="button">Clear All</button></div>
   <div class="status" id="clearWorkspaceStatus"></div>
 </div></div>
 
@@ -446,7 +446,7 @@ const smart=[];
     <select data-move-card aria-label="Move to">${moveOptions(current)}</select>
     <select data-assign-card aria-label="Assign Alliance">${allianceOptions(a.assigned_alliance_tag||'')}</select>
     <select class="wide" data-invite-card aria-label="Invitation Status"><option value="not_sent" ${a.invite_status!=='sent'&&a.invite_pending_reason!=='over_power'?'selected':''}>Not Sent</option><option value="over_power" ${a.invite_status!=='sent'&&a.invite_pending_reason==='over_power'?'selected':''}>Not Sent — Over Power Cap</option><option value="sent" ${a.invite_status==='sent'?'selected':''}>Invite Sent</option></select>
-    ${canManage()?'<button class="wide" data-delete-card style="border-color:rgba(255,90,120,.34);background:rgba(115,24,52,.30)">Delete Application</button>':''}
+    ${canManage()?'<button class="wide" data-delete-card style="border-color:rgba(255,90,120,.34);background:rgba(115,24,52,.30)">Archive Application</button>':''}
   </div><div class="readHint">Tap the card to read the full application</div></article>`;
 }
 function renderApps(){
@@ -471,7 +471,7 @@ function renderApps(){
     : {invite_status:'not_sent',invite_pending_reason:v==='over_power'?'over_power':null,invite_sent_at:null}
   );
 };
-   c.querySelector('[data-delete-card]')?.addEventListener('click',e=>{e.stopPropagation();confirmGalaxy('Delete Application',`Delete ${a.in_game_name||'this application'} permanently? This cannot be undone.`,'Delete Application',()=>deleteApplication(a))});
+   c.querySelector('[data-delete-card]')?.addEventListener('click',e=>{e.stopPropagation();confirmGalaxy('Archive Application',`Remove ${a.in_game_name||'this application'} from the active workspace and move it to Applicant Archive? You can restore it later.`,'Archive Application',()=>deleteApplication(a))});
    c.querySelector('[data-copy-discord]')?.addEventListener('click',e=>{e.stopPropagation();copyText(a.discord_username,e.currentTarget)});
    c.querySelector('[data-copy-coords]')?.addEventListener('click',e=>{e.stopPropagation();copyText(coordinateDisplay(a.coordinates),e.currentTarget)});
    c.querySelector('[data-group-info]')?.addEventListener('click',e=>{e.stopPropagation();const p=(a.application_payload&&typeof a.application_payload==='object')?a.application_payload:{};openQuick(`${a.in_game_name||'Applicant'} • Group Transfer`,'GROUP TRANSFER',[['Main Contact — IGN',p.group_contact_ign||a.group_leader],['Main Contact — State',p.group_contact_state],['Main Contact — Alliance',p.group_contact_alliance],['Main Contact — Discord',p.group_contact_discord],['Group Size',a.group_size],['Same Alliance Preference',a.group_placement_preference],['Transfer if some members are not accepted',a.transfer_without_full_group]].filter(([,v])=>v!==null&&v!==undefined&&v!=='') )});
@@ -584,11 +584,21 @@ async function openHistory(h){
 }
 function renderHistory(){
  const cycles=historyView==='cycles';$('historyCyclesTab').classList.toggle('active',cycles);$('historyArchiveTab').classList.toggle('active',!cycles);$('historyList').classList.toggle('hidden',!cycles);$('applicantArchiveList').classList.toggle('hidden',cycles);
- $('cleanupBox').innerHTML=cleanup.available&&canManage()?`<div class="notice" style="margin-bottom:12px"><b>Finished cycle ready to clear</b><div style="margin-top:5px">${Number(cleanup.count||0)} applicant(s) can be removed from the active workspace without permanent deletion.</div><div class="actions"><button class="btn danger mini" id="openClearWorkspace" type="button">Clear Transfer Workspace</button></div></div>`:'';
+ $('cleanupBox').innerHTML=cleanup.available&&canManage()?`<div class="notice" style="margin-bottom:12px"><b>Finished cycle ready for Clear All</b><div style="margin-top:5px">${Number(cleanup.count||0)} eligible applicant(s) can be removed from the active workspace without permanent deletion. New Applications and Not Selected move to Applicant Archive; Ordinary and Special remain in this cycle's History.</div><div class="actions"><button class="btn danger mini" id="openClearWorkspace" type="button">Clear All</button></div></div>`:'';
  $('openClearWorkspace')?.addEventListener('click',()=>{$('clearWorkspacePassword').value='';$('clearWorkspaceConfirmation').value='';$('clearWorkspaceStatus').textContent='';$('clearWorkspaceModal').classList.add('open')});
- $('historyList').innerHTML=history.length?history.map(h=>`<div class="historyCard clickable" data-open-history="${h.id}"><div class="appTop"><div><b>${esc(h.title||`State ${workspace.state_number} Transfer Cycle`)}</b><div class="meta">${h.starts_at?new Date(h.starts_at).toLocaleDateString():'—'} → ${h.ends_at?new Date(h.ends_at).toLocaleDateString():'—'} • ${esc(classificationLabel(h.leadership_status))}</div></div></div><div class="readHint">Tap to open Ordinary and Special records</div></div>`).join(''):'<div class="empty">No completed Transfer Cycles yet.</div>';
- document.querySelectorAll('[data-open-history]').forEach(c=>c.onclick=()=>{const h=history.find(x=>String(x.id)===String(c.dataset.openHistory));if(h)openHistory(h)});
+ $('historyList').innerHTML=history.length?history.map(h=>`<div class="historyCard clickable" data-open-history="${h.id}"><div class="appTop"><div><b>${esc(h.title||`State ${workspace.state_number} Transfer Cycle`)}</b><div class="meta">${h.starts_at?new Date(h.starts_at).toLocaleDateString():'—'} → ${h.ends_at?new Date(h.ends_at).toLocaleDateString():'—'} • ${esc(classificationLabel(h.leadership_status))}</div></div>${canManage()?`<button class="round" data-delete-history="${h.id}" type="button" aria-label="Delete Transfer Cycle" style="width:34px;height:34px;font-size:20px;color:#ff9aad;border-color:rgba(255,90,120,.34)">×</button>`:''}</div><div class="readHint">Tap to open Ordinary and Special records</div></div>`).join(''):'<div class="empty">No completed Transfer Cycles yet.</div>';
+ document.querySelectorAll('[data-open-history]').forEach(c=>c.onclick=e=>{if(e.target.closest('[data-delete-history]'))return;const h=history.find(x=>String(x.id)===String(c.dataset.openHistory));if(h)openHistory(h)});
+ document.querySelectorAll('[data-delete-history]').forEach(b=>b.onclick=e=>{e.stopPropagation();const h=history.find(x=>String(x.id)===String(b.dataset.deleteHistory));if(h)confirmGalaxy('Delete Transfer Cycle',`Delete ${h.title||'this Transfer Cycle'} from History? This is only allowed when no archived applicants are attached to it.`,'Delete Cycle',()=>deleteHistoryCycle(h))});
  if(!cycles)loadApplicantArchive();
+}
+async function deleteHistoryCycle(h){
+ const r=await SB.rpc('transfer_workspace_delete_history',{p_workspace_id:workspaceId,p_token:token,p_event_id:h.id});
+ if(r.error||r.data?.ok!==true){
+   const m={history_has_active_applicants:'Use Clear All before deleting this cycle from History.',history_has_applicants:'This cycle contains Ordinary or Special History records and cannot be deleted.',manager_required:'Access Management is required.',history_not_found:'This History cycle no longer exists.'};
+   $('cycleStatus').textContent=m[r.data?.error]||r.error?.message||'Unable to delete this History cycle.';
+   return;
+ }
+ await loadWorkspace();
 }
 async function loadApplicantArchive(){
  $('applicantArchiveList').innerHTML='<div class="status">Loading Applicant Archive…</div>';

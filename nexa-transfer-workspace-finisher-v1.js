@@ -12,6 +12,7 @@ let online=[];
 let presenceTimer=null;
 let historyTimer=null;
 let booted=false;
+let canManageHistory=false;
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -158,7 +159,7 @@ function openModal(tag,title,html){
 
 function ensurePresencePill(){
   if($('nexaPresencePill'))return;
-  const top=document.querySelector('#workspaceRoot .top')||document.querySelector('.top');
+  const top=document.querySelector('#appRoot .top')||document.querySelector('main')?.previousElementSibling||document.querySelector('.top');
   if(!top)return;
   const b=document.createElement('button');
   b.id='nexaPresencePill';
@@ -223,18 +224,21 @@ function historyRange(h){
 function historyCard(h){
   const ordUsed=Number(h.ordinary_used||0),ordAvail=Number(h.ordinary_available||0);
   const spUsed=Number(h.special_used||0),spAvail=Number(h.special_available||0);
-  return `<button class="nexa-history-card" type="button" data-nexa-history="${esc(h.id)}">
+  return `<div class="nexa-history-card" data-nexa-history="${esc(h.id)}" role="button" tabindex="0">
     <div class="nexa-history-top">
       <div><div class="nexa-history-date">${esc(historyRange(h))}</div>
       <div class="nexa-history-class">${esc(h.classification||'Ordinary')}</div></div>
-      <div class="nexa-history-state">STATE ${esc(h.destination_state||'—')}</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="nexa-history-state">STATE ${esc(h.destination_state||'—')}</div>
+        ${canManageHistory?`<button class="btn danger mini" type="button" data-nexa-delete-history="${esc(h.id)}">Delete</button>`:''}
+      </div>
     </div>
     <div class="nexa-history-mini">
       <div><small>Power Cap</small><b>${fmtNum(h.power_cap)}</b></div>
       <div><small>Ordinary Invites</small><b>${ordUsed} used / ${ordAvail}</b></div>
       <div><small>Special Invites</small><b>${spUsed} used / ${spAvail}</b></div>
     </div>
-  </button>`;
+  </div>`;
 }
 
 function openHistory(h){
@@ -260,6 +264,9 @@ async function loadHistory(){
   if(!SB||!token||!workspaceId||!box)return;
 
   try{
+    const access=await SB.rpc('transfer_staff_access_list',{p_workspace_id:workspaceId,p_token:token});
+    canManageHistory=access.data?.ok===true&&access.data?.can_manage===true;
+
     const {data,error}=await SB.rpc('transfer_workspace_history_summary',{
       p_workspace_id:workspaceId,p_token:token
     });
@@ -267,10 +274,55 @@ async function loadHistory(){
     const rows=Array.isArray(data.history)?data.history:[];
     box.innerHTML=rows.length?rows.map(historyCard).join(''):
       `<div class="empty">No completed Transfer Cycles yet.</div>`;
-    box.querySelectorAll('[data-nexa-history]').forEach(btn=>{
-      btn.onclick=()=>openHistory(rows.find(x=>String(x.id)===String(btn.dataset.nexaHistory)));
+    box.querySelectorAll('[data-nexa-history]').forEach(card=>{
+      card.onclick=e=>{
+        if(e.target.closest('[data-nexa-delete-history]'))return;
+        openHistory(rows.find(x=>String(x.id)===String(card.dataset.nexaHistory)));
+      };
+      card.onkeydown=e=>{
+        if((e.key==='Enter'||e.key===' ')&&!e.target.closest('[data-nexa-delete-history]')){
+          e.preventDefault();
+          openHistory(rows.find(x=>String(x.id)===String(card.dataset.nexaHistory)));
+        }
+      };
+    });
+    box.querySelectorAll('[data-nexa-delete-history]').forEach(btn=>{
+      btn.onclick=e=>{
+        e.stopPropagation();
+        const h=rows.find(x=>String(x.id)===String(btn.dataset.nexaDeleteHistory));
+        confirmDeleteHistory(h);
+      };
     });
   }catch{}
+}
+
+function confirmDeleteHistory(h){
+  if(!h||!canManageHistory)return;
+  openModal('DELETE HISTORY','Delete Transfer Cycle?',`
+    <p class="muted">Delete <b>${esc(historyRange(h))}</b> from History permanently?</p>
+    <p class="muted">This removes the archived cycle card and cannot be undone.</p>
+    <div class="actions">
+      <button class="btn secondary" type="button" id="nexaCancelDeleteHistory">Cancel</button>
+      <button class="btn danger" type="button" id="nexaConfirmDeleteHistory">Delete</button>
+    </div>
+    <div class="status" id="nexaDeleteHistoryStatus"></div>
+  `);
+  $('nexaCancelDeleteHistory').onclick=()=>$('nexaFinisherModal').classList.remove('open');
+  $('nexaConfirmDeleteHistory').onclick=async()=>{
+    const status=$('nexaDeleteHistoryStatus');
+    status.textContent='Deleting…';
+    const {data,error}=await SB.rpc('transfer_workspace_delete_history',{
+      p_workspace_id:workspaceId,
+      p_token:token,
+      p_event_id:h.id
+    });
+    if(error||data?.ok!==true){
+      status.textContent=error?.message||'Unable to delete this History card.';
+      return;
+    }
+    $('nexaFinisherModal').classList.remove('open');
+    await loadHistory();
+  };
 }
 
 function polishHistoryCopy(){
@@ -314,7 +366,7 @@ function start(){
   if(booted)return;
   token=getToken();
   workspaceId=getWorkspaceId();
-  const app=$('workspaceRoot');
+  const app=$('appRoot');
   if(!SB||!token||!workspaceId||!app||app.classList.contains('hidden'))return;
 
   booted=true;

@@ -1,4 +1,4 @@
-// NEXA TRANSFER DISCORD INTEGRATION V1.6 — FOUR CHANNEL ROUTES / APPLICANT OPS / FINAL WARNING TEST
+// NEXA TRANSFER DISCORD INTEGRATION V1.7 — AUTO-SAVE CHANNEL ROUTES / UNIFIED CHANNEL CARDS / FUNCTIONAL TEST ROUTING
 (()=>{'use strict';
 const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
@@ -89,10 +89,10 @@ function render(){
   <div id="ndBody" class="${panelOpen?'':'nd-hidden'}">
   <div class="nd-grid">
     <div class="nd-box full"><div class="nd-label">Discord Server</div><div class="nd-row"><input id="ndGuild" inputmode="numeric" placeholder="Discord Server ID" value="${esc(cfg?.guild_id||'')}" ${manage?'':'disabled'}><button class="nd-btn secondary" id="ndLoadChannels" type="button">Load Channels</button></div><div class="nd-actions"><a class="nd-btn" href="${INSTALL_URL}" target="_blank" rel="noopener">Install / Add Bot</a></div></div>
-    <div class="nd-box"><div class="nd-label">New Applications Channel</div><select id="ndApplications" ${manage?'':'disabled'}>${channelOptions(cfg?.applications_channel_id)}</select><label class="nd-check"><input id="ndNewApps" type="checkbox" ${cfg?.new_application_notifications!==false?'checked':''} ${manage?'':'disabled'}> New Application Notifications</label></div>
-    <div class="nd-box"><div class="nd-label">Applicant Operations Channel</div><select id="ndApplicantOps" ${manage?'':'disabled'}>${channelOptions(cfg?.applicant_operations_channel_id)}</select><div class="nd-preview">Dedicated workspace for applicant commands. The channel name itself can be anything.</div></div>
-    <div class="nd-box"><div class="nd-label">Transfer Announcements Channel</div><select id="ndReminders" ${manage?'':'disabled'}>${channelOptions(cfg?.reminders_channel_id)}</select><label class="nd-check"><input id="ndReminderOn" type="checkbox" ${cfg?.reminders_enabled!==false?'checked':''} ${manage?'':'disabled'}> Transfer Reminders</label></div>
-    <div class="nd-box"><div class="nd-label">Invite Operations Channel</div><select id="ndInvites" ${manage?'':'disabled'}>${channelOptions(cfg?.invites_channel_id)}</select></div>
+    <div class="nd-box"><div class="nd-label">New Applications Channel</div><select id="ndApplications" ${manage?'':'disabled'}>${channelOptions(cfg?.applications_channel_id)}</select><div class="nd-preview">Receives automatic alerts whenever a new Transfer application is submitted.</div></div>
+    <div class="nd-box"><div class="nd-label">Applicant Operations Channel</div><select id="ndApplicantOps" ${manage?'':'disabled'}>${channelOptions(cfg?.applicant_operations_channel_id)}</select><div class="nd-preview">Used for applicant operations, including viewing applicants, checking placement, and moving applicants between Transfer categories.</div></div>
+    <div class="nd-box"><div class="nd-label">Transfer Announcements Channel</div><select id="ndReminders" ${manage?'':'disabled'}>${channelOptions(cfg?.reminders_channel_id)}</select><div class="nd-preview">Receives automatic Transfer phase updates, invite checks, reminders, final warnings, Open Transfer, and event-end announcements.</div></div>
+    <div class="nd-box"><div class="nd-label">Invite Operations Channel</div><select id="ndInvites" ${manage?'':'disabled'}>${channelOptions(cfg?.invites_channel_id)}</select><div class="nd-preview">Used for invite reports and invitation operations, including Sent and Over Power Cap updates.</div></div>
     <div class="nd-box full"><div class="nd-label">Test Notifications</div><div class="nd-preview">Send a clearly marked TEST message to the selected Discord route. Tests do not create applicants, change invite status, or modify the Transfer timeline.</div><div class="nd-actions">${manage?'<button class="nd-btn secondary" id="ndTestApplication" type="button">Test New Application</button><button class="nd-btn secondary" id="ndTestApplicantOps" type="button">Test Applicant Operations</button><button class="nd-btn secondary" id="ndTestAnnouncement" type="button">Test Transfer Announcement</button><button class="nd-btn secondary" id="ndTestWarning" type="button">Test Final Warning</button><button class="nd-btn secondary" id="ndTestInvite" type="button">Test Invite Operations</button>':'<span style="font-size:12px;color:#929bc2">Admin or Owner access is required to send tests.</span>'}</div></div>
     <div class="nd-box"><div class="nd-label">Event Start Date · WOS Game/Server Date</div><input id="ndStartDate" type="date" value="${esc(dateValue())}" ${manage?'':'disabled'}><div class="nd-actions" style="margin-top:8px">${manage?'<button class="nd-btn secondary" id="ndClearStart" type="button">Clear Start Date</button>':''}</div><div class="nd-preview" id="ndLocalPreview">${localStartText(dateValue())}</div></div>
     <div class="nd-box full"><div class="nd-label">Invite Check Times · UTC / Game Time</div><div class="nd-row"><div><div class="nd-mini-label">24h UTC Time</div><input id="ndAddTime" type="text" inputmode="numeric" maxlength="5" placeholder="20:50" ${manage?'':'disabled'}></div><button class="nd-btn secondary" id="ndAddTimeBtn" type="button" ${manage?'':'disabled'}>Add Time</button></div><div class="nd-times" id="ndTimeChips"></div><div class="nd-preview" id="ndTimePreview"></div></div>
@@ -121,14 +121,31 @@ async function testNotification(kind,label){
   }catch(e){msg(e.message||'Could not send test notification.',true)}
   finally{ids.forEach(id=>{const b=byId(id);if(b)b.disabled=false})}
 }
-function collect(){const h=Math.max(0,Number(byId('ndWarnHours')?.value||0)),m=Math.max(0,Math.min(59,Number(byId('ndWarnMinutes')?.value||0)));return{enabled:!!byId('ndGuild')?.value.trim(),guild_id:byId('ndGuild')?.value.trim()||null,channel_mode:'split',single_channel_id:null,applications_channel_id:byId('ndApplications')?.value||null,applicant_operations_channel_id:byId('ndApplicantOps')?.value||null,reminders_channel_id:byId('ndReminders')?.value||null,invites_channel_id:byId('ndInvites')?.value||null,new_application_notifications:!!byId('ndNewApps')?.checked,reminders_enabled:!!byId('ndReminderOn')?.checked,event_start_date:byId('ndStartDate')?.value||null,phase2_reminder_minutes:60,phase3_reminder_minutes:h*60+m,invite_reminder_times:reminderList(),special_invite_plan:'use_this_cycle',report_settings:{mode:'compact',show_game_id:true,show_state:false,show_alliance:true,show_power:true,show_totals:true}}}
+function collect(){const h=Math.max(0,Number(byId('ndWarnHours')?.value||0)),m=Math.max(0,Math.min(59,Number(byId('ndWarnMinutes')?.value||0)));return{enabled:!!byId('ndGuild')?.value.trim(),guild_id:byId('ndGuild')?.value.trim()||null,channel_mode:'split',single_channel_id:null,applications_channel_id:byId('ndApplications')?.value||null,applicant_operations_channel_id:byId('ndApplicantOps')?.value||null,reminders_channel_id:byId('ndReminders')?.value||null,invites_channel_id:byId('ndInvites')?.value||null,new_application_notifications:cfg?.new_application_notifications!==false,reminders_enabled:cfg?.reminders_enabled!==false,event_start_date:byId('ndStartDate')?.value||null,phase2_reminder_minutes:60,phase3_reminder_minutes:h*60+m,invite_reminder_times:reminderList(),special_invite_plan:'use_this_cycle',report_settings:{mode:'compact',show_game_id:true,show_state:false,show_alliance:true,show_power:true,show_totals:true}}}
 async function save(){msg('Saving Discord integration…');try{const {data,error}=await client.rpc('transfer_workspace_discord_save',{p_workspace_id:workspaceId,p_token:staffToken,p_config:collect()});if(error)throw error;if(!data?.ok)throw new Error(data?.error||'Could not save');cfg=data.config||await getConfig();msg('Discord integration saved ✓');render();if(cfg.guild_id)await loadChannels()}catch(e){msg(e.message||'Could not save Discord integration.',true)}}
+async function autoSaveChannel(label){
+  if(!cfg?.can_manage)return;
+  msg(`Saving ${label}…`);
+  try{
+    const {data,error}=await client.rpc('transfer_workspace_discord_save',{p_workspace_id:workspaceId,p_token:staffToken,p_config:collect()});
+    if(error)throw error;
+    if(!data?.ok)throw new Error(data?.error||'Could not save channel');
+    cfg=data.config||await getConfig();
+    msg(`${label} saved ✓`);
+    render();
+    if(cfg.guild_id)await loadChannels();
+  }catch(e){msg(e.message||`Could not save ${label}.`,true)}
+}
 async function getConfig(){const {data,error}=await client.rpc('transfer_workspace_discord_config',{p_workspace_id:workspaceId,p_token:staffToken});if(error)throw error;return data||{configured:false,can_manage:false}}
 function refreshWarningPreview(){const el=byId('ndWarnPreview');if(el)el.innerHTML=warningPreview()}
 function wire(){
   byId('ndGuide')?.addEventListener('click',()=>{guideOpen=!guideOpen;render()});
   byId('ndToggle')?.addEventListener('click',()=>{panelOpen=!panelOpen;render()});
   byId('ndLoadChannels')?.addEventListener('click',loadChannels);byId('ndSave')?.addEventListener('click',save);byId('ndRefresh')?.addEventListener('click',boot);
+  byId('ndApplications')?.addEventListener('change',()=>autoSaveChannel('New Applications channel'));
+  byId('ndApplicantOps')?.addEventListener('change',()=>autoSaveChannel('Applicant Operations channel'));
+  byId('ndReminders')?.addEventListener('change',()=>autoSaveChannel('Transfer Announcements channel'));
+  byId('ndInvites')?.addEventListener('change',()=>autoSaveChannel('Invite Operations channel'));
   byId('ndTestApplication')?.addEventListener('click',()=>testNotification('application','New Application'));byId('ndTestApplicantOps')?.addEventListener('click',()=>testNotification('applicant_ops','Applicant Operations'));byId('ndTestAnnouncement')?.addEventListener('click',()=>testNotification('announcement','Transfer Announcement'));byId('ndTestWarning')?.addEventListener('click',()=>testNotification('warning','Final Warning'));byId('ndTestInvite')?.addEventListener('click',()=>testNotification('invite','Invite Operations'));
   byId('ndStartDate')?.addEventListener('change',e=>{byId('ndLocalPreview').innerHTML=localStartText(e.target.value);renderTimes();refreshWarningPreview()});
   byId('ndClearStart')?.addEventListener('click',()=>{const input=byId('ndStartDate');if(input)input.value='';byId('ndLocalPreview').innerHTML=localStartText('');renderTimes();refreshWarningPreview();msg('Start date cleared. Save Discord Integration to remove the scheduled Transfer timeline.')});

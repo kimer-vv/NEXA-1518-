@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- NEXA MY ALLIANCE V1.2 — MEMBER SCHEDULE ONLY / TRANSFER DECOUPLED -->
+<!-- NEXA MY ALLIANCE V1.3 — ALL PUBLISHED PULSE TRACKING / TRANSFER DECOUPLED -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -67,6 +67,8 @@ body{background:#02030a;color:#f8f7ff}
 .ma-modal{position:fixed;inset:0;z-index:2147483647;display:grid;place-items:center;padding:15px;background:rgba(0,2,12,.82);backdrop-filter:blur(8px)}
 .ma-dialog{width:min(500px,100%);max-height:88dvh;overflow:auto;border:1px solid rgba(var(--ma-rgb),.35);border-radius:21px;padding:16px;background:linear-gradient(155deg,#0c1730,#050817);box-shadow:0 24px 80px rgba(0,0,0,.65)}
 .ma-status{min-height:18px;margin-top:8px;color:#8effca;font-size:10px;text-align:center}
+.ma-pulse-progress{height:10px;border-radius:999px;background:#0a1123;overflow:hidden;margin:10px 0 4px;border:1px solid rgba(255,255,255,.06)}
+.ma-pulse-progress>div{height:100%;border-radius:999px;background:#39ff9a}
 @media(max-width:580px){.ma-event-head{grid-template-columns:minmax(0,1fr) 82px}.ma-event-head .ma-remove{grid-column:2}.ma-title{font-size:22px}}
 </style>
 </head>
@@ -92,7 +94,7 @@ body{background:#02030a;color:#f8f7ff}
 
   <section class="ma-panel active" data-panel="members"><div class="ma-section-head"><div><h2>Members</h2><div class="ma-muted">Verified alliance roster and leadership member management.</div></div></div><div id="membersHost"></div></section>
   <section class="ma-panel" data-panel="pending"><div class="ma-section-head"><div><h2>Pending Members</h2><div class="ma-muted">Review pending alliance members, approve them, and assign their alliance rank.</div></div></div><div id="pendingHost"></div></section>
-  <section class="ma-panel" data-panel="pulse"><div class="ma-section-head"><div><h2>NEXA Pulse</h2><div class="ma-muted">Live response tracking for alliance forms and current event participation.</div></div></div><div id="pulseHost"></div></section>
+  <section class="ma-panel" data-panel="pulse"><div class="ma-section-head"><div><h2>NEXA Pulse</h2><div class="ma-muted">Tracks who in your alliance responded or still needs to respond to currently published and open NEXA forms.</div></div></div><div id="pulseHost"></div></section>
   <section class="ma-panel" data-panel="schedule"><div class="ma-section-head"><div><h2>Event Schedule</h2><div class="ma-muted">Recurring alliance event times. This is scheduling only; strategy belongs under Alliance Events.</div></div></div><div id="scheduleHost"></div></section>
   <section class="ma-panel" data-panel="events"><div class="ma-section-head"><div><h2>Alliance Events</h2><div class="ma-muted">Alliance event strategy and planning workspace. Foundry and Canyon are kept separate from Event Schedule.</div></div></div><div id="eventsHost"></div></section>
 </main>
@@ -212,25 +214,114 @@ async function saveSchedule(){
 async function loadPulse(){
  const host=$('#pulseHost');
  try{
-   const {data:events,error}=await sb.from('svs_events').select('id,title,opponent_state,status,battle_form_open,prep_form_open,prep_monday').eq('state_number',activeState()).in('status',['live','upcoming']).order('prep_monday',{ascending:true}).limit(1);
-   if(error)throw error; const ev=events?.[0];
-   if(!ev){host.innerHTML='<div class="ma-card ma-empty">No active SvS Pulse right now.</div>';return}
-   const members=(passport.members||[]).map(m=>m.accountId); let battle=[],ministry=[];
-   if(members.length){
-     const br=await sb.from('battle_form_responses').select('player_account_id').eq('event_id',ev.id).in('player_account_id',members); battle=br.data||[];
-     const pr=await sb.from('prep_requests').select('player_account_id').eq('event_id',ev.id).in('player_account_id',members); ministry=pr.data||[];
-   }
-   host.innerHTML=`<div class="ma-card"><div class="ma-kicker">SVS PULSE</div><h3>${esc(ev.title||'SvS vs State '+ev.opponent_state)}</h3><div class="ma-muted">Response monitoring for your alliance.</div></div><div class="ma-card"><div class="ma-tabs" style="padding:0 0 10px"><button class="ma-tab active" data-pulse-tab="battle">Battle Sign-Up</button><button class="ma-tab" data-pulse-tab="ministry">Ministry Sign-Up</button></div><div id="pulseList"></div></div>`;
-   const render=kind=>{
-     const set=new Set((kind==='battle'?battle:ministry).map(x=>String(x.player_account_id)));
-     const completed=(passport.members||[]).filter(m=>set.has(String(m.accountId))), missing=(passport.members||[]).filter(m=>!set.has(String(m.accountId)));
-     $('#pulseList').innerHTML=`<div class="ma-row"><strong>Completed</strong><span class="ma-rank">${completed.length}</span></div><div class="ma-muted">${completed.map(m=>esc(m.name)).join(' • ')||'None yet'}</div><div style="height:10px"></div><div class="ma-row"><strong>Missing</strong><span class="ma-rank">${missing.length}</span></div><div class="ma-muted">${missing.map(m=>esc(m.name)).join(' • ')||'None'}</div>${passport.canAssignRanks?'<div class="ma-actions"><button class="ma-btn secondary" id="fillMember">Fill for a Member</button></div>':''}`;
-     $('#fillMember')?.addEventListener('click',()=>alert('Fill for a Member is reserved here for the Forms Center response workflow and will be connected when the external/public form routing is built.'));
+   const members=passport?.members||[];
+   const memberIds=members.map(m=>String(m.accountId)).filter(Boolean);
+   if(!memberIds.length){host.innerHTML='<div class="ma-card ma-empty">No verified alliance members yet.</div>';return}
+
+   const {data:templates,error:tErr}=await sb.from('event_form_templates').select('event_type_key,settings');
+   if(tErr)throw tErr;
+
+   const now=Date.now();
+   const active=(templates||[]).filter(x=>{
+     const s=x.settings||{};
+     if(s.published_to_nexa!==true)return false;
+     if(s.public_access_removed===true||s.public_access_enabled===false)return false;
+     if(s.deadline_enabled&&s.deadline_at){
+       const ms=new Date(s.deadline_at).getTime();
+       if(Number.isFinite(ms)&&ms<=now)return false;
+     }
+     return true;
+   });
+
+   if(!active.length){host.innerHTML='<div class="ma-card ma-empty">No active NEXA Pulse forms right now.</div>';return}
+
+   const {data:svsRows,error:svsErr}=await sb.from('svs_events').select('id,status,prep_monday').eq('state_number',activeState()).in('status',['live','upcoming']).order('prep_monday',{ascending:true}).limit(1);
+   if(svsErr)throw svsErr;
+   const svsEvent=svsRows?.[0]||null;
+
+   const titleFor=(key,s)=>{
+     if(key==='svs')return 'Battle Sign-Up';
+     if(key==='ministry')return 'Ministry Sign-Up';
+     if(key==='fdt')return 'FDT Sign-Up';
+     if(key==='tal')return 'TAL Sign-Up';
+     return s?.form_title||s?.title||'Survey';
    };
-   render('battle');
-   $$('[data-pulse-tab]').forEach(b=>b.onclick=()=>{$$('[data-pulse-tab]').forEach(x=>x.classList.toggle('active',x===b));render(b.dataset.pulseTab)});
- }catch(e){host.innerHTML=`<div class="ma-card ma-empty">${esc(e.message)}</div>`}
+
+   async function responseSet(key,settings){
+     let rows=[];
+     if(key==='svs'&&svsEvent?.id){
+       const r=await sb.from('battle_form_responses').select('player_account_id').eq('event_id',svsEvent.id).in('player_account_id',memberIds);
+       if(r.error)throw r.error; rows=r.data||[];
+     }else if(key==='ministry'&&svsEvent?.id){
+       const r=await sb.from('prep_requests').select('player_account_id').eq('event_id',svsEvent.id).in('player_account_id',memberIds);
+       if(r.error)throw r.error; rows=r.data||[];
+     }else if(key==='fdt'||key==='tal'){
+       const r=await sb.from('event_operation_responses').select('player_account_id').eq('event_type_key',key).in('player_account_id',memberIds);
+       if(r.error)throw r.error; rows=r.data||[];
+     }else if(key==='surveys'){
+       const u=String(settings?.form_url||settings?.public_url||'');
+       const m=u.match(/[?&]id=([0-9a-f-]{36})/i);
+       if(m){
+         const r=await sb.from('nexa_survey_responses').select('player_account_id').eq('survey_id',m[1]).in('player_account_id',memberIds);
+         if(r.error)throw r.error; rows=r.data||[];
+       }
+     }
+     return new Set(rows.map(x=>String(x.player_account_id)));
+   }
+
+   const pulseData=[];
+   for(const item of active){
+     const set=await responseSet(item.event_type_key,item.settings||{});
+     pulseData.push({key:item.event_type_key,title:titleFor(item.event_type_key,item.settings||{}),set});
+   }
+
+   host.innerHTML=`<div class="ma-card">
+     <div class="ma-kicker">NEXA PULSE</div>
+     <h3>Alliance Response Tracking</h3>
+     <div class="ma-muted">Published and currently open forms only. This view tracks participation, not answers.</div>
+     <div class="ma-tabs" id="pulseFormTabs" style="padding:12px 0 0"></div>
+   </div>
+   <div id="pulseList"></div>`;
+
+   const tabs=$('#pulseFormTabs');
+   tabs.innerHTML=pulseData.map((p,i)=>`<button class="ma-tab ${i===0?'active':''}" data-pulse-form="${esc(p.key)}">${esc(p.title)}</button>`).join('');
+
+   const renderPulse=p=>{
+     const completed=members.filter(m=>p.set.has(String(m.accountId)));
+     const missing=members.filter(m=>!p.set.has(String(m.accountId)));
+     const total=members.length, pc=total?Math.round(completed.length/total*100):0;
+     const rows=list=>list.map(m=>`<div class="ma-card" style="margin:7px 0;padding:10px 12px"><div class="ma-row"><div><b>${esc(m.name)}</b><div class="ma-muted">ID ${esc(m.gameId)}</div></div></div></div>`).join('')||'<div class="ma-empty">None</div>';
+     const copyText=list=>list.map(m=>`${m.name} — ${m.gameId}`).join('\n');
+
+     $('#pulseList').innerHTML=`<div class="ma-card">
+       <div class="ma-row"><div><div class="ma-kicker">ACTIVE PULSE</div><h3>${esc(p.title)}</h3></div><span class="ma-chip">${completed.length}/${total} · ${pc}%</span></div>
+       <div class="ma-pulse-progress"><div style="width:${pc}%"></div></div>
+     </div>
+     <div class="ma-card">
+       <div class="ma-row"><h3>Responded · ${completed.length}</h3><button class="ma-btn" id="copyResponded">Copy Responded</button></div>
+       <div>${rows(completed)}</div>
+     </div>
+     <div class="ma-card">
+       <div class="ma-row"><h3>Not Responded · ${missing.length}</h3><button class="ma-btn secondary" id="copyMissing">Copy Not Responded</button></div>
+       <div>${rows(missing)}</div>
+     </div>`;
+
+     $('#copyResponded').onclick=async()=>{try{await navigator.clipboard.writeText(copyText(completed));$('#copyResponded').textContent='Copied ✓'}catch(_){}};
+     $('#copyMissing').onclick=async()=>{try{await navigator.clipboard.writeText(copyText(missing));$('#copyMissing').textContent='Copied ✓'}catch(_){}};
+   };
+
+   tabs.addEventListener('click',e=>{
+     const b=e.target.closest('[data-pulse-form]');if(!b)return;
+     $$('#pulseFormTabs .ma-tab').forEach(x=>x.classList.toggle('active',x===b));
+     const p=pulseData.find(x=>x.key===b.dataset.pulseForm);if(p)renderPulse(p);
+   });
+
+   renderPulse(pulseData[0]);
+ }catch(e){
+   host.innerHTML=`<div class="ma-card ma-empty">${esc(e.message||'Unable to load NEXA Pulse.')}</div>`;
+ }
 }
+
 async function loadAllianceEvents(){
  const host=$('#eventsHost');
  host.innerHTML=`<div class="ma-event-tabs">
@@ -258,7 +349,7 @@ async function loadAllianceEvents(){
 
 $('#tabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)setTab(b.dataset.tab)});
 $('#backBtn').onclick=()=>location.href='index.html';
-$('#guideBtn').onclick=()=>modal(`<h3>My Alliance Guide</h3><p class="ma-muted"><b>Members</b> is your verified alliance roster. Leadership can manage ranks, move members, or remove them.</p><p class="ma-muted"><b>Pending Members</b> is where leadership approves new members and assigns their rank.</p><p class="ma-muted"><b>NEXA Pulse</b> is the live alliance workspace for current event responses, including Battle Sign-Up and Ministry Sign-Up.</p><p class="ma-muted"><b>Event Schedule</b> stores recurring Bear Trap, Foundry, Canyon, and custom event times for alliance members. Transfer recruiting schedules are managed separately in Transfer Workspace.</p><p class="ma-muted"><b>Alliance Events</b> is the strategy and planning area for alliance events. Foundry and Canyon have their own workspaces here and do not read the server Event Schedule.</p><div class="ma-actions"><button class="ma-btn" onclick="this.closest('.ma-modal').remove()">Got it</button></div>`);
+$('#guideBtn').onclick=()=>modal(`<h3>My Alliance Guide</h3><p class="ma-muted"><b>Members</b> is your verified alliance roster. Leadership can manage ranks, move members, or remove them.</p><p class="ma-muted"><b>Pending Members</b> is where leadership approves new members and assigns their rank.</p><p class="ma-muted"><b>NEXA Pulse</b> tracks who in your alliance has responded or still needs to respond to every currently published and open NEXA form. It does not reveal form answers.</p><p class="ma-muted"><b>Event Schedule</b> stores recurring Bear Trap, Foundry, Canyon, and custom event times for alliance members. Transfer recruiting schedules are managed separately in Transfer Workspace.</p><p class="ma-muted"><b>Alliance Events</b> is the strategy and planning area for alliance events. Foundry and Canyon have their own workspaces here and do not read the server Event Schedule.</p><div class="ma-actions"><button class="ma-btn" onclick="this.closest('.ma-modal').remove()">Got it</button></div>`);
 
 boot().catch(e=>{$('#allianceTitle').textContent='Unable to load';$('#allianceSub').textContent=e.message});
 })();

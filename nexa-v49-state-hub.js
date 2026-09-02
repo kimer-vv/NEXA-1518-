@@ -1245,7 +1245,10 @@ function openOwnedFormsCenterMenu(){ownedMenuSubview('FORMS CENTER',[
   ['FDT',()=>ownedMenuGo('forms-center.html?section=fdt')],
   ['TAL',()=>ownedMenuGo('forms-center.html?section=tal')],
   ['Transfer',()=>ownedMenuGo('forms-center.html?section=transfer')],
-  ['Surveys',()=>ownedMenuGo('forms-center.html?section=surveys')]
+  ['Surveys',()=>ownedMenuSubview('SURVEYS',[
+  ['Survey Center',()=>ownedMenuGo('forms-center.html?section=surveys')],
+  ['Responses',()=>ownedMenuGo('survey-responses.html')]
+]),true]
 ])}
 function openOwnedSvsMenu(){ownedMenuSubview('SVS',[
   ['Event Setup',()=>ownedMenuGo('index.html?admin=svs&tab=events')],['Forms',()=>ownedMenuGo('index.html?admin=svs&tab=forms')],['Schedule Setup',()=>ownedMenuGo('index.html?admin=svs&tab=schedule')],['History',()=>ownedMenuGo('index.html?admin=svs&tab=history')]

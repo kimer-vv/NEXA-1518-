@@ -58,7 +58,7 @@ function card(c){
  ${hasKey?`<button class="${open?'danger':'restore'}" data-access="${c.key}">${open?'Remove Public Access':'Restore Public Access'}</button>`:'<button disabled>Remove Public Access</button>'}
  </div><div class="status"></div></article>`;
 }
-function render(){const s=SECTIONS[i];$('title').textContent=s.t;$('desc').textContent=s.d;$('prev').disabled=i===0;$('next').disabled=i===SECTIONS.length-1;$('list').innerHTML=s.c.length?s.c.map(card).join(''):'<div class="desc">No forms in this section yet.</div>';history.replaceState(null,'',`forms-center.html?section=${s.k}`)}
+function render(){const s=SECTIONS[i];$('title').textContent=s.t;$('desc').textContent=s.d;$('prev').disabled=i===0;$('next').disabled=false;$('list').innerHTML=s.c.length?s.c.map(card).join(''):'<div class="desc">No forms in this section yet.</div>';history.replaceState(null,'',`forms-center.html?section=${s.k}`)}
 async function reload(){
  const r=await SB.from('event_form_templates').select('event_type_key,settings').in('event_type_key',['svs','fdt','tal','ministry','surveys']);if(!r.error)for(const x of r.data||[])templates[x.event_type_key]=x;
  transferWorkspace=null;transferEvent=null;
@@ -83,7 +83,7 @@ async function reload(){
 async function saveSettings(key,next){const r=await SB.from('event_form_templates').update({settings:next,updated_at:new Date().toISOString()}).eq('event_type_key',key);if(r.error)throw r.error;templates[key]={event_type_key:key,settings:next}}
 async function confirmBox({title,text,warn,yes='Confirm'}){return await new Promise(resolve=>{document.querySelector('.nexa-access-modal')?.remove();const wrap=document.createElement('div');wrap.className='nexa-access-modal';wrap.innerHTML=`<div class="nexa-access-card"><h3>${title}</h3><p>${text}</p>${warn?`<div class="warn">${warn}</div>`:''}<div class="nexa-access-actions"><button class="cancel" type="button">Cancel</button><button class="yes" type="button">${yes}</button></div></div>`;document.body.appendChild(wrap);const done=v=>{wrap.remove();resolve(v)};wrap.querySelector('.cancel').onclick=()=>done(false);wrap.querySelector('.yes').onclick=()=>done(true);wrap.onclick=e=>{if(e.target===wrap)done(false)}})}
 function cardStatus(key,msg){const el=document.querySelector(`[data-card-key="${key}"] .status`);if(el)el.textContent=msg}
-$('prev').onclick=()=>{if(i){i--;render()}};$('next').onclick=()=>{if(i<SECTIONS.length-1){i++;render()}};
+$('prev').onclick=()=>{if(i){i--;render()}};$('next').onclick=()=>{if(i<SECTIONS.length-1){i++;render();return}if(SECTIONS[i]?.k==='surveys')location.href='survey-responses.html'};
 document.addEventListener('click',async e=>{
  const copy=e.target.closest('[data-copy]');if(copy){const rel=copy.dataset.copy;if(!rel||rel==='#')return;const url=new URL(rel,location.href).href;try{await navigator.clipboard.writeText(url);const old=copy.textContent;copy.textContent='Copied ✓';setTimeout(()=>copy.textContent=old,1100)}catch(_){cardStatus(copy.closest('[data-card-key]')?.dataset.cardKey||'',url)}return}
  const pub=e.target.closest('[data-publish]');if(pub){const key=pub.dataset.publish,current=settingsFor(key),next={...current,public_access_removed:false,public_access_enabled:true,published_to_nexa:current.published_to_nexa!==true};try{await saveSettings(key,next);render()}catch(err){cardStatus(key,err.message||'Unable to update NEXA publishing.')}return}

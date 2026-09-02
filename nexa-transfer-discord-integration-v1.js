@@ -1,4 +1,4 @@
-// NEXA TRANSFER DISCORD INTEGRATION V1.2 — CLEAR START / COMPACT GUIDE / UTC PREVIEWS
+// NEXA TRANSFER DISCORD INTEGRATION V1.3 — TEST NOTIFICATIONS / CLEAR START / UTC PREVIEWS
 (()=>{'use strict';
 const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
@@ -73,6 +73,7 @@ function guideHtml(){return `<div class="nd-guide ${guideOpen?'':'nd-hidden'}" i
 <li><b>Event Start Date:</b> use the <b>WOS Game/Server date</b> at reset. NEXA always interprets this as <b>00:00 UTC</b>. Your local calendar date can be different. The preview below the field shows both. Use <b>Clear Start Date</b> and then Save to remove the schedule completely.</li>
 <li><b>Invite Check Times:</b> enter times in <b>24-hour UTC / Game Time</b>, for example <b>20:50</b>. NEXA shows the local-time equivalent underneath.</li>
 <li><b>Final Warning Before Open Transfer:</b> choose how long before Open Transfer you want the final warning. Example: 3 hours 0 minutes means the warning sends three hours before Open Transfer. The preview shows both UTC/Game Time and local time.</li>
+<li><b>Test Notifications:</b> sends a clearly marked TEST message to each configured Discord route without creating applicants, changing invites, or changing the Transfer timeline.</li>
 <li><b>Save Discord Integration:</b> saves the complete configuration for this Workspace.</li>
 </ul></div>`}
 function renderTimes(){const box=byId('ndTimeChips'),preview=byId('ndTimePreview');if(!box)return;const times=reminderList();box.innerHTML=times.map(t=>`<span class="nd-chip">${esc(t)} UTC ${cfg.can_manage?`<button type="button" data-remove-time="${esc(t)}">×</button>`:''}</span>`).join('')||'<span style="font-size:12px;color:#929bc2">No Invite Check Times configured.</span>';if(preview)preview.innerHTML=times.length?times.map(t=>`<b>${esc(t)} UTC</b> → ${esc(localForUtcTime(t))}`).join('<br>'):'Add a UTC/Game Time to see the local-time preview.';box.querySelectorAll('[data-remove-time]').forEach(b=>b.onclick=()=>{cfg.invite_reminder_times=reminderList().filter(x=>x!==b.dataset.removeTime);renderTimes()})}
@@ -90,6 +91,7 @@ function render(){
     <div class="nd-box"><div class="nd-label">New Applications Channel</div><select id="ndApplications" ${manage?'':'disabled'}>${channelOptions(cfg?.applications_channel_id)}</select><label class="nd-check"><input id="ndNewApps" type="checkbox" ${cfg?.new_application_notifications!==false?'checked':''} ${manage?'':'disabled'}> New Application Notifications</label></div>
     <div class="nd-box"><div class="nd-label">Transfer Announcements Channel</div><select id="ndReminders" ${manage?'':'disabled'}>${channelOptions(cfg?.reminders_channel_id)}</select><label class="nd-check"><input id="ndReminderOn" type="checkbox" ${cfg?.reminders_enabled!==false?'checked':''} ${manage?'':'disabled'}> Transfer Reminders</label></div>
     <div class="nd-box"><div class="nd-label">Invite Operations Channel</div><select id="ndInvites" ${manage?'':'disabled'}>${channelOptions(cfg?.invites_channel_id)}</select></div>
+    <div class="nd-box full"><div class="nd-label">Test Notifications</div><div class="nd-preview">Send a clearly marked TEST message to the selected Discord route. Tests do not create applicants, change invite status, or modify the Transfer timeline.</div><div class="nd-actions">${manage?'<button class="nd-btn secondary" id="ndTestApplication" type="button">Test New Application</button><button class="nd-btn secondary" id="ndTestAnnouncement" type="button">Test Transfer Announcement</button><button class="nd-btn secondary" id="ndTestInvite" type="button">Test Invite Operations</button>':'<span style="font-size:12px;color:#929bc2">Admin or Owner access is required to send tests.</span>'}</div></div>
     <div class="nd-box"><div class="nd-label">Event Start Date · WOS Game/Server Date</div><input id="ndStartDate" type="date" value="${esc(dateValue())}" ${manage?'':'disabled'}><div class="nd-actions" style="margin-top:8px">${manage?'<button class="nd-btn secondary" id="ndClearStart" type="button">Clear Start Date</button>':''}</div><div class="nd-preview" id="ndLocalPreview">${localStartText(dateValue())}</div></div>
     <div class="nd-box full"><div class="nd-label">Invite Check Times · UTC / Game Time</div><div class="nd-row"><div><div class="nd-mini-label">24h UTC Time</div><input id="ndAddTime" type="text" inputmode="numeric" maxlength="5" placeholder="20:50" ${manage?'':'disabled'}></div><button class="nd-btn secondary" id="ndAddTimeBtn" type="button" ${manage?'':'disabled'}>Add Time</button></div><div class="nd-times" id="ndTimeChips"></div><div class="nd-preview" id="ndTimePreview"></div></div>
     <div class="nd-box full"><div class="nd-label">Final Warning Before Open Transfer</div><div class="nd-row"><div><div class="nd-mini-label">Hours</div><input id="ndWarnHours" type="number" min="0" max="168" value="${Math.floor(Number(cfg?.phase3_reminder_minutes||0)/60)}" ${manage?'':'disabled'}></div><div><div class="nd-mini-label">Minutes</div><input id="ndWarnMinutes" type="number" min="0" max="59" value="${Number(cfg?.phase3_reminder_minutes||0)%60}" ${manage?'':'disabled'}></div></div><div class="nd-preview" id="ndWarnPreview">${warningPreview()}</div></div>
@@ -106,6 +108,17 @@ async function loadChannels(){
   msg('Loading Discord channels…');
   try{const r=await fetch(`/api/discord-interactions?action=workspace-channels&workspace_id=${encodeURIComponent(workspaceId)}`,{headers:{Authorization:`Bearer ${staffToken}`}});const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||'Could not load channels');channels=j.channels||[];if(j.guild?.name)msg(`Connected to ${j.guild.name}.`);render()}catch(e){msg(e.message||'Could not load Discord channels.',true)}
 }
+async function testNotification(kind,label){
+  if(!workspaceId||!staffToken){msg('Staff session required.',true);return}
+  msg(`Sending ${label} test…`);
+  const ids=['ndTestApplication','ndTestAnnouncement','ndTestInvite'];ids.forEach(id=>{const b=byId(id);if(b)b.disabled=true});
+  try{
+    const r=await fetch(`/api/discord-interactions?action=workspace-test&workspace_id=${encodeURIComponent(workspaceId)}&kind=${encodeURIComponent(kind)}`,{headers:{Authorization:`Bearer ${staffToken}`},cache:'no-store'});
+    const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||'Could not send test notification');
+    msg(`${label} test sent ✓`);
+  }catch(e){msg(e.message||'Could not send test notification.',true)}
+  finally{ids.forEach(id=>{const b=byId(id);if(b)b.disabled=false})}
+}
 function collect(){const h=Math.max(0,Number(byId('ndWarnHours')?.value||0)),m=Math.max(0,Math.min(59,Number(byId('ndWarnMinutes')?.value||0)));return{enabled:!!byId('ndGuild')?.value.trim(),guild_id:byId('ndGuild')?.value.trim()||null,channel_mode:'split',single_channel_id:null,applications_channel_id:byId('ndApplications')?.value||null,reminders_channel_id:byId('ndReminders')?.value||null,invites_channel_id:byId('ndInvites')?.value||null,new_application_notifications:!!byId('ndNewApps')?.checked,reminders_enabled:!!byId('ndReminderOn')?.checked,event_start_date:byId('ndStartDate')?.value||null,phase2_reminder_minutes:60,phase3_reminder_minutes:h*60+m,invite_reminder_times:reminderList(),special_invite_plan:'use_this_cycle',report_settings:{mode:'compact',show_game_id:true,show_state:false,show_alliance:true,show_power:true,show_totals:true}}}
 async function save(){msg('Saving Discord integration…');try{const {data,error}=await client.rpc('transfer_workspace_discord_save',{p_workspace_id:workspaceId,p_token:staffToken,p_config:collect()});if(error)throw error;if(!data?.ok)throw new Error(data?.error||'Could not save');cfg=data.config||await getConfig();msg('Discord integration saved ✓');render();if(cfg.guild_id)await loadChannels()}catch(e){msg(e.message||'Could not save Discord integration.',true)}}
 async function getConfig(){const {data,error}=await client.rpc('transfer_workspace_discord_config',{p_workspace_id:workspaceId,p_token:staffToken});if(error)throw error;return data||{configured:false,can_manage:false}}
@@ -114,6 +127,7 @@ function wire(){
   byId('ndGuide')?.addEventListener('click',()=>{guideOpen=!guideOpen;render()});
   byId('ndToggle')?.addEventListener('click',()=>{panelOpen=!panelOpen;render()});
   byId('ndLoadChannels')?.addEventListener('click',loadChannels);byId('ndSave')?.addEventListener('click',save);byId('ndRefresh')?.addEventListener('click',boot);
+  byId('ndTestApplication')?.addEventListener('click',()=>testNotification('application','New Application'));byId('ndTestAnnouncement')?.addEventListener('click',()=>testNotification('announcement','Transfer Announcement'));byId('ndTestInvite')?.addEventListener('click',()=>testNotification('invite','Invite Operations'));
   byId('ndStartDate')?.addEventListener('change',e=>{byId('ndLocalPreview').innerHTML=localStartText(e.target.value);renderTimes();refreshWarningPreview()});
   byId('ndClearStart')?.addEventListener('click',()=>{const input=byId('ndStartDate');if(input)input.value='';byId('ndLocalPreview').innerHTML=localStartText('');renderTimes();refreshWarningPreview();msg('Start date cleared. Save Discord Integration to remove the scheduled Transfer timeline.')});
   byId('ndWarnHours')?.addEventListener('input',refreshWarningPreview);byId('ndWarnMinutes')?.addEventListener('input',refreshWarningPreview);

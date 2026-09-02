@@ -124,6 +124,7 @@ function closePublic(reason='closed'){
  if(!publicMode)return;
  const form=$('form');if(form)form.style.display='none';
  const gate=$('#entry-gate,#gate,.fdt-entry-gate');if(gate)gate.style.display='none';
+ $$('#preview-note,#preview').forEach(el=>el.style.display='none');
  let n=$('#nexa-closed');
  if(!n){n=document.createElement('section');n.id='nexa-closed';n.className='nexa-deadline-v3';($('main')||document.body).appendChild(n)}
  n.innerHTML=reason==='access'

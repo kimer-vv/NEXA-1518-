@@ -1,0 +1,144 @@
+<!doctype html>
+<!-- NEXA SURVEY RESPONSES V1.0 -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>NEXA • Survey Responses</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--c:#59e4ff;--v:#8d76ff;--m:#aab4d0;--p:rgba(8,15,34,.94);--good:#7df1be;--bad:#ff9db3}
+*{box-sizing:border-box}
+body{margin:0;min-height:100dvh;background:radial-gradient(circle at 8% 6%,rgba(89,228,255,.09),transparent 31%),radial-gradient(circle at 93% 2%,rgba(141,118,255,.11),transparent 34%),#03050e;color:#fff;font-family:Inter,system-ui,-apple-system,sans-serif}
+.shell{width:min(860px,100%);margin:auto;padding:20px 14px 96px}
+.top{display:grid;grid-template-columns:44px 1fr 44px;gap:10px;align-items:center}
+.round{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;text-decoration:none;color:#dffcff;background:#081127;border:1px solid rgba(89,228,255,.28);font-size:22px}
+.brand{text-align:center}.brand small{display:block;color:#9ca9cc;font-size:10px;letter-spacing:.18em;font-weight:950}.brand h1{margin:4px 0;font-size:clamp(1.8rem,7vw,2.8rem);background:linear-gradient(90deg,#a779ff,#55bfff,#59efff);-webkit-background-clip:text;color:transparent}
+.card{margin-top:14px;padding:16px;border-radius:20px;border:1px solid rgba(255,255,255,.10);background:var(--p)}
+.muted{color:var(--m);line-height:1.45}.status{min-height:18px;margin-top:8px;color:#8fefff;font-size:12px}
+.list{display:grid;gap:11px}.survey{padding:14px;border-radius:17px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.035)}
+.survey h3{margin:6px 0}.meta{font-size:11px;color:#93a0be}
+.badge{display:inline-flex;padding:5px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.12);font-size:9px;font-weight:950;margin-right:6px}
+.badge.open{color:var(--good)}.badge.closed{color:var(--bad)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{min-height:42px;border-radius:13px;border:1px solid rgba(89,228,255,.34);background:linear-gradient(135deg,rgba(25,76,112,.72),rgba(36,30,97,.8));color:#fff;padding:9px 13px;font-weight:900}
+.btn.secondary{background:rgba(255,255,255,.045)}
+.hidden{display:none!important}
+.results{display:grid;gap:10px}.resultBox{padding:13px;border-radius:15px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07)}
+.resultBox h4{margin:0 0 9px}.bar{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:12px}
+.responseCard{padding:12px;border-radius:14px;border:1px solid rgba(89,228,255,.14);background:rgba(7,15,34,.72);margin-top:9px}
+.responseHead{display:flex;justify-content:space-between;gap:10px;align-items:start}.responseHead b{font-size:13px}.responseHead small{color:#91a0bf}
+.answer{margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.06)}.answer small{display:block;color:#8997b7;font-weight:850}.answer div{margin-top:3px;color:#eef6ff;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<main class="shell">
+<div class="top">
+<a class="round" href="forms-center.html?section=surveys">‹</a>
+<div class="brand"><small>FORMS CENTER • SURVEYS</small><h1>Responses</h1></div>
+<a class="round" href="index.html">×</a>
+</div>
+
+<section class="card">
+<h2 style="margin-top:0">Survey Responses</h2>
+<p class="muted">Choose a survey to review its results and individual responses.</p>
+<div id="topStatus" class="status"></div>
+</section>
+
+<section class="card">
+<div id="surveyList" class="list"></div>
+</section>
+
+<section class="card hidden" id="resultsCard">
+<div style="display:flex;justify-content:space-between;gap:10px;align-items:start">
+<div>
+<small style="color:#8fefff;font-weight:950;letter-spacing:.12em">RESULTS</small>
+<h2 id="resultsTitle" style="margin:5px 0">Survey Results</h2>
+<p id="resultsMeta" class="muted" style="margin:0"></p>
+</div>
+<button class="btn secondary" id="closeResults">Close</button>
+</div>
+
+<h3>Summary</h3>
+<div id="summary" class="results"></div>
+
+<h3 style="margin-top:18px">Individual Responses</h3>
+<div id="responses"></div>
+</section>
+</main>
+
+<script>
+(()=>{'use strict';
+const SB=window.supabase.createClient('https://dfxcxboxrkfmrnsgpyin.supabase.co','sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-');
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let state=Number(localStorage.getItem('nexa_active_state_v49')||window.NEXA_ACTIVE_STATE||0);
+let accountId=localStorage.getItem('nexa_active_account_v49')||window.NEXA_ACTIVE_ACCOUNT_ID||'';
+let ctx=null;
+
+async function boot(){
+ const {data:{session}}=await SB.auth.getSession();
+ if(!session){location.href='index.html';return}
+ if(!state||!accountId){$('topStatus').textContent='Open NEXA and select a State/account first.';return}
+ const {data,error}=await SB.rpc('nexa_survey_list',{p_state:state,p_account_id:accountId});
+ if(error||!data?.ok){$('topStatus').textContent=error?.message||data?.error||'Unable to load surveys.';return}
+ ctx=data;
+ if(!data.can_manage){$('topStatus').textContent='Survey response access is limited to Survey managers.';return}
+ renderList();
+}
+
+function renderList(){
+ const rows=ctx?.surveys||[];
+ $('surveyList').innerHTML=rows.length?rows.map(s=>`<div class="survey">
+   <div><span class="badge ${s.status}">${String(s.status).toUpperCase()}</span><span class="badge">${s.audience==='alliance'?'ALLIANCE ONLY':'ENTIRE SERVER'}</span></div>
+   <h3>${esc(s.title)}</h3>
+   <div class="meta">${esc(s.description||'No description')}<br>${s.response_count||0} responses • ${s.question_count||0} questions</div>
+   <div class="actions">
+    <button class="btn" data-view="${s.id}">View Responses</button>
+    <button class="btn secondary" data-edit="${s.id}">Edit Survey</button>
+   </div>
+ </div>`).join(''):'<div class="muted">No surveys yet.</div>';
+}
+
+async function openResults(id){
+ $('topStatus').textContent='Loading responses…';
+ const {data,error}=await SB.rpc('nexa_survey_results',{p_survey_id:id,p_account_id:accountId});
+ if(error||!data?.ok){$('topStatus').textContent=error?.message||data?.error||'Unable to load responses.';return}
+ $('topStatus').textContent='';
+ const survey=data.survey||{}, qs=data.questions||[], responses=data.responses||[];
+ $('resultsTitle').textContent=survey.title||'Survey Results';
+ $('resultsMeta').textContent=`${responses.length} responses • ${survey.audience==='alliance'?'Alliance Only':'Entire Server'} • ${String(survey.status||'').toUpperCase()}`;
+
+ $('summary').innerHTML=qs.map(q=>{
+   const vals=responses.map(r=>r.answers?.[q.id]).filter(v=>v!==undefined&&v!==null&&v!==''&&!(Array.isArray(v)&&!v.length));
+   if(['single','multiple'].includes(q.question_type)){
+     const count={};vals.forEach(v=>(Array.isArray(v)?v:[v]).forEach(x=>count[x]=(count[x]||0)+1));
+     return `<div class="resultBox"><h4>${esc(q.question_text)}</h4>${Object.entries(count).map(([k,n])=>`<div class="bar"><span>${esc(k)}</span><b>${n}</b></div>`).join('')||'<div class="muted">No answers yet.</div>'}</div>`;
+   }
+   return `<div class="resultBox"><h4>${esc(q.question_text)}</h4><div class="muted">${vals.length} written response${vals.length===1?'':'s'}</div></div>`;
+ }).join('')||'<div class="muted">No questions found.</div>';
+
+ $('responses').innerHTML=responses.length?responses.map((r,idx)=>`<div class="responseCard">
+   <div class="responseHead"><b>${esc(r.in_game_name||r.player_name||`Response ${idx+1}`)}</b><small>${r.submitted_at?new Date(r.submitted_at).toLocaleString():''}</small></div>
+   ${qs.map(q=>{
+     const v=r.answers?.[q.id];
+     const display=Array.isArray(v)?v.join(', '):(v??'');
+     return `<div class="answer"><small>${esc(q.question_text)}</small><div>${esc(display||'—')}</div></div>`;
+   }).join('')}
+ </div>`).join(''):'<div class="muted">No responses yet.</div>';
+
+ $('resultsCard').classList.remove('hidden');
+ $('resultsCard').scrollIntoView({behavior:'smooth'});
+}
+
+document.addEventListener('click',async e=>{
+ const view=e.target.closest('[data-view]'); if(view){await openResults(view.dataset.view);return}
+ const edit=e.target.closest('[data-edit]'); if(edit){location.href=`survey-center.html?edit=${encodeURIComponent(edit.dataset.edit)}`;return}
+});
+$('closeResults').onclick=()=>$('resultsCard').classList.add('hidden');
+
+boot();
+})();
+</script>
+</body>
+</html>

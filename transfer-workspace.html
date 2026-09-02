@@ -414,7 +414,8 @@ function renderAllocationCounters(){
 function openQuick(title,tag,items){$('quickInfoTitle').textContent=title;$('quickInfoTag').textContent=tag;$('quickInfoBody').innerHTML=items.map(([k,v])=>`<div class="detailItem"><small>${esc(k)}</small><b>${esc(readable(v))}</b></div>`).join('');$('quickInfoModal').classList.add('open')}
 function cardHtml(a){
  const rc=overCap(a)?'rangeGold':withinCap(a)?'rangeBlue':'',current=bucketOf(a),pref=preferredAllianceOnly(a),utc=preferredUtc(a),t12=t12Types(a),furnace=String(a.furnace_level||'—').toUpperCase(),identity=[`State ${a.current_state||'—'}`,a.current_alliance?String(a.current_alliance).toUpperCase():'',furnace,fmt(a.current_power)].filter(Boolean).join(' • ');
- const smart=[];
+ const inviteView=a.invite_status==='sent'?'Invite Sent':a.invite_pending_reason==='over_power'?'Over Power Cap':'Not Sent';
+const smart=[];
  if(a.discord_username)smart.push(`<button class="smartChip copyDiscord" data-copy-discord>Discord • ${esc(a.discord_username)}</button>`);
  if(a.coordinates)smart.push(`<button class="smartChip copyCoords" data-copy-coords>${esc(coordinateDisplay(a.coordinates))}</button>`);
  smart.push(`<span class="smartChip data">T12 • ${t12.length?esc(t12.join(', ')):'No'}</span>`);
@@ -424,12 +425,12 @@ function cardHtml(a){
  if(a.transferring_with_group)smart.push(`<button class="smartChip group" data-group-info>Group Transfer</button>`);
  if(a.referred)smart.push(`<button class="smartChip referred" data-referral-info>Referred</button>`);
  return `<article class="app ${rc}" data-app="${a.id}" draggable="true">
-  <div class="appTop"><div><b>${esc(a.in_game_name||'Applicant')}</b><div class="identityLine">${esc(identity)}</div></div><span class="badge ${a.invite_status==='sent'?'good':'warn'}">${a.invite_status==='sent'?'Invite Sent':'Not Sent'}</span></div>
+  <div class="appTop"><div><b>${esc(a.in_game_name||'Applicant')}</b><div class="identityLine">${esc(identity)}</div></div><span class="badge ${a.invite_status==='sent'?'good':a.invite_pending_reason==='over_power'?'bad':'warn'}">${esc(inviteView)}</span></div>
   <div class="smartGrid">${smart.join('')}</div>
   <div class="cardActions">
     <select data-move-card aria-label="Move to">${moveOptions(current)}</select>
     <select data-assign-card aria-label="Assign Alliance">${allianceOptions(a.assigned_alliance_tag||'')}</select>
-    <button class="wide" data-invite-card>${a.invite_status==='sent'?'Mark Not Sent':'Mark Invite Sent'}</button>
+    <select class="wide" data-invite-card aria-label="Invitation Status"><option value="not_sent" ${a.invite_status!=='sent'&&a.invite_pending_reason!=='over_power'?'selected':''}>Not Sent</option><option value="over_power" ${a.invite_status!=='sent'&&a.invite_pending_reason==='over_power'?'selected':''}>Not Sent — Over Power Cap</option><option value="sent" ${a.invite_status==='sent'?'selected':''}>Invite Sent</option></select>
     ${canManage()?'<button class="wide" data-delete-card style="border-color:rgba(255,90,120,.34);background:rgba(115,24,52,.30)">Delete Application</button>':''}
   </div><div class="readHint">Tap the card to read the full application</div></article>`;
 }
@@ -447,7 +448,14 @@ function renderApps(){
    c.ondragstart=e=>e.dataTransfer.setData('text/plain',c.dataset.app);
    c.querySelector('[data-move-card]').onchange=e=>{e.stopPropagation();moveApp(a,e.target.value)};
    c.querySelector('[data-assign-card]').onchange=e=>{e.stopPropagation();updateApp(a,{assigned_alliance_tag:e.target.value})};
-   c.querySelector('[data-invite-card]').onclick=e=>{e.stopPropagation();updateApp(a,{invite_status:a.invite_status==='sent'?'not_sent':'sent'})};
+   c.querySelector('[data-invite-card]').onchange=e=>{
+  e.stopPropagation();
+  const v=e.target.value;
+  updateApp(a,v==='sent'
+    ? {invite_status:'sent',invite_pending_reason:null,invite_sent_at:new Date().toISOString()}
+    : {invite_status:'not_sent',invite_pending_reason:v==='over_power'?'over_power':null,invite_sent_at:null}
+  );
+};
    c.querySelector('[data-delete-card]')?.addEventListener('click',e=>{e.stopPropagation();confirmGalaxy('Delete Application',`Delete ${a.in_game_name||'this application'} permanently? This cannot be undone.`,'Delete Application',()=>deleteApplication(a))});
    c.querySelector('[data-copy-discord]')?.addEventListener('click',e=>{e.stopPropagation();copyText(a.discord_username,e.currentTarget)});
    c.querySelector('[data-copy-coords]')?.addEventListener('click',e=>{e.stopPropagation();copyText(coordinateDisplay(a.coordinates),e.currentTarget)});

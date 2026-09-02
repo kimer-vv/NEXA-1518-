@@ -158,7 +158,7 @@ function openModal(tag,title,html){
 
 function ensurePresencePill(){
   if($('nexaPresencePill'))return;
-  const top=document.querySelector('#appRoot .top')||document.querySelector('main')?.previousElementSibling||document.querySelector('.top');
+  const top=document.querySelector('#workspaceRoot .top')||document.querySelector('.top');
   if(!top)return;
   const b=document.createElement('button');
   b.id='nexaPresencePill';
@@ -314,7 +314,7 @@ function start(){
   if(booted)return;
   token=getToken();
   workspaceId=getWorkspaceId();
-  const app=$('appRoot');
+  const app=$('workspaceRoot');
   if(!SB||!token||!workspaceId||!app||app.classList.contains('hidden'))return;
 
   booted=true;

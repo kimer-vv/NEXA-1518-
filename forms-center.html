@@ -24,7 +24,7 @@ const SECTIONS=[
  {k:'tal',t:'TAL',d:'Tundra Arms League Sign-Ups.',c:[{tag:'TAL • TUNDRA ARMS LEAGUE',title:'TAL Sign-Up',desc:'Submit availability for every tournament round and TAL battle information.',open:'tal-form.html?direct=1',edit:'tal-settings.html',key:'tal'}]},
  {k:'transfer',t:'Transfer',d:'Transfer applications and public access.',c:[{tag:'TRANSFER • PRIMARY APPLICATION',title:'Transfer Application',desc:'Permanent Transfer application template for the current workspace.',key:'transfer',transfer:true}]},
  {k:'surveys',t:'Surveys',d:'Leadership surveys and reusable questionnaires.',c:[
-  {tag:'SURVEYS • QUESTIONNAIRES',title:'Survey Center',desc:'Create Server-wide or Alliance-only surveys and review responses.',open:'survey-center.html'}
+ {tag:'SURVEYS • QUESTIONNAIRES',title:'Survey Center',desc:'Create Server-wide or Alliance-only surveys and review responses.',open:'survey-center.html',key:'surveys'}
 ]}
 ];
 const $=id=>document.getElementById(id),q=new URLSearchParams(location.search);
@@ -59,7 +59,7 @@ function card(c){
 }
 function render(){const s=SECTIONS[i];$('title').textContent=s.t;$('desc').textContent=s.d;$('prev').disabled=i===0;$('next').disabled=i===SECTIONS.length-1;$('list').innerHTML=s.c.length?s.c.map(card).join(''):'<div class="desc">No forms in this section yet.</div>';history.replaceState(null,'',`forms-center.html?section=${s.k}`)}
 async function reload(){
- const r=await SB.from('event_form_templates').select('event_type_key,settings').in('event_type_key',['svs','fdt','tal','ministry']);if(!r.error)for(const x of r.data||[])templates[x.event_type_key]=x;
+ const r=await SB.from('event_form_templates').select('event_type_key,settings').in('event_type_key',['svs','fdt','tal','ministry','surveys']);if(!r.error)for(const x of r.data||[])templates[x.event_type_key]=x;
  transferWorkspace=null;transferEvent=null;
  const tr=await SB.rpc('get_transfer_form_admin_state');
  const st=tr.data||null;

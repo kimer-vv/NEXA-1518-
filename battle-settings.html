@@ -159,7 +159,8 @@ input[type=date]{display:block!important;width:100%!important;max-width:100%!imp
     <label><b>Minute</b><select id="nd3-minute"><option>00</option><option>15</option><option>30</option><option>45</option></select></label>
   </div>
   <div class="nexa-deadline-utc">24-hour UTC</div>
-  <div class="nexa-deadline-note">This deadline saves with the main Save Form button.</div>
+  <div class="nexa-deadline-note">Deadline changes save automatically.</div>
+<div id="deadline-save-status" class="save-status"></div>
 </section>
 
 <div class="form-actions" style="margin-top:18px">
@@ -190,12 +191,63 @@ function initDeadlineControls(s={}){
   }
 }
 function deadlineFields(){
+  function deadlineFields(){
   const en=document.getElementById('nd3-enabled');
   if(!en||!en.checked)return {deadline_enabled:false,deadline_at:null};
   const d=document.getElementById('nd3-date')?.value||'';
   if(!d)throw new Error('Choose a UTC deadline date.');
   const hh=document.getElementById('nd3-hour')?.value||'00',mm=document.getElementById('nd3-minute')?.value||'00';
   return {deadline_enabled:true,deadline_at:new Date(`${d}T${hh}:${mm}:00Z`).toISOString()};
+}
+
+let deadlineSaveTimer=null;
+
+async function saveDeadlineOnly(){
+  const out=$('deadline-save-status');
+  let dl;
+
+  try{
+    dl=deadlineFields();
+  }catch(e){
+    if(out)out.textContent=e.message;
+    return;
+  }
+
+  if(out)out.textContent='Saving…';
+
+  const q=await sb.from('event_form_templates')
+    .select('settings')
+    .eq('event_type_key','svs')
+    .maybeSingle();
+
+  if(q.error){
+    if(out)out.textContent='Could not save deadline: '+q.error.message;
+    return;
+  }
+
+  const next={...(q.data?.settings||{}),...dl};
+
+  const saved=await sb.from('event_form_templates').upsert({
+    event_type_key:'svs',
+    settings:next,
+    updated_at:new Date().toISOString()
+  },{onConflict:'event_type_key'});
+
+  if(saved.error){
+    if(out)out.textContent='Could not save deadline: '+saved.error.message;
+    return;
+  }
+
+  template={...template,...dl};
+
+  if(out)out.textContent=dl.deadline_enabled
+    ? 'Deadline saved ✓'
+    : 'Deadline disabled ✓';
+}
+
+function queueDeadlineSave(){
+  clearTimeout(deadlineSaveTimer);
+  deadlineSaveTimer=setTimeout(saveDeadlineOnly,250);
 }
 const ERAS={
  pre_fc:{name:'Pre-Fire Crystal',options:[
@@ -317,6 +369,10 @@ function inlineSyncOptions(){inlineOptionDraft=[...document.querySelectorAll('#i
 function inlineRenderOptions(){$('inline-option-editor').innerHTML=inlineOptionDraft.map((o,i)=>`<div class="option-edit-row"><span>☰</span><input class="option-value" value="${esc(o)}" placeholder="Option ${i+1}"><button class="tiny-btn inline-remove-option" data-i="${i}" type="button">×</button></div>`).join('')||'<div class="muted">No options yet.</div>'}
 function inlineOpenEditor(q=null){$('inline-question-editor').classList.remove('hidden');$('inline-editor-title').textContent=q?.id?'Edit Question':'New Question';$('inline-question-id').value=q?.id||'';$('inline-question-text').value=q?.question_text||'';$('inline-role-scope').value=q?.role_scope||'both';$('inline-answer-type').value=q?.answer_type||'short_text';$('inline-required').checked=!!q?.is_required;inlineOptionDraft=Array.isArray(q?.options)?[...q.options]:[];inlineRenderOptions();inlineToggleOptions();$('inline-question-editor').scrollIntoView({behavior:'smooth',block:'start'})}
 $('availability-start').onchange=renderSlotPreview;$('availability-end').onchange=renderSlotPreview;$('slot-minutes').onchange=renderSlotPreview;$('era-grid').onchange=e=>{if(e.target.name==='troop-era')renderTroopPreview()};
+
+['nd3-enabled','nd3-date','nd3-hour','nd3-minute'].forEach(id=>{
+  $(id)?.addEventListener('change',queueDeadlineSave);
+});
 $('save-availability').onclick=()=>persistTemplate('availability-status');$('save-options').onclick=()=>persistTemplate('options-status');$('save-all').onclick=async()=>{$('save-all-status').textContent='Saving…';await persistTemplate('save-all-status')};
 $('create-event-question').onclick=()=>inlineOpenEditor();
 $('cancel-inline-question').onclick=()=>$('inline-question-editor').classList.add('hidden');

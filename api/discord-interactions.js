@@ -1,4 +1,4 @@
-// NEXA DISCORD BOT V1.5.4 — WORKSPACE TEST NOTIFICATIONS / GLOBAL COMMANDS
+// NEXA DISCORD BOT V1.6.1 — FOUR CHANNELS / CHANNEL OVERVIEWS / INVITE REPORT V2 / WARNING TEST
 import {
   rawBody,verifyDiscord,subcommand,db,getConfigByGuild,
   getCurrentEvent,currentApps,selectedApps,recruitingAlliances,inviteCounts,inviteReport,
@@ -8,34 +8,72 @@ import {
 } from '../lib/discord-common.js';
 
 const commands=[
- {name:'help',description:'See how the NEXA Transfer Bot works and view all commands'},
+ {name:'help',description:'See all NEXA Transfer Bot commands and what they do'},
+ {name:'overview',description:'Post a short permanent introduction for a Transfer channel',options:[
+  {type:3,name:'area',description:'Which channel overview do you want to post?',required:true,choices:[
+   {name:'Invite Operations',value:'invites'},
+   {name:'Applicant Operations',value:'applicants'},
+   {name:'New Applications',value:'new_applications'},
+   {name:'Transfer Announcements',value:'announcements'}
+  ]}
+ ]},
  {name:'transfer',description:'Transfer event setup and quick status',options:[
   {type:1,name:'start',description:'Schedule Transfer start using the Game/Server reset date'},
   {type:1,name:'end',description:'Cancel a scheduled start or end the active Transfer timeline'},
   {type:1,name:'status',description:'Show the current Transfer cycle status'},
-  {type:1,name:'reminders',description:'Turn Transfer reminders on or off',options:[{type:3,name:'setting',description:'Reminder status',required:true,choices:[{name:'On',value:'on'},{name:'Off',value:'off'}]}]},
+  {type:1,name:'reminders',description:'Turn Transfer reminders on or off',options:[
+   {type:3,name:'setting',description:'Reminder status',required:true,choices:[{name:'On',value:'on'},{name:'Off',value:'off'}]}
+  ]},
   {type:1,name:'channels',description:'Assign a Discord channel to one message category',options:[
-   {type:3,name:'category',description:'What should be sent to this channel?',required:true,choices:[{name:'New Applications',value:'applications'},{name:'Transfer Announcements',value:'reminders'},{name:'Invite Operations',value:'invites'}]},
+   {type:3,name:'category',description:'What should be sent or managed in this channel?',required:true,choices:[
+    {name:'New Applications',value:'applications'},
+    {name:'Applicant Operations',value:'applicants'},
+    {name:'Transfer Announcements',value:'reminders'},
+    {name:'Invite Operations',value:'invites'}
+   ]},
    {type:7,name:'channel',description:'Choose the Discord channel',required:true}
   ]}
  ]},
  {name:'applicants',description:'View Transfer applicant lists',options:[
   {type:1,name:'unassigned',description:'Show applicants still waiting for placement'},
-  {type:1,name:'list',description:'View applicants by placement',options:[{type:3,name:'placement',description:'Which applicant list?',required:true,choices:[{name:'Unassigned',value:'inbox'},{name:'Ordinary',value:'ordinary'},{name:'Special',value:'special'},{name:'Not Selected',value:'not_selected'},{name:'Next Transfer Cycle',value:'next_cycle'},{name:'All',value:'all'}]}]}
+  {type:1,name:'list',description:'View applicants by placement',options:[
+   {type:3,name:'placement',description:'Which applicant list?',required:true,choices:[
+    {name:'Unassigned',value:'inbox'},
+    {name:'Ordinary',value:'ordinary'},
+    {name:'Special',value:'special'},
+    {name:'Not Selected',value:'not_selected'},
+    {name:'Next Transfer Cycle',value:'next_cycle'},
+    {name:'All',value:'all'}
+   ]}
+  ]}
  ]},
  {name:'applicant',description:'View or update one Transfer applicant',options:[
-  {type:1,name:'view',description:'Show a quick applicant summary',options:[{type:3,name:'game_id',description:'Whiteout Survival Game ID',required:true}]},
+  {type:1,name:'view',description:'Show a quick applicant summary',options:[
+   {type:3,name:'game_id',description:'Whiteout Survival Game ID',required:true}
+  ]},
   {type:1,name:'move',description:'Move an applicant to a placement',options:[
    {type:3,name:'game_id',description:'Whiteout Survival Game ID',required:true},
-   {type:3,name:'placement',description:'New placement',required:true,choices:[{name:'Ordinary',value:'ordinary'},{name:'Special',value:'special'},{name:'Not Selected',value:'not_selected'},{name:'Next Transfer Cycle',value:'next_cycle'}]},
+   {type:3,name:'placement',description:'New placement',required:true,choices:[
+    {name:'Ordinary',value:'ordinary'},
+    {name:'Special',value:'special'},
+    {name:'Not Selected',value:'not_selected'},
+    {name:'Next Transfer Cycle',value:'next_cycle'}
+   ]},
    {type:3,name:'alliance',description:'Optional active Recruiting Alliance',required:false,autocomplete:true}
   ]}
  ]},
  {name:'invite',description:'Manage Transfer invitation status',options:[
-  {type:1,name:'sent',description:'Mark an approved applicant Invite Sent',options:[{type:3,name:'game_id',description:'Whiteout Survival Game ID',required:true}]},
-  {type:1,name:'pending',description:'Keep an approved applicant pending',options:[{type:3,name:'game_id',description:'Whiteout Survival Game ID',required:true},{type:3,name:'reason',description:'Why it is still pending',required:true,choices:[{name:'Not sent yet',value:'not_sent'},{name:'Over Power Cap',value:'over_power'}]}]},
-  {type:1,name:'list',description:'Show Invites Sent and Still Pending'}
- ]}
+  {type:1,name:'sent',description:'Mark an approved applicant Invite Sent',options:[
+   {type:3,name:'game_id',description:'Whiteout Survival Game ID',required:true}
+  ]},
+  {type:1,name:'pending',description:'Mark an invite pending because of the Power Cap',options:[
+   {type:3,name:'game_id',description:'Whiteout Survival Game ID',required:true},
+   {type:3,name:'reason',description:'Why it is still pending',required:true,choices:[
+    {name:'Over Power Cap',value:'over_power'}
+   ]}
+  ]},
+  {type:1,name:'list',description:'Post the current Ordinary and Special invite report'}
+ ] }
 ];
 
 export const config={api:{bodyParser:false}};
@@ -69,7 +107,8 @@ function errorEmbed(cfg,title,description){return embed(cfg,{title:`⚠️ ${tit
 function successEmbed(cfg,title,description,fields=[]){return embed(cfg,{title:`✅ ${title}`,description,color:COLORS.success,fields})}
 function findFocused(options=[]){for(const o of options){if(o.focused)return o;if(o.options){const x=findFocused(o.options);if(x)return x}}return null}
 function modalValue(body,id){for(const row of body.data?.components||[])for(const c of row.components||[])if(c.custom_id===id)return String(c.value||'').trim();return''}
-function formIsOpen(event){return !!event&&event.applications_open!==false&&event.public_access_enabled!==false}
+function topOption(body,name){return body.data?.options?.find(x=>x.name===name)?.value}
+function formIsOpen(event){return !!event&&event.public_access_enabled!==false}
 function announcementComponents(cfg,event,{includeForm=true}={}){
   const buttons=[linkButton('Transfer Workspace',workspaceUrl(cfg.workspace_id),'🌐')];
   if(includeForm&&formIsOpen(event)){
@@ -138,7 +177,10 @@ function transferEndConfirmEmbed(cfg){
     footer:'This action only controls the Discord Transfer timeline.'
   });
 }
-async function applicantByGameId(cfg,event,gameId){const rows=await db.select('transfer_applications',`workspace_id=eq.${cfg.workspace_id}&transfer_event_id=eq.${event.id}&player_id=eq.${encodeURIComponent(gameId)}&select=*&limit=2`);return rows?.[0]||null}
+async function applicantByGameId(cfg,event,gameId){
+  const rows=await db.select('transfer_applications',`workspace_id=eq.${cfg.workspace_id}&transfer_event_id=eq.${event.id}&player_id=eq.${encodeURIComponent(gameId)}&select=*&limit=2`);
+  return rows?.[0]||null;
+}
 async function validateAlliance(cfg,tag){
   if(!tag)return null;
   const rows=await recruitingAlliances(cfg.workspace_id);
@@ -182,7 +224,32 @@ function applicantsOverviewEmbed(cfg,apps){
     ]
   });
 }
-async function saveLast(cfg,last){await db.update('transfer_discord_integrations',`workspace_id=eq.${cfg.workspace_id}`,{last_sent:last,updated_at:nowIso()})}
+function channelOverviewEmbed(cfg,area){
+  const shared='\n\nNeed help with commands? Use `/help` to see all available commands and what each one does.';
+  const map={
+    invites:{
+      title:'📨 Invite Operations Overview',
+      text:'Use this channel to manage Transfer invitations directly from Discord. Review who still needs an invite, who is pending because of the Power Cap, who has already been sent one, and update invitation status without opening NEXA.'
+    },
+    applicants:{
+      title:'👤 Applicant Operations Overview',
+      text:'Use this channel to review and manage Transfer applicants directly from Discord. View applicant information, check placement, and move applicants into the appropriate Transfer category without opening NEXA.'
+    },
+    new_applications:{
+      title:'📥 New Applications Overview',
+      text:'This channel receives automatic notifications when a new Transfer application is submitted, giving staff the key applicant information needed for a quick first review.'
+    },
+    announcements:{
+      title:'📢 Transfer Announcements Overview',
+      text:'This channel receives automatic Transfer Cycle updates, phase announcements, invite checks, reminders, and final warnings so staff can keep track of what still needs attention as the cycle progresses.'
+    }
+  };
+  const x=map[area]||map.invites;
+  return embed(cfg,{title:x.title,description:x.text+shared,color:COLORS.info,footer:'NEXA Transfer Bot · Channel Overview'});
+}
+async function saveLast(cfg,last){
+  await db.update('transfer_discord_integrations',`workspace_id=eq.${cfg.workspace_id}`,{last_sent:last,updated_at:nowIso()});
+}
 async function postOnce(cfg,last,key,payload,type='reminders'){
   if(last[key])return false;
   await sendChannel(channelFor(cfg,type),{...payload,allowed_mentions:{parse:[]}});
@@ -195,7 +262,10 @@ async function sendNewApplications(cfg){
     try{
       const apps=await db.select('transfer_applications',`id=eq.${item.application_id}&select=id,in_game_name,player_id,current_state,current_alliance,furnace_level,current_power,discord_username,transferring_with_group&limit=1`);
       const a=apps?.[0];
-      if(!a){await db.update('transfer_discord_outbox',`id=eq.${item.id}`,{status:'failed',last_error:'application_not_found'});continue}
+      if(!a){
+        await db.update('transfer_discord_outbox',`id=eq.${item.id}`,{status:'failed',last_error:'application_not_found'});
+        continue;
+      }
       const e=embed(cfg,{
         title:'📥 New Transfer Application',
         description:`**${a.in_game_name||'Applicant'}** submitted a new Transfer application.`,
@@ -208,11 +278,14 @@ async function sendNewApplications(cfg){
           field('⚡ Power',fmtPower(a.current_power),true),
           field('👥 Group Transfer',a.transferring_with_group?'Yes':'No',true),
           ...(a.discord_username?[field('💬 Discord',`\`${a.discord_username}\``,false)]:[])
-        ],timestamp:true
+        ],
+        timestamp:true
       });
       await sendChannel(channelFor(cfg,'applications'),{embeds:[e],components:workspaceOnlyComponents(cfg,'View in Transfer Workspace'),allowed_mentions:{parse:[]}});
       await db.update('transfer_discord_outbox',`id=eq.${item.id}`,{status:'sent',sent_at:nowIso(),attempts:Number(item.attempts||0)+1,last_error:null});
-    }catch(e){await db.update('transfer_discord_outbox',`id=eq.${item.id}`,{attempts:Number(item.attempts||0)+1,last_error:String(e.message||e).slice(0,500)})}
+    }catch(e){
+      await db.update('transfer_discord_outbox',`id=eq.${item.id}`,{attempts:Number(item.attempts||0)+1,last_error:String(e.message||e).slice(0,500)});
+    }
   }
 }
 
@@ -238,7 +311,13 @@ async function timeline(cfg){
       const apps=await selectedApps(cfg.workspace_id,event.id),counts=inviteCounts(event,apps),pendingOps=apps.filter(a=>a.invite_status!=='sent').length;
       const leadText=warningMinutes>=60&&warningMinutes%60===0?`${warningMinutes/60} hour${warningMinutes===60?'':'s'}`:`${warningMinutes} minutes`;
       await postOnce(cfg,last,'phase3_final_warning',{
-        embeds:[embed(cfg,{title:'🚨 Final Invite Warning',description:`**${leadText} until Open Transfer begins.**\nReview any remaining invitation operations before Open Transfer begins.`,color:COLORS.warning,fields:inviteFields(counts,pendingOps),timestamp:true})],
+        embeds:[embed(cfg,{
+          title:'🚨 Final Invite Warning',
+          description:`**${leadText} until Open Transfer begins.**\nReview any remaining invitation operations before Open Transfer begins.`,
+          color:COLORS.warning,
+          fields:inviteFields(counts,pendingOps),
+          timestamp:true
+        })],
         components:announcementComponents(cfg,event)
       });
     }
@@ -260,7 +339,8 @@ async function timeline(cfg){
       if(counts.ordinaryLeft>0||counts.specialLeft>0){
         await sendChannel(channelFor(cfg,'reminders'),{
           embeds:[embed(cfg,{title:'📋 Invite Check',description:'Current invitation status during the Invitational Phase.',color:COLORS.invite,fields:inviteFields(counts,pendingOps),timestamp:true})],
-          components:announcementComponents(cfg,event),allowed_mentions:{parse:[]}
+          components:announcementComponents(cfg,event),
+          allowed_mentions:{parse:[]}
         });
       }
       last[key]=nowIso();await saveLast(cfg,last);
@@ -273,8 +353,16 @@ async function runTick(){
   for(const cfg of cfgs||[]){await sendNewApplications(cfg);await timeline(cfg)}
   return{ok:true,processed:(cfgs||[]).length,at:nowIso()};
 }
-async function registerGuildCommands(guild){const app=env('DISCORD_APPLICATION_ID');const result=await discord(`/applications/${app}/guilds/${guild}/commands`,{method:'PUT',body:commands});return{ok:true,scope:'guild',guild_id:guild,commands:result.map(x=>({id:x.id,name:x.name}))}}
-async function registerGlobalCommands(){const app=env('DISCORD_APPLICATION_ID');const result=await discord(`/applications/${app}/commands`,{method:'PUT',body:commands});return{ok:true,scope:'global',commands:result.map(x=>({id:x.id,name:x.name}))}}
+async function registerGuildCommands(guild){
+  const app=env('DISCORD_APPLICATION_ID');
+  const result=await discord(`/applications/${app}/guilds/${guild}/commands`,{method:'PUT',body:commands});
+  return{ok:true,scope:'guild',guild_id:guild,commands:result.map(x=>({id:x.id,name:x.name}))};
+}
+async function registerGlobalCommands(){
+  const app=env('DISCORD_APPLICATION_ID');
+  const result=await discord(`/applications/${app}/commands`,{method:'PUT',body:commands});
+  return{ok:true,scope:'global',commands:result.map(x=>({id:x.id,name:x.name}))};
+}
 async function sendWorkspaceTest(workspaceId,staffToken,kind){
   if(!workspaceId||!staffToken)throw new Error('Staff session required');
   const allowed=await db.rpc('transfer_staff_access_ok',{p_workspace_id:workspaceId,p_token:staffToken,p_manager:true});
@@ -282,17 +370,79 @@ async function sendWorkspaceTest(workspaceId,staffToken,kind){
   const rows=await db.select('transfer_discord_integrations',`workspace_id=eq.${encodeURIComponent(workspaceId)}&select=*&limit=1`);
   const cfg=rows?.[0];
   if(!cfg?.guild_id||cfg.enabled!==true)throw new Error('Discord integration is not enabled');
+
   let type='reminders',payload;
   if(kind==='application'){
     type='applications';
-    payload={embeds:[embed(cfg,{title:'🧪 TEST · New Transfer Application',description:'This is a test of the **New Applications** notification route.',color:COLORS.applicant,fields:[field('🎮 Game ID','`123456789`',true),field('🏰 Current State','State 1500',true),field('🛡️ Alliance','TEST',true),field('🔥 Furnace','FC10',true),field('⚡ Power','1.2B',true),field('👥 Group Transfer','No',true)],footer:'TEST MESSAGE · No applicant was created.',timestamp:true})],components:workspaceOnlyComponents(cfg,'Open Transfer Workspace'),allowed_mentions:{parse:[]}};
+    payload={embeds:[embed(cfg,{
+      title:'🧪 TEST · New Transfer Application',
+      description:'This is a test of the **New Applications** notification route.',
+      color:COLORS.applicant,
+      fields:[
+        field('🎮 Game ID','`123456789`',true),
+        field('🏰 Current State','State 1500',true),
+        field('🛡️ Alliance','TEST',true),
+        field('🔥 Furnace','FC10',true),
+        field('⚡ Power','1.2B',true),
+        field('👥 Group Transfer','No',true)
+      ],
+      footer:'TEST MESSAGE · No applicant was created.',
+      timestamp:true
+    })],components:workspaceOnlyComponents(cfg,'Open Transfer Workspace'),allowed_mentions:{parse:[]}};
+  }else if(kind==='applicant_ops'){
+    type='applicants';
+    payload={embeds:[embed(cfg,{
+      title:'🧪 TEST · Applicant Operations',
+      description:'This is a test of the **Applicant Operations** route. No applicant was moved or changed.',
+      color:COLORS.applicant,
+      fields:[
+        field('👤 Applicant','Test Player',true),
+        field('🎮 Game ID','`123456789`',true),
+        field('📂 Placement','Ordinary',true)
+      ],
+      footer:'TEST MESSAGE · No applicant data was changed.',
+      timestamp:true
+    })],components:workspaceOnlyComponents(cfg),allowed_mentions:{parse:[]}};
+  }else if(kind==='warning'){
+    type='reminders';
+    payload={embeds:[embed(cfg,{
+      title:'🧪 TEST · Final Invite Warning',
+      description:'**3 hours until Open Transfer begins.**\nReview any remaining invitation operations before Open Transfer begins.',
+      color:COLORS.warning,
+      fields:[
+        field('🎟️ Ordinary Invites','2 available',true),
+        field('⭐ Special Invites','1 available',true),
+        field('📋 Pending Operations','3',true)
+      ],
+      footer:'TEST MESSAGE · No Transfer phase, invite, or schedule was changed.',
+      timestamp:true
+    })],components:workspaceOnlyComponents(cfg,'Open Transfer Workspace'),allowed_mentions:{parse:[]}};
   }else if(kind==='invite'){
     type='invites';
-    payload={embeds:[embed(cfg,{title:'🧪 TEST · Invite Operations',description:'This is a test of the **Invite Operations** notification route.',color:COLORS.invite,fields:[field('🎟️ Ordinary Invites','2 available',true),field('⭐ Special Invites','1 available',true),field('📋 Pending Operations','3',true)],footer:'TEST MESSAGE · No invite status was changed.',timestamp:true})],components:workspaceOnlyComponents(cfg,'Open Transfer Workspace'),allowed_mentions:{parse:[]}};
+    payload={embeds:[embed(cfg,{
+      title:'🧪 TEST · Invite Operations',
+      description:'This is a test of the **Invite Operations** notification route.',
+      color:COLORS.invite,
+      fields:[
+        field('🎟️ Ordinary Invites','2 available',true),
+        field('⭐ Special Invites','1 available',true),
+        field('📋 Pending Operations','3',true)
+      ],
+      footer:'TEST MESSAGE · No invite status was changed.',
+      timestamp:true
+    })],components:workspaceOnlyComponents(cfg,'Open Transfer Workspace'),allowed_mentions:{parse:[]}};
   }else{
     type='reminders';
-    payload={embeds:[embed(cfg,{title:'🧪 TEST · Transfer Announcement',description:'This is a test of the **Transfer Announcements** notification route. Your live Transfer timeline was not changed.',color:COLORS.milestone,fields:[field('🌌 Route','Transfer Announcements',true),field('✅ Status','Connected',true)],footer:'TEST MESSAGE · No Transfer phase was started or changed.',timestamp:true})],components:workspaceOnlyComponents(cfg,'Open Transfer Workspace'),allowed_mentions:{parse:[]}};
+    payload={embeds:[embed(cfg,{
+      title:'🧪 TEST · Transfer Announcement',
+      description:'This is a test of the **Transfer Announcements** notification route. Your live Transfer timeline was not changed.',
+      color:COLORS.milestone,
+      fields:[field('🌌 Route','Transfer Announcements',true),field('✅ Status','Connected',true)],
+      footer:'TEST MESSAGE · No Transfer phase was started or changed.',
+      timestamp:true
+    })],components:workspaceOnlyComponents(cfg,'Open Transfer Workspace'),allowed_mentions:{parse:[]}};
   }
+
   const channelId=channelFor(cfg,type);
   if(!channelId)throw new Error(`No ${type} channel is configured`);
   const sent=await sendChannel(channelId,payload);
@@ -311,7 +461,10 @@ export default async function handler(req,res){
         const auth=String(req.headers.authorization||'');
         const staffToken=auth.startsWith('Bearer ')?auth.slice(7).trim():'';
         try{return res.status(200).json(await sendWorkspaceTest(workspaceId,staffToken,kind))}
-        catch(e){const msg=String(e.message||e);const status=/required|denied|access/i.test(msg)?403:400;return res.status(status).json({ok:false,error:msg})}
+        catch(e){
+          const msg=String(e.message||e),status=/required|denied|access/i.test(msg)?403:400;
+          return res.status(status).json({ok:false,error:msg});
+        }
       }
       if(action==='workspace-channels'){
         const workspaceId=String(url.searchParams.get('workspace_id')||'').trim();
@@ -323,13 +476,22 @@ export default async function handler(req,res){
         const rows=await db.select('transfer_discord_integrations',`workspace_id=eq.${encodeURIComponent(workspaceId)}&select=*&limit=1`);
         const cfg=rows?.[0];
         if(!cfg?.guild_id)return res.status(200).json({ok:true,connected:false,guild:null,channels:[]});
-        const [guild,allChannels]=await Promise.all([discord(`/guilds/${cfg.guild_id}`),discord(`/guilds/${cfg.guild_id}/channels`)]);
-        const channels=(allChannels||[]).filter(c=>[0,5].includes(Number(c.type))).sort((a,b)=>(Number(a.position||0)-Number(b.position||0))||String(a.name).localeCompare(String(b.name))).map(c=>({id:c.id,name:c.name,type:c.type}));
+        const [guild,allChannels]=await Promise.all([
+          discord(`/guilds/${cfg.guild_id}`),
+          discord(`/guilds/${cfg.guild_id}/channels`)
+        ]);
+        const channels=(allChannels||[])
+          .filter(c=>[0,5].includes(Number(c.type)))
+          .sort((a,b)=>(Number(a.position||0)-Number(b.position||0))||String(a.name).localeCompare(String(b.name)))
+          .map(c=>({id:c.id,name:c.name,type:c.type}));
         return res.status(200).json({ok:true,connected:true,guild:{id:guild.id,name:guild.name,icon:guild.icon||null},channels});
       }
       if(action==='tick')return res.status(200).json(await runTick());
       return res.status(405).json({error:'Use POST for Discord interactions or supported GET actions'});
-    }catch(e){console.error(e);return res.status(500).json({ok:false,error:e.message})}
+    }catch(e){
+      console.error(e);
+      return res.status(500).json({ok:false,error:e.message});
+    }
   }
   if(req.method!=='POST')return res.status(405).json({error:'POST only'});
 
@@ -346,7 +508,12 @@ export default async function handler(req,res){
       const id=String(body.data?.custom_id||'');
       if(id.startsWith('copy_form:')){
         const eventId=id.split(':')[1];
-        return res.status(200).json(responseEmbed(embed(cfg,{title:'🔗 Transfer Form Link',description:`${formUrl(eventId)}\n\nCopy and share this link wherever you need.`,color:COLORS.info,footer:'NEXA Transfer Bot'})));
+        return res.status(200).json(responseEmbed(embed(cfg,{
+          title:'🔗 Transfer Form Link',
+          description:`${formUrl(eventId)}\n\nCopy and share this link wherever you need.`,
+          color:COLORS.info,
+          footer:'NEXA Transfer Bot'
+        })));
       }
       if(id==='start_cancel')return res.status(200).json(updateEmbed(embed(cfg,{title:'❌ Transfer Start Cancelled',description:'No changes were made to the Transfer timeline.',color:COLORS.muted,footer:'NEXA Transfer Bot'}),[]));
       if(id==='transfer_end_cancel')return res.status(200).json(updateEmbed(embed(cfg,{title:'↩️ No Changes Made',description:'The Transfer timeline was left unchanged.',color:COLORS.muted,footer:'NEXA Transfer Bot'}),[]));
@@ -363,9 +530,20 @@ export default async function handler(req,res){
       }
       if(id.startsWith('start_pick:')){
         const choice=id.split(':')[1];
-        if(choice==='choose')return res.status(200).json({type:9,data:{custom_id:'start_date_modal',title:'Choose Transfer Start Date',components:[{type:1,components:[{type:4,custom_id:'server_date',label:'Game/Server reset date (YYYY-MM-DD)',style:1,min_length:10,max_length:10,required:true,placeholder:'2026-09-08'}]}]}});
+        if(choice==='choose')return res.status(200).json({
+          type:9,
+          data:{
+            custom_id:'start_date_modal',
+            title:'Choose Transfer Start Date',
+            components:[{type:1,components:[{type:4,custom_id:'server_date',label:'Game/Server reset date (YYYY-MM-DD)',style:1,min_length:10,max_length:10,required:true,placeholder:'2026-09-08'}]}]
+          }
+        });
         const date=choice==='tomorrow'?utcDateOffset(1):utcDateOffset(0),e=startPreviewEmbed(cfg,date);
-        return res.status(200).json(updateEmbed(e,[actionRow(customButton('Confirm Start',`start_confirm:${date}`,3,'✅'),customButton('Change Date','start_pick:choose',2,'📅'),customButton('Cancel','start_cancel',4))]));
+        return res.status(200).json(updateEmbed(e,[actionRow(
+          customButton('Confirm Start',`start_confirm:${date}`,3,'✅'),
+          customButton('Change Date','start_pick:choose',2,'📅'),
+          customButton('Cancel','start_cancel',4)
+        )]));
       }
       if(id.startsWith('start_confirm:')){
         const date=id.slice('start_confirm:'.length),saved=await saveStart(cfg,date);
@@ -390,19 +568,33 @@ export default async function handler(req,res){
       const focused=findFocused(body.data?.options||[]);
       if(focused?.name!=='alliance')return res.status(200).json({type:8,data:{choices:[]}});
       const q=String(focused.value||'').toLowerCase(),rows=await recruitingAlliances(cfg.workspace_id);
-      const choices=(rows||[]).filter(x=>!q||String(x.tag||'').toLowerCase().includes(q)||String(x.name||'').toLowerCase().includes(q)).slice(0,25).map(x=>({name:safe(`${x.tag}${x.name?' · '+x.name:''}`),value:String(x.tag)}));
+      const choices=(rows||[])
+        .filter(x=>!q||String(x.tag||'').toLowerCase().includes(q)||String(x.name||'').toLowerCase().includes(q))
+        .slice(0,25)
+        .map(x=>({name:safe(`${x.tag}${x.name?' · '+x.name:''}`),value:String(x.tag)}));
       return res.status(200).json({type:8,data:{choices}});
     }
 
     if(body.type!==2)return res.status(200).json(responseEmbed(errorEmbed(cfg,'Unsupported Interaction','NEXA could not process that interaction.')));
     const {name,options}=subcommand(body.data);
 
+    if(body.data.name==='overview'){
+      const area=String(topOption(body,'area')||'invites');
+      return res.status(200).json(responseEmbed(channelOverviewEmbed(cfg,area),{ephemeral:false}));
+    }
+
     if(body.data.name==='help'){
-      const e=embed(cfg,{title:'🌌 NEXA Transfer Bot — Help',description:'Discord handles quick Transfer operations. Use **Transfer Workspace** for complete management.',color:COLORS.info,fields:[
-        field('🌌 Transfer','`/transfer start` · `/transfer end` · `/transfer status`\n`/transfer reminders` · `/transfer channels`',false),
-        field('👤 Applicants','`/applicants unassigned` · `/applicants list`\n`/applicant view` · `/applicant move`',false),
-        field('📨 Invites','`/invite sent` · `/invite pending` · `/invite list`',false)
-      ]});
+      const e=embed(cfg,{
+        title:'🌌 NEXA Transfer Bot — Help',
+        description:'Quick Discord tools for Transfer operations. `/overview` posts a permanent channel introduction.',
+        color:COLORS.info,
+        fields:[
+          field('📌 Channel Overview','`/overview` — post a short introduction for Invites, Applicants, New Applications, or Announcements.',false),
+          field('🌌 Transfer','`/transfer start` · schedule the Transfer timeline\n`/transfer end` · cancel/end it\n`/transfer status` · current cycle status\n`/transfer reminders` · reminders on/off\n`/transfer channels` · assign the four Discord routes',false),
+          field('👤 Applicants','`/applicants unassigned` · current unassigned list\n`/applicants list` · list by placement\n`/applicant view` · one applicant\n`/applicant move` · move one applicant',false),
+          field('📨 Invites','`/invite list` · post the current invite report\n`/invite sent` · mark an invite sent\n`/invite pending` · mark Over Power Cap',false)
+        ]
+      });
       return res.status(200).json(responseEmbed(e,{components:workspaceOnlyComponents(cfg,'Full Details')}));
     }
 
@@ -411,34 +603,62 @@ export default async function handler(req,res){
       if(name==='end'){
         if(!cfg.event_start_at)return res.status(200).json(responseEmbed(errorEmbed(cfg,'No Transfer Timeline Scheduled','There is no scheduled or active Transfer timeline to cancel or end.')));
         const e=transferEndConfirmEmbed(cfg);
-        return res.status(200).json(responseEmbed(e,{components:[actionRow(customButton(Date.now()>=new Date(cfg.event_start_at).getTime()?'End Event':'Cancel Scheduled Start','transfer_end_confirm',4,'⚠️'),customButton('Keep Timeline','transfer_end_cancel',2))]}));
+        return res.status(200).json(responseEmbed(e,{components:[actionRow(
+          customButton(Date.now()>=new Date(cfg.event_start_at).getTime()?'End Event':'Cancel Scheduled Start','transfer_end_confirm',4,'⚠️'),
+          customButton('Keep Timeline','transfer_end_cancel',2)
+        )]}));
       }
       if(name==='status'){
         const event=await getCurrentEvent(cfg.workspace_id);if(!event)return res.status(200).json(responseEmbed(errorEmbed(cfg,'No Active Transfer Cycle','No active Transfer cycle was found.')));
-        const apps=await currentApps(cfg.workspace_id,event.id),selected=apps.filter(a=>['ordinary','special'].includes(a.application_bucket)),counts=inviteCounts(event,selected),state=cfg.event_start_at?phaseState(cfg.event_start_at):null,unassigned=apps.filter(a=>a.application_bucket==='inbox'&&a.application_cycle!=='next').length,sent=selected.filter(a=>a.invite_status==='sent').length,pending=selected.length-sent;
+        const apps=await currentApps(cfg.workspace_id,event.id);
+        const selected=apps.filter(a=>['ordinary','special'].includes(a.application_bucket)&&a.application_cycle!=='next');
+        const counts=inviteCounts(event,selected),state=cfg.event_start_at?phaseState(cfg.event_start_at):null;
+        const unassigned=apps.filter(a=>a.application_bucket==='inbox'&&a.application_cycle!=='next').length;
+        const sent=selected.filter(a=>a.invite_status==='sent').length,pending=selected.length-sent;
         const times=(cfg.invite_reminder_times||[]).length?cfg.invite_reminder_times.join(', ')+' UTC':'Not set';
         const warning=Number(cfg.phase3_reminder_minutes||0)>0?`${cfg.phase3_reminder_minutes} minutes before Open Transfer`:'Not set';
         const timelineText=state?`Current phase: **${state.phase}**${state.next?`\nNext transition: ${discordTime(state.next)}`:''}`:'Transfer timeline: **Not scheduled**';
-        const e=embed(cfg,{title:'📊 Transfer Status',description:timelineText,color:COLORS.info,fields:[
-          field('📥 Applicant Queue',`Unassigned: **${unassigned}**`,true),
-          field('🎟️ Invite Availability',`Ordinary: **${counts.ordinaryLeft}**\nSpecial: **${counts.specialLeft}**`,true),
-          field('📨 Invite Operations',`Sent: **${sent}**\nPending: **${pending}**`,true),
-          field('🔔 Reminders',`**${cfg.reminders_enabled?'On':'Off'}**\n${times}`,true),
-          field('🚨 Final Warning',warning,true)
-        ]});
+        const e=embed(cfg,{
+          title:'📊 Transfer Status',
+          description:timelineText,
+          color:COLORS.info,
+          fields:[
+            field('📥 Applicant Queue',`Unassigned: **${unassigned}**`,true),
+            field('🎟️ Invite Availability',`Ordinary: **${counts.ordinaryLeft}**\nSpecial: **${counts.specialLeft}**`,true),
+            field('📨 Invite Operations',`Sent: **${sent}**\nPending: **${pending}**`,true),
+            field('🔔 Reminders',`**${cfg.reminders_enabled?'On':'Off'}**\n${times}`,true),
+            field('🚨 Final Warning',warning,true)
+          ]
+        });
         return res.status(200).json(responseEmbed(e,{ephemeral:false,components:workspaceOnlyComponents(cfg)}));
       }
       if(name==='reminders'){
         const on=String(options.setting)==='on';
         await db.update('transfer_discord_integrations',`workspace_id=eq.${cfg.workspace_id}`,{enabled:true,reminders_enabled:on,updated_at:nowIso()});
-        const e=successEmbed(cfg,`Transfer Reminders ${on?'Enabled':'Disabled'}`,on?'Invite checks and configured warning reminders are active.':'Invite checks and configured warning reminders are paused.',[field('⚙️ Scheduling','NEXA Transfer Workspace → Integrations → Discord',false)]);
+        const e=successEmbed(cfg,`Transfer Reminders ${on?'Enabled':'Disabled'}`,on?'Invite checks and configured warning reminders are active.':'Invite checks and configured warning reminders are paused.',[
+          field('⚙️ Scheduling','NEXA Transfer Workspace → Integrations → Discord',false)
+        ]);
         return res.status(200).json(responseEmbed(e));
       }
       if(name==='channels'){
-        const category=String(options.category),channel=String(options.channel),dbField=category==='applications'?'applications_channel_id':category==='reminders'?'reminders_channel_id':'invites_channel_id';
+        const category=String(options.category),channel=String(options.channel);
+        const fieldsByCategory={
+          applications:'applications_channel_id',
+          applicants:'applicant_operations_channel_id',
+          reminders:'reminders_channel_id',
+          invites:'invites_channel_id'
+        };
+        const labels={
+          applications:'New Applications',
+          applicants:'Applicant Operations',
+          reminders:'Transfer Announcements',
+          invites:'Invite Operations'
+        };
+        const dbField=fieldsByCategory[category]||'invites_channel_id';
         await db.update('transfer_discord_integrations',`workspace_id=eq.${cfg.workspace_id}`,{enabled:true,[dbField]:channel,updated_at:nowIso()});
-        const label=category==='applications'?'New Applications':category==='reminders'?'Transfer Announcements':'Invite Operations';
-        const e=successEmbed(cfg,'Discord Channel Updated',`${label} will now be sent to <#${channel}>.`,[field('🔌 Integration','ON',true)]);
+        const e=successEmbed(cfg,'Discord Channel Updated',`${labels[category]||'Invite Operations'} is now assigned to <#${channel}>.`,[
+          field('🔌 Integration','ON',true)
+        ]);
         return res.status(200).json(responseEmbed(e));
       }
     }
@@ -454,54 +674,114 @@ export default async function handler(req,res){
         const placement=String(options.placement||'all');
         if(placement==='all')return res.status(200).json(responseEmbed(applicantsOverviewEmbed(cfg,apps),{ephemeral:false,components:workspaceOnlyComponents(cfg)}));
         let rows=apps,title='👥 Applicants';
-        if(placement==='inbox'){rows=apps.filter(a=>a.application_bucket==='inbox'&&a.application_cycle!=='next');title='📥 Unassigned Applicants'}
-        else if(placement==='next_cycle'){rows=apps.filter(a=>a.application_bucket==='next_cycle'||a.application_cycle==='next');title='⏭️ Next Transfer Cycle'}
-        else {rows=apps.filter(a=>a.application_bucket===placement);title=`📂 ${placement==='not_selected'?'Not Selected':placement[0].toUpperCase()+placement.slice(1)}`}
+        if(placement==='inbox'){
+          rows=apps.filter(a=>a.application_bucket==='inbox'&&a.application_cycle!=='next');
+          title='📥 Unassigned Applicants';
+        }else if(placement==='next_cycle'){
+          rows=apps.filter(a=>a.application_bucket==='next_cycle'||a.application_cycle==='next');
+          title='⏭️ Next Transfer Cycle';
+        }else{
+          rows=apps.filter(a=>a.application_bucket===placement&&a.application_cycle!=='next');
+          title=`📂 ${placement==='not_selected'?'Not Selected':placement[0].toUpperCase()+placement.slice(1)}`;
+        }
         return res.status(200).json(responseEmbed(listEmbed(cfg,rows,`${title} · ${rows.length}`),{ephemeral:false,components:workspaceOnlyComponents(cfg)}));
       }
     }
 
     if(body.data.name==='applicant'){
       const event=await getCurrentEvent(cfg.workspace_id);if(!event)return res.status(200).json(responseEmbed(errorEmbed(cfg,'No Active Transfer Cycle','No active Transfer cycle was found.')));
-      const a=await applicantByGameId(cfg,event,String(options.game_id||'').trim());if(!a)return res.status(200).json(responseEmbed(errorEmbed(cfg,'Applicant Not Found',`No current applicant was found with Game ID **${options.game_id}**.`)));
+      const a=await applicantByGameId(cfg,event,String(options.game_id||'').trim());
+      if(!a)return res.status(200).json(responseEmbed(errorEmbed(cfg,'Applicant Not Found',`No current applicant was found with Game ID \`${options.game_id}\`.`)));
+
       if(name==='view'){
-        const e=embed(cfg,{title:`👤 ${a.in_game_name||'Applicant'}`,description:`Game ID: \`${a.player_id||'—'}\``,color:COLORS.applicant,fields:[
-          field('🏰 From',`State ${a.current_state||'—'}${a.current_alliance?` · ${a.current_alliance}`:''}`,false),
-          field('🔥 Furnace',a.furnace_level||'—',true),field('⚡ Power',fmtPower(a.current_power),true),field('🪖 T12',hasT12(a)?'Yes':'No',true),
-          field('📈 Account Progress',progressionLabel(a.account_progression),true),field('📂 Placement',placementLabel(a),true),field('🛡️ Assigned Alliance',a.assigned_alliance_tag||'Unassigned',true),
-          field('📨 Invite',a.invite_status==='sent'?'Sent':a.invite_pending_reason==='over_power'?'Pending · Over Power Cap':'Pending',false)
-        ]});
+        const e=embed(cfg,{
+          title:`👤 ${a.in_game_name||'Applicant'}`,
+          description:`Game ID: \`${a.player_id||'—'}\``,
+          color:COLORS.applicant,
+          fields:[
+            field('🏰 From',`State ${a.current_state||'—'}${a.current_alliance?` · ${a.current_alliance}`:''}`,false),
+            field('🔥 Furnace',a.furnace_level||'—',true),
+            field('⚡ Power',fmtPower(a.current_power),true),
+            field('🪖 T12',hasT12(a)?'Yes':'No',true),
+            field('📈 Account Progress',progressionLabel(a.account_progression),true),
+            field('📂 Placement',placementLabel(a),true),
+            field('🛡️ Assigned Alliance',a.assigned_alliance_tag||'Unassigned',true),
+            field('📨 Invite',a.invite_status==='sent'?'Sent':a.invite_pending_reason==='over_power'?'Pending · Over Power Cap':'Not Sent Yet',false)
+          ]
+        });
         return res.status(200).json(responseEmbed(e,{ephemeral:false,components:workspaceOnlyComponents(cfg)}));
       }
+
       if(name==='move'){
         const placement=String(options.placement),allianceRaw=options.alliance?String(options.alliance):null;
         let alliance=null;
-        if(['ordinary','special'].includes(placement)&&allianceRaw){const valid=await validateAlliance(cfg,allianceRaw);if(!valid)return res.status(200).json(responseEmbed(errorEmbed(cfg,'Alliance Not Available',`**${allianceRaw}** is not an active Recruiting Alliance for this Workspace.`)));alliance=String(valid.tag)}
-        await db.update('transfer_applications',`id=eq.${a.id}`,{application_bucket:placement,application_cycle:placement==='next_cycle'?'next':'current',assigned_alliance_tag:['ordinary','special'].includes(placement)?alliance:null,updated_at:nowIso()});
+        if(['ordinary','special'].includes(placement)&&allianceRaw){
+          const valid=await validateAlliance(cfg,allianceRaw);
+          if(!valid)return res.status(200).json(responseEmbed(errorEmbed(cfg,'Alliance Not Available',`**${allianceRaw}** is not an active Recruiting Alliance for this Workspace.`)));
+          alliance=String(valid.tag);
+        }
+        await db.update('transfer_applications',`id=eq.${a.id}`,{
+          application_bucket:placement,
+          application_cycle:placement==='next_cycle'?'next':'current',
+          assigned_alliance_tag:['ordinary','special'].includes(placement)?alliance:null,
+          updated_at:nowIso()
+        });
         const placementText=placement==='next_cycle'?'Next Transfer Cycle':placement==='not_selected'?'Not Selected':placement[0].toUpperCase()+placement.slice(1);
-        const e=successEmbed(cfg,'Applicant Updated',`**${a.in_game_name||a.player_id}** moved successfully.`,[field('📂 Placement',placementText,true),...(['ordinary','special'].includes(placement)?[field('🛡️ Alliance',alliance||'Unassigned',true)]:[])]);
+        const e=successEmbed(cfg,'Applicant Updated',`**${a.in_game_name||a.player_id}** moved successfully.`,[
+          field('📂 Placement',placementText,true),
+          ...(['ordinary','special'].includes(placement)?[field('🛡️ Alliance',alliance||'Unassigned',true)]:[])
+        ]);
         return res.status(200).json(responseEmbed(e));
       }
     }
 
     if(body.data.name==='invite'){
       const event=await getCurrentEvent(cfg.workspace_id);if(!event)return res.status(200).json(responseEmbed(errorEmbed(cfg,'No Active Transfer Cycle','No active Transfer cycle was found.')));
+
       if(name==='list'){
-        const apps=await selectedApps(cfg.workspace_id,event.id),content=inviteReport(apps);
-        const e=embed(cfg,{title:'📨 Invite Operations',description:content||'No invite operations found.',color:COLORS.invite});
-        await sendChannel(channelFor(cfg,'invites'),{embeds:[e],components:workspaceOnlyComponents(cfg),allowed_mentions:{parse:[]}});
-        return res.status(200).json(responseEmbed(successEmbed(cfg,'Invite List Posted',`Invite operations were posted to <#${channelFor(cfg,'invites')}>.`)));
+        const apps=await selectedApps(cfg.workspace_id,event.id);
+        const content=inviteReport(apps);
+        const e=embed(cfg,{
+          title:'📨 Invite Operations',
+          description:content||'No invite operations found.',
+          color:COLORS.invite,
+          footer:'Only current Ordinary and Special applicants are included.'
+        });
+        const target=channelFor(cfg,'invites');
+        if(!target)return res.status(200).json(responseEmbed(errorEmbed(cfg,'Invite Channel Not Configured','Assign an Invite Operations channel first.')));
+        await sendChannel(target,{embeds:[e],components:workspaceOnlyComponents(cfg),allowed_mentions:{parse:[]}});
+        return res.status(200).json(responseEmbed(successEmbed(cfg,'Invite List Posted',`Invite operations were posted to <#${target}>.`)));
       }
-      const a=await applicantByGameId(cfg,event,String(options.game_id||'').trim());if(!a)return res.status(200).json(responseEmbed(errorEmbed(cfg,'Applicant Not Found',`No current applicant was found with Game ID **${options.game_id}**.`)));
-      if(!['ordinary','special'].includes(a.application_bucket))return res.status(200).json(responseEmbed(errorEmbed(cfg,'Invite Not Available',`**${a.in_game_name||a.player_id}** is not currently in Ordinary or Special.`)));
+
+      const a=await applicantByGameId(cfg,event,String(options.game_id||'').trim());
+      if(!a)return res.status(200).json(responseEmbed(errorEmbed(cfg,'Applicant Not Found',`No current applicant was found with Game ID \`${options.game_id}\`.`)));
+      if(!['ordinary','special'].includes(a.application_bucket)||a.application_cycle==='next'){
+        return res.status(200).json(responseEmbed(errorEmbed(cfg,'Invite Not Available',`**${a.in_game_name||a.player_id}** is not currently in Ordinary or Special for this cycle.`)));
+      }
+
       if(name==='sent'){
-        await db.update('transfer_applications',`id=eq.${a.id}`,{invite_status:'sent',invite_pending_reason:null,invite_sent_at:nowIso(),updated_at:nowIso()});
+        await db.update('transfer_applications',`id=eq.${a.id}`,{
+          invite_status:'sent',
+          invite_pending_reason:null,
+          invite_sent_at:nowIso(),
+          updated_at:nowIso()
+        });
         return res.status(200).json(responseEmbed(successEmbed(cfg,'Invite Marked Sent',`Invite marked as sent to **${a.in_game_name||a.player_id}**.`)));
       }
+
       if(name==='pending'){
-        const reason=String(options.reason||'not_sent');
-        await db.update('transfer_applications',`id=eq.${a.id}`,{invite_status:'not_sent',invite_pending_reason:reason,invite_sent_at:null,updated_at:nowIso()});
-        return res.status(200).json(responseEmbed(embed(cfg,{title:'⏳ Invite Pending',description:`**${a.in_game_name||a.player_id}** remains pending.`,color:reason==='over_power'?COLORS.warning:COLORS.invite,fields:[field('Reason',reason==='over_power'?'Over Power Cap':'Not sent yet',false)]})));
+        await db.update('transfer_applications',`id=eq.${a.id}`,{
+          invite_status:'not_sent',
+          invite_pending_reason:'over_power',
+          invite_sent_at:null,
+          updated_at:nowIso()
+        });
+        return res.status(200).json(responseEmbed(embed(cfg,{
+          title:'⏳ Invite Pending',
+          description:`**${a.in_game_name||a.player_id}** remains pending.`,
+          color:COLORS.warning,
+          fields:[field('Reason','Over Power Cap',false)]
+        })));
       }
     }
 

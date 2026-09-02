@@ -62,7 +62,7 @@ let i=Math.max(0,SECTIONS.findIndex(x=>x.k===(q.get('section')||'svs'))),templat
 function deadline(s){if(!s?.deadline_enabled||!s.deadline_at)return'';const ms=new Date(s.deadline_at)-Date.now();if(ms<=0)return'<span class="nexa-deadline-badge closed">CLOSED</span>';const d=Math.floor(ms/86400000),h=Math.floor(ms/3600000)%24,m=Math.floor(ms/60000)%60,t=ms<=86400000?'red':ms<=4*86400000?'yellow':'green';return `<span class="nexa-deadline-badge ${t}">Deadline · ${d?d+'D '+h+'H':h+'H '+m+'M'}</span>`}
 function settingsFor(key){return templates[key]?.settings||{}}
 function accessOpen(s){return s.public_access_removed!==true&&s.public_access_enabled!==false}
-function transferLinks(){if(!transferEvent)return{open:'#',copy:'#',edit:'#'};const id=encodeURIComponent(transferEvent.id);return{open:`transfer-form-v2.html?direct=1&event=${id}`,copy:`transfer-form-v2.html?public=1&event=${id}`,edit:`transfer-form-settings.html?event=${id}`}}
+function transferLinks(){if(!transferEvent)return{open:'#',copy:'#',edit:'#'};const id=encodeURIComponent(transferEvent.id);return{open:`transfer-form-v2.html?direct=1&event=${id}`,copy:`transfer-form-v2.html?public=1&event=${id}`,edit:`transfer-form-custom.html?event=${id}&new=1`}}
 function surveyIdFromSettings(s){const u=String(s?.form_url||s?.public_url||'');return u.match(/[?&]id=([0-9a-f-]{36})/i)?.[1]||''}
 function surveyLinks(s){
  const sid=surveyIdFromSettings(s);
@@ -79,7 +79,7 @@ function card(c){
    <a class="${disabled?'disabled':''}" href="${l.open}">Open Form</a>
    <button data-copy="${l.copy}" ${disabled||!open?'disabled':''}>Copy Link</button>
    <button data-transfer-publish ${disabled?'disabled':''}>${listed?'Remove from Transfer Center':'Publish in Transfer Center'}</button>
-   <a class="${disabled?'disabled':''}" href="${l.edit}">Edit Form</a>
+   <a class="${disabled?'disabled':''}" href="${l.edit}">Create New Form</a>
    <button class="${open?'danger':'restore'}" data-transfer-access ${disabled?'disabled':''}>${open?'Remove Public Access':'Restore Public Access'}</button>
   </div><div class="status"></div></article>`;
  }

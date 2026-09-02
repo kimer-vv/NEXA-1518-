@@ -315,7 +315,24 @@ function renderCycleState(){
    <div class="cycleSummaryItem"><small>INVITES SENT</small><b>${apps.filter(a=>a.invite_status==='sent').length}</b></div>
    <div class="cycleSummaryItem" style="grid-column:1/-1"><small>RECRUITING ALLIANCES</small><b>${esc(recruitingTags.join(' • ')||'—')}</b></div>
  </div>`:''}`;
-$('cycleOpenBtn')?.addEventListener('click',()=>{cycleMode=expired||!hasEvent?'new':'edit';cycleEditing=true;fillCycleEditor(cycleMode==='edit');renderCycleState()async function endTransferCycle(){
+$('cycleOpenBtn')?.addEventListener('click',()=>{
+  cycleMode=expired||!hasEvent?'new':'edit';
+  cycleEditing=true;
+  fillCycleEditor(cycleMode==='edit');
+  renderCycleState();
+});
+
+$('cycleEndBtn')?.addEventListener('click',()=>{
+  confirmGalaxy(
+    'End Transfer Cycle',
+    'End this Transfer Cycle now? It will be closed and moved to History. This cannot be undone.',
+    'End Transfer Cycle',
+    endTransferCycle
+  );
+});
+}
+
+async function endTransferCycle(){
   if(!canManage()||!event)return;
 
   const r=await SB.rpc('transfer_workspace_end_cycle',{
@@ -333,16 +350,6 @@ $('cycleOpenBtn')?.addEventListener('click',()=>{cycleMode=expired||!hasEvent?'n
   }
 
   await loadWorkspace();
-}
-  });
-$('cycleEndBtn')?.addEventListener('click',()=>{
-  confirmGalaxy(
-    'End Transfer Cycle',
-    'End this Transfer Cycle now? It will be closed and moved to History. This cannot be undone.',
-    'End Transfer Cycle',
-    endTransferCycle
-  );
-})
 }
 function renderAll(){
 $('workspaceTitle').textContent=`State ${event?.destination_state||workspace.state_number||'—'}`;

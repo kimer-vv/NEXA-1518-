@@ -1,4 +1,4 @@
-// NEXA TRANSFER WORKSPACE FINISHER V1.3 — PRESENCE / HISTORY / PROTECTED FORM LIBRARY
+// NEXA TRANSFER WORKSPACE FINISHER V1.4 — PRESENCE / PERSISTENT HISTORY HANDOFF / PROTECTED FORM LIBRARY
 (()=>{
 'use strict';
 
@@ -101,6 +101,7 @@ function openHistory(h){
   openModal('TRANSFER HISTORY',historyRange(h),`<div class="nexa-history-detail"><div><small>State</small><b>State ${esc(h.destination_state||'—')}</b></div><div><small>Classification</small><b>${esc(h.classification||'Ordinary')}</b></div><div><small>Power Cap</small><b>${fmtNum(h.power_cap)}</b></div><div><small>Ordinary Invites</small><b>${ordUsed} used / ${ordAvail} available</b></div><div><small>Special Invites</small><b>${spUsed} used / ${spAvail} available</b></div><div><small>Total Applicants</small><b>${fmtNum(h.applicants_total)}</b></div></div><p class="muted" style="margin:13px 2px 0">Simple cycle summary only — no activity log.</p>`);
 }
 async function loadHistory(){
+  if(window.NEXA_TRANSFER_PERSISTENT_ARCHIVE_V1)return;
   token=getToken();workspaceId=getWorkspaceId();const box=$('historyList');if(!SB||!token||!workspaceId||!box)return;
   try{
     const access=await SB.rpc('transfer_staff_access_list',{p_workspace_id:workspaceId,p_token:token});canManageHistory=access.data?.ok===true&&access.data?.can_manage===true;
@@ -115,7 +116,7 @@ function confirmDeleteHistory(h){
   openModal('DELETE HISTORY','Delete Transfer Cycle?',`<p class="muted">Delete <b>${esc(historyRange(h))}</b> from History permanently?</p><p class="muted">This removes the archived cycle card and cannot be undone.</p><div class="actions"><button class="btn secondary" type="button" id="nexaCancelDeleteHistory">Cancel</button><button class="btn danger" type="button" id="nexaConfirmDeleteHistory">Delete</button></div><div class="status" id="nexaDeleteHistoryStatus"></div>`);
   $('nexaCancelDeleteHistory').onclick=closeModal;$('nexaConfirmDeleteHistory').onclick=async()=>{const s=$('nexaDeleteHistoryStatus');s.textContent='Deleting…';const {data,error}=await SB.rpc('transfer_workspace_delete_history',{p_workspace_id:workspaceId,p_token:token,p_event_id:h.id});if(error||data?.ok!==true){s.textContent=error?.message||'Unable to delete this History card.';return}closeModal();await loadHistory()};
 }
-function polishHistoryCopy(){const p=document.querySelector('[data-panel="history"] article.card.full > p.muted');if(p)p.textContent='A simple summary of each completed Transfer Cycle.'}
+function polishHistoryCopy(){if(window.NEXA_TRANSFER_PERSISTENT_ARCHIVE_V1)return;const p=document.querySelector('[data-panel="history"] article.card.full > p.muted');if(p)p.textContent='A simple summary of each completed Transfer Cycle.'}
 function polishAccess(){
   const panel=document.querySelector('[data-panel="access"]');if(!panel)return;
   const intro=panel.querySelector('article.card.full > p.muted');if(intro)intro.textContent='Owner 👑 = protected owner · Admin ★ = access management · Transfer Staff ☆ = normal transfer operations.';
@@ -145,7 +146,7 @@ async function loadFormLibrary(){
     if(error||data?.ok!==true){card.innerHTML=`<div class="tag">APPLICATION FORM</div><h3>Application Form</h3><p class="muted">${esc(error?.message||data?.error||'Unable to load form library.')}</p>`;return}
     formEventId=data.event_id||'';formRows=Array.isArray(data.forms)?data.forms:[];const count=formRows.length,full=count>=Number(data.limit||3);
     card.innerHTML=`<div class="nexa-form-library-head"><div><div class="tag">APPLICATION FORM</div><h3 style="margin:4px 0">Application Form</h3></div><span class="nexa-form-count">Forms ${count}/3</span></div>
-      <p class="muted">Choose which saved form is used for this Transfer Cycle. Primary Form is permanent and protected.</p>
+      <p class="muted">Choose which saved form is used for the permanent Transfer Workspace intake. Primary Form is permanent and protected.</p>
       <div class="nexa-form-list">${formRows.map(formRowHtml).join('')}</div>
       <div class="actions"><button class="btn" id="nexaCreateTransferForm" type="button" ${full?'disabled':''}>Create New Form</button></div>
       <div class="nexa-form-help ${full?'nexa-form-limit':''}">${full?'Maximum reached. Delete an inactive Custom Form before creating another.':'Primary Form + up to 2 Custom Forms.'}</div>`;
@@ -194,3 +195,4 @@ function start(){
 }
 const bootTimer=setInterval(()=>{start();if(booted)clearInterval(bootTimer)},500);setTimeout(start,50);
 })();
+

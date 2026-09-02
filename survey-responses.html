@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- NEXA SURVEY RESPONSES V1.0 -->
+<!-- NEXA SURVEY RESPONSES V2.0 — PROGRESS BARS / COLLAPSIBLE VOTERS / ANONYMOUS -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -7,41 +7,50 @@
 <title>NEXA • Survey Responses</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{--c:#59e4ff;--v:#8d76ff;--m:#aab4d0;--p:rgba(8,15,34,.94);--good:#7df1be;--bad:#ff9db3}
+:root{--c:#59e4ff;--m:#aab4d0;--p:rgba(8,15,34,.94);--good:#7df1be;--bad:#ff9db3}
 *{box-sizing:border-box}
-body{margin:0;min-height:100dvh;background:radial-gradient(circle at 8% 6%,rgba(89,228,255,.09),transparent 31%),radial-gradient(circle at 93% 2%,rgba(141,118,255,.11),transparent 34%),#03050e;color:#fff;font-family:Inter,system-ui,-apple-system,sans-serif}
-.shell{width:min(860px,100%);margin:auto;padding:20px 14px 96px}
+body{margin:0;min-height:100dvh;background:radial-gradient(circle at 8% 6%,rgba(89,228,255,.09),transparent 31%),radial-gradient(circle at 93% 2%,rgba(141,118,255,.08),transparent 34%),#03050e;color:#fff;font-family:Inter,system-ui,-apple-system,sans-serif}
+.shell{width:min(900px,100%);margin:auto;padding:20px 14px 96px}
 .top{display:grid;grid-template-columns:44px 1fr 44px;gap:10px;align-items:center}
 .round{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;text-decoration:none;color:#dffcff;background:#081127;border:1px solid rgba(89,228,255,.28);font-size:22px}
-.brand{text-align:center}.brand small{display:block;color:#9ca9cc;font-size:10px;letter-spacing:.18em;font-weight:950}.brand h1{margin:4px 0;font-size:clamp(1.8rem,7vw,2.8rem);background:linear-gradient(90deg,#a779ff,#55bfff,#59efff);-webkit-background-clip:text;color:transparent}
+.brand{text-align:center}.brand small{display:block;color:#9ca9cc;font-size:10px;letter-spacing:.18em;font-weight:950}.brand h1{margin:4px 0;font-size:clamp(1.8rem,7vw,2.8rem);color:#fff}
 .card{margin-top:14px;padding:16px;border-radius:20px;border:1px solid rgba(255,255,255,.10);background:var(--p)}
 .muted{color:var(--m);line-height:1.45}.status{min-height:18px;margin-top:8px;color:#8fefff;font-size:12px}
 .list{display:grid;gap:11px}.survey{padding:14px;border-radius:17px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.035)}
 .survey h3{margin:6px 0}.meta{font-size:11px;color:#93a0be}
-.badge{display:inline-flex;padding:5px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.12);font-size:9px;font-weight:950;margin-right:6px}
-.badge.open{color:var(--good)}.badge.closed{color:var(--bad)}
+.badge{display:inline-flex;padding:5px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.12);font-size:9px;font-weight:950;margin:0 6px 6px 0}
+.badge.open{color:var(--good)}.badge.closed{color:var(--bad)}.badge.anon{color:#d7c8ff}
 .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .btn{min-height:42px;border-radius:13px;border:1px solid rgba(89,228,255,.34);background:linear-gradient(135deg,rgba(25,76,112,.72),rgba(36,30,97,.8));color:#fff;padding:9px 13px;font-weight:900}
-.btn.secondary{background:rgba(255,255,255,.045)}
-.hidden{display:none!important}
-.results{display:grid;gap:10px}.resultBox{padding:13px;border-radius:15px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07)}
-.resultBox h4{margin:0 0 9px}.bar{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:12px}
-.responseCard{padding:12px;border-radius:14px;border:1px solid rgba(89,228,255,.14);background:rgba(7,15,34,.72);margin-top:9px}
-.responseHead{display:flex;justify-content:space-between;gap:10px;align-items:start}.responseHead b{font-size:13px}.responseHead small{color:#91a0bf}
-.answer{margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.06)}.answer small{display:block;color:#8997b7;font-weight:850}.answer div{margin-top:3px;color:#eef6ff;white-space:pre-wrap}
+.btn.secondary{background:rgba(255,255,255,.045)}.hidden{display:none!important}
+.qbox{margin-top:13px;padding:14px;border-radius:17px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.025)}
+.qbox h3{margin:0 0 4px}.qmeta{font-size:10px;color:#8e9ab7;margin-bottom:12px}
+.choice{--opt:#59e4ff;margin-top:10px;padding:11px;border:1px solid color-mix(in srgb,var(--opt) 35%,transparent);border-radius:14px;background:rgba(255,255,255,.025)}
+.choice.clickable{cursor:pointer}.choice.top-choice{padding:13px;border-width:2px}
+.choice-head{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.choice-name{font-weight:900}.top-choice .choice-name{font-size:1.08rem;font-weight:1000}
+.choice-count{font-size:11px;color:#d9e5ff;white-space:nowrap}
+.track{height:10px;margin-top:8px;border-radius:999px;background:#0b1124;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+.fill{height:100%;width:0;background:var(--opt);border-radius:999px;box-shadow:0 0 14px color-mix(in srgb,var(--opt) 45%,transparent)}
+.voters{display:none;margin-top:10px;border-top:1px solid rgba(255,255,255,.06);padding-top:7px}.choice.open .voters{display:grid;gap:6px}
+.voter{display:flex;justify-content:space-between;gap:10px;padding:7px 9px;border-radius:10px;background:rgba(255,255,255,.035);font-size:11px}
+.voter span:last-child{color:#8fa0bf}
+.textline{padding:9px 10px;margin-top:7px;border-radius:11px;background:rgba(255,255,255,.035);font-size:11px;line-height:1.4}
+.final-note{display:inline-flex;margin:0 0 10px;padding:5px 8px;border-radius:999px;border:1px solid rgba(89,228,255,.25);color:#9aefff;font-size:9px;font-weight:950}
+@media(min-width:720px){.choice-head{font-size:14px}.track{height:12px}}
 </style>
 </head>
 <body>
 <main class="shell">
 <div class="top">
 <a class="round" href="forms-center.html?section=surveys">‹</a>
-<div class="brand"><small>FORMS CENTER • SURVEYS</small><h1>Responses</h1></div>
+<div class="brand"><small>FORMS CENTER • SURVEYS</small><h1>Survey Responses</h1></div>
 <a class="round" href="index.html">×</a>
 </div>
 
 <section class="card">
 <h2 style="margin-top:0">Survey Responses</h2>
-<p class="muted">Choose a survey to review its results and individual responses.</p>
+<p class="muted">Review vote distribution. Regular surveys can expand an option to show who selected it; anonymous surveys show aggregated results only.</p>
 <div id="topStatus" class="status"></div>
 </section>
 
@@ -58,12 +67,7 @@ body{margin:0;min-height:100dvh;background:radial-gradient(circle at 8% 6%,rgba(
 </div>
 <button class="btn secondary" id="closeResults">Close</button>
 </div>
-
-<h3>Summary</h3>
-<div id="summary" class="results"></div>
-
-<h3 style="margin-top:18px">Individual Responses</h3>
-<div id="responses"></div>
+<div id="questions"></div>
 </section>
 </main>
 
@@ -72,6 +76,7 @@ body{margin:0;min-height:100dvh;background:radial-gradient(circle at 8% 6%,rgba(
 const SB=window.supabase.createClient('https://dfxcxboxrkfmrnsgpyin.supabase.co','sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-');
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const COLORS=['#59e4ff','#8f7cff','#7df1be','#ffb85c','#ff7aa8','#8ed7ff','#d59aff','#8ee68e'];
 let state=Number(localStorage.getItem('nexa_active_state_v49')||window.NEXA_ACTIVE_STATE||0);
 let accountId=localStorage.getItem('nexa_active_account_v49')||window.NEXA_ACTIVE_ACCOUNT_ID||'';
 let ctx=null;
@@ -86,11 +91,14 @@ async function boot(){
  if(!data.can_manage){$('topStatus').textContent='Survey response access is limited to Survey managers.';return}
  renderList();
 }
-
 function renderList(){
  const rows=ctx?.surveys||[];
  $('surveyList').innerHTML=rows.length?rows.map(s=>`<div class="survey">
-   <div><span class="badge ${s.status}">${String(s.status).toUpperCase()}</span><span class="badge">${s.audience==='alliance'?'ALLIANCE ONLY':'ENTIRE SERVER'}</span></div>
+   <div>
+    <span class="badge ${s.status}">${String(s.status).toUpperCase()}</span>
+    <span class="badge">${s.audience==='alliance'?'ALLIANCE ONLY':'ENTIRE SERVER'}</span>
+    <span class="badge ${s.response_privacy==='anonymous'?'anon':''}">${s.response_privacy==='anonymous'?'ANONYMOUS':'REGULAR'}</span>
+   </div>
    <h3>${esc(s.title)}</h3>
    <div class="meta">${esc(s.description||'No description')}<br>${s.response_count||0} responses • ${s.question_count||0} questions</div>
    <div class="actions">
@@ -99,7 +107,47 @@ function renderList(){
    </div>
  </div>`).join(''):'<div class="muted">No surveys yet.</div>';
 }
-
+function normalizeValues(v){return Array.isArray(v)?v:(v===undefined||v===null||v===''?[]:[v])}
+function pct(n,d){return d?Math.round((n/d)*100):0}
+function respondentLine(r){
+ const name=r.name||'Player', id=r.player_id||'';
+ return `<div class="voter"><b>${esc(name)}</b><span>${id?`ID ${esc(id)}`:''}</span></div>`;
+}
+function renderChoiceQuestion(q,responses,survey){
+ const regular=survey.response_privacy!=='anonymous';
+ const answered=responses.filter(r=>normalizeValues(r.answers?.[q.id]).length);
+ const base=q.question_type==='multiple'?answered.length:answered.length;
+ const optionMap=new Map();
+ (Array.isArray(q.options)?q.options:[]).forEach(o=>optionMap.set(String(o),[]));
+ answered.forEach(r=>normalizeValues(r.answers?.[q.id]).forEach(v=>{
+   const key=String(v);if(!optionMap.has(key))optionMap.set(key,[]);optionMap.get(key).push(r);
+ }));
+ const rows=[...optionMap.entries()].map(([name,voters])=>({name,voters,count:voters.length,pct:pct(voters.length,base)})).sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name));
+ const max=rows.length?Math.max(...rows.map(x=>x.count)):0;
+ return `<div class="qbox">
+   <h3>${esc(q.question_text)}</h3>
+   <div class="qmeta">${answered.length} respondent${answered.length===1?'':'s'}${q.question_type==='multiple'?' • Multiple choice percentages are based on respondents who selected each option.':''}</div>
+   ${survey.status==='closed'?'<span class="final-note">CLOSED · FINAL RESULTS</span>':''}
+   ${rows.map((x,i)=>{
+      const top=survey.status==='closed'&&max>0&&x.count===max;
+      const color=COLORS[i%COLORS.length];
+      return `<div class="choice ${regular?'clickable':''} ${top?'top-choice':''}" style="--opt:${color}" ${regular?`data-choice="${esc(q.id)}-${i}"`:''}>
+        <div class="choice-head"><span class="choice-name">${esc(x.name)}${top?' · MOST SELECTED':''}</span><span class="choice-count">${x.pct}% · ${x.count} vote${x.count===1?'':'s'}</span></div>
+        <div class="track"><div class="fill" style="width:${Math.min(100,x.pct)}%"></div></div>
+        ${regular?`<div class="voters">${x.voters.length?x.voters.map(respondentLine).join(''):'<div class="muted">No voters for this option.</div>'}</div>`:''}
+      </div>`;
+   }).join('')||'<div class="muted">No answers yet.</div>'}
+ </div>`;
+}
+function renderTextQuestion(q,responses,survey){
+ const vals=responses.map(r=>({r,v:r.answers?.[q.id]})).filter(x=>x.v!==undefined&&x.v!==null&&String(x.v).trim()!=='');
+ const regular=survey.response_privacy!=='anonymous';
+ return `<div class="qbox">
+  <h3>${esc(q.question_text)}</h3>
+  <div class="qmeta">${vals.length} written response${vals.length===1?'':'s'}</div>
+  ${vals.length?vals.map(({r,v})=>`<div class="textline">${regular?`<b>${esc(r.name||'Player')}${r.player_id?` · ID ${esc(r.player_id)}`:''}</b><br>`:''}${esc(v)}</div>`).join(''):'<div class="muted">No written responses yet.</div>'}
+ </div>`;
+}
 async function openResults(id){
  $('topStatus').textContent='Loading responses…';
  const {data,error}=await SB.rpc('nexa_survey_results',{p_survey_id:id,p_account_id:accountId});
@@ -107,36 +155,17 @@ async function openResults(id){
  $('topStatus').textContent='';
  const survey=data.survey||{}, qs=data.questions||[], responses=data.responses||[];
  $('resultsTitle').textContent=survey.title||'Survey Results';
- $('resultsMeta').textContent=`${responses.length} responses • ${survey.audience==='alliance'?'Alliance Only':'Entire Server'} • ${String(survey.status||'').toUpperCase()}`;
-
- $('summary').innerHTML=qs.map(q=>{
-   const vals=responses.map(r=>r.answers?.[q.id]).filter(v=>v!==undefined&&v!==null&&v!==''&&!(Array.isArray(v)&&!v.length));
-   if(['single','multiple'].includes(q.question_type)){
-     const count={};vals.forEach(v=>(Array.isArray(v)?v:[v]).forEach(x=>count[x]=(count[x]||0)+1));
-     return `<div class="resultBox"><h4>${esc(q.question_text)}</h4>${Object.entries(count).map(([k,n])=>`<div class="bar"><span>${esc(k)}</span><b>${n}</b></div>`).join('')||'<div class="muted">No answers yet.</div>'}</div>`;
-   }
-   return `<div class="resultBox"><h4>${esc(q.question_text)}</h4><div class="muted">${vals.length} written response${vals.length===1?'':'s'}</div></div>`;
- }).join('')||'<div class="muted">No questions found.</div>';
-
- $('responses').innerHTML=responses.length?responses.map((r,idx)=>`<div class="responseCard">
-   <div class="responseHead"><b>${esc(r.in_game_name||r.player_name||`Response ${idx+1}`)}</b><small>${r.submitted_at?new Date(r.submitted_at).toLocaleString():''}</small></div>
-   ${qs.map(q=>{
-     const v=r.answers?.[q.id];
-     const display=Array.isArray(v)?v.join(', '):(v??'');
-     return `<div class="answer"><small>${esc(q.question_text)}</small><div>${esc(display||'—')}</div></div>`;
-   }).join('')}
- </div>`).join(''):'<div class="muted">No responses yet.</div>';
-
- $('resultsCard').classList.remove('hidden');
- $('resultsCard').scrollIntoView({behavior:'smooth'});
+ $('resultsMeta').textContent=`${responses.length} responses • ${survey.response_privacy==='anonymous'?'Anonymous':'Regular'} • ${String(survey.status||'').toUpperCase()}`;
+ $('questions').innerHTML=qs.map(q=>['single','multiple'].includes(q.question_type)?renderChoiceQuestion(q,responses,survey):renderTextQuestion(q,responses,survey)).join('')||'<div class="muted">No questions found.</div>';
+ $('resultsCard').classList.remove('hidden');$('resultsCard').scrollIntoView({behavior:'smooth'});
 }
 
 document.addEventListener('click',async e=>{
  const view=e.target.closest('[data-view]'); if(view){await openResults(view.dataset.view);return}
  const edit=e.target.closest('[data-edit]'); if(edit){location.href=`survey-center.html?edit=${encodeURIComponent(edit.dataset.edit)}`;return}
+ const choice=e.target.closest('.choice.clickable'); if(choice){choice.classList.toggle('open');return}
 });
 $('closeResults').onclick=()=>$('resultsCard').classList.add('hidden');
-
 boot();
 })();
 </script>

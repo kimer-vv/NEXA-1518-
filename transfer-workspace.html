@@ -1,6 +1,6 @@
 <!doctype html>
 <!-- TARGET GITHUB FILE: transfer-workspace.html -->
-<!-- NEXA TRANSFER WORKSPACE V5.1 — RECOVERABLE INDIVIDUAL ARCHIVE / CLEAR ALL / HISTORY DELETE -->
+<!-- NEXA TRANSFER WORKSPACE V5.5 — SAFE MANUAL END / APPLICANTS UNCHANGED / ADMIN ARCHIVE DELETE -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -234,11 +234,20 @@ button,input,select,textarea{font:inherit}.hidden{display:none!important}.shell{
 <div class="modal" id="historyModal"><div class="modalCard"><div class="appTop"><div><div class="tag">ARCHIVED TRANSFER CYCLE</div><h3 id="historyModalTitle">History</h3></div><button class="round" data-close="historyModal">×</button></div><div id="historyDetail"></div><div class="actions"><button class="btn secondary" data-close="historyModal">Close</button></div></div></div>
 <div class="modal" id="clearWorkspaceModal"><div class="modalCard">
   <div class="tag">OWNER / ACCESS MANAGEMENT</div><h3>Clear All Eligible Applicants</h3>
-  <div class="notice">Clear All does not permanently delete applicants. Ordinary and Special applicants remain inside Transfer History. Every eligible New Application and Not Selected applicant from the finished cycle moves to Applicant Archive. Next Transfer Cycle and applications received after the finished cycle cutoff are not affected.</div>
+  <div class="notice">Clear All does not permanently delete applicants. Ordinary and Special applicants from the finished cycle remain inside Transfer History. Every active New Application and Not Selected applicant moves to Applicant Archive, including restored applicants. Next Transfer Cycle is not affected.</div>
   <label class="field">NEXA Password<input id="clearWorkspacePassword" type="password" autocomplete="current-password"></label>
   <label class="field">Type CLEAR to continue<input id="clearWorkspaceConfirmation" autocomplete="off" autocapitalize="characters"></label>
   <div class="actions"><button class="btn secondary" data-close="clearWorkspaceModal">Cancel</button><button class="btn danger" id="clearWorkspaceConfirm" type="button">Clear All</button></div>
   <div class="status" id="clearWorkspaceStatus"></div>
+</div></div>
+
+<div class="modal" id="endCycleModal"><div class="modalCard">
+  <div class="tag">OWNER / ACCESS MANAGEMENT</div><h3>End Transfer Cycle</h3>
+  <div class="notice">This closes the active Transfer Cycle and moves its cycle record to History. It does not move, archive, or delete any applicants. New Applicants, Ordinary, Special, Not Selected, and Next Transfer Cycle remain unchanged. Afterward, a new Transfer Cycle can be opened.</div>
+  <label class="field">NEXA Password<input id="endCyclePassword" type="password" autocomplete="current-password"></label>
+  <label class="field">Type END to continue<input id="endCycleConfirmation" autocomplete="off" autocapitalize="characters"></label>
+  <div class="actions"><button class="btn secondary" data-close="endCycleModal">Cancel</button><button class="btn danger" id="endCycleConfirm" type="button">End Transfer Cycle</button></div>
+  <div class="status" id="endCycleStatus"></div>
 </div></div>
 
 <div class="modal" id="forgotUserModal"><div class="modalCard"><h3>Forgot username?</h3><p class="muted">Contact Workspace Management. A ★ manager can find your account by Game Name or Game ID and copy your username.</p><button class="btn secondary" data-close="forgotUserModal">Close</button></div></div>
@@ -338,34 +347,39 @@ $('cycleOpenBtn')?.addEventListener('click',()=>{
 });
 
 $('cycleEndBtn')?.addEventListener('click',()=>{
-  confirmGalaxy(
-    'End Transfer Cycle',
-    'End this Transfer Cycle and move its record to History? Applicants will remain visible until you use Clear Transfer Workspace.',
-    'End Transfer Cycle',
-    endTransferCycle
-  );
+  $('endCyclePassword').value='';
+  $('endCycleConfirmation').value='';
+  $('endCycleStatus').textContent='';
+  $('endCycleModal').classList.add('open');
 });
 }
 
 async function endTransferCycle(){
   if(!canManage()||!event)return;
 
+  const out=$('endCycleStatus');
+  const confirmation=$('endCycleConfirmation').value.trim().toUpperCase();
+  if(!$('endCyclePassword').value)return out.textContent='Enter your NEXA password.';
+  if(confirmation!=='END')return out.textContent='Type END to continue.';
+  out.textContent='Ending Transfer Cycle…';
+
   const r=await SB.rpc('transfer_workspace_end_cycle',{
     p_workspace_id:workspaceId,
-    p_token:token
+    p_token:token,
+    p_password:$('endCyclePassword').value,
+    p_confirmation:confirmation
   });
 
   if(r.error||r.data?.ok!==true){
-    $('cycleStatus').textContent=
-      r.error?.message||
-      (r.data?.error==='no_active_cycle'
-        ?'There is no active Transfer Cycle to end.'
-        :'Unable to end Transfer Cycle.');
+    const m={invalid_password:'NEXA password is incorrect.',confirmation_required:'Type END to continue.',manager_required:'Access Management is required.',no_active_cycle:'There is no active Transfer Cycle to end.'};
+    out.textContent=m[r.data?.error]||r.error?.message||'Unable to end Transfer Cycle.';
     return;
   }
 
+  $('endCycleModal').classList.remove('open');
   await loadWorkspace();
 }
+$('endCycleConfirm').onclick=endTransferCycle;
 function renderAll(){
 $('workspaceTitle').textContent=`State ${event?.destination_state||intake?.destination_state||workspace.state_number||'—'}`;
  $('heroCycle').textContent=event?classificationLabel(event.leadership_status):'No active cycle';$('heroApps').textContent=apps.length;$('heroPublic').textContent=intake?.public_access_enabled?'OPEN':'CLOSED';$('heroActive').textContent=workspace.is_active?'ACTIVE':'INACTIVE';
@@ -584,7 +598,7 @@ async function openHistory(h){
 }
 function renderHistory(){
  const cycles=historyView==='cycles';$('historyCyclesTab').classList.toggle('active',cycles);$('historyArchiveTab').classList.toggle('active',!cycles);$('historyList').classList.toggle('hidden',!cycles);$('applicantArchiveList').classList.toggle('hidden',cycles);
- $('cleanupBox').innerHTML=cleanup.available&&canManage()?`<div class="notice" style="margin-bottom:12px"><b>Finished cycle ready for Clear All</b><div style="margin-top:5px">${Number(cleanup.count||0)} eligible applicant(s) can be removed from the active workspace without permanent deletion. New Applications and Not Selected move to Applicant Archive; Ordinary and Special remain in this cycle's History.</div><div class="actions"><button class="btn danger mini" id="openClearWorkspace" type="button">Clear All</button></div></div>`:'';
+ $('cleanupBox').innerHTML=cleanup.available&&canManage()?`<div class="notice" style="margin-bottom:12px"><b>Finished cycle ready for Clear All</b><div style="margin-top:5px">${Number(cleanup.count||0)} applicant(s) can be cleared from the active workspace without permanent deletion. All active New Applications and Not Selected move to Applicant Archive, including restored applicants; Ordinary and Special from this cycle remain in History.</div><div class="actions"><button class="btn danger mini" id="openClearWorkspace" type="button">Clear All</button></div></div>`:'';
  $('openClearWorkspace')?.addEventListener('click',()=>{$('clearWorkspacePassword').value='';$('clearWorkspaceConfirmation').value='';$('clearWorkspaceStatus').textContent='';$('clearWorkspaceModal').classList.add('open')});
  $('historyList').innerHTML=history.length?history.map(h=>`<div class="historyCard clickable" data-open-history="${h.id}"><div class="appTop"><div><b>${esc(h.title||`State ${workspace.state_number} Transfer Cycle`)}</b><div class="meta">${h.starts_at?new Date(h.starts_at).toLocaleDateString():'—'} → ${h.ends_at?new Date(h.ends_at).toLocaleDateString():'—'} • ${esc(classificationLabel(h.leadership_status))}</div></div>${canManage()?`<button class="round" data-delete-history="${h.id}" type="button" aria-label="Delete Transfer Cycle" style="width:34px;height:34px;font-size:20px;color:#ff9aad;border-color:rgba(255,90,120,.34)">×</button>`:''}</div><div class="readHint">Tap to open Ordinary and Special records</div></div>`).join(''):'<div class="empty">No completed Transfer Cycles yet.</div>';
  document.querySelectorAll('[data-open-history]').forEach(c=>c.onclick=e=>{if(e.target.closest('[data-delete-history]'))return;const h=history.find(x=>String(x.id)===String(c.dataset.openHistory));if(h)openHistory(h)});
@@ -605,8 +619,18 @@ async function loadApplicantArchive(){
  const r=await SB.rpc('transfer_workspace_applicant_archive',{p_workspace_id:workspaceId,p_token:token});
  if(r.error||r.data?.ok!==true){$('applicantArchiveList').innerHTML='<div class="empty">Unable to load Applicant Archive.</div>';return}
  applicantArchive=r.data.applications||[];$('archiveCount').textContent=String(applicantArchive.length);
- $('applicantArchiveList').innerHTML=applicantArchive.length?applicantArchive.map(a=>`<div class="historyCard"><div class="appTop"><div><b>${esc(a.in_game_name||'Applicant')}</b><div class="meta">Game ID ${esc(a.player_id||'—')} • State ${esc(a.current_state||'—')} • Current Alliance ${esc(a.current_alliance||'—')}</div></div><span class="badge">${a.application_bucket==='not_selected'?'Not Selected':'New Applicant'}</span></div>${canManage()?`<div class="actions"><button class="btn secondary mini" data-restore-archive="${a.id}" type="button">Restore to New Applicants</button></div>`:''}</div>`).join(''):'<div class="empty">Applicant Archive is empty.</div>';
+ $('applicantArchiveList').innerHTML=applicantArchive.length?applicantArchive.map(a=>`<div class="historyCard"><div class="appTop"><div><b>${esc(a.in_game_name||'Applicant')}</b><div class="meta">Game ID ${esc(a.player_id||'—')} • State ${esc(a.current_state||'—')} • Current Alliance ${esc(a.current_alliance||'—')}</div></div><div style="display:flex;align-items:center;gap:8px"><span class="badge">${a.application_bucket==='not_selected'?'Not Selected':'New Applicant'}</span>${canManage()?`<button class="round" data-delete-archive="${a.id}" type="button" aria-label="Delete archived applicant" style="width:34px;height:34px;font-size:20px;color:#ff9aad;border-color:rgba(255,90,120,.34)">×</button>`:''}</div></div>${canManage()?`<div class="actions"><button class="btn secondary mini" data-restore-archive="${a.id}" type="button">Restore to New Applicants</button></div>`:''}</div>`).join(''):'<div class="empty">Applicant Archive is empty.</div>';
  document.querySelectorAll('[data-restore-archive]').forEach(x=>x.onclick=()=>restoreArchivedApplicant(x.dataset.restoreArchive));
+ document.querySelectorAll('[data-delete-archive]').forEach(x=>x.onclick=()=>{const a=applicantArchive.find(v=>String(v.id)===String(x.dataset.deleteArchive));if(a)confirmGalaxy('Delete Archived Applicant',`Permanently delete ${a.in_game_name||'this archived applicant'}? This cannot be undone.`,'Delete Permanently',()=>deleteArchivedApplicant(a.id))});
+}
+async function deleteArchivedApplicant(id){
+ const r=await SB.rpc('transfer_workspace_delete_archived_application',{p_workspace_id:workspaceId,p_token:token,p_application_id:id});
+ if(r.error||r.data?.ok!==true){
+  const m={manager_required:'Access Management is required.',archived_application_not_found:'This archived applicant no longer exists.'};
+  $('cycleStatus').textContent=m[r.data?.error]||r.error?.message||'Unable to delete archived applicant.';
+  return;
+ }
+ await loadWorkspace();historyView='archive';renderHistory();
 }
 async function restoreArchivedApplicant(id){
  const r=await SB.rpc('transfer_workspace_restore_archived_application',{p_workspace_id:workspaceId,p_token:token,p_application_id:id});

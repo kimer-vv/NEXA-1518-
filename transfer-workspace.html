@@ -1,6 +1,6 @@
 <!doctype html>
 <!-- TARGET GITHUB FILE: transfer-workspace.html -->
-<!-- NEXA TRANSFER WORKSPACE V4.3 — CLEAN GROUP TRANSFER DETAIL / MAIN CONTACT -->
+<!-- NEXA TRANSFER WORKSPACE V5.0 — PERSISTENT INTAKE / INDEPENDENT CYCLES / RECOVERABLE ARCHIVE -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -115,7 +115,7 @@ button,input,select,textarea{font:inherit}.hidden{display:none!important}.shell{
         <div id="cycleSummary" class="cycleSummary"></div>
         <div id="cycleEditor" class="cycleEditor hidden">
           <div class="sectionTitle"><h3 style="margin:0" id="cycleEditorTitle">Open Transfer Cycle</h3></div>
-          <p class="muted">Configure the operational cycle, then Save. After saving, this form collapses back into a compact summary.</p>
+          <p class="muted">Cycle dates are saved for Transfer History only. Public applications and Discord notification timing are controlled separately.</p>
           <div class="formGrid">
             <label class="field">Destination State <button class="info" type="button" data-guide="gState">i</button><input id="cycleState" inputmode="numeric"></label>
             <label class="field">State Classification <button class="info" type="button" data-guide="gClass">i</button><select id="classification"><option value="not_leading">Ordinary</option><option value="leading">Leading</option><option value="leading_with_specials">Leading — Special Invite Available</option></select></label>
@@ -136,10 +136,10 @@ button,input,select,textarea{font:inherit}.hidden{display:none!important}.shell{
             <div class="stat"><small>INVITES SENT</small><b id="sentCount">—</b></div>
           </div>
 
-          <label class="field">Application Deadline — UTC <button class="info" type="button" data-guide="gDeadline">i</button>
+          <label class="field">Cycle History End — UTC <button class="info" type="button" data-guide="gDeadline">i</button>
             <div class="formGrid"><input id="deadlineDate" type="date"><select id="deadlineTime"></select></div>
           </label>
-          <div id="gDeadline" class="guide"><strong>Application Deadline</strong><ul><li>Time is always UTC in 24-hour format.</li><li>Select from 30-minute slots from 00:00 through 23:30.</li><li>Before the deadline, applications stay in the active cycle.</li><li>After the deadline, new applications route automatically to <strong>Next Transfer Cycle</strong>.</li></ul></div>
+          <div id="gDeadline" class="guide"><strong>Transfer History Date</strong><ul><li>Time is always UTC in 24-hour format.</li><li>Select from 30-minute slots from 00:00 through 23:30.</li><li>This date is recorded in Transfer History only.</li><li>It does not open or close the public form and does not schedule Discord alerts.</li></ul></div>
 
           <div class="sectionTitle" style="margin-top:18px"><h3 style="margin:0">Alliance Allocation</h3><button class="info" type="button" data-guide="gAllocation">i</button></div>
           <div id="gAllocation" class="guide"><strong>Alliance Allocation</strong><ul><li>Select which active Recruiting Alliances participate in this cycle.</li><li><strong>Free Pool</strong> leaves Ordinary counts open.</li><li><strong>Balanced</strong> distributes the Ordinary capacity evenly.</li><li><strong>Manual</strong> lets staff enter counts directly.</li><li>Over-allocation shows a warning but does not block Save Cycle.</li></ul></div>
@@ -192,7 +192,14 @@ button,input,select,textarea{font:inherit}.hidden{display:none!important}.shell{
   </section>
 
   <section class="panel" data-panel="history">
-    <article class="card full"><h3>History</h3><p class="muted">Archived Transfer cycles. Access Management can delete old tests/history.</p><div id="historyList" class="historyList"></div></article>
+    <article class="card full">
+      <h3>History & Archive</h3>
+      <p class="muted">Transfer Cycle records and recoverable applicants are kept separately.</p>
+      <div class="seg" style="display:inline-flex;margin:4px 0 12px"><button id="historyCyclesTab" class="active" type="button">Transfer Cycles</button><button id="historyArchiveTab" type="button">Applicant Archive <span id="archiveCount">0</span></button></div>
+      <div id="cleanupBox"></div>
+      <div id="historyList" class="historyList"></div>
+      <div id="applicantArchiveList" class="historyList hidden"></div>
+    </article>
   </section>
 </main>
 
@@ -205,7 +212,7 @@ button,input,select,textarea{font:inherit}.hidden{display:none!important}.shell{
       <li><strong>Ordinary</strong> — applicants assigned to the Ordinary transfer route.</li>
       <li><strong>Special</strong> — applicants actually assigned to a Special Invite.</li>
       <li><strong>Not Selected</strong> — applicants not selected for this Transfer cycle.</li>
-      <li><strong>Next Transfer Cycle</strong> — applications saved for the next cycle, including automatic post-deadline routing.</li>
+      <li><strong>Next Transfer Cycle</strong> — applicants intentionally saved for a future cycle. Dates never move applicants automatically.</li>
       <li><strong>Blue card</strong> — the applicant is within the Ordinary Power Cap.</li>
       <li><strong>Gold card</strong> — the applicant is above the Ordinary Power Cap. Gold does <strong>not</strong> automatically mean Special Invite; staff may use a power reduction or another route.</li>
       <li><strong>Move to</strong> — changes the applicant folder directly from the card.</li>
@@ -225,6 +232,14 @@ button,input,select,textarea{font:inherit}.hidden{display:none!important}.shell{
 
 <div class="modal" id="quickInfoModal"><div class="modalCard"><div class="appTop"><div><div class="tag" id="quickInfoTag">DETAIL</div><h3 id="quickInfoTitle">Applicant Detail</h3></div><button class="round" data-close="quickInfoModal">×</button></div><div id="quickInfoBody" class="detailGrid"></div><div class="actions"><button class="btn secondary" data-close="quickInfoModal">Close</button></div></div></div>
 <div class="modal" id="historyModal"><div class="modalCard"><div class="appTop"><div><div class="tag">ARCHIVED TRANSFER CYCLE</div><h3 id="historyModalTitle">History</h3></div><button class="round" data-close="historyModal">×</button></div><div id="historyDetail"></div><div class="actions"><button class="btn secondary" data-close="historyModal">Close</button></div></div></div>
+<div class="modal" id="clearWorkspaceModal"><div class="modalCard">
+  <div class="tag">OWNER / ACCESS MANAGEMENT</div><h3>Clear Transfer Workspace</h3>
+  <div class="notice">This does not permanently delete applicants. Ordinary and Special applicants remain inside Transfer History. New Applications and Not Selected move to Applicant Archive. Next Transfer Cycle and applications received after the finished cycle date are not affected.</div>
+  <label class="field">NEXA Password<input id="clearWorkspacePassword" type="password" autocomplete="current-password"></label>
+  <label class="field">Type CLEAR to continue<input id="clearWorkspaceConfirmation" autocomplete="off" autocapitalize="characters"></label>
+  <div class="actions"><button class="btn secondary" data-close="clearWorkspaceModal">Cancel</button><button class="btn danger" id="clearWorkspaceConfirm" type="button">Archive & Clear</button></div>
+  <div class="status" id="clearWorkspaceStatus"></div>
+</div></div>
 
 <div class="modal" id="forgotUserModal"><div class="modalCard"><h3>Forgot username?</h3><p class="muted">Contact Workspace Management. A ★ manager can find your account by Game Name or Game ID and copy your username.</p><button class="btn secondary" data-close="forgotUserModal">Close</button></div></div>
 <div class="modal" id="recoveryModal"><div class="modalCard"><h3>Use Recovery Code</h3><label class="field">Username or Game ID<input id="recoverIdentifier"></label><label class="field">Recovery Code<input id="recoverCode"></label><label class="field">New Password<input id="recoverPassword" type="password"></label><label class="field">Confirm New Password<input id="recoverConfirm" type="password"></label><div class="actions"><button class="btn" id="recoverBtn">Change Password</button><button class="btn secondary" data-close="recoveryModal">Cancel</button></div><div class="status" id="recoverStatus"></div></div></div>
@@ -235,7 +250,7 @@ button,input,select,textarea{font:inherit}.hidden{display:none!important}.shell{
 (()=>{'use strict';
 const SB=window.supabase.createClient('https://dfxcxboxrkfmrnsgpyin.supabase.co','sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-');
 const $=id=>document.getElementById(id),q=new URLSearchParams(location.search);
-let token=localStorage.getItem('nexa_transfer_staff_token')||sessionStorage.getItem('nexa_transfer_staff_token')||'',workspaceId=q.get('workspace')||'',wantedState=Number(q.get('state')||window.NEXA_ACTIVE_STATE||localStorage.getItem('nexa_active_state_v49')||0),session=null,workspace=null,event=null,alliances=[],allProfiles=[],recruiting=[],profiles=[],apps=[],history=[],accessInfo=null,folder='new',activeApp=null,generatedCode='',confirmAction=null,cycleEditing=false,cycleMode='edit';
+let token=localStorage.getItem('nexa_transfer_staff_token')||sessionStorage.getItem('nexa_transfer_staff_token')||'',workspaceId=q.get('workspace')||'',wantedState=Number(q.get('state')||window.NEXA_ACTIVE_STATE||localStorage.getItem('nexa_active_state_v49')||0),session=null,workspace=null,intake=null,event=null,alliances=[],allProfiles=[],recruiting=[],profiles=[],apps=[],history=[],applicantArchive=[],cleanup={},accessInfo=null,folder='new',historyView='cycles',activeApp=null,generatedCode='',confirmAction=null,cycleEditing=false,cycleMode='edit';
 const folders=[['ordinary','Ordinary'],['special','Special'],['not_selected','Not Selected'],['next_cycle','Next Transfer Cycle']];
 const timeOptions=Array.from({length:48},(_,i)=>`${String(Math.floor(i/2)).padStart(2,'0')}:${i%2?'30':'00'}`);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -244,9 +259,9 @@ const canManage=()=>accessInfo?.can_manage===true;
 function saveToken(raw,remember){localStorage.removeItem('nexa_transfer_staff_token');sessionStorage.removeItem('nexa_transfer_staff_token');(remember?localStorage:sessionStorage).setItem('nexa_transfer_staff_token',raw);token=raw}
 function clearToken(){localStorage.removeItem('nexa_transfer_staff_token');sessionStorage.removeItem('nexa_transfer_staff_token');token=''}
 function workspaceUrl(){return workspace?new URL(`transfer-workspace.html?workspace=${encodeURIComponent(workspace.id)}`,location.href).href:location.href}
-function publicForm(){return event?new URL(`transfer-form-v2.html?public=1&event=${encodeURIComponent(event.id)}`,location.href).href:'#'}
-function directForm(){return event?new URL(`transfer-form-v2.html?direct=1&event=${encodeURIComponent(event.id)}`,location.href).href:'#'}
-function builder(){return event?new URL(`transfer-form-settings.html?workspace=1&event=${encodeURIComponent(event.id)}`,location.href).href:'#'}
+function publicForm(){return intake?new URL(`transfer-form-v2.html?public=1&event=${encodeURIComponent(intake.id)}`,location.href).href:'#'}
+function directForm(){return intake?new URL(`transfer-form-v2.html?direct=1&event=${encodeURIComponent(intake.id)}`,location.href).href:'#'}
+function builder(){return intake?new URL(`transfer-form-settings.html?workspace=1&event=${encodeURIComponent(intake.id)}`,location.href).href:'#'}
 async function copyText(text,b){try{await navigator.clipboard.writeText(text);if(b){const o=b.textContent;b.textContent='Copied ✓';setTimeout(()=>b.textContent=o,1100)}}catch(_){if(b)b.textContent='Copy failed'}}
 function cleanTimes(arr,max){return (arr||[]).map(x=>String(x||'').trim()).filter(x=>timeOptions.includes(x)).slice(0,max)}
 function readable(v){if(v===null||v===undefined||v==='')return '—';if(Array.isArray(v))return v.length?v.join(' • '):'—';if(typeof v==='boolean')return v?'Yes':'No';if(typeof v==='object')return JSON.stringify(v);return String(v)}
@@ -275,14 +290,14 @@ async function chooseWorkspaceAndLoad(){if(!session&&!(await restoreSession()))r
 async function loadWorkspace(){
  const r=await SB.rpc('transfer_workspace_snapshot',{p_workspace_id:workspaceId,p_token:token});
  if(r.error||r.data?.ok!==true){$('authStatus').textContent=r.data?.error==='forbidden'?'This workspace is currently inactive.':'Unable to load Transfer Workspace.';return showAuth()}
- workspace=r.data.workspace;event=r.data.event;recruiting=r.data.recruiting||[];apps=r.data.applications||[];history=r.data.history||[];
+ workspace=r.data.workspace;intake=r.data.intake;event=r.data.event;recruiting=r.data.recruiting||[];apps=r.data.applications||[];history=r.data.history||[];cleanup=r.data.cleanup||{};$('archiveCount').textContent=String(r.data.applicant_archive_count||0);
  const ar=await SB.rpc('transfer_staff_access_list',{p_workspace_id:workspaceId,p_token:token});accessInfo=ar.data?.ok?ar.data:null;
  const pr=await SB.rpc('transfer_workspace_recruiting_profiles_get',{p_workspace_id:workspaceId,p_token:token});
  allProfiles=pr.data?.ok?(pr.data.profiles||[]):[];profiles=allProfiles.filter(p=>p.profile_exists&&p.is_active!==false);alliances=profiles.map(p=>({id:p.alliance_id,tag:p.tag,name:p.name}));
  showWorkspace();renderAll();
 }
 function classificationLabel(v){return v==='not_leading'?'Ordinary':v==='leading_with_specials'?'Leading + Special Invite':'Leading'}
-function cycleExpired(){return !!(event?.ends_at&&Date.now()>new Date(event.ends_at).getTime())}
+function cycleExpired(){return false}
 function fillCycleEditor(fromEvent=true){
  $('cycleState').value=fromEvent?(event?.destination_state||workspace.state_number):workspace.state_number;
  $('classification').value=fromEvent?(event?.leadership_status||'not_leading'):'not_leading';
@@ -300,16 +315,16 @@ function renderCycleState(){
  if(cycleEditing){$('cycleEditorTitle').textContent=cycleMode==='new'?'Open Next Transfer Cycle':'Edit Transfer Cycle';return}
  const deadline=event?.ends_at?`${new Date(event.ends_at).toISOString().slice(0,10)} • ${new Date(event.ends_at).toISOString().slice(11,16)} UTC`:'—';
  const recruitingTags=recruiting.filter(r=>r.is_recruiting).map(r=>allProfiles.find(p=>String(p.alliance_id)===String(r.alliance_id))?.tag).filter(Boolean);
- const status=!hasEvent?'NO ACTIVE CYCLE':expired?'CLOSED':'OPEN';
- const button=!hasEvent?'Open Cycle':expired?'Open Next Cycle':'Edit Cycle';
- $('cycleSummary').innerHTML=`<div class="cycleSummaryHead"><div><span class="cycleStatusChip ${expired?'closed':''}">${status}</span><h3 style="margin:8px 0 4px">${expired?'Transfer Cycle Closed':hasEvent?'Active Transfer Cycle':'Transfer Cycle'}</h3><div class="muted">${expired?'Deadline reached. The previous cycle remains available in History.':hasEvent?'Saved cycle summary. Open Edit only when you need to change it.':'No cycle is currently configured.'}</div></div>${canManage()?`<div class="actions" style="margin:0">
+ const status=!hasEvent?'NO ACTIVE CYCLE':'ACTIVE';
+ const button=!hasEvent?'Open Cycle':'Edit Cycle';
+ $('cycleSummary').innerHTML=`<div class="cycleSummaryHead"><div><span class="cycleStatusChip ${expired?'closed':''}">${status}</span><h3 style="margin:8px 0 4px">${expired?'Transfer Cycle Closed':hasEvent?'Active Transfer Cycle':'Transfer Cycle'}</h3><div class="muted">${hasEvent?'Dates are for Transfer History only. Public Access and Discord timing are separate.':'No cycle is currently configured. The public form can still remain open.'}</div></div>${canManage()?`<div class="actions" style="margin:0">
   <button class="btn mini" id="cycleOpenBtn">${button}</button>
 ${hasEvent?`<button class="btn danger mini" id="cycleEndBtn">End Transfer Cycle</button>`:''} 
 </div>`:''}</div>
  ${hasEvent?`<div class="cycleSummaryGrid">
    <div class="cycleSummaryItem"><small>CLASSIFICATION</small><b>${esc(classificationLabel(event.leadership_status))}</b></div>
    <div class="cycleSummaryItem"><small>ORDINARY POWER CAP</small><b>${event.power_cap?`${Number(event.power_cap).toLocaleString()} • ${fmt(event.power_cap)}`:'—'}</b></div>
-   <div class="cycleSummaryItem"><small>DEADLINE</small><b>${esc(deadline)}</b></div>
+   <div class="cycleSummaryItem"><small>HISTORY END</small><b>${esc(deadline)}</b></div>
    <div class="cycleSummaryItem"><small>ORDINARY / SPECIAL</small><b>${event.ordinary_capacity??'—'} / ${event.special_invites_available??0}</b></div>
    <div class="cycleSummaryItem"><small>APPLICATIONS</small><b>${apps.length}</b></div>
    <div class="cycleSummaryItem"><small>INVITES SENT</small><b>${apps.filter(a=>a.invite_status==='sent').length}</b></div>
@@ -325,7 +340,7 @@ $('cycleOpenBtn')?.addEventListener('click',()=>{
 $('cycleEndBtn')?.addEventListener('click',()=>{
   confirmGalaxy(
     'End Transfer Cycle',
-    'End this Transfer Cycle now? It will be closed and moved to History. This cannot be undone.',
+    'End this Transfer Cycle and move its record to History? Applicants will remain visible until you use Clear Transfer Workspace.',
     'End Transfer Cycle',
     endTransferCycle
   );
@@ -352,12 +367,12 @@ async function endTransferCycle(){
   await loadWorkspace();
 }
 function renderAll(){
-$('workspaceTitle').textContent=`State ${event?.destination_state||workspace.state_number||'—'}`;
- $('heroCycle').textContent=event?classificationLabel(event.leadership_status):'Not prepared';$('heroApps').textContent=apps.length;$('heroPublic').textContent=event?.public_access_enabled?'OPEN':'CLOSED';$('heroActive').textContent=workspace.is_active?'ACTIVE':'INACTIVE';
- document.querySelectorAll('[data-public]').forEach(b=>b.classList.toggle('active',(b.dataset.public==='yes')===!!event?.public_access_enabled));$('publicQuick').style.opacity=canManage()?1:.68;
+$('workspaceTitle').textContent=`State ${event?.destination_state||intake?.destination_state||workspace.state_number||'—'}`;
+ $('heroCycle').textContent=event?classificationLabel(event.leadership_status):'No active cycle';$('heroApps').textContent=apps.length;$('heroPublic').textContent=intake?.public_access_enabled?'OPEN':'CLOSED';$('heroActive').textContent=workspace.is_active?'ACTIVE':'INACTIVE';
+ document.querySelectorAll('[data-public]').forEach(b=>b.classList.toggle('active',(b.dataset.public==='yes')===!!intake?.public_access_enabled));$('publicQuick').style.opacity=canManage()?1:.68;
  fillCycleEditor(true);renderCycleState();renderFolders();renderApps();renderCounts();renderProfiles();renderAccess();renderHistory();$('workspaceLink').value=workspaceUrl();$('formIntegration').classList.toggle('hidden',!canManage());$('addAlliance').classList.toggle('hidden',!canManage());
 }
-document.querySelectorAll('[data-public]').forEach(b=>b.onclick=async()=>{if(!canManage()||!event)return;const p=b.dataset.public==='yes';const r=await SB.rpc('transfer_workspace_set_visibility',{p_workspace_id:workspaceId,p_token:token,p_public:p,p_listed:p?event.listed_in_transfer_center:false});if(r.data?.ok)await loadWorkspace()});
+document.querySelectorAll('[data-public]').forEach(b=>b.onclick=async()=>{if(!canManage()||!intake)return;const p=b.dataset.public==='yes';const r=await SB.rpc('transfer_workspace_set_visibility',{p_workspace_id:workspaceId,p_token:token,p_public:p,p_listed:p?!!intake.listed_in_transfer_center:false});if(r.data?.ok)await loadWorkspace()});
 $('copyFormLink').onclick=e=>copyText(publicForm(),e.currentTarget);
 $('classification').onchange=()=>{$('ordinaryCapacity').textContent=$('classification').value==='not_leading'?35:20;renderAllocation()};
 $('allocationMode').onchange=renderAllocation;
@@ -539,11 +554,11 @@ function renderProfiles(){
 }
 async function saveProfile(card,p){if(!canManage())return $('profileStatus').textContent='Access Management required.';const get=(k,max)=>[...card.querySelectorAll(`[data-sched="${k}"]`)].map(x=>x.value).filter(Boolean).slice(0,max);p.event_schedule={bear:get('bear',4),foundry:get('foundry',2),canyon:get('canyon',2)};const r=await SB.rpc('transfer_workspace_recruiting_profiles_save',{p_workspace_id:workspaceId,p_token:token,p_rows:[{alliance_id:Number(p.alliance_id),event_schedule:p.event_schedule,is_active:p.is_active!==false}]});if(r.error||r.data?.ok!==true)return $('profileStatus').textContent=r.error?.message||'Unable to save schedule.';p._editing=false;await syncRecruiting();$('profileStatus').textContent='Official Transfer schedule saved ✓';await loadWorkspace()}
 async function profileAction(p,action){if(!canManage())return;const r=await SB.rpc('transfer_workspace_recruiting_profile_action',{p_workspace_id:workspaceId,p_token:token,p_alliance_id:Number(p.alliance_id),p_action:action});if(r.error||r.data?.ok!==true)return $('profileStatus').textContent=r.error?.message||'Unable to update alliance.';await syncRecruiting();$('addAllianceModal').classList.remove('open');await loadWorkspace()}
-async function syncRecruiting(){if(!event)return;const activeIds=new Set(allProfiles.filter(p=>p.profile_exists&&p.is_active!==false).map(p=>String(p.alliance_id)));const rr=recruiting.map((x,i)=>({alliance_id:Number(x.alliance_id),is_recruiting:activeIds.has(String(x.alliance_id))&&!!x.is_recruiting,invite_allocation:Number(x.invite_allocation||0),sort_order:i}));await SB.rpc('transfer_workspace_save_recruiting',{p_workspace_id:workspaceId,p_token:token,p_rows:rr})}
+async function syncRecruiting(){const saved=new Map(recruiting.map(x=>[String(x.alliance_id),x]));const rr=allProfiles.filter(p=>p.profile_exists&&p.is_active!==false).map((p,i)=>{const x=saved.get(String(p.alliance_id));return{alliance_id:Number(p.alliance_id),is_recruiting:x?.is_recruiting!==false,invite_allocation:Number(x?.invite_allocation||0),sort_order:i}});await SB.rpc('transfer_workspace_save_recruiting',{p_workspace_id:workspaceId,p_token:token,p_rows:rr})}
 $('addAlliance').onclick=()=>{if(!canManage())return;const rows=allProfiles.filter(p=>!p.profile_exists);$('addAllianceState').textContent=workspace.state_number;$('availableAllianceList').innerHTML=rows.length?rows.map(p=>`<div class="profileCard"><div class="profileHeader"><div><b>${esc(p.tag)}${p.name?' • '+esc(p.name):''}</b><div class="note">Available to add to Transfer</div></div><button class="btn mini" data-add-profile="${p.alliance_id}">Add</button></div></div>`).join(''):'<div class="empty">Every State alliance has already been configured for Transfer.</div>';$('availableAllianceList').querySelectorAll('[data-add-profile]').forEach(b=>b.onclick=()=>profileAction(allProfiles.find(p=>String(p.alliance_id)===String(b.dataset.addProfile)),'add'));$('addAllianceModal').classList.add('open')};
 
 function openOverlay(url,title){if(!canManage())return;$('overlayTitle').textContent=title;$('formFrame').src=url;$('formOverlay').classList.add('open')}
-$('viewForm').onclick=()=>event&&openOverlay(directForm(),'Transfer Application');$('editForm').onclick=()=>event&&openOverlay(builder(),'Edit Transfer Form');$('closeOverlay').onclick=()=>{$('formOverlay').classList.remove('open');$('formFrame').src='about:blank'};
+$('viewForm').onclick=()=>intake&&openOverlay(directForm(),'Transfer Application');$('editForm').onclick=()=>intake&&openOverlay(builder(),'Edit Transfer Form');$('closeOverlay').onclick=()=>{$('formOverlay').classList.remove('open');$('formFrame').src='about:blank'};
 
 function renderAccess(){if(!accessInfo)return;const mng=canManage();$('addStaffCard').classList.toggle('hidden',!mng);$('workspaceStatusBadge').textContent=workspace.is_active?'ACTIVE':'INACTIVE';$('staffList').innerHTML=(accessInfo.members||[]).map(m=>`<div class="staffCard" data-access="${m.access_id}"><div class="staffTop"><div><b>${esc(m.game_name)}</b><div class="meta">Transfer Staff · ${m.status==='pending'?'Pending Registration':'Active'}</div></div>${m.is_owner?'<span class="starBtn" title="Owner">★</span>':mng?`<button class="starBtn" data-star title="Toggle Access Management">${m.is_manager?'★':'☆'}</button>`:`<span class="starBtn">${m.is_manager?'★':'☆'}</span>`}</div><div class="staffInfo"><div><small>GAME ID</small><b>${esc(m.game_id)}</b></div><div><small>USERNAME</small><b>${esc(m.username||'Pending')}</b></div><div><small>PASSWORD</small><b>••••••••••</b></div></div><div class="actions">${m.is_self?'<button class="btn secondary mini" data-my-pass>Change Password</button>':''}${mng&&m.username?'<button class="btn secondary mini" data-copy-user>Copy Username</button>':''}${mng&&m.registered?'<button class="btn secondary mini" data-recovery>Generate Recovery Code</button>':''}${mng&&!m.is_owner?'<button class="btn danger mini" data-remove>Remove Access</button>':''}</div></div>`).join('');document.querySelectorAll('[data-access]').forEach(c=>{const m=accessInfo.members.find(x=>String(x.access_id)===String(c.dataset.access));c.querySelector('[data-my-pass]')?.addEventListener('click',()=>$('changePasswordModal').classList.add('open'));c.querySelector('[data-copy-user]')?.addEventListener('click',e=>copyText(m.username,e.currentTarget));c.querySelector('[data-recovery]')?.addEventListener('click',()=>generateRecovery(m));c.querySelector('[data-star]')?.addEventListener('click',()=>setManager(m,!m.is_manager));c.querySelector('[data-remove]')?.addEventListener('click',()=>confirmGalaxy('Remove Access',`Remove Transfer Workspace access for ${m.game_name}?`,'Remove Access',()=>removeAccess(m)))})}
 $('addStaff').onclick=async()=>{const r=await SB.rpc('transfer_staff_add_access',{p_workspace_id:workspaceId,p_token:token,p_game_id:$('newStaffGameId').value.trim()});if(r.data?.ok){$('newStaffGameId').value='';await loadWorkspace()}else $('accessStatus').textContent=r.error?.message||'Unable to add Game ID.'};
@@ -556,31 +571,58 @@ $('changePasswordBtn').onclick=async()=>{if($('newPassword').value!==$('newPassw
 async function openHistory(h){
  $('historyModalTitle').textContent=h.title||`State ${workspace.state_number} Transfer Cycle`;$('historyDetail').innerHTML='<div class="status">Loading archived cycle…</div>';$('historyModal').classList.add('open');
  const r=await SB.rpc('transfer_workspace_history_detail',{p_workspace_id:workspaceId,p_token:token,p_event_id:h.id});if(r.error||r.data?.ok!==true){$('historyDetail').innerHTML='<div class="empty">Unable to load archived cycle.</div>';return}
- const d=r.data,e=d.event||{},a=d.applications||[],recs=d.recruiting||[],ord=a.filter(x=>x.application_bucket==='ordinary').length,sp=a.filter(x=>x.application_bucket==='special').length,ns=a.filter(x=>x.application_bucket==='not_selected').length,nx=a.filter(x=>x.application_cycle==='next'||x.application_bucket==='next_cycle').length,sent=a.filter(x=>x.invite_status==='sent').length;
+ const d=r.data,e=d.event||{},a=d.applications||[],recs=d.recruiting||[],ord=a.filter(x=>x.application_bucket==='ordinary').length,sp=a.filter(x=>x.application_bucket==='special').length,sent=a.filter(x=>x.invite_status==='sent').length;
  $('historyDetail').innerHTML=`<div class="cycleSummaryGrid">
    <div class="cycleSummaryItem"><small>CLASSIFICATION</small><b>${esc(classificationLabel(e.leadership_status))}</b></div>
    <div class="cycleSummaryItem"><small>POWER CAP</small><b>${e.power_cap?`${Number(e.power_cap).toLocaleString()} • ${fmt(e.power_cap)}`:'—'}</b></div>
-   <div class="cycleSummaryItem"><small>DEADLINE</small><b>${e.ends_at?`${new Date(e.ends_at).toISOString().slice(0,16).replace('T',' • ')} UTC`:'—'}</b></div>
-   <div class="cycleSummaryItem"><small>APPLICATIONS</small><b>${a.length}</b></div>
+   <div class="cycleSummaryItem"><small>HISTORY DATES</small><b>${e.starts_at?new Date(e.starts_at).toISOString().slice(0,10):'—'} → ${e.ends_at?new Date(e.ends_at).toISOString().slice(0,10):'—'}</b></div>
    <div class="cycleSummaryItem"><small>ORDINARY / SPECIAL</small><b>${ord} / ${sp}</b></div>
-   <div class="cycleSummaryItem"><small>NOT SELECTED / NEXT</small><b>${ns} / ${nx}</b></div>
    <div class="cycleSummaryItem"><small>INVITES SENT</small><b>${sent}</b></div>
    <div class="cycleSummaryItem" style="grid-column:1/-1"><small>RECRUITING ALLIANCES</small><b>${esc(recs.filter(x=>x.is_recruiting).map(x=>allProfiles.find(p=>String(p.alliance_id)===String(x.alliance_id))?.tag||x.alliance_id).join(' • ')||'—')}</b></div>
  </div>
- <div class="detailSection">APPLICANTS</div>${a.length?a.map(x=>`<div class="historyCard" style="margin-top:7px"><div class="appTop"><div><b>${esc(x.in_game_name||'Applicant')}</b><div class="meta">State ${esc(x.current_state||'—')} • ${fmt(x.current_power)} • ${esc(x.assigned_alliance_tag||'Unassigned')}</div></div><span class="badge">${esc(folderName(x.application_bucket||'inbox'))}</span></div></div>`).join(''):'<div class="empty">No applications were archived with this cycle.</div>'}`;
+ <div class="detailSection">ORDINARY & SPECIAL</div>${a.length?a.map(x=>`<div class="historyCard" style="margin-top:7px"><div class="appTop"><div><b>${esc(x.in_game_name||'Applicant')}</b><div class="meta">Game ID ${esc(x.player_id||'—')} • State ${esc(x.current_state||'—')} • Current Alliance ${esc(x.current_alliance||'—')} • Assigned ${esc(x.assigned_alliance_tag||'Unassigned')}</div></div><span class="badge">${esc(folderName(x.application_bucket||'inbox'))} • ${x.invite_status==='sent'?'Invite Sent':'Not Sent'}</span></div></div>`).join(''):'<div class="empty">No Ordinary or Special applicants were recorded for this cycle.</div>'}`;
 }
 function renderHistory(){
- $('historyList').innerHTML=history.length?history.map(h=>`<div class="historyCard clickable" data-open-history="${h.id}"><div class="appTop"><div><b>${esc(h.title||`State ${workspace.state_number} Transfer Cycle`)}</b><div class="meta">${new Date(h.created_at).toLocaleDateString()} • ${esc(classificationLabel(h.leadership_status))}</div></div>${canManage()?`<button class="btn danger mini" data-del-history="${h.id}">Delete</button>`:''}</div><div class="readHint">Tap to open archived cycle</div></div>`).join(''):'<div class="empty">No archived Transfer cycles yet.</div>';
- document.querySelectorAll('[data-open-history]').forEach(c=>c.onclick=e=>{if(e.target.closest('[data-del-history]'))return;const h=history.find(x=>String(x.id)===String(c.dataset.openHistory));if(h)openHistory(h)});
- document.querySelectorAll('[data-del-history]').forEach(b=>b.onclick=e=>{e.stopPropagation();confirmGalaxy('Delete Archived History','Delete this archived Transfer cycle permanently? This is intended for old tests and cannot be undone.','Delete History',async()=>{const r=await SB.rpc('transfer_workspace_delete_history',{p_workspace_id:workspaceId,p_token:token,p_event_id:b.dataset.delHistory});if(r.data?.ok)await loadWorkspace()})});
+ const cycles=historyView==='cycles';$('historyCyclesTab').classList.toggle('active',cycles);$('historyArchiveTab').classList.toggle('active',!cycles);$('historyList').classList.toggle('hidden',!cycles);$('applicantArchiveList').classList.toggle('hidden',cycles);
+ $('cleanupBox').innerHTML=cleanup.available&&canManage()?`<div class="notice" style="margin-bottom:12px"><b>Finished cycle ready to clear</b><div style="margin-top:5px">${Number(cleanup.count||0)} applicant(s) can be removed from the active workspace without permanent deletion.</div><div class="actions"><button class="btn danger mini" id="openClearWorkspace" type="button">Clear Transfer Workspace</button></div></div>`:'';
+ $('openClearWorkspace')?.addEventListener('click',()=>{$('clearWorkspacePassword').value='';$('clearWorkspaceConfirmation').value='';$('clearWorkspaceStatus').textContent='';$('clearWorkspaceModal').classList.add('open')});
+ $('historyList').innerHTML=history.length?history.map(h=>`<div class="historyCard clickable" data-open-history="${h.id}"><div class="appTop"><div><b>${esc(h.title||`State ${workspace.state_number} Transfer Cycle`)}</b><div class="meta">${h.starts_at?new Date(h.starts_at).toLocaleDateString():'—'} → ${h.ends_at?new Date(h.ends_at).toLocaleDateString():'—'} • ${esc(classificationLabel(h.leadership_status))}</div></div></div><div class="readHint">Tap to open Ordinary and Special records</div></div>`).join(''):'<div class="empty">No completed Transfer Cycles yet.</div>';
+ document.querySelectorAll('[data-open-history]').forEach(c=>c.onclick=()=>{const h=history.find(x=>String(x.id)===String(c.dataset.openHistory));if(h)openHistory(h)});
+ if(!cycles)loadApplicantArchive();
 }
+async function loadApplicantArchive(){
+ $('applicantArchiveList').innerHTML='<div class="status">Loading Applicant Archive…</div>';
+ const r=await SB.rpc('transfer_workspace_applicant_archive',{p_workspace_id:workspaceId,p_token:token});
+ if(r.error||r.data?.ok!==true){$('applicantArchiveList').innerHTML='<div class="empty">Unable to load Applicant Archive.</div>';return}
+ applicantArchive=r.data.applications||[];$('archiveCount').textContent=String(applicantArchive.length);
+ $('applicantArchiveList').innerHTML=applicantArchive.length?applicantArchive.map(a=>`<div class="historyCard"><div class="appTop"><div><b>${esc(a.in_game_name||'Applicant')}</b><div class="meta">Game ID ${esc(a.player_id||'—')} • State ${esc(a.current_state||'—')} • Current Alliance ${esc(a.current_alliance||'—')}</div></div><span class="badge">${a.application_bucket==='not_selected'?'Not Selected':'New Applicant'}</span></div>${canManage()?`<div class="actions"><button class="btn secondary mini" data-restore-archive="${a.id}" type="button">Restore to New Applicants</button></div>`:''}</div>`).join(''):'<div class="empty">Applicant Archive is empty.</div>';
+ document.querySelectorAll('[data-restore-archive]').forEach(x=>x.onclick=()=>restoreArchivedApplicant(x.dataset.restoreArchive));
+}
+async function restoreArchivedApplicant(id){
+ const r=await SB.rpc('transfer_workspace_restore_archived_application',{p_workspace_id:workspaceId,p_token:token,p_application_id:id});
+ if(r.error||r.data?.ok!==true)return $('cycleStatus').textContent=r.error?.message||'Unable to restore applicant.';
+ await loadWorkspace();historyView='archive';renderHistory();
+}
+$('historyCyclesTab').onclick=()=>{historyView='cycles';renderHistory()};
+$('historyArchiveTab').onclick=()=>{historyView='archive';renderHistory()};
+$('clearWorkspaceConfirm').onclick=async()=>{
+ const out=$('clearWorkspaceStatus'),confirmation=$('clearWorkspaceConfirmation').value.trim().toUpperCase();
+ if(!$('clearWorkspacePassword').value)return out.textContent='Enter your NEXA password.';
+ if(confirmation!=='CLEAR')return out.textContent='Type CLEAR to continue.';
+ out.textContent='Archiving…';
+ const r=await SB.rpc('transfer_workspace_archive_finished_cycle_applicants',{p_workspace_id:workspaceId,p_token:token,p_password:$('clearWorkspacePassword').value,p_confirmation:confirmation});
+ if(r.error||r.data?.ok!==true){const m={invalid_password:'NEXA password is incorrect.',confirmation_required:'Type CLEAR to continue.',no_finished_cycle:'There is no finished cycle waiting to be cleared.',manager_required:'Access Management is required.'};out.textContent=m[r.data?.error]||r.error?.message||'Unable to clear the finished cycle.';return}
+ $('clearWorkspaceModal').classList.remove('open');historyView='cycles';await loadWorkspace();
+}
+
 $('copyWorkspaceLink').onclick=e=>copyText(workspaceUrl(),e.currentTarget);
 $('logoutBtn').onclick=async()=>{if(token)await SB.rpc('transfer_staff_logout',{p_token:token});clearToken();location.reload()};
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.panel').forEach(x=>x.classList.toggle('active',x.dataset.panel===b.dataset.tab))});
 (async()=>{await resolveWorkspace();if(token&&await restoreSession())await chooseWorkspaceAndLoad();else showAuth()})();
 })();
 </script>
+<script>window.NEXA_TRANSFER_PERSISTENT_ARCHIVE_V1=true;</script>
 <script src="nexa-transfer-discord-integration-v1.js?v=1.7"></script>
-<script src="nexa-transfer-workspace-finisher-v1.js?v=1.2"></script>
+<script src="nexa-transfer-workspace-finisher-v1.js?v=1.4"></script>
 </body>
 </html>

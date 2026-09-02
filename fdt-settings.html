@@ -72,7 +72,8 @@ input[type=date]{display:block!important;width:100%!important;max-width:100%!imp
     <label><b>Minute</b><select id="nd3-minute"><option>00</option><option>15</option><option>30</option><option>45</option></select></label>
   </div>
   <div class="nexa-deadline-utc">24-hour UTC</div>
-  <div class="nexa-deadline-note">This deadline saves with the main Save Form button.</div>
+  <div class="nexa-deadline-note">Deadline changes save automatically.</div>
+<div id="deadline-save-status" class="save-confirm"></div>
 </section>
 
 <section class="card save-box"><button id="save" class="btn" type="button">Save FDT Form</button><div id="save-confirm" class="save-confirm" aria-live="polite"></div><div class="preview-grid"><a class="btn secondary" href="fdt-form.html?preview=member">Preview as NEXA Member</a><a class="btn secondary" href="fdt-form.html?preview=guest">Preview as Guest / Public</a></div></section>
@@ -114,6 +115,55 @@ function deadlineFields(){
   if(!d)throw new Error('Choose a UTC deadline date.');
   const hh=document.getElementById('nd3-hour')?.value||'00',mm=document.getElementById('nd3-minute')?.value||'00';
   return {deadline_enabled:true,deadline_at:new Date(`${d}T${hh}:${mm}:00Z`).toISOString()};
+}
+
+let deadlineSaveTimer=null;
+
+async function saveDeadlineOnly(){
+  const out=$('deadline-save-status');
+  let dl;
+
+  try{
+    dl=deadlineFields();
+  }catch(e){
+    out.textContent=e.message;
+    return;
+  }
+
+  out.textContent='Saving…';
+
+  const current=await sb.from('event_form_templates')
+    .select('settings')
+    .eq('event_type_key','fdt')
+    .maybeSingle();
+
+  if(current.error){
+    out.textContent='Could not save deadline: '+current.error.message;
+    return;
+  }
+
+  const next={...(current.data?.settings||{}),...dl};
+
+  const saved=await sb.from('event_form_templates').upsert({
+    event_type_key:'fdt',
+    settings:next,
+    updated_at:new Date().toISOString()
+  },{onConflict:'event_type_key'});
+
+  if(saved.error){
+    out.textContent='Could not save deadline: '+saved.error.message;
+    return;
+  }
+
+  settings={...settings,...dl};
+  out.textContent=dl.deadline_enabled
+    ? 'Deadline saved ✓'
+    : 'Deadline disabled ✓';
+}
+
+function queueDeadlineSave(){
+  clearTimeout(deadlineSaveTimer);
+  deadlineSaveTimer=setTimeout(saveDeadlineOnly,250);
 }
 function collectSettings(){const pick=bucket=>[...document.querySelectorAll(`.lib-${bucket}:checked`)].map((x,i)=>({id:x.value,name:x.dataset.name,image_url:x.dataset.image,is_active:true,item_type:bucket.includes('expert')?'expert':'hero',sort_order:i}));return {...settings,...deadlineFields(),availability_blocks:blocks(),availability_start_hour:mins($('start').value)/60,availability_end_hour:mins($('end').value)/60,availability_slot_minutes:Number($('slot').value)||60,full_availability_enabled:$('full-enabled').checked,not_available_enabled:$('na-enabled').checked,troop_era_preset:document.querySelector('input[name=era]:checked')?.value||'exalted',fdt_visibility:{healing:$('show-healing').checked,voice:$('show-voice').checked,support:$('show-support').checked,assignment:$('show-assignment').checked,notes:$('show-notes').checked},fdt_items:{joiner_hero:pick('joiner_hero'),rally_hero:pick('rally_hero'),joiner_expert:pick('joiner_expert'),rally_expert:pick('rally_expert')}}}
 async function saveSettings(){const out=$('save-confirm');let next;try{next=collectSettings()}catch(e){out.textContent=e.message;return}$('state').textContent='';out.textContent='Saving…';if(!next.availability_blocks.length){out.textContent='End Time must be after Start Time.';return}const {error}=await sb.from('event_form_templates').upsert({event_type_key:'fdt',settings:next,updated_at:new Date().toISOString()},{onConflict:'event_type_key'});if(error){out.textContent='Could not save: '+error.message;return}settings=next;out.textContent='Saved ✓';setTimeout(()=>{if(out.textContent==='Saved ✓')out.textContent=''},5000)}

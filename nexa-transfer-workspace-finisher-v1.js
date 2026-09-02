@@ -1,4 +1,4 @@
-// NEXA TRANSFER WORKSPACE FINISHER V1.0 — ONLINE PRESENCE / SIMPLE HISTORY / ROLE LABELS
+// NEXA TRANSFER WORKSPACE FINISHER V1.2 — HERO PRESENCE / SIMPLE HISTORY / DELETE
 (()=>{
 'use strict';
 
@@ -53,24 +53,29 @@ function injectStyles(){
   const s=document.createElement('style');
   s.id='nexaWorkspaceFinisherStyles';
   s.textContent=`
+  #workspaceRoot .heroGrid>div:first-child{position:relative;padding-right:88px}
   .nexa-presence-pill{
-    border:1px solid rgba(89,228,255,.28);
-    background:rgba(7,17,39,.92);
-    color:#dcfaff;
+    position:absolute;
+    top:0;
+    right:0;
+    border:1px solid rgba(103,227,172,.24);
+    background:rgba(7,17,39,.72);
+    color:#c9f8e3;
     border-radius:999px;
-    min-height:40px;
-    padding:8px 12px;
+    min-height:28px;
+    padding:5px 8px;
     display:inline-flex;
     align-items:center;
-    gap:7px;
+    gap:6px;
     font-weight:900;
-    font-size:12px;
+    font-size:10px;
     white-space:nowrap;
     cursor:pointer;
+    box-shadow:none;
   }
   .nexa-presence-dot{
-    width:8px;height:8px;border-radius:50%;
-    background:#67e3ac;box-shadow:0 0 12px rgba(103,227,172,.8)
+    width:6px;height:6px;border-radius:50%;
+    background:#67e3ac;box-shadow:0 0 8px rgba(103,227,172,.7)
   }
   .nexa-finisher-modal{
     position:fixed;inset:0;z-index:12000;
@@ -127,7 +132,8 @@ function injectStyles(){
   @media(max-width:620px){
     .nexa-history-mini{grid-template-columns:1fr}
     .nexa-history-detail{grid-template-columns:1fr}
-    .nexa-presence-pill{min-height:36px;padding:7px 10px}
+    #workspaceRoot .heroGrid>div:first-child{padding-right:76px}
+    .nexa-presence-pill{min-height:26px;padding:4px 7px;font-size:9px}
   }`;
   document.head.appendChild(s);
 }
@@ -159,15 +165,14 @@ function openModal(tag,title,html){
 
 function ensurePresencePill(){
   if($('nexaPresencePill'))return;
-  const top=document.querySelector('#workspaceRoot .top')||document.querySelector('.top');
-  if(!top)return;
+  const hero=document.querySelector('#workspaceRoot .heroGrid > div:first-child');
+  if(!hero)return;
   const b=document.createElement('button');
   b.id='nexaPresencePill';
   b.className='nexa-presence-pill';
   b.type='button';
-  b.innerHTML=`<span class="nexa-presence-dot"></span><span>👥 <b id="nexaPresenceCount">1</b> online</span>`;
-  const home=top.querySelector('.round');
-  if(home)top.insertBefore(b,home); else top.appendChild(b);
+  b.innerHTML=`<span class="nexa-presence-dot"></span><span><b id="nexaPresenceCount">1</b> online</span>`;
+  hero.appendChild(b);
   b.onclick=showPresence;
 }
 

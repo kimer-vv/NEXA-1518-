@@ -1,4 +1,4 @@
-// NEXA DISCORD BOT V1.6.1 — FOUR CHANNELS / CHANNEL OVERVIEWS / INVITE REPORT V2 / WARNING TEST
+// NEXA DISCORD BOT V1.6.2 — SINGLE GUILD COMMAND SCOPE / DUPLICATE GLOBAL CLEANUP
 import {
   rawBody,verifyDiscord,subcommand,db,getConfigByGuild,
   getCurrentEvent,currentApps,selectedApps,recruitingAlliances,inviteCounts,inviteReport,
@@ -355,8 +355,9 @@ async function runTick(){
 }
 async function registerGuildCommands(guild){
   const app=env('DISCORD_APPLICATION_ID');
+  await discord(`/applications/${app}/commands`,{method:'PUT',body:[]});
   const result=await discord(`/applications/${app}/guilds/${guild}/commands`,{method:'PUT',body:commands});
-  return{ok:true,scope:'guild',guild_id:guild,commands:result.map(x=>({id:x.id,name:x.name}))};
+  return{ok:true,scope:'guild',guild_id:guild,global_commands_cleared:true,commands:result.map(x=>({id:x.id,name:x.name}))};
 }
 async function registerGlobalCommands(){
   const app=env('DISCORD_APPLICATION_ID');
@@ -454,7 +455,7 @@ export default async function handler(req,res){
     try{
       const url=new URL(req.url||'/api/discord-interactions','http://localhost'),action=url.searchParams.get('action');
       if(action==='register')return res.status(200).json(await registerGuildCommands(url.searchParams.get('guild_id')||env('DISCORD_GUILD_ID')));
-      if(action==='register-global')return res.status(200).json(await registerGlobalCommands());
+      if(action==='register-global')return res.status(409).json({ok:false,error:'global_registration_disabled',message:'NEXA uses guild commands only. Use action=register.'});
       if(action==='workspace-test'){
         const workspaceId=String(url.searchParams.get('workspace_id')||'').trim();
         const kind=String(url.searchParams.get('kind')||'announcement').trim();
@@ -791,3 +792,4 @@ export default async function handler(req,res){
     return res.status(200).json({type:4,data:{content:'NEXA could not complete that command. Check the bot configuration.',flags:64}});
   }
 }
+

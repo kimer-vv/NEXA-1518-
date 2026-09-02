@@ -1,86 +1,92 @@
 <!doctype html>
-<!-- NEXA SURVEY CENTER V2.0 — MANAGEMENT ONLY / REGULAR + ANONYMOUS -->
+<!-- NEXA SURVEY EDITOR V3.0 — UNIFIED FORMS VISUAL / DIRECT CREATE + EDIT -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>NEXA • Survey Center</title>
+<title>NEXA • Survey Editor</title>
+<link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{--c:#59e4ff;--m:#aab4d0;--p:rgba(8,15,34,.94);--bad:#ff8ca8;--good:#7df1be}
 *{box-sizing:border-box}
-body{margin:0;min-height:100dvh;background:radial-gradient(circle at 8% 6%,rgba(89,228,255,.09),transparent 31%),radial-gradient(circle at 93% 2%,rgba(141,118,255,.08),transparent 34%),#03050e;color:#fff;font-family:Inter,system-ui,-apple-system,sans-serif}
-.shell{width:min(850px,100%);margin:auto;padding:20px 14px 96px}
-.top{display:grid;grid-template-columns:44px 1fr 44px;gap:10px;align-items:center}
-.round{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;text-decoration:none;color:#dffcff;background:#081127;border:1px solid rgba(89,228,255,.28);font-size:22px}
-.brand{text-align:center}.brand small{display:block;color:#9ca9cc;font-size:10px;letter-spacing:.18em;font-weight:950}.brand h1{margin:4px 0;font-size:clamp(1.8rem,7vw,2.8rem);color:#fff}
-.card{margin-top:14px;padding:16px;border-radius:20px;border:1px solid rgba(255,255,255,.10);background:var(--p)}
-.muted{color:var(--m);line-height:1.45}
-.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-.btn{min-height:42px;border-radius:13px;border:1px solid rgba(89,228,255,.34);background:linear-gradient(135deg,rgba(25,76,112,.72),rgba(36,30,97,.8));color:#fff;padding:9px 13px;font-weight:900}
-.btn.secondary{background:rgba(255,255,255,.045)}.btn.danger{border-color:rgba(255,90,120,.34);background:rgba(115,24,52,.42)}
-.badge{display:inline-flex;padding:5px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.12);font-size:9px;font-weight:950;margin:0 6px 6px 0}
-.badge.open{color:var(--good)}.badge.closed{color:#ffb0c0}.badge.anon{color:#d7c8ff}
-.list{display:grid;gap:10px}.survey{padding:14px;border-radius:17px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.035)}.survey h3{margin:6px 0}.meta{font-size:11px;color:#93a0be}
-.hidden{display:none!important}.field{display:grid;gap:6px;margin-top:10px;color:#b8c4df;font-size:12px;font-weight:850}
-.field input,.field textarea,.field select{width:100%;border-radius:12px;border:1px solid rgba(255,255,255,.13);background:#070d20;color:#fff;padding:11px}
-.qcard{margin-top:10px;padding:13px;border-radius:16px;border:1px solid rgba(89,228,255,.18);background:rgba(255,255,255,.025)}
-.qhead{display:flex;justify-content:space-between;gap:8px;align-items:center}.opts{display:grid;gap:7px;margin-top:8px}
-.optrow{display:grid;grid-template-columns:1fr 36px;gap:7px}.iconBtn{border:1px solid rgba(255,255,255,.12);background:#091126;color:#fff;border-radius:10px}
-.checks{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:#c7d2e9}.status{min-height:18px;margin-top:8px;color:#8fefff;font-size:12px}
+body{margin:0;background:#02030b;color:#fff}
+.sh{max-width:720px;margin:auto;padding:24px 16px 90px}
+.back{color:#54f0b5;text-decoration:none;font-weight:900;margin-left:18px}
+.head{display:block;width:calc(100% - 36px);margin:18px 0 22px 18px}
+.head small{display:block;color:#a5b2d2;font-size:10px;font-weight:950;letter-spacing:.14em;margin-bottom:8px}
+.head h1{font-size:clamp(2rem,8vw,3rem);line-height:1.04;margin:0;color:#fff}
+.head p,.muted{color:#aeb7d1;line-height:1.45}
+.card{margin:12px 0 0 18px;padding:16px;border:1px solid rgba(255,255,255,.12);border-radius:20px;background:rgba(10,14,30,.58);width:calc(100% - 18px)}
+.hidden{display:none!important}
+label.field{display:grid;gap:7px;font-weight:800;margin-top:12px;color:#dfe6f6}
+input,select,textarea{width:100%;min-height:46px;padding:10px 12px;border-radius:12px;border:1px solid rgba(119,142,210,.28);background:#081126;color:#fff;font-size:16px;max-width:100%}
+textarea{resize:vertical}
+.btn{min-height:48px;border-radius:14px;border:1px solid rgba(75,213,231,.62);background:linear-gradient(135deg,rgba(19,104,111,.92) 0%,rgba(32,75,118,.93) 54%,rgba(61,49,139,.92) 100%);color:#fff;font-weight:950;padding:10px 14px}
+.btn.secondary{background:linear-gradient(135deg,rgba(19,104,111,.28),rgba(61,49,139,.26))}
+.btn.danger{border-color:rgba(255,90,120,.4);background:rgba(90,20,44,.48);color:#ffd2dc}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.qcard{margin-top:12px;padding:14px;border:1px solid rgba(255,255,255,.10);border-radius:16px;background:rgba(8,16,35,.38)}
+.qhead{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.qhead b{font-size:17px}
+.icon{width:34px;height:34px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#091126;color:#fff;font-weight:900}
+.option-row{display:grid;grid-template-columns:minmax(0,1fr) 38px;gap:8px;margin-top:8px}
+.choice-tools{display:flex;gap:12px;flex-wrap:wrap;margin-top:11px;color:#cbd5ea;font-size:13px}
+.choice-tools label{display:flex;align-items:center;gap:7px}
+.choice-tools input{width:22px;height:22px;min-height:22px;accent-color:#54f0b5}
+.note{margin-top:8px;color:#9eabc7;font-size:12px;line-height:1.45}
+.status{min-height:22px;margin-top:10px;color:#8ef0cf;font-weight:900}
+.form-flow{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 12px 18px;width:calc(100% - 18px)}
+.form-flow span{padding:6px 9px;border-radius:999px;border:1px solid rgba(72,221,255,.22);background:rgba(18,56,77,.22);color:#a9eaff;font-size:10px;font-weight:950;letter-spacing:.04em}
+@media(max-width:560px){.actions .btn{flex:1 1 44%}}
 </style>
 </head>
 <body>
-<main class="shell">
-<div class="top">
-<a class="round" href="forms-center.html?section=surveys">‹</a>
-<div class="brand"><small>FORMS CENTER</small><h1>Survey Center</h1></div>
-<a class="round" href="index.html">×</a>
-</div>
+<main class="sh">
+<a class="back" href="forms-center.html?section=surveys">‹ Forms Center</a>
+<header class="head">
+ <small>SURVEYS • QUESTIONNAIRES</small>
+ <h1 id="pageTitle">Create Survey</h1>
+ <p id="pageSub">Build a Server-wide or Alliance-only survey using the same NEXA form system.</p>
+</header>
+<div class="form-flow"><span>1 Survey</span><span>2 Questions</span><span>3 Privacy</span><span>4 Save</span></div>
 
 <section class="card">
-<div class="actions">
-<button class="btn hidden" id="newSurvey">+ Create Survey</button>
-<button class="btn secondary" id="refresh">Refresh</button>
-</div>
-<div class="status" id="topStatus"></div>
+ <label class="field">Survey title<input id="title" placeholder="Survey title"></label>
+ <label class="field">Description<textarea id="description" rows="3" placeholder="Optional description"></textarea></label>
+ <label class="field">Audience
+  <select id="audience">
+   <option value="server">Entire Server</option>
+   <option value="alliance">My Alliance Only</option>
+  </select>
+ </label>
+ <div class="note" id="audienceHint"></div>
+ <label class="field">Response privacy
+  <select id="responsePrivacy">
+   <option value="regular">Regular — identity visible in Survey Responses</option>
+   <option value="anonymous">Anonymous — aggregated results only</option>
+  </select>
+ </label>
+ <div class="note" id="privacyHint"></div>
+ <label class="field">Survey status
+  <select id="surveyStatus">
+   <option value="open">Open</option>
+   <option value="closed">Closed</option>
+  </select>
+ </label>
 </section>
 
 <section class="card">
-<h2 style="margin-top:0">Surveys</h2>
-<p class="muted">Create, edit, open, close or delete surveys. Results are managed separately in Survey Responses.</p>
-<div id="surveyList" class="list"></div>
+ <div class="qhead"><div><small style="color:#8fefff;font-weight:950;letter-spacing:.12em">QUESTIONS</small><h2 style="margin:5px 0 0">Survey Questions</h2></div></div>
+ <div id="questions"></div>
+ <div class="actions"><button class="btn secondary" id="addQuestion">+ Add Question</button></div>
 </section>
 
-<section class="card hidden" id="builder">
-<div class="qhead">
-<div><small style="color:#8fefff;font-weight:950;letter-spacing:.12em">SURVEY BUILDER</small><h2 id="builderTitle">Create Survey</h2></div>
-<button class="btn secondary" id="closeBuilder">Close</button>
-</div>
-<label class="field">Survey title<input id="title"></label>
-<label class="field">Description<textarea id="description" rows="3"></textarea></label>
-<label class="field">Audience
-<select id="audience">
-<option value="server">Entire Server</option>
-<option value="alliance">My Alliance Only</option>
-</select>
-</label>
-<div class="muted" id="audienceHint" style="margin-top:7px"></div>
-
-<label class="field">Response privacy
-<select id="responsePrivacy">
-<option value="regular">Regular — participant identity visible in Survey Responses</option>
-<option value="anonymous">Anonymous — only aggregated results are shown</option>
-</select>
-</label>
-<div class="muted" id="privacyHint" style="margin-top:7px"></div>
-
-<div id="questions"></div>
-<div class="actions">
-<button class="btn secondary" id="addQuestion">+ Add Question</button>
-<button class="btn" id="saveSurvey">Save Survey</button>
-</div>
-<div class="status" id="saveStatus"></div>
+<section class="card">
+ <button class="btn" id="saveSurvey" style="width:100%">Save Survey</button>
+ <div class="status" id="saveStatus"></div>
+ <div class="actions hidden" id="editActions">
+  <button class="btn danger" id="deleteSurvey">Delete Survey</button>
+ </div>
 </section>
 </main>
 
@@ -89,35 +95,36 @@ body{margin:0;min-height:100dvh;background:radial-gradient(circle at 8% 6%,rgba(
 const SB=window.supabase.createClient('https://dfxcxboxrkfmrnsgpyin.supabase.co','sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-');
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const params=new URLSearchParams(location.search);
 let state=Number(localStorage.getItem('nexa_active_state_v49')||window.NEXA_ACTIVE_STATE||0);
 let accountId=localStorage.getItem('nexa_active_account_v49')||window.NEXA_ACTIVE_ACCOUNT_ID||'';
-let ctx=null,editingId='',questions=[];
+let editingId=params.get('edit')||'';
+let ctx=null,questions=[];
 
 async function boot(){
  const {data:{session}}=await SB.auth.getSession();
  if(!session){location.href='index.html';return}
- if(!state||!accountId){$('topStatus').textContent='Open NEXA and select a State/account first.';return}
- await load();
+ if(!state||!accountId){$('saveStatus').textContent='Open NEXA and select a State/account first.';return}
+ const list=await SB.rpc('nexa_survey_list',{p_state:state,p_account_id:accountId});
+ if(list.error||!list.data?.ok){$('saveStatus').textContent=list.error?.message||list.data?.error||'Unable to load Survey access.';return}
+ ctx=list.data;
+ if(!ctx.can_manage){$('saveStatus').textContent='Survey management access is required.';$('saveSurvey').disabled=true;return}
+ if(editingId)await loadSurvey(editingId); else startCreate();
 }
-async function load(){
- const {data,error}=await SB.rpc('nexa_survey_list',{p_state:state,p_account_id:accountId});
- if(error||!data?.ok){$('topStatus').textContent=error?.message||data?.error||'Unable to load surveys.';return}
- ctx=data;$('newSurvey').classList.toggle('hidden',!data.can_manage);renderList();
+function startCreate(){
+ $('pageTitle').textContent='Create Survey';$('pageSub').textContent='Build a Server-wide or Alliance-only survey using the same NEXA form system.';
+ $('title').value='';$('description').value='';$('audience').value='server';$('responsePrivacy').value='regular';$('surveyStatus').value='open';
+ questions=[];newQuestion();$('editActions').classList.add('hidden');setHints();
 }
-function renderList(){
- const rows=ctx?.surveys||[];
- $('surveyList').innerHTML=rows.length?rows.map(s=>`<div class="survey">
-  <div>
-   <span class="badge ${s.status}">${String(s.status).toUpperCase()}</span>
-   <span class="badge">${s.audience==='alliance'?'ALLIANCE ONLY':'ENTIRE SERVER'}</span>
-   <span class="badge ${s.response_privacy==='anonymous'?'anon':''}">${s.response_privacy==='anonymous'?'ANONYMOUS':'REGULAR'}</span>
-  </div>
-  <h3>${esc(s.title)}</h3>
-  <div class="meta">${esc(s.audience==='alliance'?(s.alliance_tag||'Alliance'):'State '+s.state_number)} • ${s.question_count||0} questions • ${s.response_count||0} responses${s.responded?' • You responded':''}</div>
-  <div class="actions">
-    <button class="btn" data-open="${s.id}">Open Survey</button>
-    ${ctx.can_manage?`<button class="btn secondary" data-edit="${s.id}">Edit</button><button class="btn secondary" data-status="${s.id}" data-next="${s.status==='open'?'closed':'open'}">${s.status==='open'?'Close':'Reopen'}</button><button class="btn danger" data-delete="${s.id}">Delete</button>`:''}
-  </div></div>`).join(''):'<div class="muted">No surveys yet.</div>';
+async function loadSurvey(id){
+ const r=await SB.rpc('nexa_survey_get',{p_survey_id:id,p_account_id:accountId});
+ if(r.error||!r.data?.ok){$('saveStatus').textContent=r.error?.message||r.data?.error||'Unable to load survey.';return}
+ const s=r.data.survey||{};
+ $('pageTitle').textContent='Edit Survey';$('pageSub').textContent='Edit the current survey directly. Save returns the same form to Forms Center.';
+ $('title').value=s.title||'';$('description').value=s.description||'';$('audience').value=s.audience||'server';$('responsePrivacy').value=s.response_privacy||'regular';$('surveyStatus').value=s.status||'open';
+ questions=(r.data.questions||[]).map(q=>({...q,options:Array.isArray(q.options)?q.options:[]}));
+ if(!questions.length)newQuestion();else renderQuestions();
+ $('editActions').classList.remove('hidden');setHints();
 }
 function newQuestion(q={}){
  questions.push({id:q.id||crypto.randomUUID(),question_text:q.question_text||'',question_type:q.question_type||'single',required:!!q.required,allow_other:!!q.allow_other,options:Array.isArray(q.options)?q.options.slice():[]});
@@ -125,20 +132,22 @@ function newQuestion(q={}){
 }
 function renderQuestions(){
  $('questions').innerHTML=questions.map((q,i)=>`<div class="qcard" data-q="${q.id}">
-  <div class="qhead"><b>Question ${i+1}</b><button class="iconBtn" data-removeq="${q.id}">×</button></div>
-  <label class="field">Question<input data-qtext="${q.id}" value="${esc(q.question_text)}"></label>
+  <div class="qhead"><b>Question ${i+1}</b><button class="icon" type="button" data-removeq="${q.id}">×</button></div>
+  <label class="field">Question<input data-qtext="${q.id}" value="${esc(q.question_text)}" placeholder="Type the question"></label>
   <label class="field">Answer type<select data-qtype="${q.id}">
-    <option value="single" ${q.question_type==='single'?'selected':''}>Single choice</option>
-    <option value="multiple" ${q.question_type==='multiple'?'selected':''}>Multiple choice</option>
-    <option value="short" ${q.question_type==='short'?'selected':''}>Short answer</option>
-    <option value="long" ${q.question_type==='long'?'selected':''}>Long answer</option>
+   <option value="single" ${q.question_type==='single'?'selected':''}>Single choice</option>
+   <option value="multiple" ${q.question_type==='multiple'?'selected':''}>Multiple choice</option>
+   <option value="short" ${q.question_type==='short'?'selected':''}>Short answer</option>
+   <option value="long" ${q.question_type==='long'?'selected':''}>Long answer</option>
   </select></label>
-  ${['single','multiple'].includes(q.question_type)?`<div class="opts">
-    ${q.options.map((o,j)=>`<div class="optrow"><input data-opt="${q.id}" data-idx="${j}" value="${esc(o)}"><button class="iconBtn" data-rmopt="${q.id}" data-idx="${j}">×</button></div>`).join('')}
-    <button class="btn secondary" data-addopt="${q.id}">+ Add option</button>
-  </div>
-  <div class="checks"><label><input type="checkbox" data-other="${q.id}" ${q.allow_other?'checked':''}> Allow “Other”</label><label><input type="checkbox" data-required="${q.id}" ${q.required?'checked':''}> Required</label></div>`:
-  `<div class="checks"><label><input type="checkbox" data-required="${q.id}" ${q.required?'checked':''}> Required</label></div>`}
+  ${['single','multiple'].includes(q.question_type)?`<div style="margin-top:10px">
+   ${(q.options||[]).map((o,j)=>`<div class="option-row"><input data-opt="${q.id}" data-idx="${j}" value="${esc(o)}" placeholder="Option ${j+1}"><button class="icon" type="button" data-rmopt="${q.id}" data-idx="${j}">×</button></div>`).join('')}
+   <button class="btn secondary" type="button" data-addopt="${q.id}" style="width:100%;margin-top:9px">+ Add option</button>
+   <div class="choice-tools">
+    <label><input type="checkbox" data-other="${q.id}" ${q.allow_other?'checked':''}> Allow “Other”</label>
+    <label><input type="checkbox" data-required="${q.id}" ${q.required?'checked':''}> Required</label>
+   </div>
+  </div>`:`<div class="choice-tools"><label><input type="checkbox" data-required="${q.id}" ${q.required?'checked':''}> Required</label></div>`}
  </div>`).join('');
 }
 function sync(){
@@ -153,52 +162,38 @@ function sync(){
 }
 function setHints(){
  $('audienceHint').textContent=$('audience').value==='alliance'?`Only ${ctx?.account?.alliance_tag||'your alliance'} will be able to respond.`:'Every member in the active State can respond.';
- $('privacyHint').textContent=$('responsePrivacy').value==='anonymous'?'Survey Responses will show aggregated totals only. Participant identity is not returned in results.':'Survey Responses can show who selected each option.';
-}
-function openBuilder(s=null,qs=[]){
- editingId=s?.id||'';$('builderTitle').textContent=s?'Edit Survey':'Create Survey';
- $('title').value=s?.title||'';$('description').value=s?.description||'';$('audience').value=s?.audience||'server';
- $('responsePrivacy').value=s?.response_privacy||'regular';
- questions=(qs||[]).map(q=>({...q,options:Array.isArray(q.options)?q.options:[]}));
- if(!questions.length)newQuestion();else renderQuestions();
- setHints();$('builder').classList.remove('hidden');$('builder').scrollIntoView({behavior:'smooth'});
-}
-async function editSurvey(id){
- const {data,error}=await SB.rpc('nexa_survey_get',{p_survey_id:id,p_account_id:accountId});
- if(error||!data?.ok)return alert(error?.message||data?.error||'Unable to load survey.');
- openBuilder(data.survey,data.questions);
+ $('privacyHint').textContent=$('responsePrivacy').value==='anonymous'?'Results show totals, percentages and bars only. Participant identity is not returned in Survey Responses.':'Survey Responses can expand an option to show the player name and Game ID.';
 }
 async function save(){
  sync();const title=$('title').value.trim();
- if(!title)return $('saveStatus').textContent='Survey title is required.';
- if(!questions.length||questions.some(q=>!q.question_text))return $('saveStatus').textContent='Every question needs text.';
- for(const q of questions)if(['single','multiple'].includes(q.question_type)&&q.options.length<1)return $('saveStatus').textContent='Choice questions need at least one option.';
- const existing=(ctx?.surveys||[]).find(x=>x.id===editingId);
- const payload={id:editingId||null,state_number:state,title,description:$('description').value.trim(),audience:$('audience').value,response_privacy:$('responsePrivacy').value,status:existing?.status||'open',questions:questions.map((q,i)=>({sort_order:i,question_text:q.question_text,question_type:q.question_type,required:q.required,allow_other:q.allow_other,options:q.options}))};
+ if(!title){$('saveStatus').textContent='Survey title is required.';return}
+ if(!questions.length||questions.some(q=>!q.question_text)){$('saveStatus').textContent='Every question needs text.';return}
+ for(const q of questions)if(['single','multiple'].includes(q.question_type)&&q.options.length<1){$('saveStatus').textContent='Choice questions need at least one option.';return}
+ const payload={id:editingId||null,state_number:state,title,description:$('description').value.trim(),audience:$('audience').value,response_privacy:$('responsePrivacy').value,status:$('surveyStatus').value,questions:questions.map((q,i)=>({sort_order:i,question_text:q.question_text,question_type:q.question_type,required:q.required,allow_other:q.allow_other,options:q.options}))};
  $('saveStatus').textContent='Saving…';
- const {data,error}=await SB.rpc('nexa_survey_save',{p_account_id:accountId,p_payload:payload});
- if(error||!data?.ok){$('saveStatus').textContent=error?.message||data?.error||'Unable to save survey.';return}
- $('saveStatus').textContent='Saved ✓';$('builder').classList.add('hidden');await load();
+ const r=await SB.rpc('nexa_survey_save',{p_account_id:accountId,p_payload:payload});
+ if(r.error||!r.data?.ok){$('saveStatus').textContent=r.error?.message||r.data?.error||'Unable to save survey.';return}
+ editingId=r.data.survey_id;$('saveStatus').textContent='Saved ✓';
+ history.replaceState(null,'',`survey-center.html?edit=${encodeURIComponent(editingId)}`);
+ $('pageTitle').textContent='Edit Survey';$('editActions').classList.remove('hidden');
+}
+async function removeSurvey(){
+ if(!editingId||!confirm('Delete this survey and all responses permanently?'))return;
+ const r=await SB.rpc('nexa_survey_delete',{p_survey_id:editingId,p_account_id:accountId});
+ if(r.error||!r.data?.ok){$('saveStatus').textContent=r.error?.message||r.data?.error||'Unable to delete survey.';return}
+ location.href='forms-center.html?section=surveys';
 }
 
-$('newSurvey').onclick=()=>openBuilder();$('refresh').onclick=load;$('closeBuilder').onclick=()=>$('builder').classList.add('hidden');
-$('addQuestion').onclick=()=>{sync();newQuestion()};$('saveSurvey').onclick=save;
+$('saveSurvey').onclick=save;$('deleteSurvey').onclick=removeSurvey;$('addQuestion').onclick=()=>{sync();newQuestion()};
 $('audience').onchange=setHints;$('responsePrivacy').onchange=setHints;
-document.addEventListener('click',async e=>{
+document.addEventListener('click',e=>{
  const t=e.target;
- if(t.dataset.open)location.href=`survey.html?id=${encodeURIComponent(t.dataset.open)}`;
- if(t.dataset.edit)await editSurvey(t.dataset.edit);
- if(t.dataset.removeq){sync();questions=questions.filter(q=>q.id!==t.dataset.removeq);renderQuestions()}
+ if(t.dataset.removeq){sync();questions=questions.filter(q=>q.id!==t.dataset.removeq);if(!questions.length)newQuestion();else renderQuestions()}
  if(t.dataset.addopt){sync();questions.find(q=>q.id===t.dataset.addopt)?.options.push('');renderQuestions()}
  if(t.dataset.rmopt){sync();const q=questions.find(x=>x.id===t.dataset.rmopt);if(q)q.options.splice(Number(t.dataset.idx),1);renderQuestions()}
- if(t.dataset.status){const {data}=await SB.rpc('nexa_survey_set_status',{p_survey_id:t.dataset.status,p_account_id:accountId,p_status:t.dataset.next});if(data?.ok)await load()}
- if(t.dataset.delete&&confirm('Delete this survey and all responses permanently?')){const {data}=await SB.rpc('nexa_survey_delete',{p_survey_id:t.dataset.delete,p_account_id:accountId});if(data?.ok)await load()}
 });
 document.addEventListener('change',e=>{
- if(e.target.matches('[data-qtype]')){
-  sync();const q=questions.find(x=>x.id===e.target.dataset.qtype);
-  if(q){q.question_type=e.target.value;if(!['single','multiple'].includes(q.question_type)){q.options=[];q.allow_other=false}renderQuestions()}
- }
+ if(e.target.matches('[data-qtype]')){sync();const q=questions.find(x=>x.id===e.target.dataset.qtype);if(q){q.question_type=e.target.value;if(!['single','multiple'].includes(q.question_type)){q.options=[];q.allow_other=false}else if(!q.options.length)q.options=[''];renderQuestions()}}
 });
 boot();
 })();

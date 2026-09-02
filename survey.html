@@ -1,26 +1,42 @@
 <!doctype html>
-<!-- NEXA SURVEY RESPONSE V1.0 -->
+<!-- NEXA SURVEY RESPONSE V2.0 — UNIFIED NEXA FORM VISUAL -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • Survey</title>
+<link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{--c:#59e4ff;--v:#8d76ff;--m:#aab4d0;--p:rgba(8,15,34,.94)}
-*{box-sizing:border-box}body{margin:0;min-height:100dvh;background:radial-gradient(circle at 8% 6%,rgba(89,228,255,.09),transparent 31%),radial-gradient(circle at 93% 2%,rgba(141,118,255,.11),transparent 34%),#03050e;color:#fff;font-family:Inter,system-ui,-apple-system,sans-serif}
-.shell{width:min(720px,100%);margin:auto;padding:20px 14px 96px}.top{display:grid;grid-template-columns:44px 1fr 44px;gap:10px;align-items:center}.round{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;text-decoration:none;color:#dffcff;background:#081127;border:1px solid rgba(89,228,255,.28);font-size:22px}
-.brand{text-align:center}.brand small{color:#9ca9cc;font-size:10px;letter-spacing:.18em;font-weight:950}.brand h1{margin:4px 0;font-size:clamp(1.7rem,7vw,2.6rem);background:linear-gradient(90deg,#a779ff,#55bfff,#59efff);-webkit-background-clip:text;color:transparent}
-.card{margin-top:14px;padding:16px;border-radius:20px;border:1px solid rgba(255,255,255,.10);background:var(--p)}.muted{color:var(--m);line-height:1.45}.badge{display:inline-flex;padding:5px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.12);font-size:9px;font-weight:950}
-.q{margin-top:12px;padding:14px;border-radius:17px;border:1px solid rgba(141,118,255,.22);background:rgba(255,255,255,.03)}.q h3{margin:0 0 10px;font-size:15px}.req{color:#ff9fb5}
-.choice{display:flex;gap:9px;align-items:flex-start;padding:9px 0}.choice input{margin-top:3px}.other{width:100%;margin-top:6px;border-radius:11px;border:1px solid rgba(255,255,255,.13);background:#070d20;color:#fff;padding:10px}
-.text{width:100%;border-radius:11px;border:1px solid rgba(255,255,255,.13);background:#070d20;color:#fff;padding:11px}.btn{width:100%;min-height:46px;border-radius:14px;border:1px solid rgba(89,228,255,.34);background:linear-gradient(135deg,rgba(25,76,112,.72),rgba(36,30,97,.8));color:#fff;font-weight:900;margin-top:14px}.status{min-height:20px;margin-top:9px;color:#8fefff;font-size:12px}
+*{box-sizing:border-box}
+body{margin:0;background:#02030b;color:#fff}
+.sh{max-width:720px;margin:auto;padding:24px 16px 90px}
+.back{color:#54f0b5;text-decoration:none;font-weight:900;margin-left:18px}
+.head{display:block;width:calc(100% - 36px);margin:18px 0 22px 18px}
+.head small{display:block;color:#a5b2d2;font-size:10px;font-weight:950;letter-spacing:.14em;margin-bottom:8px}
+.head h1{font-size:clamp(2rem,8vw,3rem);line-height:1.04;margin:0;color:#fff}
+.head p,.muted{color:#aeb7d1;line-height:1.45}
+.card{margin:12px 0 0 18px;padding:16px;border:1px solid rgba(255,255,255,.12);border-radius:20px;background:rgba(10,14,30,.58);width:calc(100% - 18px)}
+.badge{display:inline-flex;padding:6px 9px;border-radius:999px;border:1px solid rgba(84,240,181,.26);color:#bfffe1;font-size:9px;font-weight:950}
+.q{margin-top:12px;padding:14px;border:1px solid rgba(255,255,255,.10);border-radius:16px;background:rgba(8,16,35,.38)}
+.q h3{margin:0 0 10px;font-size:16px}.req{color:#ff9fb5}
+.choice{display:flex;align-items:flex-start;gap:10px;padding:11px;border:1px solid rgba(255,255,255,.10);border-radius:13px;margin-top:8px;background:rgba(255,255,255,.015)}
+.choice:has(input:checked){border-color:rgba(84,240,181,.62);background:rgba(18,75,64,.22)}
+.choice input{width:23px;height:23px;min-width:23px;accent-color:#54f0b5;margin:0}
+.choice span{padding-top:2px}
+.text,.other{width:100%;min-height:46px;padding:10px 12px;border-radius:12px;border:1px solid rgba(119,142,210,.28);background:#081126;color:#fff;font-size:16px;max-width:100%}
+.other{margin-top:8px}.text{margin-top:6px}
+.btn{width:100%;min-height:52px;border-radius:15px;border:1px solid rgba(75,213,231,.62);background:linear-gradient(135deg,rgba(19,104,111,.92) 0%,rgba(32,75,118,.93) 54%,rgba(61,49,139,.92) 100%);color:#fff;font-weight:950;margin-top:14px}
+.btn:disabled{opacity:.55}
+.status{min-height:22px;margin-top:10px;color:#8ef0cf;font-weight:900}
 </style>
 </head>
 <body>
-<main class="shell">
-<div class="top"><a class="round" href="survey-center.html">‹</a><div class="brand"><small>NEXA SURVEY</small><h1 id="title">Survey</h1></div><a class="round" href="index.html">×</a></div>
-<section class="card"><span class="badge" id="audience">—</span><p class="muted" id="description"></p><div id="questions"></div><button class="btn" id="submit">Submit Survey</button><div class="status" id="status"></div></section>
+<main class="sh">
+<a class="back" href="index.html">‹ Home</a>
+<header class="head"><small>NEXA SURVEY</small><h1 id="title">Survey</h1><p id="description"></p></header>
+<section class="card"><span class="badge" id="audience">—</span><div id="questions"></div></section>
+<section class="card"><button class="btn" id="submit">Submit Survey</button><div class="status" id="status"></div></section>
 </main>
 <script>
 (()=>{'use strict';
@@ -38,16 +54,17 @@ async function boot(){
 }
 function render(){
  const s=data.survey;$('title').textContent=s.title;$('description').textContent=s.description||'';$('audience').textContent=s.audience==='alliance'?`ALLIANCE ONLY • ${s.alliance_tag||''}`:'ENTIRE SERVER';
- $('submit').textContent=data.response?'Update Response':'Submit Survey';if(s.status!=='open'){$('submit').disabled=true;$('status').textContent='This survey is closed.'}
+ $('submit').textContent=data.response?'Update Response':'Submit Survey';
+ if(s.status!=='open'){$('submit').disabled=true;$('status').textContent='This survey is closed.'}
  const saved=data.response?.answers||{};
  $('questions').innerHTML=(data.questions||[]).map((x,i)=>{
   const req=x.required?'<span class="req">*</span>':'';
   if(x.question_type==='single'){
-   const val=String(saved[x.id]??'');const isOther=val.startsWith('Other: ');
+   const val=String(saved[x.id]??''),isOther=val.startsWith('Other: ');
    return `<div class="q" data-q="${x.id}" data-type="single"><h3>${i+1}. ${esc(x.question_text)} ${req}</h3>${(x.options||[]).map(o=>`<label class="choice"><input type="radio" name="${x.id}" value="${esc(o)}" ${val===o?'checked':''}><span>${esc(o)}</span></label>`).join('')}${x.allow_other?`<label class="choice"><input type="radio" name="${x.id}" value="__other" ${isOther?'checked':''}><span>Other</span></label><input class="other" data-other="${x.id}" placeholder="Type your answer…" value="${isOther?esc(val.slice(7)):''}">`:''}</div>`;
   }
   if(x.question_type==='multiple'){
-   const vals=Array.isArray(saved[x.id])?saved[x.id]:[];const other=vals.find(v=>String(v).startsWith('Other: '));
+   const vals=Array.isArray(saved[x.id])?saved[x.id]:[],other=vals.find(v=>String(v).startsWith('Other: '));
    return `<div class="q" data-q="${x.id}" data-type="multiple"><h3>${i+1}. ${esc(x.question_text)} ${req}</h3>${(x.options||[]).map(o=>`<label class="choice"><input type="checkbox" value="${esc(o)}" ${vals.includes(o)?'checked':''}><span>${esc(o)}</span></label>`).join('')}${x.allow_other?`<label class="choice"><input type="checkbox" value="__other" ${other?'checked':''}><span>Other</span></label><input class="other" data-other="${x.id}" placeholder="Type your answer…" value="${other?esc(String(other).slice(7)):''}">`:''}</div>`;
   }
   if(x.question_type==='long')return `<div class="q" data-q="${x.id}" data-type="long"><h3>${i+1}. ${esc(x.question_text)} ${req}</h3><textarea class="text" rows="5">${esc(saved[x.id]||'')}</textarea></div>`;
@@ -55,15 +72,25 @@ function render(){
  }).join('');
 }
 function collect(){
- const out={};for(const qd of data.questions||[]){const el=document.querySelector(`[data-q="${qd.id}"]`);let v='';
+ const out={};
+ for(const qd of data.questions||[]){
+  const el=document.querySelector(`[data-q="${qd.id}"]`);let v='';
   if(qd.question_type==='single'){const c=el.querySelector('input[type=radio]:checked');if(c?.value==='__other'){const t=el.querySelector('[data-other]')?.value.trim()||'';v=t?`Other: ${t}`:''}else v=c?.value||''}
   else if(qd.question_type==='multiple'){v=[...el.querySelectorAll('input[type=checkbox]:checked')].map(c=>{if(c.value==='__other'){const t=el.querySelector('[data-other]')?.value.trim()||'';return t?`Other: ${t}`:''}return c.value}).filter(Boolean)}
   else v=el.querySelector('.text')?.value.trim()||'';
   if(qd.required&&(v===''||(Array.isArray(v)&&!v.length))){el.scrollIntoView({behavior:'smooth',block:'center'});throw new Error('Please answer every required question.')}
   out[qd.id]=v;
- }return out;
+ }
+ return out;
 }
-$('submit').onclick=async()=>{try{const answers=collect();$('status').textContent='Submitting…';const r=await SB.rpc('nexa_survey_submit',{p_survey_id:surveyId,p_account_id:accountId,p_answers:answers});if(r.error||!r.data?.ok){$('status').textContent=r.error?.message||r.data?.error||'Unable to submit survey.';return}$('status').textContent='Response saved ✓';data.response={answers};$('submit').textContent='Update Response'}catch(e){$('status').textContent=e.message||String(e)}};
+$('submit').onclick=async()=>{
+ try{
+  const answers=collect();$('status').textContent='Submitting…';
+  const r=await SB.rpc('nexa_survey_submit',{p_survey_id:surveyId,p_account_id:accountId,p_answers:answers});
+  if(r.error||!r.data?.ok){$('status').textContent=r.error?.message||r.data?.error||'Unable to submit survey.';return}
+  $('status').textContent='Response saved ✓';data.response={answers};$('submit').textContent='Update Response';
+ }catch(e){$('status').textContent=e.message||String(e)}
+};
 boot();
 })();
 </script>

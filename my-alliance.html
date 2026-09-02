@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- NEXA MY ALLIANCE V1.3 — ALL PUBLISHED PULSE TRACKING / TRANSFER DECOUPLED -->
+<!-- NEXA MY ALLIANCE V1.4 — SECURE ALL-FORMS PULSE TRACKING / TRANSFER DECOUPLED -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -214,93 +214,66 @@ async function saveSchedule(){
 async function loadPulse(){
  const host=$('#pulseHost');
  try{
-   const members=passport?.members||[];
-   const memberIds=members.map(m=>String(m.accountId)).filter(Boolean);
-   if(!memberIds.length){host.innerHTML='<div class="ma-card ma-empty">No verified alliance members yet.</div>';return}
-
-   const {data:templates,error:tErr}=await sb.from('event_form_templates').select('event_type_key,settings');
-   if(tErr)throw tErr;
-
-   const now=Date.now();
-   const active=(templates||[]).filter(x=>{
-     const s=x.settings||{};
-     if(s.published_to_nexa!==true)return false;
-     if(s.public_access_removed===true||s.public_access_enabled===false)return false;
-     if(s.deadline_enabled&&s.deadline_at){
-       const ms=new Date(s.deadline_at).getTime();
-       if(Number.isFinite(ms)&&ms<=now)return false;
-     }
-     return true;
+   const result=await rpc('nexa_alliance_pulse_tracking',{
+     p_alliance_id:Number(passport.id),
+     p_state:activeState()
    });
 
-   if(!active.length){host.innerHTML='<div class="ma-card ma-empty">No active NEXA Pulse forms right now.</div>';return}
-
-   const {data:svsRows,error:svsErr}=await sb.from('svs_events').select('id,status,prep_monday').eq('state_number',activeState()).in('status',['live','upcoming']).order('prep_monday',{ascending:true}).limit(1);
-   if(svsErr)throw svsErr;
-   const svsEvent=svsRows?.[0]||null;
-
-   const titleFor=(key,s)=>{
-     if(key==='svs')return 'Battle Sign-Up';
-     if(key==='ministry')return 'Ministry Sign-Up';
-     if(key==='fdt')return 'FDT Sign-Up';
-     if(key==='tal')return 'TAL Sign-Up';
-     return s?.form_title||s?.title||'Survey';
-   };
-
-   async function responseSet(key,settings){
-     let rows=[];
-     if(key==='svs'&&svsEvent?.id){
-       const r=await sb.from('battle_form_responses').select('player_account_id').eq('event_id',svsEvent.id).in('player_account_id',memberIds);
-       if(r.error)throw r.error; rows=r.data||[];
-     }else if(key==='ministry'&&svsEvent?.id){
-       const r=await sb.from('prep_requests').select('player_account_id').eq('event_id',svsEvent.id).in('player_account_id',memberIds);
-       if(r.error)throw r.error; rows=r.data||[];
-     }else if(key==='fdt'||key==='tal'){
-       const r=await sb.from('event_operation_responses').select('player_account_id').eq('event_type_key',key).in('player_account_id',memberIds);
-       if(r.error)throw r.error; rows=r.data||[];
-     }else if(key==='surveys'){
-       const u=String(settings?.form_url||settings?.public_url||'');
-       const m=u.match(/[?&]id=([0-9a-f-]{36})/i);
-       if(m){
-         const r=await sb.from('nexa_survey_responses').select('player_account_id').eq('survey_id',m[1]).in('player_account_id',memberIds);
-         if(r.error)throw r.error; rows=r.data||[];
-       }
-     }
-     return new Set(rows.map(x=>String(x.player_account_id)));
+   if(!result?.ok){
+     host.innerHTML=`<div class="ma-card ma-empty">${esc(result?.error||'Unable to load NEXA Pulse.')}</div>`;
+     return;
    }
 
-   const pulseData=[];
-   for(const item of active){
-     const set=await responseSet(item.event_type_key,item.settings||{});
-     pulseData.push({key:item.event_type_key,title:titleFor(item.event_type_key,item.settings||{}),set});
+   const members=(result.members||[]).map(m=>({
+     accountId:m.account_id,
+     name:m.name,
+     gameId:m.game_id,
+     rank:m.rank
+   }));
+   const forms=result.forms||[];
+
+   if(!forms.length){
+     host.innerHTML='<div class="ma-card ma-empty">No published and open NEXA forms right now.</div>';
+     return;
    }
 
    host.innerHTML=`<div class="ma-card">
      <div class="ma-kicker">NEXA PULSE</div>
      <h3>Alliance Response Tracking</h3>
-     <div class="ma-muted">Published and currently open forms only. This view tracks participation, not answers.</div>
+     <div class="ma-muted">Published and currently open forms only. This page tracks participation only — never the answers.</div>
      <div class="ma-tabs" id="pulseFormTabs" style="padding:12px 0 0"></div>
    </div>
    <div id="pulseList"></div>`;
 
    const tabs=$('#pulseFormTabs');
-   tabs.innerHTML=pulseData.map((p,i)=>`<button class="ma-tab ${i===0?'active':''}" data-pulse-form="${esc(p.key)}">${esc(p.title)}</button>`).join('');
+   tabs.innerHTML=forms.map((p,i)=>`<button class="ma-tab ${i===0?'active':''}" data-pulse-form="${esc(p.key)}">${esc(p.title)}</button>`).join('');
 
    const renderPulse=p=>{
-     const completed=members.filter(m=>p.set.has(String(m.accountId)));
-     const missing=members.filter(m=>!p.set.has(String(m.accountId)));
-     const total=members.length, pc=total?Math.round(completed.length/total*100):0;
-     const rows=list=>list.map(m=>`<div class="ma-card" style="margin:7px 0;padding:10px 12px"><div class="ma-row"><div><b>${esc(m.name)}</b><div class="ma-muted">ID ${esc(m.gameId)}</div></div></div></div>`).join('')||'<div class="ma-empty">None</div>';
+     const respondedSet=new Set((p.responded_account_ids||[]).map(String));
+     const completed=members.filter(m=>respondedSet.has(String(m.accountId)));
+     const missing=members.filter(m=>!respondedSet.has(String(m.accountId)));
+     const total=members.length;
+     const pc=total?Math.round(completed.length/total*100):0;
+
+     const rows=list=>list.map(m=>`<div class="ma-card" style="margin:7px 0;padding:10px 12px">
+       <div class="ma-row"><div><b>${esc(m.name)}</b><div class="ma-muted">ID ${esc(m.gameId)}</div></div></div>
+     </div>`).join('')||'<div class="ma-empty">None</div>';
+
      const copyText=list=>list.map(m=>`${m.name} — ${m.gameId}`).join('\n');
 
      $('#pulseList').innerHTML=`<div class="ma-card">
-       <div class="ma-row"><div><div class="ma-kicker">ACTIVE PULSE</div><h3>${esc(p.title)}</h3></div><span class="ma-chip">${completed.length}/${total} · ${pc}%</span></div>
+       <div class="ma-row">
+         <div><div class="ma-kicker">ACTIVE PULSE</div><h3>${esc(p.title)}</h3></div>
+         <span class="ma-chip">${completed.length}/${total} · ${pc}%</span>
+       </div>
        <div class="ma-pulse-progress"><div style="width:${pc}%"></div></div>
      </div>
+
      <div class="ma-card">
        <div class="ma-row"><h3>Responded · ${completed.length}</h3><button class="ma-btn" id="copyResponded">Copy Responded</button></div>
        <div>${rows(completed)}</div>
      </div>
+
      <div class="ma-card">
        <div class="ma-row"><h3>Not Responded · ${missing.length}</h3><button class="ma-btn secondary" id="copyMissing">Copy Not Responded</button></div>
        <div>${rows(missing)}</div>
@@ -313,10 +286,10 @@ async function loadPulse(){
    tabs.addEventListener('click',e=>{
      const b=e.target.closest('[data-pulse-form]');if(!b)return;
      $$('#pulseFormTabs .ma-tab').forEach(x=>x.classList.toggle('active',x===b));
-     const p=pulseData.find(x=>x.key===b.dataset.pulseForm);if(p)renderPulse(p);
+     const p=forms.find(x=>x.key===b.dataset.pulseForm);if(p)renderPulse(p);
    });
 
-   renderPulse(pulseData[0]);
+   renderPulse(forms[0]);
  }catch(e){
    host.innerHTML=`<div class="ma-card ma-empty">${esc(e.message||'Unable to load NEXA Pulse.')}</div>`;
  }

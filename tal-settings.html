@@ -1,5 +1,5 @@
-   <!doctype html>
-    <!-- NEXA TAL SETTINGS V2.3 — NATIVE DEADLINE / WIDE UNIFIED FORM -->
+ <!doctype html>
+    <!-- NEXA TAL SETTINGS V2.4 — DEADLINE AUTO-SAVE / WIDE UNIFIED FORM -->
     <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
     <title>NEXA • Edit TAL Form</title><link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="/human-gate.js"></script>
@@ -51,7 +51,8 @@ input[type=date]{display:block!important;width:100%!important;max-width:100%!imp
         <label><b>Minute</b><select id="nd3-minute"><option>00</option><option>15</option><option>30</option><option>45</option></select></label>
       </div>
       <div class="nexa-deadline-utc">24-hour UTC</div>
-      <div class="nexa-deadline-note">This deadline saves with the main Save Form button.</div>
+      <div class="nexa-deadline-note">Deadline changes save automatically.</div>
+      <div id="deadline-save-status" class="status"></div>
     </section>
     <section class="card"><button id="save" class="btn" type="button">Save TAL Form</button><div id="status" class="status"></div><div class="actions"><a class="btn" href="tal-form.html?internal=1&preview=member">Preview as NEXA Member</a><a class="btn" href="tal-form.html?public=1&preview=guest">Preview as Guest</a></div></section>
     </main><script>
@@ -78,6 +79,53 @@ input[type=date]{display:block!important;width:100%!important;max-width:100%!imp
       const hh=document.getElementById('nd3-hour')?.value||'00',mm=document.getElementById('nd3-minute')?.value||'00';
       return {deadline_enabled:true,deadline_at:new Date(`${d}T${hh}:${mm}:00Z`).toISOString()};
     }
+    let deadlineSaveTimer=null;
+
+    async function saveDeadlineOnly(){
+      const out=$('deadline-save-status');
+      let dl;
+      try{
+        dl=deadlineFields();
+      }catch(e){
+        out.textContent=e.message;
+        return;
+      }
+
+      out.textContent='Saving…';
+
+      const current=await sb.from('event_form_templates')
+        .select('settings')
+        .eq('event_type_key','tal')
+        .maybeSingle();
+
+      if(current.error){
+        out.textContent='Could not save deadline: '+current.error.message;
+        return;
+      }
+
+      const next={...(current.data?.settings||{}),...dl};
+      const saved=await sb.from('event_form_templates').upsert({
+        event_type_key:'tal',
+        settings:next,
+        updated_at:new Date().toISOString()
+      },{onConflict:'event_type_key'});
+
+      if(saved.error){
+        out.textContent='Could not save deadline: '+saved.error.message;
+        return;
+      }
+
+      settings={...settings,...dl};
+      out.textContent=dl.deadline_enabled
+        ? 'Deadline saved ✓'
+        : 'Deadline disabled ✓';
+    }
+
+    function queueDeadlineSave(){
+      clearTimeout(deadlineSaveTimer);
+      deadlineSaveTimer=setTimeout(saveDeadlineOnly,250);
+    }
+
     const names=['Elimination Round 1','Elimination Round 2','Elimination Round 3','Elimination Round 4','Championship Round 1','Championship Round 2','Championship Round 3'],offset=[0,2,4,6,8,10,12],defaults=['02:00','07:00','12:00','14:00','19:00'];let row,settings={},library=[],slots=[];
     function calc(){const b=$('base').value;if(!b){$('rounds').innerHTML='';return}const d=new Date(b+'T00:00:00Z');$('rounds').innerHTML=names.map((n,i)=>{const x=new Date(d);x.setUTCDate(x.getUTCDate()+offset[i]);return `<div class="round"><b>${n}</b><div>${x.toISOString().slice(0,10)} UTC</div></div>`}).join('')}
     function bucket(k){return new Set((settings.items?.[k]||[]).map(x=>String(x.name||'').toLowerCase()))}
@@ -86,5 +134,9 @@ input[type=date]{display:block!important;width:100%!important;max-width:100%!imp
     function renderTimes(){$('times').innerHTML=slots.map((x,i)=>`<label class="time"><input class="ts" type="checkbox" value="${x}" checked><b>${x} UTC</b><button type="button" data-rm="${i}">×</button></label>`).join('');document.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{slots.splice(+b.dataset.rm,1);renderTimes()})}
     async function load(){const [q,l]=await Promise.all([sb.from('event_form_templates').select('*').eq('event_type_key','tal').maybeSingle(),sb.from('nexa_library_items').select('id,item_type,name,image_url,is_active,is_visible,sort_order').in('item_type',['hero','expert']).eq('is_active',true).order('sort_order')]);row=q.data;settings=row?.settings||{};library=l.data||[];initDeadlineControls(settings);slots=(settings.tal_time_slots||defaults).filter(x=>x!=='09:00');if(!slots.includes('19:00'))slots.push('19:00');$('base').value=settings.tal_base_date||'';$('era').value=settings.troop_era_preset||'exalted';const v=settings.tal_visibility||{};$('tele').checked=v.teleporters!==false;$('sub').checked=v.substitute!==false;$('voice').checked=v.voice!==false;$('notes').checked=v.notes!==false;renderTimes();renderLib('hero','joiner_hero','jh');renderLib('hero','rally_hero','rh');renderLib('expert','joiner_expert','je');renderLib('expert','rally_expert','re');calc()}
     $('newh').innerHTML=Array.from({length:24},(_,i)=>`<option>${String(i).padStart(2,'0')}</option>`).join('');$('base').onchange=calc;$('addtime').onclick=()=>{const x=`${$('newh').value}:${$('newm').value}`;if(!slots.includes(x)){slots.push(x);slots.sort();renderTimes()}};
+    ['nd3-enabled','nd3-date','nd3-hour','nd3-minute'].forEach(id=>{
+      $(id)?.addEventListener('change',queueDeadlineSave);
+    });
     $('save').onclick=async()=>{if(!row)return;$('status').textContent='Saving…';let dl;try{dl=deadlineFields()}catch(e){$('status').textContent=e.message;return}const next={...settings,...dl,tal_base_date:$('base').value||null,tal_time_slots:slots,troop_era_preset:$('era').value,t12_max_skill:3,items:{joiner_hero:selected('joiner_hero'),rally_hero:selected('rally_hero'),joiner_expert:selected('joiner_expert'),rally_expert:selected('rally_expert')},tal_visibility:{teleporters:$('tele').checked,substitute:$('sub').checked,voice:$('voice').checked,notes:$('notes').checked}};const q=await sb.from('event_form_templates').update({settings:next,updated_at:new Date().toISOString()}).eq('id',row.id);$('status').textContent=q.error?q.error.message:'Saved ✓';if(!q.error)settings=next};load();
     </script></body></html>
+

@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- NEXA MINISTRY SIGN-UP V4.0 — INDEPENDENT MINISTRY CYCLE / SECTION WINDOWS / FRAME-FILTERED TIMES -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -6,7 +7,7 @@
 <title>NEXA • Ministry Sign-Up</title>
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/nexa-ministry-window-v1.js?v=2" defer></script>
+<script src="/nexa-ministry-window-v1.js?v=3" defer></script>
 <style>
 :root{--ms-accent:#48ddff;--ms-muted:#aeb7d1}
 *{box-sizing:border-box}
@@ -24,24 +25,23 @@ body{margin:0;background:radial-gradient(circle at 5% 18%,rgba(44,194,255,.07),t
 .ms-fields label,.ms-account label{display:grid;gap:7px;font-weight:800}.ms-fields small,.ms-helper{font-weight:500;color:var(--ms-muted);line-height:1.4}
 .ms-fields input[type="number"],.ms-fields select,.ms-account select{width:100%;min-height:48px;padding:11px 13px;border:1px solid rgba(119,142,210,.28);border-radius:13px;background:linear-gradient(145deg,rgba(8,17,38,.96),rgba(7,10,27,.96));color:#f7f9ff;font-size:16px;outline:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.015)}
 .ms-fields input[type="number"]:focus,.ms-fields select:focus,.ms-account select:focus{border-color:rgba(72,221,255,.68);box-shadow:0 0 0 3px rgba(72,221,255,.08)}
-.ms-fields select,.ms-account select{color-scheme:dark}
-.ms-fields option,.ms-account option{background:#081126;color:#fff}
-.ms-two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ms-fields select,.ms-account select{color-scheme:dark}.ms-fields option,.ms-account option{background:#081126;color:#fff}
 .ms-t12{margin-top:2px;padding:14px;border:1px solid rgba(72,221,255,.18);border-radius:16px;background:rgba(8,20,40,.42)}.ms-t12-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.ms-t12-head strong{line-height:1.35}.ms-t12-fields{display:grid;gap:13px;margin-top:14px;padding-top:13px;border-top:1px solid rgba(255,255,255,.07)}
 .ms-actions{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0 0 18px}.ms-actions .btn{min-height:46px;flex:1 1 210px}
 .ms-message{min-height:22px;margin:12px 0 0 18px;font-weight:750}.ms-message.ok{color:#79edbf}.ms-message.err{color:#ff9bbd}.ms-submit-note{margin:8px 0 0 18px;color:var(--ms-muted);font-size:.80rem;line-height:1.4}
-@media(max-width:560px){.ms-section-head{align-items:flex-start}.ms-two{grid-template-columns:1fr}.ms-shell:before{left:18px}.ms-t12-head{flex-direction:column}.ms-t12-head .ms-toggle{align-self:flex-start}}
+.ms-closed{margin-top:10px;padding:9px 11px;border-radius:11px;border:1px solid rgba(255,105,150,.22);background:rgba(120,20,58,.12);color:#ff9bbd;font-size:12px;font-weight:850}
+@media(max-width:560px){.ms-section-head{align-items:flex-start}.ms-shell:before{left:18px}.ms-t12-head{flex-direction:column}.ms-t12-head .ms-toggle{align-self:flex-start}}
 </style>
 </head>
 <body>
 <main class="ms-shell">
 <a class="ms-back" href="forms-center.html?section=svs">‹ Forms Center</a>
-<header class="ms-hero"><div class="ms-day">SVS • PREPARATION PHASE</div><h1>Ministry Sign-Up</h1><p id="event-meta">Checking SvS event status…</p></header>
+<header class="ms-hero"><div class="ms-day">SVS • PREPARATION PHASE</div><h1>Ministry Sign-Up</h1><p id="event-meta">Loading Ministry schedule…</p></header>
 <div class="ms-info">Speedups are requested in <b>minutes</b> because NEXA uses the total minutes, together with the resources you plan to use, to estimate your expected SvS score and help leadership prioritize ministry appointments.</div>
 <section class="ms-account"><label>WOS Account<select id="account" required><option value="">Loading accounts…</option></select></label><div id="auth-help" class="ms-helper"></div></section>
 <form id="form">
 
-<section class="ms-section">
+<section class="ms-section" data-ministry-section="construction">
   <div class="ms-section-head"><div><div class="ms-day">DAY 1 • CONSTRUCTION</div><h3>VP · Vice President</h3></div><label class="ms-toggle"><input id="construction-requested" type="checkbox"> Request VP</label></div>
   <div id="construction-fields" class="ms-fields hidden">
     <div class="ms-helper">Only complete this section if you are requesting this ministry appointment.</div>
@@ -53,7 +53,7 @@ body{margin:0;background:radial-gradient(circle at 5% 18%,rgba(44,194,255,.07),t
   </div>
 </section>
 
-<section class="ms-section">
+<section class="ms-section" data-ministry-section="research">
   <div class="ms-section-head"><div><div class="ms-day">DAY 2 • RESEARCH</div><h3>VP · Vice President</h3></div><label class="ms-toggle"><input id="research-requested" type="checkbox"> Request VP</label></div>
   <div id="research-fields" class="ms-fields hidden">
     <div class="ms-helper">Only complete this section if you are requesting this ministry appointment.</div>
@@ -64,7 +64,7 @@ body{margin:0;background:radial-gradient(circle at 5% 18%,rgba(44,194,255,.07),t
   </div>
 </section>
 
-<section class="ms-section">
+<section class="ms-section" data-ministry-section="training">
   <div class="ms-section-head"><div><div class="ms-day">DAY 4 • TRAINING</div><h3>MOE · Minister of Education</h3></div><label class="ms-toggle"><input id="training-requested" type="checkbox"> Request MOE</label></div>
   <div id="training-fields" class="ms-fields hidden">
     <div class="ms-helper">Only complete this section if you are requesting this ministry appointment.</div>
@@ -72,12 +72,8 @@ body{margin:0;background:radial-gradient(circle at 5% 18%,rgba(44,194,255,.07),t
     <label>How many minutes of Training Speedups are you planning to spend?<input id="training-speedups" type="number" min="0" inputmode="numeric" value="0"><small>Enter the total number of Training Speedup minutes shown in-game.</small></label>
     <label>What UTC time frame would you prefer for your Ministry position?<select id="training-frame"></select></label>
     <label>Do you have a specific UTC time that works for you? — Optional<select id="training-time"></select></label>
-
     <div class="ms-t12">
-      <div class="ms-t12-head">
-        <strong>Are you upgrading troops to T12 during this SvS?</strong>
-        <label class="ms-toggle"><input id="upgrading-t12" type="checkbox"> Yes</label>
-      </div>
+      <div class="ms-t12-head"><strong>Are you upgrading troops to T12 during this SvS?</strong><label class="ms-toggle"><input id="upgrading-t12" type="checkbox"> Yes</label></div>
       <div id="t12-fields" class="ms-t12-fields hidden">
         <label>How many Refined Fire Crystals are you planning to spend on T12?<input id="t12-rfc" type="number" min="0" inputmode="numeric" value="0"></label>
         <label>How many Fire Crystal Shards are you planning to spend on T12?<input id="t12-shards" type="number" min="0" inputmode="numeric" value="0"></label>
@@ -86,112 +82,144 @@ body{margin:0;background:radial-gradient(circle at 5% 18%,rgba(44,194,255,.07),t
   </div>
 </section>
 
-<div class="ms-actions"><button id="submit" class="btn" type="submit">Submit Ministry Sign-Up</button><button id="copy-link" class="btn secondary" type="button">Copy Form Link</button></div><div id="submit-note" class="ms-submit-note"></div><div id="message" class="ms-message"></div>
+<div class="ms-actions"><button id="submit" class="btn" type="submit">Submit Ministry Sign-Up</button><button id="copy-link" class="btn secondary" type="button">Copy Form Link</button></div>
+<div id="submit-note" class="ms-submit-note"></div><div id="message" class="ms-message"></div>
 </form></main>
 <script>
-(()=>{
-'use strict';
+(()=>{'use strict';
 const sb=window.supabase.createClient('https://dfxcxboxrkfmrnsgpyin.supabase.co','sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-');
 const $=id=>document.getElementById(id);
-const frames=['','00:00–04:00 UTC','04:00–08:00 UTC','08:00–12:00 UTC','12:00–16:00 UTC','16:00–20:00 UTC','20:00–23:30 UTC'];
-const times=['',...Array.from({length:48},(_,i)=>`${String(Math.floor(i/2)).padStart(2,'0')}:${i%2?'30':'00'}`)];
-let liveEvent=null,sessionUser=null;
-function options(list,blank){return list.map((x,i)=>`<option value="${x}">${i===0?blank:x+(blank.includes('UTC time')?' UTC':'')}</option>`).join('')}
-['construction','research','training'].forEach(k=>{
-  $(`${k}-frame`).innerHTML=options(frames,'Select');
-  $(`${k}-time`).innerHTML=options(times,'Optional — select UTC time');
-  $(`${k}-requested`).addEventListener('change',()=>{$(`${k}-fields`).classList.toggle('hidden',!$(`${k}-requested`).checked)})
-});
-$('upgrading-t12').addEventListener('change',()=>{$('t12-fields').classList.toggle('hidden',!$('upgrading-t12').checked)});
-function n(id){return Math.max(0,Number($(id).value)||0)}
+const keys=['construction','research','training'];
+const frames=['','00:00–04:00 UTC','04:00–08:00 UTC','08:00–12:00 UTC','12:00–16:00 UTC','16:00–20:00 UTC','20:00–24:00 UTC'];
+const allTimes=Array.from({length:48},(_,i)=>`${String(Math.floor(i/2)).padStart(2,'0')}:${i%2?'30':'00'}`);
+let sessionUser=null,ministry=null,sectionOpen={construction:true,research:true,training:true};
+
 function setMsg(text,ok=false){const el=$('message');el.textContent=text;el.className='ms-message '+(ok?'ok':'err')}
+function n(id){return Math.max(0,Number($(id).value)||0)}
 function timeValue(id){return $(id).value||null}
-function updateSubmitState(){
-  const canSubmit=!!sessionUser&&!!liveEvent&&liveEvent.prep_form_open!==false&&!!$('account').value;
-  $('submit').disabled=!canSubmit;
-  if(!sessionUser)$('submit-note').textContent='Preview mode: sign in to NEXA to submit this form.';
-  else if(!liveEvent)$('submit-note').textContent='Preview mode: no live SvS event. The complete form remains available for review; submission will activate when an SvS event is live.';
-  else if(liveEvent.prep_form_open===false)$('submit-note').textContent='This form is visible for review, but Ministry Sign-Up is currently closed for the live SvS event.';
-  else if(!$('account').value)$('submit-note').textContent='Select a WOS Account to submit.';
-  else $('submit-note').textContent='Ministry Sign-Up is open for the current live SvS event.';
+function frameBounds(frame){
+  const m=/^(\d{2}):(\d{2})–(\d{2}):(\d{2}) UTC$/.exec(frame||'');
+  if(!m)return null;
+  const start=Number(m[1])*60+Number(m[2]),end=(Number(m[3])===24?1440:Number(m[3])*60+Number(m[4]));
+  return {start,end};
 }
-async function fillExisting(){
-  if(!liveEvent||!$('account').value)return;
-  const {data}=await sb.from('prep_requests').select('*').eq('event_id',liveEvent.id).eq('player_account_id',$('account').value).maybeSingle();
-  const x=data||{};
-  for(const k of ['construction','research','training']){
-    $(`${k}-requested`).checked=!!x[`${k}_requested`];
-    $(`${k}-fields`).classList.toggle('hidden',!$(`${k}-requested`).checked)
-  }
+function timesForFrame(frame){
+  const b=frameBounds(frame);if(!b)return [];
+  return allTimes.filter(t=>{const [h,m]=t.split(':').map(Number),v=h*60+m;return v>=b.start&&v<b.end});
+}
+function renderTimeOptions(key,selected=''){
+  const frame=$(`${key}-frame`).value;
+  const list=timesForFrame(frame);
+  const el=$(`${key}-time`);
+  el.innerHTML='<option value="">Optional — select UTC time</option>'+list.map(t=>`<option value="${t}" ${t===selected?'selected':''}>${t} UTC</option>`).join('');
+  if(selected&&!list.includes(selected))el.value='';
+}
+function initSelectors(){
+  keys.forEach(k=>{
+    $(`${k}-frame`).innerHTML=frames.map((x,i)=>`<option value="${x}">${i===0?'Select':x}</option>`).join('');
+    renderTimeOptions(k);
+    $(`${k}-frame`).addEventListener('change',()=>renderTimeOptions(k));
+    $(`${k}-requested`).addEventListener('change',()=>{$(`${k}-fields`).classList.toggle('hidden',!$(`${k}-requested`).checked)});
+  });
+  $('upgrading-t12').addEventListener('change',()=>{$('t12-fields').classList.toggle('hidden',!$('upgrading-t12').checked)});
+}
+function formatStart(iso){
+  if(!iso)return 'Ministry access is open. Start Date has not been scheduled yet.';
+  const d=new Date(iso);
+  return `Ministry Prep starts ${d.toISOString().slice(0,10)} · ${d.toISOString().slice(11,16)} UTC`;
+}
+function applySectionState(){
+  const labels={construction:'Day 1 • Construction / VP',research:'Day 2 • Research / VP',training:'Day 4 • Training / MOE'};
+  keys.forEach(k=>{
+    const req=$(`${k}-requested`),box=document.querySelector(`[data-ministry-section="${k}"]`);
+    const open=sectionOpen[k]!==false;
+    req.disabled=!open;
+    box?.querySelectorAll(`#${k}-fields input,#${k}-fields select,#${k}-fields textarea`).forEach(x=>x.disabled=!open);
+    let n=box?.querySelector('.ms-closed');
+    if(!open&&!n){n=document.createElement('div');n.className='ms-closed';n.textContent=`${labels[k]} sign-up is closed.`;box.appendChild(n)}
+    if(open&&n)n.remove();
+  });
+}
+function updateSubmitState(){
+  const access=ministry?.public_access_open!==false;
+  const hasOpen=keys.some(k=>sectionOpen[k]!==false);
+  $('submit').disabled=!sessionUser||!$('account').value||!access||!hasOpen;
+  if(!sessionUser)$('submit-note').textContent='Sign in to NEXA to submit this form.';
+  else if(!access)$('submit-note').textContent='Ministry Sign-Up is currently closed by leadership.';
+  else if(!$('account').value)$('submit-note').textContent='Select a WOS Account to submit.';
+  else if(!hasOpen)$('submit-note').textContent='All Ministry sign-up days for this cycle are closed.';
+  else $('submit-note').textContent='Ministry Sign-Up is open. You can submit any Ministry day that is still available.';
+}
+async function loadMinistryForAccount(){
+  const accountId=$('account').value;
+  if(!accountId){ministry=null;sectionOpen={construction:true,research:true,training:true};applySectionState();updateSubmitState();return}
+  const {data,error}=await sb.rpc('nexa_ministry_get',{p_account_id:accountId});
+  if(error||!data?.ok){setMsg(error?.message||data?.error||'Unable to load Ministry Sign-Up.');return}
+  ministry=data;sectionOpen=data.section_open||sectionOpen;
+  $('event-meta').textContent=formatStart(data.start_at);$('event-meta').classList.add('ms-preview');
+  applySectionState();fillExisting(data.response||{});updateSubmitState();
+}
+function fillExisting(x){
+  keys.forEach(k=>{
+    $(`${k}-requested`).checked=!!x[`${k}_requested`]&&sectionOpen[k]!==false;
+    $(`${k}-fields`).classList.toggle('hidden',!$(`${k}-requested`).checked);
+  });
   $('construction-speedups').value=x.construction_speedup_minutes||0;
   $('construction-fc').value=x.construction_fire_crystals||0;
   $('construction-rfc').value=x.construction_refined_fire_crystals||0;
   $('construction-frame').value=x.construction_time_frame||'';
-  $('construction-time').value=(x.construction_specific_time||'').slice(0,5);
+  renderTimeOptions('construction',(x.construction_specific_time||'').slice(0,5));
   $('research-speedups').value=x.research_speedup_minutes||0;
   $('research-shards').value=x.research_fire_crystal_shards||0;
   $('research-frame').value=x.research_time_frame||'';
-  $('research-time').value=(x.research_specific_time||'').slice(0,5);
+  renderTimeOptions('research',(x.research_specific_time||'').slice(0,5));
   $('training-selection').value=x.training_selection||'';
   $('training-speedups').value=x.training_speedup_minutes||0;
   $('training-frame').value=x.training_time_frame||'';
-  $('training-time').value=(x.training_specific_time||'').slice(0,5);
-  $('upgrading-t12').checked=!!x.upgrading_t12;
+  renderTimeOptions('training',(x.training_specific_time||'').slice(0,5));
+  $('upgrading-t12').checked=!!x.upgrading_t12&&sectionOpen.training!==false;
   $('t12-fields').classList.toggle('hidden',!$('upgrading-t12').checked);
   $('t12-rfc').value=x.t12_refined_fire_crystals||0;
   $('t12-shards').value=x.t12_fire_crystal_shards||0;
 }
 async function load(){
-  const {data:{session}}=await sb.auth.getSession();
-  sessionUser=session?.user||null;
+  initSelectors();
+  const {data:{session}}=await sb.auth.getSession();sessionUser=session?.user||null;
   if(sessionUser){
-    const {data:accounts,error:accountError}=await sb.from('player_accounts').select('id,user_id,in_game_name,player_id,state_number,custom_alliance_tag,alliances(tag)').eq('user_id',sessionUser.id).order('created_at');
-    if(accountError){
-      $('account').innerHTML='<option value="">Unable to load accounts</option>';
-      $('auth-help').textContent=accountError.message
-    }else if(!accounts?.length){
-      $('account').innerHTML='<option value="">No WOS accounts found</option>';
-      $('auth-help').textContent='Add a WOS Account in NEXA to connect Ministry requests to your profile.'
-    }else{
+    const {data:accounts,error}=await sb.from('player_accounts').select('id,user_id,in_game_name,player_id,state_number,custom_alliance_tag,alliances(tag)').eq('user_id',sessionUser.id).order('created_at');
+    if(error){$('account').innerHTML='<option value="">Unable to load accounts</option>';$('auth-help').textContent=error.message}
+    else if(!accounts?.length){$('account').innerHTML='<option value="">No WOS accounts found</option>';$('auth-help').textContent='Add a WOS Account in NEXA to connect Ministry requests to your profile.'}
+    else{
       const activeState=Number(localStorage.getItem('nexa_active_state_v49')||0);
-      const visibleAccounts=activeState?accounts.filter(a=>Number(a.state_number||0)===activeState):accounts;
-      const rows=visibleAccounts.length?visibleAccounts:accounts;
-      $('account').innerHTML=rows.map(a=>`<option value="${a.id}">${a.in_game_name} • ${a.alliances?.tag||a.custom_alliance_tag||'Not Listed'} • ID ${a.player_id}</option>`).join('');
-      $('auth-help').textContent=activeState&&visibleAccounts.length?'Showing your WOS Accounts for the active State.':'Choose the WOS Account this Ministry request belongs to.'
+      const visible=activeState?accounts.filter(a=>Number(a.state_number||0)===activeState):accounts;
+      const rows=visible.length?visible:accounts;
+      $('account').innerHTML='<option value="">Select WOS Account</option>'+rows.map(a=>`<option value="${a.id}">${a.in_game_name} • ${a.alliances?.tag||a.custom_alliance_tag||'Not Listed'} • ID ${a.player_id}</option>`).join('');
+      $('auth-help').textContent=activeState&&visible.length?'Showing your WOS Accounts for the active State.':'Choose the WOS Account this Ministry request belongs to.';
     }
   }else{
     $('account').innerHTML='<option value="">Sign in to NEXA to select an account</option>';
-    $('auth-help').textContent='The full form remains visible in preview mode. Sign in when you are ready to submit.'
+    $('auth-help').textContent='The form stays visible for review. Sign in when you are ready to submit.';
+    const {data:tpl}=await sb.from('event_form_templates').select('settings').eq('event_type_key','ministry').maybeSingle();
+    const s=tpl?.settings||{};
+    $('event-meta').textContent=formatStart(s.ministry_schedule_start_at||null);$('event-meta').classList.add('ms-preview');
+    ministry={public_access_open:s.public_access_removed!==true&&s.public_access_enabled!==false};
   }
-  try{await sb.rpc('refresh_auto_ended_events')}catch(_){}
-  const {data:event,error:eventErr}=await sb.from('svs_events').select('*').eq('status','live').order('prep_monday',{ascending:false}).limit(1).maybeSingle();
-  if(eventErr){
-    $('event-meta').textContent='Preview mode • Unable to confirm live SvS status.';
-    $('event-meta').classList.add('ms-preview')
-  }else if(!event){
-    $('event-meta').textContent='Preview mode • No live SvS event. Form remains available for review.';
-    $('event-meta').classList.add('ms-preview')
-  }else{
-    liveEvent=event;
-    $('event-meta').textContent=`SvS against State ${event.opponent_state} • Prep Monday ${event.prep_monday} UTC`;
-    $('event-meta').classList.remove('ms-preview')
-  }
-  $('account').addEventListener('change',async()=>{updateSubmitState();await fillExisting()});
+  $('account').addEventListener('change',loadMinistryForAccount);
   updateSubmitState();
-  if(liveEvent&&$('account').value)await fillExisting()
 }
 $('form').addEventListener('submit',async e=>{
   e.preventDefault();
   if(!sessionUser)return setMsg('Sign in to NEXA before submitting.');
-  if(!liveEvent)return setMsg('No live SvS event is available for submission yet. You can still review the complete form.');
-  if(liveEvent.prep_form_open===false)return setMsg('Ministry Sign-Up is currently closed for the live SvS event.');
   if(!$('account').value)return setMsg('Select a WOS Account.');
-  if(!$('construction-requested').checked&&!$('research-requested').checked&&!$('training-requested').checked)return setMsg('Select at least one ministry request.');
+  if(ministry?.public_access_open===false)return setMsg('Ministry Sign-Up is currently closed by leadership.');
+  const requested=keys.filter(k=>$(`${k}-requested`).checked);
+  if(!requested.length)return setMsg('Select at least one Ministry request.');
+  for(const k of requested){
+    if(sectionOpen[k]===false)return setMsg(`${k[0].toUpperCase()+k.slice(1)} sign-up is already closed.`);
+    if(!$(`${k}-frame`).value)return setMsg(`Select a UTC time frame for ${k}.`);
+  }
   if($('training-requested').checked&&!$('training-selection').value&&!$('upgrading-t12').checked)return setMsg('Select what you are training/promoting, or indicate that you are upgrading to T12.');
   const payload={
-    event_id:liveEvent.id,
-    user_id:sessionUser.id,
-    player_account_id:$('account').value,
     construction_requested:$('construction-requested').checked,
     construction_speedup_minutes:$('construction-requested').checked?n('construction-speedups'):0,
     construction_fire_crystals:$('construction-requested').checked?n('construction-fc'):0,
@@ -213,11 +241,23 @@ $('form').addEventListener('submit',async e=>{
     t12_fire_crystal_shards:$('training-requested').checked&&$('upgrading-t12').checked?n('t12-shards'):0
   };
   $('submit').disabled=true;
-  const {error}=await sb.from('prep_requests').upsert(payload,{onConflict:'event_id,player_account_id'});
-  updateSubmitState();
-  if(error)return setMsg(error.message);
+  const {data,error}=await sb.rpc('nexa_ministry_submit',{p_account_id:$('account').value,p_payload:payload});
+  if(error||!data?.ok){
+    updateSubmitState();
+    const map={
+      public_access_closed:'Ministry Sign-Up is currently closed by leadership.',
+      construction_closed:'Day 1 • Construction sign-up is closed.',
+      research_closed:'Day 2 • Research sign-up is closed.',
+      training_closed:'Day 4 • Training sign-up is closed.',
+      construction_time_outside_frame:'Construction specific time must be inside the selected 4-hour frame.',
+      research_time_outside_frame:'Research specific time must be inside the selected 4-hour frame.',
+      training_time_outside_frame:'Training specific time must be inside the selected 4-hour frame.'
+    };
+    return setMsg(map[data?.error]||error?.message||data?.error||'Unable to submit Ministry Sign-Up.');
+  }
   setMsg('Ministry Sign-Up submitted successfully ✓',true);
-  $('message').scrollIntoView({behavior:'smooth',block:'center'})
+  await loadMinistryForAccount();
+  $('message').scrollIntoView({behavior:'smooth',block:'center'});
 });
 $('copy-link').addEventListener('click',async()=>{
   const url=new URL('ministry-signup.html?direct=1',location.href).href;

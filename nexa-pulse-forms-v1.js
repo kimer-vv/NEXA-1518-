@@ -10,12 +10,11 @@ const sb=window.supabase?.createClient?.(SB_URL,SB_KEY);
 if(!sb)return;
 
 const META={
-  svs:{title:'Battle Sign-Up',url:'battle-form.html?internal=1',sub:''},
-  fdt:{title:'FDT Sign-Up',url:'fdt-form.html?internal=1',sub:''},
-  tal:{title:'TAL Sign-Up',url:'tal-form.html?internal=1',sub:'7 Rounds'},
+  svs:{title:'Battle Sign-Up',url:'battle-form.html?public=1',sub:''},
+  fdt:{title:'FDT Sign-Up',url:'fdt-form.html?public=1',sub:''},
+  tal:{title:'TAL Sign-Up',url:'tal-form.html?public=1',sub:'7 Rounds'},
   ministry:{title:'Ministry Sign-Up',url:'ministry-signup.html?internal=1',sub:'Construction · Research · Training'}
 };
-
 function deadline(settings){
   if(!settings?.deadline_enabled||!settings?.deadline_at){
     return {label:'OPEN',detail:'Open',tone:'green'};

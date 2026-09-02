@@ -315,6 +315,26 @@ function renderCycleState(){
    <div class="cycleSummaryItem"><small>INVITES SENT</small><b>${apps.filter(a=>a.invite_status==='sent').length}</b></div>
    <div class="cycleSummaryItem" style="grid-column:1/-1"><small>RECRUITING ALLIANCES</small><b>${esc(recruitingTags.join(' • ')||'—')}</b></div>
  </div>`:''}`;
+$('cycleOpenBtn')?.addEventListener('click',()=>{cycleMode=expired||!hasEvent?'new':'edit';cycleEditing=true;fillCycleEditor(cycleMode==='edit');renderCycleState()async function endTransferCycle(){
+  if(!canManage()||!event)return;
+
+  const r=await SB.rpc('transfer_workspace_end_cycle',{
+    p_workspace_id:workspaceId,
+    p_token:token
+  });
+
+  if(r.error||r.data?.ok!==true){
+    $('cycleStatus').textContent=
+      r.error?.message||
+      (r.data?.error==='no_active_cycle'
+        ?'There is no active Transfer Cycle to end.'
+        :'Unable to end Transfer Cycle.');
+    return;
+  }
+
+  await loadWorkspace();
+}
+  });
 $('cycleEndBtn')?.addEventListener('click',()=>{
   confirmGalaxy(
     'End Transfer Cycle',

@@ -801,7 +801,6 @@ function applyVisuals(){
 
 function delayedRefresh(){
   applyVisuals();
-  [120,350,800,1400].forEach(ms=>setTimeout(applyVisuals,ms));
 }
 
 window.NEXA_HOME_VISUALS_REFRESH=applyVisuals;

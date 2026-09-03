@@ -80,9 +80,9 @@ textarea{min-height:100px;resize:vertical}
 <section id="gate" class="card hidden"><h3>How would you like to continue?</h3><p class="muted">Use your NEXA Profile if you have an account, or continue as Guest.</p><div class="stack"><button id="memberBtn" class="btn" type="button">Continue with NEXA</button><button id="guestBtn" class="btn secondary" type="button">Continue as Guest</button></div></section>
 <form id="form" class="hidden">
 <section id="identity" class="card"></section>
-<section id="memberNote" class="card auto hidden"><h3>NEXA Member</h3><p class="muted">Saved Profile data is matched automatically against the Joiner or Rally Leader requirements configured for this form.</p></section><section id="profileMatch" class="card profile-match hidden"></section>
+<section id="memberNote" class="card auto hidden"><h3>NEXA Member</h3><p class="muted">NEXA will automatically use your saved Battle Role, Heroes, Experts, troop profile and deployment data. Only answer the information NEXA cannot recover from your Profile.</p></section>
 <section class="card"><h3>Availability</h3><div id="availability" class="availability-wrap"></div></section>
-<section class="card"><h3>Battle Role</h3><div id="roleChoices"><label class="choice-card" data-radio-group="role"><input type="radio" name="role" value="rally_lead"><div class="dot"></div><div class="txt">Rally Leader<small>Leading rallies for this event.</small></div></label><label class="choice-card" data-radio-group="role"><input type="radio" name="role" value="joiner"><div class="dot"></div><div class="txt">Joiner<small>Joining rallies and supporting the battle plan.</small></div></label></div><div id="roleAuto" class="card auto hidden" style="margin:12px 0 0;padding:14px"></div></section>
+<section id="battleRoleSection" class="card"><h3>Battle Role</h3><div id="roleChoices"><label class="choice-card" data-radio-group="role"><input type="radio" name="role" value="rally_lead"><div class="dot"></div><div class="txt">Rally Leader<small>Leading rallies for this event.</small></div></label><label class="choice-card" data-radio-group="role"><input type="radio" name="role" value="joiner"><div class="dot"></div><div class="txt">Joiner<small>Joining rallies and supporting the battle plan.</small></div></label></div><div id="roleAuto" class="card auto hidden" style="margin:12px 0 0;padding:14px"></div></section>
 <section id="guestProfile" class="card hidden"><h3 id="heroTitle">Guest Battle Information</h3><div id="heroes" class="grid"></div><h3 style="margin-top:16px">Experts</h3><div id="experts" class="grid"></div><h3 style="margin-top:16px">Troop Quality</h3><div id="troops" class="two"></div></section>
 <section class="card"><h3>Healing Readiness</h3><div id="healingCards"><label class="choice-card" data-radio-group="healing"><input type="radio" name="healing" value="low"><div class="dot"></div><div class="txt">Low<small>I may run low on healing resources quickly.</small></div></label><label class="choice-card" data-radio-group="healing"><input type="radio" name="healing" value="moderate"><div class="dot"></div><div class="txt">Moderate<small>I have enough resources for some extended healing.</small></div></label><label class="choice-card" data-radio-group="healing"><input type="radio" name="healing" value="high"><div class="dot"></div><div class="txt">High<small>I’m well prepared for prolonged healing.</small></div></label><label class="choice-card" data-radio-group="healing"><input type="radio" name="healing" value="very_high"><div class="dot"></div><div class="txt">Very High<small>I have a large resource reserve for heavy, prolonged healing.</small></div></label><label class="choice-card" data-radio-group="healing"><input type="radio" name="healing" value="not_sure"><div class="dot"></div><div class="txt">Not Sure<small>I’m not sure how long my resources will last.</small></div></label></div><p class="microcopy">This is only an estimate. Exact resource amounts are not required.</p></section>
 <section class="card"><h3>Voice Chat</h3><label>Can you use Voice Chat during FDT?<select id="voice"><option value="">Select…</option><option>Yes</option><option>Listen Only</option><option>No</option></select></label></section>
@@ -134,39 +134,6 @@ function heroReportList(s){
 function expertReportList(s){
   return (s?.eligible_experts||[]).map(x=>x.name).filter(Boolean);
 }
-function renderProfileMatch(snapshot){
-  const host=$('profileMatch');
-  if(!host)return;
-  if(!snapshot||!snapshot.role){
-    host.classList.remove('hidden');
-    host.innerHTML='<h3>NEXA Profile Match</h3><p class="muted">No Battle Role is assigned to this WOS Account yet.</p>';
-    return;
-  }
-  const heroes=snapshot.heroes||[];
-  const experts=snapshot.experts||[];
-  const role=battleRoleLabel(snapshot.role);
-  const heroRows=heroes.map(h=>{
-    const ok=!!h.eligible;
-    const detail=snapshot.role==='joiner'
-      ? `Best Expedition Skill: Lv. ${Number(h.skill_level||0)}${(h.level5_skills||[]).length?' • Lv.5: '+h.level5_skills.join(', '):''}`
-      : (h.owned?'Hero found in My Profile':'Hero not found in My Profile');
-    return `<div class="match-row">${h.image_url?`<img src="${esc(h.image_url)}" alt="">`:'<span></span>'}<div><b>${esc(h.name)}</b><small>${esc(detail)}</small></div><span class="match-status ${ok?'ok':'no'}">${ok?'ELIGIBLE':'NOT ELIGIBLE'}</span></div>`;
-  }).join('')||'<p class="muted">Leadership did not select Heroes for this role.</p>';
-  const expertRows=experts.map(x=>{
-    const ok=!!x.eligible;
-    const detail=x.owned?`My Profile • Affinity ${Number(x.affinity||0)}`:'Expert not found in My Profile';
-    return `<div class="match-row">${x.image_url?`<img src="${esc(x.image_url)}" alt="">`:'<span></span>'}<div><b>${esc(x.name)}</b><small>${esc(detail)}</small></div><span class="match-status ${ok?'ok':'no'}">${ok?'AVAILABLE':'NOT AVAILABLE'}</span></div>`;
-  }).join('')||'<p class="muted">Leadership did not select Experts for this role.</p>';
-  const troopKeys=Object.keys(snapshot.troop_quality||{});
-  host.classList.remove('hidden');
-  host.innerHTML=`
-    <h3>NEXA Profile Match • ${esc(role)}</h3>
-    <p class="snapshot-note">NEXA compares the Heroes and Experts selected by leadership for this form against the selected WOS Account. Joiner Heroes count as eligible only when the account owns the Hero and has at least one Expedition Skill at Level 5.</p>
-    <div class="match-block"><h4>Heroes</h4>${heroRows}</div>
-    <div class="match-block"><h4>Experts</h4>${expertRows}</div>
-    <div class="review-row"><span>Deployment Capacity</span><b>${snapshot.deployment_capacity??'Not set'}</b></div>
-    <div class="review-row"><span>Troop Profile</span><b>${troopKeys.length?troopKeys.join(' • '):'Not set'}</b></div>`;
-}
 async function loadProfileSnapshot(account,eventKey){
   if(!account?.id)return null;
   const {data,error}=await sb.rpc('nexa_get_event_profile_snapshot',{
@@ -200,17 +167,14 @@ async function applyMemberAccount(id){
   }
   $('identity').innerHTML=`<h3>NEXA Account</h3><label>WOS Account<select id="accountSelect">${memberAccounts.map(a=>`<option value="${esc(a.id)}" ${String(a.id)===String(account.id)?'selected':''}>${esc(a.in_game_name)} • ID ${esc(a.player_id)}</option>`).join('')}</select></label><div class="microcopy">${esc(account.alliances?.tag||account.custom_alliance_tag||'')} • State ${esc(account.state_number||'')}</div>`;
   if($('accountSelect'))$('accountSelect').onchange=async e=>{await applyMemberAccount(e.target.value)};
-  $('roleChoices').classList.add('hidden');
-  $('roleAuto').classList.remove('hidden');
-  $('roleAuto').textContent=assignedRole?`Battle Role from NEXA: ${battleRoleLabel(assignedRole)}`:'Battle Role: Not assigned yet — leadership can assign it in My Alliance.';
-  renderProfileMatch(profileSnapshot);
+  $('battleRoleSection')?.classList.add('hidden');
   roleUI();
   updateSummary();
 }
 async function enterMember(){ mode='member'; if(!session){ $('msg').textContent='A NEXA session is required.'; return; } memberAccounts=await loadMemberAccounts(session); if(!memberAccounts.length){ $('msg').textContent='No NEXA WOS Accounts were found.'; return; } await applyMemberAccount(activeAccountFrom(memberAccounts).id); $('gate').classList.add('hidden'); $('form').classList.remove('hidden'); $('memberNote').classList.remove('hidden'); $('guestProfile').classList.add('hidden'); }
 function guestIdentity(){ $('identity').innerHTML=`<h3>Guest / Public Identity</h3><label>In-Game Name<input id="gname"></label><label>Game ID<input id="gid" inputmode="numeric"></label><label>Alliance Tag<input id="gtag"></label>`; }
 async function restoreGuest(){ try{ const {data,error}=await sb.rpc('nexa_get_guest_event_response',{p_event_type_key:'fdt',p_guest_token:token}); if(error)return; const r=Array.isArray(data)?data[0]:data; if(!r)return; $('gname').value=r.in_game_name||''; $('gid').value=r.game_id||''; $('gtag').value=r.alliance_tag||''; }catch(_ ){} }
-async function enterGuest(){ mode='guest'; assignedRole=''; guestIdentity(); $('gate').classList.add('hidden'); $('form').classList.remove('hidden'); $('memberNote').classList.add('hidden'); $('guestProfile').classList.remove('hidden'); $('roleChoices').classList.remove('hidden'); $('roleAuto').classList.add('hidden'); bindRadioCards('role'); await restoreGuest(); roleUI(); }
+async function enterGuest(){ mode='guest'; assignedRole=''; guestIdentity(); $('gate').classList.add('hidden'); $('form').classList.remove('hidden'); $('memberNote').classList.add('hidden'); $('guestProfile').classList.remove('hidden'); $('battleRoleSection')?.classList.remove('hidden'); $('roleChoices').classList.remove('hidden'); $('roleAuto').classList.add('hidden'); bindRadioCards('role'); await restoreGuest(); roleUI(); }
 $('memberBtn').onclick=()=>enterMember(); $('guestBtn').onclick=()=>enterGuest(); $('form').addEventListener('change',()=>{ toggleCardRadios('healing'); toggleCardRadios('role'); roleUI(); updateSummary(); }); $('form').addEventListener('input',updateSummary);
 $('form').onsubmit=async e=>{ e.preventDefault(); $('saveMsg').textContent=''; $('msg').textContent=''; const x=collect(); if(!x.role){ $('saveMsg').textContent='This WOS Account does not have a Battle Role assigned yet.'; return; } if(!x.availability.length){ $('saveMsg').textContent='Select Availability.'; return; } if(mode==='member'){
     const heroReports=heroReportList(profileSnapshot);

@@ -9,7 +9,15 @@
 /* Account Constellation: one source of truth = public.player_accounts. */
 (function(){
   'use strict';
-  window.NEXA_CANONICAL_ACCOUNTS=true;
+ window.NEXA_CANONICAL_ACCOUNTS=true;
+
+let nexaHomeProfileReady=false;
+function markNexaHomeProfileReady(){
+  if(nexaHomeProfileReady)return;
+  nexaHomeProfileReady=true;
+  window.NEXA_HOME_PROFILE_READY=true;
+  window.dispatchEvent(new CustomEvent('nexa:home-profile-ready'));
+}
   const $=id=>document.getElementById(id);
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   let accounts=[],loaded=false,loading=null,selectedId=null;
@@ -60,17 +68,33 @@
         .eq('user_id',user.id).order('is_main',{ascending:false}).order('created_at',{ascending:true});
       if(error) throw error;
       accounts=Array.isArray(data)?data:[];loaded=true;window.nexaAccountsCache=accounts;syncHome();return accounts;
-    })().catch(error=>{diagnostic('ACCT-LOAD-01',error?.message||String(error));accounts=previous;loaded=previous.length>0;return accounts;}).finally(()=>{loading=null;});
+   })().catch(error=>{
+      diagnostic('ACCT-LOAD-01',error?.message||String(error));
+      accounts=previous;
+      loaded=previous.length>0;
+      markNexaHomeProfileReady();
+      return accounts;
+    }).finally(()=>{loading=null;});
     return loading;
   }
 
   function syncHome(){
     const a=active(),photo=$('nexa-profile-launcher-photo'),name=$('nexa-profile-launcher-name'),badge=$('nexa-profile-launcher-badge'),count=$('nexa-profile-launcher-count');
-    if(!a){if(name)name.textContent='ADD ACCOUNT';if(badge)badge.textContent='PROFILE';count?.classList.add('hidden');return;}
+    if(!a){
+      if(name)name.textContent='ADD ACCOUNT';
+      if(badge)badge.textContent='PROFILE';
+      count?.classList.add('hidden');
+      markNexaHomeProfileReady();
+      return;
+    }
     if(photo)photo.src=avatar(a);
     if(name)name.textContent=(a.in_game_name||'PLAYER').toUpperCase()+' • '+tag(a).toUpperCase()+' • ID '+(a.player_id||'');
     if(badge)badge.textContent='ACTIVE';
-    if(count){count.textContent=accounts.length+'/5';count.classList.toggle('hidden',accounts.length<2);}
+    if(count){
+      count.textContent=accounts.length+'/5';
+      count.classList.toggle('hidden',accounts.length<2);
+    }
+    markNexaHomeProfileReady();
   }
 
   function passport(a){

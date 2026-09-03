@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- NEXA MY ALLIANCE V1.5 — ALLIANCE RANK + BATTLE ROLE MANAGEMENT -->
+<!-- NEXA MY ALLIANCE V1.6 — RELIABLE BATTLE ROLE SAVE / SELF ROLE ALLOWED -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -177,7 +177,42 @@ async function saveRank(id){
 }
 async function saveBattleRole(id){
  const sel=$(`[data-battle-role="${CSS.escape(id)}"]`);
- try{await rpc('nexa_manage_alliance_member',{p_account_id:id,p_action:'battle_role',p_new_rank:sel.value,p_target_alliance_id:null});await reloadPassport()}catch(e){alert(e.message)}
+ const btn=$(`[data-save-battle-role="${CSS.escape(id)}"]`);
+ if(!sel||!btn)return;
+
+ const original=btn.textContent;
+ btn.disabled=true;
+ btn.textContent='Saving…';
+
+ try{
+   await rpc('nexa_manage_alliance_member',{
+     p_account_id:id,
+     p_action:'battle_role',
+     p_new_rank:sel.value,
+     p_target_alliance_id:null
+   });
+
+   btn.textContent='Saved ✓';
+
+   /* Re-read the saved value from the same canonical source used by Forms. */
+   await loadBattleRoles();
+   const saved=battleRoles[String(id)]||'';
+   sel.value=saved;
+
+   setTimeout(async()=>{
+     await reloadPassport();
+   },250);
+ }catch(e){
+   btn.textContent='Save Failed';
+   alert(e.message);
+ }finally{
+   setTimeout(()=>{
+     if(btn?.isConnected){
+       btn.disabled=false;
+       btn.textContent=original;
+     }
+   },1200);
+ }
 }
 async function removeMember(id){if(!confirm('Remove this member from the alliance?'))return;try{await rpc('nexa_manage_alliance_member',{p_account_id:id,p_action:'remove',p_new_rank:null,p_target_alliance_id:null});await reloadPassport()}catch(e){alert(e.message)}}
 function moveMember(id){

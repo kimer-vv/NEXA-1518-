@@ -1272,8 +1272,10 @@ function openOwnedFormsCenterMenu(){ownedMenuSubview('FORMS CENTER',[
   ['Responses',()=>ownedMenuGo('survey-responses.html')]
 ]),true]
 ])}
-function openOwnedSvsMenu(){ownedMenuSubview('SVS',[
-  ['Event Setup',()=>ownedMenuGo('index.html?admin=svs&tab=events')],['Forms',()=>ownedMenuGo('index.html?admin=svs&tab=forms')],['Schedule Setup',()=>ownedMenuGo('index.html?admin=svs&tab=schedule')],['History',()=>ownedMenuGo('index.html?admin=svs&tab=history')]
+function openOwnedBattleOperationsMenu(){ownedMenuSubview('BATTLE OPERATIONS',[
+  ['SvS',()=>ownedMenuGo('svs-operations.html')],
+  ['FDT',()=>ownedMenuGo('battle-operations.html?event=fdt')],
+  ['TAL',()=>ownedMenuGo('battle-operations.html?event=tal')]
 ])}
 function openOwnedTeamMenu(){ownedMenuSubview('TEAM BUILDER',[
   ['Build Teams',()=>ownedMenuGo('team-builder.html')],['Manage Teams',()=>ownedMenuGo('alliance-teams.html')],['Team View',()=>ownedMenuGo('team-layout.html')]
@@ -1323,9 +1325,7 @@ async function buildOwnedHomeMenuRoot(){
   ownedMenuSep(wrap);ownedMenuLabel(wrap,'TOOLS');
   ownedMenuButton(wrap,'Administration',openOwnedAdministrationMenu,{submenu:true});
 ownedMenuButton(wrap,'Forms Center',openOwnedFormsCenterMenu,{submenu:true});
-ownedMenuButton(wrap,'SVS',openOwnedSvsMenu,{submenu:true});
-  ownedMenuButton(wrap,'FDT',()=>alert('FDT module will be added in the next event phase.'));
-  ownedMenuButton(wrap,'TAL',()=>alert('TAL module will be added in the next event phase.'));
+ownedMenuButton(wrap,'Battle Operations',openOwnedBattleOperationsMenu,{submenu:true});
   ownedMenuButton(wrap,'Team Builder',openOwnedTeamMenu,{submenu:true});
   if(await canSeeTransferHome())ownedMenuButton(wrap,'Transfers',openOwnedTransferMenu,{submenu:true});
   ownedMenuSep(wrap);

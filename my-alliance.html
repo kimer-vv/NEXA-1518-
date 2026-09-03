@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- NEXA MY ALLIANCE V1.4 — SECURE ALL-FORMS PULSE TRACKING / TRANSFER DECOUPLED -->
+<!-- NEXA MY ALLIANCE V1.5 — ALLIANCE RANK + BATTLE ROLE MANAGEMENT -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -50,18 +50,12 @@ body{background:#02030a;color:#f8f7ff}
 .ma-avatar{width:44px;height:44px;border-radius:14px;object-fit:cover;background:#12172d;border:1px solid rgba(255,255,255,.09)}
 .ma-rank{font-size:9px;font-weight:1000;color:#8dffd0}
 .ma-member-tools{display:grid;gap:8px;margin-top:11px;padding-top:10px;border-top:1px solid rgba(255,255,255,.07)}
+.ma-tool-label{font-size:8px;font-weight:950;letter-spacing:.10em;color:#9eb0cd;margin-bottom:-3px}
 .ma-empty{text-align:center;padding:24px 14px;color:#8490aa;font-size:11px}
 .ma-event{border:1px solid rgba(var(--ma-rgb),.17);border-radius:16px;padding:12px;margin-top:9px;background:rgba(7,17,29,.48)}
 .ma-event-head{display:grid;grid-template-columns:minmax(0,1fr) 92px auto;gap:8px;align-items:end}
 .ma-slot-list{display:grid;gap:7px;margin-top:10px}
 .ma-remove{width:32px;height:32px;border-radius:10px;border:1px solid rgba(255,103,142,.28);background:rgba(75,17,34,.35);color:#ffc0ce}
-.ma-toggle{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.ma-switch{position:relative;width:54px;height:30px;flex:0 0 54px}
-.ma-switch input{opacity:0;width:0;height:0}
-.ma-slider{position:absolute;inset:0;border-radius:999px;background:#1a2138;border:1px solid rgba(255,255,255,.12);transition:.18s}
-.ma-slider:before{content:"";position:absolute;width:22px;height:22px;left:3px;top:3px;border-radius:50%;background:#828ca5;transition:.18s}
-.ma-switch input:checked+.ma-slider{background:rgba(28,119,76,.42);border-color:rgba(var(--ma-rgb),.55);box-shadow:0 0 15px rgba(var(--ma-rgb),.10)}
-.ma-switch input:checked+.ma-slider:before{transform:translateX(24px);background:#8cffbf;box-shadow:0 0 10px rgba(var(--ma-rgb),.5)}
 .ma-savebar{position:sticky;bottom:10px;z-index:10;margin-top:12px}
 .ma-savebar .ma-btn{width:100%;min-height:46px;border-radius:14px;background:linear-gradient(135deg,rgba(27,111,76,.78),rgba(17,79,80,.70));box-shadow:0 10px 30px rgba(0,0,0,.35),0 0 18px rgba(var(--ma-rgb),.12)}
 .ma-modal{position:fixed;inset:0;z-index:2147483647;display:grid;place-items:center;padding:15px;background:rgba(0,2,12,.82);backdrop-filter:blur(8px)}
@@ -93,7 +87,7 @@ body{background:#02030a;color:#f8f7ff}
   </nav>
 
   <section class="ma-panel active" data-panel="members"><div class="ma-section-head"><div><h2>Members</h2><div class="ma-muted">Verified alliance roster and leadership member management.</div></div></div><div id="membersHost"></div></section>
-  <section class="ma-panel" data-panel="pending"><div class="ma-section-head"><div><h2>Pending Members</h2><div class="ma-muted">Review pending alliance members, approve them, and assign their alliance rank.</div></div></div><div id="pendingHost"></div></section>
+  <section class="ma-panel" data-panel="pending"><div class="ma-section-head"><div><h2>Pending Members</h2><div class="ma-muted">Review pending alliance members, approve them, and assign both Alliance Rank and Battle Role.</div></div></div><div id="pendingHost"></div></section>
   <section class="ma-panel" data-panel="pulse"><div class="ma-section-head"><div><h2>NEXA Pulse</h2><div class="ma-muted">Tracks who in your alliance responded or still needs to respond to currently published and open NEXA forms.</div></div></div><div id="pulseHost"></div></section>
   <section class="ma-panel" data-panel="schedule"><div class="ma-section-head"><div><h2>Event Schedule</h2><div class="ma-muted">Recurring alliance event times. This is scheduling only; strategy belongs under Alliance Events.</div></div></div><div id="scheduleHost"></div></section>
   <section class="ma-panel" data-panel="events"><div class="ma-section-head"><div><h2>Alliance Events</h2><div class="ma-muted">Alliance event strategy and planning workspace. Foundry and Canyon are kept separate from Event Schedule.</div></div></div><div id="eventsHost"></div></section>
@@ -106,12 +100,23 @@ const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
 const sb=window.supabase.createClient(SB_URL,SB_KEY);
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-let passport=null,allPassports=[],schedule=null;
+let passport=null,allPassports=[],schedule=null,battleRoles={};
 const activeState=()=>Number(String(localStorage.getItem('nexa_active_state_v49')||window.NEXA_ACTIVE_STATE||1518).replace(/\D/g,''))||1518;
 const activeAccountId=()=>String(localStorage.getItem('nexa_active_account_v49')||window.NEXA_ACTIVE_ACCOUNT_ID||'');
 async function rpc(name,args={}){const {data,error}=await sb.rpc(name,args);if(error)throw error;return data}
 function modal(html){const ov=document.createElement('div');ov.className='ma-modal';ov.innerHTML='<div class="ma-dialog">'+html+'</div>';document.body.appendChild(ov);ov.addEventListener('click',e=>{if(e.target===ov)ov.remove()});return ov}
 function setTab(tab){$$('.ma-tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));$$('.ma-panel').forEach(p=>p.classList.toggle('active',p.dataset.panel===tab));if(tab==='pending')loadPending();if(tab==='schedule')loadSchedule();if(tab==='pulse')loadPulse();if(tab==='events')loadAllianceEvents()}
+
+async function loadBattleRoles(){
+  battleRoles={};
+  if(!passport?.id||!passport.canAssignRanks)return;
+  try{
+    const rows=await rpc('nexa_list_alliance_battle_roles',{p_alliance_id:Number(passport.id)});
+    (rows||[]).forEach(r=>{battleRoles[String(r.player_account_id)]=r.role||''});
+  }catch(e){
+    console.warn('[NEXA My Alliance] battle roles',e.message);
+  }
+}
 
 async function boot(){
  const {data:{user}}=await sb.auth.getUser(); if(!user){location.href='index.html';return}
@@ -122,6 +127,7 @@ async function boot(){
  if(!account?.alliance_id){$('#allianceTitle').textContent='No Alliance';$('#allianceSub').textContent='Your active WOS Account is not assigned to a NEXA alliance.';return}
  passport=(allPassports||[]).find(a=>Number(a.id)===Number(account.alliance_id));
  if(!passport){$('#allianceTitle').textContent='Alliance unavailable';return}
+ await loadBattleRoles();
  renderHero();renderMembers();loadPending();
 }
 
@@ -137,14 +143,42 @@ function renderMembers(){
  if(!members.length){host.innerHTML='<div class="ma-card ma-empty">No verified members yet.</div>';return}
  host.innerHTML=members.map(m=>`<article class="ma-card">
    <div class="ma-member"><img class="ma-avatar" src="${esc(m.photo||'')}" onerror="this.style.visibility='hidden'"><div><h4>${esc(m.name)}</h4><div class="ma-muted">ID ${esc(m.gameId)}</div></div><div class="ma-rank">${esc(m.rank||'R3')}</div></div>
-   ${passport.canAssignRanks?`<div class="ma-member-tools"><div class="ma-row"><select class="ma-select" data-rank="${esc(m.accountId)}">${['R5','R4','R3','R2','R1'].map(r=>`<option ${r===String(m.rank).toUpperCase()?'selected':''}>${r}</option>`).join('')}</select><button class="ma-btn" data-save-rank="${esc(m.accountId)}">Save Rank</button></div><div class="ma-actions"><button class="ma-btn secondary" data-move="${esc(m.accountId)}">Move Alliance</button><button class="ma-btn danger" data-remove="${esc(m.accountId)}">Remove Member</button></div></div>`:''}
+   ${passport.canAssignRanks?`<div class="ma-member-tools">
+      <div class="ma-tool-label">ALLIANCE RANK</div>
+      <div class="ma-row"><select class="ma-select" data-rank="${esc(m.accountId)}">${['R5','R4','R3','R2','R1'].map(r=>`<option ${r===String(m.rank).toUpperCase()?'selected':''}>${r}</option>`).join('')}</select><button class="ma-btn" data-save-rank="${esc(m.accountId)}">Save Rank</button></div>
+      <div class="ma-tool-label">BATTLE ROLE</div>
+      <div class="ma-row">
+        <select class="ma-select" data-battle-role="${esc(m.accountId)}">
+          <option value="" ${!battleRoles[String(m.accountId)]?'selected':''}>Unassigned</option>
+          <option value="joiner" ${battleRoles[String(m.accountId)]==='joiner'?'selected':''}>Joiner</option>
+          <option value="rally_lead" ${battleRoles[String(m.accountId)]==='rally_lead'?'selected':''}>Rally Leader</option>
+        </select>
+        <button class="ma-btn secondary" data-save-battle-role="${esc(m.accountId)}">Save Battle Role</button>
+      </div>
+      <div class="ma-actions"><button class="ma-btn secondary" data-move="${esc(m.accountId)}">Move Alliance</button><button class="ma-btn danger" data-remove="${esc(m.accountId)}">Remove Member</button></div>
+    </div>`:''}
  </article>`).join('');
  $$('[data-save-rank]',host).forEach(b=>b.onclick=()=>saveRank(b.dataset.saveRank));
+ $$('[data-save-battle-role]',host).forEach(b=>b.onclick=()=>saveBattleRole(b.dataset.saveBattleRole));
  $$('[data-remove]',host).forEach(b=>b.onclick=()=>removeMember(b.dataset.remove));
  $$('[data-move]',host).forEach(b=>b.onclick=()=>moveMember(b.dataset.move));
 }
-async function reloadPassport(){allPassports=await rpc('nexa_list_alliance_passports');passport=allPassports.find(a=>Number(a.id)===Number(passport.id));renderHero();renderMembers()}
-async function saveRank(id){const sel=$(`[data-rank="${CSS.escape(id)}"]`);try{await rpc('nexa_manage_alliance_member',{p_account_id:id,p_action:'rank',p_new_rank:sel.value,p_target_alliance_id:null});await reloadPassport()}catch(e){alert(e.message)}}
+
+async function reloadPassport(){
+ allPassports=await rpc('nexa_list_alliance_passports');
+ passport=allPassports.find(a=>Number(a.id)===Number(passport.id));
+ await loadBattleRoles();
+ renderHero();renderMembers();
+}
+
+async function saveRank(id){
+ const sel=$(`[data-rank="${CSS.escape(id)}"]`);
+ try{await rpc('nexa_manage_alliance_member',{p_account_id:id,p_action:'rank',p_new_rank:sel.value,p_target_alliance_id:null});await reloadPassport()}catch(e){alert(e.message)}
+}
+async function saveBattleRole(id){
+ const sel=$(`[data-battle-role="${CSS.escape(id)}"]`);
+ try{await rpc('nexa_manage_alliance_member',{p_account_id:id,p_action:'battle_role',p_new_rank:sel.value,p_target_alliance_id:null});await reloadPassport()}catch(e){alert(e.message)}
+}
 async function removeMember(id){if(!confirm('Remove this member from the alliance?'))return;try{await rpc('nexa_manage_alliance_member',{p_account_id:id,p_action:'remove',p_new_rank:null,p_target_alliance_id:null});await reloadPassport()}catch(e){alert(e.message)}}
 function moveMember(id){
  const options=(allPassports||[]).filter(a=>Number(a.id)!==Number(passport.id)&&a.active).map(a=>`<option value="${a.id}">${esc(a.tag)}${a.name?' • '+esc(a.name):''}</option>`).join('');
@@ -163,11 +197,48 @@ async function loadPending(){
    $$('[data-reject]',host).forEach(b=>b.onclick=()=>rejectPending(b.dataset.reject));
  }catch(e){host.innerHTML=`<div class="ma-card ma-empty">${esc(e.message)}</div>`}
 }
+
 function approvePending(id){
- const ov=modal(`<h3>Approve Member</h3><p class="ma-muted">Choose the alliance rank before approving.</p><div class="ma-field"><label>ALLIANCE RANK</label><select class="ma-select" id="approveRank"><option>R4</option><option selected>R3</option><option>R2</option><option>R1</option></select></div><div class="ma-actions"><button class="ma-btn secondary" id="cancelApprove">Cancel</button><button class="ma-btn" id="confirmApprove">Approve Member</button></div>`);
+ const ov=modal(`
+   <h3>Approve Member</h3>
+   <p class="ma-muted">Choose the Alliance Rank and Battle Role before approving.</p>
+   <div class="ma-field">
+     <label>ALLIANCE RANK</label>
+     <select class="ma-select" id="approveRank">
+       <option>R4</option>
+       <option selected>R3</option>
+       <option>R2</option>
+       <option>R1</option>
+     </select>
+   </div>
+   <div class="ma-field">
+     <label>BATTLE ROLE</label>
+     <select class="ma-select" id="approveBattleRole">
+       <option value="">Unassigned</option>
+       <option value="joiner">Joiner</option>
+       <option value="rally_lead">Rally Leader</option>
+     </select>
+   </div>
+   <div class="ma-actions">
+     <button class="ma-btn secondary" id="cancelApprove">Cancel</button>
+     <button class="ma-btn" id="confirmApprove">Approve Member</button>
+   </div>
+ `);
  $('#cancelApprove',ov).onclick=()=>ov.remove();
- $('#confirmApprove',ov).onclick=async()=>{try{const rank=$('#approveRank',ov).value;await rpc('nexa_manage_alliance_member',{p_account_id:id,p_action:'approve',p_new_rank:null,p_target_alliance_id:null});await rpc('nexa_manage_alliance_member',{p_account_id:id,p_action:'rank',p_new_rank:rank,p_target_alliance_id:null});ov.remove();await reloadPassport();await loadPending()}catch(e){alert(e.message)}};
+ $('#confirmApprove',ov).onclick=async()=>{
+   try{
+     const rank=$('#approveRank',ov).value;
+     const battleRole=$('#approveBattleRole',ov).value;
+     await rpc('nexa_manage_alliance_member',{p_account_id:id,p_action:'approve',p_new_rank:null,p_target_alliance_id:null});
+     await rpc('nexa_manage_alliance_member',{p_account_id:id,p_action:'rank',p_new_rank:rank,p_target_alliance_id:null});
+     await rpc('nexa_manage_alliance_member',{p_account_id:id,p_action:'battle_role',p_new_rank:battleRole,p_target_alliance_id:null});
+     ov.remove();
+     await reloadPassport();
+     await loadPending();
+   }catch(e){alert(e.message)}
+ };
 }
+
 async function rejectPending(id){if(!confirm('Reject this pending member?'))return;try{await rpc('nexa_reject_alliance_member',{p_account_id:id});await reloadPassport();await loadPending()}catch(e){alert(e.message)}}
 
 function normalizeSchedule(data){
@@ -214,115 +285,44 @@ async function saveSchedule(){
 async function loadPulse(){
  const host=$('#pulseHost');
  try{
-   const result=await rpc('nexa_alliance_pulse_tracking',{
-     p_alliance_id:Number(passport.id),
-     p_state:activeState()
-   });
-
-   if(!result?.ok){
-     host.innerHTML=`<div class="ma-card ma-empty">${esc(result?.error||'Unable to load NEXA Pulse.')}</div>`;
-     return;
-   }
-
-   const members=(result.members||[]).map(m=>({
-     accountId:m.account_id,
-     name:m.name,
-     gameId:m.game_id,
-     rank:m.rank
-   }));
+   const result=await rpc('nexa_alliance_pulse_tracking',{p_alliance_id:Number(passport.id),p_state:activeState()});
+   if(!result?.ok){host.innerHTML=`<div class="ma-card ma-empty">${esc(result?.error||'Unable to load NEXA Pulse.')}</div>`;return}
+   const members=(result.members||[]).map(m=>({accountId:m.account_id,name:m.name,gameId:m.game_id,rank:m.rank}));
    const forms=result.forms||[];
-
-   if(!forms.length){
-     host.innerHTML='<div class="ma-card ma-empty">No published and open NEXA forms right now.</div>';
-     return;
-   }
-
-   host.innerHTML=`<div class="ma-card">
-     <div class="ma-kicker">NEXA PULSE</div>
-     <h3>Alliance Response Tracking</h3>
-     <div class="ma-muted">Published and currently open forms only. This page tracks participation only — never the answers.</div>
-     <div class="ma-tabs" id="pulseFormTabs" style="padding:12px 0 0"></div>
-   </div>
-   <div id="pulseList"></div>`;
-
+   if(!forms.length){host.innerHTML='<div class="ma-card ma-empty">No published and open NEXA forms right now.</div>';return}
+   host.innerHTML=`<div class="ma-card"><div class="ma-kicker">NEXA PULSE</div><h3>Alliance Response Tracking</h3><div class="ma-muted">Published and currently open forms only. This page tracks participation only — never the answers.</div><div class="ma-tabs" id="pulseFormTabs" style="padding:12px 0 0"></div></div><div id="pulseList"></div>`;
    const tabs=$('#pulseFormTabs');
    tabs.innerHTML=forms.map((p,i)=>`<button class="ma-tab ${i===0?'active':''}" data-pulse-form="${esc(p.key)}">${esc(p.title)}</button>`).join('');
-
    const renderPulse=p=>{
      const respondedSet=new Set((p.responded_account_ids||[]).map(String));
      const completed=members.filter(m=>respondedSet.has(String(m.accountId)));
      const missing=members.filter(m=>!respondedSet.has(String(m.accountId)));
-     const total=members.length;
-     const pc=total?Math.round(completed.length/total*100):0;
-
-     const rows=list=>list.map(m=>`<div class="ma-card" style="margin:7px 0;padding:10px 12px">
-       <div class="ma-row"><div><b>${esc(m.name)}</b><div class="ma-muted">ID ${esc(m.gameId)}</div></div></div>
-     </div>`).join('')||'<div class="ma-empty">None</div>';
-
+     const total=members.length,pc=total?Math.round(completed.length/total*100):0;
+     const rows=list=>list.map(m=>`<div class="ma-card" style="margin:7px 0;padding:10px 12px"><div class="ma-row"><div><b>${esc(m.name)}</b><div class="ma-muted">ID ${esc(m.gameId)}</div></div></div></div>`).join('')||'<div class="ma-empty">None</div>';
      const copyText=list=>list.map(m=>`${m.name} — ${m.gameId}`).join('\n');
-
-     $('#pulseList').innerHTML=`<div class="ma-card">
-       <div class="ma-row">
-         <div><div class="ma-kicker">ACTIVE PULSE</div><h3>${esc(p.title)}</h3></div>
-         <span class="ma-chip">${completed.length}/${total} · ${pc}%</span>
-       </div>
-       <div class="ma-pulse-progress"><div style="width:${pc}%"></div></div>
-     </div>
-
-     <div class="ma-card">
-       <div class="ma-row"><h3>Responded · ${completed.length}</h3><button class="ma-btn" id="copyResponded">Copy Responded</button></div>
-       <div>${rows(completed)}</div>
-     </div>
-
-     <div class="ma-card">
-       <div class="ma-row"><h3>Not Responded · ${missing.length}</h3><button class="ma-btn secondary" id="copyMissing">Copy Not Responded</button></div>
-       <div>${rows(missing)}</div>
-     </div>`;
-
+     $('#pulseList').innerHTML=`<div class="ma-card"><div class="ma-row"><div><div class="ma-kicker">ACTIVE PULSE</div><h3>${esc(p.title)}</h3></div><span class="ma-chip">${completed.length}/${total} · ${pc}%</span></div><div class="ma-pulse-progress"><div style="width:${pc}%"></div></div></div><div class="ma-card"><div class="ma-row"><h3>Responded · ${completed.length}</h3><button class="ma-btn" id="copyResponded">Copy Responded</button></div><div>${rows(completed)}</div></div><div class="ma-card"><div class="ma-row"><h3>Not Responded · ${missing.length}</h3><button class="ma-btn secondary" id="copyMissing">Copy Not Responded</button></div><div>${rows(missing)}</div></div>`;
      $('#copyResponded').onclick=async()=>{try{await navigator.clipboard.writeText(copyText(completed));$('#copyResponded').textContent='Copied ✓'}catch(_){}};
      $('#copyMissing').onclick=async()=>{try{await navigator.clipboard.writeText(copyText(missing));$('#copyMissing').textContent='Copied ✓'}catch(_){}};
    };
-
-   tabs.addEventListener('click',e=>{
-     const b=e.target.closest('[data-pulse-form]');if(!b)return;
-     $$('#pulseFormTabs .ma-tab').forEach(x=>x.classList.toggle('active',x===b));
-     const p=forms.find(x=>x.key===b.dataset.pulseForm);if(p)renderPulse(p);
-   });
-
+   tabs.addEventListener('click',e=>{const b=e.target.closest('[data-pulse-form]');if(!b)return;$$('#pulseFormTabs .ma-tab').forEach(x=>x.classList.toggle('active',x===b));const p=forms.find(x=>x.key===b.dataset.pulseForm);if(p)renderPulse(p)});
    renderPulse(forms[0]);
- }catch(e){
-   host.innerHTML=`<div class="ma-card ma-empty">${esc(e.message||'Unable to load NEXA Pulse.')}</div>`;
- }
+ }catch(e){host.innerHTML=`<div class="ma-card ma-empty">${esc(e.message||'Unable to load NEXA Pulse.')}</div>`}
 }
 
 async function loadAllianceEvents(){
  const host=$('#eventsHost');
- host.innerHTML=`<div class="ma-event-tabs">
-   <button class="ma-event-tab active" data-alliance-event="foundry">Foundry</button>
-   <button class="ma-event-tab" data-alliance-event="canyon">Canyon</button>
- </div>
- <div id="allianceEventBody"></div>`;
+ host.innerHTML=`<div class="ma-event-tabs"><button class="ma-event-tab active" data-alliance-event="foundry">Foundry</button><button class="ma-event-tab" data-alliance-event="canyon">Canyon</button></div><div id="allianceEventBody"></div>`;
  const renderEvent=kind=>{
    const isFoundry=kind==='foundry';
-   $('#allianceEventBody').innerHTML=`<div class="ma-card">
-     <div class="ma-kicker">ALLIANCE EVENT</div>
-     <h3>${isFoundry?'Foundry':'Canyon'}</h3>
-     <div class="ma-muted">${isFoundry
-       ?'Reserved for Foundry strategy, teams, assignments, instructions, and event planning.'
-       :'Reserved for Canyon strategy, teams, assignments, instructions, and event planning.'}</div>
-   </div>
-   <div class="ma-card ma-empty">${isFoundry?'Foundry':'Canyon'} workspace is ready for the strategy tools we add next.</div>`;
+   $('#allianceEventBody').innerHTML=`<div class="ma-card"><div class="ma-kicker">ALLIANCE EVENT</div><h3>${isFoundry?'Foundry':'Canyon'}</h3><div class="ma-muted">${isFoundry?'Reserved for Foundry strategy, teams, assignments, instructions, and event planning.':'Reserved for Canyon strategy, teams, assignments, instructions, and event planning.'}</div></div><div class="ma-card ma-empty">${isFoundry?'Foundry':'Canyon'} workspace is ready for the strategy tools we add next.</div>`;
  };
  renderEvent('foundry');
- $$('[data-alliance-event]',host).forEach(b=>b.onclick=()=>{
-   $$('[data-alliance-event]',host).forEach(x=>x.classList.toggle('active',x===b));
-   renderEvent(b.dataset.allianceEvent);
- });
+ $$('[data-alliance-event]',host).forEach(b=>b.onclick=()=>{$$('[data-alliance-event]',host).forEach(x=>x.classList.toggle('active',x===b));renderEvent(b.dataset.allianceEvent)});
 }
 
 $('#tabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)setTab(b.dataset.tab)});
 $('#backBtn').onclick=()=>location.href='index.html';
-$('#guideBtn').onclick=()=>modal(`<h3>My Alliance Guide</h3><p class="ma-muted"><b>Members</b> is your verified alliance roster. Leadership can manage ranks, move members, or remove them.</p><p class="ma-muted"><b>Pending Members</b> is where leadership approves new members and assigns their rank.</p><p class="ma-muted"><b>NEXA Pulse</b> tracks who in your alliance has responded or still needs to respond to every currently published and open NEXA form. It does not reveal form answers.</p><p class="ma-muted"><b>Event Schedule</b> stores recurring Bear Trap, Foundry, Canyon, and custom event times for alliance members. Transfer recruiting schedules are managed separately in Transfer Workspace.</p><p class="ma-muted"><b>Alliance Events</b> is the strategy and planning area for alliance events. Foundry and Canyon have their own workspaces here and do not read the server Event Schedule.</p><div class="ma-actions"><button class="ma-btn" onclick="this.closest('.ma-modal').remove()">Got it</button></div>`);
+$('#guideBtn').onclick=()=>modal(`<h3>My Alliance Guide</h3><p class="ma-muted"><b>Members</b> is your verified alliance roster. Leadership can manage Alliance Rank, Battle Role, move members, or remove them.</p><p class="ma-muted"><b>Pending Members</b> is where leadership approves new members and assigns both their Alliance Rank and Battle Role.</p><p class="ma-muted"><b>NEXA Pulse</b> tracks who in your alliance has responded or still needs to respond to every currently published and open NEXA form. It does not reveal form answers.</p><p class="ma-muted"><b>Event Schedule</b> stores recurring Bear Trap, Foundry, Canyon, and custom event times for alliance members.</p><p class="ma-muted"><b>Alliance Events</b> is the strategy and planning area for alliance events.</p><div class="ma-actions"><button class="ma-btn" onclick="this.closest('.ma-modal').remove()">Got it</button></div>`);
 
 boot().catch(e=>{$('#allianceTitle').textContent='Unable to load';$('#allianceSub').textContent=e.message});
 })();

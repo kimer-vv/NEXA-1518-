@@ -1312,12 +1312,6 @@ async function openOwnedTransferMenu(){
     ]);
   }
 
-  items.push([
-    'Legacy Transfer Management',
-    openOwnedLegacyTransferMenu,
-    true
-  ]);
-
   ownedMenuSubview('TRANSFERS',items);
 }
 async function buildOwnedHomeMenuRoot(){

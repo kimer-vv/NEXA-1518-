@@ -177,6 +177,16 @@ body.pet-preview-open{overflow:hidden!important}
 .layout-preview-overlay{position:fixed;inset:0;z-index:2147483200;display:none;place-items:center;padding:14px;background:rgba(0,0,0,.76)}.layout-preview-overlay.open{display:grid}.layout-preview-card{width:min(980px,97vw);max-height:88dvh;display:flex;flex-direction:column;border:1px solid rgba(72,221,255,.28);border-radius:20px;background:#050916;padding:10px}.layout-preview-toolbar{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}.layout-preview-stage{overflow:auto;-webkit-overflow-scrolling:touch;border-radius:14px}.layout-preview-stage .layout-sheet{transform-origin:top left;margin:0!important}#team-sheet [data-delete-formation],.layout-preview-stage [data-delete-formation]{display:none!important}.orientation-tip{font-size:10px;color:#aeb7d1;margin:0 0 7px}.glow-violet{border-color:rgba(166,119,255,.66)!important;box-shadow:0 0 16px rgba(144,92,255,.18),inset 0 0 10px rgba(144,92,255,.05)}
 @media(max-width:620px){.formations-board{grid-template-columns:1fr 1fr;gap:7px;padding:8px}.formation-card{padding:8px}.formation-heroes{gap:3px}.formation-hero img{width:29px;height:29px}.formation-column-head{align-items:flex-start;flex-direction:column}.formation-column-head .btn{width:100%;padding:7px;font-size:10px}.layout-preview-card{width:97vw}}
 
+
+.sandbox-on{border-color:rgba(179,123,255,.78)!important;box-shadow:0 0 18px rgba(144,92,255,.28)!important;background:linear-gradient(135deg,rgba(82,45,156,.86),rgba(29,82,121,.72))!important}
+.counter-label{position:relative}
+.member-x{border:0;background:rgba(255,101,132,.10);color:#ff9aac;border-radius:8px;font-size:14px;font-weight:950;min-width:26px;height:26px}
+.rally{grid-template-columns:1fr auto auto}.rally .member-x{align-self:center}
+.joiner{grid-template-columns:minmax(80px,.82fr) 1fr 1fr auto;align-items:start}.join-head{grid-template-columns:minmax(80px,.82fr) 1fr 1fr 28px}
+.team-role{font-size:9px;font-weight:950;letter-spacing:.08em;text-transform:uppercase;border-radius:999px;padding:3px 6px;border:1px solid rgba(155,120,255,.32);color:#d8ccff;background:rgba(112,70,196,.12);margin-left:5px}
+.strategy-summary{border:1px solid rgba(72,221,255,.18);background:linear-gradient(145deg,rgba(14,42,72,.45),rgba(36,21,85,.34));box-shadow:0 0 18px rgba(72,221,255,.06)}
+.coverage-ok{color:#8ff4ce}.coverage-warn{color:#ffd58c}
+
 </style>
 </head>
 <body>
@@ -212,13 +222,27 @@ body.pet-preview-open{overflow:hidden!important}
     <div class="card assist-card">
       <div class="assist-head"><div class="assist-mark">✦</div><div><h2 style="margin:0">NEXA Assist</h2><div class="tiny muted">Automatic draft + recommendations. Nothing is published until you send it to Team Layout.</div></div><button id="open-guide" class="btn guide-btn" type="button">Guide</button></div>
       <div class="assist-grid">
-        <label>Alliance<select id="assist-alliance"><option value="">Select alliance…</option></select></label>
-        <label>Teams<select id="assist-team-count"><option value="2">2 Teams</option><option value="3" selected>3 Teams</option><option value="4">4 Teams</option><option value="5">5 Teams</option><option value="6">6 Teams</option></select></label>
-        <label>Battle Focus<select id="assist-focus"><option value="balanced">Balanced</option><option value="attack">Attack Priority</option><option value="defense">Hold / Defense Priority</option><option value="castle">Primary Castle Alliance</option></select></label>
-        <label>Data Source<select id="assist-source"><option value="live">Live Responses + Profiles</option><option value="test">3-Team Test Pool</option></select></label>
+        <label>Active SvS Alliances
+          <select id="assist-alliance-count">
+            <option value="1">1 Alliance</option><option value="2">2 Alliances</option><option value="3" selected>3 Alliances</option><option value="4">4 Alliances</option>
+          </select>
+        </label>
+        <label>Primary Castle Alliance<select id="assist-primary-alliance"><option value="">Select primary alliance…</option></select></label>
       </div>
-      <div class="row" style="margin-top:10px"><button id="run-assist" class="btn violet">✦ Generate NEXA Draft</button><button id="load-test" class="btn">Load 3-Team Test</button></div>
-      <div id="assist-recommendations" class="reco"></div>
+      <div id="assist-counter-wrap" class="assist-grid" style="margin-top:9px"></div>
+      <div class="row" style="margin-top:10px">
+        <button id="toggle-test-sandbox" class="btn" type="button">Test Sandbox: OFF</button>
+        <span class="tiny muted">OFF = live Responses + Profiles. ON = isolated fictitious state scenario.</span>
+      </div>
+      <div id="test-sandbox-controls" class="card glow-violet" style="display:none;margin:10px 0 0;padding:12px">
+        <div class="section-head"><div><h3 style="margin:0">SvS Test Sandbox</h3><div class="tiny muted">Choose only how many Rally Leaders exist. NEXA supplies a large Joiner pool and recommends the Teams automatically.</div></div></div>
+        <div class="grid2" style="margin-top:9px">
+          <label>Rally Leaders<select id="assist-test-rl-count"><option>3</option><option>4</option><option>5</option><option>6</option><option>8</option><option selected>10</option><option>12</option><option>15</option><option>18</option></select></label>
+          <label>Scenario<select id="assist-test-strength"><option value="mixed" selected>Mixed whales + strong RLs</option><option value="top_heavy">Top-heavy whales</option><option value="balanced">Balanced strength</option></select></label>
+        </div>
+      </div>
+      <div class="row" style="margin-top:10px"><button id="run-assist" class="btn violet">✦ Generate NEXA Strategy</button></div>
+      <div id="assist-recommendations" class="reco strategy-summary"></div>
     </div>
 
     <div class="card">
@@ -260,9 +284,9 @@ body.pet-preview-open{overflow:hidden!important}
   <div class="nexa-modal-card">
     <div class="section-head"><h3>NEXA Battle Guide</h3><button id="guide-close" class="mini-x" type="button">×</button></div>
     <div class="guide-page active" data-guide="0"><h4>Workspace & Mobile View</h4><p>Strategy Board is your editable Team Builder. On mobile, Team cards move sideways so they stay readable. Swipe left/right to inspect every Team. Desktop can show much more at once. Use Team Layout for the complete final sheet.</p></div>
-    <div class="guide-page" data-guide="1"><h4>NEXA Assist & Manual Mode</h4><p>Choose Alliance, number of Teams, battle focus and data source. NEXA Assist creates a draft. You can still move, add or delete Teams, Rally Leaders and Joiners manually afterward.</p></div>
-    <div class="guide-page" data-guide="2"><h4>Rally Leaders, Joiners & Heroes</h4><p>Rally Leaders stay at the top with schedule and PETS. Joiners appear below with Attack A/B and Defense A/B. Join First marks the first four. Rally Lead hero formations are managed once per Alliance below the Teams.</p></div>
-    <div class="guide-page" data-guide="3"><h4>Pet Schedule & Formations</h4><p>Pet Schedule rows can come from Teams, but NEXA never decides Garrison, Handoff or Counter for you. Violet blocks mean PETS active. Attack and Defense formation presets can be added separately and stacked downward.</p></div>
+    <div class="guide-page" data-guide="1"><h4>NEXA Assist & Manual Mode</h4><p>Choose how many Alliances will actively fight, select the Primary Castle Alliance, and choose the Counter Rally Alliances. NEXA decides how many Teams each Alliance can sustain from the roster. Test Sandbox changes only the Rally Leader count; Joiners are supplied automatically.</p></div>
+    <div class="guide-page" data-guide="2"><h4>Rally Leaders, Joiners & Heroes</h4><p>Rally Leaders may rotate between Alliances when time blocks do not overlap. PETS use one continuous 2-hour window. Joiners remain fixed unless you move them; duplicate assignments trigger a warning. Every Rally Leader and Joiner can be removed individually.</p></div>
+    <div class="guide-page" data-guide="3"><h4>Pet Schedule & Formations</h4><p>Team 1 is the Primary Pet Team. Team 2 becomes Secondary PET / Support only when roster depth allows it; Teams 3+ are normally strong mixed teams without PETS. Every active Alliance should keep PET coverage across the battle while NEXA leaves Garrison, Handoff and Counter purpose editable.</p></div>
     <div class="guide-page" data-guide="4"><h4>Team Layout, Preview & Download</h4><p>Team Layout shows the complete final sheet. On mobile use Preview Layout and, for the clearest view, rotate your phone sideways. Preview fits the sheet to your screen; Download exports the full NEXA-styled layout.</p></div>
     <div class="guide-count"><span id="guide-page-label">1 / 5</span></div>
     <div class="nexa-modal-actions"><button id="guide-prev" class="btn" type="button">‹ Previous</button><button id="guide-next" class="btn violet" type="button">Next ›</button></div>
@@ -296,7 +320,7 @@ const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>Array.from(r.query
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const state=Number(String(window.NEXA_ACTIVE_STATE||localStorage.getItem('nexa_active_state_v49')||1518).replace(/\D/g,''))||1518;
 const colors=['#ff7289','#56bfff','#64dfa7','#b989ff','#ffb865','#65e1e6'];
-let strategy=null,alliances=[],teams=[],rally=[],joiners=[],heroes=[],petRows=[],petAssignments=[],allAlliances=[],responses=[],playerPool=[],stateRoles=[],strategyList=[],formations=[];
+let strategy=null,alliances=[],teams=[],rally=[],joiners=[],heroes=[],petRows=[],petAssignments=[],allAlliances=[],responses=[],playerPool=[],stateRoles=[],strategyList=[],formations=[],testSandbox=false;
 $('#state-label').textContent=`State ${state}`;
 
 
@@ -314,16 +338,36 @@ function roleForPlayer(p){return stateRoles.find(r=>r.player_account_id===p.id)?
 const TEST_RLS=['Iron Gold','YQFelix','Peanut','Zima','Evster','Skadi','Jenny','Sushi','Jules','Raja','Drakco','Cutie','Archer','Nova','Storm','Valkyrie','Atlas','Koda'];
 const TEST_JOINERS=['Esco','Luke','Cap','Armyy','Kimer','Jett','Joycey','Lilith','KAGURA','Road Runner','Dark Demon','Firebird','MooseStache','Pinalemon','Raja J','Frosty','Mama Bear','Raid','Chloe','GrimFireman','Alainisi','Kiko','Olcay','Illuminaire','Corgi','Miranda','Chiefy','Sora','Frostbite','Mochi','Luna','Shadow','Blaze','Echo','Kai','Mira','Orion','Nori','Fox','Panda','Ivy','Wolf'];
 function playerOptions(role,includeUnassigned=false){
- const usedIds=new Set([...rally,...joiners].map(x=>x.player_account_id).filter(Boolean));
- const usedNames=new Set([...rally,...joiners].map(x=>String(x.player_name||'').toLowerCase()));
- const rows=playerPool.filter(p=>!usedIds.has(p.id)&&((roleForPlayer(p)===role)||(includeUnassigned&&!roleForPlayer(p))));
- const tests=(role==='rally_lead'?TEST_RLS:TEST_JOINERS).filter(n=>!usedNames.has(n.toLowerCase())).map(n=>`<option value="test:${esc(n)}">TEST • ${esc(n)}</option>`).join('');
- return '<option value="">Select player…</option>'+rows.map(p=>`<option value="${p.id}">${esc(p.in_game_name)}${p.deployment_capacity?` • ${Number(p.deployment_capacity).toLocaleString()}`:''}</option>`).join('')+(tests?`<optgroup label="Test Pool">${tests}</optgroup>`:'');
+ const rows=playerPool.filter(p=>((roleForPlayer(p)===role)||(includeUnassigned&&!roleForPlayer(p))));
+ const tests=(role==='rally_lead'?TEST_RLS:TEST_JOINERS).map(n=>`<option value="test:${esc(n)}">TEST • ${esc(n)}</option>`).join('');
+ return '<option value="">Select player…</option>'+rows.map(p=>`<option value="${p.id}">${esc(p.in_game_name)}${p.deployment_capacity?` • ${Number(p.deployment_capacity).toLocaleString()}`:''}</option>`).join('')+(testSandbox&&tests?`<optgroup label="Test Sandbox">${tests}</optgroup>`:'');
 }
 function selectedPlayer(id){
  if(String(id).startsWith('test:')){const name=String(id).slice(5);return{id:null,in_game_name:name,deployment_capacity:null,_test:true}}
  return playerPool.find(p=>String(p.id)===String(id))
 }
+
+function minutesOf(t){const [h,m]=String(t||'00:00').split(':').map(Number);return h*60+m}
+function timeFromMinutes(n){return `${String(Math.floor(n/60)).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`}
+function overlaps(a1,a2,b1,b2){return Math.max(minutesOf(a1),minutesOf(b1))<Math.min(minutesOf(a2),minutesOf(b2))}
+function responseFor(id){return responses.find(r=>String(r.player_account_id)===String(id))||null}
+function numericDeep(v){
+ if(v==null)return 0;if(typeof v==='number'&&Number.isFinite(v))return v;
+ if(typeof v==='string'){const n=Number(v.replace(/[^\d.]/g,''));return Number.isFinite(n)?n:0}
+ if(Array.isArray(v))return v.reduce((s,x)=>s+numericDeep(x),0);
+ if(typeof v==='object')return Object.values(v).reduce((s,x)=>s+numericDeep(x),0);
+ return 0
+}
+function playerStrength(p,role){
+ const r=responseFor(p.id)||{},dep=Number(r.deployment_capacity||p.deployment_capacity||0),power=Number(p.power||0),rallyCap=Number(p.rally_capacity||0),quality=numericDeep(r.troop_quality),gear=numericDeep(p.hero_gear),heroes=numericDeep(role==='rally_lead'?r.rally_heroes:r.joiner_heroes);
+ return dep*1.0+rallyCap*.9+power*.02+quality*220+gear*35+heroes*25
+}
+function strategyAllianceForTeam(tid){const t=teams.find(x=>x.id===tid);return t?alliances.find(a=>a.id===t.strategy_alliance_id):null}
+function teamForAssignment(tid){return teams.find(t=>t.id===tid)}
+function teamLabel(tid){const t=teamForAssignment(tid),a=t&&strategyAllianceForTeam(tid);return `${a?.alliance_tag||'Alliance'} • ${t?.name||'Team'}`}
+function testJoinerPool(count=120){return Array.from({length:count},(_,i)=>({id:null,in_game_name:`Test Joiner ${String(i+1).padStart(2,'0')}`,deployment_capacity:250000-(i%24)*3500,_test:true,_strength:250000-(i%24)*3500}))}
+function testRallyPool(count=10){return Array.from({length:count},(_,i)=>({id:null,in_game_name:`Test RL ${String(i+1).padStart(2,'0')}`,deployment_capacity:340000-i*7000,rally_capacity:1700000-i*25000,_test:true,_strength:800000-i*17000}))}
+
 
 function fmtSecs(sec){sec=Number(sec)||0;const m=Math.floor(sec/60),s=sec%60;return `${m}:${String(s).padStart(2,'0')}`}
 function rarityClass(r){r=String(r||'').toLowerCase();if(r.includes('myth')||r.includes('gold')||r.includes('legendary'))return'rarity-mythic';if(r.includes('epic')||r.includes('purple'))return'rarity-epic';if(r.includes('rare')||r.includes('blue'))return'rarity-rare';return''}
@@ -349,12 +393,13 @@ async function base(){
  const [h,a,p,sr]=await Promise.all([
   sb.from('nexa_library_items').select('id,name,image_url,rarity,generation,troop_type').eq('item_type','hero').eq('is_active',true).order('generation').order('name'),
   sb.from('alliances').select('id,tag,name,emblem_url,state_number').eq('state_number',state).eq('is_active',true).order('server_rank'),
-  sb.from('player_accounts').select('id,in_game_name,player_id,alliance_id,battle_role,deployment_capacity,alliance_verified_at').eq('state_number',state).order('deployment_capacity',{ascending:false}),
+  sb.from('player_accounts').select('id,in_game_name,player_id,alliance_id,battle_role,deployment_capacity,rally_capacity,power,hero_gear,alliance_verified_at').eq('state_number',state).order('deployment_capacity',{ascending:false}),
   sb.from('state_battle_roles').select('player_account_id,role,state_number').eq('state_number',state)
  ]);
  heroes=h.data||[];allAlliances=a.data||[];playerPool=p.data||[];stateRoles=sr.data||[];
  const opts='<option value="">Select alliance…</option>'+allAlliances.map(x=>`<option value="${x.id}">${esc(x.tag)}${x.name?` • ${esc(x.name)}`:''}</option>`).join('');
- $('#assist-alliance').innerHTML=opts;
+ $('#assist-primary-alliance').innerHTML=opts;
+ renderCounterAllianceSelectors();
  await Promise.all([loadStrategies(),loadResponses()]);
 }
 async function loadStrategies(){
@@ -373,9 +418,29 @@ async function loadStrategies(){
  $('#strategy-picker').innerHTML='<option value="">Select saved strategy…</option>'+labels.join('');
  if(strategy)$('#strategy-picker').value=strategy.id;
 }
+
+function renderCounterAllianceSelectors(){
+ const n=Math.max(1,Number($('#assist-alliance-count')?.value||1)),wrap=$('#assist-counter-wrap');if(!wrap)return;
+ const primary=Number($('#assist-primary-alliance')?.value||0),current=$$('select[data-counter-alliance]',wrap).map(x=>x.value);
+ wrap.innerHTML='';
+ for(let i=0;i<n-1;i++){
+   const lab=document.createElement('label');lab.className='counter-label';lab.textContent=`Counter Rally Alliance ${i+1}`;
+   const sel=document.createElement('select');sel.dataset.counterAlliance=String(i);
+   sel.innerHTML='<option value="">Select counter alliance…</option>'+allAlliances.filter(a=>a.id!==primary).map(a=>`<option value="${a.id}">${esc(a.tag)}${a.name?` • ${esc(a.name)}`:''}</option>`).join('');
+   if(current[i])sel.value=current[i];lab.appendChild(sel);wrap.appendChild(lab);
+ }
+}
+$('#assist-alliance-count').onchange=renderCounterAllianceSelectors;
+$('#assist-primary-alliance').onchange=renderCounterAllianceSelectors;
+$('#toggle-test-sandbox').onclick=()=>{
+ testSandbox=!testSandbox;
+ $('#toggle-test-sandbox').textContent=`Test Sandbox: ${testSandbox?'ON':'OFF'}`;
+ $('#toggle-test-sandbox').classList.toggle('sandbox-on',testSandbox);
+ $('#test-sandbox-controls').style.display=testSandbox?'block':'none';
+ renderRecommendations([testSandbox?'<b>Test Sandbox active.</b> Live Responses and player assignments remain untouched.':'<b>Live mode active.</b> NEXA will use Responses, Battle Roles and saved player profiles.']);
+};
+
 $('#strategy-picker').onchange=e=>e.target.value&&openStrategy(e.target.value);
-function syncTestButton(){const n=Number($('#assist-team-count').value)||3;$('#load-test').textContent=`Load ${n}-Team Test`}
-$('#assist-team-count').onchange=syncTestButton;syncTestButton();
 $('#create-strategy').onclick=async()=>{
  const {data,error}=await sb.from('svs_strategies').insert({state_number:state,name:$('#strategy-name').value.trim()||'SvS Strategy',build_flow:$('#build-flow').value}).select().single();
  if(error)return say(error.message,true);strategy=data;await loadStrategies();await openStrategy(data.id);showTab(data.build_flow==='pets_first'?'pets':'strategy');say('Strategy created.');
@@ -391,10 +456,18 @@ async function openStrategy(id){
  if(petRows.length){r=await sb.from('svs_pet_schedule_assignments').select('*').in('row_id',petRows.map(x=>x.id)).order('sort_order');petAssignments=r.data||[]}
  formations=[];
  if(aids.length){r=await sb.from('svs_rally_formations').select('*').in('strategy_alliance_id',aids).order('formation_type').order('sort_order');formations=r.data||[]}
- $('#strategy-picker').value=id;renderStrategy();renderPet();renderLayout();
+ $('#strategy-picker').value=id;
+ const cfg=strategy.assist_config||{};
+ if(cfg.active_alliance_count)$('#assist-alliance-count').value=String(cfg.active_alliance_count);
+ if(cfg.primary_alliance_id)$('#assist-primary-alliance').value=String(cfg.primary_alliance_id);
+ renderCounterAllianceSelectors();
+ if(Array.isArray(cfg.counter_alliance_ids)){$$('select[data-counter-alliance]').forEach((s,i)=>{if(cfg.counter_alliance_ids[i])s.value=String(cfg.counter_alliance_ids[i])})}
+ testSandbox=!!cfg.test_sandbox;$('#toggle-test-sandbox').textContent=`Test Sandbox: ${testSandbox?'ON':'OFF'}`;$('#toggle-test-sandbox').classList.toggle('sandbox-on',testSandbox);$('#test-sandbox-controls').style.display=testSandbox?'block':'none';
+ if(cfg.test_rally_leads)$('#assist-test-rl-count').value=String(cfg.test_rally_leads);
+ renderStrategy();renderPet();renderLayout();
 }
 async function loadResponses(){
- const {data,error}=await sb.from('battle_form_responses').select('id,player_account_id,role,deployment_capacity,updated_at').order('updated_at',{ascending:false}).limit(150);
+ const {data,error}=await sb.from('battle_form_responses').select('id,player_account_id,role,deployment_capacity,availability,troop_quality,joiner_heroes,rally_heroes,experts,updated_at').order('updated_at',{ascending:false}).limit(150);
  if(error){$('#responses-list').textContent='Responses could not be loaded.';return}
  responses=data||[];const ids=[...new Set(responses.map(x=>x.player_account_id).filter(Boolean))];let names={};
  if(ids.length){const p=await sb.from('player_accounts').select('id,in_game_name,battle_role').in('id',ids);(p.data||[]).forEach(x=>names[x.id]=x)}
@@ -419,18 +492,24 @@ function renderAlliance(a){
  </article>`
 }
 function renderTeam(t){
- const def=defenseOn(t);return `<article class="team" data-tid="${t.id}" style="--tc:${tc(t)}"><div class="team-title"><span>${esc(t.name)}</span><button class="team-x" data-delete-team type="button" title="Delete Team">×</button></div><div class="team-body"><div class="mini">Rally Leader Schedule</div>
- ${Rally(t.id).map(x=>`<div class="rally ${x.pets_active?'pet':''}"><div><b>${esc(x.player_name)}</b><div class="tiny">${esc(x.start_utc)}–${esc(x.end_utc)} UTC</div></div><div>${x.pets_active?'🐾':''}</div></div>`).join('')||'<div class="muted tiny">No Rally Leaders.</div>'}
- <button class="btn add-rally" style="width:100%;margin-top:5px">+ Rally Leader</button><div class="mini">Joiners</div><div class="join-head"><div>Player</div><div>Attack</div><div>Defense</div></div>
- ${Joiners(t.id).map(j=>`<div class="joiner ${j.join_first?'first':''}"><div class="pname">${esc(j.player_name)}</div><div class="hero-stack">${heroLine('A',j.attack_a_hero_id)}${heroLine('B',j.attack_b_hero_id)}</div><div class="hero-stack">${def?heroLine('A',j.defense_a_hero_id)+heroLine('B',j.defense_b_hero_id):'<span class="muted">—</span>'}</div></div>`).join('')||'<div class="muted tiny">No Joiners.</div>'}
+ const rs=Rally(t.id),js=Joiners(t.id),tcv=tc(t),idx=Teams(t.strategy_alliance_id).findIndex(x=>x.id===t.id);
+ const role=idx===0?'PRIMARY PET TEAM':idx===1?'SECONDARY PET / SUPPORT':'STRONG MIX';
+ return `<article class="team" data-tid="${t.id}" style="--tc:${tcv}"><div class="team-title"><span>${esc(t.name)} <span class="team-role">${role}</span></span><button class="team-x" data-delete-team type="button" title="Delete Team">×</button></div><div class="team-body"><div class="mini">Rally Leader Schedule</div>
+ ${rs.map(x=>`<div class="rally ${x.pets_active?'pet glow-violet':''}"><span>${esc(x.player_name)}<br><small>${esc(x.start_utc||'—')}–${esc(x.end_utc||'—')} UTC</small></span><b>${x.pets_active?'PETS':''}</b><button class="member-x" data-delete-rally="${x.id}" type="button">×</button></div>`).join('')||'<div class="muted tiny">No Rally Leaders.</div>'}
+ <button class="btn add-rally" style="width:100%;margin-top:5px">+ Rally Leader</button><div class="mini">Joiners</div><div class="join-head"><div>Player</div><div>Attack</div><div>Defense</div><div></div></div>
+ ${js.map(x=>`<div class="joiner ${x.join_first?'first':''}"><div class="pname">${esc(x.player_name)}</div><div class="hero-stack">${heroLine('A',x.attack_a_hero_id)}${heroLine('B',x.attack_b_hero_id)}</div><div class="hero-stack">${heroLine('A',x.defense_a_hero_id)}${heroLine('B',x.defense_b_hero_id)}</div><button class="member-x" data-delete-joiner="${x.id}" type="button">×</button></div>`).join('')||'<div class="muted tiny">No Joiners.</div>'}
  <button class="btn add-joiner" style="width:100%;margin-top:6px">+ Joiner</button></div></article>`
 }
 function bindStrategy(){
- $$('.strategy-alliance').forEach(c=>{const aid=c.dataset.aid;$('.save-a',c).onclick=async()=>{const {error}=await sb.from('svs_strategy_alliances').update({attack_ratio:parseRatio($('.a-atk',c).value,[49,2,49]),defense_ratio:parseRatio($('.a-def',c).value,[40,0,60]),defense_enabled:$('.a-on',c).value==='yes'}).eq('id',aid);if(error)return say(error.message,true);await openStrategy(strategy.id)};$('.add-team',c).onclick=()=>addTeam(aid)});
- $$('.team').forEach(c=>{const tid=c.dataset.tid;$('.add-rally',c).onclick=()=>addRally(tid);$('.add-joiner',c).onclick=()=>addJoiner(tid);$('[data-delete-team]',c).onclick=()=>deleteTeam(tid)});
+ $$('.strategy-alliance').forEach(c=>{const aid=c.dataset.aid;const saveBtn=$('.save-a',c),addBtn=$('.add-team',c);if(saveBtn)saveBtn.onclick=async()=>{const {error}=await sb.from('svs_strategy_alliances').update({attack_ratio:parseRatio($('.a-atk',c).value,[49,2,49]),defense_ratio:parseRatio($('.a-def',c).value,[40,0,60]),defense_enabled:$('.a-on',c).value==='yes'}).eq('id',aid);if(error)return say(error.message,true);await openStrategy(strategy.id)};if(addBtn)addBtn.onclick=()=>addTeam(aid)});
+ $$('.team').forEach(c=>{const tid=c.dataset.tid;$('.add-rally',c).onclick=()=>addRally(tid);$('.add-joiner',c).onclick=()=>addJoiner(tid);$('[data-delete-team]',c).onclick=()=>deleteTeam(tid);$$('[data-delete-rally]',c).forEach(b=>b.onclick=()=>deleteRally(b.dataset.deleteRally));$$('[data-delete-joiner]',c).forEach(b=>b.onclick=()=>deleteJoiner(b.dataset.deleteJoiner))});
  $$('[data-add-formation]').forEach(b=>b.onclick=()=>addFormation(b.dataset.aid,b.dataset.addFormation));
  $$('[data-delete-formation]').forEach(b=>b.onclick=()=>deleteFormation(b.dataset.deleteFormation));
 }
+
+async function deleteRally(id){const x=rally.find(r=>r.id===id);if(!x||!confirm(`Remove ${x.player_name} from this Rally Leader slot?`))return;const {error}=await sb.from('svs_strategy_rally_slots').delete().eq('id',id);if(error)return say(error.message,true);await openStrategy(strategy.id)}
+async function deleteJoiner(id){const x=joiners.find(r=>r.id===id);if(!x||!confirm(`Remove ${x.player_name} from this Team?`))return;const {error}=await sb.from('svs_strategy_joiners').delete().eq('id',id);if(error)return say(error.message,true);await openStrategy(strategy.id)}
+
 async function deleteTeam(tid){
  const t=teams.find(x=>x.id===tid);if(!t||!confirm(`Delete ${t.name}?`))return;
  const rows=petRows.filter(r=>r.source_team_id===tid);if(rows.length){await sb.from('svs_pet_schedule_assignments').delete().in('row_id',rows.map(r=>r.id));await sb.from('svs_pet_schedule_rows').delete().in('id',rows.map(r=>r.id))}
@@ -474,16 +553,36 @@ async function addTeam(aid){
 }
 async function addRally(tid){
  const opts=playerOptions('rally_lead',true);
- modal('Add Rally Leader',`<label>Rally Leader<select id="m-rally-player">${opts}</select></label><div class="grid2" style="margin-top:9px"><label>Start<select id="m-rally-start">${timeOptions('12:00')}</select></label><label>End<select id="m-rally-end">${timeOptions('14:00')}</select></label></div><label style="margin-top:9px">Pets<select id="m-rally-pets"><option value="no">No</option><option value="yes">Yes</option></select></label><div class="select-note" style="margin-top:8px">Players come from State 1518 Battle Roles. Unassigned verified accounts are also available while testing.</div>`,async ov=>{
+ const ov=modal('Add Rally Leader',`<label>Rally Leader<select id="m-rally-player">${opts}</select></label><div class="grid2" style="margin-top:9px"><label>Start<select id="m-rally-start">${timeOptions('12:00')}</select></label><label>End<select id="m-rally-end">${timeOptions('14:00')}</select></label></div><label style="margin-top:9px">Pets<select id="m-rally-pets"><option value="no">No</option><option value="yes">Yes — continuous 2 hours</option></select></label><div class="select-note" style="margin-top:8px">Rally Leaders may rotate between Alliances when their time blocks do not overlap. PETS always use one continuous 2-hour window.</div>`,async ov=>{
   const p=selectedPlayer($('#m-rally-player',ov).value);if(!p){say('Select a Rally Leader.',true);return false}
-  const s=$('#m-rally-start',ov).value,e=$('#m-rally-end',ov).value;if(e<=s){say('End time must be after Start.',true);return false}
-  const {error}=await sb.from('svs_strategy_rally_slots').insert({team_id:tid,player_account_id:p.id,player_name:p.in_game_name,start_utc:s,end_utc:e,pets_active:$('#m-rally-pets',ov).value==='yes',sort_order:Rally(tid).length});if(error)throw error;await openStrategy(strategy.id);
+  let s=$('#m-rally-start',ov).value,e=$('#m-rally-end',ov).value,pets=$('#m-rally-pets',ov).value==='yes';
+  if(pets)e=timeFromMinutes(minutesOf(s)+120);
+  if(e<=s){say('End time must be after Start.',true);return false}
+  const conflicts=rally.filter(r=>(p.id?String(r.player_account_id)===String(p.id):String(r.player_name).toLowerCase()===p.in_game_name.toLowerCase())&&overlaps(s,e,r.start_utc,r.end_utc));
+  if(conflicts.length){
+    const c=conflicts[0];if(!confirm(`${p.in_game_name} is already assigned to ${teamLabel(c.team_id)} at ${c.start_utc}–${c.end_utc} UTC. Move this conflicting slot here?`))return false;
+    for(const x of conflicts)await sb.from('svs_strategy_rally_slots').delete().eq('id',x.id);
+  }
+  if(pets){
+    const oldPet=rally.find(r=>r.pets_active&&(p.id?String(r.player_account_id)===String(p.id):String(r.player_name).toLowerCase()===p.in_game_name.toLowerCase()));
+    if(oldPet){say(`${p.in_game_name} already has a PETS window (${oldPet.start_utc}–${oldPet.end_utc}). PETS must stay one continuous 2-hour block.`,true);return false}
+  }
+  const {error}=await sb.from('svs_strategy_rally_slots').insert({team_id:tid,player_account_id:p.id||null,player_name:p.in_game_name,start_utc:s,end_utc:e,pets_active:pets,sort_order:Rally(tid).length});if(error)throw error;await openStrategy(strategy.id);
  });
+ const petsSel=$('#m-rally-pets',ov),startSel=$('#m-rally-start',ov),endSel=$('#m-rally-end',ov);
+ const sync=()=>{if(petsSel.value==='yes'){endSel.value=timeFromMinutes(minutesOf(startSel.value)+120);endSel.disabled=true}else endSel.disabled=false};petsSel.onchange=sync;startSel.onchange=sync;
 }
 async function addJoiner(tid){
  modal('Add Joiner',`<label>Joiner<select id="m-join-player">${playerOptions('joiner',true)}</select></label><div class="grid2" style="margin-top:9px"><label>Attack A<select id="aa">${heroOptions()}</select></label><label>Attack B<select id="ab">${heroOptions()}</select></label><label>Defense A<select id="da">${heroOptions()}</select></label><label>Defense B<select id="db">${heroOptions()}</select></label></div><label style="margin-top:9px">Join First<select id="jf"><option value="no">No</option><option value="yes">Yes</option></select></label>`,async ov=>{
   const p=selectedPlayer($('#m-join-player',ov).value);if(!p){say('Select a Joiner.',true);return false}
-  const {error}=await sb.from('svs_strategy_joiners').insert({team_id:tid,player_account_id:p.id,player_name:p.in_game_name,sort_order:Joiners(tid).length,join_first:$('#jf',ov).value==='yes',attack_a_hero_id:$('#aa',ov).value||null,attack_b_hero_id:$('#ab',ov).value||null,defense_a_hero_id:$('#da',ov).value||null,defense_b_hero_id:$('#db',ov).value||null});if(error)throw error;await openStrategy(strategy.id);
+  const existing=joiners.find(j=>(p.id?String(j.player_account_id)===String(p.id):String(j.player_name).toLowerCase()===p.in_game_name.toLowerCase())&&j.team_id!==tid);
+  if(existing){
+    if(!confirm(`${p.in_game_name} is already assigned to ${teamLabel(existing.team_id)}. Move this player to ${teamLabel(tid)}?`))return false;
+    await sb.from('svs_strategy_joiners').delete().eq('id',existing.id);
+  }
+  const here=joiners.find(j=>(p.id?String(j.player_account_id)===String(p.id):String(j.player_name).toLowerCase()===p.in_game_name.toLowerCase())&&j.team_id===tid);
+  if(here){say(`${p.in_game_name} is already assigned to this Team.`,true);return false}
+  const {error}=await sb.from('svs_strategy_joiners').insert({team_id:tid,player_account_id:p.id||null,player_name:p.in_game_name,sort_order:Joiners(tid).length,join_first:$('#jf',ov).value==='yes',attack_a_hero_id:$('#aa',ov).value||null,attack_b_hero_id:$('#ab',ov).value||null,defense_a_hero_id:$('#da',ov).value||null,defense_b_hero_id:$('#db',ov).value||null});if(error)throw error;await openStrategy(strategy.id);
  });
 }
 
@@ -496,11 +595,17 @@ function renderPet(){
  renderPetExport();
 }
 async function addPet(id){
- modal('Add Pet Schedule Time',`<label>Rally Leader<select id="m-pet-player">${playerOptions('rally_lead',true)}</select></label><div class="grid2" style="margin-top:9px"><label>Start<select id="m-pet-start">${timeOptions('12:00')}</select></label><label>End<select id="m-pet-end">${timeOptions('12:30')}</select></label></div><label style="margin-top:9px">Pets Active<select id="m-pet-on"><option value="no">No</option><option value="yes">Yes</option></select></label>`,async ov=>{
+ const ov=modal('Add Pet Schedule Time',`<label>Rally Leader<select id="m-pet-player">${playerOptions('rally_lead',true)}</select></label><div class="grid2" style="margin-top:9px"><label>Start<select id="m-pet-start">${timeOptions('12:00')}</select></label><label>End<select id="m-pet-end">${timeOptions('14:00')}</select></label></div><label style="margin-top:9px">Pets Active<select id="m-pet-on"><option value="no">No</option><option value="yes">Yes — continuous 2 hours</option></select></label>`,async ov=>{
    const p=selectedPlayer($('#m-pet-player',ov).value);if(!p){say('Select a Rally Leader.',true);return false}
-   const s=$('#m-pet-start',ov).value,e=$('#m-pet-end',ov).value;if(e<=s){say('End time must be after Start.',true);return false}
-   const {error}=await sb.from('svs_pet_schedule_assignments').insert({row_id:id,player_account_id:p.id,player_name:p.in_game_name,start_utc:s,end_utc:e,pets_active:$('#m-pet-on',ov).value==='yes',sort_order:petAssignments.filter(x=>x.row_id===id).length});if(error)throw error;await openStrategy(strategy.id);
+   let s=$('#m-pet-start',ov).value,e=$('#m-pet-end',ov).value,pets=$('#m-pet-on',ov).value==='yes';if(pets)e=timeFromMinutes(minutesOf(s)+120);
+   if(e<=s){say('End time must be after Start.',true);return false}
+   if(pets){
+     const existing=petAssignments.find(x=>x.pets_active&&(p.id?String(x.player_account_id)===String(p.id):String(x.player_name).toLowerCase()===p.in_game_name.toLowerCase()));
+     if(existing){say(`${p.in_game_name} already has a PETS window. PETS must be one continuous 2-hour block.`,true);return false}
+   }
+   const {error}=await sb.from('svs_pet_schedule_assignments').insert({row_id:id,player_account_id:p.id||null,player_name:p.in_game_name,start_utc:s,end_utc:e,pets_active:pets,sort_order:petAssignments.filter(x=>x.row_id===id).length});if(error)throw error;await openStrategy(strategy.id);
  });
+ const petsSel=$('#m-pet-on',ov),startSel=$('#m-pet-start',ov),endSel=$('#m-pet-end',ov);const sync=()=>{if(petsSel.value==='yes'){endSel.value=timeFromMinutes(minutesOf(startSel.value)+120);endSel.disabled=true}else endSel.disabled=false};petsSel.onchange=sync;startSel.onchange=sync;
 }
 function renderPetExport(){
  const times=[...new Set(petAssignments.flatMap(x=>[x.start_utc,x.end_utc]))].sort(),starts=times.slice(0,-1);
@@ -554,10 +659,15 @@ function layoutTeam(t){const def=defenseOn(t);return `<article class="layout-tea
 function renderRecommendations(items){
  $('#assist-recommendations').innerHTML=(items||[]).map(x=>`<div class="reco-item">${x}</div>`).join('');
 }
-$('#load-test').onclick=async()=>{
- $('#assist-source').value='test';
- await runAssist(true);
-};
+
+async function clearCurrentDraft(){
+ const aids=alliances.map(a=>a.id),tids=teams.map(t=>t.id),rowIds=petRows.map(r=>r.id);
+ if(rowIds.length)await sb.from('svs_pet_schedule_assignments').delete().in('row_id',rowIds);
+ if(petRows.length)await sb.from('svs_pet_schedule_rows').delete().eq('strategy_id',strategy.id);
+ if(tids.length){await sb.from('svs_strategy_joiners').delete().in('team_id',tids);await sb.from('svs_strategy_rally_slots').delete().in('team_id',tids);await sb.from('svs_strategy_teams').delete().in('id',tids)}
+ if(aids.length){await sb.from('svs_rally_formations').delete().in('strategy_alliance_id',aids);await sb.from('svs_strategy_alliances').delete().eq('strategy_id',strategy.id)}
+}
+
 async function clearAllianceDraft(aid){
  const ts=Teams(aid),tids=ts.map(x=>x.id);
  if(tids.length){
@@ -568,58 +678,111 @@ async function clearAllianceDraft(aid){
  }
 }
 function testNames(kind,count){return (kind==='rl'?TEST_RLS:TEST_JOINERS).slice(0,count)}
-async function runAssist(forceTest=false){
- if(forceTest)$('#assist-source').value='test';
+function distributeTeamCounts(totalTeams,allianceCount){
+ const out=Array(allianceCount).fill(1);let left=Math.max(0,totalTeams-allianceCount),i=0;
+ const order=[0,0,1,2,0,1,2,3,0,1,2,3];
+ while(left>0){out[order[i%order.length]%allianceCount]++;left--;i++}
+ return out
+}
+function chooseTeamCount(joinerCount,rlCount,allianceCount){
+ const byJoin=Math.max(allianceCount,Math.floor(joinerCount/6));
+ const softByRl=Math.max(allianceCount,Math.floor(rlCount*1.35));
+ return Math.max(allianceCount,Math.min(allianceCount*5,byJoin,Math.max(softByRl,allianceCount)))
+}
+function weightedJoinerOrder(pool,counts){
+ const sorted=[...pool].sort((a,b)=>(b._strength??playerStrength(b,'joiner'))-(a._strength??playerStrength(a,'joiner'))),slots=[];
+ counts.forEach((n,ai)=>{for(let ti=0;ti<n;ti++)slots.push({ai,ti,priority:(ai===0?100:70)-(ti===0?0:ti===1?10:25+ti*3)})});
+ slots.sort((a,b)=>b.priority-a.priority);
+ const buckets=counts.map(n=>Array.from({length:n},()=>[]));let k=0;
+ for(const p of sorted){const s=slots[k%slots.length];buckets[s.ai][s.ti].push(p);k++}
+ return buckets
+}
+async function runAssist(){
+ const activeCount=Math.max(1,Number($('#assist-alliance-count').value)||1),primaryId=Number($('#assist-primary-alliance').value||0);
+ if(!primaryId)return renderRecommendations(['<b>Select the Primary Castle Alliance first.</b>']);
+ const counterIds=$$('select[data-counter-alliance]').map(s=>Number(s.value||0)).filter(Boolean);
+ if(counterIds.length!==activeCount-1)return renderRecommendations([`<b>Select all ${activeCount-1} Counter Rally Alliance${activeCount-1===1?'':'s'}.</b>`]);
+ const chosenIds=[primaryId,...counterIds];if(new Set(chosenIds).size!==chosenIds.length)return renderRecommendations(['<b>Each participating Alliance must be unique.</b>']);
  if(!strategy){
-   const created=await sb.from('svs_strategies').insert({state_number:state,name:`NEXA ${Number($('#assist-team-count').value)||3}-Team Draft`,build_flow:'teams_first'}).select().single();
-   if(created.error){say(created.error.message,true);return}
-   strategy=created.data;await loadStrategies();await openStrategy(strategy.id);
+   const created=await sb.from('svs_strategies').insert({state_number:state,name:'NEXA SvS Strategy',build_flow:'teams_first',primary_alliance_id:primaryId}).select().single();
+   if(created.error)return say(created.error.message,true);strategy=created.data;await loadStrategies();await openStrategy(strategy.id);
  }
- const allianceId=Number($('#assist-alliance').value)||alliances[0]?.alliance_id||allAlliances[0]?.id;
- const source=$('#assist-source').value,teamCount=Number($('#assist-team-count').value)||3,focus=$('#assist-focus').value;
- let sa=alliances.find(a=>Number(a.alliance_id)===allianceId);
- if(!sa){
-   const real=allAlliances.find(a=>a.id===allianceId);if(!real){renderRecommendations(['<b>Select an Alliance first.</b>']);return}
-   const ins=await sb.from('svs_strategy_alliances').insert({strategy_id:strategy.id,alliance_id:real.id,alliance_tag:real.tag,alliance_name:real.name,emblem_url:real.emblem_url,sort_order:alliances.length}).select().single();
-   if(ins.error){say(ins.error.message,true);return}sa=ins.data;await openStrategy(strategy.id);sa=alliances.find(a=>a.id===ins.data.id);
+ const liveRL=playerPool.filter(p=>roleForPlayer(p)==='rally_lead').map(p=>({...p,_strength:playerStrength(p,'rally_lead')})).sort((a,b)=>b._strength-a._strength);
+ const liveJ=playerPool.filter(p=>roleForPlayer(p)==='joiner').map(p=>({...p,_strength:playerStrength(p,'joiner')})).sort((a,b)=>b._strength-a._strength);
+ const rlCount=testSandbox?Number($('#assist-test-rl-count').value||10):liveRL.length;
+ const rlPool=testSandbox?testRallyPool(rlCount):liveRL,joinPool=testSandbox?testJoinerPool(120):liveJ;
+ if(!testSandbox&&(rlPool.length<activeCount||joinPool.length<activeCount*6)){
+   return renderRecommendations([`<b>Live roster is currently too small for a useful automatic draft.</b> NEXA found ${rlPool.length} Rally Leaders and ${joinPool.length} Joiners.`,`Use <b>Test Sandbox</b> to model the state without touching live Responses.`])
  }
- if(Teams(sa.id).length && !confirm(`Replace the current ${Teams(sa.id).length} Team draft for ${sa.alliance_tag}?`))return;
- await clearAllianceDraft(sa.id);await openStrategy(strategy.id);sa=alliances.find(a=>Number(a.alliance_id)===allianceId)||alliances[0];
- const teamRows=[];
- for(let i=0;i<teamCount;i++){const ins=await sb.from('svs_strategy_teams').insert({strategy_alliance_id:sa.id,name:`Team ${i+1}`,sort_order:i,color_key:'auto'}).select().single();if(ins.error){say(ins.error.message,true);return}teamRows.push(ins.data)}
- const heroByName=n=>heroes.find(h=>h.name.toLowerCase()===n.toLowerCase())?.id||null;
- const defaults={aa:heroByName('Mia')||heroByName('Jessie'),ab:heroByName('Jessie')||heroByName('Patrick'),da:heroByName('Norah')||heroByName('Patrick'),db:heroByName('Patrick')||heroByName('Jasser')};
- let rls=[],js=[];
- if(source==='test'){
-   rls=testNames('rl',teamCount*3).map((name,i)=>({name,cap:300000-i*6500}));
-   js=testNames('join',teamCount*6).map((name,i)=>({name,cap:230000-i*4000}));
- }else{
-   rls=playerPool.filter(p=>roleForPlayer(p)==='rally_lead').map(p=>({name:p.in_game_name,id:p.id,cap:p.deployment_capacity||0}));
-   js=playerPool.filter(p=>roleForPlayer(p)==='joiner').map(p=>({name:p.in_game_name,id:p.id,cap:p.deployment_capacity||0}));
-   if(rls.length<teamCount||js.length<teamCount*4){
-     renderRecommendations([`<b>Live data is not enough for ${teamCount} complete Teams yet.</b> I found ${rls.length} Rally Leaders and ${js.length} Joiners with Battle Roles.`,`Switch <b>Data Source → 3-Team Test Pool</b> to test the complete automation now.`]);
-     await clearAllianceDraft(sa.id);await openStrategy(strategy.id);return;
+ const teamTotal=chooseTeamCount(joinPool.length,rlPool.length,activeCount),teamCounts=distributeTeamCounts(teamTotal,activeCount);
+ const config={active_alliance_count:activeCount,primary_alliance_id:primaryId,counter_alliance_ids:counterIds,test_sandbox:testSandbox,test_rally_leads:testSandbox?rlCount:null,recommended_team_counts:teamCounts};
+ await sb.from('svs_strategies').update({primary_alliance_id:primaryId,assist_config:config}).eq('id',strategy.id);
+ await clearCurrentDraft();await openStrategy(strategy.id);
+ const saRows=[],teamRowsByAlliance=[];
+ for(let ai=0;ai<chosenIds.length;ai++){
+   const real=allAlliances.find(a=>a.id===chosenIds[ai]);if(!real)continue;
+   const ins=await sb.from('svs_strategy_alliances').insert({strategy_id:strategy.id,alliance_id:real.id,alliance_tag:real.tag,alliance_name:real.name,emblem_url:real.emblem_url,sort_order:ai,attack_ratio:[49,2,49],defense_ratio:[40,0,60],defense_enabled:true}).select().single();
+   if(ins.error)return say(ins.error.message,true);saRows.push(ins.data);teamRowsByAlliance[ai]=[];
+   for(let ti=0;ti<teamCounts[ai];ti++){
+     const t=await sb.from('svs_strategy_teams').insert({strategy_alliance_id:ins.data.id,name:`Team ${ti+1}`,sort_order:ti,color_key:'auto'}).select().single();
+     if(t.error)return say(t.error.message,true);teamRowsByAlliance[ai].push(t.data)
    }
  }
- rls.sort((a,b)=>b.cap-a.cap);js.sort((a,b)=>b.cap-a.cap);
- for(let i=0;i<teamRows.length;i++){
-   const t=teamRows[i],teamRls=rls.filter((_,idx)=>idx%teamCount===i).slice(0,3);
-   for(let k=0;k<teamRls.length;k++){const x=teamRls[k],starts=['12:00','14:00','15:30'],ends=['14:00','15:30','17:00'];await sb.from('svs_strategy_rally_slots').insert({team_id:t.id,player_account_id:x.id||null,player_name:x.name,start_utc:starts[k],end_utc:ends[k],pets_active:k===0||((i+k)%2===0),sort_order:k})}
-   const teamJs=js.filter((_,idx)=>idx%teamCount===i).slice(0,6);
-   for(let k=0;k<teamJs.length;k++){const x=teamJs[k];await sb.from('svs_strategy_joiners').insert({team_id:t.id,player_account_id:x.id||null,player_name:x.name,sort_order:k,join_first:k<4,attack_a_hero_id:defaults.aa,attack_b_hero_id:defaults.ab,defense_a_hero_id:defaults.da,defense_b_hero_id:defaults.db})}
-   const pr=await sb.from('svs_pet_schedule_rows').insert({strategy_id:strategy.id,strategy_alliance_id:sa.id,source_team_id:t.id,purpose:null,slot_label:null,sort_order:i}).select().single();
-   if(!pr.error){for(let k=0;k<teamRls.length;k++){const x=teamRls[k],starts=['12:00','14:00','15:30'],ends=['14:00','15:30','17:00'];await sb.from('svs_pet_schedule_assignments').insert({row_id:pr.data.id,player_account_id:x.id||null,player_name:x.name,start_utc:starts[k],end_utc:ends[k],pets_active:k===0||((i+k)%2===0),sort_order:k})}}
+ const joinBuckets=weightedJoinerOrder(joinPool,teamCounts),heroByName=n=>heroes.find(h=>h.name.toLowerCase()===n.toLowerCase())?.id||null;
+ const defaults={aa:heroByName('Jessie')||heroes[0]?.id||null,ab:heroByName('Seo-yoon')||heroes[1]?.id||null,da:heroByName('Patrick')||heroes[2]?.id||null,db:heroByName('Jasser')||heroes[3]?.id||null};
+ for(let ai=0;ai<teamRowsByAlliance.length;ai++)for(let ti=0;ti<teamRowsByAlliance[ai].length;ti++){
+   const t=teamRowsByAlliance[ai][ti],bucket=(joinBuckets[ai][ti]||[]).slice(0,10);
+   for(let j=0;j<bucket.length;j++){const x=bucket[j];await sb.from('svs_strategy_joiners').insert({team_id:t.id,player_account_id:x.id||null,player_name:x.in_game_name,sort_order:j,join_first:j<4,attack_a_hero_id:defaults.aa,attack_b_hero_id:defaults.ab,defense_a_hero_id:defaults.da,defense_b_hero_id:defaults.db})}
+ }
+ // RL strategy: strongest core goes to Primary, but reserve excellent whales for each Counter.
+ const primaryCore=Math.max(1,Math.ceil(rlPool.length*.42)),reservedCounters=Math.min(counterIds.length,Math.max(0,rlPool.length-primaryCore));
+ const counterAnchors=rlPool.slice(primaryCore,primaryCore+reservedCounters),primaryPool=[...rlPool.slice(0,primaryCore),...rlPool.slice(primaryCore+reservedCounters)];
+ const anchorByAlliance=[primaryPool[0]||rlPool[0],...counterAnchors];
+ const windows=[['12:00','14:00'],['14:00','16:00']];
+ const coverageWarnings=[];
+ for(let ai=0;ai<teamRowsByAlliance.length;ai++){
+   const petTeam=teamRowsByAlliance[ai][0],secondary=teamRowsByAlliance[ai][1]||null,anchor=anchorByAlliance[ai]||rlPool[ai%rlPool.length];
+   if(anchor){
+     for(let wi=0;wi<windows.length;wi++){
+       let candidate=wi===0?anchor:rlPool[(ai+wi+1)%rlPool.length];
+       if(!candidate)continue;
+       // PET coverage is concentrated in Team 1. Team 2 gets secondary PET only when depth allows.
+       await sb.from('svs_strategy_rally_slots').insert({team_id:petTeam.id,player_account_id:candidate.id||null,player_name:candidate.in_game_name,start_utc:windows[wi][0],end_utc:windows[wi][1],pets_active:true,sort_order:wi});
+     }
+     if(secondary&&rlPool.length>=activeCount*3){
+       const extra=rlPool[(ai+activeCount+2)%rlPool.length];if(extra)await sb.from('svs_strategy_rally_slots').insert({team_id:secondary.id,player_account_id:extra.id||null,player_name:extra.in_game_name,start_utc:'12:00',end_utc:'14:00',pets_active:true,sort_order:0});
+     }
+   }else coverageWarnings.push(saRows[ai]?.alliance_tag||`Alliance ${ai+1}`);
+   // Non-PET strong RLs can occupy other Teams; they remain available for counters.
+   for(let ti=0;ti<teamRowsByAlliance[ai].length;ti++){
+     const t=teamRowsByAlliance[ai][ti],existing=ti===0?2:(ti===1&&rlPool.length>=activeCount*3?1:0),needed=Math.max(0,2-existing);
+     for(let k=0;k<needed;k++){const x=rlPool[(ai*3+ti+k+1)%rlPool.length];if(!x)continue;await sb.from('svs_strategy_rally_slots').insert({team_id:t.id,player_account_id:x.id||null,player_name:x.in_game_name,start_utc:'12:00',end_utc:'16:00',pets_active:false,sort_order:existing+k})}
+   }
+ }
+ // Pet schedule mirrors only PET-active coverage + editable purpose rows.
+ for(let ai=0;ai<saRows.length;ai++){
+   const petTeam=teamRowsByAlliance[ai][0],rowslot=await sb.from('svs_pet_schedule_rows').insert({strategy_id:strategy.id,strategy_alliance_id:saRows[ai].id,source_team_id:petTeam.id,purpose:null,slot_label:'Team 1 • Primary Pet Team',sort_order:ai}).select().single();
+   if(!rowslot.error){
+     const petSlots=(await sb.from('svs_strategy_rally_slots').select('*').eq('team_id',petTeam.id).eq('pets_active',true).order('sort_order')).data||[];
+     for(let k=0;k<petSlots.length;k++){const x=petSlots[k];await sb.from('svs_pet_schedule_assignments').insert({row_id:rowslot.data.id,player_account_id:x.player_account_id||null,player_name:x.player_name,start_utc:x.start_utc,end_utc:x.end_utc,pets_active:true,sort_order:k})}
+   }
  }
  const hi=latestHero('infantry'),hl=latestHero('lancer'),hm=latestHero('marksman');
- await sb.from('svs_rally_formations').delete().eq('strategy_alliance_id',sa.id);
- await sb.from('svs_rally_formations').insert([
-   {strategy_alliance_id:sa.id,formation_type:'attack',name:'Attack A',ratio:[49,2,49],hero_infantry_id:hi?.id||null,hero_lancer_id:hl?.id||null,hero_marksman_id:hm?.id||null,is_recommended:true,sort_order:0},
-   {strategy_alliance_id:sa.id,formation_type:'defense',name:'Defense A',ratio:[40,0,60],hero_infantry_id:hi?.id||null,hero_lancer_id:hl?.id||null,hero_marksman_id:hm?.id||null,is_recommended:true,sort_order:0}
+ for(let ai=0;ai<saRows.length;ai++)await sb.from('svs_rally_formations').insert([
+   {strategy_alliance_id:saRows[ai].id,formation_type:'attack',name:'Attack A',ratio:[49,2,49],hero_infantry_id:hi?.id||null,hero_lancer_id:hl?.id||null,hero_marksman_id:hm?.id||null,is_recommended:true,sort_order:0},
+   {strategy_alliance_id:saRows[ai].id,formation_type:'defense',name:'Defense A',ratio:[40,0,60],hero_infantry_id:hi?.id||null,hero_lancer_id:hl?.id||null,hero_marksman_id:hm?.id||null,is_recommended:true,sort_order:0}
  ]);
- const strength=focus==='castle'?'Primary Castle priority':focus==='attack'?'Attack weighted':focus==='defense'?'Defense / hold weighted':'Balanced';
  await openStrategy(strategy.id);
- renderRecommendations([`<b>NEXA Draft created:</b> ${teamCount} Teams for ${esc(sa.alliance_tag)} using ${source==='test'?'the Test Pool':'live Battle Roles + Responses'}. The draft is visible below now.`,`<b>Strategy:</b> ${strength}. Stronger players are distributed across Teams rather than stacked into one Team.`,`<b>Join First:</b> first 4 Joiners in each Team are marked automatically.`,`<b>Pet Schedule:</b> rows were created, but Purpose / Slot remain for you to choose — NEXA does not invent Garrison/Handoff/Counter.`]);
- say('NEXA draft created.');
+ const structure=saRows.map((a,i)=>`${a.alliance_tag}: ${teamCounts[i]} Team${teamCounts[i]===1?'':'s'}`).join(' • ');
+ renderRecommendations([
+   `<b>NEXA Strategy created.</b> ${structure}.`,
+   `<b>Primary Castle priority:</b> ${esc(saRows[0]?.alliance_tag||'Main')} receives the strongest overall core, while each Counter Rally Alliance keeps at least one excellent Rally Lead instead of stacking every whale in Main.`,
+   `<b>Team quality:</b> Team 1 is the Primary Pet Team and receives the strongest troop-quality core. Team 2 becomes Secondary PET / Support only when Rally Lead depth allows it. Teams 3+ remain sustainable strong mixes.`,
+   `<b>Join First:</b> the first ${strategy.join_first_count||4} Joiners in each Team are marked automatically.`,
+   `<b>Pet coverage:</b> PETS are concentrated in Team 1 and scheduled in continuous 2-hour windows. NEXA rotates Rally Leaders across Alliances when useful; non-PET whales remain available for strong counters.${coverageWarnings.length?` <span class="coverage-warn">Coverage warning: ${coverageWarnings.join(', ')}.</span>`:''}`,
+   `<b>Editable draft:</b> remove or replace any Joiner/Rally Leader individually. Manual moves are checked for duplicate Joiners and overlapping Rally Leader schedules.`
+ ]);
+ say('NEXA strategy generated.');
 }
 $('#run-assist').onclick=runAssist;
 

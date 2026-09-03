@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS STRATEGY V11 • shared battle brain + evidence meta + adaptive RL/PET scheduler -->
+<!-- NEXA SVS STRATEGY V11.1 • renderTeam restore + hourly PET timeline + cross-alliance PET rotation -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -198,7 +198,7 @@ body.pet-preview-open{overflow:hidden!important}
 .team-form-head{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:10px}.team-form-head strong{font-size:10px}
 .team-form-heroes{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}.team-form-heroes span{display:flex;align-items:center;gap:4px;font-size:9px;font-weight:850}.team-form-heroes img{width:22px;height:22px;border-radius:6px;object-fit:cover}
 </style>
-<script src="nexa-battle-strategy-engine.js?v=1"></script>
+<script src="nexa-battle-strategy-engine.js?v=1.1"></script>
 <script src="nexa-svs-rules.js?v=1"></script>
 </head>
 <body>
@@ -565,6 +565,21 @@ function renderAlliance(a){
  ${renderFormationBoard(a)}
  </article>`
 }
+function renderTeam(t){
+ const def=defenseOn(t),js=Joiners(t.id),rs=Rally(t.id),isPrimary=Number(t.sort_order)===0;
+ return `<article class="team" data-tid="${t.id}" style="--tc:${tc(t)}">
+   <div class="team-title"><span>${esc(t.name)}${isPrimary?'<span class="test-badge" style="margin-left:7px">PRIMARY PET TEAM</span>':''}</span><button class="member-x" data-delete-team="${t.id}" type="button">×</button></div>
+   <div class="team-body">
+     <div class="mini">Rally Leaders</div>
+     ${consolidatedRallyCards(rs)||'<div class="muted tiny">No Rally Leader assigned.</div>'}
+     <button class="btn add-rally" style="width:100%;margin-top:6px" type="button">+ Rally Leader</button>
+     <div class="mini" style="margin-top:13px">Joiners</div>
+     <div class="join-head"><div>Player</div><div>Attack</div><div>Defense</div></div>
+     ${js.map(j=>`<div class="joiner ${j.join_first?'first':''}"><div class="pname"><b>${esc(j.player_name)}</b></div><div class="hero-stack">${heroLine('A',j.attack_a_hero_id)}${heroLine('B',j.attack_b_hero_id)}</div><div class="hero-stack">${def?heroLine('A',j.defense_a_hero_id)+heroLine('B',j.defense_b_hero_id):'<span class="muted">—</span>'}</div><button class="member-x" data-delete-joiner="${j.id}" type="button">×</button></div>`).join('')||'<div class="muted tiny">No Joiners assigned.</div>'}
+     <button class="btn add-joiner" style="width:100%;margin-top:8px" type="button">+ Joiner</button>
+   </div>
+ </article>`
+}
 function consolidatedRallyCards(rs){
  const groups={};for(const x of rs){const k=String(x.player_account_id||x.player_name);(groups[k]??=[]).push(x)}
  return Object.values(groups).map(list=>{
@@ -580,11 +595,16 @@ function teamFormationNote(t){
 }
 function bindStrategy(){
  $$('.strategy-alliance').forEach(c=>{const aid=c.dataset.aid;const saveBtn=$('.save-a',c),addBtn=$('.add-team',c);if(saveBtn)saveBtn.onclick=async()=>{const {error}=await sb.from('svs_strategy_alliances').update({attack_ratio:parseRatio($('.a-atk',c).value,[49,2,49]),defense_ratio:parseRatio($('.a-def',c).value,[40,0,60]),defense_enabled:$('.a-on',c).value==='yes'}).eq('id',aid);if(error)return say(error.message,true);await openStrategy(strategy.id)};if(addBtn)addBtn.onclick=()=>addTeam(aid)});
- $$('.team').forEach(c=>{const tid=c.dataset.tid;$('.add-rally',c).onclick=()=>addRally(tid);$('.add-joiner',c).onclick=()=>addJoiner(tid);$('[data-delete-team]',c).onclick=()=>deleteTeam(tid);$$('[data-delete-rally]',c).forEach(b=>b.onclick=()=>deleteRally(b.dataset.deleteRally));$$('[data-delete-joiner]',c).forEach(b=>b.onclick=()=>deleteJoiner(b.dataset.deleteJoiner))});
+ $$('.team').forEach(c=>{const tid=c.dataset.tid;$('.add-rally',c).onclick=()=>addRally(tid);$('.add-joiner',c).onclick=()=>addJoiner(tid);$('[data-delete-team]',c).onclick=()=>deleteTeam(tid);$$('[data-delete-rally]',c).forEach(b=>b.onclick=()=>deleteRally(b.dataset.deleteRally));$$('[data-delete-rally-player]',c).forEach(b=>b.onclick=()=>deleteRallyPlayer(tid,b.dataset.deleteRallyPlayer));$$('[data-delete-joiner]',c).forEach(b=>b.onclick=()=>deleteJoiner(b.dataset.deleteJoiner))});
  $$('[data-add-formation]').forEach(b=>b.onclick=()=>addFormation(b.dataset.aid,b.dataset.addFormation));
  $$('[data-delete-formation]').forEach(b=>b.onclick=()=>deleteFormation(b.dataset.deleteFormation));
 }
 
+async function deleteRallyPlayer(teamId,key){
+ const rows=Rally(teamId).filter(x=>String(x.player_account_id||x.player_name)===String(key));if(!rows.length)return;
+ if(!confirm(`Remove ${rows[0].player_name} from this Team schedule?`))return;
+ const {error}=await sb.from('svs_strategy_rally_slots').delete().in('id',rows.map(x=>x.id));if(error)return say(error.message,true);await openStrategy(strategy.id)
+}
 async function deleteRally(id){const x=rally.find(r=>r.id===id);if(!x||!confirm(`Remove ${x.player_name} from this Rally Leader slot?`))return;const {error}=await sb.from('svs_strategy_rally_slots').delete().eq('id',id);if(error)return say(error.message,true);await openStrategy(strategy.id)}
 async function deleteJoiner(id){const x=joiners.find(r=>r.id===id);if(!x||!confirm(`Remove ${x.player_name} from this Team?`))return;const {error}=await sb.from('svs_strategy_joiners').delete().eq('id',id);if(error)return say(error.message,true);await openStrategy(strategy.id)}
 
@@ -668,8 +688,7 @@ $('#rows-from-teams').onclick=async()=>{if(!strategy)return say('Open a strategy
 $('#add-pet-row').onclick=async()=>{if(!strategy)return say('Open a strategy first.',true);const {error}=await sb.from('svs_pet_schedule_rows').insert({strategy_id:strategy.id,sort_order:petRows.length});if(error)return say(error.message,true);await openStrategy(strategy.id)}
 function renderPet(){
  const h=$('#pet-editor');if(!strategy){h.innerHTML='<span class="muted">Open a strategy first.</span>';$('#pet-export').innerHTML='';return}
- h.innerHTML=petRows.map(r=>`<div class="strategy-alliance" data-pr="${r.id}" style="padding:11px"><div class="grid3"><label>Purpose<select class="purpose"><option value="">Needs Assignment</option>${['Garrison','Handoff','Counter','Backup','Custom'].map(x=>`<option ${r.purpose===x?'selected':''}>${x}</option>`).join('')}</select></label><label>Slot Label<input class="slot" value="${esc(r.slot_label||'')}" placeholder="FSU G / HOS 1"></label><label>Source<input disabled value="${esc(teams.find(t=>t.id===r.source_team_id)?.name||'Manual row')}"></label></div><div class="row" style="margin-top:8px"><button class="btn save-pr">Save Row</button><button class="btn violet add-pa">+ Time</button></div>${petAssignments.filter(x=>x.row_id===r.id).map(x=>`<div class="rally ${x.pets_active?'pet':''}" style="margin-top:7px"><div><b>${esc(x.player_name)}</b><div class="tiny">${esc(x.start_utc)}–${esc(x.end_utc)} UTC</div></div><div>${x.pets_active?'🐾 PETS':''}</div></div>`).join('')}</div>`).join('')||'<div class="muted">No rows yet.</div>';
- $$('[data-pr]',h).forEach(c=>{const id=c.dataset.pr;$('.save-pr',c).onclick=async()=>{const {error}=await sb.from('svs_pet_schedule_rows').update({purpose:$('.purpose',c).value||null,slot_label:$('.slot',c).value.trim()||null}).eq('id',id);if(error)return say(error.message,true);await openStrategy(strategy.id)};$('.add-pa',c).onclick=()=>addPet(id)});
+ h.innerHTML=petRows.map(r=>`<div class="strategy-alliance" data-pr="${r.id}" style="padding:11px"><div><b>${esc(r.slot_label||'Pet lane')}</b><div class="tiny muted">${esc(r.purpose||'')}</div></div>${petAssignments.filter(x=>x.row_id===r.id).map(x=>`<div class="rally ${x.pets_active?'pet':''}" style="margin-top:7px"><div><b>${esc(x.player_name)}</b><div class="tiny">${esc(x.start_utc)}–${esc(x.end_utc)}</div></div></div>`).join('')}</div>`).join('')||'<div class="muted">No rows yet.</div>';
  renderPetExport();
 }
 async function addPet(id){
@@ -686,8 +705,9 @@ async function addPet(id){
  const petsSel=$('#m-pet-on',ov),startSel=$('#m-pet-start',ov),endSel=$('#m-pet-end',ov);const sync=()=>{if(petsSel.value==='yes'){endSel.value=timeFromMinutes(minutesOf(startSel.value)+120);endSel.disabled=true}else endSel.disabled=false};petsSel.onchange=sync;startSel.onchange=sync;
 }
 function renderPetExport(){
- const times=[...new Set(petAssignments.flatMap(x=>[x.start_utc,x.end_utc]))].sort(),starts=times.slice(0,-1);
- $('#pet-export').innerHTML=`<div id="pet-sheet" class="layout-sheet"><div class="layout-head"><div><div class="tiny muted">NEXA • SvS</div><h2 style="margin:2px 0 10px">Pet Schedule</h2></div></div><div class="pet-grid-wrap"><table class="pet-grid"><thead><tr><th>Assignment</th>${starts.map(t=>`<th>${esc(t)}</th>`).join('')}</tr></thead><tbody>${petRows.map(r=>`<tr><td><b>${esc(r.purpose||'Needs Assignment')}</b><div class="tiny muted">${esc(r.slot_label||'')}</div></td>${starts.map(t=>{const a=petAssignments.find(x=>x.row_id===r.id&&x.start_utc===t);return `<td class="${a?.pets_active?'petactive':''}">${a?`${esc(a.player_name)}${a.pets_active?' 🐾':''}`:''}</td>`}).join('')}</tr>`).join('')}</tbody></table></div><div class="tiny muted" style="margin-top:8px">🐾 PET ACTIVE • Times shaded in violet have pets active.</div></div>`;
+ const starts=['12:00','13:00','14:00','15:00','16:00','17:00'];
+ const covers=(x,t)=>minutesOf(x.start_utc)<=minutesOf(t)&&minutesOf(x.end_utc)>minutesOf(t);
+ $('#pet-export').innerHTML=`<div id="pet-sheet" class="layout-sheet"><div class="layout-head"><div><div class="tiny muted">NEXA • SvS</div><h2 style="margin:2px 0 10px">Pet Schedule</h2></div></div><div class="pet-grid-wrap"><table class="pet-grid"><thead><tr><th>Assignment</th>${starts.map(t=>`<th>${esc(t)}</th>`).join('')}</tr></thead><tbody>${petRows.map(r=>`<tr><td><b>${esc(r.slot_label||'Pet lane')}</b></td>${starts.map(t=>{const a=petAssignments.find(x=>x.row_id===r.id&&covers(x,t));return `<td class="${a?.pets_active?'petactive':''}">${a?`${esc(a.player_name)}${a.pets_active?' 🐾':''}`:''}</td>`}).join('')}</tr>`).join('')}</tbody></table></div><div class="tiny muted" style="margin-top:8px">🐾 PET ACTIVE • A player may switch Alliance/Team after one hour while remaining inside the same continuous 2-hour activation.</div></div>`;
 }
 $('#download-pets').onclick=()=>download($('#pet-sheet'),'NEXA-SvS-Pet-Schedule.png');
 
@@ -828,24 +848,23 @@ async function runAssist(){
      start_utc:a.start,end_utc:a.end,pets_active:!!a.petsActive,sort_order:Number(a.start.slice(0,2))
    });
  }
- // Pet Schedule mirrors Team 1/Team 2 PET-active assignments. Team 1 is mandatory; Team 2 appears only when depth supports it.
- for(let ai=0;ai<saRows.length;ai++){
-   for(let ti=0;ti<Math.min(2,teamRowsByAlliance[ai]?.length||0);ti++){
-     const t=teamRowsByAlliance[ai][ti];
-     const slots=(await sb.from('svs_strategy_rally_slots').select('*').eq('team_id',t.id).eq('pets_active',true).order('start_utc')).data||[];
-     if(!slots.length)continue;
-     const row=await sb.from('svs_pet_schedule_rows').insert({
-       strategy_id:strategy.id,strategy_alliance_id:saRows[ai].id,source_team_id:t.id,
-       purpose:null,slot_label:`${t.name}${ti===0?' • Primary Pet Team':' • Secondary Pet Team'}`,sort_order:ai*10+ti
-     }).select().single();
-     if(!row.error)for(let k=0;k<slots.length;k++){
-       const x=slots[k];
-       await sb.from('svs_pet_schedule_assignments').insert({
-         row_id:row.data.id,player_account_id:x.player_account_id||null,player_name:x.player_name,
-         start_utc:x.start_utc,end_utc:x.end_utc,pets_active:true,sort_order:k
-       })
-     }
-   }
+ // Pet Schedule mirrors the engine's true hourly PET timeline. A 2h activation may switch Alliance/Team after one hour.
+ const petRowMap=new Map();
+ for(const lane of (plan?.lanes||[])){
+   const t=teamRowsByAlliance[lane.allianceIndex]?.[lane.teamIndex];if(!t)continue;
+   const key=`${lane.allianceIndex}:${lane.teamIndex}`;
+   const row=await sb.from('svs_pet_schedule_rows').insert({
+     strategy_id:strategy.id,strategy_alliance_id:saRows[lane.allianceIndex].id,source_team_id:t.id,purpose:null,
+     slot_label:`${t.name}${lane.teamIndex===0?' • Primary Pet Team':' • Secondary Pet Team'}`,sort_order:lane.allianceIndex*10+lane.teamIndex
+   }).select().single();
+   if(!row.error)petRowMap.set(key,row.data.id);
+ }
+ for(const x of (plan?.petTimeline||[])){
+   const rowId=petRowMap.get(`${x.allianceIndex}:${x.teamIndex}`);if(!rowId)continue;
+   await sb.from('svs_pet_schedule_assignments').insert({
+     row_id:rowId,player_account_id:x.lead.id||null,player_name:x.lead.in_game_name,
+     start_utc:x.start,end_utc:x.end,pets_active:true,sort_order:Number(x.start.slice(0,2))
+   });
  }
  // Automatic Rally Lead hero + troop formations. Save failures are surfaced.
  const atk=rallyFormationRecommendation('attack'),def=rallyFormationRecommendation('defense'),formationErrors=[];
@@ -854,7 +873,7 @@ async function runAssist(){
  const structure=saRows.map((a,i)=>`${a.alliance_tag}: ${teamCounts[i]} Team${teamCounts[i]===1?'':'s'}`).join(' • '),fills=leadAssignments.map(a=>teamJoiners.get(a.team.id)?.fill||0),avgFill=fills.length?Math.round(fills.reduce((s,n)=>s+n,0)/fills.length*100):0;
  renderRecommendations([
    `<b>Structure:</b> ${saRows.map((a,i)=>`${a.alliance_tag}: ${teamRowsByAlliance[i]?.length||0} Team${(teamRowsByAlliance[i]?.length||0)===1?'':'s'}`).join(' • ')}.`,
-   `<b>Coverage:</b> ${plan?.coverage?.every(x=>x.complete)?'all generated Teams are covered 12:00–17:00 and Team 1 has continuous PET coverage in every Alliance.':'NEXA detected a coverage limitation; review the schedule before publishing.'}`,
+   `<b>Coverage:</b> ${plan?.coverage?.every(x=>x.complete)?'all generated Teams are covered 12:00–17:00 and Team 1 has continuous PET coverage in every Alliance; 2-hour PET owners may switch Alliance/Team after one hour.':'NEXA detected a coverage limitation; review the schedule before publishing.'}`,
    `<b>Rally Leads:</b> ${rlPool.length} available • ${activeRL.length} used strategically • ${floatingRL.length} floating/reserve${floatingRL.length?' (not forced into leadership)':''}.`,
    `<b>Team 2 PETS:</b> ${plan?.coverage?.some(x=>x.team2PetEnabled)?'enabled where roster depth supports a second continuous PET lane.':'not forced; Team 1 remains the PET priority.'}`,
    `<b>Capacity:</b> active Teams are limited by Rally Capacity + Joiner Deployment Capacity. Extra rally-capable players may remain floating or be used as Joiners.`,

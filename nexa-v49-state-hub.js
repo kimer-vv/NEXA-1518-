@@ -48,6 +48,28 @@ let localSb=null;
 let cachedAccounts=[];
 let booted=false;
 let activeAdminOwner=null;
+let nexaHomeStateReady=false;
+
+function releaseNexaHomeWhenReady(){
+  if(!nexaHomeStateReady || window.NEXA_HOME_PROFILE_READY!==true)return;
+  try{window.NEXA_HOME_VISUALS_REFRESH?.()}catch(_){}
+  requestAnimationFrame(()=>{
+    document.documentElement.classList.remove('nexa-home-boot');
+    window.NEXA_HOME_READY=true;
+    window.dispatchEvent(new CustomEvent('nexa:home-ready'));
+  });
+}
+
+function markNexaHomeStateReady(){
+  if(nexaHomeStateReady)return;
+  nexaHomeStateReady=true;
+  window.NEXA_HOME_STATE_READY=true;
+  releaseNexaHomeWhenReady();
+}
+
+window.addEventListener('nexa:home-profile-ready',releaseNexaHomeWhenReady);
+
+
 
 function sb(){
   if(window.supabaseClient?.from)return window.supabaseClient;
@@ -1559,10 +1581,20 @@ async function boot(){
   window.NEXA_SYNC_STATE_HOME=syncStateHome;
   try{window.syncHomeLiveEvent=syncStateHome}catch(_){}
   try{window.syncHomeTransfers=syncStateHome}catch(_){}
-  await syncStateHome();
-  /* One delayed final paint wins over the legacy async Home loader that may still
-     be finishing its original 1518 request during DOMContentLoaded. */
-  setTimeout(()=>{syncStateHome();retireLegacyTransfer();},650);
+   await syncStateHome();
+
+  /* Keep Home hidden while the legacy DOMContentLoaded loader finishes.
+     This existing 650ms ownership handoff now happens off-screen, then
+     the fully hydrated Home is revealed once. */
+  setTimeout(async()=>{
+    try{
+      await syncStateHome();
+      retireLegacyTransfer();
+      try{window.NEXA_HOME_VISUALS_REFRESH?.()}catch(_){}
+    }finally{
+      markNexaHomeStateReady();
+    }
+  },650);
 
   bind();
 

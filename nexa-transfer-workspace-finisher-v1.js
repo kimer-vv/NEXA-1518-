@@ -1,4 +1,4 @@
-// NEXA TRANSFER WORKSPACE FINISHER V1.4 — PRESENCE / PERSISTENT HISTORY HANDOFF / PROTECTED FORM LIBRARY
+// NEXA TRANSFER WORKSPACE FINISHER V1.5 — PRESENCE / PERSISTENT HISTORY HANDOFF / PROTECTED FORM LIBRARY / SECURE HISTORY DELETE
 (()=>{
 'use strict';
 
@@ -116,6 +116,31 @@ function confirmDeleteHistory(h){
   openModal('DELETE HISTORY','Delete Transfer Cycle?',`<p class="muted">Delete <b>${esc(historyRange(h))}</b> from History permanently?</p><p class="muted">This removes the archived cycle card and cannot be undone.</p><div class="actions"><button class="btn secondary" type="button" id="nexaCancelDeleteHistory">Cancel</button><button class="btn danger" type="button" id="nexaConfirmDeleteHistory">Delete</button></div><div class="status" id="nexaDeleteHistoryStatus"></div>`);
   $('nexaCancelDeleteHistory').onclick=closeModal;$('nexaConfirmDeleteHistory').onclick=async()=>{const s=$('nexaDeleteHistoryStatus');s.textContent='Deleting…';const {data,error}=await SB.rpc('transfer_workspace_delete_history',{p_workspace_id:workspaceId,p_token:token,p_event_id:h.id});if(error||data?.ok!==true){s.textContent=error?.message||'Unable to delete this History card.';return}closeModal();await loadHistory()};
 }
+function confirmSecurePersistentHistoryDelete(eventId){
+  if(!eventId)return;
+  token=getToken();workspaceId=getWorkspaceId();
+  openModal('DELETE HISTORY','Delete Transfer Cycle?',`<p class="muted">Permanently delete this Transfer Cycle from History?</p><div class="notice">This will also permanently delete any <b>Ordinary</b> and <b>Special</b> applicant records attached to this cycle. New Applicants, Not Selected, and Next Transfer Cycle are not deleted.</div><label class="field">NEXA Password<input class="nexa-form-password" id="nexaHistoryDeletePassword" type="password" autocomplete="current-password"></label><label class="field">Type CLEAR to continue<input class="nexa-form-password" id="nexaHistoryDeleteConfirmation" type="text" autocomplete="off" autocapitalize="characters"></label><div class="actions"><button class="btn secondary" id="nexaCancelSecureHistoryDelete" type="button">Cancel</button><button class="btn danger" id="nexaConfirmSecureHistoryDelete" type="button">Delete Permanently</button></div><div class="status" id="nexaSecureHistoryDeleteStatus"></div>`);
+  $('nexaCancelSecureHistoryDelete').onclick=closeModal;
+  $('nexaConfirmSecureHistoryDelete').onclick=async()=>{
+    const st=$('nexaSecureHistoryDeleteStatus'),password=$('nexaHistoryDeletePassword').value,confirmation=$('nexaHistoryDeleteConfirmation').value.trim().toUpperCase();
+    if(!password){st.textContent='Enter your NEXA password.';return}
+    if(confirmation!=='CLEAR'){st.textContent='Type CLEAR to continue.';return}
+    st.textContent='Deleting Transfer Cycle…';
+    const {data,error}=await SB.rpc('transfer_workspace_delete_history_secure',{p_workspace_id:workspaceId,p_token:token,p_event_id:eventId,p_password:password,p_confirmation:confirmation});
+    if(error||data?.ok!==true){const m={invalid_password:'NEXA password is incorrect.',confirmation_required:'Type CLEAR to continue.',manager_required:'Admin Access is required.',history_not_found:'This Transfer Cycle no longer exists.'};st.textContent=m[data?.error]||error?.message||'Unable to delete this Transfer Cycle.';return}
+    closeModal();location.reload();
+  };
+}
+function installPersistentHistoryDeleteGuard(){
+  if(document.documentElement.dataset.nexaSecureHistoryDelete==='1')return;
+  document.documentElement.dataset.nexaSecureHistoryDelete='1';
+  document.addEventListener('click',e=>{
+    const btn=e.target?.closest?.('[data-delete-history]');
+    if(!btn)return;
+    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+    confirmSecurePersistentHistoryDelete(btn.dataset.deleteHistory||'');
+  },true);
+}
 function polishHistoryCopy(){if(window.NEXA_TRANSFER_PERSISTENT_ARCHIVE_V1)return;const p=document.querySelector('[data-panel="history"] article.card.full > p.muted');if(p)p.textContent='A simple summary of each completed Transfer Cycle.'}
 function polishAccess(){
   const panel=document.querySelector('[data-panel="access"]');if(!panel)return;
@@ -189,10 +214,9 @@ function attachTabHooks(){
 }
 function start(){
   if(booted)return;token=getToken();workspaceId=getWorkspaceId();const app=$('workspaceRoot');if(!SB||!workspaceId||!app||app.classList.contains('hidden'))return;
-  booted=true;injectStyles();ensureModal();ensurePresencePill();polishHistoryCopy();polishAccess();attachTabHooks();heartbeat();loadHistory();loadFormLibrary();
+  booted=true;injectStyles();ensureModal();ensurePresencePill();installPersistentHistoryDeleteGuard();polishHistoryCopy();polishAccess();attachTabHooks();heartbeat();loadHistory();loadFormLibrary();
   presenceTimer=setInterval(heartbeat,30000);historyTimer=setInterval(()=>{const hp=document.querySelector('[data-panel="history"]');if(hp?.classList.contains('active'))loadHistory();const ap=document.querySelector('[data-panel="access"]');if(ap?.classList.contains('active'))polishAccess();const ip=document.querySelector('[data-panel="integrations"]');if(ip?.classList.contains('active'))loadFormLibrary()},15000);
   window.addEventListener('pagehide',leave,{once:true});
 }
 const bootTimer=setInterval(()=>{start();if(booted)clearInterval(bootTimer)},500);setTimeout(start,50);
 })();
-

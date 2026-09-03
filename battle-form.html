@@ -4,10 +4,32 @@
 body{margin:0;background:#02030b;color:#fff;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
 .shell{max-width:760px;margin:0 auto;padding:24px 16px 90px}
 .back{color:#48ddff;text-decoration:none;font-weight:900;display:inline-block;margin:0 0 18px 6px}
-.head{margin:0 6px 18px}
-.head small{display:block;color:#a5b2d2;font-size:11px;font-weight:950;letter-spacing:.14em;margin-bottom:8px}
-.head h1{font-size:clamp(2rem,8vw,3rem);margin:0 0 8px;line-height:1.04}
-.head p{color:#aeb7d1;line-height:1.5;margin:0}
+.head{
+  display:block!important;
+  position:static!important;
+  float:none!important;
+  width:auto!important;
+  max-width:none!important;
+  margin:0 6px 26px!important;
+  padding:0!important;
+  text-align:left!important;
+  columns:auto!important;
+  column-count:1!important;
+}
+.head>*{
+  display:block!important;
+  position:static!important;
+  float:none!important;
+  width:auto!important;
+  max-width:100%!important;
+  margin-left:0!important;
+  margin-right:0!important;
+  transform:none!important;
+  text-align:left!important;
+}
+.head small{display:block!important;color:#a5b2d2;font-size:11px;font-weight:950;letter-spacing:.14em;margin:0 0 8px!important;line-height:1.35!important;white-space:normal!important}
+.head h1{display:block!important;font-size:clamp(2rem,8vw,3rem)!important;margin:0 0 8px!important;line-height:1.04!important;white-space:normal!important}
+.head p{display:block!important;color:#aeb7d1;line-height:1.5!important;margin:0!important;white-space:normal!important}
 .msg{min-height:20px;color:#ffb7ca;font-weight:800;margin:0 6px 12px}
 .card{margin:12px 6px 0;padding:18px;border:1px solid rgba(255,255,255,.12);border-radius:22px;background:rgba(8,13,30,.72);box-shadow:0 10px 30px rgba(0,0,0,.18)}
 .card h3{margin:0 0 12px;font-size:20px}
@@ -54,7 +76,7 @@ textarea{min-height:100px;resize:vertical}
 </style></head><body><main class="shell">
 <a class="back" href="forms-center.html?section=svs">‹ Forms Center</a><header class="head"><small>SVS • BATTLE PHASE</small><h1>Battle Sign-Up</h1><p id="eventMeta">SvS Battle Sign-Up</p></header><div id="msg" class="msg"></div>
 <section id="gate" class="card hidden"><h3>How would you like to continue?</h3><div class="stack"><button id="memberBtn" class="btn" type="button">Continue with NEXA</button><button id="guestBtn" class="btn secondary" type="button">Continue as Guest</button></div></section>
-<form id="form" class="hidden"><section id="identity" class="card"></section><section id="memberNote" class="card auto hidden"><h3>NEXA Member</h3><p class="muted">NEXA matches this WOS Account against the role-specific SvS requirements selected by leadership. You only submit your Availability.</p></section><section id="profileMatch" class="card profile-match hidden"></section><section class="card"><h3>Availability</h3><p class="muted">Select every UTC block when you expect to be available.</p><div id="availability" class="availability-wrap"></div></section><section id="guestOnly" class="hidden"><section class="card"><h3>Battle Role</h3><label class="choice-card" data-radio-group="role"><input type="radio" name="role" value="joiner"><div class="dot"></div><div class="txt">Joiner</div></label><label class="choice-card" data-radio-group="role"><input type="radio" name="role" value="rally_lead"><div class="dot"></div><div class="txt">Rally Leader</div></label></section></section><section class="card"><small>FINAL CHECK</small><h3>Review</h3><div id="responseSummary" class="review-list"></div></section><section class="card"><button class="btn" type="submit">Save Battle Response</button><div id="saveMsg" class="inline-save-msg"></div></section></form></main><script>
+<form id="form" class="hidden"><section id="identity" class="card"></section><section id="memberNote" class="card auto hidden"><h3>NEXA Member</h3><p class="muted">Your saved NEXA battle data is recovered automatically. For SvS Battle Sign-Up, only submit the Availability NEXA cannot know for you.</p></section><section class="card"><h3>Availability</h3><p class="muted">Select every UTC block when you expect to be available.</p><div id="availability" class="availability-wrap"></div></section><section id="guestOnly" class="hidden"><section class="card"><h3>Battle Role</h3><label class="choice-card" data-radio-group="role"><input type="radio" name="role" value="joiner"><div class="dot"></div><div class="txt">Joiner</div></label><label class="choice-card" data-radio-group="role"><input type="radio" name="role" value="rally_lead"><div class="dot"></div><div class="txt">Rally Leader</div></label></section></section><section class="card"><small>FINAL CHECK</small><h3>Review</h3><div id="responseSummary" class="review-list"></div></section><section class="card"><button class="btn" type="submit">Save Battle Response</button><div id="saveMsg" class="inline-save-msg"></div></section></form></main><script>
 const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
 const sb=window.supabase.createClient(SB_URL,SB_KEY);
@@ -97,39 +119,6 @@ function heroReportList(s){
 function expertReportList(s){
   return (s?.eligible_experts||[]).map(x=>x.name).filter(Boolean);
 }
-function renderProfileMatch(snapshot){
-  const host=$('profileMatch');
-  if(!host)return;
-  if(!snapshot||!snapshot.role){
-    host.classList.remove('hidden');
-    host.innerHTML='<h3>NEXA Profile Match</h3><p class="muted">No Battle Role is assigned to this WOS Account yet.</p>';
-    return;
-  }
-  const heroes=snapshot.heroes||[];
-  const experts=snapshot.experts||[];
-  const role=battleRoleLabel(snapshot.role);
-  const heroRows=heroes.map(h=>{
-    const ok=!!h.eligible;
-    const detail=snapshot.role==='joiner'
-      ? `Best Expedition Skill: Lv. ${Number(h.skill_level||0)}${(h.level5_skills||[]).length?' • Lv.5: '+h.level5_skills.join(', '):''}`
-      : (h.owned?'Hero found in My Profile':'Hero not found in My Profile');
-    return `<div class="match-row">${h.image_url?`<img src="${esc(h.image_url)}" alt="">`:'<span></span>'}<div><b>${esc(h.name)}</b><small>${esc(detail)}</small></div><span class="match-status ${ok?'ok':'no'}">${ok?'ELIGIBLE':'NOT ELIGIBLE'}</span></div>`;
-  }).join('')||'<p class="muted">Leadership did not select Heroes for this role.</p>';
-  const expertRows=experts.map(x=>{
-    const ok=!!x.eligible;
-    const detail=x.owned?`My Profile • Affinity ${Number(x.affinity||0)}`:'Expert not found in My Profile';
-    return `<div class="match-row">${x.image_url?`<img src="${esc(x.image_url)}" alt="">`:'<span></span>'}<div><b>${esc(x.name)}</b><small>${esc(detail)}</small></div><span class="match-status ${ok?'ok':'no'}">${ok?'AVAILABLE':'NOT AVAILABLE'}</span></div>`;
-  }).join('')||'<p class="muted">Leadership did not select Experts for this role.</p>';
-  const troopKeys=Object.keys(snapshot.troop_quality||{});
-  host.classList.remove('hidden');
-  host.innerHTML=`
-    <h3>NEXA Profile Match • ${esc(role)}</h3>
-    <p class="snapshot-note">NEXA compares the Heroes and Experts selected by leadership for this form against the selected WOS Account. Joiner Heroes count as eligible only when the account owns the Hero and has at least one Expedition Skill at Level 5.</p>
-    <div class="match-block"><h4>Heroes</h4>${heroRows}</div>
-    <div class="match-block"><h4>Experts</h4>${expertRows}</div>
-    <div class="review-row"><span>Deployment Capacity</span><b>${snapshot.deployment_capacity??'Not set'}</b></div>
-    <div class="review-row"><span>Troop Profile</span><b>${troopKeys.length?troopKeys.join(' • '):'Not set'}</b></div>`;
-}
 async function loadProfileSnapshot(account,eventKey){
   if(!account?.id)return null;
   const {data,error}=await sb.rpc('nexa_get_event_profile_snapshot',{
@@ -156,9 +145,8 @@ async function applyMemberAccount(id){
   }catch(err){
     $('msg').textContent=err?.message||'Could not read NEXA Profile data.';
   }
-  $('identity').innerHTML=`<h3>NEXA Account</h3><label>WOS Account<select id="accountSelect">${memberAccounts.map(a=>`<option value="${esc(a.id)}" ${String(a.id)===String(account.id)?'selected':''}>${esc(a.in_game_name)} • ID ${esc(a.player_id)}</option>`).join('')}</select></label><div class="microcopy">${esc(account.alliances?.tag||account.custom_alliance_tag||'')} • State ${esc(account.state_number||'')}</div><div class="card auto" style="margin:12px 0 0;padding:14px">${assignedRole?`Battle Role from NEXA: ${battleRoleLabel(assignedRole)}`:'Battle Role: Not assigned yet — leadership can assign it in My Alliance.'}</div>`;
+  $('identity').innerHTML=`<h3>NEXA Account</h3><label>WOS Account<select id="accountSelect">${memberAccounts.map(a=>`<option value="${esc(a.id)}" ${String(a.id)===String(account.id)?'selected':''}>${esc(a.in_game_name)} • ID ${esc(a.player_id)}</option>`).join('')}</select></label><div class="microcopy">${esc(account.alliances?.tag||account.custom_alliance_tag||'')} • State ${esc(account.state_number||'')}</div>`;
   if($('accountSelect'))$('accountSelect').onchange=async e=>{await applyMemberAccount(e.target.value)};
-  renderProfileMatch(profileSnapshot);
   updateSummary();
 }
 async function enterMember(){ mode='member'; if(!session){ $('msg').textContent='Sign in to NEXA to continue.'; return; } memberAccounts=await loadMemberAccounts(session); if(!memberAccounts.length){ $('msg').textContent='No NEXA WOS Accounts were found.'; return; } await applyMemberAccount(activeAccountFrom(memberAccounts).id); $('gate').classList.add('hidden'); $('form').classList.remove('hidden'); $('memberNote').classList.remove('hidden'); $('guestOnly').classList.add('hidden'); }

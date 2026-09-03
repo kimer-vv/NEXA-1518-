@@ -1,4 +1,4 @@
-// NEXA TRANSFER WORKSPACE FINISHER V1.5 — PRESENCE / PERSISTENT HISTORY HANDOFF / PROTECTED FORM LIBRARY / SECURE HISTORY DELETE
+// NEXA TRANSFER WORKSPACE FINISHER V1.6 — PRESENCE / PERSISTENT HISTORY HANDOFF / PROTECTED FORM LIBRARY / SECURE HISTORY DELETE / USERNAME CHANGE
 (()=>{
 'use strict';
 
@@ -128,7 +128,10 @@ function confirmSecurePersistentHistoryDelete(eventId){
     st.textContent='Deleting Transfer Cycle…';
     const {data,error}=await SB.rpc('transfer_workspace_delete_history_secure',{p_workspace_id:workspaceId,p_token:token,p_event_id:eventId,p_password:password,p_confirmation:confirmation});
     if(error||data?.ok!==true){const m={invalid_password:'NEXA password is incorrect.',confirmation_required:'Type CLEAR to continue.',manager_required:'Admin Access is required.',history_not_found:'This Transfer Cycle no longer exists.'};st.textContent=m[data?.error]||error?.message||'Unable to delete this Transfer Cycle.';return}
-    closeModal();location.reload();
+    const card=document.querySelector(`[data-delete-history="${CSS.escape(eventId)}"]`)?.closest('.historyCard');
+    if(card)card.remove();
+    if(!$('historyList')?.querySelector('.historyCard'))$('historyList').innerHTML='<div class="empty">No completed Transfer Cycles yet.</div>';
+    closeModal();
   };
 }
 function installPersistentHistoryDeleteGuard(){
@@ -142,9 +145,46 @@ function installPersistentHistoryDeleteGuard(){
   },true);
 }
 function polishHistoryCopy(){if(window.NEXA_TRANSFER_PERSISTENT_ARCHIVE_V1)return;const p=document.querySelector('[data-panel="history"] article.card.full > p.muted');if(p)p.textContent='A simple summary of each completed Transfer Cycle.'}
+
+function enhanceUsernameControl(){
+  const myPass=document.querySelector('[data-my-pass]');
+  if(!myPass)return;
+  const actions=myPass.closest('.actions');
+  if(!actions||actions.querySelector('[data-change-username]'))return;
+  const b=document.createElement('button');
+  b.className='btn secondary mini';
+  b.type='button';
+  b.dataset.changeUsername='1';
+  b.textContent='Change Username';
+  b.onclick=openChangeUsername;
+  actions.insertBefore(b,myPass.nextSibling);
+}
+function openChangeUsername(){
+  const selfCard=document.querySelector('[data-my-pass]')?.closest('[data-access]');
+  const current=selfCard?.querySelector('.staffInfo div:nth-child(2) b')?.textContent?.trim()||'';
+  openModal('ACCOUNT','Change Username',`<p class="muted">Choose a new Transfer Workspace username. You will still be able to log in with your Game ID.</p><label class="field">New Username<input class="nexa-form-password" id="nexaNewUsername" type="text" value="${esc(current)}" autocomplete="username" autocapitalize="none" spellcheck="false"></label><label class="field">Current NEXA Password<input class="nexa-form-password" id="nexaUsernamePassword" type="password" autocomplete="current-password"></label><div class="note" style="margin-top:8px">3–32 characters • letters, numbers, dot, underscore or hyphen.</div><div class="actions"><button class="btn secondary" id="nexaCancelUsername" type="button">Cancel</button><button class="btn" id="nexaSaveUsername" type="button">Save Username</button></div><div class="status" id="nexaUsernameStatus"></div>`);
+  $('nexaCancelUsername').onclick=closeModal;
+  $('nexaSaveUsername').onclick=async()=>{
+    const st=$('nexaUsernameStatus'),username=$('nexaNewUsername').value.trim(),password=$('nexaUsernamePassword').value;
+    if(!username){st.textContent='Enter a username.';return}
+    if(!password){st.textContent='Enter your current NEXA password.';return}
+    st.textContent='Saving…';
+    const {data,error}=await SB.rpc('transfer_staff_change_username',{p_token:token,p_current_password:password,p_new_username:username});
+    if(error||data?.ok!==true){
+      const m={wrong_password:'Current password is incorrect.',username_taken:'That username is already in use.',invalid_username_length:'Username must be 3–32 characters.',invalid_username_format:'Use only letters, numbers, dot, underscore or hyphen.',session_expired:'Your session expired. Log in again.'};
+      st.textContent=m[data?.error]||error?.message||'Unable to change username.';
+      return;
+    }
+    const selfCard=document.querySelector('[data-my-pass]')?.closest('[data-access]');
+    const userCell=selfCard?.querySelector('.staffInfo div:nth-child(2) b');
+    if(userCell)userCell.textContent=data.username;
+    closeModal();
+  };
+}
+
 function polishAccess(){
   const panel=document.querySelector('[data-panel="access"]');if(!panel)return;
-  const intro=panel.querySelector('article.card.full > p.muted');if(intro)intro.textContent='Owner 👑 = protected owner · Admin ★ = access management · Transfer Staff ☆ = normal transfer operations.';
+  const intro=panel.querySelector('article.card.full > p.muted');if(intro)intro.textContent='Owner 👑 = protected owner · Admin ★ = access management · Transfer Staff ☆ = normal transfer operations.';enhanceUsernameControl();
   const w=document.createTreeWalker(panel,NodeFilter.SHOW_TEXT),nodes=[];while(w.nextNode())nodes.push(w.currentNode);for(const n of nodes){if(!n.nodeValue)continue;n.nodeValue=n.nodeValue.replace(/\bAccess Management\b/g,'Admin Access').replace(/\bManager\b/g,'Admin').replace(/\bmanager\b/g,'admin')}
 }
 

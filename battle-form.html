@@ -38,10 +38,23 @@ textarea{min-height:100px;resize:vertical}
 .pick img{width:56px;height:56px;object-fit:cover;border-radius:12px;background:#11182f}
 .pick input{width:auto;min-height:auto}
 .availability-wrap,.stack{display:grid;gap:12px}
+.profile-match{display:grid;gap:10px}
+.match-block{border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:12px;background:rgba(255,255,255,.025)}
+.match-block h4{margin:0 0 8px;font-size:14px}
+.match-row{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid rgba(255,255,255,.06)}
+.match-row:first-of-type{border-top:0}
+.match-row img{width:44px;height:44px;border-radius:12px;object-fit:cover;background:#11182f}
+.match-row b{display:block;font-size:13px}
+.match-row small{display:block;color:#aeb7d1;font-size:11px;line-height:1.35;margin-top:2px}
+.match-status{font-size:11px;font-weight:950;white-space:nowrap}
+.match-status.ok{color:#8effca}
+.match-status.no{color:#ffb7ca}
+.snapshot-note{color:#9fb0ca;font-size:12px;line-height:1.45}
+
 </style></head><body><main class="shell">
 <a class="back" href="forms-center.html?section=svs">‹ Forms Center</a><header class="head"><small>SVS • BATTLE PHASE</small><h1>Battle Sign-Up</h1><p id="eventMeta">SvS Battle Sign-Up</p></header><div id="msg" class="msg"></div>
 <section id="gate" class="card hidden"><h3>How would you like to continue?</h3><div class="stack"><button id="memberBtn" class="btn" type="button">Continue with NEXA</button><button id="guestBtn" class="btn secondary" type="button">Continue as Guest</button></div></section>
-<form id="form" class="hidden"><section id="identity" class="card"></section><section id="memberNote" class="card auto hidden"><h3>NEXA Member</h3><p class="muted">NEXA uses your saved Profile for Battle Role, Heroes, Experts, Troop Quality and other persistent battle data. For SvS Battle Sign-Up, you only need to submit Availability.</p></section><section class="card"><h3>Availability</h3><p class="muted">Select every UTC block when you expect to be available.</p><div id="availability" class="availability-wrap"></div></section><section id="guestOnly" class="hidden"><section class="card"><h3>Battle Role</h3><label class="choice-card" data-radio-group="role"><input type="radio" name="role" value="joiner"><div class="dot"></div><div class="txt">Joiner</div></label><label class="choice-card" data-radio-group="role"><input type="radio" name="role" value="rally_lead"><div class="dot"></div><div class="txt">Rally Leader</div></label></section></section><section class="card"><small>FINAL CHECK</small><h3>Review</h3><div id="responseSummary" class="review-list"></div></section><section class="card"><button class="btn" type="submit">Save Battle Response</button><div id="saveMsg" class="inline-save-msg"></div></section></form></main><script>
+<form id="form" class="hidden"><section id="identity" class="card"></section><section id="memberNote" class="card auto hidden"><h3>NEXA Member</h3><p class="muted">NEXA matches this WOS Account against the role-specific SvS requirements selected by leadership. You only submit your Availability.</p></section><section id="profileMatch" class="card profile-match hidden"></section><section class="card"><h3>Availability</h3><p class="muted">Select every UTC block when you expect to be available.</p><div id="availability" class="availability-wrap"></div></section><section id="guestOnly" class="hidden"><section class="card"><h3>Battle Role</h3><label class="choice-card" data-radio-group="role"><input type="radio" name="role" value="joiner"><div class="dot"></div><div class="txt">Joiner</div></label><label class="choice-card" data-radio-group="role"><input type="radio" name="role" value="rally_lead"><div class="dot"></div><div class="txt">Rally Leader</div></label></section></section><section class="card"><small>FINAL CHECK</small><h3>Review</h3><div id="responseSummary" class="review-list"></div></section><section class="card"><button class="btn" type="submit">Save Battle Response</button><div id="saveMsg" class="inline-save-msg"></div></section></form></main><script>
 const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
 const sb=window.supabase.createClient(SB_URL,SB_KEY);
@@ -72,15 +85,107 @@ function activeAccountFrom(list){const activeId=localStorage.getItem('nexa_activ
 function bindCheckCards(scope){document.querySelectorAll(scope+' .choice-card').forEach(card=>card.onclick=e=>{if(e.target.tagName!=='INPUT'){const inp=card.querySelector('input');inp.checked=!inp.checked;inp.dispatchEvent(new Event('change'));}});}
 function refreshCheckCards(scope){document.querySelectorAll(scope+' .choice-card').forEach(card=>card.classList.toggle('active',!!card.querySelector('input')?.checked));}
 
-let settings={},questions=[],session=null,account=null,memberAccounts=[],assignedRole='',mode='',eventData=null; let token=localStorage.getItem('nexa_guest_svs_token_v2')||crypto.randomUUID(); localStorage.setItem('nexa_guest_svs_token_v2',token);
+let settings={},questions=[],session=null,account=null,memberAccounts=[],assignedRole='',mode='',eventData=null,profileSnapshot=null; let token=localStorage.getItem('nexa_guest_svs_token_v2')||crypto.randomUUID(); localStorage.setItem('nexa_guest_svs_token_v2',token);
+
+function heroReportList(s){
+  return (s?.eligible_heroes||[]).map(h=>({
+    name:h.name,
+    skill_level:Number(h.skill_level||0)||null,
+    level5_skills:Array.isArray(h.level5_skills)?h.level5_skills:[]
+  }));
+}
+function expertReportList(s){
+  return (s?.eligible_experts||[]).map(x=>x.name).filter(Boolean);
+}
+function renderProfileMatch(snapshot){
+  const host=$('profileMatch');
+  if(!host)return;
+  if(!snapshot||!snapshot.role){
+    host.classList.remove('hidden');
+    host.innerHTML='<h3>NEXA Profile Match</h3><p class="muted">No Battle Role is assigned to this WOS Account yet.</p>';
+    return;
+  }
+  const heroes=snapshot.heroes||[];
+  const experts=snapshot.experts||[];
+  const role=battleRoleLabel(snapshot.role);
+  const heroRows=heroes.map(h=>{
+    const ok=!!h.eligible;
+    const detail=snapshot.role==='joiner'
+      ? `Best Expedition Skill: Lv. ${Number(h.skill_level||0)}${(h.level5_skills||[]).length?' • Lv.5: '+h.level5_skills.join(', '):''}`
+      : (h.owned?'Hero found in My Profile':'Hero not found in My Profile');
+    return `<div class="match-row">${h.image_url?`<img src="${esc(h.image_url)}" alt="">`:'<span></span>'}<div><b>${esc(h.name)}</b><small>${esc(detail)}</small></div><span class="match-status ${ok?'ok':'no'}">${ok?'ELIGIBLE':'NOT ELIGIBLE'}</span></div>`;
+  }).join('')||'<p class="muted">Leadership did not select Heroes for this role.</p>';
+  const expertRows=experts.map(x=>{
+    const ok=!!x.eligible;
+    const detail=x.owned?`My Profile • Affinity ${Number(x.affinity||0)}`:'Expert not found in My Profile';
+    return `<div class="match-row">${x.image_url?`<img src="${esc(x.image_url)}" alt="">`:'<span></span>'}<div><b>${esc(x.name)}</b><small>${esc(detail)}</small></div><span class="match-status ${ok?'ok':'no'}">${ok?'AVAILABLE':'NOT AVAILABLE'}</span></div>`;
+  }).join('')||'<p class="muted">Leadership did not select Experts for this role.</p>';
+  const troopKeys=Object.keys(snapshot.troop_quality||{});
+  host.classList.remove('hidden');
+  host.innerHTML=`
+    <h3>NEXA Profile Match • ${esc(role)}</h3>
+    <p class="snapshot-note">NEXA compares the Heroes and Experts selected by leadership for this form against the selected WOS Account. Joiner Heroes count as eligible only when the account owns the Hero and has at least one Expedition Skill at Level 5.</p>
+    <div class="match-block"><h4>Heroes</h4>${heroRows}</div>
+    <div class="match-block"><h4>Experts</h4>${expertRows}</div>
+    <div class="review-row"><span>Deployment Capacity</span><b>${snapshot.deployment_capacity??'Not set'}</b></div>
+    <div class="review-row"><span>Troop Profile</span><b>${troopKeys.length?troopKeys.join(' • '):'Not set'}</b></div>`;
+}
+async function loadProfileSnapshot(account,eventKey){
+  if(!account?.id)return null;
+  const {data,error}=await sb.rpc('nexa_get_event_profile_snapshot',{
+    p_account_id:account.id,
+    p_event_type_key:eventKey
+  });
+  if(error)throw error;
+  return data||null;
+}
+
 function availabilityBlocks(){ const raw=(settings.availability_blocks||[]).map(x=>x.label||x).filter(Boolean); return raw.length?raw:['12:00–13:00 UTC','13:00–14:00 UTC','14:00–15:00 UTC','15:00–16:00 UTC']; }
 function currentRole(){ return assignedRole || document.querySelector('input[name="role"]:checked')?.value || ''; }
 function renderAvailability(){ $('availability').innerHTML=`<label class="choice-card"><input id="full" type="checkbox"><div class="dot"></div><div class="txt">Full Availability</div></label><label class="choice-card"><input id="na" type="checkbox"><div class="dot"></div><div class="txt">Not Available</div></label>${availabilityBlocks().map(b=>`<label class="choice-card"><input class="av" type="checkbox" value="${esc(b)}"><div class="dot"></div><div class="txt">${esc(b)}</div></label>`).join('')}`; bindCheckCards('#availability'); $('full').onchange=()=>{ if($('full').checked){ document.querySelectorAll('.av').forEach(x=>x.checked=true); $('na').checked=false; } refreshCheckCards('#availability'); updateSummary(); }; $('na').onchange=()=>{ if($('na').checked){ document.querySelectorAll('.av').forEach(x=>x.checked=false); $('full').checked=false; } refreshCheckCards('#availability'); updateSummary(); }; document.querySelectorAll('.av').forEach(x=>x.onchange=()=>{ if($('na').checked)x.checked=false; refreshCheckCards('#availability'); updateSummary(); }); refreshCheckCards('#availability'); }
 function availabilityPayload(){ return $('na')?.checked?['Not Available']:$('full')?.checked?availabilityBlocks():[...document.querySelectorAll('.av:checked')].map(x=>x.value); }
 function updateSummary(){ const av=availabilityPayload(); $('responseSummary').innerHTML=`<div class="review-row"><span>Battle Role</span><b>${battleRoleLabel(currentRole())}</b></div><div class="review-row"><span>Availability</span><b>${av[0]==='Not Available'?'Not available':(av.length||0)+' block'+((av.length||0)===1?'':'s')}</b></div>`; }
-async function applyMemberAccount(id){ account=memberAccounts.find(a=>String(a.id)===String(id))||memberAccounts[0]||null; assignedRole=await resolveBattleRole(account); $('identity').innerHTML=account?`<h3>NEXA Account</h3><label>WOS Account<select id="accountSelect">${memberAccounts.map(a=>`<option value="${esc(a.id)}" ${String(a.id)===String(account.id)?'selected':''}>${esc(a.in_game_name)} • ID ${esc(a.player_id)}</option>`).join('')}</select></label><div class="microcopy">${esc(account.alliances?.tag||account.custom_alliance_tag||'')} • State ${esc(account.state_number||'')}</div><div class="card auto" style="margin:12px 0 0;padding:14px">${assignedRole?`Battle Role from NEXA: ${battleRoleLabel(assignedRole)}`:'Battle Role: Not assigned yet — leadership can assign it in My Alliance.'}</div>`:'NEXA Profile unavailable.'; if($('accountSelect'))$('accountSelect').onchange=async e=>{ await applyMemberAccount(e.target.value); }; updateSummary(); }
+async function applyMemberAccount(id){
+  account=memberAccounts.find(a=>String(a.id)===String(id))||memberAccounts[0]||null;
+  profileSnapshot=null;
+  assignedRole='';
+  if(!account){$('identity').innerHTML='NEXA Profile unavailable.';return}
+  try{
+    profileSnapshot=await loadProfileSnapshot(account,'svs');
+    assignedRole=normalizeRole(profileSnapshot?.role);
+  }catch(err){
+    $('msg').textContent=err?.message||'Could not read NEXA Profile data.';
+  }
+  $('identity').innerHTML=`<h3>NEXA Account</h3><label>WOS Account<select id="accountSelect">${memberAccounts.map(a=>`<option value="${esc(a.id)}" ${String(a.id)===String(account.id)?'selected':''}>${esc(a.in_game_name)} • ID ${esc(a.player_id)}</option>`).join('')}</select></label><div class="microcopy">${esc(account.alliances?.tag||account.custom_alliance_tag||'')} • State ${esc(account.state_number||'')}</div><div class="card auto" style="margin:12px 0 0;padding:14px">${assignedRole?`Battle Role from NEXA: ${battleRoleLabel(assignedRole)}`:'Battle Role: Not assigned yet — leadership can assign it in My Alliance.'}</div>`;
+  if($('accountSelect'))$('accountSelect').onchange=async e=>{await applyMemberAccount(e.target.value)};
+  renderProfileMatch(profileSnapshot);
+  updateSummary();
+}
 async function enterMember(){ mode='member'; if(!session){ $('msg').textContent='Sign in to NEXA to continue.'; return; } memberAccounts=await loadMemberAccounts(session); if(!memberAccounts.length){ $('msg').textContent='No NEXA WOS Accounts were found.'; return; } await applyMemberAccount(activeAccountFrom(memberAccounts).id); $('gate').classList.add('hidden'); $('form').classList.remove('hidden'); $('memberNote').classList.remove('hidden'); $('guestOnly').classList.add('hidden'); }
 async function enterGuest(){ mode='guest'; assignedRole=''; $('identity').innerHTML=`<h3>Guest / Public Identity</h3><label>In-Game Name<input id="gname"></label><label>Game ID<input id="gid" inputmode="numeric"></label><label>Alliance Tag<input id="gtag"></label>`; $('gate').classList.add('hidden'); $('form').classList.remove('hidden'); $('memberNote').classList.add('hidden'); $('guestOnly').classList.remove('hidden'); bindRadioCards('role'); updateSummary(); }
 $('memberBtn').onclick=()=>enterMember(); $('guestBtn').onclick=()=>enterGuest(); $('form').addEventListener('change',()=>{ toggleCardRadios('role'); updateSummary(); }); $('form').addEventListener('input',updateSummary);
-$('form').onsubmit=async e=>{ e.preventDefault(); $('saveMsg').textContent=''; const av=availabilityPayload(); const role=currentRole(); if(!role){ $('saveMsg').textContent='This WOS Account does not have a Battle Role assigned yet.'; return; } if(!av.length){ $('saveMsg').textContent='Select Availability.'; return; } if(mode==='member'){ const row={event_id:eventData?.id||null,user_id:session.user.id,player_account_id:account.id,role,availability:av,response_data:{availability:av,role},updated_at:new Date().toISOString()}; const res=await sb.from('battle_form_responses').upsert(row,{onConflict:'event_id,player_account_id'}).select(); $('saveMsg').textContent=res.error?res.error.message:'Battle response saved ✓'; return; } const name=$('gname').value.trim(),game=$('gid').value.trim(),tag=$('gtag').value.trim(); if(!name||!/^\d+$/.test(game)||!tag){ $('saveMsg').textContent='Enter In-Game Name, numeric Game ID and Alliance Tag.'; return; } const saved=await sb.rpc('nexa_upsert_guest_event_response',{p_event_type_key:'svs',p_guest_token:token,p_game_id:game,p_in_game_name:name,p_alliance_tag:tag,p_role:role,p_response_data:{availability:av,role}}); $('saveMsg').textContent=saved.error?saved.error.message:'Battle response saved ✓'; };
+$('form').onsubmit=async e=>{ e.preventDefault(); $('saveMsg').textContent=''; const av=availabilityPayload(); const role=currentRole(); if(!role){ $('saveMsg').textContent='This WOS Account does not have a Battle Role assigned yet.'; return; } if(!av.length){ $('saveMsg').textContent='Select Availability.'; return; } if(mode==='member'){
+    if(!eventData?.id){$('saveMsg').textContent='No active SvS event is available.';return}
+    const heroReports=heroReportList(profileSnapshot);
+    const expertReports=expertReportList(profileSnapshot);
+    const row={
+      event_id:eventData.id,
+      user_id:session.user.id,
+      player_account_id:account.id,
+      role,
+      availability:av,
+      availability_mode:$('na')?.checked?'not_available':$('full')?.checked?'full':'custom',
+      troop_quality:profileSnapshot?.troop_quality||{},
+      deployment_capacity:profileSnapshot?.deployment_capacity??null,
+      joiner_heroes:role==='joiner'?heroReports:[],
+      rally_heroes:role==='rally_lead'?heroReports:[],
+      experts:expertReports,
+      discord_voice:null,
+      custom_answers:{},
+      updated_at:new Date().toISOString()
+    };
+    const res=await sb.from('battle_form_responses').upsert(row,{onConflict:'event_id,player_account_id'}).select();
+    $('saveMsg').textContent=res.error?res.error.message:'Battle response saved ✓';
+    return;
+  } const name=$('gname').value.trim(),game=$('gid').value.trim(),tag=$('gtag').value.trim(); if(!name||!/^\d+$/.test(game)||!tag){ $('saveMsg').textContent='Enter In-Game Name, numeric Game ID and Alliance Tag.'; return; } const saved=await sb.rpc('nexa_upsert_guest_event_response',{p_event_type_key:'svs',p_guest_token:token,p_game_id:game,p_in_game_name:name,p_alliance_tag:tag,p_role:role,p_response_data:{availability:av,role}}); $('saveMsg').textContent=saved.error?saved.error.message:'Battle response saved ✓'; };
 (async function load(){ try{ const [template,qq,auth,ev]=await Promise.all([sb.from('event_form_templates').select('settings').eq('event_type_key','svs').maybeSingle(),sb.from('event_form_questions').select('*').eq('is_active',true),sb.auth.getSession(),sb.from('svs_events').select('id,opponent_state').neq('status','ended').order('prep_monday',{ascending:false}).limit(1).maybeSingle()]); settings=template.data?.settings||{}; questions=qq.data||[]; session=auth.data?.session||null; eventData=ev.data||null; $('eventMeta').textContent=eventData?`SvS vs ${eventData.opponent_state} • UTC availability`:'SvS Battle Sign-Up'; renderAvailability(); if(session) await enterMember(); else $('gate').classList.remove('hidden'); updateSummary(); }catch(err){ $('msg').textContent=err?.message||'Unable to load Battle Form.'; } })();</script></body></html>

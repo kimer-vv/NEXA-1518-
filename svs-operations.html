@@ -54,7 +54,104 @@ input,select{width:100%;min-height:44px;background:#060b1c;color:#fff;border:1px
 .layout-team{border:1px solid var(--tc);border-radius:13px;overflow:hidden;background:rgba(4,8,20,.84)}.layout-team-title{text-align:center;padding:9px;font-weight:950;box-shadow:inset 0 -3px 0 var(--tc)}
 .layout-rally{padding:8px}.layout-headrow,.layout-row{display:grid;grid-template-columns:minmax(80px,.8fr) 1fr 1fr;gap:4px}.layout-headrow{background:rgba(255,255,255,.05);padding:7px;font-size:10px;font-weight:950;text-transform:uppercase}.layout-row{padding:7px;border-top:1px solid rgba(255,255,255,.07);font-size:10px}
 .placeholder{text-align:center;color:#aeb7d1;padding:30px 14px}.placeholder b{display:block;color:#fff;font-size:19px;margin-bottom:6px}
-@media(max-width:620px){.grid2,.grid3{grid-template-columns:1fr}.card,.desc,.nav,.status{margin-left:0}.team{flex-basis:290px}}
+
+.pet-preview-inline{
+  width:100%;
+  overflow:hidden;
+}
+.pet-preview-inline .layout-sheet{
+  min-width:0!important;
+  width:100%!important;
+  padding:12px!important;
+}
+.pet-preview-inline .pet-grid-wrap{
+  overflow-x:auto!important;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-x:contain;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;
+}
+.pet-preview-inline .pet-grid{
+  width:max-content!important;
+  min-width:760px!important;
+}
+.pet-preview-inline .pet-grid th,
+.pet-preview-inline .pet-grid td{
+  white-space:nowrap;
+  padding:6px 8px;
+}
+.pet-preview-inline .pet-grid th:first-child,
+.pet-preview-inline .pet-grid td:first-child{
+  position:sticky;
+  left:0;
+  z-index:2;
+  background:#0c1430;
+  min-width:118px!important;
+  max-width:118px;
+}
+.pet-preview-inline .pet-grid td:first-child{background:#071022}
+.pet-preview-overlay{
+  position:fixed;
+  inset:0;
+  z-index:2147483000;
+  display:none;
+  place-items:center;
+  background:rgba(0,0,0,.68);
+  padding:calc(16px + env(safe-area-inset-top)) 14px calc(18px + env(safe-area-inset-bottom));
+}
+.pet-preview-overlay.open{display:grid}
+.pet-preview-card{
+  width:min(620px,96vw);
+  max-height:min(72dvh,700px);
+  display:flex;
+  flex-direction:column;
+  border:1px solid rgba(72,221,255,.28);
+  border-radius:20px;
+  background:linear-gradient(180deg,#081024,#050816);
+  box-shadow:0 24px 70px rgba(0,0,0,.46);
+  padding:12px;
+}
+.pet-preview-toolbar{
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:10px;
+}
+.pet-preview-toolbar strong{font-size:15px}
+.pet-preview-toolbar button{
+  width:40px;
+  height:40px;
+  border-radius:50%;
+  border:1px solid rgba(72,221,255,.36);
+  background:#081329;
+  color:#bff6ff;
+  font-size:22px;
+  font-weight:900;
+}
+.pet-preview-stage{
+  flex:1 1 auto;
+  min-height:0;
+  overflow:auto;
+  -webkit-overflow-scrolling:touch;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:14px;
+  background:#050916;
+  padding:8px;
+}
+.pet-preview-stage .layout-sheet{
+  transform-origin:top left;
+  margin:0!important;
+}
+body.pet-preview-open{overflow:hidden!important}
+@media(max-width:620px){
+  .grid2,.grid3{grid-template-columns:1fr}
+  .card,.desc,.nav,.status{margin-left:0}
+  .team{flex-basis:290px}
+  .pet-preview-inline .pet-grid{min-width:680px!important}
+}
+
 </style>
 </head>
 <body>
@@ -101,7 +198,10 @@ input,select{width:100%;min-height:44px;background:#060b1c;color:#fff;border:1px
     <div class="card">
       <div class="section-head"><div><h2>Pet Schedule</h2><div class="tiny muted">Violet time blocks mean pets are active.</div></div><div class="row"><button id="rows-from-teams" class="btn">Rows from Teams</button><button id="add-pet-row" class="btn violet">+ Add Row</button><button id="download-pets" class="btn">Download</button></div></div>
       <div id="pet-editor" style="margin-top:12px"></div>
-      <div id="pet-export" style="margin-top:12px"></div>
+      <div class="row" style="margin-top:12px">
+        <button id="preview-pets" class="btn violet" type="button">Preview Schedule</button>
+      </div>
+      <div id="pet-export" class="pet-preview-inline" style="margin-top:12px"></div>
     </div>
   </section>
 
@@ -116,6 +216,16 @@ input,select{width:100%;min-height:44px;background:#060b1c;color:#fff;border:1px
   <section class="panel" data-panel="seating"><div class="card placeholder"><b>Castle Seating</b>This module comes after Team Layout and will consume the same Rally Leader data.</div></section>
   <section class="panel" data-panel="plan"><div class="card placeholder"><b>Battle Plan</b>The final SvS document will live here last and include the completed Pet Schedule, Team Layout and Castle Seating.</div></section>
 </main>
+
+<div id="pet-preview-overlay" class="pet-preview-overlay" aria-hidden="true">
+  <div class="pet-preview-card">
+    <div class="pet-preview-toolbar">
+      <strong>Pet Schedule Preview</strong>
+      <button id="close-pet-preview" type="button" aria-label="Close preview">×</button>
+    </div>
+    <div id="pet-preview-stage" class="pet-preview-stage"></div>
+  </div>
+</div>
 
 <script>
 (()=>{
@@ -238,6 +348,42 @@ function renderPetExport(){
  $('#pet-export').innerHTML=`<div id="pet-sheet" class="layout-sheet"><div class="layout-head"><div><div class="tiny muted">NEXA • SvS</div><h2 style="margin:2px 0 10px">Pet Schedule</h2></div></div><div class="pet-grid-wrap"><table class="pet-grid"><thead><tr><th>Assignment</th>${starts.map(t=>`<th>${esc(t)}</th>`).join('')}</tr></thead><tbody>${petRows.map(r=>`<tr><td><b>${esc(r.purpose||'Needs Assignment')}</b><div class="tiny muted">${esc(r.slot_label||'')}</div></td>${starts.map(t=>{const a=petAssignments.find(x=>x.row_id===r.id&&x.start_utc===t);return `<td class="${a?.pets_active?'petactive':''}">${a?`${esc(a.player_name)}${a.pets_active?' 🐾':''}`:''}</td>`}).join('')}</tr>`).join('')}</tbody></table></div><div class="tiny muted" style="margin-top:8px">🐾 PET ACTIVE • Times shaded in violet have pets active.</div></div>`;
 }
 $('#download-pets').onclick=()=>download($('#pet-sheet'),'NEXA-SvS-Pet-Schedule.png');
+
+function openPetPreview(){
+ const original=$('#pet-sheet');
+ if(!original)return say('Add schedule rows first.',true);
+ const overlay=$('#pet-preview-overlay'),stage=$('#pet-preview-stage');
+ stage.innerHTML='';
+ const clone=original.cloneNode(true);
+ clone.removeAttribute('id');
+ stage.appendChild(clone);
+ overlay.classList.add('open');
+ overlay.setAttribute('aria-hidden','false');
+ document.body.classList.add('pet-preview-open');
+
+ const fit=()=>{
+   clone.style.transform='none';
+   clone.style.width='';
+   const rect=clone.getBoundingClientRect();
+   const naturalW=clone.scrollWidth||rect.width||1;
+   const naturalH=clone.scrollHeight||rect.height||1;
+   const availableW=Math.max(1,stage.clientWidth-16);
+   const availableH=Math.max(1,stage.clientHeight-16);
+   const scale=Math.min(1,availableW/naturalW,availableH/naturalH);
+   clone.style.transform=`scale(${scale})`;
+   clone.style.width=`${100/scale}%`;
+ };
+ requestAnimationFrame(fit);
+}
+function closePetPreview(){
+ const overlay=$('#pet-preview-overlay');
+ overlay.classList.remove('open');
+ overlay.setAttribute('aria-hidden','true');
+ $('#pet-preview-stage').innerHTML='';
+ document.body.classList.remove('pet-preview-open');
+}
+$('#preview-pets').onclick=openPetPreview;
+$('#close-pet-preview').onclick=closePetPreview;
 
 function renderLayout(){const h=$('#layout-export');if(!strategy){h.innerHTML='<span class="muted">Open a strategy first.</span>';return}h.innerHTML=`<div id="team-sheet" class="layout-sheet"><div class="tiny muted">NEXA • BATTLE OPERATIONS • SVS</div><h2 style="font-size:30px;margin:4px 0 14px">Team Layout</h2>${alliances.map(layoutAlliance).join('')||'<span class="muted">No alliances configured.</span>'}<div class="tiny muted">🐾 PET ACTIVE • Times shaded in violet have pets active.</div></div>`}
 function layoutAlliance(a){return `<section style="margin-bottom:18px"><div class="layout-head">${a.emblem_url?`<img class="emblem" src="${esc(a.emblem_url)}" alt="">`:''}<div><h2 style="margin:0">${esc(a.alliance_tag)}${a.alliance_name?` • ${esc(a.alliance_name)}`:''}</h2><div class="ratios"><span class="ratio attack">⚔ Attack ${ratio(a.attack_ratio,[49,2,49])}</span>${a.defense_enabled?`<span class="ratio defense">🛡 Defense ${ratio(a.defense_ratio,[40,0,60])}</span>`:''}</div></div></div><div class="note">★ Join First — First ${strategy.join_first_count} joiners enter with ${fmtSecs(strategy.join_first_seconds)} left on countdown. Other joiners join with ${fmtSecs(strategy.other_join_seconds)} left on countdown.</div><div class="layout-teams">${Teams(a.id).map(layoutTeam).join('')}</div></section>`}

@@ -187,6 +187,8 @@ body.pet-preview-open{overflow:hidden!important}
 .strategy-summary{border:1px solid rgba(72,221,255,.18);background:linear-gradient(145deg,rgba(14,42,72,.45),rgba(36,21,85,.34));box-shadow:0 0 18px rgba(72,221,255,.06)}
 .coverage-ok{color:#8ff4ce}.coverage-warn{color:#ffd58c}
 
+
+.builder-mode-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.builder-mode.active{border-color:rgba(170,120,255,.78);box-shadow:0 0 18px rgba(144,92,255,.18)}.strategy-analysis-card{margin-top:14px;border-color:rgba(155,120,255,.38);box-shadow:0 0 22px rgba(126,80,255,.10)}.strategy-analysis-card h3{margin:0 0 10px}.analysis-grid{display:grid;gap:8px}.analysis-item{border:1px solid rgba(255,255,255,.09);border-radius:13px;background:rgba(255,255,255,.03);padding:10px;font-size:12px;line-height:1.48}.analysis-item b{color:#fff}.review-ok{color:#8ff4ce}.review-warn{color:#ffd58c}@media(max-width:620px){.builder-mode-row .btn{padding:8px 6px;font-size:11px}}
 </style>
 </head>
 <body>
@@ -217,35 +219,48 @@ body.pet-preview-open{overflow:hidden!important}
   </section>
 
   <section class="panel" data-panel="strategy">
-    <div class="desc">Choose a saved plan, build manually, or let NEXA Assist create a balanced draft from Battle Roles and Responses.</div>
+    <div class="desc">Build SvS Teams automatically or manually. For a specific enemy rally/garrison counter, use <a href="svs-matchup-lab.html" style="color:#9eeeff;font-weight:900">Matchup Lab</a>.</div>
 
     <div class="card assist-card">
-      <div class="assist-head"><div class="assist-mark">✦</div><div><h2 style="margin:0">NEXA Assist</h2><div class="tiny muted">Automatic draft + recommendations. Nothing is published until you send it to Team Layout.</div></div><button id="open-guide" class="btn guide-btn" type="button">Guide</button></div>
-      <div class="assist-grid">
-        <label>Active SvS Alliances
-          <select id="assist-alliance-count">
-            <option value="1">1 Alliance</option><option value="2">2 Alliances</option><option value="3" selected>3 Alliances</option><option value="4">4 Alliances</option>
-          </select>
-        </label>
-        <label>Primary Castle Alliance<select id="assist-primary-alliance"><option value="">Select primary alliance…</option></select></label>
+      <div class="assist-head">
+        <div class="assist-mark">✦</div>
+        <div><h2 style="margin:0">NEXA Strategy Builder</h2><div class="tiny muted">Choose Auto Generate or Manual Build. NEXA keeps the workspace editable either way.</div></div>
+        <button id="open-guide" class="btn guide-btn" type="button">Guide</button>
       </div>
-      <div id="assist-counter-wrap" class="assist-grid" style="margin-top:9px"></div>
-      <div class="row" style="margin-top:10px">
-        <button id="toggle-test-sandbox" class="btn" type="button">Test Sandbox: OFF</button>
-        <span class="tiny muted">OFF = live Responses + Profiles. ON = isolated fictitious state scenario.</span>
+      <div class="builder-mode-row">
+        <button id="mode-auto" class="btn violet builder-mode active" type="button">✦ Auto Generate</button>
+        <button id="mode-manual" class="btn builder-mode" type="button">Manual Build</button>
       </div>
-      <div id="test-sandbox-controls" class="card glow-violet" style="display:none;margin:10px 0 0;padding:12px">
-        <div class="section-head"><div><h3 style="margin:0">SvS Test Sandbox</h3><div class="tiny muted">Choose only how many Rally Leaders exist. NEXA supplies a large Joiner pool and recommends the Teams automatically.</div></div></div>
-        <div class="grid2" style="margin-top:9px">
-          <label>Rally Leaders<select id="assist-test-rl-count"><option>3</option><option>4</option><option>5</option><option>6</option><option>8</option><option selected>10</option><option>12</option><option>15</option><option>18</option></select></label>
-          <label>Scenario<select id="assist-test-strength"><option value="mixed" selected>Mixed whales + strong RLs</option><option value="top_heavy">Top-heavy whales</option><option value="balanced">Balanced strength</option></select></label>
+      <div id="auto-builder">
+        <div class="assist-grid">
+          <label>Active SvS Alliances
+            <select id="assist-alliance-count">
+              <option value="1">1 Alliance</option><option value="2">2 Alliances</option><option value="3" selected>3 Alliances</option><option value="4">4 Alliances</option>
+            </select>
+          </label>
+          <label>Primary Castle Alliance<select id="assist-primary-alliance"><option value="">Select primary alliance…</option></select></label>
         </div>
+        <div id="assist-counter-wrap" class="assist-grid" style="margin-top:9px"></div>
+        <div class="row" style="margin-top:10px">
+          <button id="toggle-test-sandbox" class="btn" type="button">Test Sandbox: OFF</button>
+          <span class="tiny muted">OFF = live roster. ON = fictitious scenario only.</span>
+        </div>
+        <div id="test-sandbox-controls" class="card glow-violet" style="display:none;margin:10px 0 0;padding:12px">
+          <div class="section-head"><div><h3 style="margin:0">SvS Test Sandbox</h3><div class="tiny muted">Set the scenario size. NEXA decides how many Teams each Alliance can sustain.</div></div></div>
+          <div class="grid2" style="margin-top:9px">
+            <label>Rally Leaders<select id="assist-test-rl-count"><option>3</option><option>4</option><option>5</option><option selected>6</option><option>8</option><option>10</option><option>12</option><option>15</option><option>18</option></select></label>
+            <label>Joiners<select id="assist-test-joiner-count"><option>12</option><option>18</option><option>24</option><option selected>36</option><option>48</option><option>60</option><option>80</option><option>100</option><option>120</option></select></label>
+          </div>
+        </div>
+        <div class="row" style="margin-top:10px"><button id="run-assist" class="btn violet" type="button">✦ Generate NEXA Strategy</button></div>
+        <div id="hero-gen-note" class="tiny muted" style="margin-top:8px"></div>
       </div>
-      <div class="row" style="margin-top:10px"><button id="run-assist" class="btn violet">✦ Generate NEXA Strategy</button></div>
-      <div id="assist-recommendations" class="reco strategy-summary"></div><div id="hero-gen-note" class="tiny muted" style="margin-top:8px"></div>
+      <div id="manual-builder" style="display:none">
+        <div class="tiny muted" style="margin:10px 0">Manual Build keeps full control with you. Add Alliances and Teams below, assign Rally Leaders and Joiners, then let NEXA review conflicts and quality before Team Layout.</div>
+        <div class="row"><button id="start-manual" class="btn violet" type="button">Start Manual Strategy</button><button id="manual-done" class="btn" type="button">Done • NEXA Review</button></div>
+      </div>
     </div>
-
-    <div class="card">
+    <div class="card" style="display:none">
       <div class="grid2">
         <label>Strategy Name<input id="strategy-name" value="SvS Strategy"></label>
         <label>Build Flow<select id="build-flow"><option value="teams_first">Teams First</option><option value="pets_first">Pet Schedule First</option><option value="manual">Blank / Manual</option></select></label>
@@ -253,6 +268,7 @@ body.pet-preview-open{overflow:hidden!important}
       <div class="row" style="margin-top:10px"><button id="create-strategy" class="btn violet">Create Strategy</button><select id="strategy-picker" class="grow"><option value="">Select saved strategy…</option></select></div>
     </div>
     <div id="strategy-editor"></div>
+    <div id="strategy-analysis-bottom" class="card strategy-analysis-card" style="display:none"></div>
   </section>
 
   <section class="panel" data-panel="pets">
@@ -284,7 +300,7 @@ body.pet-preview-open{overflow:hidden!important}
   <div class="nexa-modal-card">
     <div class="section-head"><h3>NEXA Battle Guide</h3><button id="guide-close" class="mini-x" type="button">×</button></div>
     <div class="guide-page active" data-guide="0"><h4>Workspace & Mobile View</h4><p>Strategy Board is your editable Team Builder. On mobile, Team cards move sideways so they stay readable. Swipe left/right to inspect every Team. Desktop can show much more at once. Use Team Layout for the complete final sheet.</p></div>
-    <div class="guide-page" data-guide="1"><h4>NEXA Assist & Manual Mode</h4><p>Choose how many Alliances will actively fight, select the Primary Castle Alliance, and choose the Counter Rally Alliances. NEXA decides how many Teams each Alliance can sustain from the roster. Test Sandbox changes only the Rally Leader count; Joiners are supplied automatically.</p></div>
+    <div class="guide-page" data-guide="1"><h4>NEXA Assist & Manual Mode</h4><p>Auto Generate asks for active Alliances, Primary Castle, Counter Alliances and—when testing—the number of Rally Leaders and Joiners. NEXA decides how many Teams each Alliance can sustain. Manual Build leaves every assignment to you and NEXA reviews it when you press Done.</p></div>
     <div class="guide-page" data-guide="2"><h4>Rally Leaders, Joiners & Heroes</h4><p>Rally Leaders come from one finite global pool. They may rotate between Alliances only when time blocks do not overlap. PETS use one continuous 2-hour window on whole-hour boundaries. Joiners remain fixed unless you move them; duplicate assignments trigger a warning. Every Rally Leader and Joiner can be removed individually.</p></div>
     <div class="guide-page" data-guide="3"><h4>Pet Schedule & Formations</h4><p>Team 1 is the Primary Pet Team. Team 2 becomes Secondary PET / Support only when real Rally Leader depth allows it; Teams 3+ are normally strong mixed teams without PETS. NEXA also varies the first four Joiner heroes when complementary buffs are more useful than duplicates.</p></div>
     <div class="guide-page" data-guide="4"><h4>Team Layout, Preview & Download</h4><p>Team Layout shows the complete final sheet. On mobile use Preview Layout and, for the clearest view, rotate your phone sideways. Preview fits the sheet to your screen; Download exports the full NEXA-styled layout.</p></div>
@@ -379,9 +395,13 @@ function visibleHeroes(){return heroes.filter(h=>visibleHeroGenerations.includes
 function latestHero(type){return visibleHeroes().filter(h=>String(h.troop_type||'').toLowerCase()===type).sort((a,b)=>(b.generation||0)-(a.generation||0))[0]||null}
 function namedVisibleHero(name){return visibleHeroes().find(h=>String(h.name||'').toLowerCase()===String(name).toLowerCase())||null}
 function rallyFormationRecommendation(type){
- const infantry=latestHero('infantry'),marksman=latestHero('marksman'),latestLancer=latestHero('lancer');
- if(type==='attack')return {infantry,lancer:namedVisibleHero('Mia')||latestLancer,marksman,reason:(namedVisibleHero('Mia')?'mixed-generation attack candidate using Mia with the latest visible Infantry/Marksman':'latest visible attack candidate')};
- return {infantry,lancer:latestLancer,marksman,reason:'latest visible defensive baseline'};
+ const maxVisible=Math.max(...visibleHeroGenerations,0);
+ if(maxVisible===10){
+   if(type==='attack')return {infantry:namedVisibleHero('Gregory'),lancer:namedVisibleHero('Mia'),marksman:namedVisibleHero('Blanchette'),ratio:[50,0,50],reason:'High-confidence Gen 10 rally consensus: Gregory + Mia + Blanchette at 50 / 0 / 50.'};
+   return {infantry:namedVisibleHero('Gregory'),lancer:namedVisibleHero('Freya'),marksman:namedVisibleHero('Xura'),ratio:[50,40,10],reason:'High-confidence Gen 10 garrison consensus: Gregory + Freya + Xura; 50 / 40 / 10 is a strongly supported defensive split.'};
+ }
+ const infantry=latestHero('infantry'),lancer=latestHero('lancer'),marksman=latestHero('marksman');
+ return {infantry,lancer,marksman,ratio:type==='attack'?[49,2,49]:[50,40,10],reason:`Visible Gen ${maxVisible} baseline. Verify matchup-specific meta before publishing.`};
 }
 function joinFirstAttackPool(){return ['Jessie','Seo-yoon','Hendrik','Jasser'].map(namedVisibleHero).filter(Boolean)}
 function joinFirstDefensePool(){return ['Patrick','Sergey','Norah','Hendrik'].map(namedVisibleHero).filter(Boolean)}
@@ -426,9 +446,12 @@ async function loadStrategies(){
    labels.push(`<option value="${s.id}">${ready?'TEST READY • ':''}${esc(s.name)} • ${tcount} Teams • ${jcount} Joiners</option>`);
  }
  $('#strategy-picker').innerHTML='<option value="">Select saved strategy…</option>'+labels.join('');
- if(strategy)$('#strategy-picker').value=strategy.id;
+ if(strategy)$('#strategy-picker').value=strategy.id;else if(strategyList.length)await openStrategy(strategyList[0].id);
 }
 
+let builderMode='auto';
+function setBuilderMode(mode){builderMode=mode;$('#mode-auto').classList.toggle('active',mode==='auto');$('#mode-auto').classList.toggle('violet',mode==='auto');$('#mode-manual').classList.toggle('active',mode==='manual');$('#mode-manual').classList.toggle('violet',mode==='manual');$('#auto-builder').style.display=mode==='auto'?'block':'none';$('#manual-builder').style.display=mode==='manual'?'block':'none'}
+$('#mode-auto').onclick=()=>setBuilderMode('auto');$('#mode-manual').onclick=()=>setBuilderMode('manual');
 function renderCounterAllianceSelectors(){
  const n=Math.max(1,Number($('#assist-alliance-count')?.value||1)),wrap=$('#assist-counter-wrap');if(!wrap)return;
  const primary=Number($('#assist-primary-alliance')?.value||0),current=$$('select[data-counter-alliance]',wrap).map(x=>x.value);
@@ -473,7 +496,7 @@ async function openStrategy(id){
  renderCounterAllianceSelectors();
  if(Array.isArray(cfg.counter_alliance_ids)){$$('select[data-counter-alliance]').forEach((s,i)=>{if(cfg.counter_alliance_ids[i])s.value=String(cfg.counter_alliance_ids[i])})}
  testSandbox=!!cfg.test_sandbox;$('#toggle-test-sandbox').textContent=`Test Sandbox: ${testSandbox?'ON':'OFF'}`;$('#toggle-test-sandbox').classList.toggle('sandbox-on',testSandbox);$('#test-sandbox-controls').style.display=testSandbox?'block':'none';
- if(cfg.test_rally_leads)$('#assist-test-rl-count').value=String(cfg.test_rally_leads);
+ if(cfg.test_rally_leads)$('#assist-test-rl-count').value=String(cfg.test_rally_leads);if(cfg.test_joiners)$('#assist-test-joiner-count').value=String(cfg.test_joiners);
  renderStrategy();renderPet();renderLayout();
 }
 async function loadResponses(){
@@ -531,7 +554,7 @@ function formHero(id){return H(id)}
 function formationHeroCell(id,pct){const h=formHero(id);return `<div class="formation-hero"><div class="formation-pct">${esc(pct)}%</div>${h?.image_url?`<img src="${esc(h.image_url)}" alt="">`:''}<b class="${rarityClass(h?.rarity)}">${esc(h?.name||'—')}</b></div>`}
 function formationCard(f){
  const rr=Array.isArray(f.ratio)?f.ratio:[49,2,49];
- return `<div class="formation-card ${f.is_recommended?'recommended':''}"><div class="formation-top"><div><span class="formation-name">${esc(f.name)}</span>${f.is_recommended?'<span class="recommended-badge">NEXA Recommended</span>':''}</div><button class="mini-x" data-delete-formation="${f.id}" type="button">×</button></div><div class="formation-ratio">${f.formation_type==='attack'?'⚔':'🛡'} ${rr.join(' / ')}</div><div class="formation-heroes">${formationHeroCell(f.hero_infantry_id,rr[0])}${formationHeroCell(f.hero_lancer_id,rr[1])}${formationHeroCell(f.hero_marksman_id,rr[2])}</div></div>`
+ return `<div class="formation-card ${f.is_recommended?'recommended':''}"><div class="formation-top"><div><span class="formation-name">${esc(f.name)}</span>${f.is_recommended?'<span class="recommended-badge">NEXA Recommended</span>':''}</div><button class="mini-x" data-delete-formation="${f.id}" type="button">×</button></div><div class="formation-ratio">${f.formation_type==='attack'?'⚔':'🛡'} ${rr.join(' / ')}</div><div class="formation-heroes">${formationHeroCell(f.hero_infantry_id,rr[0])}${formationHeroCell(f.hero_lancer_id,rr[1])}${formationHeroCell(f.hero_marksman_id,rr[2])}</div>${f.is_recommended?`<div class="select-note" style="margin-top:7px">${esc(rallyFormationRecommendation(f.formation_type).reason)}</div>`:''}</div>`
 }
 function renderFormationBoard(a){
  return `<div class="formations-board"><div class="formation-column"><div class="formation-column-head"><h4>⚔ Attack Formations</h4><button class="btn" data-add-formation="attack" data-aid="${a.id}" type="button">+ Attack</button></div>${formationsFor(a.id,'attack').map(formationCard).join('')||'<div class="muted tiny">No Attack formations yet.</div>'}</div><div class="formation-column"><div class="formation-column-head"><h4>🛡 Defense Formations</h4><button class="btn" data-add-formation="defense" data-aid="${a.id}" type="button">+ Defense</button></div>${formationsFor(a.id,'defense').map(formationCard).join('')||'<div class="muted tiny">No Defense formations yet.</div>'}</div></div>`
@@ -666,8 +689,10 @@ function layoutFormationColumn(a,type){
 function layoutAlliance(a){return `<section style="margin-bottom:18px"><div class="layout-head">${a.emblem_url?`<img class="emblem" src="${esc(a.emblem_url)}" alt="">`:''}<div><h2 style="margin:0">${esc(a.alliance_tag)}${a.alliance_name?` • ${esc(a.alliance_name)}`:''}</h2><div class="ratios"><span class="ratio attack">⚔ Attack ${ratio(a.attack_ratio,[49,2,49])}</span>${a.defense_enabled?`<span class="ratio defense">🛡 Defense ${ratio(a.defense_ratio,[40,0,60])}</span>`:''}</div></div></div><div class="note glow-violet">${esc(strategy.join_note||`Join First — First ${strategy.join_first_count} joiners enter with ${fmtSecs(strategy.join_first_seconds)} left on countdown. Other joiners join with ${fmtSecs(strategy.other_join_seconds)} left on countdown.`)}</div><div class="layout-teams">${Teams(a.id).map(layoutTeam).join('')}</div><div class="formations-board">${layoutFormationColumn(a,'attack')}${layoutFormationColumn(a,'defense')}</div></section>`}
 function layoutTeam(t){const def=defenseOn(t);return `<article class="layout-team" style="--tc:${tc(t)}"><div class="layout-team-title">${esc(t.name)}</div><div class="layout-rally"><div class="mini">Rally Leader Schedule (UTC)</div>${Rally(t.id).map(x=>`<div class="rally ${x.pets_active?'pet':''}"><div><b>${esc(x.player_name)}</b><div class="tiny">${esc(x.start_utc)}–${esc(x.end_utc)}</div></div><div>${x.pets_active?'🐾':''}</div></div>`).join('')||'<span class="muted tiny">—</span>'}</div><div class="layout-headrow"><div>Player</div><div>Attack</div><div>Defense</div></div>${Joiners(t.id).map(j=>`<div class="layout-row ${j.join_first?'first':''}"><div class="pname"><b>${esc(j.player_name)}</b></div><div class="hero-stack">${heroLine('A',j.attack_a_hero_id)}${heroLine('B',j.attack_b_hero_id)}</div><div class="hero-stack">${def?heroLine('A',j.defense_a_hero_id)+heroLine('B',j.defense_b_hero_id):'<span class="muted">—</span>'}</div></div>`).join('')}</article>`}
 
-function renderRecommendations(items){
- $('#assist-recommendations').innerHTML=(items||[]).map(x=>`<div class="reco-item">${x}</div>`).join('');
+function renderRecommendations(items,title='NEXA Strategy Analysis'){
+ const box=$('#strategy-analysis-bottom');if(!box)return;
+ box.style.display=items?.length?'block':'none';
+ box.innerHTML=items?.length?`<h3>${esc(title)}</h3><div class="analysis-grid">${items.map(x=>`<div class="analysis-item">${x}</div>`).join('')}</div>`:'';
 }
 
 async function clearCurrentDraft(){
@@ -718,12 +743,13 @@ async function runAssist(){
  if(!strategy){const created=await sb.from('svs_strategies').insert({state_number:state,name:'NEXA SvS Strategy',build_flow:'teams_first',primary_alliance_id:primaryId}).select().single();if(created.error)return say(created.error.message,true);strategy=created.data;await loadStrategies();await openStrategy(strategy.id)}
  const liveRL=playerPool.filter(p=>roleForPlayer(p)==='rally_lead').map(p=>({...p,_strength:playerStrength(p,'rally_lead')})).sort((a,b)=>b._strength-a._strength);
  const liveJ=playerPool.filter(p=>roleForPlayer(p)==='joiner').map(p=>({...p,_strength:playerStrength(p,'joiner')})).sort((a,b)=>b._strength-a._strength);
- const rlCount=testSandbox?Number($('#assist-test-rl-count').value||10):liveRL.length;
- const rlPool=testSandbox?testRallyPool(rlCount):liveRL,joinPool=testSandbox?testJoinerPool(120):liveJ;
+ const rlCount=testSandbox?Number($('#assist-test-rl-count').value||6):liveRL.length;
+ const joinerCount=testSandbox?Number($('#assist-test-joiner-count').value||36):liveJ.length;
+ const rlPool=testSandbox?testRallyPool(rlCount):liveRL,joinPool=testSandbox?testJoinerPool(joinerCount):liveJ;
  if(rlPool.length<activeCount)return renderRecommendations([`<b>Not enough Rally Leaders for simultaneous Alliance coverage.</b> You selected ${activeCount} active Alliances but only ${rlPool.length} Rally Leaders exist in this scenario.`]);
  if(!testSandbox&&joinPool.length<activeCount*6)return renderRecommendations([`<b>Live roster is currently too small for a useful automatic draft.</b> NEXA found ${rlPool.length} Rally Leaders and ${joinPool.length} Joiners.`,`Use <b>Test Sandbox</b> to model the state without touching live Responses.`]);
  const teamTotal=chooseTeamCount(joinPool.length,rlPool.length,activeCount),teamCounts=distributeTeamCounts(teamTotal,activeCount);
- const config={active_alliance_count:activeCount,primary_alliance_id:primaryId,counter_alliance_ids:counterIds,test_sandbox:testSandbox,test_rally_leads:testSandbox?rlCount:null,recommended_team_counts:teamCounts};
+ const config={active_alliance_count:activeCount,primary_alliance_id:primaryId,counter_alliance_ids:counterIds,test_sandbox:testSandbox,test_rally_leads:testSandbox?rlCount:null,test_joiners:testSandbox?joinerCount:null,recommended_team_counts:teamCounts};
  await sb.from('svs_strategies').update({primary_alliance_id:primaryId,assist_config:config}).eq('id',strategy.id);
  await clearCurrentDraft();await openStrategy(strategy.id);
  const saRows=[],teamRowsByAlliance=[];
@@ -744,38 +770,40 @@ async function runAssist(){
      await sb.from('svs_strategy_joiners').insert({team_id:t.id,player_account_id:x.id||null,player_name:x.in_game_name,sort_order:j,join_first:j<4,attack_a_hero_id:aa,attack_b_hero_id:ab,defense_a_hero_id:da,defense_b_hero_id:db});
    }
  }
- // Finite global RL pool. Each RL can rotate, but never appears in overlapping blocks.
- const windows=[['12:00','14:00'],['14:00','16:00']];
- const rlWhy=[];
- for(let wi=0;wi<windows.length;wi++){
-   const available=[...rlPool];
-   // Primary gets strongest available for PET coverage; counters get next-strongest anchors.
+ // Finite global RL pool. Every RL receives one continuous 2-hour PET window. That continuous window may be split by hour across Alliances.
+ const petWindows=rlPool.map((rl,i)=>({rl,start:i%2===0?'12:00':'14:00',end:i%2===0?'14:00':'16:00'}));
+ const rlWhy=[],hourly=[['12:00','13:00'],['13:00','14:00'],['14:00','15:00'],['15:00','16:00']];
+ for(let hi=0;hi<hourly.length;hi++){
+   const [hs,he]=hourly[hi],activePet=petWindows.filter(w=>minutesOf(w.start)<=minutesOf(hs)&&minutesOf(w.end)>=minutesOf(he)),used=new Set();
    for(let ai=0;ai<activeCount;ai++){
-     const pickIndex=(wi===0?ai:(ai+1)%available.length);
-     const rl=available.splice(Math.min(pickIndex,available.length-1),1)[0];if(!rl)continue;
-     const team=teamRowsByAlliance[ai][0];
-     await sb.from('svs_strategy_rally_slots').insert({team_id:team.id,player_account_id:rl.id||null,player_name:rl.in_game_name,start_utc:windows[wi][0],end_utc:windows[wi][1],pets_active:true,sort_order:wi});
-     rlWhy.push(`${esc(rl.in_game_name)} → ${esc(saRows[ai].alliance_tag)} Team 1 (${windows[wi][0]}–${windows[wi][1]}): ${ai===0?'Primary Castle PET coverage':'reserved Counter Rally PET strength'}.`);
+     const candidates=activePet.filter(w=>!used.has(w.rl.in_game_name)),w=candidates.length?candidates[ai%candidates.length]:null;if(!w)continue;
+     const team=teamRowsByAlliance[ai][0];used.add(w.rl.in_game_name);
+     await sb.from('svs_strategy_rally_slots').insert({team_id:team.id,player_account_id:w.rl.id||null,player_name:w.rl.in_game_name,start_utc:hs,end_utc:he,pets_active:true,sort_order:hi});
+     rlWhy.push(`${esc(w.rl.in_game_name)} → ${esc(saRows[ai].alliance_tag)} Team 1 (${hs}–${he}) PETS: ${ai===0?'Primary Castle coverage':'Counter Rally PET coverage'}.`);
    }
-   // Remaining RLs become non-PET counter/secondary coverage, one assignment max in this window.
    let cursor=0;
-   for(const rl of available){
-     const ai=(cursor%activeCount),teamsA=teamRowsByAlliance[ai],ti=Math.min(teamsA.length-1,1+Math.floor(cursor/activeCount));
-     const team=teamsA[Math.max(0,ti)];if(!team)continue;
-     await sb.from('svs_strategy_rally_slots').insert({team_id:team.id,player_account_id:rl.id||null,player_name:rl.in_game_name,start_utc:windows[wi][0],end_utc:windows[wi][1],pets_active:false,sort_order:wi});
-     rlWhy.push(`${esc(rl.in_game_name)} → ${esc(saRows[ai].alliance_tag)} ${esc(team.name)} (${windows[wi][0]}–${windows[wi][1]}): strong non-PET coverage / counter depth.`);cursor++;
+   for(const rl of rlPool.filter(x=>!used.has(x.in_game_name))){
+     const ai=(cursor+1)%activeCount,teamsA=teamRowsByAlliance[ai],ti=Math.min(teamsA.length-1,1+Math.floor(cursor/activeCount)),team=teamsA[Math.max(0,ti)]||teamsA[0];
+     const pet=petWindows.find(w=>w.rl.in_game_name===rl.in_game_name&&minutesOf(w.start)<=minutesOf(hs)&&minutesOf(w.end)>=minutesOf(he));
+     await sb.from('svs_strategy_rally_slots').insert({team_id:team.id,player_account_id:rl.id||null,player_name:rl.in_game_name,start_utc:hs,end_utc:he,pets_active:!!pet,sort_order:hi});
+     rlWhy.push(`${esc(rl.in_game_name)} → ${esc(saRows[ai].alliance_tag)} ${esc(team.name)} (${hs}–${he})${pet?' PETS':' non-PET'}: counter/support depth.`);
+     cursor++;
    }
  }
- // Pet Schedule mirrors PET-active Team 1 coverage only.
+ // Pet Schedule mirrors every PET-active hourly assignment while preserving each RL's continuous 2-hour PET window.
  for(let ai=0;ai<saRows.length;ai++){
-   const petTeam=teamRowsByAlliance[ai][0],rowslot=await sb.from('svs_pet_schedule_rows').insert({strategy_id:strategy.id,strategy_alliance_id:saRows[ai].id,source_team_id:petTeam.id,purpose:null,slot_label:'Team 1 • Primary Pet Team',sort_order:ai}).select().single();
-   if(!rowslot.error){const petSlots=(await sb.from('svs_strategy_rally_slots').select('*').eq('team_id',petTeam.id).eq('pets_active',true).order('start_utc')).data||[];for(let k=0;k<petSlots.length;k++){const x=petSlots[k];await sb.from('svs_pet_schedule_assignments').insert({row_id:rowslot.data.id,player_account_id:x.player_account_id||null,player_name:x.player_name,start_utc:x.start_utc,end_utc:x.end_utc,pets_active:true,sort_order:k})}}
+   for(const t of teamRowsByAlliance[ai]){
+     const slots=(await sb.from('svs_strategy_rally_slots').select('*').eq('team_id',t.id).eq('pets_active',true).order('start_utc')).data||[];
+     if(!slots.length)continue;
+     const row=await sb.from('svs_pet_schedule_rows').insert({strategy_id:strategy.id,strategy_alliance_id:saRows[ai].id,source_team_id:t.id,purpose:null,slot_label:`${t.name}${t===teamRowsByAlliance[ai][0]?' • Primary Pet Team':''}`,sort_order:ai*10+(t.sort_order||0)}).select().single();
+     if(!row.error)for(let k=0;k<slots.length;k++){const x=slots[k];await sb.from('svs_pet_schedule_assignments').insert({row_id:row.data.id,player_account_id:x.player_account_id||null,player_name:x.player_name,start_utc:x.start_utc,end_utc:x.end_utc,pets_active:true,sort_order:k})}
+   }
  }
  // Rally formations use only generations actually visible in this state.
  const atk=rallyFormationRecommendation('attack'),def=rallyFormationRecommendation('defense');
  for(let ai=0;ai<saRows.length;ai++)await sb.from('svs_rally_formations').insert([
-   {strategy_alliance_id:saRows[ai].id,formation_type:'attack',name:'Attack A',ratio:[49,2,49],hero_infantry_id:atk.infantry?.id||null,hero_lancer_id:atk.lancer?.id||null,hero_marksman_id:atk.marksman?.id||null,is_recommended:true,sort_order:0},
-   {strategy_alliance_id:saRows[ai].id,formation_type:'defense',name:'Defense A',ratio:[40,0,60],hero_infantry_id:def.infantry?.id||null,hero_lancer_id:def.lancer?.id||null,hero_marksman_id:def.marksman?.id||null,is_recommended:true,sort_order:0}
+   {strategy_alliance_id:saRows[ai].id,formation_type:'attack',name:'Attack A',ratio:atk.ratio,hero_infantry_id:atk.infantry?.id||null,hero_lancer_id:atk.lancer?.id||null,hero_marksman_id:atk.marksman?.id||null,is_recommended:true,sort_order:0},
+   {strategy_alliance_id:saRows[ai].id,formation_type:'defense',name:'Defense A',ratio:def.ratio,hero_infantry_id:def.infantry?.id||null,hero_lancer_id:def.lancer?.id||null,hero_marksman_id:def.marksman?.id||null,is_recommended:true,sort_order:0}
  ]);
  await openStrategy(strategy.id);
  const structure=saRows.map((a,i)=>`${a.alliance_tag}: ${teamCounts[i]} Team${teamCounts[i]===1?'':'s'}`).join(' • '),maxVisible=Math.max(...visibleHeroGenerations,0);
@@ -792,6 +820,27 @@ async function runAssist(){
  say('NEXA strategy generated.');
 }
 $('#run-assist').onclick=runAssist;
+$('#start-manual').onclick=async()=>{
+ if(!strategy){const r=await sb.from('svs_strategies').insert({state_number:state,name:'Manual SvS Strategy',build_flow:'manual'}).select().single();if(r.error)return say(r.error.message,true);strategy=r.data;await loadStrategies();await openStrategy(strategy.id)}
+ await sb.from('svs_strategies').update({build_flow:'manual'}).eq('id',strategy.id);
+ renderRecommendations(['<b>Manual Build ready.</b> Add Alliances and Teams below, then assign Rally Leaders and Joiners. NEXA will warn about duplicate Joiners, overlapping Rally Leaders and PET conflicts.'],'Manual Build');
+ say('Manual strategy ready.');
+};
+function manualReviewItems(){
+ const items=[],seen={};for(const j of joiners){const k=String(j.player_account_id||j.player_name);seen[k]=(seen[k]||0)+1}
+ const dups=Object.values(seen).filter(n=>n>1).length,overlapNames=[];
+ for(let i=0;i<rally.length;i++)for(let j=i+1;j<rally.length;j++){const a=rally[i],b=rally[j],same=(a.player_account_id&&b.player_account_id)?String(a.player_account_id)===String(b.player_account_id):a.player_name===b.player_name;if(same&&overlaps(a.start_utc,a.end_utc,b.start_utc,b.end_utc))overlapNames.push(a.player_name)}
+ const incomplete=teams.filter(t=>!Rally(t.id).length||!Joiners(t.id).length);
+ if(!dups&&!overlapNames.length&&!incomplete.length)items.push('<b class="review-ok">The team setup looks well-formed.</b> NEXA did not detect structural conflicts.');
+ if(dups)items.push(`<b class="review-warn">Duplicate Joiners:</b> ${dups} duplicate assignment(s) detected.`);
+ if(overlapNames.length)items.push(`<b class="review-warn">Rally Leader time conflicts:</b> ${[...new Set(overlapNames)].map(esc).join(', ')}.`);
+ if(incomplete.length)items.push(`<b class="review-warn">Incomplete Teams:</b> ${incomplete.map(t=>esc(t.name)).join(', ')} need a Rally Leader or Joiners.`);
+ const petAllianceCount=alliances.filter(a=>Teams(a.id).some(t=>Rally(t.id).some(r=>r.pets_active))).length;
+ if(petAllianceCount<alliances.length)items.push(`<b>NEXA suggestion:</b> ${alliances.length-petAllianceCount} Alliance(s) currently have no PET coverage.`);
+ return items;
+}
+$('#manual-done').onclick=()=>{const items=manualReviewItems();renderRecommendations(items,'NEXA Manual Review');const warn=items.some(x=>x.includes('review-warn'));if(confirm(warn?'NEXA found suggestions or conflicts. Proceed to Team Layout anyway?':'The team seems well-formed. Proceed to Team Layout?'))showTab('layout')};
+
 
 async function publishLayout(){if(!strategy)return say('Open a strategy first.',true);const snap={strategy,alliances,teams,rally_slots:rally,joiners,generated_at:new Date().toISOString()};const r=await sb.from('svs_team_layout_versions').select('version').eq('strategy_id',strategy.id).order('version',{ascending:false}).limit(1);const v=(r.data?.[0]?.version||0)+1;const ins=await sb.from('svs_team_layout_versions').insert({strategy_id:strategy.id,version:v,snapshot:snap});if(ins.error)return say(ins.error.message,true);await sb.from('svs_strategies').update({status:'published'}).eq('id',strategy.id);say(`Team Layout published • Version ${v}`);await openStrategy(strategy.id)}
 $('#publish-layout').onclick=publishLayout;$('#download-layout').onclick=()=>download($('#team-sheet'),'NEXA-SvS-Team-Layout.png');

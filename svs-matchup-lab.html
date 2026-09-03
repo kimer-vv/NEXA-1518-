@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>NEXA • SvS Matchup Lab</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--a:#48ddff;--m:#aeb7d1;--v:#9b78ff;--g:#ffd260}
+*{box-sizing:border-box}body{margin:0;min-height:100dvh;background:radial-gradient(circle at 8% 10%,rgba(77,203,255,.08),transparent 30%),radial-gradient(circle at 95% 5%,rgba(126,80,255,.12),transparent 32%),#02030b;color:#fff}
+.sh{width:min(760px,100%);margin:auto;padding:26px 18px 90px}.top{display:grid;grid-template-columns:48px 1fr 48px;align-items:center;gap:12px}.round{width:48px;height:48px;border-radius:50%;border:1px solid rgba(72,221,255,.36);background:#081329;color:#bff6ff;display:grid;place-items:center;text-decoration:none;font-size:28px}.title{text-align:center}.title small{color:#aab4d1;font-size:10px;font-weight:950;letter-spacing:.2em}.title h1{margin:5px 0;font-size:clamp(2rem,8vw,3rem)}
+.card,.desc{border:1px solid rgba(255,255,255,.12);border-radius:20px;background:rgba(9,17,38,.84);padding:16px;margin-bottom:14px}.desc{color:var(--m);line-height:1.5}.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+label{display:grid;gap:6px;color:#aeb7d1;font-size:12px;font-weight:850}select,input{width:100%;min-height:44px;background:#060b1c;color:#fff;border:1px solid rgba(122,142,203,.26);border-radius:12px;padding:10px;font:inherit}.btn{min-height:44px;border-radius:13px;border:1px solid rgba(72,221,255,.36);background:linear-gradient(135deg,rgba(19,104,111,.68),rgba(32,75,118,.68),rgba(61,49,139,.72));color:#fff;font-weight:900;padding:9px 12px}.violet{border-color:rgba(159,116,255,.55);box-shadow:0 0 16px rgba(144,92,255,.12)}
+h2,h3{margin:0 0 10px}.tiny{font-size:11px;color:#96a3c4;line-height:1.45}.result{border-color:rgba(155,120,255,.52);box-shadow:0 0 22px rgba(133,84,255,.12)}.result-block{border:1px solid rgba(255,255,255,.09);border-radius:13px;padding:11px;margin-top:8px;background:rgba(255,255,255,.035);line-height:1.45}.hero-row{display:flex;gap:8px;flex-wrap:wrap}.hero-chip{display:flex;align-items:center;gap:6px;padding:6px 8px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:#070c1c;font-size:11px}.hero-chip img{width:28px;height:28px;border-radius:7px;object-fit:cover}.gold{color:var(--g)}
+@media(max-width:620px){.grid2,.grid3{grid-template-columns:1fr}.grid4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+<main class="sh">
+<div class="top"><a class="round" href="battle-operations.html">‹</a><div class="title"><small>BATTLE OPERATIONS • SVS</small><h1>Matchup Lab</h1></div><a class="round" href="index.html">×</a></div>
+<div class="desc">Enter the matchup you are facing. NEXA compares your setup with the enemy rally/garrison and proposes a practical counter using hero generations currently visible in your state.</div>
+<div class="card">
+<h2>My Setup</h2>
+<div class="grid2"><label>I need to<select id="mode"><option value="attack">Attack / Counter a Garrison</option><option value="defense">Defend / Hold against a Rally</option></select></label><label>My troop formation<input id="own-ratio" value="50 / 0 / 50"></label></div>
+<h3 style="margin-top:14px">My Rally / Garrison Heroes</h3><div class="grid3"><label>Infantry<select id="own-i"></select></label><label>Lancer<select id="own-l"></select></label><label>Marksman<select id="own-m"></select></label></div>
+<h3 style="margin-top:14px">My Join First 1–4</h3><div class="grid4"><label>1<select id="own-j1"></select></label><label>2<select id="own-j2"></select></label><label>3<select id="own-j3"></select></label><label>4<select id="own-j4"></select></label></div>
+</div>
+<div class="card">
+<h2>Enemy Setup</h2>
+<div class="grid2"><label>Enemy formation<input id="enemy-ratio" value="50 / 40 / 10"></label><div></div></div>
+<div class="grid3"><label>Infantry<select id="enemy-i"></select></label><label>Lancer<select id="enemy-l"></select></label><label>Marksman<select id="enemy-m"></select></label></div>
+<h3 style="margin-top:14px">Enemy Join First 1–4</h3><div class="grid4"><label>1<select id="enemy-j1"></select></label><label>2<select id="enemy-j2"></select></label><label>3<select id="enemy-j3"></select></label><label>4<select id="enemy-j4"></select></label></div>
+<div style="margin-top:12px"><button id="analyze" class="btn violet">✦ Analyze Matchup</button></div>
+</div>
+<div id="result" class="card result" style="display:none"></div>
+</main>
+<script>
+const $=(s,r=document)=>r.querySelector(s);
+function getCfg(){const c=window.NEXA_CONFIG||window.NEXA||{};return{url:c.supabaseUrl||c.SUPABASE_URL||localStorage.getItem('nexa_supabase_url')||'',key:c.supabaseAnonKey||c.SUPABASE_ANON_KEY||localStorage.getItem('nexa_supabase_anon_key')||''}}
+const cfg=getCfg(),sb=window.supabase?.createClient(cfg.url,cfg.key),state=1518;let heroes=[],visibleGens=[];
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function opt(list,sel=''){return '<option value="">—</option>'+list.map(h=>`<option value="${h.id}" ${String(h.id)===String(sel)?'selected':''}>${esc(h.name)} • Gen ${h.generation}</option>`).join('')}
+function H(id){return heroes.find(h=>String(h.id)===String(id))}
+function heroChip(h){return h?`<span class="hero-chip">${h.image_url?`<img src="${esc(h.image_url)}">`:''}<b class="gold">${esc(h.name)}</b><span>Gen ${h.generation}</span></span>`:'<span class="hero-chip">—</span>'}
+function named(n){return heroes.find(h=>String(h.name).toLowerCase()===n.toLowerCase())||null}
+function ids(prefix){return ['i','l','m'].map(x=>$('#'+prefix+'-'+x).value)}
+function joinIds(prefix){return [1,2,3,4].map(n=>$('#'+prefix+'-j'+n).value)}
+function setup(prefix){return{heroes:ids(prefix),joiners:joinIds(prefix),ratio:$('#'+prefix+'-ratio').value}}
+function bestPreset(mode){
+ const max=Math.max(...visibleGens,0);
+ if(max===10){
+   if(mode==='attack')return{heroes:[named('Gregory'),named('Mia'),named('Blanchette')],ratio:[50,0,50],confidence:'High',why:'Gen 10 rally consensus strongly supports Gregory + Mia + Blanchette at 50 / 0 / 50 for offensive rally pressure.'};
+   return{heroes:[named('Gregory'),named('Freya'),named('Xura')],ratio:[50,40,10],confidence:'High',why:'Gen 10 defensive consensus strongly supports Gregory + Freya + Xura. 50 / 40 / 10 is a well-supported balanced defensive split.'};
+ }
+ const vis=heroes.filter(h=>visibleGens.includes(Number(h.generation))).sort((a,b)=>b.generation-a.generation),by=t=>vis.find(h=>String(h.troop_type).toLowerCase()===t);
+ return{heroes:[by('infantry'),by('lancer'),by('marksman')],ratio:mode==='attack'?[49,2,49]:[50,40,10],confidence:'Baseline',why:`No hard-coded matchup consensus is stored for visible Gen ${max}; NEXA is using the strongest visible troop-class baseline.`}
+}
+function joinSuggestion(mode){return (mode==='attack'?['Norah','Hendrik','Patrick','Jessie']:['Mia','Norah','Hendrik','Patrick']).map(named).filter(Boolean).slice(0,4)}
+async function saveCase(rec){if(!sb)return;try{await sb.from('svs_matchup_lab_cases').insert({state_number:state,mode:$('#mode').value,own_setup:setup('own'),enemy_setup:setup('enemy'),recommendation:rec})}catch(e){}}
+$('#analyze').onclick=async()=>{
+ const mode=$('#mode').value,p=bestPreset(mode),joins=joinSuggestion(mode),enemy=ids('enemy').map(H).filter(Boolean),own=ids('own').map(H).filter(Boolean);
+ const rec={heroes:p.heroes.filter(Boolean).map(x=>x.id),ratio:p.ratio,joiners:joins.map(x=>x.id),confidence:p.confidence,why:p.why};
+ $('#result').style.display='block';
+ $('#result').innerHTML=`<h2>NEXA Counter Recommendation</h2><div class="result-block"><b>Recommended ${mode==='attack'?'Attack Rally':'Defense / Garrison'}</b><div class="hero-row" style="margin-top:8px">${p.heroes.map(heroChip).join('')}</div><div style="margin-top:8px"><b>Troop Formation:</b> ${p.ratio.join(' / ')}</div><div class="tiny" style="margin-top:6px">Evidence confidence: ${p.confidence}</div></div><div class="result-block"><b>Join First synergy</b><div class="hero-row" style="margin-top:8px">${joins.map(heroChip).join('')}</div><div class="tiny" style="margin-top:6px">NEXA can mix the first four buff heroes and keeps duplicates only when they add value; four identical joiners are not assumed to be optimal.</div></div><div class="result-block"><b>Why</b><div class="tiny">${esc(p.why)} Enemy entered: ${esc(enemy.map(x=>x.name).join(' / ')||'—')}. Your entered setup: ${esc(own.map(x=>x.name).join(' / ')||'—')}. Player stats, hero development, widgets, troop quality and temporary buffs can still change the result.</div></div>`;
+ await saveCase(rec);
+}
+async function base(){
+ if(!sb)return;
+ const [h,g]=await Promise.all([sb.from('nexa_library_items').select('id,name,image_url,rarity,generation,troop_type').eq('item_type','hero').eq('is_active',true).order('generation',{ascending:false}).order('name'),sb.from('nexa_library_generations').select('generation').eq('item_type','hero').eq('is_visible',true)]);
+ heroes=h.data||[];visibleGens=(g.data||[]).map(x=>Number(x.generation));const vis=heroes.filter(x=>visibleGens.includes(Number(x.generation))),html=opt(vis);
+ ['own-i','own-l','own-m','enemy-i','enemy-l','enemy-m','own-j1','own-j2','own-j3','own-j4','enemy-j1','enemy-j2','enemy-j3','enemy-j4'].forEach(id=>$('#'+id).innerHTML=html);
+ const atk=bestPreset('attack'),def=bestPreset('defense');
+ ['own-i','own-l','own-m'].forEach((id,i)=>{if(atk.heroes[i])$('#'+id).value=atk.heroes[i].id});
+ ['enemy-i','enemy-l','enemy-m'].forEach((id,i)=>{if(def.heroes[i])$('#'+id).value=def.heroes[i].id});
+}
+base();
+</script>
+</body>
+</html>

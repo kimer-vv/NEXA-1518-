@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS STRATEGY V10 • capacity-aware allocation + owned A/B joiner heroes + consolidated RL schedule -->
+<!-- NEXA SVS STRATEGY V10.1 • Formations render hotfix -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -548,7 +548,7 @@ function consolidatedRallyCards(rs){
  const groups={};for(const x of rs){const k=String(x.player_account_id||x.player_name);(groups[k]??=[]).push(x)}
  return Object.values(groups).map(list=>{list.sort((a,b)=>minutesOf(a.start_utc)-minutesOf(b.start_utc));const first=list[0],pet=list.some(x=>x.pets_active),start=list[0]?.start_utc||'—',end=list[list.length-1]?.end_utc||'—',seg=list.map(x=>`${esc(x.start_utc||'—')}–${esc(x.end_utc||'—')}${x.pets_active?' PETS':''}`).join(' • ');return `<div class="rally ${pet?'pet glow-violet':''}"><span><b>${esc(first.player_name)}</b><br><small>${esc(start)}–${esc(end)} UTC</small><br><small>${seg}</small></span><b>${pet?'PETS':''}</b><button class="member-x" data-delete-rally-player="${esc(String(first.player_account_id||first.player_name))}" type="button">×</button></div>`}).join('')
 }
-function teamFormationNote(t){const a=alliances.find(x=>x.id===t.strategy_alliance_id),fa=Formations(a?.id).find(x=>x.formation_type==='attack'&&x.is_recommended),fd=Formations(a?.id).find(x=>x.formation_type==='defense'&&x.is_recommended);return `<div class="team-ratio-note"><span>⚔ ${fa?parseRatio(fa.ratio,[49,2,49]).join(' / '):'—'}</span><span>🛡 ${fd?parseRatio(fd.ratio,[50,40,10]).join(' / '):'—'}</span><small>Joiners use the same troop ratio as the Rally Lead formation.</small></div>`}
+function teamFormationNote(t){const a=alliances.find(x=>x.id===t.strategy_alliance_id),fa=formations.filter(f=>f.strategy_alliance_id===a?.id).find(x=>x.formation_type==='attack'&&x.is_recommended),fd=formations.filter(f=>f.strategy_alliance_id===a?.id).find(x=>x.formation_type==='defense'&&x.is_recommended);return `<div class="team-ratio-note"><span>⚔ ${fa?parseRatio(fa.ratio,[49,2,49]).join(' / '):'—'}</span><span>🛡 ${fd?parseRatio(fd.ratio,[50,40,10]).join(' / '):'—'}</span><small>Joiners use the same troop ratio as the Rally Lead formation.</small></div>`}
 function renderTeam(t){
  const rs=Rally(t.id),js=Joiners(t.id),tcv=tc(t),idx=Teams(t.strategy_alliance_id).findIndex(x=>x.id===t.id),role=idx===0?'PRIMARY PET TEAM':'STRONG MIX';
  return `<article class="team" data-tid="${t.id}" style="--tc:${tcv}"><div class="team-title"><span>${esc(t.name)} <span class="team-role">${role}</span></span><button class="team-x" data-delete-team type="button" title="Delete Team">×</button></div><div class="team-body">${teamFormationNote(t)}<div class="mini">Rally Leaders</div>

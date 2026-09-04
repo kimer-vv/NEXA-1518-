@@ -1,4 +1,4 @@
-/* NEXA Battle Strategy Engine v1.2
+/* NEXA Battle Strategy Engine v1.3.0
    Shared battle brain for SvS / FDT / TAL / Matchup Lab.
    Data-driven: reads nexa_battle_meta_rules from Supabase and falls back conservatively.
 */
@@ -95,93 +95,157 @@
 
   function leadKey(p){return String(p?.id||p?.in_game_name||'')}
 
-  function staggerPetBuckets(leads,neededPerPhase){
-    // Strength staggering: strongest resources are intentionally split across OPEN / MID / CLOSE.
-    // Pattern keeps peak strength at the opening and closing while still leaving strong bridge leads for mid battle.
-    const buckets=[[],[],[]],phasePattern=[0,2,1];
-    const wanted=neededPerPhase*3;
-    leads.slice(0,wanted).forEach((lead,i)=>buckets[phasePattern[i%3]].push(lead));
-    return buckets;
+  function desiredPetCurve(leadCount,totalTeams){
+    const cap=Math.max(1,Math.min(Number(totalTeams)||1,Number(leadCount)||1));
+    let curve;
+    if(leadCount>=15)curve=[4,5,6,6,4];
+    else if(leadCount>=12)curve=[3,4,5,5,3];
+    else if(leadCount>=10)curve=[3,4,4,4,3];
+    else if(leadCount>=8)curve=[2,3,4,4,2];
+    else if(leadCount>=6)curve=[2,3,3,3,2];
+    else curve=[1,2,2,2,1];
+    return curve.map(x=>Math.min(cap,x));
   }
 
-  function allianceOrderForPhase(allianceCount,primaryIndex,phase){
-    const rest=Array.from({length:allianceCount},(_,i)=>i).filter(i=>i!==primaryIndex);
-    if(!rest.length)return [primaryIndex];
-    // Opening: primary gets first anchor. Mid: strongest bridge goes to a counter. Closing: primary gets first anchor again.
-    if(phase===1)return [rest[0],primaryIndex,...rest.slice(1)];
-    if(phase===2&&rest.length>1)return [primaryIndex,rest[1],rest[0],...rest.slice(2)];
-    return [primaryIndex,...rest];
+  function activationStartsFromCurve(curve,startHour=12){
+    const counts={};
+    for(let i=0;i<curve.length;i++){
+      const h=startHour+i;
+      const prev=i>0?(counts[h-1]||0):0;
+      counts[h]=Math.max(0,curve[i]-prev);
+    }
+    return counts;
   }
 
-  function allocateAlliancePools(rallyLeads,teamCounts,primaryIndex=0){
+  function strengthStartOrder(startCounts){
+    const left={...startCounts},order=[],priority=[12,16,12,16,14,13,15,14,13,15];
+    while(Object.values(left).some(n=>n>0)){
+      let added=false;
+      for(const h of priority){
+        if((left[h]||0)>0){order.push(h);left[h]--;added=true}
+      }
+      if(!added)break;
+    }
+    return order;
+  }
+
+  function slotCandidates(teamCounts,primaryIndex,petHoursBySlot){
+    const out=[];
+    for(let ai=0;ai<teamCounts.length;ai++){
+      for(let ti=0;ti<Number(teamCounts[ai]||0);ti++){
+        const key=`${ai}:${ti}`;
+        let priority=0;
+        if(ai===primaryIndex&&ti===0)priority=1000;                 // Castle / Garrison anchor
+        else if(ti===0)priority=220;                              // T1 all other alliances: high priority, not mandatory
+        else if(ai===primaryIndex&&ti===1)priority=190;           // Primary T2
+        else if(ti===1)priority=170;                              // Counter T2
+        else if(ai===primaryIndex&&ti===2)priority=155;           // Primary T3
+        else priority=140-Math.min(40,ti*8);                      // Other secondary teams
+        const covered=petHoursBySlot.get(key)||0;
+        out.push({allianceIndex:ai,teamIndex:ti,key,priority,covered});
+      }
+    }
+    return out;
+  }
+
+  function planSchedule({rallyLeads=[],teamCounts=[],primaryIndex=0,startHour=12,endHour=17,primaryTeam1PetRequired=true}={}){
     const leads=[...(rallyLeads||[])].sort((a,b)=>scoreLead(b)-scoreLead(a));
-    const allianceCount=teamCounts.length;
-    const mainOwnersNeeded=allianceCount*3;
-    const reserveTarget=Math.max(1,Math.ceil(leads.length*.15));
-    const surplus=Math.max(0,leads.length-mainOwnersNeeded-reserveTarget);
-    const eligibleSecondLanes=teamCounts.map((t,i)=>({i,t:Number(t)||0})).filter(x=>x.t>=2);
-    // Extra PET lane costs three additional 2h activations. Never spend reserves just to color more cells violet.
-    const extraLaneCount=Math.min(eligibleSecondLanes.length,Math.floor(surplus/3));
-    const extraLaneOrder=[primaryIndex,...eligibleSecondLanes.map(x=>x.i).filter(i=>i!==primaryIndex)].filter((v,i,a)=>a.indexOf(v)===i);
-    const extraLanes=extraLaneOrder.slice(0,extraLaneCount).map(allianceIndex=>({allianceIndex,teamIndex:1,mandatory:false}));
-    const activePetCount=Math.min(leads.length,mainOwnersNeeded+extraLanes.length*3);
-    const petOwners=leads.slice(0,activePetCount);
-    return {pools:[],petOwners,extraLanes,reserveTarget,active:petOwners,floating:leads.slice(activePetCount)};
-  }
-
-  function planSchedule({rallyLeads=[],teamCounts=[],primaryIndex=0,startHour=12,endHour=17,team1PetRequired=true,team2PetPreferred=true}={}){
-    const leads=[...(rallyLeads||[])].sort((a,b)=>scoreLead(b)-scoreLead(a));
-    const allianceCount=teamCounts.length;
+    const allianceCount=teamCounts.length,totalTeams=teamCounts.reduce((s,n)=>s+Number(n||0),0);
     const hours=[];for(let h=startHour;h<endHour;h++)hours.push(h);
-    const blocks=[[12,14],[14,16],[16,18]];
-    const mainLaneCount=allianceCount;
-    const {extraLanes,reserveTarget}=allocateAlliancePools(leads,teamCounts,primaryIndex);
-    const lanes=[...Array.from({length:allianceCount},(_,allianceIndex)=>({allianceIndex,teamIndex:0,mandatory:true})),...(team2PetPreferred?extraLanes:[])];
-    const ownerCountPerPhase=lanes.length;
-    const petOwnerCount=Math.min(leads.length,ownerCountPerPhase*3);
-    const phaseBuckets=staggerPetBuckets(leads.slice(0,petOwnerCount),ownerCountPerPhase);
-    const petWindows=[],petTimeline=[];
+    if(!leads.length||!totalTeams)return {assignments:[],petWindows:[],petTimeline:[],floating:leads,active:[],coverage:[],hours:[]};
 
-    // One 2h activation per owner. Default is continuity: stay in the same lane for both hours.
-    // We only move a player later if a non-PET assignment needs them after the PET window.
-    for(let phase=0;phase<3;phase++){
-      const bucket=phaseBuckets[phase]||[];
-      const mainOrder=allianceOrderForPhase(allianceCount,primaryIndex,phase);
-      const orderedLanes=[...mainOrder.map(allianceIndex=>({allianceIndex,teamIndex:0,mandatory:true})),...lanes.filter(l=>l.teamIndex>0)];
-      orderedLanes.forEach((lane,li)=>{
-        const lead=bucket[li];if(!lead)return;
-        const start=blocks[phase][0],end=blocks[phase][1];
-        petWindows.push({allianceIndex:lane.allianceIndex,teamIndex:lane.teamIndex,lead,start:`${start}:00`,end:`${end}:00`,blockIndex:phase,mandatory:lane.mandatory});
-        for(let hour=start;hour<Math.min(end,endHour);hour++)petTimeline.push({allianceIndex:lane.allianceIndex,teamIndex:lane.teamIndex,lead,start:`${hour}:00`,end:`${hour+1}:00`,petsActive:true,blockIndex:phase,mandatory:lane.mandatory});
-      });
+    const curve=desiredPetCurve(leads.length,totalTeams);
+    const startCounts=activationStartsFromCurve(curve,startHour);
+
+    // Guarantee the Castle/Garrison T1 can be continuously covered 12â17:
+    // one 2h activation at 12, another at 14 and another at 16.
+    for(const h of [12,14,16])startCounts[h]=Math.max(1,startCounts[h]||0);
+
+    // Do not create more 2h PET activations than the roster can support.
+    let totalStarts=Object.values(startCounts).reduce((s,n)=>s+n,0);
+    while(totalStarts>leads.length){
+      const removable=[15,13,14,12,16].find(h=>(startCounts[h]||0)>((h===12||h===14||h===16)?1:0));
+      if(removable==null)break;
+      startCounts[removable]--;totalStarts--;
     }
 
-    const assignments=[];
-    const previousBySlot=new Map();
+    // Strongest leads are intentionally staggered: strongest resources go to OPEN/CLOSE first,
+    // then bridge the middle. This preserves bullets for the final hour while keeping mid coverage dense.
+    const startOrder=strengthStartOrder(startCounts);
+    const windows=[];
+    leads.slice(0,startOrder.length).forEach((lead,i)=>{
+      const start=startOrder[i];
+      windows.push({lead,start,end:start+2,id:`${leadKey(lead)}:${start}`});
+    });
+
+    const petTimeline=[],petHoursBySlot=new Map(),windowSlotHistory=new Map();
     for(const hour of hours){
-      const used=new Set();
-      const petNow=petTimeline.filter(x=>Number(x.start.slice(0,2))===hour);
-      // PET lanes first. Team 1 PET owners are anchors and stay for their full 2h activation by default.
-      for(const x of petNow){
-        if(x.teamIndex>=Number(teamCounts[x.allianceIndex]||0))continue;
-        const key=leadKey(x.lead);if(!key||used.has(key))continue;
-        assignments.push({...x});used.add(key);previousBySlot.set(`${x.allianceIndex}:${x.teamIndex}`,x.lead);
+      const activeWindows=windows.filter(w=>w.start<=hour&&w.end>hour);
+      const usedSlots=new Set();
+
+      // Castle T1 is always assigned first to a PET-active lead.
+      const anchorWindow=activeWindows
+        .filter(w=>!windowSlotHistory.get(w.id)?.some(x=>x.hour===hour))
+        .sort((a,b)=>scoreLead(b.lead)-scoreLead(a.lead))[0];
+
+      if(anchorWindow&&teamCounts[primaryIndex]>0){
+        const entry={allianceIndex:primaryIndex,teamIndex:0,lead:anchorWindow.lead,start:`${hour}:00`,end:`${hour+1}:00`,petsActive:true,windowStart:`${anchorWindow.start}:00`,windowEnd:`${anchorWindow.end}:00`};
+        petTimeline.push(entry);usedSlots.add(`${primaryIndex}:0`);
+        petHoursBySlot.set(`${primaryIndex}:0`,(petHoursBySlot.get(`${primaryIndex}:0`)||0)+1);
+        const hist=windowSlotHistory.get(anchorWindow.id)||[];hist.push({hour,allianceIndex:primaryIndex,teamIndex:0});windowSlotHistory.set(anchorWindow.id,hist);
       }
 
-      // Fill every remaining team. Prefer continuity from the previous hour, then strongest available.
+      for(const w of activeWindows){
+        if(anchorWindow&&w.id===anchorWindow.id)continue;
+        const hist=windowSlotHistory.get(w.id)||[];
+        const prev=hist.find(x=>x.hour===hour-1);
+        const slots=slotCandidates(teamCounts,primaryIndex,petHoursBySlot)
+          .filter(s=>!usedSlots.has(s.key))
+          .map(s=>{
+            // Continuity is useful but never a hard lock. Under-covered T1/T2/T3 can beat continuity.
+            const continuity=prev&&prev.allianceIndex===s.allianceIndex&&prev.teamIndex===s.teamIndex?26:0;
+            const balancePenalty=s.covered*22;
+            // Middle hours deliberately spread PET support more broadly.
+            const midBonus=(hour>=13&&hour<=15&&s.teamIndex>0)?12:0;
+            // Keep counter alliances dangerous instead of stacking everything on Primary.
+            const counterBonus=(s.allianceIndex!==primaryIndex)?10:0;
+            return {...s,score:s.priority+continuity+midBonus+counterBonus-balancePenalty};
+          })
+          .sort((a,b)=>b.score-a.score);
+        const slot=slots[0];if(!slot)continue;
+        const entry={allianceIndex:slot.allianceIndex,teamIndex:slot.teamIndex,lead:w.lead,start:`${hour}:00`,end:`${hour+1}:00`,petsActive:true,windowStart:`${w.start}:00`,windowEnd:`${w.end}:00`};
+        petTimeline.push(entry);usedSlots.add(slot.key);
+        petHoursBySlot.set(slot.key,(petHoursBySlot.get(slot.key)||0)+1);
+        hist.push({hour,allianceIndex:slot.allianceIndex,teamIndex:slot.teamIndex});windowSlotHistory.set(w.id,hist);
+      }
+    }
+
+    // Full RL movement schedule. PETS are one layer; non-PET RLs fill useful slots before anyone floats.
+    const assignments=[],previousBySlot=new Map(),useCount=new Map();
+    for(const hour of hours){
+      const usedLeadKeys=new Set();
+      const petNow=petTimeline.filter(x=>Number(x.start.slice(0,2))===hour);
+      for(const x of petNow){
+        assignments.push({...x});usedLeadKeys.add(leadKey(x.lead));
+        previousBySlot.set(`${x.allianceIndex}:${x.teamIndex}`,x.lead);
+        useCount.set(leadKey(x.lead),(useCount.get(leadKey(x.lead))||0)+1);
+      }
+
       for(let ai=0;ai<allianceCount;ai++){
         for(let ti=0;ti<Number(teamCounts[ai]||0);ti++){
           if(assignments.some(a=>a.allianceIndex===ai&&a.teamIndex===ti&&Number(a.start.slice(0,2))===hour))continue;
-          const slotKey=`${ai}:${ti}`;
-          let chosen=previousBySlot.get(slotKey)||null;
-          if(chosen&&used.has(leadKey(chosen)))chosen=null;
-          if(!chosen){
-            const available=leads.filter(p=>!used.has(leadKey(p))).sort((a,b)=>scoreLead(b)-scoreLead(a));
-            chosen=available[0]||null;
-          }
-          if(!chosen)continue;
+          const slotKey=`${ai}:${ti}`,prev=previousBySlot.get(slotKey);
+          const available=leads.filter(p=>!usedLeadKeys.has(leadKey(p))).map(p=>{
+            const continuity=prev&&leadKey(prev)===leadKey(p)?18:0;
+            const freshBonus=Math.max(0,30-(useCount.get(leadKey(p))||0)*5);
+            const secondaryRotation=(ti>0)?10:0;
+            const primaryStrength=(ai===primaryIndex&&ti===0)?scoreLead(p)*.02:0;
+            return {p,score:scoreLead(p)+continuity+freshBonus+secondaryRotation+primaryStrength};
+          }).sort((a,b)=>b.score-a.score);
+          const chosen=available[0]?.p;if(!chosen)continue;
           assignments.push({allianceIndex:ai,teamIndex:ti,lead:chosen,start:`${hour}:00`,end:`${hour+1}:00`,petsActive:false});
-          used.add(leadKey(chosen));previousBySlot.set(slotKey,chosen);
+          usedLeadKeys.add(leadKey(chosen));previousBySlot.set(slotKey,chosen);
+          useCount.set(leadKey(chosen),(useCount.get(leadKey(chosen))||0)+1);
         }
       }
     }
@@ -191,13 +255,21 @@
     const floating=leads.filter(p=>!usedIds.has(leadKey(p)));
     const coverage=[];
     for(let ai=0;ai<allianceCount;ai++){
-      const team1PetHours=hours.filter(h=>assignments.some(a=>a.allianceIndex===ai&&a.teamIndex===0&&a.petsActive&&Number(a.start.slice(0,2))===h)).length;
-      const team2PetHours=hours.filter(h=>assignments.some(a=>a.allianceIndex===ai&&a.teamIndex===1&&a.petsActive&&Number(a.start.slice(0,2))===h)).length;
+      const teamPetHours={};
+      for(let ti=0;ti<Number(teamCounts[ai]||0);ti++){
+        teamPetHours[ti]=hours.filter(h=>assignments.some(a=>a.allianceIndex===ai&&a.teamIndex===ti&&a.petsActive&&Number(a.start.slice(0,2))===h)).length;
+      }
       const fullTeams=hours.every(h=>Array.from({length:Number(teamCounts[ai]||0)},(_,ti)=>assignments.some(a=>a.allianceIndex===ai&&a.teamIndex===ti&&Number(a.start.slice(0,2))===h)).every(Boolean));
-      coverage.push({allianceIndex:ai,complete:fullTeams&&(!team1PetRequired||team1PetHours===hours.length),team1PetHours,totalHours:hours.length,team2PetEnabled:team2PetHours>0,team2PetHours});
+      const primaryAnchorOk=ai!==primaryIndex||!primaryTeam1PetRequired||teamPetHours[0]===hours.length;
+      coverage.push({allianceIndex:ai,complete:fullTeams&&primaryAnchorOk,totalHours:hours.length,teamPetHours,team1PetHours:teamPetHours[0]||0});
     }
 
-    return {assignments,petWindows,petTimeline,lanes,floating,active,coverage,reserveTarget,hours:hours.map(h=>[`${h}:00`,`${h+1}:00`])};
+    const petWindows=windows.map(w=>({
+      lead:w.lead,start:`${w.start}:00`,end:`${w.end}:00`,
+      movements:(windowSlotHistory.get(w.id)||[]).map(x=>({hour:x.hour,allianceIndex:x.allianceIndex,teamIndex:x.teamIndex}))
+    }));
+
+    return {assignments,petWindows,petTimeline,floating,active,coverage,petCurve:curve,startCounts,hours:hours.map(h=>[`${h}:00`,`${h+1}:00`])};
   }
 
   function explainConfidence(rec){
@@ -207,7 +279,7 @@
   }
 
   window.NexaBattleStrategyEngine={
-    version:'1.2.0',loadMeta,rulesFor,bestRule,recommendation,chooseAlternative,ensureConstraints,
+    version:'1.3.0',loadMeta,rulesFor,bestRule,recommendation,chooseAlternative,ensureConstraints,
     scoreLead,allocateAlliancePools,planSchedule,explainConfidence
   };
 })();

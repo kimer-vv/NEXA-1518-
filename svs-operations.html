@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS STRATEGY V11.3 • strategic PET distribution + joiner optimizer + per-alliance layout cards -->
+<!-- NEXA SVS STRATEGY V11.3.1 • crisp per-alliance export + handoff lane + 3 formation presets -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -47,7 +47,7 @@ input,select{width:100%;min-height:44px;background:#060b1c;color:#fff;border:1px
 .rally.pet{background:linear-gradient(90deg,rgba(112,67,204,.68),rgba(76,45,145,.56));border:1px solid rgba(192,148,255,.24)}
 .joiner{display:grid;grid-template-columns:minmax(80px,.82fr) 1fr 1fr;gap:5px;padding:7px 0;border-top:1px solid rgba(255,255,255,.07);font-size:11px}
 .joiner.first .pname:before,.layout-row.first .pname:before{content:"★ ";color:var(--gold)}
-.hero-stack{display:grid;gap:3px}.hero-line{display:flex;align-items:center;gap:4px;min-width:0}.hero-line img{width:22px;height:22px;border-radius:6px;object-fit:cover}.hero-name{font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hero-stack{display:grid;gap:3px}.hero-line{display:flex;align-items:center;gap:4px;min-width:0}.hero-line img{width:22px;height:22px;border-radius:6px;object-fit:cover;image-rendering:auto}.hero-name{font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rarity-mythic,.rarity-gold,.rarity-legendary{color:#ffd260}.rarity-epic,.rarity-purple{color:#c78bff}.rarity-rare,.rarity-blue{color:#68c9ff}
 .pet-grid-wrap,.layout-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}.pet-grid{min-width:820px;width:100%;border-collapse:collapse}.pet-grid th,.pet-grid td{border:1px solid rgba(255,255,255,.09);padding:7px;font-size:11px;text-align:center}.pet-grid th{background:#0c1430}.pet-grid td:first-child{text-align:left;min-width:130px}.petactive{background:linear-gradient(145deg,rgba(111,66,201,.88),rgba(70,40,138,.82));font-weight:900}
 .layout-sheets{display:grid;gap:18px}.layout-sheet.alliance-sheet{margin-bottom:0}.layout-sheet .sheet-subtitle{font-size:11px;color:#96a3c4;font-weight:850;letter-spacing:.08em;text-transform:uppercase}
@@ -77,6 +77,34 @@ input,select{width:100%;min-height:44px;background:#060b1c;color:#fff;border:1px
 .layout-footer-legend{margin-top:10px;text-align:center;color:#aeb7d1;font-size:10px}
 .nexa-export-picker{position:fixed;inset:0;z-index:2147483300;display:grid;place-items:center;background:rgba(0,0,0,.72);padding:16px}.nexa-export-picker-card{width:min(420px,96vw);border:1px solid rgba(72,221,255,.30);border-radius:20px;background:#071022;padding:14px}.nexa-export-picker-card h3{margin:0 0 10px}.nexa-export-picker-actions{display:grid;gap:8px}.nexa-export-picker-actions .btn{width:100%}
 @media(max-width:760px){.layout-top-grid{grid-template-columns:1fr}.rl-formations-grid,.joiner-ratio-grid{grid-template-columns:1fr 1fr}.rl-formation-card .f-ratio{font-size:15px}}
+
+
+/* V11.3.1 — clarity without changing the Team Layout format */
+.layout-sheet .hero-line img{width:26px;height:26px;border-radius:6px}
+.layout-sheet .hero-name,
+.layout-sheet .rl-formation-hero b{
+  font-weight:950;
+  -webkit-text-stroke:.25px rgba(0,0,0,.92);
+  text-shadow:0 1px 0 #000,0 0 3px rgba(0,0,0,.95);
+}
+.layout-sheet .layout-row{font-size:11px;line-height:1.28}
+.layout-sheet .hero-stack{gap:4px}
+.layout-sheet .hero-line{gap:5px}
+.layout-sheet .rl-formation-hero img{width:40px;height:40px}
+.layout-sheet .rl-formation-hero b{font-size:9px}
+.layout-sheet-wrap{display:grid;gap:7px}
+.sheet-actions{display:flex;justify-content:flex-end}
+.sheet-actions .btn{min-height:38px;padding:7px 12px}
+.layout-title-row{display:flex;align-items:center;gap:12px;min-width:0}
+.layout-title-row .emblem{width:62px;height:62px;flex:0 0 auto}
+.layout-title-copy h2{font-size:30px;margin:0}
+.layout-title-copy .tiny{margin-bottom:3px}
+.layout-main-head{display:grid;grid-template-columns:minmax(270px,.58fr) minmax(0,1.42fr);gap:14px;align-items:start;margin-bottom:10px}
+.joiner-ratio-editor{margin-top:10px;border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:10px;background:rgba(255,255,255,.025)}
+.joiner-ratio-editor-head{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.joiner-ratio-editor-pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.joiner-ratio-editor .ratio{font-size:10px}
+@media(max-width:760px){.layout-main-head{grid-template-columns:1fr}}
 
 .layout-sheet{width:1400px;min-width:1400px;padding:22px;border-radius:18px;border:1px solid rgba(155,120,255,.55);box-shadow:0 0 24px rgba(139,89,255,.13);background:radial-gradient(circle at 8% 0%,rgba(95,69,205,.16),transparent 25%),linear-gradient(145deg,#050916,#0a0e20)}
 .layout-head{display:flex;align-items:center;gap:9px}.layout-head .emblem{width:54px;height:54px}.layout-teams{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:10px}
@@ -231,7 +259,7 @@ body.pet-preview-open{overflow:hidden!important}
 .team-form-head{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:10px}.team-form-head strong{font-size:10px}
 .team-form-heroes{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}.team-form-heroes span{display:flex;align-items:center;gap:4px;font-size:9px;font-weight:850}.team-form-heroes img{width:22px;height:22px;border-radius:6px;object-fit:cover}
 </style>
-<script src="nexa-battle-strategy-engine.js?v=1.3"></script>
+<script src="nexa-battle-strategy-engine.js?v=1.3.1"></script>
 <script src="nexa-svs-rules.js?v=1"></script>
 </head>
 <body>
@@ -672,7 +700,7 @@ function renderStrategy(){
 }
 function renderAlliance(a){
  return `<article class="strategy-alliance" data-aid="${a.id}"><div class="alliance-head">${a.emblem_url?`<img class="emblem" src="${esc(a.emblem_url)}" alt="">`:''}<div><div class="alliance-name">${esc(a.alliance_tag)}${a.alliance_name?` • ${esc(a.alliance_name)}`:''}</div><div class="ratios"><span class="ratio attack">⚔ ${ratio(a.attack_ratio,[49,2,49])}</span>${a.defense_enabled?`<span class="ratio defense">🛡 ${ratio(a.defense_ratio,[40,0,60])}</span>`:''}</div></div></div>
- <div style="padding:11px"><div class="grid3"><label>Attack Ratio<input class="a-atk" value="${ratio(a.attack_ratio,[49,2,49])}"></label><label>Defense Ratio<input class="a-def" value="${ratio(a.defense_ratio,[40,0,60])}"></label><label>Defense<select class="a-on"><option value="yes" ${a.defense_enabled?'selected':''}>Enabled</option><option value="no" ${!a.defense_enabled?'selected':''}>Off</option></select></label></div><div class="row" style="margin-top:8px"><button class="btn save-a">Save</button><button class="btn violet add-team">+ Team</button></div></div>
+ <div style="padding:11px"><div class="grid3"><label>Main Attack Ratio<input class="a-atk" value="${ratio(a.attack_ratio,[49,2,49])}"></label><label>Main Defense Ratio<input class="a-def" value="${ratio(a.defense_ratio,[40,0,60])}"></label><label>Defense<select class="a-on"><option value="yes" ${a.defense_enabled?'selected':''}>Enabled</option><option value="no" ${!a.defense_enabled?'selected':''}>Off</option></select></label></div><div class="joiner-ratio-editor"><div class="joiner-ratio-editor-head"><div><b>Joiner Formation Ratios</b><div class="tiny muted">Up to 3 Attack and 3 Defense presets. Presets mirror the alliance Rally Lead formations.</div></div><div class="row"><button class="btn add-ratio-attack" type="button">+ Attack Ratio</button><button class="btn add-ratio-defense" type="button">+ Defense Ratio</button></div></div><div class="joiner-ratio-editor-pills">${formationsFor(a.id,'attack').map((f,i)=>`<span class="ratio attack">⚔ ${i===0?'Main':`Alt ${i}`} • ${ratio(f.ratio,[49,2,49])}</span>`).join('')}${formationsFor(a.id,'defense').map((f,i)=>`<span class="ratio defense">🛡 ${i===0?'Main':`Alt ${i}`} • ${ratio(f.ratio,[40,0,60])}</span>`).join('')}</div></div><div class="row" style="margin-top:8px"><button class="btn save-a">Save</button><button class="btn violet add-team">+ Team</button></div></div>
  <div class="teams">${Teams(a.id).map(renderTeam).join('')||'<div class="muted tiny">No Teams yet.</div>'}</div>
  ${renderFormationBoard(a)}
  </article>`
@@ -716,7 +744,7 @@ function teamFormationNote(t){
  return `<div class="team-formations"><div class="mini" style="margin-top:0">RALLY LEAD FORMATIONS</div>${mini(fa,'⚔ Attack','attack')}${mini(fd,'🛡 Defense','defense')}<small>Joiners use the same troop ratio as the Rally Lead formation.</small></div>`
 }
 function bindStrategy(){
- $$('.strategy-alliance').forEach(c=>{const aid=c.dataset.aid;const saveBtn=$('.save-a',c),addBtn=$('.add-team',c);if(saveBtn)saveBtn.onclick=async()=>{const {error}=await sb.from('svs_strategy_alliances').update({attack_ratio:parseRatio($('.a-atk',c).value,[49,2,49]),defense_ratio:parseRatio($('.a-def',c).value,[40,0,60]),defense_enabled:$('.a-on',c).value==='yes'}).eq('id',aid);if(error)return say(error.message,true);await openStrategy(strategy.id)};if(addBtn)addBtn.onclick=()=>addTeam(aid)});
+ $$('.strategy-alliance').forEach(c=>{const aid=c.dataset.aid;const saveBtn=$('.save-a',c),addBtn=$('.add-team',c);if(saveBtn)saveBtn.onclick=async()=>{const {error}=await sb.from('svs_strategy_alliances').update({attack_ratio:parseRatio($('.a-atk',c).value,[49,2,49]),defense_ratio:parseRatio($('.a-def',c).value,[40,0,60]),defense_enabled:$('.a-on',c).value==='yes'}).eq('id',aid);if(error)return say(error.message,true);await openStrategy(strategy.id)};if(addBtn)addBtn.onclick=()=>addTeam(aid);const ar=$('.add-ratio-attack',c),dr=$('.add-ratio-defense',c);if(ar)ar.onclick=()=>addFormation(aid,'attack');if(dr)dr.onclick=()=>addFormation(aid,'defense')});
  $$('.team').forEach(c=>{const tid=c.dataset.tid;$('.add-rally',c).onclick=()=>addRally(tid);$('.add-joiner',c).onclick=()=>addJoiner(tid);$('[data-delete-team]',c).onclick=()=>deleteTeam(tid);$$('[data-delete-rally]',c).forEach(b=>b.onclick=()=>deleteRally(b.dataset.deleteRally));$$('[data-delete-rally-player]',c).forEach(b=>b.onclick=()=>deleteRallyPlayer(tid,b.dataset.deleteRallyPlayer));$$('[data-delete-joiner]',c).forEach(b=>b.onclick=()=>deleteJoiner(b.dataset.deleteJoiner))});
  $$('[data-add-formation]').forEach(b=>b.onclick=()=>addFormation(b.dataset.aid,b.dataset.addFormation));
  $$('[data-delete-formation]').forEach(b=>b.onclick=()=>deleteFormation(b.dataset.deleteFormation));
@@ -753,7 +781,8 @@ function renderFormationBoard(a){
  return `<div class="formations-wrap"><div class="formations-title"><h4>Rally Lead Formations</h4><span>Main + optional alternatives</span></div><div class="formations-board"><div class="formation-column"><div class="formation-column-head"><strong>⚔ Attack</strong><button class="btn" data-add-formation="attack" data-aid="${a.id}" type="button">${atk.length?'+ Alt':'+ Add'}</button></div>${atk.map(formationCard).join('')||'<div class="muted tiny">No attack preset yet.</div>'}</div><div class="formation-column"><div class="formation-column-head"><strong>🛡 Defense</strong><button class="btn" data-add-formation="defense" data-aid="${a.id}" type="button">${def.length?'+ Alt':'+ Add'}</button></div>${def.map(formationCard).join('')||'<div class="muted tiny">No defense preset yet.</div>'}</div></div></div>`
 }
 async function addFormation(aid,type){
- const list=formationsFor(aid,type),defRatio=type==='attack'?[49,2,49]:[40,0,60],letter=String.fromCharCode(65+list.length),defaultName=list.length?`Alt ${type==='attack'?'Attack':'Defense'}`:`Main ${type==='attack'?'Attack':'Defense'}`;
+ const list=formationsFor(aid,type);if(list.length>=3)return say(`Maximum 3 ${type} formation presets per alliance.`,true);
+ const defRatio=type==='attack'?[49,2,49]:[40,0,60],letter=String.fromCharCode(65+list.length),defaultName=list.length?`Alt ${type==='attack'?'Attack':'Defense'}`:`Main ${type==='attack'?'Attack':'Defense'}`;
  const rec=rallyFormationRecommendation(type),hi=rec.infantry,hl=rec.lancer,hm=rec.marksman;
  modal(`Add ${type==='attack'?'Attack':'Defense'} Formation`,`<div class="grid2"><label>Name<input id="fm-name" value="${defaultName}"></label><label>Ratio<input id="fm-ratio" value="${defRatio.join(' / ')}"></label></div><div class="grid3" style="margin-top:9px"><label>Hero 1<select id="fm-i">${heroOptionsTroop('infantry',hi?.id||'')}</select></label><label>Hero 2<select id="fm-l">${heroOptionsTroop('lancer',hl?.id||'')}</select></label><label>Hero 3<select id="fm-m">${heroOptionsTroop('marksman',hm?.id||'')}</select></label></div><label style="margin-top:9px">Recommendation<select id="fm-rec"><option value="no">Normal Preset</option><option value="yes">NEXA Recommended</option></select></label><div class="select-note" style="margin-top:7px">NEXA reads the current evidence registry for this State generation, can mix older heroes when the supported lineup is stronger, and enforces troop-type constraints such as required Lancer presence.</div>`,async ov=>{
    const r=parseRatio($('#fm-ratio',ov).value,defRatio),name=$('#fm-name',ov).value.trim()||defaultName;
@@ -906,11 +935,20 @@ function renderLayout(){
  if(!alliances.length){h.innerHTML='<span class="muted">No alliances configured.</span>';return}
  h.innerHTML=`<div id="team-sheets" class="layout-sheets">${alliances.map(a=>{
    const tag=esc(a.alliance_tag||a.alliance_name||'Alliance');
-   return `<div class="layout-sheet alliance-sheet" data-layout-alliance="${a.id}" data-layout-tag="${tag}"><div class="tiny muted">NEXA • BATTLE OPERATIONS • SVS</div><h2 style="font-size:30px;margin:4px 0 10px">${tag} • Team Layout</h2>${layoutAlliance(a)}<div class="layout-footer-legend">Violet = PET ACTIVE • Neutral = Assigned without PETS</div></div>`
- }).join('')}</div>`
+   return `<div class="layout-sheet-wrap"><div class="sheet-actions no-export"><button class="btn violet" type="button" data-download-alliance="${a.id}">Download ${tag}</button></div><div class="layout-sheet alliance-sheet" data-layout-alliance="${a.id}" data-layout-tag="${tag}"><div class="layout-main-head"><div class="layout-title-row">${a.emblem_url?`<img class="emblem" src="${esc(a.emblem_url)}" alt="">`:''}<div class="layout-title-copy"><div class="tiny muted">NEXA • BATTLE OPERATIONS • SVS</div><h2>${tag} • Team Layout</h2></div></div><div class="rl-formations-grid">${layoutRallyLeadFormationGroup(a,'attack')}${layoutRallyLeadFormationGroup(a,'defense')}</div></div>${layoutAlliance(a)}<div class="layout-footer-legend">Violet = PET ACTIVE • Neutral = Assigned without PETS</div></div></div>`
+ }).join('')}</div>`;
+ bindLayoutDownloads();
 }
 function layoutAlliance(a){
- return `<section style="margin-bottom:4px"><div class="layout-top-grid"><div class="layout-alliance-identity"><div class="layout-head">${a.emblem_url?`<img class="emblem" src="${esc(a.emblem_url)}" alt="">`:''}<div><h2 style="margin:0">${esc(a.alliance_tag)}${a.alliance_name?` • ${esc(a.alliance_name)}`:''}</h2><div class="ratios"><span class="ratio attack">⚔ Attack ${ratio(a.attack_ratio,[49,2,49])}</span>${a.defense_enabled?`<span class="ratio defense">🛡 Defense ${ratio(a.defense_ratio,[40,0,60])}</span>`:''}</div></div></div></div><div class="rl-formations-grid">${layoutRallyLeadFormationGroup(a,'attack')}${layoutRallyLeadFormationGroup(a,'defense')}</div></div><div class="note glow-violet">${esc(strategy.join_note||`Join First — First ${strategy.join_first_count} joiners enter with ${fmtSecs(strategy.join_first_seconds)} left on countdown. Other joiners join with ${fmtSecs(strategy.other_join_seconds)} left on countdown.`)}</div><div class="layout-teams">${Teams(a.id).map(layoutTeam).join('')}</div><div class="joiner-ratio-grid">${layoutJoinerRatioGroup(a,'attack')}${layoutJoinerRatioGroup(a,'defense')}</div></section>`
+ return `<section style="margin-bottom:4px"><div class="note glow-violet">${esc(strategy.join_note||`Join First — First ${strategy.join_first_count} joiners enter with ${fmtSecs(strategy.join_first_seconds)} left on countdown. Other joiners join with ${fmtSecs(strategy.other_join_seconds)} left on countdown.`)}</div><div class="layout-teams">${Teams(a.id).map(layoutTeam).join('')}</div><div class="joiner-ratio-grid">${layoutJoinerRatioGroup(a,'attack')}${layoutJoinerRatioGroup(a,'defense')}</div></section>`
+}
+function bindLayoutDownloads(){
+ $$('[data-download-alliance]','#layout-export').forEach(b=>b.onclick=async()=>{
+   const aid=b.dataset.downloadAlliance,node=$(`.alliance-sheet[data-layout-alliance="${aid}"]`,'#layout-export');
+   if(!node)return say('Alliance sheet not found.',true);
+   const tag=(node.dataset.layoutTag||'Alliance').replace(/[^a-z0-9_-]+/gi,'-');
+   await exportNodes([node],[`NEXA-SvS-${tag}-Team-Layout.png`]);
+ })
 }
 function layoutTeam(t){const def=defenseOn(t);return `<article class="layout-team" style="--tc:${tc(t)}"><div class="layout-team-title">${esc(t.name)}</div><div class="layout-rally"><div class="mini">Rally Leader Schedule (UTC)</div>${layoutRallyCards(t.id)||'<span class="muted tiny">—</span>'}</div><div class="layout-headrow"><div>Player</div><div>Attack</div><div>Defense</div></div>${Joiners(t.id).map(j=>`<div class="layout-row ${j.join_first?'first':''}"><div class="pname"><b>${esc(j.player_name)}</b></div><div class="hero-stack">${heroLine('A',j.attack_a_hero_id)}${heroLine('B',j.attack_b_hero_id)}</div><div class="hero-stack">${def?heroLine('A',j.defense_a_hero_id)+heroLine('B',j.defense_b_hero_id):'<span class="muted">—</span>'}</div></div>`).join('')}</article>`}
 
@@ -1019,7 +1057,7 @@ async function runAssist(){
  }
  // Rally Lead Schedule: every Team appears, with violet only when that hourly assignment has PETS active.
  const petRowMap=new Map();
- const tacticalPurpose=(ai,ti)=>ai===0&&ti===0?'Garrison':ai===0&&ti===1?'Handoff / Counter':'Counter';
+ const tacticalPurpose=(ai,ti)=>{const count=(teamRowsByAlliance[ai]||[]).length;if(ai===0&&ti===0)return'Garrison';if(count>1&&ti===count-1)return'Handoff';return'Counter'};
  for(let ai=0;ai<teamRowsByAlliance.length;ai++){
    for(let ti=0;ti<(teamRowsByAlliance[ai]||[]).length;ti++){
      const t=teamRowsByAlliance[ai][ti],tag=saRows[ai]?.alliance_tag||`Alliance ${ai+1}`,key=`${ai}:${ti}`,purpose=tacticalPurpose(ai,ti);
@@ -1133,6 +1171,7 @@ async function canvasBlob(node){
  if(!node)throw new Error('Nothing to export.');
  const stage=document.createElement('div');stage.className='nexa-export-stage';
  const clone=node.cloneNode(true);
+ clone.querySelectorAll('.no-export,[data-download-alliance]').forEach(x=>x.remove());
  // PET preview is intentionally responsive on-screen. For export, expand the exact same sheet
  // so html2canvas captures every time column instead of only the iPhone viewport.
  if(clone.id==='pet-sheet'){
@@ -1150,8 +1189,9 @@ async function canvasBlob(node){
    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
    const w=Math.ceil(Math.max(clone.scrollWidth,clone.getBoundingClientRect().width));
    const h=Math.ceil(Math.max(clone.scrollHeight,clone.getBoundingClientRect().height));
+   const exportScale=clone.classList.contains('alliance-sheet')?3:2.25;
    const c=await html2canvas(clone,{
-     backgroundColor:'#050916',scale:2,useCORS:true,logging:false,
+     backgroundColor:'#050916',scale:exportScale,useCORS:true,allowTaint:false,imageTimeout:15000,logging:false,
      width:w,height:h,windowWidth:w,windowHeight:h,scrollX:0,scrollY:0
    });
    return await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error('Could not create image.')),'image/png'));

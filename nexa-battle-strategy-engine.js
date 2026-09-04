@@ -1,4 +1,4 @@
-/* NEXA Battle Strategy Engine v1.3.0
+/* NEXA Battle Strategy Engine v1.3.1
    Shared battle brain for SvS / FDT / TAL / Matchup Lab.
    Data-driven: reads nexa_battle_meta_rules from Supabase and falls back conservatively.
 */
@@ -135,12 +135,14 @@
       for(let ti=0;ti<Number(teamCounts[ai]||0);ti++){
         const key=`${ai}:${ti}`;
         let priority=0;
+        const isHandoff=Number(teamCounts[ai]||0)>1&&ti===Number(teamCounts[ai]||0)-1;
         if(ai===primaryIndex&&ti===0)priority=1000;                 // Castle / Garrison anchor
-        else if(ti===0)priority=220;                              // T1 all other alliances: high priority, not mandatory
-        else if(ai===primaryIndex&&ti===1)priority=190;           // Primary T2
-        else if(ti===1)priority=170;                              // Counter T2
-        else if(ai===primaryIndex&&ti===2)priority=155;           // Primary T3
-        else priority=140-Math.min(40,ti*8);                      // Other secondary teams
+        else if(isHandoff)priority=25;                             // Handoff is utility: never spend PET priority here
+        else if(ti===0)priority=220;                               // T1 other alliances: strong counter priority
+        else if(ai===primaryIndex&&ti===1)priority=190;            // Primary counter lane
+        else if(ti===1)priority=170;
+        else if(ai===primaryIndex&&ti===2)priority=155;
+        else priority=140-Math.min(40,ti*8);
         const covered=petHoursBySlot.get(key)||0;
         out.push({allianceIndex:ai,teamIndex:ti,key,priority,covered});
       }
@@ -279,7 +281,7 @@
   }
 
   window.NexaBattleStrategyEngine={
-    version:'1.3.0',loadMeta,rulesFor,bestRule,recommendation,chooseAlternative,ensureConstraints,
+    version:'1.3.1',loadMeta,rulesFor,bestRule,recommendation,chooseAlternative,ensureConstraints,
     scoreLead,allocateAlliancePools,planSchedule,explainConfidence
   };
 })();

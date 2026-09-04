@@ -1,6 +1,6 @@
 <!doctype html>
 <!-- TARGET GITHUB FILE: transfer-workspace.html -->
-<!-- NEXA TRANSFER WORKSPACE V5.5 — SAFE MANUAL END / APPLICANTS UNCHANGED / ADMIN ARCHIVE DELETE -->
+<!-- NEXA TRANSFER WORKSPACE V5.6 — WORKSPACE PUBLIC FORM LINK / CYCLE-INDEPENDENT INTAKE -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -268,13 +268,13 @@ const canManage=()=>accessInfo?.can_manage===true;
 function saveToken(raw,remember){localStorage.removeItem('nexa_transfer_staff_token');sessionStorage.removeItem('nexa_transfer_staff_token');(remember?localStorage:sessionStorage).setItem('nexa_transfer_staff_token',raw);token=raw}
 function clearToken(){localStorage.removeItem('nexa_transfer_staff_token');sessionStorage.removeItem('nexa_transfer_staff_token');token=''}
 function workspaceUrl(){return workspace?new URL(`transfer-workspace.html?workspace=${encodeURIComponent(workspace.id)}`,location.href).href:location.href}
-function publicForm(){return intake?new URL(`transfer-form-v2.html?public=1&event=${encodeURIComponent(intake.id)}`,location.href).href:'#'}
+function publicForm(){return workspace?new URL(`transfer-form-v2.html?public=1&workspace=${encodeURIComponent(workspace.id)}`,location.href).href:'#'}
 function directForm(){return intake?new URL(`transfer-form-v2.html?direct=1&event=${encodeURIComponent(intake.id)}`,location.href).href:'#'}
 function builder(){return intake?new URL(`transfer-form-settings.html?workspace=1&event=${encodeURIComponent(intake.id)}`,location.href).href:'#'}
 async function copyText(text,b){try{await navigator.clipboard.writeText(text);if(b){const o=b.textContent;b.textContent='Copied ✓';setTimeout(()=>b.textContent=o,1100)}}catch(_){if(b)b.textContent='Copy failed'}}
 function cleanTimes(arr,max){return (arr||[]).map(x=>String(x||'').trim()).filter(x=>timeOptions.includes(x)).slice(0,max)}
 function readable(v){if(v===null||v===undefined||v==='')return '—';if(Array.isArray(v))return v.length?v.join(' • '):'—';if(typeof v==='boolean')return v?'Yes':'No';if(typeof v==='object')return JSON.stringify(v);return String(v)}
-function prettyKey(k){return String(k).replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}
+function prettyKey(k){return String(k).replace(/_/g,' ').replace(/\w/g,c=>c.toUpperCase())}
 function confirmGalaxy(title,text,yesLabel,fn){confirmAction=fn;$('confirmTitle').textContent=title;$('confirmText').textContent=text;$('confirmYes').textContent=yesLabel||'Confirm';$('confirmModal').classList.add('open')}
 $('confirmCancel').onclick=()=>{$('confirmModal').classList.remove('open');confirmAction=null};
 $('confirmYes').onclick=async()=>{const fn=confirmAction;$('confirmModal').classList.remove('open');confirmAction=null;if(fn)await fn()};

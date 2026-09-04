@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS STRATEGY V11.3.2 • rally schedule recovery + formation-aware joiners + preview recovery -->
+<!-- NEXA SVS STRATEGY V11.3.3 • selector preview/download + resilient Join First blend + Safari selector fix -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -79,7 +79,7 @@ input,select{width:100%;min-height:44px;background:#060b1c;color:#fff;border:1px
 @media(max-width:760px){.layout-top-grid{grid-template-columns:1fr}.rl-formations-grid,.joiner-ratio-grid{grid-template-columns:1fr 1fr}.rl-formation-card .f-ratio{font-size:15px}}
 
 
-/* V11.3.1 — clarity without changing the Team Layout format */
+/* V11.3.3 — clarity without changing the Team Layout format */
 .layout-sheet .hero-line img{width:26px;height:26px;border-radius:6px}
 .layout-sheet .hero-name,
 .layout-sheet .rl-formation-hero b{
@@ -523,34 +523,49 @@ function joinHeroQuality(accountId,hero){
 function formationHeroNames(f){
  return [f?.hero_infantry_id,f?.hero_lancer_id,f?.hero_marksman_id].map(id=>H(id)?.name).filter(Boolean)
 }
-function metaJoinerNames(mode,formation){
- const leaders=new Set(formationHeroNames(formation).map(x=>String(x).toLowerCase()));
+function metaJoinerProfile(mode,formation){
+ const leaders=formationHeroNames(formation).map(x=>String(x).toLowerCase()).sort();
  const candidates=(battleMetaRules||[]).filter(r=>r.mode===mode).map(r=>{
-   const rhs=(r.leader_heroes||[]).map(x=>String(x).toLowerCase());
-   const match=rhs.filter(x=>leaders.has(x)).length;
-   return {r,score:match*100+Number(r.confidence||0)*10}
+   const rhs=(r.leader_heroes||[]).map(x=>String(x).toLowerCase()).sort();
+   const match=rhs.filter(x=>leaders.includes(x)).length;
+   const exact=(leaders.length===3&&rhs.length===3&&leaders.every((x,i)=>x===rhs[i]))?1:0;
+   return {r,score:exact*10000+match*100+Number(r.confidence||0)*10}
  }).sort((a,b)=>b.score-a.score);
- const best=candidates[0]?.r;
- const names=[...(best?.joiner_primary||[])];
- for(const alt of (best?.joiner_alternatives||[])){if(Array.isArray(alt))names.push(...alt);else if(typeof alt==='string')names.push(alt)}
- return [...new Set(names.filter(Boolean))]
+ const best=candidates[0]?.r||null;
+ const primary=[...(best?.joiner_primary||[])].filter(Boolean); // preserve duplicates intentionally
+ const alternatives=[];
+ for(const alt of (best?.joiner_alternatives||[])){
+   if(Array.isArray(alt))alternatives.push(...alt.filter(Boolean));
+   else if(typeof alt==='string'&&alt)alternatives.push(alt);
+ }
+ return {rule:best,primary,alternatives}
 }
 function fallbackJoinerNames(mode){return mode==='attack'?['Jessie','Seo-yoon','Jasser','Hendrik','Norah','Patrick']:['Patrick','Sergey','Norah','Hendrik','Jessie','Jasser']}
+function strategicJoinOrder(mode,formation,index=0){
+ const profile=metaJoinerProfile(mode,formation);
+ const primary=profile.primary.length?profile.primary:fallbackJoinerNames(mode).slice(0,4);
+ // Top 4 consume the exact target slots. Joiners 5+ cycle the same target pool as resilient backups.
+ const slot=index<4?index:(index-4);
+ const target=primary[slot%primary.length];
+ const nextTargets=[];
+ for(let step=1;step<=primary.length;step++)nextTargets.push(primary[(slot+step)%primary.length]);
+ const ordered=[target,...nextTargets,...profile.alternatives,...fallbackJoinerNames(mode)];
+ // Keep the target duplicated in the strategy itself, but avoid duplicate names inside one player's fallback order.
+ return [...new Set(ordered.filter(Boolean))]
+}
 function rankedJoinHeroes(player,mode,formation,index=0){
- const names=[...metaJoinerNames(mode,formation),...fallbackJoinerNames(mode)];
- const dedup=[...new Set(names)];
+ const names=strategicJoinOrder(mode,formation,index);
  const scored=[];
- for(let pos=0;pos<dedup.length;pos++){
-   const hero=player?._test?namedVisibleHero(dedup[pos]):ownedNamedHero(player.id,dedup[pos]);
+ for(let pos=0;pos<names.length;pos++){
+   const hero=player?._test?namedVisibleHero(names[pos]):ownedNamedHero(player.id,names[pos]);
    if(!hero)continue;
-   const rotation=(index<4)?((pos-index+dedup.length)%dedup.length):pos;
-   const preference=1200-rotation*45;
+   const preference=2200-pos*130;
    const quality=player?._test?500:joinHeroQuality(player.id,hero);
-   scored.push({hero,score:preference+quality,pos})
+   scored.push({hero,score:preference+quality,pos,name:names[pos]})
  }
  if(!scored.length){
    const owned=player?._test?visibleHeroes():inventoryForAccount(player.id);
-   for(const hero of owned)scored.push({hero,score:(player?._test?300:joinHeroQuality(player.id,hero)),pos:999})
+   for(const hero of owned)scored.push({hero,score:(player?._test?300:joinHeroQuality(player.id,hero)),pos:999,name:hero.name})
  }
  return scored.sort((a,b)=>b.score-a.score)
 }
@@ -558,9 +573,10 @@ function joinHeroPair(player,mode,index,mainFormation=null,altFormation=null){
  const main=rankedJoinHeroes(player,mode,mainFormation,index),A=main[0]?.hero||null;
  if(altFormation){
    const alt=rankedJoinHeroes(player,mode,altFormation,index);
-   const B=alt[0]?.hero||A;
+   const B=alt.find(x=>!A||String(x.hero.id)!==String(A.id))?.hero||alt[0]?.hero||A;
    return [A,B]
  }
+ // B is an emergency strategic substitute: next useful buff family the player actually owns.
  const B=main.find(x=>!A||String(x.hero.id)!==String(A.id))?.hero||A;
  return [A,B]
 }
@@ -938,20 +954,11 @@ function renderLayout(){
  if(!alliances.length){h.innerHTML='<span class="muted">No alliances configured.</span>';return}
  h.innerHTML=`<div id="team-sheets" class="layout-sheets">${alliances.map(a=>{
    const tag=esc(a.alliance_tag||a.alliance_name||'Alliance');
-   return `<div class="layout-sheet-wrap"><div class="sheet-actions no-export"><button class="btn violet" type="button" data-download-alliance="${a.id}">Download ${tag}</button></div><div class="layout-sheet alliance-sheet" data-layout-alliance="${a.id}" data-layout-tag="${tag}"><div class="layout-main-head"><div class="layout-title-row">${a.emblem_url?`<img class="emblem" src="${esc(a.emblem_url)}" alt="">`:''}<div class="layout-title-copy"><div class="tiny muted">NEXA • BATTLE OPERATIONS • SVS</div><h2>${tag} • Team Layout</h2></div></div><div class="rl-formations-grid">${layoutRallyLeadFormationGroup(a,'attack')}${layoutRallyLeadFormationGroup(a,'defense')}</div></div>${layoutAlliance(a)}<div class="layout-footer-legend">Violet = PET ACTIVE • Neutral = Assigned without PETS</div></div></div>`
+   return `<div class="layout-sheet alliance-sheet" data-layout-alliance="${a.id}" data-layout-tag="${tag}"><div class="layout-main-head"><div class="layout-title-row">${a.emblem_url?`<img class="emblem" src="${esc(a.emblem_url)}" alt="">`:''}<div class="layout-title-copy"><div class="tiny muted">NEXA • BATTLE OPERATIONS • SVS</div><h2>${tag} • Team Layout</h2></div></div><div class="rl-formations-grid">${layoutRallyLeadFormationGroup(a,'attack')}${layoutRallyLeadFormationGroup(a,'defense')}</div></div>${layoutAlliance(a)}<div class="layout-footer-legend">Violet = PET ACTIVE • Neutral = Assigned without PETS</div></div>`
  }).join('')}</div>`;
- bindLayoutDownloads();
 }
 function layoutAlliance(a){
  return `<section style="margin-bottom:4px"><div class="note glow-violet">${esc(strategy.join_note||`Join First — First ${strategy.join_first_count} joiners enter with ${fmtSecs(strategy.join_first_seconds)} left on countdown. Other joiners join with ${fmtSecs(strategy.other_join_seconds)} left on countdown.`)}</div><div class="layout-teams">${Teams(a.id).map(layoutTeam).join('')}</div><div class="joiner-ratio-grid">${layoutJoinerRatioGroup(a,'attack')}${layoutJoinerRatioGroup(a,'defense')}</div></section>`
-}
-function bindLayoutDownloads(){
- $$('[data-download-alliance]','#layout-export').forEach(b=>b.onclick=async()=>{
-   const aid=b.dataset.downloadAlliance,node=$(`.alliance-sheet[data-layout-alliance="${aid}"]`,'#layout-export');
-   if(!node)return say('Alliance sheet not found.',true);
-   const tag=(node.dataset.layoutTag||'Alliance').replace(/[^a-z0-9_-]+/gi,'-');
-   await exportNodes([node],[`NEXA-SvS-${tag}-Team-Layout.png`]);
- })
 }
 function layoutTeam(t){const def=defenseOn(t);return `<article class="layout-team" style="--tc:${tc(t)}"><div class="layout-team-title">${esc(t.name)}</div><div class="layout-rally"><div class="mini">Rally Leader Schedule (UTC)</div>${layoutRallyCards(t.id)||'<span class="muted tiny">—</span>'}</div><div class="layout-headrow"><div>Player</div><div>Attack</div><div>Defense</div></div>${Joiners(t.id).map(j=>`<div class="layout-row ${j.join_first?'first':''}"><div class="pname"><b>${esc(j.player_name)}</b></div><div class="hero-stack">${heroLine('A',j.attack_a_hero_id)}${heroLine('B',j.attack_b_hero_id)}</div><div class="hero-stack">${def?heroLine('A',j.defense_a_hero_id)+heroLine('B',j.defense_b_hero_id):'<span class="muted">—</span>'}</div></div>`).join('')}</article>`}
 
@@ -1167,19 +1174,30 @@ async function publishLayout(){
  return v;
 }
 $('#publish-layout').onclick=async()=>{const v=await publishLayout();if(v)renderLayout()};
-function openAllianceExportPicker(){
- const sheets=$$('.alliance-sheet','#layout-export');if(!sheets.length)return say('Nothing to download yet.',true);
- if(sheets.length===1){
-   const tag=(sheets[0].dataset.layoutTag||'Alliance').replace(/[^a-z0-9_-]+/gi,'-');
-   return exportNodes([sheets[0]],[`NEXA-SvS-${tag}-Team-Layout.png`]);
- }
- const ov=document.createElement('div');ov.className='nexa-export-picker';
- ov.innerHTML=`<div class="nexa-export-picker-card"><h3>Save Alliance Layout</h3><div class="tiny muted" style="margin-bottom:10px">Save each alliance as its own image.</div><div class="nexa-export-picker-actions">${sheets.map((node,i)=>{const tag=node.dataset.layoutTag||`Alliance ${i+1}`;return `<button class="btn violet" type="button" data-save-alliance="${i}">Save ${esc(tag)}</button>`}).join('')}<button class="btn" type="button" data-close-export>Close</button></div></div>`;
- document.body.appendChild(ov);
- $$('[data-save-alliance]',ov).forEach(b=>b.onclick=async()=>{const i=Number(b.dataset.saveAlliance),node=sheets[i],tag=(node.dataset.layoutTag||`Alliance-${i+1}`).replace(/[^a-z0-9_-]+/gi,'-');await exportNodes([node],[`NEXA-SvS-${tag}-Team-Layout.png`])});
- $('[data-close-export]',ov).onclick=()=>ov.remove();
+function layoutSheets(){
+ const root=$('#layout-export');
+ return root?$$('.alliance-sheet',root):[];
 }
-$('#download-layout').onclick=openAllianceExportPicker;
+function openLayoutChoice(mode){
+ renderLayout();
+ const sheets=layoutSheets();
+ if(!sheets.length)return say('Open or generate a Strategy first.',true);
+ const title=mode==='preview'?'Preview Layout':'Download Layout';
+ const verb=mode==='preview'?'Preview':'Download';
+ const ov=document.createElement('div');ov.className='nexa-export-picker';
+ ov.innerHTML=`<div class="nexa-export-picker-card"><h3>${title}</h3><div class="tiny muted" style="margin-bottom:10px">Which alliance do you want to ${mode}?</div><div class="nexa-export-picker-actions"><button class="btn violet" type="button" data-layout-choice="all">${verb} All Alliances</button>${sheets.map((node,i)=>`<button class="btn violet" type="button" data-layout-choice="${i}">${verb} ${esc(node.dataset.layoutTag||`Alliance ${i+1}`)}</button>`).join('')}<button class="btn" type="button" data-layout-close>Close</button></div></div>`;
+ document.body.appendChild(ov);
+ $$('[data-layout-choice]',ov).forEach(b=>b.onclick=async()=>{
+   const choice=b.dataset.layoutChoice;
+   ov.remove();
+   const selected=choice==='all'?sheets:[sheets[Number(choice)]].filter(Boolean);
+   if(mode==='preview')return showLayoutPreview(selected);
+   const names=selected.map((node,i)=>`NEXA-SvS-${String(node.dataset.layoutTag||`Alliance-${i+1}`).replace(/[^a-z0-9_-]+/gi,'-')}-Team-Layout.png`);
+   await exportNodes(selected,names);
+ });
+ $('[data-layout-close]',ov).onclick=()=>ov.remove();
+}
+$('#download-layout').onclick=()=>openLayoutChoice('download');
 async function canvasBlob(node){
  if(!node)throw new Error('Nothing to export.');
  const stage=document.createElement('div');stage.className='nexa-export-stage';
@@ -1245,16 +1263,15 @@ $('#guide-close').onclick=()=>{$('#guide-overlay').style.display='none';$('#guid
 $('#guide-prev').onclick=()=>{if(guidePage>0){guidePage--;renderGuide()}}
 $('#guide-next').onclick=()=>{if(guidePage<4){guidePage++;renderGuide()}else $('#guide-close').click()}
 
-function openLayoutPreview(){
- renderLayout();
- const sheets=$$('.alliance-sheet','#layout-export');
- if(!sheets.length)return say('Open or generate a Strategy first.',true);
+function showLayoutPreview(sheets){
+ const selected=(sheets||[]).filter(Boolean);
+ if(!selected.length)return say('Nothing to preview yet.',true);
  const ov=$('#layout-preview-overlay'),stage=$('#layout-preview-stage');
  stage.innerHTML='';
  const stack=document.createElement('div');
  stack.className='layout-sheets';
  stack.style.width='1400px';
- for(const sheet of sheets){
+ for(const sheet of selected){
    const clone=sheet.cloneNode(true);
    clone.querySelectorAll('.no-export,[data-download-alliance]').forEach(x=>x.remove());
    stack.appendChild(clone);
@@ -1262,21 +1279,18 @@ function openLayoutPreview(){
  stage.appendChild(stack);
  ov.classList.add('open');
  ov.setAttribute('aria-hidden','false');
-
  const fit=()=>{
    stack.style.transform='none';
    stack.style.width='1400px';
    stack.style.transformOrigin='top left';
-   const naturalW=1400;
-   const naturalH=stack.scrollHeight||1;
-   const aw=Math.max(1,stage.clientWidth-8);
+   const naturalW=1400,naturalH=stack.scrollHeight||1,aw=Math.max(1,stage.clientWidth-8);
    const scale=Math.min(1,aw/naturalW);
    stack.style.transform=`scale(${scale})`;
    stage.style.height=`${Math.ceil(naturalH*scale)+8}px`;
  };
  requestAnimationFrame(()=>requestAnimationFrame(fit));
 }
-$('#preview-layout').onclick=openLayoutPreview;
+$('#preview-layout').onclick=()=>openLayoutChoice('preview');
 $('#close-layout-preview').onclick=()=>{$('#layout-preview-overlay').classList.remove('open');$('#layout-preview-overlay').setAttribute('aria-hidden','true');$('#layout-preview-stage').innerHTML=''}
 
 

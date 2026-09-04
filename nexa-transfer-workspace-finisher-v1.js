@@ -1,4 +1,4 @@
-// NEXA TRANSFER WORKSPACE FINISHER V2.4 — SMART HH:MM MANUAL TIME INPUT / SIMPLIFIED GROUP UI / STABILITY
+// NEXA TRANSFER WORKSPACE FINISHER V2.5 — COMPACT MANUAL TIME INPUT / CLEAN SAVED SCHEDULES / STABILITY
 (()=>{
 'use strict';
 
@@ -30,12 +30,11 @@ function injectStyles(){
  .nexa-group-meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:7px}.nexa-pill{display:inline-flex;padding:5px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.12);font-size:9px;font-weight:950}.nexa-pill.good{color:#8df2c3;border-color:rgba(103,227,172,.25)}.nexa-pill.warn{color:#ffe39a;border-color:rgba(255,213,109,.25)}
  .nexa-group-members{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.nexa-member{padding:13px;border-radius:18px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.035);min-width:0}.nexa-member.gold{border-color:rgba(255,213,109,.56);box-shadow:inset 3px 0 0 rgba(255,213,109,.86)}.nexa-member.blue{border-color:rgba(115,207,255,.52);box-shadow:inset 3px 0 0 rgba(115,207,255,.82)}
  .nexa-member-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}.nexa-member-actions select,.nexa-member-actions button{width:100%;min-height:38px;border-radius:11px;border:1px solid rgba(255,255,255,.12);background:#071022;color:#fff;padding:7px;font-size:10px;font-weight:850}.nexa-member-actions .wide{grid-column:1/-1}
- .nexa-copy-id{border:0;background:none;color:#8fefff;padding:0;font-size:10px;font-weight:900}.nexa-inline-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.nexa-manual-wrap{display:grid;grid-template-columns:1fr;gap:7px;align-items:stretch;width:100%}.nexa-manual-wrap button{justify-self:start;min-height:30px;border-radius:9px;border:1px solid rgba(89,228,255,.22);background:rgba(89,228,255,.06);color:#bff7ff;font-size:9px;font-weight:900;padding:5px 9px}.nexa-manual-time{width:100%;min-height:48px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#071022;color:#fff;padding:10px 12px;text-align:left;font-size:16px;font-weight:850;letter-spacing:.03em}
+ .nexa-copy-id{border:0;background:none;color:#8fefff;padding:0;font-size:10px;font-weight:900}.nexa-inline-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.nexa-manual-wrap{display:grid;grid-template-columns:1fr;gap:6px;align-items:stretch;width:100%}.nexa-manual-wrap button{justify-self:start;min-height:28px;border-radius:9px;border:1px solid rgba(89,228,255,.20);background:rgba(89,228,255,.05);color:#bff7ff;font-size:9px;font-weight:900;padding:4px 8px}.nexa-manual-time{width:100%;height:46px;min-height:46px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#071022;color:#fff;padding:9px 12px;text-align:left;font-size:14px;font-weight:800;letter-spacing:.02em}
  .nexa-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;padding:10px;border-radius:12px;background:#050b1b;border:1px solid rgba(89,228,255,.16);overflow-wrap:anywhere}.nexa-online-list{display:grid;gap:8px;margin-top:14px}.nexa-online-person{padding:11px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.035);display:flex;justify-content:space-between;gap:10px}
 
  .nexa-member-primary{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
  .nexa-member-sub{margin-top:6px;color:#91a0bd;font-size:10px;line-height:1.35}
- .nexa-manual-badge{display:inline-flex;align-items:center;padding:3px 6px;border-radius:999px;border:1px solid rgba(255,213,109,.26);color:#ffe39a;font-size:8px;font-weight:950;margin-left:5px;vertical-align:1px}
  .nexa-lock-note{margin-top:12px;padding:11px 12px;border-radius:14px;border:1px solid rgba(255,213,109,.24);background:rgba(255,213,109,.06);color:#ffe5a1;font-size:11px;line-height:1.45}
  .nexa-form-list{display:grid;gap:9px;margin-top:10px}.nexa-form-row{padding:12px;border-radius:15px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.035)}.nexa-form-main{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:9px;align-items:center}.nexa-form-main input{width:21px;height:21px}.nexa-form-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px;padding-left:37px}
  @media(max-width:620px){.nexa-group-members,.nexa-inline-grid{grid-template-columns:1fr}#workspaceRoot .heroGrid>div:first-child{padding-right:76px}.nexa-presence-pill{font-size:9px}}
@@ -167,7 +166,7 @@ function paintProfiles(){
    const p=profileRows.find(x=>String(x.alliance_id)===String(card.dataset.profile));if(!p)return;const s=scheduleOfRaw(p);
    const times=card.querySelector('.profileTimes');
    if(times){
-     const showTime=x=>`${esc(x)} UTC${isHalfHour(x)?'':' <span class="nexa-manual-badge">Manual</span>'}`;
+     const showTime=x=>`${esc(x)} UTC`;
      times.innerHTML=`<b>Bear:</b> ${s.bear.length?s.bear.map(showTime).join(' • '):'—'}<br><b>Foundry:</b> ${s.foundry.length?s.foundry.map(showTime).join(' • '):'—'}<br><b>Canyon:</b> ${s.canyon.length?s.canyon.map(showTime).join(' • '):'—'}`;
    }
    ['bear','foundry','canyon'].forEach(k=>{const controls=[...card.querySelectorAll(`[data-sched="${k}"]`)];controls.forEach((c,i)=>enhanceTimeControl(c,k,i,s[k]?.[i]||''))});

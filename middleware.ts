@@ -30,18 +30,18 @@ async function bypassOK(req: Request) {
 }
 async function maintenanceEnabled() {
   const service = ENV.SUPABASE_SERVICE_ROLE_KEY || '';
-  if (!service) return false; // fail-open so Owner is never locked out by missing env
+  if (!service) return false;
   try {
     const r = await fetch(`${SUPABASE_URL}/rest/v1/nexa_system_settings?key=eq.maintenance_mode&select=value&limit=1`, {
       headers:{ apikey:service, Authorization:`Bearer ${service}` },
       cache:'no-store'
     });
-    if(!r.ok) return false; // fail-open for safety
+    if(!r.ok) return false;
     const rows = await r.json();
     const value = rows?.[0]?.value;
     return value === true || value?.enabled === true;
   } catch {
-    return false; // fail-open: infrastructure failure must not trap Owner
+    return false;
   }
 }
 
@@ -49,11 +49,13 @@ export default async function middleware(request: Request) {
   const url = new URL(request.url);
   const path = url.pathname;
 
-  // Never block the recovery/auth/service routes required to regain control.
+  // Transfer Workspace is intentionally independent from NEXA Maintenance Mode.
+  // All transfer pages and transfer API routes stay available while the main NEXA app is offline.
   if (
     path === '/maintenance.html' ||
     path === '/owner-access.html' ||
-    path === '/transfer-workspace.html' ||
+    path.startsWith('/transfer-') ||
+    path.startsWith('/api/transfer-') ||
     path.startsWith('/owner-recovery-') ||
     path.startsWith('/api/nexa-owner-') ||
     path.startsWith('/api/nexa-system-settings') ||

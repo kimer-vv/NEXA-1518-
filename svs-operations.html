@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS STRATEGY V11.2.6 • Team Layout syncs latest Strategy Board -->
+<!-- NEXA SVS STRATEGY V11.3 • strategic PET distribution + joiner optimizer + per-alliance layout cards -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -51,6 +51,33 @@ input,select{width:100%;min-height:44px;background:#060b1c;color:#fff;border:1px
 .rarity-mythic,.rarity-gold,.rarity-legendary{color:#ffd260}.rarity-epic,.rarity-purple{color:#c78bff}.rarity-rare,.rarity-blue{color:#68c9ff}
 .pet-grid-wrap,.layout-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}.pet-grid{min-width:820px;width:100%;border-collapse:collapse}.pet-grid th,.pet-grid td{border:1px solid rgba(255,255,255,.09);padding:7px;font-size:11px;text-align:center}.pet-grid th{background:#0c1430}.pet-grid td:first-child{text-align:left;min-width:130px}.petactive{background:linear-gradient(145deg,rgba(111,66,201,.88),rgba(70,40,138,.82));font-weight:900}
 .layout-sheets{display:grid;gap:18px}.layout-sheet.alliance-sheet{margin-bottom:0}.layout-sheet .sheet-subtitle{font-size:11px;color:#96a3c4;font-weight:850;letter-spacing:.08em;text-transform:uppercase}
+
+.layout-top-grid{display:grid;grid-template-columns:minmax(280px,.72fr) minmax(0,1.28fr);gap:14px;align-items:start;margin-bottom:12px}
+.layout-alliance-identity{min-width:0}
+.rl-formations-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rl-formations-group{border-radius:16px;padding:10px;border:1px solid rgba(255,255,255,.12);background:rgba(5,10,24,.78)}
+.rl-formations-group.attack{border-color:rgba(255,92,92,.55);box-shadow:0 0 18px rgba(255,72,72,.10)}
+.rl-formations-group.defense{border-color:rgba(83,220,117,.55);box-shadow:0 0 18px rgba(60,200,90,.10)}
+.rl-formations-group h4{margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+.rl-formations-group.attack h4{color:#ff7c7c}.rl-formations-group.defense h4{color:#79e891}
+.rl-formation-list{display:grid;grid-template-columns:repeat(var(--count,1),minmax(0,1fr));gap:7px}
+.rl-formation-card{border:1px solid rgba(255,255,255,.11);border-radius:12px;padding:8px;min-width:0;background:rgba(255,255,255,.025)}
+.rl-formation-card .f-title{font-size:10px;font-weight:950;margin-bottom:4px}.rl-formation-card .f-ratio{font-size:18px;font-weight:950;line-height:1.05}
+.rl-formation-heroes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-top:7px}
+.rl-formation-hero{text-align:center;min-width:0}.rl-formation-hero img{width:34px;height:34px;border-radius:8px;object-fit:cover;border:1px solid rgba(255,255,255,.14)}
+.rl-formation-hero b{display:block;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.joiner-ratio-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.joiner-ratio-card{border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:10px;background:rgba(4,9,20,.82)}
+.joiner-ratio-card.attack{border-color:rgba(255,92,92,.48);box-shadow:0 0 16px rgba(255,72,72,.08)}
+.joiner-ratio-card.defense{border-color:rgba(83,220,117,.48);box-shadow:0 0 16px rgba(60,200,90,.08)}
+.joiner-ratio-card h4{margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+.joiner-ratio-card.attack h4{color:#ff7c7c}.joiner-ratio-card.defense h4{color:#79e891}
+.joiner-ratio-list{display:grid;grid-template-columns:repeat(var(--count,1),minmax(0,1fr));gap:8px}
+.joiner-ratio-item{border:1px solid rgba(255,255,255,.09);border-radius:10px;padding:8px;text-align:center}.joiner-ratio-item b{display:block;font-size:9px;margin-bottom:4px}.joiner-ratio-item strong{font-size:17px}
+.layout-footer-legend{margin-top:10px;text-align:center;color:#aeb7d1;font-size:10px}
+.nexa-export-picker{position:fixed;inset:0;z-index:2147483300;display:grid;place-items:center;background:rgba(0,0,0,.72);padding:16px}.nexa-export-picker-card{width:min(420px,96vw);border:1px solid rgba(72,221,255,.30);border-radius:20px;background:#071022;padding:14px}.nexa-export-picker-card h3{margin:0 0 10px}.nexa-export-picker-actions{display:grid;gap:8px}.nexa-export-picker-actions .btn{width:100%}
+@media(max-width:760px){.layout-top-grid{grid-template-columns:1fr}.rl-formations-grid,.joiner-ratio-grid{grid-template-columns:1fr 1fr}.rl-formation-card .f-ratio{font-size:15px}}
+
 .layout-sheet{width:1400px;min-width:1400px;padding:22px;border-radius:18px;border:1px solid rgba(155,120,255,.55);box-shadow:0 0 24px rgba(139,89,255,.13);background:radial-gradient(circle at 8% 0%,rgba(95,69,205,.16),transparent 25%),linear-gradient(145deg,#050916,#0a0e20)}
 .layout-head{display:flex;align-items:center;gap:9px}.layout-head .emblem{width:54px;height:54px}.layout-teams{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:10px}
 .layout-team{border:1px solid var(--tc);border-radius:13px;overflow:hidden;background:rgba(4,8,20,.84)}.layout-team-title{text-align:center;padding:9px;font-weight:950;box-shadow:inset 0 -3px 0 var(--tc)}
@@ -204,7 +231,7 @@ body.pet-preview-open{overflow:hidden!important}
 .team-form-head{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:10px}.team-form-head strong{font-size:10px}
 .team-form-heroes{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}.team-form-heroes span{display:flex;align-items:center;gap:4px;font-size:9px;font-weight:850}.team-form-heroes img{width:22px;height:22px;border-radius:6px;object-fit:cover}
 </style>
-<script src="nexa-battle-strategy-engine.js?v=1.2.1"></script>
+<script src="nexa-battle-strategy-engine.js?v=1.3"></script>
 <script src="nexa-svs-rules.js?v=1"></script>
 </head>
 <body>
@@ -447,7 +474,86 @@ function expertCapacityBonus(p){if(Number.isFinite(p?._expert_capacity_bonus))re
 function effectiveRallyCapacity(p,petActive=true){const base=Number(p.rally_capacity||0)||0,pct=capacityBuffPct(p),expert=expertCapacityBonus(p),pet=petActive?firstNumber(responseForAccount(p.id)?.custom_answers||{},['pet_rally_capacity_bonus','pet_capacity_bonus']):0;return Math.max(0,Math.round(base*(1+pct)+expert+pet))}
 function deploymentOf(p){const r=responseForAccount(p.id);return Number(r?.deployment_capacity||p.deployment_capacity||0)||0}
 function chooseOwnedFromNames(accountId,names){for(const n of names){const h=ownedNamedHero(accountId,n);if(h)return h}return inventoryForAccount(accountId).sort((a,b)=>(b.generation||0)-(a.generation||0))[0]||null}
-function joinHeroPair(player,mode,index,formationCount=1){const pool=mode==='attack'?['Jessie','Seo-yoon','Jasser','Hendrik','Norah','Patrick']:['Patrick','Sergey','Norah','Hendrik','Jessie','Jasser'];if(player?._test){const A=namedVisibleHero(pool[index%pool.length])||visibleHeroes()[0]||null,B=namedVisibleHero(pool[(index+1)%pool.length])||visibleHeroes()[1]||A;return[A,B]}const A=chooseOwnedFromNames(player.id,[pool[index%pool.length],...pool]);let B=chooseOwnedFromNames(player.id,[pool[(index+1)%pool.length],pool[(index+2)%pool.length],...pool.filter(x=>x!==A?.name)]);if(B&&A&&String(B.id)===String(A.id))B=null;return[A,B||A]}
+function inventoryRowForHero(accountId,heroId){return playerInventory.find(x=>String(x.player_account_id)===String(accountId)&&String(x.library_item_id)===String(heroId)&&x.owned)||null}
+function firstExpeditionSkillLevel(row){
+ const hs=row?.progress?.hero_skills;
+ if(Array.isArray(hs)){const n=Number(hs[0]);if(Number.isFinite(n))return n}
+ if(hs&&typeof hs==='object'){
+   for(const k of ['expedition_1','expedition1','first_expedition','skill_1','skill1','1']){
+     const n=Number(hs[k]);if(Number.isFinite(n))return n
+   }
+   for(const v of Object.values(hs)){const n=Number(v);if(Number.isFinite(n))return n}
+ }
+ return 0
+}
+function joinHeroQuality(accountId,hero){
+ if(!hero)return -1e9;
+ const row=inventoryRowForHero(accountId,hero.id),p=row?.progress||{};
+ const skill=firstExpeditionSkillLevel(row),stars=Number(p.stars||0)||0,step=Number(p.star_step||0)||0,widget=Number(p.widget_level||0)||0,level=Number(row?.current_level||0)||0;
+ return skill*1000+stars*80+step*12+widget*8+level*.05+(Number(hero.generation||0)*.02)
+}
+function formationHeroNames(f){
+ return [f?.hero_infantry_id,f?.hero_lancer_id,f?.hero_marksman_id].map(id=>H(id)?.name).filter(Boolean)
+}
+function metaJoinerNames(mode,formation){
+ const leaders=new Set(formationHeroNames(formation).map(x=>String(x).toLowerCase()));
+ const candidates=(battleMetaRules||[]).filter(r=>r.mode===mode).map(r=>{
+   const rhs=(r.leader_heroes||[]).map(x=>String(x).toLowerCase());
+   const match=rhs.filter(x=>leaders.has(x)).length;
+   return {r,score:match*100+Number(r.confidence||0)*10}
+ }).sort((a,b)=>b.score-a.score);
+ const best=candidates[0]?.r;
+ const names=[...(best?.joiner_primary||[])];
+ for(const alt of (best?.joiner_alternatives||[])){if(Array.isArray(alt))names.push(...alt);else if(typeof alt==='string')names.push(alt)}
+ return [...new Set(names.filter(Boolean))]
+}
+function fallbackJoinerNames(mode){return mode==='attack'?['Jessie','Seo-yoon','Jasser','Hendrik','Norah','Patrick']:['Patrick','Sergey','Norah','Hendrik','Jessie','Jasser']}
+function rankedJoinHeroes(player,mode,formation,index=0){
+ const names=[...metaJoinerNames(mode,formation),...fallbackJoinerNames(mode)];
+ const dedup=[...new Set(names)];
+ const scored=[];
+ for(let pos=0;pos<dedup.length;pos++){
+   const hero=player?._test?namedVisibleHero(dedup[pos]):ownedNamedHero(player.id,dedup[pos]);
+   if(!hero)continue;
+   const rotation=(index<4)?((pos-index+dedup.length)%dedup.length):pos;
+   const preference=1200-rotation*45;
+   const quality=player?._test?500:joinHeroQuality(player.id,hero);
+   scored.push({hero,score:preference+quality,pos})
+ }
+ if(!scored.length){
+   const owned=player?._test?visibleHeroes():inventoryForAccount(player.id);
+   for(const hero of owned)scored.push({hero,score:(player?._test?300:joinHeroQuality(player.id,hero)),pos:999})
+ }
+ return scored.sort((a,b)=>b.score-a.score)
+}
+function joinHeroPair(player,mode,index,mainFormation=null,altFormation=null){
+ const main=rankedJoinHeroes(player,mode,mainFormation,index),A=main[0]?.hero||null;
+ if(altFormation){
+   const alt=rankedJoinHeroes(player,mode,altFormation,index);
+   const B=alt[0]?.hero||A;
+   return [A,B]
+ }
+ const B=main.find(x=>!A||String(x.hero.id)!==String(A.id))?.hero||A;
+ return [A,B]
+}
+async function reoptimizeJoinersForCurrentFormations(){
+ const updates=[];
+ for(const t of teams){
+   const a=A(t.strategy_alliance_id);if(!a)continue;
+   const atkFs=formationsFor(a.id,'attack'),defFs=formationsFor(a.id,'defense');
+   const atkMain=atkFs[0]||null,atkAlt=atkFs[1]||null,defMain=defFs[0]||null,defAlt=defFs[1]||null;
+   const js=Joiners(t.id);
+   for(let i=0;i<js.length;i++){
+     const j=js[i],p=playerPool.find(x=>String(x.id)===String(j.player_account_id))||{id:j.player_account_id,in_game_name:j.player_name,_test:String(j.player_name||'').startsWith('Test ')};
+     const [aa,ab]=joinHeroPair(p,'attack',i,atkMain,atkAlt),[da,db]=joinHeroPair(p,'defense',i,defMain,defAlt);
+     updates.push({id:j.id,attack_a_hero_id:aa?.id||null,attack_b_hero_id:ab?.id||null,defense_a_hero_id:da?.id||null,defense_b_hero_id:db?.id||null})
+   }
+ }
+ for(const u of updates){
+   const {id,...patch}=u;const {error}=await sb.from('svs_strategy_joiners').update(patch).eq('id',id);if(error)throw error
+ }
+ return updates.length
+}
 function fillRallyToCapacity(lead,candidates,petActive=true){const cap=effectiveRallyCapacity(lead,petActive)||2200000,out=[];let used=0;for(const p of candidates){const dep=Math.max(1,deploymentOf(p)||250000);if(out.length&&used+dep>cap*1.04)continue;out.push(p);used+=dep;if(used>=cap*.94)break}return{joiners:out,used,capacity:cap,fill:cap?used/cap:0}}
 
 
@@ -774,19 +880,39 @@ function closePetPreview(){
 $('#preview-pets').onclick=openPetPreview;
 $('#close-pet-preview').onclick=closePetPreview;
 
+function formationHeroMini(id){
+ const h=H(id);if(!h)return '<div class="rl-formation-hero"><span class="muted">—</span></div>';
+ return `<div class="rl-formation-hero">${h.image_url?`<img src="${esc(h.image_url)}" alt="">`:''}<b class="${rarityClass(h)}">${esc(h.name)}</b></div>`
+}
+function layoutRallyLeadFormationGroup(a,type){
+ const fs=formationsFor(a.id,type),count=Math.max(1,Math.min(3,fs.length||1));
+ return `<div class="rl-formations-group ${type}"><h4>${type==='attack'?'⚔ Rally Lead Attack Formation':'🛡 Rally Lead Defense Formation'}</h4><div class="rl-formation-list" style="--count:${count}">${fs.length?fs.map(f=>`<div class="rl-formation-card"><div class="f-title">${esc(formationDisplayName(f))}</div><div class="f-ratio">${ratio(f.ratio,type==='attack'?[49,2,49]:[40,0,60])}</div><div class="rl-formation-heroes">${formationHeroMini(f.hero_infantry_id)}${formationHeroMini(f.hero_lancer_id)}${formationHeroMini(f.hero_marksman_id)}</div></div>`).join(''):'<div class="muted tiny">No formation configured.</div>'}</div></div>`
+}
+function layoutJoinerRatioGroup(a,type){
+ const fs=formationsFor(a.id,type),count=Math.max(1,Math.min(3,fs.length||1));
+ return `<div class="joiner-ratio-card ${type}"><h4>${type==='attack'?'⚔ Joiner Attack Formation Ratios':'🛡 Joiner Defense Formation Ratios'}</h4><div class="joiner-ratio-list" style="--count:${count}">${fs.length?fs.map(f=>`<div class="joiner-ratio-item"><b>${esc(formationDisplayName(f))}</b><strong>${ratio(f.ratio,type==='attack'?[49,2,49]:[40,0,60])}</strong></div>`).join(''):'<div class="muted tiny">—</div>'}</div></div>`
+}
+function layoutRallyCards(tid){
+ const list=Rally(tid).slice().sort((a,b)=>minutesOf(a.start_utc)-minutesOf(b.start_utc)),merged=[];
+ for(const x of list){
+   const last=merged[merged.length-1];
+   const same=last&&String(last.player_account_id||last.player_name)===String(x.player_account_id||x.player_name)&&last.end_utc===x.start_utc&&!!last.pets_active===!!x.pets_active;
+   if(same)last.end_utc=x.end_utc;else merged.push({...x})
+ }
+ return merged.map(x=>`<div class="rally ${x.pets_active?'pet':''}"><div><b>${esc(x.player_name)}</b><div class="tiny">${esc(x.start_utc)}–${esc(x.end_utc)}</div></div><div>${x.pets_active?'🐾':''}</div></div>`).join('')
+}
 function renderLayout(){
  const h=$('#layout-export');if(!strategy){h.innerHTML='<span class="muted">Open a strategy first.</span>';return}
  if(!alliances.length){h.innerHTML='<span class="muted">No alliances configured.</span>';return}
  h.innerHTML=`<div id="team-sheets" class="layout-sheets">${alliances.map(a=>{
    const tag=esc(a.alliance_tag||a.alliance_name||'Alliance');
-   return `<div class="layout-sheet alliance-sheet" data-layout-alliance="${a.id}" data-layout-tag="${tag}"><div class="tiny muted">NEXA • BATTLE OPERATIONS • SVS</div><h2 style="font-size:30px;margin:4px 0 2px">${tag} • Team Layout</h2><div class="sheet-subtitle">One alliance per sheet</div>${layoutAlliance(a)}<div class="tiny muted">🐾 PET ACTIVE • Times shaded in violet have pets active.</div></div>`
+   return `<div class="layout-sheet alliance-sheet" data-layout-alliance="${a.id}" data-layout-tag="${tag}"><div class="tiny muted">NEXA • BATTLE OPERATIONS • SVS</div><h2 style="font-size:30px;margin:4px 0 10px">${tag} • Team Layout</h2>${layoutAlliance(a)}<div class="layout-footer-legend">Violet = PET ACTIVE • Neutral = Assigned without PETS</div></div>`
  }).join('')}</div>`
 }
-function layoutFormationColumn(a,type){
- const fs=formationsFor(a.id,type);return `<div class="formation-column"><div class="formation-column-head"><h4>${type==='attack'?'⚔ Attack Formations':'🛡 Defense Formations'}</h4></div>${fs.map(formationCard).join('')||'<div class="muted tiny">—</div>'}</div>`
+function layoutAlliance(a){
+ return `<section style="margin-bottom:4px"><div class="layout-top-grid"><div class="layout-alliance-identity"><div class="layout-head">${a.emblem_url?`<img class="emblem" src="${esc(a.emblem_url)}" alt="">`:''}<div><h2 style="margin:0">${esc(a.alliance_tag)}${a.alliance_name?` • ${esc(a.alliance_name)}`:''}</h2><div class="ratios"><span class="ratio attack">⚔ Attack ${ratio(a.attack_ratio,[49,2,49])}</span>${a.defense_enabled?`<span class="ratio defense">🛡 Defense ${ratio(a.defense_ratio,[40,0,60])}</span>`:''}</div></div></div></div><div class="rl-formations-grid">${layoutRallyLeadFormationGroup(a,'attack')}${layoutRallyLeadFormationGroup(a,'defense')}</div></div><div class="note glow-violet">${esc(strategy.join_note||`Join First — First ${strategy.join_first_count} joiners enter with ${fmtSecs(strategy.join_first_seconds)} left on countdown. Other joiners join with ${fmtSecs(strategy.other_join_seconds)} left on countdown.`)}</div><div class="layout-teams">${Teams(a.id).map(layoutTeam).join('')}</div><div class="joiner-ratio-grid">${layoutJoinerRatioGroup(a,'attack')}${layoutJoinerRatioGroup(a,'defense')}</div></section>`
 }
-function layoutAlliance(a){return `<section style="margin-bottom:18px"><div class="layout-head">${a.emblem_url?`<img class="emblem" src="${esc(a.emblem_url)}" alt="">`:''}<div><h2 style="margin:0">${esc(a.alliance_tag)}${a.alliance_name?` • ${esc(a.alliance_name)}`:''}</h2><div class="ratios"><span class="ratio attack">⚔ Attack ${ratio(a.attack_ratio,[49,2,49])}</span>${a.defense_enabled?`<span class="ratio defense">🛡 Defense ${ratio(a.defense_ratio,[40,0,60])}</span>`:''}</div></div></div><div class="note glow-violet">${esc(strategy.join_note||`Join First — First ${strategy.join_first_count} joiners enter with ${fmtSecs(strategy.join_first_seconds)} left on countdown. Other joiners join with ${fmtSecs(strategy.other_join_seconds)} left on countdown.`)}</div><div class="layout-teams">${Teams(a.id).map(layoutTeam).join('')}</div><div class="formations-board">${layoutFormationColumn(a,'attack')}${layoutFormationColumn(a,'defense')}</div></section>`}
-function layoutTeam(t){const def=defenseOn(t);return `<article class="layout-team" style="--tc:${tc(t)}"><div class="layout-team-title">${esc(t.name)}</div><div class="layout-rally"><div class="mini">Rally Leader Schedule (UTC)</div>${Rally(t.id).map(x=>`<div class="rally ${x.pets_active?'pet':''}"><div><b>${esc(x.player_name)}</b><div class="tiny">${esc(x.start_utc)}–${esc(x.end_utc)}</div></div><div>${x.pets_active?'🐾':''}</div></div>`).join('')||'<span class="muted tiny">—</span>'}</div><div class="layout-headrow"><div>Player</div><div>Attack</div><div>Defense</div></div>${Joiners(t.id).map(j=>`<div class="layout-row ${j.join_first?'first':''}"><div class="pname"><b>${esc(j.player_name)}</b></div><div class="hero-stack">${heroLine('A',j.attack_a_hero_id)}${heroLine('B',j.attack_b_hero_id)}</div><div class="hero-stack">${def?heroLine('A',j.defense_a_hero_id)+heroLine('B',j.defense_b_hero_id):'<span class="muted">—</span>'}</div></div>`).join('')}</article>`}
+function layoutTeam(t){const def=defenseOn(t);return `<article class="layout-team" style="--tc:${tc(t)}"><div class="layout-team-title">${esc(t.name)}</div><div class="layout-rally"><div class="mini">Rally Leader Schedule (UTC)</div>${layoutRallyCards(t.id)||'<span class="muted tiny">—</span>'}</div><div class="layout-headrow"><div>Player</div><div>Attack</div><div>Defense</div></div>${Joiners(t.id).map(j=>`<div class="layout-row ${j.join_first?'first':''}"><div class="pname"><b>${esc(j.player_name)}</b></div><div class="hero-stack">${heroLine('A',j.attack_a_hero_id)}${heroLine('B',j.attack_b_hero_id)}</div><div class="hero-stack">${def?heroLine('A',j.defense_a_hero_id)+heroLine('B',j.defense_b_hero_id):'<span class="muted">—</span>'}</div></div>`).join('')}</article>`}
 
 function renderRecommendations(items,title='NEXA Strategy Analysis'){
  const box=$('#strategy-analysis-bottom');if(!box)return;
@@ -871,13 +997,16 @@ async function runAssist(){
  for(let pass=0;pass<Math.max(...teamCounts);pass++)for(let ai=0;ai<activeCount;ai++){const team=teamRowsByAlliance[ai]?.[pass];if(team&&leadIdx<rlPool.length)leadAssignments.push({ai,team,lead:rlPool[leadIdx++]})}
  const activeLeadKeys=new Set(leadAssignments.map(x=>String(x.lead.id||x.lead.in_game_name))),depthRL=rlPool.filter(x=>!activeLeadKeys.has(String(x.id||x.in_game_name)));
  const availableJoiners=[...joinPool,...depthRL.map(x=>({...x,_asJoiner:true,deployment_capacity:x.deployment_capacity||280000}))].sort((a,b)=>(b._strength||0)-(a._strength||0)),unused=[...availableJoiners],teamJoiners=new Map();
+ const atkRec=rallyFormationRecommendation('attack'),defRec=rallyFormationRecommendation('defense');
+ const atkVirtual={formation_type:'attack',hero_infantry_id:atkRec.infantry?.id||null,hero_lancer_id:atkRec.lancer?.id||null,hero_marksman_id:atkRec.marksman?.id||null,ratio:atkRec.ratio};
+ const defVirtual={formation_type:'defense',hero_infantry_id:defRec.infantry?.id||null,hero_lancer_id:defRec.lancer?.id||null,hero_marksman_id:defRec.marksman?.id||null,ratio:defRec.ratio};
  for(const a of leadAssignments){const fill=fillRallyToCapacity(a.lead,unused,true),picked=fill.joiners;teamJoiners.set(a.team.id,{...fill,lead:a.lead});for(const p of picked){const ix=unused.indexOf(p);if(ix>=0)unused.splice(ix,1)}}
- for(const a of leadAssignments){const pack=teamJoiners.get(a.team.id),bucket=pack?.joiners||[];for(let j=0;j<bucket.length;j++){const x=bucket[j],[aa,ab]=joinHeroPair(x,'attack',j,1),[da,db]=joinHeroPair(x,'defense',j,1);await sb.from('svs_strategy_joiners').insert({team_id:a.team.id,player_account_id:x.id||null,player_name:x.in_game_name,sort_order:j,join_first:j<4,attack_a_hero_id:aa?.id||null,attack_b_hero_id:ab?.id||null,defense_a_hero_id:da?.id||null,defense_b_hero_id:db?.id||null})}}
+ for(const a of leadAssignments){const pack=teamJoiners.get(a.team.id),bucket=pack?.joiners||[];for(let j=0;j<bucket.length;j++){const x=bucket[j],[aa,ab]=joinHeroPair(x,'attack',j,atkVirtual,null),[da,db]=joinHeroPair(x,'defense',j,defVirtual,null);await sb.from('svs_strategy_joiners').insert({team_id:a.team.id,player_account_id:x.id||null,player_name:x.in_game_name,sort_order:j,join_first:j<4,attack_a_hero_id:aa?.id||null,attack_b_hero_id:ab?.id||null,defense_a_hero_id:da?.id||null,defense_b_hero_id:db?.id||null})}}
  // Shared NEXA battle scheduler: uses only as many RLs as the strategy actually needs.
  const plan=window.NexaBattleStrategyEngine
    ? window.NexaBattleStrategyEngine.planSchedule({
        rallyLeads:rlPool,teamCounts:teamRowsByAlliance.map(x=>x.length),primaryIndex:0,
-       startHour:12,endHour:17,team1PetRequired:true,team2PetPreferred:true
+       startHour:12,endHour:17,primaryTeam1PetRequired:true
      })
    : null;
  const scheduleAssignments=plan?.assignments||[],floatingRL=plan?.floating||[],activeRL=plan?.active||rlPool;
@@ -904,17 +1033,17 @@ async function runAssist(){
    if(ins.error)return say(ins.error.message,true);
  }
  // Automatic Rally Lead hero + troop formations. Save failures are surfaced.
- const atk=rallyFormationRecommendation('attack'),def=rallyFormationRecommendation('defense'),formationErrors=[];
+ const atk=atkRec,def=defRec,formationErrors=[];
  for(let ai=0;ai<saRows.length;ai++){const {error}=await sb.from('svs_rally_formations').insert([{strategy_alliance_id:saRows[ai].id,formation_type:'attack',name:'Main Attack',ratio:atk.ratio,hero_infantry_id:atk.infantry?.id||null,hero_lancer_id:atk.lancer?.id||null,hero_marksman_id:atk.marksman?.id||null,is_recommended:true,sort_order:0},{strategy_alliance_id:saRows[ai].id,formation_type:'defense',name:'Main Defense',ratio:def.ratio,hero_infantry_id:def.infantry?.id||null,hero_lancer_id:def.lancer?.id||null,hero_marksman_id:def.marksman?.id||null,is_recommended:true,sort_order:0}]);if(error)formationErrors.push(`${saRows[ai].alliance_tag}: ${error.message}`)}
  await openStrategy(strategy.id);
  const structure=saRows.map((a,i)=>`${a.alliance_tag}: ${teamCounts[i]} Team${teamCounts[i]===1?'':'s'}`).join(' • '),fills=leadAssignments.map(a=>teamJoiners.get(a.team.id)?.fill||0),avgFill=fills.length?Math.round(fills.reduce((s,n)=>s+n,0)/fills.length*100):0;
  renderRecommendations([
    `<b>Structure:</b> ${saRows.map((a,i)=>`${a.alliance_tag}: ${teamRowsByAlliance[i]?.length||0} Team${(teamRowsByAlliance[i]?.length||0)===1?'':'s'}`).join(' • ')}.`,
-   `<b>Coverage:</b> ${plan?.coverage?.every(x=>x.complete)?'all generated Teams are covered 12:00–17:00. Team 1 is the PET anchor; NEXA staggers top Rally Leads across opening, mid and closing blocks instead of spending every strong PET early.':'NEXA detected a coverage limitation; review the schedule before publishing.'}`,
+   `<b>Coverage:</b> ${plan?.coverage?.every(x=>x.complete)?'all generated Teams are covered 12:00–17:00. Castle/Garrison T1 keeps continuous PET coverage; other T1/T2/T3 PET windows are distributed dynamically by strength, phase and coverage need.':'NEXA detected a coverage limitation; review the schedule before publishing.'}`,
    `<b>Rally Leads:</b> ${rlPool.length} available • ${activeRL.length} used • ${floatingRL.length} floating/reserve${floatingRL.length?' (protected from forced PET use)':''}.`,
-   `<b>Extra PETS:</b> ${plan?.coverage?.some(x=>x.team2PetEnabled)?'used selectively where roster depth still leaves a reserve.':'held back; Team 1 remains the PET priority and reserves are protected.'}`,
+   `<b>PET Distribution:</b> secondary PETS are balanced across T1/T2/T3 instead of locking every extra PET to Team 2. Opening and closing favor quality; middle battle can carry more total strong PETS when the roster supports it.}`,
    `<b>Capacity:</b> active Teams are limited by Rally Capacity + Joiner Deployment Capacity. Extra rally-capable players may remain floating or be used as Joiners.`,
-   `<b>Join First:</b> A = Primary hero. B = Formation B hero when a second formation exists; otherwise B = owned backup/interchangeable hero.`
+   `<b>Join First:</b> optimized after Rally Lead formations. A follows Main formation; B follows Alt formation when present, otherwise B is the best owned backup/interchangeable hero from the same optimized pool.`
  ]);
  say(formationErrors.length?'Strategy generated, but formation save needs attention.':'NEXA strategy generated.');
 }
@@ -955,6 +1084,7 @@ async function publishLayout(){
  // Re-read the whole strategy graph first so Layout can never publish stale in-memory rows.
  await openStrategy(sid);
  if(!strategy||String(strategy.id)!==String(sid))return say('Could not reload the current strategy.',true);
+ try{await reoptimizeJoinersForCurrentFormations();await openStrategy(sid)}catch(e){return say(e?.message||'Join First optimization failed.',true)}
 
  const snap={
    strategy,
@@ -986,15 +1116,19 @@ async function publishLayout(){
  return v;
 }
 $('#publish-layout').onclick=async()=>{const v=await publishLayout();if(v)renderLayout()};
-$('#download-layout').onclick=()=>{
- const sheets=$$('.alliance-sheet','#layout-export');
- if(!sheets.length)return say('Nothing to download yet.',true);
- const names=sheets.map((node,i)=>{
-   const tag=(node.dataset.layoutTag||`Alliance-${i+1}`).replace(/[^a-z0-9_-]+/gi,'-');
-   return `NEXA-SvS-${tag}-Team-Layout.png`;
- });
- exportNodes(sheets,names);
-};
+function openAllianceExportPicker(){
+ const sheets=$$('.alliance-sheet','#layout-export');if(!sheets.length)return say('Nothing to download yet.',true);
+ if(sheets.length===1){
+   const tag=(sheets[0].dataset.layoutTag||'Alliance').replace(/[^a-z0-9_-]+/gi,'-');
+   return exportNodes([sheets[0]],[`NEXA-SvS-${tag}-Team-Layout.png`]);
+ }
+ const ov=document.createElement('div');ov.className='nexa-export-picker';
+ ov.innerHTML=`<div class="nexa-export-picker-card"><h3>Save Alliance Layout</h3><div class="tiny muted" style="margin-bottom:10px">Save each alliance as its own image.</div><div class="nexa-export-picker-actions">${sheets.map((node,i)=>{const tag=node.dataset.layoutTag||`Alliance ${i+1}`;return `<button class="btn violet" type="button" data-save-alliance="${i}">Save ${esc(tag)}</button>`}).join('')}<button class="btn" type="button" data-close-export>Close</button></div></div>`;
+ document.body.appendChild(ov);
+ $$('[data-save-alliance]',ov).forEach(b=>b.onclick=async()=>{const i=Number(b.dataset.saveAlliance),node=sheets[i],tag=(node.dataset.layoutTag||`Alliance-${i+1}`).replace(/[^a-z0-9_-]+/gi,'-');await exportNodes([node],[`NEXA-SvS-${tag}-Team-Layout.png`])});
+ $('[data-close-export]',ov).onclick=()=>ov.remove();
+}
+$('#download-layout').onclick=openAllianceExportPicker;
 async function canvasBlob(node){
  if(!node)throw new Error('Nothing to export.');
  const stage=document.createElement('div');stage.className='nexa-export-stage';

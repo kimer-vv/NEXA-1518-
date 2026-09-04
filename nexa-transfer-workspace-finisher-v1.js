@@ -1,4 +1,4 @@
-// NEXA TRANSFER WORKSPACE FINISHER V2.3 — CLEAN MANUAL TIME INPUT / SIMPLIFIED GROUP UI / STABILITY
+// NEXA TRANSFER WORKSPACE FINISHER V2.4 — SMART HH:MM MANUAL TIME INPUT / SIMPLIFIED GROUP UI / STABILITY
 (()=>{
 'use strict';
 
@@ -173,6 +173,23 @@ function paintProfiles(){
    ['bear','foundry','canyon'].forEach(k=>{const controls=[...card.querySelectorAll(`[data-sched="${k}"]`)];controls.forEach((c,i)=>enhanceTimeControl(c,k,i,s[k]?.[i]||''))});
  });
 }
+
+function formatManualTimeValue(raw){
+ const digits=String(raw||'').replace(/\D/g,'').slice(0,4);
+ if(digits.length<=2)return digits;
+ return digits.slice(0,2)+':'+digits.slice(2);
+}
+function bindManualTimeInput(input){
+ input.addEventListener('input',()=>{
+   const before=input.value;
+   const formatted=formatManualTimeValue(before);
+   if(input.value!==formatted)input.value=formatted;
+ });
+ input.addEventListener('blur',()=>{
+   const d=String(input.value||'').replace(/\D/g,'');
+   if(d.length===3)input.value=d.slice(0,2)+':0'+d.slice(2);
+ });
+}
 function enhanceTimeControl(c,key,index,actual){
  if(c.dataset.nexaManualReady==='1')return;
  if(c.tagName==='SELECT'){
@@ -192,7 +209,7 @@ function enhanceTimeControl(c,key,index,actual){
 }
 function replaceWithManual(select,key,index,value){
  const wrap=document.createElement('div');wrap.className='nexa-manual-wrap';wrap.dataset.manualSlot=`${key}-${index}`;
- const input=document.createElement('input');input.type='text';input.className='nexa-manual-time';input.dataset.sched=key;input.dataset.nexaManualReady='1';input.value=value;input.placeholder='00:00';input.inputMode='numeric';input.autocomplete='off';
+ const input=document.createElement('input');input.type='text';input.className='nexa-manual-time';input.dataset.sched=key;input.dataset.nexaManualReady='1';input.value=value;input.placeholder='00:00';input.inputMode='numeric';input.autocomplete='off';bindManualTimeInput(input);
  const back=document.createElement('button');back.type='button';back.textContent='Use dropdown';back.onclick=()=>{const sel=document.createElement('select');sel.className='time24';sel.dataset.sched=key;sel.innerHTML=`<option value="">—</option><option value="__manual__">Set Manually</option>`+Array.from({length:48},(_,i)=>{const t=`${String(Math.floor(i/2)).padStart(2,'0')}:${i%2?'30':'00'}`;return`<option value="${t}">${t}</option>`}).join('');wrap.replaceWith(sel);enhanceTimeControl(sel,key,index,'')};
  wrap.append(input,back);select.replaceWith(wrap);
 }

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS STRATEGY V11.2.3 • restored strategy logic + iOS export + separate alliance sheets -->
+<!-- NEXA SVS STRATEGY V11.2.4 • export matches preview + full-width PET capture -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -180,6 +180,7 @@ body.pet-preview-open{overflow:hidden!important}
 .pet-grid td.rl-neutral{background:rgba(255,255,255,.025)}.pet-grid td.petactive{background:linear-gradient(145deg,rgba(111,66,201,.88),rgba(70,40,138,.82));font-weight:900;box-shadow:inset 0 0 0 1px rgba(196,154,255,.16)}
 .note-editor{display:grid;gap:8px;margin-top:10px}.note-editor textarea{width:100%;min-height:84px;resize:vertical;background:#060b1c;color:#fff;border:1px solid rgba(122,142,203,.26);border-radius:12px;padding:10px;font:inherit}
 .layout-preview-overlay{position:fixed;inset:0;z-index:2147483200;display:none;place-items:center;padding:14px;background:rgba(0,0,0,.76)}.layout-preview-overlay.open{display:grid}.layout-preview-card{width:min(980px,97vw);max-height:88dvh;display:flex;flex-direction:column;border:1px solid rgba(72,221,255,.28);border-radius:20px;background:#050916;padding:10px}.layout-preview-toolbar{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}.layout-preview-stage{overflow:auto;-webkit-overflow-scrolling:touch;border-radius:14px}.layout-preview-stage .layout-sheet{transform-origin:top left;margin:0!important}#team-sheet [data-delete-formation],.layout-preview-stage [data-delete-formation]{display:none!important}.orientation-tip{font-size:10px;color:#aeb7d1;margin:0 0 7px}.glow-violet{border-color:rgba(166,119,255,.66)!important;box-shadow:0 0 16px rgba(144,92,255,.18),inset 0 0 10px rgba(144,92,255,.05)}
+.nexa-export-stage{position:fixed!important;left:-20000px!important;top:0!important;z-index:-1!important;overflow:visible!important;background:#050916!important;padding:0!important}.nexa-export-stage .layout-sheet{transform:none!important;margin:0!important}.nexa-export-stage .pet-grid-wrap{overflow:visible!important;width:max-content!important;max-width:none!important}.nexa-export-stage .pet-grid{width:max-content!important;min-width:0!important}.nexa-export-stage .pet-grid th,.nexa-export-stage .pet-grid td{white-space:nowrap!important}.nexa-export-stage .layout-sheet.pet-export-sheet{width:max-content!important;min-width:0!important;max-width:none!important}.nexa-export-stage .layout-sheet.alliance-sheet{width:1400px!important;min-width:1400px!important;max-width:none!important}
 @media(max-width:620px){.formations-board{grid-template-columns:1fr 1fr;gap:7px}.formations-wrap{padding:8px}.formation-card{padding:8px}.formation-heroes{gap:3px}.formation-hero img{width:28px;height:28px}.formation-column-head{align-items:center}.formation-column-head .btn{width:auto;padding:5px 7px}.layout-preview-card{width:97vw}}
 
 
@@ -957,8 +958,32 @@ $('#download-layout').onclick=()=>{
  exportNodes(sheets,names);
 };
 async function canvasBlob(node){
- const c=await html2canvas(node,{backgroundColor:'#050916',scale:2,useCORS:true,logging:false});
- return await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error('Could not create image.')),'image/png'));
+ if(!node)throw new Error('Nothing to export.');
+ const stage=document.createElement('div');stage.className='nexa-export-stage';
+ const clone=node.cloneNode(true);
+ // PET preview is intentionally responsive on-screen. For export, expand the exact same sheet
+ // so html2canvas captures every time column instead of only the iPhone viewport.
+ if(clone.id==='pet-sheet'){
+   clone.classList.add('pet-export-sheet');
+   const wrap=clone.querySelector('.pet-grid-wrap'),table=clone.querySelector('.pet-grid');
+   if(wrap)wrap.style.overflow='visible';
+   if(table){
+     table.style.width='max-content';table.style.minWidth='0';
+     const approx=Math.max(980,(node.querySelector('.pet-grid')?.scrollWidth||0)+70);
+     clone.style.width=`${approx}px`;clone.style.minWidth=`${approx}px`;
+   }
+ }
+ stage.appendChild(clone);document.body.appendChild(stage);
+ try{
+   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+   const w=Math.ceil(Math.max(clone.scrollWidth,clone.getBoundingClientRect().width));
+   const h=Math.ceil(Math.max(clone.scrollHeight,clone.getBoundingClientRect().height));
+   const c=await html2canvas(clone,{
+     backgroundColor:'#050916',scale:2,useCORS:true,logging:false,
+     width:w,height:h,windowWidth:w,windowHeight:h,scrollX:0,scrollY:0
+   });
+   return await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error('Could not create image.')),'image/png'));
+ }finally{stage.remove()}
 }
 async function exportNodes(nodes,names){
  const valid=(nodes||[]).filter(Boolean);if(!valid.length)return say('Nothing to download yet.',true);

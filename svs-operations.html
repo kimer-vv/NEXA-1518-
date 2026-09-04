@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS STRATEGY V11.2.5 • clean Pet Schedule + fixed separate Team Layout preview -->
+<!-- NEXA SVS STRATEGY V11.2.6 • Team Layout syncs latest Strategy Board -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -560,7 +560,7 @@ function renderStrategy(){
  host.innerHTML=`<div class="card"><div class="section-head"><div><h3>${esc(strategy.name)}</h3><div class="tiny muted">${esc(strategy.build_flow.replaceAll('_',' '))} • ${esc(strategy.status)}</div></div><div class="row"><button id="add-alliance" class="btn violet">+ Alliance</button><button id="send-layout" class="btn">Send to Team Layout</button></div></div>
  <div class="note glow-violet"><b>Join First Preset</b><div style="margin-top:4px">${esc(strategy.join_note||`Join First — First ${strategy.join_first_count} joiners enter with ${fmtSecs(strategy.join_first_seconds)} left on countdown. Other joiners join with ${fmtSecs(strategy.other_join_seconds)} left on countdown.`)}</div><div class="note-editor"><textarea id="join-note-edit">${esc(strategy.join_note||`Join First — First ${strategy.join_first_count} joiners enter with ${fmtSecs(strategy.join_first_seconds)} left on countdown. Other joiners join with ${fmtSecs(strategy.other_join_seconds)} left on countdown.`)}</textarea><button id="save-join-note" class="btn" type="button">Save Note</button></div></div>
  <div>${alliances.map(renderAlliance).join('')||'<div class="muted">Add the participating alliances to begin.</div>'}</div></div>`;
- $('#add-alliance').onclick=addAlliance;$('#send-layout').onclick=async()=>{await publishLayout();showTab('layout')};
+ $('#add-alliance').onclick=addAlliance;$('#send-layout').onclick=async()=>{const v=await publishLayout();if(!v)return;renderLayout();showTab('layout')};
  $('#save-join-note').onclick=async()=>{const v=$('#join-note-edit').value.trim();const {error}=await sb.from('svs_strategies').update({join_note:v||null}).eq('id',strategy.id);if(error)return say(error.message,true);await openStrategy(strategy.id);say('Join First note saved.')};
  bindStrategy();
 }
@@ -947,8 +947,45 @@ function manualReviewItems(){
 $('#manual-done').onclick=()=>{const items=manualReviewItems();renderRecommendations(items,'NEXA Manual Review');const warn=items.some(x=>x.includes('review-warn'));if(confirm(warn?'NEXA found suggestions or conflicts. Proceed to Team Layout anyway?':'The team seems well-formed. Proceed to Team Layout?'))showTab('layout')};
 
 
-async function publishLayout(){if(!strategy)return say('Open a strategy first.',true);const snap={strategy,alliances,teams,rally_slots:rally,joiners,generated_at:new Date().toISOString()};const r=await sb.from('svs_team_layout_versions').select('version').eq('strategy_id',strategy.id).order('version',{ascending:false}).limit(1);const v=(r.data?.[0]?.version||0)+1;const ins=await sb.from('svs_team_layout_versions').insert({strategy_id:strategy.id,version:v,snapshot:snap});if(ins.error)return say(ins.error.message,true);await sb.from('svs_strategies').update({status:'published'}).eq('id',strategy.id);say(`Team Layout published • Version ${v}`);await openStrategy(strategy.id)}
-$('#publish-layout').onclick=publishLayout;
+async function publishLayout(){
+ if(!strategy)return say('Open a strategy first.',true);
+ const sid=strategy.id;
+ say('Syncing latest Strategy Board…');
+
+ // Re-read the whole strategy graph first so Layout can never publish stale in-memory rows.
+ await openStrategy(sid);
+ if(!strategy||String(strategy.id)!==String(sid))return say('Could not reload the current strategy.',true);
+
+ const snap={
+   strategy,
+   alliances,
+   teams,
+   rally_slots:rally,
+   joiners,
+   formations,
+   pet_rows:petRows,
+   pet_assignments:petAssignments,
+   generated_at:new Date().toISOString()
+ };
+
+ const r=await sb.from('svs_team_layout_versions')
+   .select('version').eq('strategy_id',sid)
+   .order('version',{ascending:false}).limit(1);
+ if(r.error)return say(r.error.message,true);
+
+ const v=(r.data?.[0]?.version||0)+1;
+ const ins=await sb.from('svs_team_layout_versions')
+   .insert({strategy_id:sid,version:v,snapshot:snap});
+ if(ins.error)return say(ins.error.message,true);
+
+ const up=await sb.from('svs_strategies').update({status:'published'}).eq('id',sid);
+ if(up.error)return say(up.error.message,true);
+
+ renderLayout();
+ say(`Team Layout synced • Version ${v}`);
+ return v;
+}
+$('#publish-layout').onclick=async()=>{const v=await publishLayout();if(v)renderLayout()};
 $('#download-layout').onclick=()=>{
  const sheets=$$('.alliance-sheet','#layout-export');
  if(!sheets.length)return say('Nothing to download yet.',true);

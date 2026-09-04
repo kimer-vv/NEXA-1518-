@@ -1,4 +1,4 @@
-// NEXA TRANSFER WORKSPACE FINISHER V1.9 — STABLE GROUP VIEW / NO AUTO-JUMP / GROUP CODES / MANUAL EVENT TIMES
+// NEXA TRANSFER WORKSPACE FINISHER V2.0 — SAFARI-STABLE GROUP CARDS / NO LAYOUT COLLAPSE / GROUP CODES / MANUAL EVENT TIMES
 (()=>{
 'use strict';
 
@@ -61,7 +61,7 @@ function ensureGroupView(){
  const panel=applicantsPanel();if(!panel||$('nexaGroupView'))return;
  const v=document.createElement('div');v.id='nexaGroupView';v.className='nexa-group-view';panel.appendChild(v);
 }
-function setBaseApplicantsVisible(show){const p=applicantsPanel();if(!p)return;['.searchRow','#allocationCounters','#copyRow','.appSectionTitle','#appList'].forEach(sel=>{const x=p.querySelector(sel);if(x)x.classList.toggle('hidden',!show)})}
+function setBaseApplicantsVisible(show){const p=applicantsPanel();if(!p)return;['.searchRow','#allocationCounters','#copyRow','.appSectionTitle','#appList'].forEach(sel=>{const x=p.querySelector(sel);if(x)x.classList.toggle('hidden',!show)});if(!show){const v=$('nexaGroupView');if(v&&v.getBoundingClientRect().height<320)v.style.minHeight='420px'}}
 function leaveGroups(){groupMode=false;activeGroup=null;setBaseApplicantsVisible(true);$('nexaGroupView')?.classList.remove('open');document.querySelector('[data-nexa-groups-folder]')?.classList.remove('active')}
 async function loadGroups(renderActive=false){
  if(!workspaceId||!token)return;
@@ -80,16 +80,22 @@ async function snapshotApps(){const r=await SB.rpc('transfer_workspace_snapshot'
 function groupDirectoryHtml(){return `<div class="nexa-group-head"><div><div class="tag">GROUPS</div><h3 style="margin:4px 0">Transfer Groups</h3><div class="muted">Group membership stays visible here even after individual players move to Ordinary or Special.</div></div>${canManage?'<button class="btn mini" id="nexaAddGroupInside">+ Add Group</button>':''}</div><div class="nexa-group-list">${groups.length?groups.map(g=>`<div class="nexa-group-row" data-open-group="${esc(g.id)}"><div class="appTop"><div><b>${esc(g.group_name)}</b><div class="meta">${esc(groupStatus(g))}${g.destination_alliance_tag?' • '+esc(g.destination_alliance_tag):g.new_alliance_tag?' • '+esc(g.new_alliance_tag):''}</div></div><span class="badge">${Number(g.member_count||0)} member${Number(g.member_count||0)===1?'':'s'}</span></div><div class="nexa-group-meta"><span class="nexa-pill">${Number(g.ordinary_count||0)} Ordinary</span><span class="nexa-pill">${Number(g.special_count||0)} Special</span><span class="nexa-pill ${g.status==='approved'?'good':'warn'}">${esc(groupStatus(g))}</span></div></div>`).join(''):'<div class="empty">No transfer groups yet. Use + Add Group to create one.</div>'}</div>`}
 async function renderGroupView(){
  const v=$('nexaGroupView');if(!v)return;v.classList.add('open');
- if(!activeGroup){v.innerHTML=groupDirectoryHtml();$('nexaAddGroupInside')?.addEventListener('click',()=>openGroupEditor(null));v.querySelectorAll('[data-open-group]').forEach(x=>x.onclick=()=>{activeGroup=groups.find(g=>String(g.id)===String(x.dataset.openGroup));renderGroupView()});return}
- v.innerHTML='<div class="status">Loading group…</div>';
+ if(!activeGroup){v.style.minHeight='';v.innerHTML=groupDirectoryHtml();$('nexaAddGroupInside')?.addEventListener('click',()=>openGroupEditor(null));v.querySelectorAll('[data-open-group]').forEach(x=>x.onclick=()=>{activeGroup=groups.find(g=>String(g.id)===String(x.dataset.openGroup));renderGroupView()});return}
+ const heldHeight=Math.max(Math.ceil(v.getBoundingClientRect().height),420);
+ v.style.minHeight=heldHeight+'px';
+ v.style.opacity='.72';
+ v.style.pointerEvents='none';
  const all=await snapshotApps(),members=all.filter(a=>String(a.group_id)===String(activeGroup.id)),profiles=await recruitingProfiles();
  const powerCap=Number((await currentEvent()).power_cap||0);
  const counts={ordinary:members.filter(a=>a.application_bucket==='ordinary'&&a.application_cycle!=='next').length,special:members.filter(a=>a.application_bucket==='special'&&a.application_cycle!=='next').length,sent:members.filter(a=>a.invite_status==='sent').length};
  v.innerHTML=`<div class="nexa-group-head"><div><button class="btn secondary mini" id="nexaBackGroups" type="button">← All Groups</button><div class="tag" style="margin-top:10px">GROUP</div><h3 style="margin:4px 0">${esc(activeGroup.group_name)}</h3><div class="nexa-group-meta"><span class="nexa-pill">${members.length} Members</span><span class="nexa-pill">${counts.ordinary} Ordinary</span><span class="nexa-pill">${counts.special} Special</span><span class="nexa-pill">${counts.sent} Invite Sent</span><span class="nexa-pill ${activeGroup.status==='approved'?'good':'warn'}">${esc(groupStatus(activeGroup))}</span></div></div><div class="actions" style="margin:0">${canManage?'<button class="btn secondary mini" id="nexaEditGroup">Edit Group</button><button class="btn mini" id="nexaAddPlayer">+ Add Player</button>':''}</div></div>
  <div class="notice" style="margin-top:12px"><b>NEXA Group Code</b><div class="nexa-code" id="nexaGroupCode">${esc(activeGroup.group_code||'—')}</div><div class="actions"><button class="btn secondary mini" id="nexaCopyGroupCode">Copy Code</button>${canManage?'<button class="btn secondary mini" id="nexaRegenGroupCode">Regenerate Code</button>':''}</div></div>
  <div class="nexa-group-members">${members.length?members.map(a=>memberCard(a,profiles,powerCap)).join(''):'<div class="empty">No players have been added to this group yet.</div>'}</div>`;
+ v.style.opacity='1';
+ v.style.pointerEvents='';
  $('nexaBackGroups').onclick=()=>{activeGroup=null;renderGroupView()};$('nexaEditGroup')?.addEventListener('click',()=>openGroupEditor(activeGroup));$('nexaAddPlayer')?.addEventListener('click',()=>openAddPlayer(activeGroup));$('nexaCopyGroupCode').onclick=e=>copyText(activeGroup.group_code,e.currentTarget);$('nexaRegenGroupCode')?.addEventListener('click',()=>regenerateGroupCode(activeGroup));
  v.querySelectorAll('[data-nexa-member]').forEach(card=>wireMember(card,members.find(a=>String(a.id)===String(card.dataset.nexaMember))));
+ requestAnimationFrame(()=>requestAnimationFrame(()=>{v.style.minHeight=''}));
 }
 function memberCard(a,profiles,powerCap){
  const over=powerCap>0&&Number(a.current_power)>powerCap,within=powerCap>0&&Number(a.current_power)<=powerCap,inv=a.invite_status==='sent'?'Invite Sent':a.invite_pending_reason==='over_power'?'Over Power Cap':'Not Sent',bucket=a.application_cycle==='next'?'next_cycle':(a.application_bucket||'inbox'),t12=!!(a.has_t12_general||a.t12_infantry||a.t12_lancer||a.t12_marksman),opts=['inbox','ordinary','special','not_selected','next_cycle'],labels={inbox:'New Applications',ordinary:'Ordinary',special:'Special',not_selected:'Not Selected',next_cycle:'Next Transfer Cycle'};

@@ -1,4 +1,4 @@
-/* NEXA Battle Strategy Engine v1.3.1
+/* NEXA Battle Strategy Engine v1.3.2
    Shared battle brain for SvS / FDT / TAL / Matchup Lab.
    Data-driven: reads nexa_battle_meta_rules from Supabase and falls back conservatively.
 */
@@ -281,7 +281,7 @@
   }
 
   window.NexaBattleStrategyEngine={
-    version:'1.3.1',loadMeta,rulesFor,bestRule,recommendation,chooseAlternative,ensureConstraints,
-    scoreLead,allocateAlliancePools,planSchedule,explainConfidence
+    version:'1.3.2',loadMeta,rulesFor,bestRule,recommendation,chooseAlternative,ensureConstraints,
+    scoreLead,planSchedule,explainConfidence
   };
 })();

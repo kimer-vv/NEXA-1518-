@@ -1,4 +1,4 @@
-// NEXA TRANSFER WORKSPACE FINISHER V1.8 — ALWAYS-VISIBLE GROUPS / GROUP CODES / MANUAL EVENT TIMES
+// NEXA TRANSFER WORKSPACE FINISHER V1.9 — STABLE GROUP VIEW / NO AUTO-JUMP / GROUP CODES / MANUAL EVENT TIMES
 (()=>{
 'use strict';
 
@@ -63,15 +63,15 @@ function ensureGroupView(){
 }
 function setBaseApplicantsVisible(show){const p=applicantsPanel();if(!p)return;['.searchRow','#allocationCounters','#copyRow','.appSectionTitle','#appList'].forEach(sel=>{const x=p.querySelector(sel);if(x)x.classList.toggle('hidden',!show)})}
 function leaveGroups(){groupMode=false;activeGroup=null;setBaseApplicantsVisible(true);$('nexaGroupView')?.classList.remove('open');document.querySelector('[data-nexa-groups-folder]')?.classList.remove('active')}
-async function loadGroups(){
+async function loadGroups(renderActive=false){
  if(!workspaceId||!token)return;
  const r=await SB.rpc('transfer_workspace_groups_get',{p_workspace_id:workspaceId,p_token:token});if(r.data?.ok)groups=r.data.groups||[];
- ensureAddGroupButton();ensureGroupView();syncGroupFolder();if(groupMode)renderGroupView();
+ ensureAddGroupButton();ensureGroupView();syncGroupFolder();if(groupMode&&renderActive)renderGroupView();
 }
 function syncGroupFolder(){
  const grid=$('folderGrid');if(!grid)return;
  let b=grid.querySelector('[data-nexa-groups-folder]');
- if(!b){b=document.createElement('button');b.className='folderBox';b.dataset.nexaGroupsFolder='1';b.innerHTML=`<strong>Groups</strong><span>${groups.length}</span>`;grid.appendChild(b);b.onclick=()=>{groupMode=true;activeGroup=null;setBaseApplicantsVisible(false);b.classList.add('active');grid.querySelectorAll('[data-folder]').forEach(x=>x.classList.remove('active'));renderGroupView()}}
+ if(!b){b=document.createElement('button');b.type='button';b.className='folderBox';b.dataset.nexaGroupsFolder='1';b.innerHTML=`<strong>Groups</strong><span>${groups.length}</span>`;grid.appendChild(b);b.onclick=()=>{groupMode=true;activeGroup=null;setBaseApplicantsVisible(false);b.classList.add('active');grid.querySelectorAll('[data-folder]').forEach(x=>x.classList.remove('active'));renderGroupView()}}
  else b.querySelector('span').textContent=String(groups.length);
  grid.querySelectorAll('[data-folder]').forEach(x=>{if(!x.dataset.nexaGroupExit){x.dataset.nexaGroupExit='1';x.addEventListener('click',leaveGroups)}})
 }
@@ -170,16 +170,16 @@ function enhanceUsername(){
  const myPass=document.querySelector('[data-my-pass]'),actions=myPass?.closest('.actions');if(!actions||actions.querySelector('[data-change-username]'))return;const b=document.createElement('button');b.className='btn secondary mini';b.type='button';b.dataset.changeUsername='1';b.textContent='Change Username';b.onclick=()=>{const card=myPass.closest('[data-access]'),current=card?.querySelector('.staffInfo div:nth-child(2) b')?.textContent?.trim()||'';openModal('ACCOUNT','Change Username',`<label class="field">New Username<input id="nexaNewUsername" value="${esc(current)}"></label><label class="field">Current NEXA Password<input id="nexaUsernamePassword" type="password"></label><div class="actions"><button class="btn secondary" id="nexaCancelUsername">Cancel</button><button class="btn" id="nexaSaveUsername">Save</button></div><div class="status" id="nexaUsernameStatus"></div>`);$('nexaCancelUsername').onclick=closeModal;$('nexaSaveUsername').onclick=async()=>{const st=$('nexaUsernameStatus'),r=await SB.rpc('transfer_staff_change_username',{p_token:token,p_current_password:$('nexaUsernamePassword').value,p_new_username:$('nexaNewUsername').value.trim()});if(r.error||r.data?.ok!==true)return st.textContent=r.data?.error||r.error?.message||'Unable to change username.';closeModal();location.reload()}};actions.insertBefore(b,myPass.nextSibling)
 }
 function attachHooks(){
- document.querySelectorAll('.tab').forEach(btn=>{if(btn.dataset.nexaV17)return;btn.dataset.nexaV17='1';btn.addEventListener('click',()=>{if(btn.dataset.tab==='applicants')setTimeout(loadGroups,80);if(btn.dataset.tab==='integrations')setTimeout(()=>{loadFormLibrary();loadProfileRows()},80);if(btn.dataset.tab==='access')setTimeout(enhanceUsername,80);if(btn.dataset.tab!=='applicants')leaveGroups()})});
+ document.querySelectorAll('.tab').forEach(btn=>{if(btn.dataset.nexaV17)return;btn.dataset.nexaV17='1';btn.addEventListener('click',()=>{if(btn.dataset.tab==='applicants')setTimeout(()=>loadGroups(false),80);if(btn.dataset.tab==='integrations')setTimeout(()=>{loadFormLibrary();loadProfileRows()},80);if(btn.dataset.tab==='access')setTimeout(enhanceUsername,80);if(btn.dataset.tab!=='applicants')leaveGroups()})});
  $('closeOverlay')?.addEventListener('click',()=>setTimeout(loadFormLibrary,120));window.addEventListener('message',e=>{if(e.origin===location.origin&&e.data?.type==='nexa-transfer-form-saved')setTimeout(loadFormLibrary,120)})
 }
 async function periodic(){
- const ap=document.querySelector('[data-panel="applicants"]');if(ap?.classList.contains('active'))await loadGroups();
+ const ap=document.querySelector('[data-panel="applicants"]');if(ap?.classList.contains('active'))await loadGroups(false);
  const ip=document.querySelector('[data-panel="integrations"]');if(ip?.classList.contains('active')){await loadProfileRows()}
  const xp=document.querySelector('[data-panel="access"]');if(xp?.classList.contains('active'))enhanceUsername();
 }
 async function start(){
- if(booted)return;token=getToken();workspaceId=getWorkspaceId();const root=$('workspaceRoot');if(!SB||!token||!workspaceId||!root||root.classList.contains('hidden'))return;booted=true;injectStyles();ensureModal();await loadAccess();ensureAddGroupButton();ensureGroupView();attachHooks();installHistoryDeleteGuard();enhanceUsername();await heartbeat();await loadGroups();await loadFormLibrary();await loadProfileRows();presenceTimer=setInterval(heartbeat,30000);refreshTimer=setInterval(periodic,2500)
+ if(booted)return;token=getToken();workspaceId=getWorkspaceId();const root=$('workspaceRoot');if(!SB||!token||!workspaceId||!root||root.classList.contains('hidden'))return;booted=true;injectStyles();ensureModal();await loadAccess();ensureAddGroupButton();ensureGroupView();attachHooks();installHistoryDeleteGuard();enhanceUsername();await heartbeat();await loadGroups(false);await loadFormLibrary();await loadProfileRows();presenceTimer=setInterval(heartbeat,30000);refreshTimer=setInterval(periodic,2500)
 }
 const boot=setInterval(()=>{start();if(booted)clearInterval(boot)},500);setTimeout(start,80);
 })();

@@ -1,4 +1,4 @@
-// NEXA TRANSFER WORKSPACE FINISHER V2.0 — SAFARI-STABLE GROUP CARDS / NO LAYOUT COLLAPSE / GROUP CODES / MANUAL EVENT TIMES
+// NEXA TRANSFER WORKSPACE FINISHER V2.2 — SIMPLIFIED GROUP UI / UNDER-REVIEW LOCK / MANUAL TIME BADGES / STABILITY
 (()=>{
 'use strict';
 
@@ -32,6 +32,11 @@ function injectStyles(){
  .nexa-member-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}.nexa-member-actions select,.nexa-member-actions button{width:100%;min-height:38px;border-radius:11px;border:1px solid rgba(255,255,255,.12);background:#071022;color:#fff;padding:7px;font-size:10px;font-weight:850}.nexa-member-actions .wide{grid-column:1/-1}
  .nexa-copy-id{border:0;background:none;color:#8fefff;padding:0;font-size:10px;font-weight:900}.nexa-inline-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.nexa-manual-wrap{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px;align-items:center}.nexa-manual-wrap button{min-height:34px;border-radius:9px;border:1px solid rgba(89,228,255,.22);background:rgba(89,228,255,.06);color:#bff7ff;font-size:9px;font-weight:900;padding:5px 7px}.nexa-manual-time{width:100%;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#071022;color:#fff;padding:9px;text-align:center}
  .nexa-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;padding:10px;border-radius:12px;background:#050b1b;border:1px solid rgba(89,228,255,.16);overflow-wrap:anywhere}.nexa-online-list{display:grid;gap:8px;margin-top:14px}.nexa-online-person{padding:11px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.035);display:flex;justify-content:space-between;gap:10px}
+
+ .nexa-member-primary{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+ .nexa-member-sub{margin-top:6px;color:#91a0bd;font-size:10px;line-height:1.35}
+ .nexa-manual-badge{display:inline-flex;align-items:center;padding:3px 6px;border-radius:999px;border:1px solid rgba(255,213,109,.26);color:#ffe39a;font-size:8px;font-weight:950;margin-left:5px;vertical-align:1px}
+ .nexa-lock-note{margin-top:12px;padding:11px 12px;border-radius:14px;border:1px solid rgba(255,213,109,.24);background:rgba(255,213,109,.06);color:#ffe5a1;font-size:11px;line-height:1.45}
  .nexa-form-list{display:grid;gap:9px;margin-top:10px}.nexa-form-row{padding:12px;border-radius:15px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.035)}.nexa-form-main{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:9px;align-items:center}.nexa-form-main input{width:21px;height:21px}.nexa-form-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px;padding-left:37px}
  @media(max-width:620px){.nexa-group-members,.nexa-inline-grid{grid-template-columns:1fr}#workspaceRoot .heroGrid>div:first-child{padding-right:76px}.nexa-presence-pill{font-size:9px}}
  `;
@@ -77,7 +82,7 @@ function syncGroupFolder(){
 }
 function groupStatus(g){return g.status==='approved'?'Approved':'Under Review'}
 async function snapshotApps(){const r=await SB.rpc('transfer_workspace_snapshot',{p_workspace_id:workspaceId,p_token:token});return r.data?.ok?(r.data.applications||[]):[]}
-function groupDirectoryHtml(){return `<div class="nexa-group-head"><div><div class="tag">GROUPS</div><h3 style="margin:4px 0">Transfer Groups</h3><div class="muted">Group membership stays visible here even after individual players move to Ordinary or Special.</div></div>${canManage?'<button class="btn mini" id="nexaAddGroupInside">+ Add Group</button>':''}</div><div class="nexa-group-list">${groups.length?groups.map(g=>`<div class="nexa-group-row" data-open-group="${esc(g.id)}"><div class="appTop"><div><b>${esc(g.group_name)}</b><div class="meta">${esc(groupStatus(g))}${g.destination_alliance_tag?' • '+esc(g.destination_alliance_tag):g.new_alliance_tag?' • '+esc(g.new_alliance_tag):''}</div></div><span class="badge">${Number(g.member_count||0)} member${Number(g.member_count||0)===1?'':'s'}</span></div><div class="nexa-group-meta"><span class="nexa-pill">${Number(g.ordinary_count||0)} Ordinary</span><span class="nexa-pill">${Number(g.special_count||0)} Special</span><span class="nexa-pill ${g.status==='approved'?'good':'warn'}">${esc(groupStatus(g))}</span></div></div>`).join(''):'<div class="empty">No transfer groups yet. Use + Add Group to create one.</div>'}</div>`}
+function groupDirectoryHtml(){return `<div class="nexa-group-head"><div><div class="tag">GROUPS</div><h3 style="margin:4px 0">Transfer Groups</h3><div class="muted">Groups are tracked separately from each player’s classification.</div></div>${canManage?'<button class="btn mini" id="nexaAddGroupInside">+ Add Group</button>':''}</div><div class="nexa-group-list">${groups.length?groups.map(g=>`<div class="nexa-group-row" data-open-group="${esc(g.id)}"><div class="appTop"><div><b>${esc(g.group_name)}</b><div class="meta">${esc(groupStatus(g))}${g.destination_alliance_tag?' • '+esc(g.destination_alliance_tag):g.new_alliance_tag?' • '+esc(g.new_alliance_tag):''}</div></div><span class="badge">${Number(g.member_count||0)} member${Number(g.member_count||0)===1?'':'s'}</span></div><div class="nexa-group-meta"><span class="nexa-pill">${Number(g.ordinary_count||0)} Ordinary</span><span class="nexa-pill">${Number(g.special_count||0)} Special</span><span class="nexa-pill ${g.status==='approved'?'good':'warn'}">${esc(groupStatus(g))}</span></div></div>`).join(''):'<div class="empty">No transfer groups yet. Use + Add Group to create one.</div>'}</div>`}
 async function renderGroupView(){
  const v=$('nexaGroupView');if(!v)return;v.classList.add('open');
  if(!activeGroup){v.style.minHeight='';v.innerHTML=groupDirectoryHtml();$('nexaAddGroupInside')?.addEventListener('click',()=>openGroupEditor(null));v.querySelectorAll('[data-open-group]').forEach(x=>x.onclick=()=>{activeGroup=groups.find(g=>String(g.id)===String(x.dataset.openGroup));renderGroupView()});return}
@@ -88,8 +93,9 @@ async function renderGroupView(){
  const all=await snapshotApps(),members=all.filter(a=>String(a.group_id)===String(activeGroup.id)),profiles=await recruitingProfiles();
  const powerCap=Number((await currentEvent()).power_cap||0);
  const counts={ordinary:members.filter(a=>a.application_bucket==='ordinary'&&a.application_cycle!=='next').length,special:members.filter(a=>a.application_bucket==='special'&&a.application_cycle!=='next').length,sent:members.filter(a=>a.invite_status==='sent').length};
- v.innerHTML=`<div class="nexa-group-head"><div><button class="btn secondary mini" id="nexaBackGroups" type="button">← All Groups</button><div class="tag" style="margin-top:10px">GROUP</div><h3 style="margin:4px 0">${esc(activeGroup.group_name)}</h3><div class="nexa-group-meta"><span class="nexa-pill">${members.length} Members</span><span class="nexa-pill">${counts.ordinary} Ordinary</span><span class="nexa-pill">${counts.special} Special</span><span class="nexa-pill">${counts.sent} Invite Sent</span><span class="nexa-pill ${activeGroup.status==='approved'?'good':'warn'}">${esc(groupStatus(activeGroup))}</span></div></div><div class="actions" style="margin:0">${canManage?'<button class="btn secondary mini" id="nexaEditGroup">Edit Group</button><button class="btn mini" id="nexaAddPlayer">+ Add Player</button>':''}</div></div>
- <div class="notice" style="margin-top:12px"><b>NEXA Group Code</b><div class="nexa-code" id="nexaGroupCode">${esc(activeGroup.group_code||'—')}</div><div class="actions"><button class="btn secondary mini" id="nexaCopyGroupCode">Copy Code</button>${canManage?'<button class="btn secondary mini" id="nexaRegenGroupCode">Regenerate Code</button>':''}</div></div>
+ v.innerHTML=`<div class="nexa-group-head"><div><button class="btn secondary mini" id="nexaBackGroups" type="button">← All Groups</button><div class="tag" style="margin-top:10px">GROUP</div><h3 style="margin:4px 0">${esc(activeGroup.group_name)}</h3><div class="nexa-group-meta"><span class="nexa-pill">${members.length} Members</span><span class="nexa-pill">${counts.ordinary} Ordinary</span><span class="nexa-pill">${counts.special} Special</span><span class="nexa-pill">${counts.sent} Invite Sent</span><span class="nexa-pill ${activeGroup.status==='approved'?'good':'warn'}">${esc(groupStatus(activeGroup))}</span></div></div><div class="actions" style="margin:0">${canManage?`<button class="btn secondary mini" id="nexaEditGroup">Edit Group</button>${activeGroup.status==='approved'?'<button class="btn mini" id="nexaAddPlayer">+ Add Player</button>':''}`:''}</div></div>
+ ${activeGroup.status==='approved'?'':`<div class="nexa-lock-note"><b>UNDER REVIEW — Members locked until approval</b><br>Approve this group before adding or managing group members.</div>`}
+ <div class="notice" style="margin-top:12px"><b>NEXA Group Code</b><div class="nexa-code" id="nexaGroupCode">${esc(activeGroup.group_code||'—')}</div><div class="helper" style="margin-top:6px">Permanent code — changes only if regenerated by Transfer Staff.</div><div class="actions"><button class="btn secondary mini" id="nexaCopyGroupCode">Copy Code</button>${canManage?'<button class="btn secondary mini" id="nexaRegenGroupCode">Regenerate Code</button>':''}</div></div>
  <div class="nexa-group-members">${members.length?members.map(a=>memberCard(a,profiles,powerCap)).join(''):'<div class="empty">No players have been added to this group yet.</div>'}</div>`;
  v.style.opacity='1';
  v.style.pointerEvents='';
@@ -98,16 +104,45 @@ async function renderGroupView(){
  requestAnimationFrame(()=>requestAnimationFrame(()=>{v.style.minHeight=''}));
 }
 function memberCard(a,profiles,powerCap){
- const over=powerCap>0&&Number(a.current_power)>powerCap,within=powerCap>0&&Number(a.current_power)<=powerCap,inv=a.invite_status==='sent'?'Invite Sent':a.invite_pending_reason==='over_power'?'Over Power Cap':'Not Sent',bucket=a.application_cycle==='next'?'next_cycle':(a.application_bucket||'inbox'),t12=!!(a.has_t12_general||a.t12_infantry||a.t12_lancer||a.t12_marksman),opts=['inbox','ordinary','special','not_selected','next_cycle'],labels={inbox:'New Applications',ordinary:'Ordinary',special:'Special',not_selected:'Not Selected',next_cycle:'Next Transfer Cycle'};
- return `<div class="nexa-member ${over?'gold':within?'blue':''}" data-nexa-member="${a.id}"><div class="appTop"><div><b>${esc(a.in_game_name||'Applicant')}</b><div class="meta">Game ID <button class="nexa-copy-id" data-copy-id>${esc(a.player_id||'—')}</button> • ${fmt(a.current_power)} • ${esc(String(a.furnace_level||'—').toUpperCase())}</div></div><span class="badge ${a.invite_status==='sent'?'good':a.invite_pending_reason==='over_power'?'bad':'warn'}">${esc(inv)}</span></div><div class="nexa-group-meta"><span class="nexa-pill">${t12?'T12':'No T12'}</span><span class="nexa-pill">${esc(labels[bucket]||bucket)}</span><span class="nexa-pill">${esc(a.assigned_alliance_tag||'Unassigned')}</span></div><div class="nexa-member-actions"><select data-move>${opts.map(x=>`<option value="${x}" ${bucket===x?'selected':''}>${labels[x]}</option>`).join('')}</select><select data-assign><option value="">Unassigned</option>${profiles.filter(p=>p.is_active!==false).map(p=>`<option value="${esc(p.tag)}" ${a.assigned_alliance_tag===p.tag?'selected':''}>${esc(p.tag)}</option>`).join('')}</select><select class="wide" data-invite><option value="not_sent" ${a.invite_status!=='sent'&&a.invite_pending_reason!=='over_power'?'selected':''}>Not Sent</option><option value="over_power" ${a.invite_status!=='sent'&&a.invite_pending_reason==='over_power'?'selected':''}>Not Sent — Over Power Cap</option><option value="sent" ${a.invite_status==='sent'?'selected':''}>Invite Sent</option></select></div></div>`;
+ const over=powerCap>0&&Number(a.current_power)>powerCap,within=powerCap>0&&Number(a.current_power)<=powerCap,inv=a.invite_status==='sent'?'Invite Sent':a.invite_pending_reason==='over_power'?'Over Power Cap':'Not Sent',bucket=a.application_cycle==='next'?'next_cycle':(a.application_bucket||'inbox'),t12=!!(a.has_t12_general||a.t12_infantry||a.t12_lancer||a.t12_marksman),quick=!!(a.application_payload?.quick_group_member),opts=['inbox','ordinary','special','not_selected','next_cycle'],labels={inbox:'New Applications',ordinary:'Ordinary',special:'Special',not_selected:'Not Selected',next_cycle:'Next Transfer Cycle'};
+ return `<div class="nexa-member ${over?'gold':within?'blue':''}" data-nexa-member="${a.id}">
+   <div class="nexa-member-primary">
+     <div><b>${esc(a.in_game_name||'Applicant')}</b><div class="meta">Game ID <button class="nexa-copy-id" data-copy-id>${esc(a.player_id||'—')}</button></div></div>
+     <span class="badge ${a.invite_status==='sent'?'good':a.invite_pending_reason==='over_power'?'bad':'warn'}">${esc(inv)}</span>
+   </div>
+   <div class="nexa-group-meta">
+     <span class="nexa-pill ${quick?'':'good'}">${quick?'Quick Group Member':'Form Filler'}</span>
+     <span class="nexa-pill">${esc(labels[bucket]||bucket)}</span>
+     <span class="nexa-pill">${esc(a.assigned_alliance_tag||'Unassigned')}</span>
+   </div>
+   <div class="nexa-member-sub">${fmt(a.current_power)} • ${esc(String(a.furnace_level||'—').toUpperCase())} • ${t12?'T12':'No T12'}</div>
+   <div class="nexa-member-actions">
+     ${quick?'':`<button class="wide" type="button" data-open-full>Open Full Application</button>`}
+     <select data-move>${opts.map(x=>`<option value="${x}" ${bucket===x?'selected':''}>${labels[x]}</option>`).join('')}</select>
+     <select data-assign><option value="">Unassigned</option>${profiles.filter(p=>p.is_active!==false).map(p=>`<option value="${esc(p.tag)}" ${a.assigned_alliance_tag===p.tag?'selected':''}>${esc(p.tag)}</option>`).join('')}</select>
+     <select class="wide" data-invite><option value="not_sent" ${a.invite_status!=='sent'&&a.invite_pending_reason!=='over_power'?'selected':''}>Not Sent</option><option value="over_power" ${a.invite_status!=='sent'&&a.invite_pending_reason==='over_power'?'selected':''}>Not Sent — Over Power Cap</option><option value="sent" ${a.invite_status==='sent'?'selected':''}>Invite Sent</option></select>
+   </div>
+ </div>`;
 }
 async function wireMember(card,a){
  card.querySelector('[data-copy-id]').onclick=e=>copyText(a.player_id,e.currentTarget);
+ card.querySelector('[data-open-full]')?.addEventListener('click',()=>{
+   const original=document.querySelector(`.app[data-app="${CSS.escape(String(a.id))}"]`);
+   if(original)original.click();
+ });
  card.querySelector('[data-move]').onchange=async e=>{const t=e.target.value,patch={application_bucket:t==='inbox'?'inbox':t,application_cycle:t==='next_cycle'?'next':'current',invite_type:t==='ordinary'?'ordinary':t==='special'?'special':''};await updateMember(a,patch)};
  card.querySelector('[data-assign]').onchange=e=>updateMember(a,{assigned_alliance_tag:e.target.value});
  card.querySelector('[data-invite]').onchange=e=>{const x=e.target.value;updateMember(a,x==='sent'?{invite_status:'sent',invite_pending_reason:null}:{invite_status:'not_sent',invite_pending_reason:x==='over_power'?'over_power':null})};
 }
-async function updateMember(a,patch){const r=await SB.rpc('transfer_workspace_update_application',{p_workspace_id:workspaceId,p_token:token,p_application_id:a.id,p_patch:patch});if(r.data?.ok){await loadGroups();activeGroup=groups.find(g=>String(g.id)===String(activeGroup?.id))||activeGroup;await renderGroupView()}}
+async function updateMember(a,patch){
+ const r=await SB.rpc('transfer_workspace_update_application',{p_workspace_id:workspaceId,p_token:token,p_application_id:a.id,p_patch:patch});
+ if(r.data?.ok){
+   Object.assign(a,patch);
+   await loadGroups(false);
+   activeGroup=groups.find(g=>String(g.id)===String(activeGroup?.id))||activeGroup;
+   await renderGroupView();
+ }
+}
 async function recruitingProfiles(){const r=await SB.rpc('transfer_workspace_recruiting_profiles_get',{p_workspace_id:workspaceId,p_token:token});return r.data?.ok?(r.data.profiles||[]):[]}
 async function currentEvent(){const r=await SB.rpc('transfer_workspace_snapshot',{p_workspace_id:workspaceId,p_token:token});return r.data?.event||{}}
 
@@ -117,8 +152,11 @@ async function openGroupEditor(g){
  const refresh=()=>{$('nexaGroupDestWrap').classList.toggle('hidden',$('nexaGroupPlan').value!=='merge_existing');$('nexaGroupNewWrap').classList.toggle('hidden',$('nexaGroupPlan').value!=='start_own')};$('nexaGroupPlan').onchange=refresh;refresh();$('nexaCancelGroup').onclick=closeModal;
  $('nexaSaveGroup').onclick=async()=>{const st=$('nexaGroupSaveStatus'),payload={group_name:$('nexaGroupName').value.trim(),status:$('nexaGroupStatus').value,plan:$('nexaGroupPlan').value,destination_alliance_tag:$('nexaGroupDest').value,new_alliance_tag:$('nexaGroupNew').value.trim().toUpperCase(),main_contact_ign:$('nexaGroupIgn').value.trim(),main_contact_player_id:$('nexaGroupPid').value.trim(),main_contact_discord:$('nexaGroupDiscord').value.trim(),current_state:$('nexaGroupState').value.trim()};if(!payload.group_name)return st.textContent='Group Name is required.';st.textContent='Saving…';const r=await SB.rpc('transfer_workspace_group_save',{p_workspace_id:workspaceId,p_token:token,p_group_id:g?.id||null,p_payload:payload,p_apply_destination_to_members:false});if(r.error||r.data?.ok!==true){st.textContent=r.data?.error||r.error?.message||'Unable to save group.';return}closeModal();await loadGroups();if(g){activeGroup=groups.find(x=>String(x.id)===String(g.id))||null;renderGroupView()}}
 }
-function openAddPlayer(g){
- openModal('GROUP MEMBER',`Add Player · ${g.group_name}`,`<div class="nexa-inline-grid"><label class="field">In-game Name<input id="nexaMemberIgn"></label><label class="field">Game ID<input id="nexaMemberPid" inputmode="numeric"></label><label class="field">Furnace Level<input id="nexaMemberFurnace" placeholder="FC10"></label><label class="field">Current Power<input id="nexaMemberPower" inputmode="numeric"></label><label class="field" style="grid-column:1/-1">Does this player have T12?<select id="nexaMemberT12"><option value="false">No</option><option value="true">Yes</option></select></label></div><div class="actions"><button class="btn secondary" id="nexaCancelMember">Cancel</button><button class="btn" id="nexaSaveMember">Add Player</button></div><div class="status" id="nexaMemberSaveStatus"></div>`);$('nexaCancelMember').onclick=closeModal;$('nexaSaveMember').onclick=async()=>{const st=$('nexaMemberSaveStatus'),payload={in_game_name:$('nexaMemberIgn').value.trim(),player_id:$('nexaMemberPid').value.trim(),furnace_level:$('nexaMemberFurnace').value.trim(),current_power:$('nexaMemberPower').value.replace(/\D/g,''),has_t12:$('nexaMemberT12').value==='true'};st.textContent='Adding…';const r=await SB.rpc('transfer_workspace_group_add_player',{p_workspace_id:workspaceId,p_token:token,p_group_id:g.id,p_payload:payload});if(r.error||r.data?.ok!==true){st.textContent=r.data?.error||r.error?.message||'Unable to add player.';return}closeModal();await loadGroups();activeGroup=groups.find(x=>String(x.id)===String(g.id))||g;renderGroupView()}
+async function openAddPlayer(g){
+ const ev=await currentEvent();
+ const configured=ev?.form_settings?.era?.furnace_options;
+ const furnaceOptions=(Array.isArray(configured)&&configured.length?configured:[{value:'fc8',label:'Fire Crystal 8 (FC8)'},{value:'fc9',label:'Fire Crystal 9 (FC9)'},{value:'fc10',label:'Fire Crystal 10 (FC10)'}]).map(x=>({value:String(x?.value||'').trim(),label:String(x?.label||x?.name||x?.value||'').trim()})).filter(x=>x.value&&x.label);
+ openModal('GROUP MEMBER',`Add Player · ${g.group_name}`,`<div class="nexa-inline-grid"><label class="field">In-game Name<input id="nexaMemberIgn"></label><label class="field">Game ID<input id="nexaMemberPid" inputmode="numeric"></label><label class="field">Furnace Level<select id="nexaMemberFurnace"><option value="">Select Furnace Level</option>${furnaceOptions.map(x=>`<option value="${esc(x.value)}">${esc(x.label)}</option>`).join('')}</select></label><label class="field">Current Power<input id="nexaMemberPower" inputmode="numeric"></label><label class="field" style="grid-column:1/-1">Does this player have T12?<select id="nexaMemberT12"><option value="false">No</option><option value="true">Yes</option></select></label></div><div class="actions"><button class="btn secondary" id="nexaCancelMember">Cancel</button><button class="btn" id="nexaSaveMember">Add Player</button></div><div class="status" id="nexaMemberSaveStatus"></div>`);$('nexaCancelMember').onclick=closeModal;$('nexaSaveMember').onclick=async()=>{const st=$('nexaMemberSaveStatus'),payload={in_game_name:$('nexaMemberIgn').value.trim(),player_id:$('nexaMemberPid').value.trim(),furnace_level:$('nexaMemberFurnace').value.trim(),current_power:$('nexaMemberPower').value.replace(/\D/g,''),has_t12:$('nexaMemberT12').value==='true'};st.textContent='Adding…';const r=await SB.rpc('transfer_workspace_group_add_player',{p_workspace_id:workspaceId,p_token:token,p_group_id:g.id,p_payload:payload});if(r.error||r.data?.ok!==true){st.textContent=r.data?.error||r.error?.message||'Unable to add player.';return}closeModal();await loadGroups();activeGroup=groups.find(x=>String(x.id)===String(g.id))||g;renderGroupView()}
 }
 async function regenerateGroupCode(g){openModal('GROUP CODE','Regenerate Group Code?',`<p class="muted">The current code will stop working immediately. Everyone must use the new code.</p><div class="actions"><button class="btn secondary" id="nexaCancelRegen">Cancel</button><button class="btn danger" id="nexaConfirmRegen">Regenerate</button></div><div class="status" id="nexaRegenStatus"></div>`);$('nexaCancelRegen').onclick=closeModal;$('nexaConfirmRegen').onclick=async()=>{const st=$('nexaRegenStatus');st.textContent='Generating…';const r=await SB.rpc('transfer_workspace_group_regenerate_code',{p_workspace_id:workspaceId,p_token:token,p_group_id:g.id});if(r.error||r.data?.ok!==true){st.textContent=r.data?.error||r.error?.message||'Unable to regenerate code.';return}closeModal();await loadGroups();activeGroup=groups.find(x=>String(x.id)===String(g.id))||g;renderGroupView()}}
 
@@ -127,24 +165,35 @@ function scheduleOfRaw(p){const s=p?.event_schedule&&typeof p.event_schedule==='
 function paintProfiles(){
  document.querySelectorAll('[data-profile]').forEach(card=>{
    const p=profileRows.find(x=>String(x.alliance_id)===String(card.dataset.profile));if(!p)return;const s=scheduleOfRaw(p);
-   const times=card.querySelector('.profileTimes');if(times)times.innerHTML=`<b>Bear:</b> ${s.bear.length?s.bear.map(x=>esc(x)+' UTC').join(' • '):'—'}<br><b>Foundry:</b> ${s.foundry.length?s.foundry.map(x=>esc(x)+' UTC').join(' • '):'—'}<br><b>Canyon:</b> ${s.canyon.length?s.canyon.map(x=>esc(x)+' UTC').join(' • '):'—'}`;
+   const times=card.querySelector('.profileTimes');
+   if(times){
+     const showTime=x=>`${esc(x)} UTC${isHalfHour(x)?'':' <span class="nexa-manual-badge">Manual</span>'}`;
+     times.innerHTML=`<b>Bear:</b> ${s.bear.length?s.bear.map(showTime).join(' • '):'—'}<br><b>Foundry:</b> ${s.foundry.length?s.foundry.map(showTime).join(' • '):'—'}<br><b>Canyon:</b> ${s.canyon.length?s.canyon.map(showTime).join(' • '):'—'}`;
+   }
    ['bear','foundry','canyon'].forEach(k=>{const controls=[...card.querySelectorAll(`[data-sched="${k}"]`)];controls.forEach((c,i)=>enhanceTimeControl(c,k,i,s[k]?.[i]||''))});
  });
 }
 function enhanceTimeControl(c,key,index,actual){
  if(c.dataset.nexaManualReady==='1')return;
  if(c.tagName==='SELECT'){
-   const first=c.options[0];if(first){first.textContent='Set Manually';first.value='__manual__'}
+   const first=c.options[0];
+   if(first){first.textContent='—';first.value=''}
+   if(![...c.options].some(o=>o.value==='__manual__')){
+     const manual=document.createElement('option');
+     manual.value='__manual__';
+     manual.textContent='Set Manually';
+     if(first?.nextSibling)c.insertBefore(manual,first.nextSibling);else c.appendChild(manual);
+   }
    c.dataset.nexaManualReady='1';
    if(actual&&!isHalfHour(actual))return replaceWithManual(c,key,index,actual);
-   if(actual&&isHalfHour(actual))c.value=actual;
+   if(actual&&isHalfHour(actual))c.value=actual;else if(!actual)c.value='';
    c.addEventListener('change',()=>{if(c.value==='__manual__')replaceWithManual(c,key,index,'')});
  }
 }
 function replaceWithManual(select,key,index,value){
  const wrap=document.createElement('div');wrap.className='nexa-manual-wrap';wrap.dataset.manualSlot=`${key}-${index}`;
  const input=document.createElement('input');input.className='nexa-manual-time';input.dataset.sched=key;input.dataset.nexaManualReady='1';input.value=value;input.placeholder='HH:MM';input.inputMode='numeric';
- const back=document.createElement('button');back.type='button';back.textContent='Use dropdown';back.onclick=()=>{const sel=document.createElement('select');sel.className='time24';sel.dataset.sched=key;sel.innerHTML=`<option value="__manual__">Set Manually</option>`+Array.from({length:48},(_,i)=>{const t=`${String(Math.floor(i/2)).padStart(2,'0')}:${i%2?'30':'00'}`;return`<option value="${t}">${t}</option>`}).join('');wrap.replaceWith(sel);enhanceTimeControl(sel,key,index,'')};
+ const back=document.createElement('button');back.type='button';back.textContent='Use dropdown';back.onclick=()=>{const sel=document.createElement('select');sel.className='time24';sel.dataset.sched=key;sel.innerHTML=`<option value="">—</option><option value="__manual__">Set Manually</option>`+Array.from({length:48},(_,i)=>{const t=`${String(Math.floor(i/2)).padStart(2,'0')}:${i%2?'30':'00'}`;return`<option value="${t}">${t}</option>`}).join('');wrap.replaceWith(sel);enhanceTimeControl(sel,key,index,'')};
  wrap.append(input,back);select.replaceWith(wrap);
 }
 function validateManualTimesBeforeSave(e){
@@ -180,7 +229,6 @@ function attachHooks(){
  $('closeOverlay')?.addEventListener('click',()=>setTimeout(loadFormLibrary,120));window.addEventListener('message',e=>{if(e.origin===location.origin&&e.data?.type==='nexa-transfer-form-saved')setTimeout(loadFormLibrary,120)})
 }
 async function periodic(){
- const ap=document.querySelector('[data-panel="applicants"]');if(ap?.classList.contains('active'))await loadGroups(false);
  const ip=document.querySelector('[data-panel="integrations"]');if(ip?.classList.contains('active')){await loadProfileRows()}
  const xp=document.querySelector('[data-panel="access"]');if(xp?.classList.contains('active'))enhanceUsername();
 }

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS STRATEGY V11.3.3 • selector preview/download + resilient Join First blend + Safari selector fix -->
+<!-- NEXA SVS STRATEGY V11.3.4 • canonical Join First seats + resilient backup mix + lower visual noise -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -79,7 +79,7 @@ input,select{width:100%;min-height:44px;background:#060b1c;color:#fff;border:1px
 @media(max-width:760px){.layout-top-grid{grid-template-columns:1fr}.rl-formations-grid,.joiner-ratio-grid{grid-template-columns:1fr 1fr}.rl-formation-card .f-ratio{font-size:15px}}
 
 
-/* V11.3.3 — clarity without changing the Team Layout format */
+/* V11.3.4 — clarity without changing the Team Layout format */
 .layout-sheet .hero-line img{width:26px;height:26px;border-radius:6px}
 .layout-sheet .hero-name,
 .layout-sheet .rl-formation-hero b{
@@ -260,7 +260,7 @@ body.pet-preview-open{overflow:hidden!important}
 .team-form-heroes{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}.team-form-heroes span{display:flex;align-items:center;gap:4px;font-size:9px;font-weight:850}.team-form-heroes img{width:22px;height:22px;border-radius:6px;object-fit:cover}
 </style>
 <script src="nexa-battle-strategy-engine.js?v=1.3.2"></script>
-<script src="nexa-svs-rules.js?v=1"></script>
+<script src="nexa-svs-rules.js?v=1.1"></script>
 </head>
 <body>
 <main class="sh">
@@ -373,7 +373,7 @@ body.pet-preview-open{overflow:hidden!important}
     <div class="guide-page active" data-guide="0"><h4>Workspace & Mobile View</h4><p>Strategy Board is your editable Team Builder. On mobile, Team cards move sideways so they stay readable. Swipe left/right to inspect every Team. Desktop can show much more at once. Use Team Layout for the complete final sheet.</p></div>
     <div class="guide-page" data-guide="1"><h4>NEXA Assist & Manual Mode</h4><p>Live Auto Generate uses Battle Roles + Responses + Profile/Inventory automatically. Only Test Sandbox asks for Rally Leader and Joiner counts. NEXA decides how many sustainable Teams the roster can actually fill. Manual Build leaves every assignment to you and NEXA reviews it when you press Done.</p></div>
     <div class="guide-page" data-guide="2"><h4>Rally Leaders, Joiners & Heroes</h4><p>Rally Leaders come from one finite global pool. They may rotate between Alliances only when time blocks do not overlap. PETS use one continuous 2-hour window on whole-hour boundaries. Joiners remain fixed unless you move them; duplicate assignments trigger a warning. Every Rally Leader and Joiner can be removed individually.</p></div>
-    <div class="guide-page" data-guide="3"><h4>Pet Schedule & Formations</h4><p>Team 1 is the Primary Pet Team. Team 2 becomes Secondary PET / Support only when real Rally Leader depth allows it; Teams 3+ are normally strong mixed teams without PETS. NEXA also varies the first four Joiner heroes when complementary buffs are more useful than duplicates.</p></div>
+    <div class="guide-page" data-guide="3"><h4>Pet Schedule & Formations</h4><p>Team 1 is the Primary Pet Team. Team 2 becomes Secondary PET / Support only when real Rally Leader depth allows it; Teams 3+ are normally strong mixed teams without PETS. NEXA preserves the canonical first four Join First buff seats. Joiners 5+ use resilient contingency mixes so a safe backup does not break the formation.</p></div>
     <div class="guide-page" data-guide="4"><h4>Team Layout, Preview & Download</h4><p>Team Layout shows the complete final sheet. On mobile use Preview Layout and, for the clearest view, rotate your phone sideways. Preview fits the sheet to your screen; Download exports the full NEXA-styled layout.</p></div>
     <div class="guide-count"><span id="guide-page-label">1 / 5</span></div>
     <div class="nexa-modal-actions"><button id="guide-prev" class="btn" type="button">‹ Previous</button><button id="guide-next" class="btn violet" type="button">Next ›</button></div>
@@ -540,17 +540,36 @@ function metaJoinerProfile(mode,formation){
  }
  return {rule:best,primary,alternatives}
 }
-function fallbackJoinerNames(mode){return mode==='attack'?['Jessie','Seo-yoon','Jasser','Hendrik','Norah','Patrick']:['Patrick','Sergey','Norah','Hendrik','Jessie','Jasser']}
+function fallbackJoinerNames(mode){
+ return mode==='attack'
+   ?['Norah','Hendrik','Patrick','Gatot','Jessie','Jasser','Seo-yoon']
+   :['Renee','Mia','Patrick','Hendrik','Wu Ming','Gatot','Sergey','Jessie']
+}
 function strategicJoinOrder(mode,formation,index=0){
  const profile=metaJoinerProfile(mode,formation);
  const primary=profile.primary.length?profile.primary:fallbackJoinerNames(mode).slice(0,4);
- // Top 4 consume the exact target slots. Joiners 5+ cycle the same target pool as resilient backups.
- const slot=index<4?index:(index-4);
- const target=primary[slot%primary.length];
- const nextTargets=[];
- for(let step=1;step<=primary.length;step++)nextTargets.push(primary[(slot+step)%primary.length]);
- const ordered=[target,...nextTargets,...profile.alternatives,...fallbackJoinerNames(mode)];
- // Keep the target duplicated in the strategy itself, but avoid duplicate names inside one player's fallback order.
+ const alternatives=profile.alternatives||[];
+ let target;
+ if(index<4){
+   // Seats 1–4 are the exact canonical buff seats. Duplicate names are intentional.
+   target=primary[index%primary.length];
+ }else{
+   // Joiners 5+ are resilient contingency seats, not extra active buff seats.
+   // Keep the Top-4 families dominant while sprinkling safe complementary fallbacks.
+   const backupPattern=[
+     primary[0],
+     primary[2]||primary[0],
+     alternatives[0]||primary[3]||primary[0],
+     primary[1]||primary[0],
+     primary[3]||primary[0],
+     primary[0],
+     primary[2]||primary[0],
+     alternatives[1]||alternatives[0]||primary[3]||primary[0]
+   ].filter(Boolean);
+   target=backupPattern[(index-4)%backupPattern.length];
+ }
+ const ordered=[target,...primary,...alternatives,...fallbackJoinerNames(mode)];
+ // Duplicate targets remain valid across different Join First seats; one player's fallback list stays unique.
  return [...new Set(ordered.filter(Boolean))]
 }
 function rankedJoinHeroes(player,mode,formation,index=0){
@@ -559,7 +578,9 @@ function rankedJoinHeroes(player,mode,formation,index=0){
  for(let pos=0;pos<names.length;pos++){
    const hero=player?._test?namedVisibleHero(names[pos]):ownedNamedHero(player.id,names[pos]);
    if(!hero)continue;
-   const preference=2200-pos*130;
+   // The intended seat target wins whenever this player actually owns it.
+   // Skill/quality still ranks fallbacks, but cannot push Gatot over a valid canonical Norah seat.
+   const preference=pos===0?100000:Math.max(1000,18000-pos*1200);
    const quality=player?._test?500:joinHeroQuality(player.id,hero);
    scored.push({hero,score:preference+quality,pos,name:names[pos]})
  }
@@ -772,7 +793,7 @@ function bindStrategy(){
 async function deleteRallyPlayer(teamId,key){
  const rows=Rally(teamId).filter(x=>String(x.player_account_id||x.player_name)===String(key));if(!rows.length)return;
  if(!confirm(`Remove ${rows[0].player_name} from this Team schedule?`))return;
- const {error}=await sb.from('svs_strategy_rally_slots').delete().in('id',rows.map(x=>x.id));if(error)return say(error.message,true);await openStrategy(strategy.id)
+ const {error}=await sb.from('svs_strategy_rally_slots').delete().in('id',rows.map(r=>r.id));if(error)return say(error.message,true);await openStrategy(strategy.id)
 }
 async function deleteRally(id){const x=rally.find(r=>r.id===id);if(!x||!confirm(`Remove ${x.player_name} from this Rally Leader slot?`))return;const {error}=await sb.from('svs_strategy_rally_slots').delete().eq('id',id);if(error)return say(error.message,true);await openStrategy(strategy.id)}
 async function deleteJoiner(id){const x=joiners.find(r=>r.id===id);if(!x||!confirm(`Remove ${x.player_name} from this Team?`))return;const {error}=await sb.from('svs_strategy_joiners').delete().eq('id',id);if(error)return say(error.message,true);await openStrategy(strategy.id)}
@@ -930,7 +951,7 @@ $('#close-pet-preview').onclick=closePetPreview;
 
 function formationHeroMini(id){
  const h=H(id);if(!h)return '<div class="rl-formation-hero"><span class="muted">—</span></div>';
- return `<div class="rl-formation-hero">${h.image_url?`<img src="${esc(h.image_url)}" alt="">`:''}<b class="${rarityClass(h)}">${esc(h.name)}</b></div>`
+ return `<div class="rl-formation-hero">${h.image_url?`<img src="${esc(h.image_url)}" alt="">`:''}<b class="${rarityClass(h.rarity)}">${esc(h.name)}</b></div>`
 }
 function layoutRallyLeadFormationGroup(a,type){
  const fs=formationsFor(a.id,type),count=Math.max(1,Math.min(3,fs.length||1));

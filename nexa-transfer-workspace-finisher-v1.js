@@ -1,4 +1,4 @@
-// NEXA TRANSFER WORKSPACE FINISHER V1.7 — GROUPS / GROUP CODES / MANUAL EVENT TIMES / PRESENCE / FORM LIBRARY / SECURE HISTORY
+// NEXA TRANSFER WORKSPACE FINISHER V1.8 — ALWAYS-VISIBLE GROUPS / GROUP CODES / MANUAL EVENT TIMES
 (()=>{
 'use strict';
 
@@ -71,14 +71,13 @@ async function loadGroups(){
 function syncGroupFolder(){
  const grid=$('folderGrid');if(!grid)return;
  let b=grid.querySelector('[data-nexa-groups-folder]');
- if(!groups.length){b?.remove();if(groupMode)leaveGroups();return}
  if(!b){b=document.createElement('button');b.className='folderBox';b.dataset.nexaGroupsFolder='1';b.innerHTML=`<strong>Groups</strong><span>${groups.length}</span>`;grid.appendChild(b);b.onclick=()=>{groupMode=true;activeGroup=null;setBaseApplicantsVisible(false);b.classList.add('active');grid.querySelectorAll('[data-folder]').forEach(x=>x.classList.remove('active'));renderGroupView()}}
  else b.querySelector('span').textContent=String(groups.length);
  grid.querySelectorAll('[data-folder]').forEach(x=>{if(!x.dataset.nexaGroupExit){x.dataset.nexaGroupExit='1';x.addEventListener('click',leaveGroups)}})
 }
 function groupStatus(g){return g.status==='approved'?'Approved':'Under Review'}
 async function snapshotApps(){const r=await SB.rpc('transfer_workspace_snapshot',{p_workspace_id:workspaceId,p_token:token});return r.data?.ok?(r.data.applications||[]):[]}
-function groupDirectoryHtml(){return `<div class="nexa-group-head"><div><div class="tag">GROUPS</div><h3 style="margin:4px 0">Transfer Groups</h3><div class="muted">Group membership stays visible here even after individual players move to Ordinary or Special.</div></div>${canManage?'<button class="btn mini" id="nexaAddGroupInside">+ Add Group</button>':''}</div><div class="nexa-group-list">${groups.map(g=>`<div class="nexa-group-row" data-open-group="${esc(g.id)}"><div class="appTop"><div><b>${esc(g.group_name)}</b><div class="meta">${esc(groupStatus(g))}${g.destination_alliance_tag?' • '+esc(g.destination_alliance_tag):g.new_alliance_tag?' • '+esc(g.new_alliance_tag):''}</div></div><span class="badge">${Number(g.member_count||0)} member${Number(g.member_count||0)===1?'':'s'}</span></div><div class="nexa-group-meta"><span class="nexa-pill">${Number(g.ordinary_count||0)} Ordinary</span><span class="nexa-pill">${Number(g.special_count||0)} Special</span><span class="nexa-pill ${g.status==='approved'?'good':'warn'}">${esc(groupStatus(g))}</span></div></div>`).join('')}</div>`}
+function groupDirectoryHtml(){return `<div class="nexa-group-head"><div><div class="tag">GROUPS</div><h3 style="margin:4px 0">Transfer Groups</h3><div class="muted">Group membership stays visible here even after individual players move to Ordinary or Special.</div></div>${canManage?'<button class="btn mini" id="nexaAddGroupInside">+ Add Group</button>':''}</div><div class="nexa-group-list">${groups.length?groups.map(g=>`<div class="nexa-group-row" data-open-group="${esc(g.id)}"><div class="appTop"><div><b>${esc(g.group_name)}</b><div class="meta">${esc(groupStatus(g))}${g.destination_alliance_tag?' • '+esc(g.destination_alliance_tag):g.new_alliance_tag?' • '+esc(g.new_alliance_tag):''}</div></div><span class="badge">${Number(g.member_count||0)} member${Number(g.member_count||0)===1?'':'s'}</span></div><div class="nexa-group-meta"><span class="nexa-pill">${Number(g.ordinary_count||0)} Ordinary</span><span class="nexa-pill">${Number(g.special_count||0)} Special</span><span class="nexa-pill ${g.status==='approved'?'good':'warn'}">${esc(groupStatus(g))}</span></div></div>`).join(''):'<div class="empty">No transfer groups yet. Use + Add Group to create one.</div>'}</div>`}
 async function renderGroupView(){
  const v=$('nexaGroupView');if(!v)return;v.classList.add('open');
  if(!activeGroup){v.innerHTML=groupDirectoryHtml();$('nexaAddGroupInside')?.addEventListener('click',()=>openGroupEditor(null));v.querySelectorAll('[data-open-group]').forEach(x=>x.onclick=()=>{activeGroup=groups.find(g=>String(g.id)===String(x.dataset.openGroup));renderGroupView()});return}

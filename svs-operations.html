@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS STRATEGY V11.2.4 • export matches preview + full-width PET capture -->
+<!-- NEXA SVS STRATEGY V11.2.5 • clean Pet Schedule + fixed separate Team Layout preview -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -61,6 +61,7 @@ input,select{width:100%;min-height:44px;background:#060b1c;color:#fff;border:1px
   width:100%;
   overflow:hidden;
 }
+#pet-export{display:none!important}
 .pet-preview-inline .layout-sheet{
   min-width:0!important;
   width:100%!important;
@@ -715,7 +716,7 @@ function scheduleDisplayAssignment(rowId,label){
 function renderPet(){
  const h=$('#pet-editor');if(!strategy){h.innerHTML='<span class="muted">Open a strategy first.</span>';$('#pet-export').innerHTML='';return}
  const times=['12:00','13:00','14:00','15:00','16:00','17:00'];
- h.innerHTML=`<div class="pet-grid-wrap"><table class="pet-grid"><thead><tr><th>Assignment</th>${times.map(t=>`<th>${t}</th>`).join('')}</tr></thead><tbody>${petRows.map(r=>`<tr><td><b>${esc(r.slot_label||'Team')}</b><br><span class="tiny muted">${esc(r.purpose||'')}</span></td>${times.map(t=>{const a=scheduleDisplayAssignment(r.id,t);return `<td class="${a?.pets_active?'petactive':a?'rl-neutral':''}">${a?esc(a.player_name):''}</td>`}).join('')}</tr>`).join('')}</tbody></table></div><div class="tiny muted" style="margin-top:8px">Violet = PET ACTIVE • Neutral = assigned Rally Lead without PETS. 17:00 shows the lead carrying the final 16:00–17:00 block into battle close.</div>`;
+ h.innerHTML=`<div class="pet-grid-wrap"><table class="pet-grid"><thead><tr><th>Assignment</th>${times.map(t=>`<th>${t}</th>`).join('')}</tr></thead><tbody>${petRows.map(r=>`<tr><td><b>${esc(r.slot_label||'Team')}</b><br><span class="tiny muted">${esc(r.purpose||'')}</span></td>${times.map(t=>{const a=scheduleDisplayAssignment(r.id,t);return `<td class="${a?.pets_active?'petactive':a?'rl-neutral':''}">${a?esc(a.player_name):''}</td>`}).join('')}</tr>`).join('')}</tbody></table></div><div class="tiny muted" style="margin-top:8px">Violet = PET ACTIVE • Neutral = Assigned without PETS</div>`;
  renderPetExport();
 }
 async function addPet(id){
@@ -733,7 +734,7 @@ async function addPet(id){
 }
 function renderPetExport(){
  const times=['12:00','13:00','14:00','15:00','16:00','17:00'];
- $('#pet-export').innerHTML=`<div id="pet-sheet" class="layout-sheet"><div class="layout-head"><div><div class="tiny muted">NEXA • SvS</div><h2 style="margin:2px 0 10px">Rally Lead Schedule</h2></div></div><div class="pet-grid-wrap"><table class="pet-grid"><thead><tr><th>Assignment</th>${times.map(t=>`<th>${t}</th>`).join('')}</tr></thead><tbody>${petRows.map(r=>`<tr><td><b>${esc(r.slot_label||'Team')}</b><br><span class="tiny muted">${esc(r.purpose||'')}</span></td>${times.map(t=>{const a=scheduleDisplayAssignment(r.id,t);return `<td class="${a?.pets_active?'petactive':a?'rl-neutral':''}">${a?esc(a.player_name):''}</td>`}).join('')}</tr>`).join('')}</tbody></table></div><div class="tiny muted" style="margin-top:8px">Violet = PET ACTIVE • Neutral = assigned without PETS • Team 1 is the PET anchor; extra PET lanes are optional and reserve-aware.</div></div>`;
+ $('#pet-export').innerHTML=`<div id="pet-sheet" class="layout-sheet"><div class="layout-head"><div><div class="tiny muted">NEXA • SvS</div><h2 style="margin:2px 0 10px">Pet Schedule</h2></div></div><div class="pet-grid-wrap"><table class="pet-grid"><thead><tr><th>Assignment</th>${times.map(t=>`<th>${t}</th>`).join('')}</tr></thead><tbody>${petRows.map(r=>`<tr><td><b>${esc(r.slot_label||'Team')}</b><br><span class="tiny muted">${esc(r.purpose||'')}</span></td>${times.map(t=>{const a=scheduleDisplayAssignment(r.id,t);return `<td class="${a?.pets_active?'petactive':a?'rl-neutral':''}">${a?esc(a.player_name):''}</td>`}).join('')}</tr>`).join('')}</tbody></table></div><div class="tiny muted" style="margin-top:8px">Violet = PET ACTIVE • Neutral = Assigned without PETS</div></div>`;
 }
 $('#download-pets').onclick=()=>exportNodes([$('#pet-sheet')],['NEXA-SvS-Pet-Schedule.png']);
 
@@ -1021,9 +1022,28 @@ $('#guide-prev').onclick=()=>{if(guidePage>0){guidePage--;renderGuide()}}
 $('#guide-next').onclick=()=>{if(guidePage<4){guidePage++;renderGuide()}else $('#guide-close').click()}
 
 function openLayoutPreview(){
- renderLayout();const original=$('#team-sheet');if(!original)return say('Open or generate a Strategy first.',true);
- const ov=$('#layout-preview-overlay'),stage=$('#layout-preview-stage');stage.innerHTML='';const clone=original.cloneNode(true);clone.removeAttribute('id');stage.appendChild(clone);ov.classList.add('open');ov.setAttribute('aria-hidden','false');
- const fit=()=>{clone.style.transform='none';clone.style.width='1400px';const naturalW=1400,naturalH=clone.scrollHeight||1,aw=Math.max(1,stage.clientWidth-8),ah=Math.max(1,stage.clientHeight-8),scale=Math.min(1,aw/naturalW,ah/naturalH);clone.style.transform=`scale(${scale})`;clone.style.width=`${1400}px`;stage.style.height=`${Math.ceil(naturalH*scale)+8}px`};
+ renderLayout();
+ const original=$('#team-sheets');
+ if(!original||!original.children.length)return say('Open or generate a Strategy first.',true);
+ const ov=$('#layout-preview-overlay'),stage=$('#layout-preview-stage');
+ stage.innerHTML='';
+ const clone=original.cloneNode(true);
+ clone.removeAttribute('id');
+ stage.appendChild(clone);
+ ov.classList.add('open');
+ ov.setAttribute('aria-hidden','false');
+
+ const fit=()=>{
+   clone.style.transform='none';
+   clone.style.width='1400px';
+   clone.style.transformOrigin='top left';
+   const naturalW=1400;
+   const naturalH=clone.scrollHeight||1;
+   const aw=Math.max(1,stage.clientWidth-8);
+   const scale=Math.min(1,aw/naturalW);
+   clone.style.transform=`scale(${scale})`;
+   stage.style.height=`${Math.ceil(naturalH*scale)+8}px`;
+ };
  requestAnimationFrame(fit);
 }
 $('#preview-layout').onclick=openLayoutPreview;

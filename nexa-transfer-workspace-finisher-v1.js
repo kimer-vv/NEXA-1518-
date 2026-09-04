@@ -1,4 +1,4 @@
-// NEXA TRANSFER WORKSPACE FINISHER V2.2 — SIMPLIFIED GROUP UI / UNDER-REVIEW LOCK / MANUAL TIME BADGES / STABILITY
+// NEXA TRANSFER WORKSPACE FINISHER V2.3 — CLEAN MANUAL TIME INPUT / SIMPLIFIED GROUP UI / STABILITY
 (()=>{
 'use strict';
 
@@ -30,7 +30,7 @@ function injectStyles(){
  .nexa-group-meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:7px}.nexa-pill{display:inline-flex;padding:5px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.12);font-size:9px;font-weight:950}.nexa-pill.good{color:#8df2c3;border-color:rgba(103,227,172,.25)}.nexa-pill.warn{color:#ffe39a;border-color:rgba(255,213,109,.25)}
  .nexa-group-members{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.nexa-member{padding:13px;border-radius:18px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.035);min-width:0}.nexa-member.gold{border-color:rgba(255,213,109,.56);box-shadow:inset 3px 0 0 rgba(255,213,109,.86)}.nexa-member.blue{border-color:rgba(115,207,255,.52);box-shadow:inset 3px 0 0 rgba(115,207,255,.82)}
  .nexa-member-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}.nexa-member-actions select,.nexa-member-actions button{width:100%;min-height:38px;border-radius:11px;border:1px solid rgba(255,255,255,.12);background:#071022;color:#fff;padding:7px;font-size:10px;font-weight:850}.nexa-member-actions .wide{grid-column:1/-1}
- .nexa-copy-id{border:0;background:none;color:#8fefff;padding:0;font-size:10px;font-weight:900}.nexa-inline-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.nexa-manual-wrap{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px;align-items:center}.nexa-manual-wrap button{min-height:34px;border-radius:9px;border:1px solid rgba(89,228,255,.22);background:rgba(89,228,255,.06);color:#bff7ff;font-size:9px;font-weight:900;padding:5px 7px}.nexa-manual-time{width:100%;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#071022;color:#fff;padding:9px;text-align:center}
+ .nexa-copy-id{border:0;background:none;color:#8fefff;padding:0;font-size:10px;font-weight:900}.nexa-inline-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.nexa-manual-wrap{display:grid;grid-template-columns:1fr;gap:7px;align-items:stretch;width:100%}.nexa-manual-wrap button{justify-self:start;min-height:30px;border-radius:9px;border:1px solid rgba(89,228,255,.22);background:rgba(89,228,255,.06);color:#bff7ff;font-size:9px;font-weight:900;padding:5px 9px}.nexa-manual-time{width:100%;min-height:48px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#071022;color:#fff;padding:10px 12px;text-align:left;font-size:16px;font-weight:850;letter-spacing:.03em}
  .nexa-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;padding:10px;border-radius:12px;background:#050b1b;border:1px solid rgba(89,228,255,.16);overflow-wrap:anywhere}.nexa-online-list{display:grid;gap:8px;margin-top:14px}.nexa-online-person{padding:11px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.035);display:flex;justify-content:space-between;gap:10px}
 
  .nexa-member-primary{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
@@ -192,7 +192,7 @@ function enhanceTimeControl(c,key,index,actual){
 }
 function replaceWithManual(select,key,index,value){
  const wrap=document.createElement('div');wrap.className='nexa-manual-wrap';wrap.dataset.manualSlot=`${key}-${index}`;
- const input=document.createElement('input');input.className='nexa-manual-time';input.dataset.sched=key;input.dataset.nexaManualReady='1';input.value=value;input.placeholder='HH:MM';input.inputMode='numeric';
+ const input=document.createElement('input');input.type='text';input.className='nexa-manual-time';input.dataset.sched=key;input.dataset.nexaManualReady='1';input.value=value;input.placeholder='00:00';input.inputMode='numeric';input.autocomplete='off';
  const back=document.createElement('button');back.type='button';back.textContent='Use dropdown';back.onclick=()=>{const sel=document.createElement('select');sel.className='time24';sel.dataset.sched=key;sel.innerHTML=`<option value="">—</option><option value="__manual__">Set Manually</option>`+Array.from({length:48},(_,i)=>{const t=`${String(Math.floor(i/2)).padStart(2,'0')}:${i%2?'30':'00'}`;return`<option value="${t}">${t}</option>`}).join('');wrap.replaceWith(sel);enhanceTimeControl(sel,key,index,'')};
  wrap.append(input,back);select.replaceWith(wrap);
 }

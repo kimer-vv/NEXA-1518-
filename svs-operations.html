@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS STRATEGY V11.1 • renderTeam restore + hourly PET timeline + cross-alliance PET rotation -->
+<!-- NEXA SVS STRATEGY V11.2 • staggered strength + reserve PETS + clean formations + full RL schedule -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -172,11 +172,14 @@ body.pet-preview-open{overflow:hidden!important}
 .join-head{display:grid;grid-template-columns:minmax(80px,.82fr) 1fr 1fr;gap:5px;padding:6px 0 4px;color:#8fa0c5;font-size:9px;font-weight:950;letter-spacing:.08em;text-transform:uppercase}
 .team-title{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .team-x,.mini-x{border:0;background:transparent;color:#ff9aac;font-size:18px;font-weight:950;padding:0 3px;min-width:28px;min-height:28px}
-.formations-board{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:11px;border-top:1px solid rgba(255,255,255,.08)}
-.formation-column{min-width:0}.formation-column-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}.formation-column-head h4{margin:0;font-size:12px;letter-spacing:.08em;text-transform:uppercase}.formation-card{border:1px solid rgba(255,255,255,.11);border-radius:14px;padding:10px;background:rgba(4,8,20,.66);margin-bottom:8px}.formation-card.recommended{border-color:rgba(155,120,255,.58);box-shadow:0 0 18px rgba(139,89,255,.14)}.formation-top{display:flex;justify-content:space-between;align-items:center;gap:8px}.formation-name{font-weight:950}.recommended-badge{font-size:9px;font-weight:950;color:#d9c9ff;border:1px solid rgba(167,123,255,.35);background:rgba(112,70,196,.18);border-radius:999px;padding:4px 6px}.formation-ratio{margin-top:6px;font-weight:950}.formation-heroes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:8px}.formation-hero{text-align:center;min-width:0}.formation-hero img{width:34px;height:34px;border-radius:8px;object-fit:cover;border:1px solid rgba(255,255,255,.12)}.formation-hero b{display:block;font-size:9px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.formation-pct{font-size:10px;color:#aeb7d1;font-weight:900;margin-bottom:3px}
+.formations-wrap{padding:12px;border-top:1px solid rgba(255,255,255,.08)}
+.formations-title{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}.formations-title h4{margin:0;font-size:13px;letter-spacing:.08em;text-transform:uppercase}.formations-title span{font-size:10px;color:#8fa0c5}
+.formations-board{display:grid;grid-template-columns:1fr 1fr;gap:9px}.formation-column{min-width:0}.formation-column-head{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:7px}.formation-column-head strong{font-size:11px;color:#aeb7d1}.formation-column-head .btn{min-height:34px;padding:5px 8px;font-size:10px}
+.formation-card{border:1px solid rgba(255,255,255,.11);border-radius:14px;padding:10px;background:rgba(4,8,20,.66);margin-bottom:8px;min-width:0}.formation-card.recommended{border-color:rgba(155,120,255,.58);box-shadow:0 0 18px rgba(139,89,255,.14)}.formation-top{display:flex;justify-content:space-between;align-items:flex-start;gap:7px}.formation-name{font-weight:950;font-size:12px;line-height:1.2}.recommended-badge{display:inline-block;margin-top:4px;font-size:8px;font-weight:950;color:#d9c9ff;border:1px solid rgba(167,123,255,.35);background:rgba(112,70,196,.18);border-radius:999px;padding:3px 5px}.formation-ratio{margin-top:7px;font-weight:950;font-size:17px}.formation-heroes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin-top:8px}.formation-hero{text-align:center;min-width:0}.formation-hero img{width:32px;height:32px;border-radius:8px;object-fit:cover;border:1px solid rgba(255,255,255,.12)}.formation-hero b{display:block;font-size:9px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.formation-pct{font-size:9px;color:#aeb7d1;font-weight:900;margin-bottom:3px}
+.pet-grid td.rl-neutral{background:rgba(255,255,255,.025)}.pet-grid td.petactive{background:linear-gradient(145deg,rgba(111,66,201,.88),rgba(70,40,138,.82));font-weight:900;box-shadow:inset 0 0 0 1px rgba(196,154,255,.16)}
 .note-editor{display:grid;gap:8px;margin-top:10px}.note-editor textarea{width:100%;min-height:84px;resize:vertical;background:#060b1c;color:#fff;border:1px solid rgba(122,142,203,.26);border-radius:12px;padding:10px;font:inherit}
 .layout-preview-overlay{position:fixed;inset:0;z-index:2147483200;display:none;place-items:center;padding:14px;background:rgba(0,0,0,.76)}.layout-preview-overlay.open{display:grid}.layout-preview-card{width:min(980px,97vw);max-height:88dvh;display:flex;flex-direction:column;border:1px solid rgba(72,221,255,.28);border-radius:20px;background:#050916;padding:10px}.layout-preview-toolbar{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}.layout-preview-stage{overflow:auto;-webkit-overflow-scrolling:touch;border-radius:14px}.layout-preview-stage .layout-sheet{transform-origin:top left;margin:0!important}#team-sheet [data-delete-formation],.layout-preview-stage [data-delete-formation]{display:none!important}.orientation-tip{font-size:10px;color:#aeb7d1;margin:0 0 7px}.glow-violet{border-color:rgba(166,119,255,.66)!important;box-shadow:0 0 16px rgba(144,92,255,.18),inset 0 0 10px rgba(144,92,255,.05)}
-@media(max-width:620px){.formations-board{grid-template-columns:1fr 1fr;gap:7px;padding:8px}.formation-card{padding:8px}.formation-heroes{gap:3px}.formation-hero img{width:29px;height:29px}.formation-column-head{align-items:flex-start;flex-direction:column}.formation-column-head .btn{width:100%;padding:7px;font-size:10px}.layout-preview-card{width:97vw}}
+@media(max-width:620px){.formations-board{grid-template-columns:1fr 1fr;gap:7px}.formations-wrap{padding:8px}.formation-card{padding:8px}.formation-heroes{gap:3px}.formation-hero img{width:28px;height:28px}.formation-column-head{align-items:center}.formation-column-head .btn{width:auto;padding:5px 7px}.layout-preview-card{width:97vw}}
 
 
 .sandbox-on{border-color:rgba(179,123,255,.78)!important;box-shadow:0 0 18px rgba(144,92,255,.28)!important;background:linear-gradient(135deg,rgba(82,45,156,.86),rgba(29,82,121,.72))!important}
@@ -198,7 +201,7 @@ body.pet-preview-open{overflow:hidden!important}
 .team-form-head{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:10px}.team-form-head strong{font-size:10px}
 .team-form-heroes{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}.team-form-heroes span{display:flex;align-items:center;gap:4px;font-size:9px;font-weight:850}.team-form-heroes img{width:22px;height:22px;border-radius:6px;object-fit:cover}
 </style>
-<script src="nexa-battle-strategy-engine.js?v=1.1"></script>
+<script src="nexa-battle-strategy-engine.js?v=1.2"></script>
 <script src="nexa-svs-rules.js?v=1"></script>
 </head>
 <body>
@@ -617,18 +620,24 @@ async function deleteTeam(tid){
 function formationsFor(aid,type){return formations.filter(f=>f.strategy_alliance_id===aid&&f.formation_type===type).sort((a,b)=>a.sort_order-b.sort_order)}
 function formHero(id){return H(id)}
 function formationHeroCell(id,pct){const h=formHero(id);return `<div class="formation-hero"><div class="formation-pct">${esc(pct)}%</div>${h?.image_url?`<img src="${esc(h.image_url)}" alt="">`:''}<b class="${rarityClass(h?.rarity)}">${esc(h?.name||'—')}</b></div>`}
+function formationDisplayName(f){
+ const list=formationsFor(f.strategy_alliance_id,f.formation_type),idx=Math.max(0,list.findIndex(x=>String(x.id)===String(f.id)));
+ const type=f.formation_type==='attack'?'Attack':'Defense';
+ return idx===0?`Main ${type}`:`Alt ${type}${idx>1?` ${idx}`:''}`;
+}
 function formationCard(f){
- const rr=Array.isArray(f.ratio)?f.ratio:[49,2,49];
- return `<div class="formation-card ${f.is_recommended?'recommended':''}"><div class="formation-top"><div><span class="formation-name">${esc(f.name)}</span>${f.is_recommended?'<span class="recommended-badge">NEXA Recommended</span>':''}</div><button class="mini-x" data-delete-formation="${f.id}" type="button">×</button></div><div class="formation-ratio">${f.formation_type==='attack'?'⚔':'🛡'} ${rr.join(' / ')}</div><div class="formation-heroes">${formationHeroCell(f.hero_infantry_id,rr[0])}${formationHeroCell(f.hero_lancer_id,rr[1])}${formationHeroCell(f.hero_marksman_id,rr[2])}</div></div>`
+ const rr=Array.isArray(f.ratio)?f.ratio:[49,2,49],label=formationDisplayName(f);
+ return `<div class="formation-card ${f.is_recommended?'recommended':''}"><div class="formation-top"><div><span class="formation-name">${esc(label)}</span>${f.is_recommended?'<br><span class="recommended-badge">Recommended</span>':''}</div><button class="mini-x" data-delete-formation="${f.id}" type="button">×</button></div><div class="formation-ratio">${f.formation_type==='attack'?'⚔':'🛡'} ${rr.join(' / ')}</div><div class="formation-heroes">${formationHeroCell(f.hero_infantry_id,rr[0])}${formationHeroCell(f.hero_lancer_id,rr[1])}${formationHeroCell(f.hero_marksman_id,rr[2])}</div></div>`
 }
 function renderFormationBoard(a){
- return `<div class="formations-board"><div class="formation-column"><div class="formation-column-head"><h4>⚔ Attack Formations</h4><button class="btn" data-add-formation="attack" data-aid="${a.id}" type="button">+ Attack</button></div>${formationsFor(a.id,'attack').map(formationCard).join('')||'<div class="muted tiny">No Attack formations yet.</div>'}</div><div class="formation-column"><div class="formation-column-head"><h4>🛡 Defense Formations</h4><button class="btn" data-add-formation="defense" data-aid="${a.id}" type="button">+ Defense</button></div>${formationsFor(a.id,'defense').map(formationCard).join('')||'<div class="muted tiny">No Defense formations yet.</div>'}</div></div>`
+ const atk=formationsFor(a.id,'attack'),def=formationsFor(a.id,'defense');
+ return `<div class="formations-wrap"><div class="formations-title"><h4>Rally Lead Formations</h4><span>Main + optional alternatives</span></div><div class="formations-board"><div class="formation-column"><div class="formation-column-head"><strong>⚔ Attack</strong><button class="btn" data-add-formation="attack" data-aid="${a.id}" type="button">${atk.length?'+ Alt':'+ Add'}</button></div>${atk.map(formationCard).join('')||'<div class="muted tiny">No attack preset yet.</div>'}</div><div class="formation-column"><div class="formation-column-head"><strong>🛡 Defense</strong><button class="btn" data-add-formation="defense" data-aid="${a.id}" type="button">${def.length?'+ Alt':'+ Add'}</button></div>${def.map(formationCard).join('')||'<div class="muted tiny">No defense preset yet.</div>'}</div></div></div>`
 }
 async function addFormation(aid,type){
- const list=formationsFor(aid,type),defRatio=type==='attack'?[49,2,49]:[40,0,60],letter=String.fromCharCode(65+list.length);
+ const list=formationsFor(aid,type),defRatio=type==='attack'?[49,2,49]:[40,0,60],letter=String.fromCharCode(65+list.length),defaultName=list.length?`Alt ${type==='attack'?'Attack':'Defense'}`:`Main ${type==='attack'?'Attack':'Defense'}`;
  const rec=rallyFormationRecommendation(type),hi=rec.infantry,hl=rec.lancer,hm=rec.marksman;
- modal(`Add ${type==='attack'?'Attack':'Defense'} Formation`,`<div class="grid2"><label>Name<input id="fm-name" value="${type==='attack'?'Attack':'Defense'} ${letter}"></label><label>Ratio<input id="fm-ratio" value="${defRatio.join(' / ')}"></label></div><div class="grid3" style="margin-top:9px"><label>Hero 1<select id="fm-i">${heroOptionsTroop('infantry',hi?.id||'')}</select></label><label>Hero 2<select id="fm-l">${heroOptionsTroop('lancer',hl?.id||'')}</select></label><label>Hero 3<select id="fm-m">${heroOptionsTroop('marksman',hm?.id||'')}</select></label></div><label style="margin-top:9px">Recommendation<select id="fm-rec"><option value="no">Normal Preset</option><option value="yes">NEXA Recommended</option></select></label><div class="select-note" style="margin-top:7px">NEXA reads the current evidence registry for this State generation, can mix older heroes when the supported lineup is stronger, and enforces troop-type constraints such as required Lancer presence.</div>`,async ov=>{
-   const r=parseRatio($('#fm-ratio',ov).value,defRatio),name=$('#fm-name',ov).value.trim()||`${type} ${letter}`;
+ modal(`Add ${type==='attack'?'Attack':'Defense'} Formation`,`<div class="grid2"><label>Name<input id="fm-name" value="${defaultName}"></label><label>Ratio<input id="fm-ratio" value="${defRatio.join(' / ')}"></label></div><div class="grid3" style="margin-top:9px"><label>Hero 1<select id="fm-i">${heroOptionsTroop('infantry',hi?.id||'')}</select></label><label>Hero 2<select id="fm-l">${heroOptionsTroop('lancer',hl?.id||'')}</select></label><label>Hero 3<select id="fm-m">${heroOptionsTroop('marksman',hm?.id||'')}</select></label></div><label style="margin-top:9px">Recommendation<select id="fm-rec"><option value="no">Normal Preset</option><option value="yes">NEXA Recommended</option></select></label><div class="select-note" style="margin-top:7px">NEXA reads the current evidence registry for this State generation, can mix older heroes when the supported lineup is stronger, and enforces troop-type constraints such as required Lancer presence.</div>`,async ov=>{
+   const r=parseRatio($('#fm-ratio',ov).value,defRatio),name=$('#fm-name',ov).value.trim()||defaultName;
    const {error}=await sb.from('svs_rally_formations').insert({strategy_alliance_id:aid,formation_type:type,name,ratio:r,hero_infantry_id:$('#fm-i',ov).value||null,hero_lancer_id:$('#fm-l',ov).value||null,hero_marksman_id:$('#fm-m',ov).value||null,is_recommended:$('#fm-rec',ov).value==='yes',sort_order:list.length});if(error)throw error;await openStrategy(strategy.id);
  });
 }
@@ -686,9 +695,15 @@ async function addJoiner(tid){
 
 $('#rows-from-teams').onclick=async()=>{if(!strategy)return say('Open a strategy first.',true);const ex=new Set(petRows.map(x=>x.source_team_id).filter(Boolean)),todo=teams.filter(x=>!ex.has(x.id));if(!todo.length)return say('Every Team already has a Pet Schedule row.');const {error}=await sb.from('svs_pet_schedule_rows').insert(todo.map((t,i)=>({strategy_id:strategy.id,strategy_alliance_id:t.strategy_alliance_id,source_team_id:t.id,sort_order:petRows.length+i})));if(error)return say(error.message,true);await openStrategy(strategy.id);say('Rows created. Assign each Purpose manually.')}
 $('#add-pet-row').onclick=async()=>{if(!strategy)return say('Open a strategy first.',true);const {error}=await sb.from('svs_pet_schedule_rows').insert({strategy_id:strategy.id,sort_order:petRows.length});if(error)return say(error.message,true);await openStrategy(strategy.id)}
+function scheduleDisplayAssignment(rowId,label){
+ const ms=minutesOf(label),list=petAssignments.filter(x=>x.row_id===rowId).sort((a,b)=>minutesOf(a.start_utc)-minutesOf(b.start_utc));
+ if(label==='17:00')return list.find(x=>minutesOf(x.end_utc)===ms)||null;
+ return list.find(x=>minutesOf(x.start_utc)<=ms&&minutesOf(x.end_utc)>ms)||null;
+}
 function renderPet(){
  const h=$('#pet-editor');if(!strategy){h.innerHTML='<span class="muted">Open a strategy first.</span>';$('#pet-export').innerHTML='';return}
- h.innerHTML=petRows.map(r=>`<div class="strategy-alliance" data-pr="${r.id}" style="padding:11px"><div><b>${esc(r.slot_label||'Pet lane')}</b><div class="tiny muted">${esc(r.purpose||'')}</div></div>${petAssignments.filter(x=>x.row_id===r.id).map(x=>`<div class="rally ${x.pets_active?'pet':''}" style="margin-top:7px"><div><b>${esc(x.player_name)}</b><div class="tiny">${esc(x.start_utc)}–${esc(x.end_utc)}</div></div></div>`).join('')}</div>`).join('')||'<div class="muted">No rows yet.</div>';
+ const times=['12:00','13:00','14:00','15:00','16:00','17:00'];
+ h.innerHTML=`<div class="pet-grid-wrap"><table class="pet-grid"><thead><tr><th>Assignment</th>${times.map(t=>`<th>${t}</th>`).join('')}</tr></thead><tbody>${petRows.map(r=>`<tr><td><b>${esc(r.slot_label||'Team')}</b><br><span class="tiny muted">${esc(r.purpose||'')}</span></td>${times.map(t=>{const a=scheduleDisplayAssignment(r.id,t);return `<td class="${a?.pets_active?'petactive':a?'rl-neutral':''}">${a?esc(a.player_name):''}</td>`}).join('')}</tr>`).join('')}</tbody></table></div><div class="tiny muted" style="margin-top:8px">Violet = PET ACTIVE • Neutral = assigned Rally Lead without PETS. 17:00 shows the lead carrying the final 16:00–17:00 block into battle close.</div>`;
  renderPetExport();
 }
 async function addPet(id){
@@ -705,9 +720,8 @@ async function addPet(id){
  const petsSel=$('#m-pet-on',ov),startSel=$('#m-pet-start',ov),endSel=$('#m-pet-end',ov);const sync=()=>{if(petsSel.value==='yes'){endSel.value=timeFromMinutes(minutesOf(startSel.value)+120);endSel.disabled=true}else endSel.disabled=false};petsSel.onchange=sync;startSel.onchange=sync;
 }
 function renderPetExport(){
- const starts=['12:00','13:00','14:00','15:00','16:00','17:00'];
- const covers=(x,t)=>minutesOf(x.start_utc)<=minutesOf(t)&&minutesOf(x.end_utc)>minutesOf(t);
- $('#pet-export').innerHTML=`<div id="pet-sheet" class="layout-sheet"><div class="layout-head"><div><div class="tiny muted">NEXA • SvS</div><h2 style="margin:2px 0 10px">Pet Schedule</h2></div></div><div class="pet-grid-wrap"><table class="pet-grid"><thead><tr><th>Assignment</th>${starts.map(t=>`<th>${esc(t)}</th>`).join('')}</tr></thead><tbody>${petRows.map(r=>`<tr><td><b>${esc(r.slot_label||'Pet lane')}</b></td>${starts.map(t=>{const a=petAssignments.find(x=>x.row_id===r.id&&covers(x,t));return `<td class="${a?.pets_active?'petactive':''}">${a?`${esc(a.player_name)}${a.pets_active?' 🐾':''}`:''}</td>`}).join('')}</tr>`).join('')}</tbody></table></div><div class="tiny muted" style="margin-top:8px">🐾 PET ACTIVE • A player may switch Alliance/Team after one hour while remaining inside the same continuous 2-hour activation.</div></div>`;
+ const times=['12:00','13:00','14:00','15:00','16:00','17:00'];
+ $('#pet-export').innerHTML=`<div id="pet-sheet" class="layout-sheet"><div class="layout-head"><div><div class="tiny muted">NEXA • SvS</div><h2 style="margin:2px 0 10px">Rally Lead Schedule</h2></div></div><div class="pet-grid-wrap"><table class="pet-grid"><thead><tr><th>Assignment</th>${times.map(t=>`<th>${t}</th>`).join('')}</tr></thead><tbody>${petRows.map(r=>`<tr><td><b>${esc(r.slot_label||'Team')}</b><br><span class="tiny muted">${esc(r.purpose||'')}</span></td>${times.map(t=>{const a=scheduleDisplayAssignment(r.id,t);return `<td class="${a?.pets_active?'petactive':a?'rl-neutral':''}">${a?esc(a.player_name):''}</td>`}).join('')}</tr>`).join('')}</tbody></table></div><div class="tiny muted" style="margin-top:8px">Violet = PET ACTIVE • Neutral = assigned without PETS • Team 1 is the PET anchor; extra PET lanes are optional and reserve-aware.</div></div>`;
 }
 $('#download-pets').onclick=()=>download($('#pet-sheet'),'NEXA-SvS-Pet-Schedule.png');
 
@@ -761,11 +775,17 @@ function renderRecommendations(items,title='NEXA Strategy Analysis'){
 }
 
 async function clearCurrentDraft(){
- const aids=alliances.map(a=>a.id),tids=teams.map(t=>t.id),rowIds=petRows.map(r=>r.id);
- if(rowIds.length)await sb.from('svs_pet_schedule_assignments').delete().in('row_id',rowIds);
- if(petRows.length)await sb.from('svs_pet_schedule_rows').delete().eq('strategy_id',strategy.id);
- if(tids.length){await sb.from('svs_strategy_joiners').delete().in('team_id',tids);await sb.from('svs_strategy_rally_slots').delete().in('team_id',tids);await sb.from('svs_strategy_teams').delete().in('id',tids)}
- if(aids.length){await sb.from('svs_rally_formations').delete().in('strategy_alliance_id',aids);await sb.from('svs_strategy_alliances').delete().eq('strategy_id',strategy.id)}
+ const aa=await sb.from('svs_strategy_alliances').select('id').eq('strategy_id',strategy.id);if(aa.error)throw aa.error;
+ const aids=(aa.data||[]).map(x=>x.id);
+ const tr=aids.length?await sb.from('svs_strategy_teams').select('id').in('strategy_alliance_id',aids):{data:[],error:null};if(tr.error)throw tr.error;
+ const tids=(tr.data||[]).map(x=>x.id);
+ const pr=await sb.from('svs_pet_schedule_rows').select('id').eq('strategy_id',strategy.id);if(pr.error)throw pr.error;
+ const rowIds=(pr.data||[]).map(x=>x.id);
+ if(rowIds.length){const d=await sb.from('svs_pet_schedule_assignments').delete().in('row_id',rowIds);if(d.error)throw d.error}
+ if(rowIds.length){const d=await sb.from('svs_pet_schedule_rows').delete().in('id',rowIds);if(d.error)throw d.error}
+ if(tids.length){let d=await sb.from('svs_strategy_joiners').delete().in('team_id',tids);if(d.error)throw d.error;d=await sb.from('svs_strategy_rally_slots').delete().in('team_id',tids);if(d.error)throw d.error;d=await sb.from('svs_strategy_teams').delete().in('id',tids);if(d.error)throw d.error}
+ if(aids.length){let d=await sb.from('svs_rally_formations').delete().in('strategy_alliance_id',aids);if(d.error)throw d.error;d=await sb.from('svs_strategy_alliances').delete().in('id',aids);if(d.error)throw d.error}
+ alliances=[];teams=[];rally=[];joiners=[];petRows=[];petAssignments=[];formations=[];
 }
 
 async function clearAllianceDraft(aid){
@@ -848,40 +868,43 @@ async function runAssist(){
      start_utc:a.start,end_utc:a.end,pets_active:!!a.petsActive,sort_order:Number(a.start.slice(0,2))
    });
  }
- // Pet Schedule mirrors the engine's true hourly PET timeline. A 2h activation may switch Alliance/Team after one hour.
+ // Rally Lead Schedule: every Team appears, with violet only when that hourly assignment has PETS active.
  const petRowMap=new Map();
- for(const lane of (plan?.lanes||[])){
-   const t=teamRowsByAlliance[lane.allianceIndex]?.[lane.teamIndex];if(!t)continue;
-   const key=`${lane.allianceIndex}:${lane.teamIndex}`;
-   const row=await sb.from('svs_pet_schedule_rows').insert({
-     strategy_id:strategy.id,strategy_alliance_id:saRows[lane.allianceIndex].id,source_team_id:t.id,purpose:null,
-     slot_label:`${t.name}${lane.teamIndex===0?' • Primary Pet Team':' • Secondary Pet Team'}`,sort_order:lane.allianceIndex*10+lane.teamIndex
-   }).select().single();
-   if(!row.error)petRowMap.set(key,row.data.id);
+ const tacticalPurpose=(ai,ti)=>ai===0&&ti===0?'Garrison':ai===0&&ti===1?'Handoff / Counter':'Counter';
+ for(let ai=0;ai<teamRowsByAlliance.length;ai++){
+   for(let ti=0;ti<(teamRowsByAlliance[ai]||[]).length;ti++){
+     const t=teamRowsByAlliance[ai][ti],tag=saRows[ai]?.alliance_tag||`Alliance ${ai+1}`,key=`${ai}:${ti}`,purpose=tacticalPurpose(ai,ti);
+     const row=await sb.from('svs_pet_schedule_rows').insert({strategy_id:strategy.id,strategy_alliance_id:saRows[ai].id,source_team_id:t.id,purpose,slot_label:`${tag} T${ti+1}`,sort_order:ai*10+ti}).select().single();
+     if(row.error)return say(row.error.message,true);petRowMap.set(key,row.data.id);
+   }
  }
- for(const x of (plan?.petTimeline||[])){
+ for(const x of scheduleAssignments){
    const rowId=petRowMap.get(`${x.allianceIndex}:${x.teamIndex}`);if(!rowId)continue;
-   await sb.from('svs_pet_schedule_assignments').insert({
-     row_id:rowId,player_account_id:x.lead.id||null,player_name:x.lead.in_game_name,
-     start_utc:x.start,end_utc:x.end,pets_active:true,sort_order:Number(x.start.slice(0,2))
-   });
+   const ins=await sb.from('svs_pet_schedule_assignments').insert({row_id:rowId,player_account_id:x.lead.id||null,player_name:x.lead.in_game_name,start_utc:x.start,end_utc:x.end,pets_active:!!x.petsActive,sort_order:Number(x.start.slice(0,2))});
+   if(ins.error)return say(ins.error.message,true);
  }
  // Automatic Rally Lead hero + troop formations. Save failures are surfaced.
  const atk=rallyFormationRecommendation('attack'),def=rallyFormationRecommendation('defense'),formationErrors=[];
- for(let ai=0;ai<saRows.length;ai++){const {error}=await sb.from('svs_rally_formations').insert([{strategy_alliance_id:saRows[ai].id,formation_type:'attack',name:'Attack • NEXA Recommended',ratio:atk.ratio,hero_infantry_id:atk.infantry?.id||null,hero_lancer_id:atk.lancer?.id||null,hero_marksman_id:atk.marksman?.id||null,is_recommended:true,sort_order:0},{strategy_alliance_id:saRows[ai].id,formation_type:'defense',name:'Defense • NEXA Recommended',ratio:def.ratio,hero_infantry_id:def.infantry?.id||null,hero_lancer_id:def.lancer?.id||null,hero_marksman_id:def.marksman?.id||null,is_recommended:true,sort_order:0}]);if(error)formationErrors.push(`${saRows[ai].alliance_tag}: ${error.message}`)}
+ for(let ai=0;ai<saRows.length;ai++){const {error}=await sb.from('svs_rally_formations').insert([{strategy_alliance_id:saRows[ai].id,formation_type:'attack',name:'Main Attack',ratio:atk.ratio,hero_infantry_id:atk.infantry?.id||null,hero_lancer_id:atk.lancer?.id||null,hero_marksman_id:atk.marksman?.id||null,is_recommended:true,sort_order:0},{strategy_alliance_id:saRows[ai].id,formation_type:'defense',name:'Main Defense',ratio:def.ratio,hero_infantry_id:def.infantry?.id||null,hero_lancer_id:def.lancer?.id||null,hero_marksman_id:def.marksman?.id||null,is_recommended:true,sort_order:0}]);if(error)formationErrors.push(`${saRows[ai].alliance_tag}: ${error.message}`)}
  await openStrategy(strategy.id);
  const structure=saRows.map((a,i)=>`${a.alliance_tag}: ${teamCounts[i]} Team${teamCounts[i]===1?'':'s'}`).join(' • '),fills=leadAssignments.map(a=>teamJoiners.get(a.team.id)?.fill||0),avgFill=fills.length?Math.round(fills.reduce((s,n)=>s+n,0)/fills.length*100):0;
  renderRecommendations([
    `<b>Structure:</b> ${saRows.map((a,i)=>`${a.alliance_tag}: ${teamRowsByAlliance[i]?.length||0} Team${(teamRowsByAlliance[i]?.length||0)===1?'':'s'}`).join(' • ')}.`,
-   `<b>Coverage:</b> ${plan?.coverage?.every(x=>x.complete)?'all generated Teams are covered 12:00–17:00 and Team 1 has continuous PET coverage in every Alliance; 2-hour PET owners may switch Alliance/Team after one hour.':'NEXA detected a coverage limitation; review the schedule before publishing.'}`,
-   `<b>Rally Leads:</b> ${rlPool.length} available • ${activeRL.length} used strategically • ${floatingRL.length} floating/reserve${floatingRL.length?' (not forced into leadership)':''}.`,
-   `<b>Team 2 PETS:</b> ${plan?.coverage?.some(x=>x.team2PetEnabled)?'enabled where roster depth supports a second continuous PET lane.':'not forced; Team 1 remains the PET priority.'}`,
+   `<b>Coverage:</b> ${plan?.coverage?.every(x=>x.complete)?'all generated Teams are covered 12:00–17:00. Team 1 is the PET anchor; NEXA staggers top Rally Leads across opening, mid and closing blocks instead of spending every strong PET early.':'NEXA detected a coverage limitation; review the schedule before publishing.'}`,
+   `<b>Rally Leads:</b> ${rlPool.length} available • ${activeRL.length} used • ${floatingRL.length} floating/reserve${floatingRL.length?' (protected from forced PET use)':''}.`,
+   `<b>Extra PETS:</b> ${plan?.coverage?.some(x=>x.team2PetEnabled)?'used selectively where roster depth still leaves a reserve.':'held back; Team 1 remains the PET priority and reserves are protected.'}`,
    `<b>Capacity:</b> active Teams are limited by Rally Capacity + Joiner Deployment Capacity. Extra rally-capable players may remain floating or be used as Joiners.`,
    `<b>Join First:</b> A = Primary hero. B = Formation B hero when a second formation exists; otherwise B = owned backup/interchangeable hero.`
  ]);
  say(formationErrors.length?'Strategy generated, but formation save needs attention.':'NEXA strategy generated.');
 }
-$('#run-assist').onclick=runAssist;
+let assistRunLock=false;
+async function guardedRunAssist(){
+ if(assistRunLock)return say('NEXA is already generating this strategy.');
+ assistRunLock=true;const b=$('#run-assist');if(b)b.disabled=true;
+ try{await runAssist()}catch(e){say(e?.message||String(e),true)}finally{assistRunLock=false;if(b)b.disabled=false}
+}
+$('#run-assist').onclick=guardedRunAssist;
 $('#start-manual').onclick=async()=>{
  if(!strategy){const r=await sb.from('svs_strategies').insert({state_number:state,name:'Manual SvS Strategy',build_flow:'manual'}).select().single();if(r.error)return say(r.error.message,true);strategy=r.data;await loadStrategies();await openStrategy(strategy.id)}
  await sb.from('svs_strategies').update({build_flow:'manual'}).eq('id',strategy.id);

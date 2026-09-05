@@ -1,4 +1,4 @@
-// NEXA Brain Research v1.2 — generation-safe pipeline + safe stage diagnostics
+// NEXA Brain Research v1.3 — generation-safe research + evidence-gated joiners + manual approval only
 // Vercel env required: OPENAI_API_KEY, SUPABASE_SERVICE_ROLE_KEY, CRON_SECRET
 const SB='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const MODEL=process.env.NEXA_RESEARCH_MODEL||'gpt-5.6-terra';
@@ -54,6 +54,36 @@ function resolveGeneration(rows){
     return false;
   });
   return Math.max(0,...eligible.map(r=>Number(r.generation||0)));
+}
+
+function slugPart(v){
+  return String(v||'')
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[^a-z0-9]+/g,'_')
+    .replace(/^_+|_+$/g,'')
+    .slice(0,28);
+}
+
+function researchRuleKey(generation,mode,leaders,ratio){
+  const heroKey=(leaders||[]).map(slugPart).filter(Boolean).join('_');
+  const ratioKey=(ratio||[]).map(Number).join('_');
+  return `research_g${generation}_${slugPart(mode)}_${heroKey}_${ratioKey}`.slice(0,120);
+}
+
+function vettedJoiners(evidence,role){
+  const allowedRelevance=new Set(['tested_with_gen10','explicitly_recommended_for_gen10']);
+  const rows=(evidence||[]).filter(x=>x?.role===role && x?.hero);
+
+  return [...new Set(
+    rows.filter(x=>{
+      const groups=new Set((x.independent_groups||[]).map(String).filter(Boolean));
+      const urls=[...(x.source_urls||[])].filter(Boolean);
+      return allowedRelevance.has(x.generation_relevance)
+        && groups.size>=2
+        && urls.length>=2;
+    }).map(x=>String(x.hero).trim()).filter(Boolean)
+  )];
 }
 
 export default async function handler(req,res){
@@ -135,6 +165,14 @@ Use broad independent web research, including YouTube gameplay where useful, gam
 
 Rules:
 - Do not use heroes from any generation higher than ${generation}.
+- Research the CURRENT Gen ${generation} meta, not generic old joiner lists.
+- A legacy hero is NOT a valid current backup merely because its expedition skill was historically popular.
+- Do not include a primary or backup joiner unless you can tie that hero to CURRENT Gen ${generation} rally use through at least 2 independent evidence groups and at least 2 source URLs.
+- Mark each joiner recommendation with generation_relevance:
+  * tested_with_gen10 = visible/current Gen ${generation} battle use or test
+  * explicitly_recommended_for_gen10 = an independent source explicitly recommends it for Gen ${generation}
+  * legacy_skill_only = only generic/older skill logic; NEXA will reject these from operational joiner fields
+- If a backup pool cannot be corroborated at current Gen ${generation}, return an empty backup_joiner_pool. NEVER fill it with familiar names just to have backups.
 - Do not trust a claim merely because many pages copied the same source.
 - Identify independent evidence groups.
 - Prefer direct gameplay, battle reports, visible rally compositions, tested comparisons, and multiple independent creators.
@@ -154,6 +192,16 @@ Return exactly this shape:
    "primary_ratio":[0,0,0],
    "joiner_primary":["hero","hero","hero","hero"],
    "backup_joiner_pool":["hero","..."],
+   "joiner_evidence":[
+     {
+       "hero":"hero",
+       "role":"primary|backup",
+       "generation_relevance":"tested_with_gen10|explicitly_recommended_for_gen10|legacy_skill_only",
+       "independent_groups":["origin_a","origin_b"],
+       "source_urls":["https://...","https://..."],
+       "why":"why this hero is relevant specifically to current Gen ${generation}"
+     }
+   ],
    "alternative_formations":[
      {
        "leader_heroes":["hero","hero","hero"],
@@ -224,31 +272,40 @@ Return exactly this shape:
 
       const confidence=Math.max(0,Math.min(1,Number(f.confidence||0)));
 
+      // NEXA Brain never auto-approves. Research can only become
+      // Candidate or Corroborated; a human must approve it in Formations.
       let approval_status='candidate';
       let evidence_status='experimental';
-      let active=false;
+      const active=false;
 
-      if(confidence>=.90&&independent>=4&&src.length>=5&&direct>=2){
-        approval_status='approved';
-        evidence_status='verified';
-        active=true;
-      }else if(confidence>=.72&&independent>=3&&src.length>=3){
+      if(confidence>=.72&&independent>=3&&src.length>=3){
         approval_status='corroborated';
         evidence_status='cross_checked';
       }
+
+      const joinerEvidence=Array.isArray(f.joiner_evidence)?f.joiner_evidence:[];
+      const vettedPrimary=vettedJoiners(joinerEvidence,'primary');
+      const vettedBackup=vettedJoiners(joinerEvidence,'backup');
+
+      const stableRuleKey=researchRuleKey(
+        generation,
+        f.mode,
+        f.leader_heroes||[],
+        ratio
+      );
 
       const row={
         generation,
         event_scope:'pvp_rally',
         mode:f.mode,
-        rule_key:f.rule_key,
+        rule_key:stableRuleKey,
         leader_heroes:f.leader_heroes||[],
         primary_ratio:ratio,
         alternative_ratios:[],
         alternative_formations:f.alternative_formations||[],
-        joiner_primary:f.joiner_primary||[],
-        joiner_alternatives:f.backup_joiner_pool||[],
-        backup_joiner_pool:f.backup_joiner_pool||[],
+        joiner_primary:vettedPrimary,
+        joiner_alternatives:vettedBackup,
+        backup_joiner_pool:vettedBackup,
         constraints:{max_generation:generation},
         confidence,
         evidence_status,
@@ -262,17 +319,33 @@ Return exactly this shape:
           sources:src,
           direct_evidence_count:direct,
           model:MODEL,
-          researched_generation:generation
+          researched_generation:generation,
+          model_rule_key:f.rule_key||null,
+          raw_joiner_primary:f.joiner_primary||[],
+          raw_backup_joiner_pool:f.backup_joiner_pool||[],
+          joiner_evidence:joinerEvidence,
+          vetted_joiner_primary:vettedPrimary,
+          vetted_backup_joiner_pool:vettedBackup,
+          joiner_gate:{
+            min_independent_groups:2,
+            min_source_urls:2,
+            allowed_generation_relevance:[
+              'tested_with_gen10',
+              'explicitly_recommended_for_gen10'
+            ]
+          }
         },
         last_researched_at:new Date().toISOString(),
         next_research_at:new Date(Date.now()+3*86400000).toISOString(),
         approval_status,
         is_active:active,
         is_manual:false,
-        verified_at:approval_status==='approved'?new Date().toISOString():null,
+        verified_at:null,
         updated_at:new Date().toISOString()
       };
 
+      // Research rows use a dedicated stable research_* key so Brain cannot
+      // overwrite an existing manual/approved canonical formation.
       const q='nexa_battle_meta_rules?on_conflict=generation,event_scope,mode,rule_key';
       const out=await sb(q,{method:'POST',body:row});
       saved.push(out?.[0]||row);

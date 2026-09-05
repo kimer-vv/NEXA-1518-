@@ -1,4 +1,4 @@
-// NEXA TRANSFER WORKSPACE FINISHER V3.0 — I18N V1.1 / COMPLETE GUIDES / PERSISTENT GROUPS
+// NEXA TRANSFER WORKSPACE FINISHER V3.1 — I18N V1.2 / MOBILE PROFILE FIX / PERSISTENT GROUPS
 (()=>{
 'use strict';
 
@@ -20,7 +20,7 @@ async function copyText(t,b){try{await navigator.clipboard.writeText(String(t||'
 function ensureWorkspaceI18n(){
  if(window.NEXA_TRANSFER_WORKSPACE_I18N){window.NEXA_TRANSFER_WORKSPACE_I18N.apply?.(document);return}
  if(document.getElementById('nexaWorkspaceI18nV1'))return;
- const s=document.createElement('script');s.id='nexaWorkspaceI18nV1';s.src='nexa-transfer-workspace-i18n-v1.js?v=1.1';s.defer=true;document.head.appendChild(s);
+ const s=document.createElement('script');s.id='nexaWorkspaceI18nV1';s.src='nexa-transfer-workspace-i18n-v1.js?v=1.2';s.defer=true;document.head.appendChild(s);
 }
 function ensureApplicantsGroupsGuide(){
  const ul=document.querySelector('#appHelpModal .guide ul');if(!ul||ul.querySelector('[data-nexa-groups-guide]'))return;

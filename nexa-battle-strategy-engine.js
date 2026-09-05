@@ -1,7 +1,7 @@
-/* NEXA Battle Strategy Engine v1.9
+/* NEXA Battle Strategy Engine v2.0
    Shared battle brain for SvS / FDT / TAL / Matchup Lab.
    Approved formation catalog + resilient Join First/backup pools + FULL-USE purpose-aware PET scheduler.
-   v1.9: full PET-carrier use + pre/post-PET same-lane rotation safety.
+   v2.0: hard continuous Main Team 1 PET lane + strategic Counter distribution + pre/post-PET lane safety.
 */
 (()=> {
   'use strict';
@@ -200,107 +200,108 @@
     const slots=[];
     for(let ai=0;ai<teamCounts.length;ai++){
       for(let ti=0;ti<Number(teamCounts[ai]||0);ti++){
-        slots.push({
-          allianceIndex:ai,
-          teamIndex:ti,
-          key:`${ai}:${ti}`,
-          purpose:tacticalPurpose(ai,ti,primaryIndex)
-        });
+        slots.push({allianceIndex:ai,teamIndex:ti,key:`${ai}:${ti}`,purpose:tacticalPurpose(ai,ti,primaryIndex)});
       }
     }
-    const petEligible=slots.filter(s=>s.purpose!=='Handoff');
+    const garrison=slots.find(s=>s.purpose==='Garrison')||null;
+    const handoff=slots.find(s=>s.purpose==='Handoff')||null;
     const counterSlots=slots.filter(s=>s.purpose==='Counter');
+    const petEligible=slots.filter(s=>s.purpose!=='Handoff');
     if(!leads.length||!slots.length)return{
       assignments:[],petTimeline:[],petWindows:[],floating:leads,active:[],coverage:[],petCurve:[],hours:[]
     };
 
-    /*
-      v1.9 FULL-USE PET RULE
-      ---------------------
-      - Every Rally Lead gets one PET window whenever the graph has a legal lane/time for it.
-      - Reserve means WHEN the RL activates, never "leave the PET unused."
-      - PET windows are always continuous for petDurationHours on ONE Team.
-      - Primary Team 2 Handoff is never PET-eligible.
-      - Legal starts for 12â17 with 2h duration are 12,13,14,15. Never 16â18 truncated.
-    */
-    const desiredWindows=petEligible.length?leads.length:0;
-    const starts=petStartOrder(startHour,endHour,desiredWindows,petDurationHours);
-    const windows=leads.slice(0,desiredWindows).map((lead,i)=>({
-      id:`${leadKey(lead)}:${starts[i]}:${i}`,
-      lead,
-      start:starts[i],
-      end:starts[i]+petDurationHours,
-      strength:petCarrierScore(lead),
-      slot:null
-    }));
-
-    const overlapsWindow=(a,b)=>a.start<b.end&&b.start<a.end;
+    const windows=[];
     const assignedWindows=[];
-
-    const canUseSlot=(slot,w)=>!assignedWindows.some(x=>
-      x.slot?.key===slot.key && overlapsWindow(x,w)
-    );
-
-    const slotLoad=(slot)=>assignedWindows
-      .filter(x=>x.slot?.key===slot.key)
-      .reduce((sum,x)=>sum+(x.end-x.start),0);
-
-    const slotWindowCount=(slot)=>assignedWindows.filter(x=>x.slot?.key===slot.key).length;
-
-    const chooseSlot=(w,candidates)=>{
-      return candidates
-        .filter(s=>s.purpose!=='Handoff'&&canUseSlot(s,w))
-        .map(s=>{
-          const load=slotLoad(s);
-          const activations=slotWindowCount(s);
-          const otherAlliance=s.allianceIndex!==primaryIndex?18:0;
-          const primaryCounter=s.allianceIndex===primaryIndex&&s.teamIndex>=2?10:0;
-          const edge=(w.start===startHour||w.end===endHour)?14:0;
-          const depthTie=Math.max(0,4-s.teamIndex);
-          return {...s,_score:180+otherAlliance+primaryCounter+edge+depthTie-load*28-activations*20};
-        })
-        .sort((a,b)=>b._score-a._score)[0]||null;
+    const overlapsWindow=(a,b)=>a.start<b.end&&b.start<a.end;
+    const canUseSlot=(slot,w)=>!assignedWindows.some(x=>x.slot?.key===slot.key&&overlapsWindow(x,w));
+    const addWindow=(lead,start,end,slot,kind='counter')=>{
+      if(!lead||!slot||slot.purpose==='Handoff')return null;
+      const w={id:`${leadKey(lead)}:${start}:${windows.length}`,lead,start,end,strength:petCarrierScore(lead),slot,kind};
+      windows.push(w);assignedWindows.push(w);return w;
     };
 
     /*
-      Garrison gets strongest opening and strongest closing carriers when possible.
-      These windows do not overlap: 12â14 and 15â17.
-      Middle coverage is added only when it can remain continuous without colliding.
+      HARD MAIN T1 RULE
+      -----------------
+      Main / Primary Team 1 must have PET coverage for every displayed battle hour.
+      For a 12:00â17:00 battle with 2h buffs, the clean non-overlapping chain is:
+        12â14, 14â16, 16â18
+      The last buff legitimately continues past battle end; NEXA only renders the 16â17 portion.
+      This is the only place where a 16:00 PET start is structurally required.
     */
-    const garrison=slots.find(s=>s.purpose==='Garrison');
+    const reservedLeadKeys=new Set();
     if(garrison&&primaryTeam1PetRequired){
-      const opening=windows.find(w=>!w.slot&&w.start===startHour);
-      if(opening&&canUseSlot(garrison,opening)){
-        opening.slot=garrison;assignedWindows.push(opening);
-      }
-
-      const closingCandidates=windows
-        .filter(w=>!w.slot&&w.end===endHour)
-        .sort((a,b)=>b.strength-a.strength);
-      const closing=closingCandidates.find(w=>canUseSlot(garrison,w));
-      if(closing){
-        closing.slot=garrison;assignedWindows.push(closing);
-      }
-
-      const middleCandidates=windows
-        .filter(w=>!w.slot&&w.start>startHour&&w.end<endHour)
-        .sort((a,b)=>b.strength-a.strength);
-      const middle=middleCandidates.find(w=>canUseSlot(garrison,w));
-      if(middle){
-        middle.slot=garrison;assignedWindows.push(middle);
+      const garrisonStarts=[];
+      for(let h=startHour;h<endHour;h+=petDurationHours)garrisonStarts.push(h);
+      const needed=Math.min(garrisonStarts.length,leads.length);
+      for(let i=0;i<needed;i++){
+        const lead=leads[i];
+        const s=garrisonStarts[i];
+        addWindow(lead,s,s+petDurationHours,garrison,'garrison');
+        reservedLeadKeys.add(leadKey(lead));
       }
     }
 
-    /*
-      All remaining PET windows prefer Counter lanes.
-      Each entire 2h window is placed as a unit; we never relocate only one hour.
-    */
-    for(const w of windows.filter(x=>!x.slot)){
-      let s=chooseSlot(w,counterSlots);
-      if(!s)s=chooseSlot(w,petEligible);
-      if(!s)continue; // mathematically no legal non-overlapping lane remains
-      w.slot=s;
-      assignedWindows.push(w);
+    const remaining=leads.filter(p=>!reservedLeadKeys.has(leadKey(p)));
+    const counterStarts=[];
+    const latestCounterStart=Math.max(startHour,endHour-petDurationHours);
+    for(let h=startHour;h<=latestCounterStart;h++)counterStarts.push(h);
+    const phasePattern=[startHour,latestCounterStart,...counterStarts.filter(h=>h!==startHour&&h!==latestCounterStart)];
+    const expandedStarts=[];
+    let pi=0;
+    while(expandedStarts.length<remaining.length&&phasePattern.length){
+      expandedStarts.push(phasePattern[pi%phasePattern.length]);pi++;
+    }
+
+    const alliancePetHours=new Map();
+    const slotPetHours=new Map();
+    const phasePetCount=new Map();
+    const touchStats=(slot,start,end)=>{
+      const shownHours=hours.filter(h=>h>=start&&h<end).length;
+      alliancePetHours.set(slot.allianceIndex,(alliancePetHours.get(slot.allianceIndex)||0)+shownHours);
+      slotPetHours.set(slot.key,(slotPetHours.get(slot.key)||0)+shownHours);
+      phasePetCount.set(start,(phasePetCount.get(start)||0)+1);
+    };
+    for(const w of assignedWindows)touchStats(w.slot,w.start,w.end);
+
+    const chooseCounterSlot=(lead,start,end)=>{
+      const probe={start,end};
+      const candidates=counterSlots.filter(s=>canUseSlot(s,probe));
+      return candidates.map(s=>{
+        const allianceLoad=alliancePetHours.get(s.allianceIndex)||0;
+        const slotLoad=slotPetHours.get(s.key)||0;
+        const phaseLoad=phasePetCount.get(start)||0;
+        const outsideMain=s.allianceIndex!==primaryIndex?28:8;
+        const undercoveredAlliance=Math.max(0,20-allianceLoad*2.2);
+        const undercoveredSlot=Math.max(0,14-slotLoad*3.0);
+        const phaseBalance=Math.max(0,10-phaseLoad*2.5);
+        const strengthFit=petCarrierScore(lead)*0.0008;
+        const teamDepth=Math.max(0,4-s.teamIndex);
+        return {...s,_score:outsideMain+undercoveredAlliance+undercoveredSlot+phaseBalance+strengthFit+teamDepth};
+      }).sort((a,b)=>b._score-a._score)[0]||null;
+    };
+
+    // Strategic Counter allocation: opening, closing, then middle; favor under-covered other alliances.
+    for(let i=0;i<remaining.length;i++){
+      const lead=remaining[i];
+      const start=expandedStarts[i]??startHour;
+      const end=start+petDurationHours;
+      let slot=chooseCounterSlot(lead,start,end);
+      if(!slot){
+        // If all preferred starts collide, search any legal Counter start before giving up.
+        for(const altStart of counterStarts){
+          slot=chooseCounterSlot(lead,altStart,altStart+petDurationHours);
+          if(slot){
+            const w=addWindow(lead,altStart,altStart+petDurationHours,slot,'counter');
+            touchStats(slot,w.start,w.end);
+            break;
+          }
+        }
+        continue;
+      }
+      const w=addWindow(lead,start,end,slot,'counter');
+      touchStats(slot,w.start,w.end);
     }
 
     const petTimeline=[];
@@ -308,31 +309,20 @@
       if(!w.slot||w.slot.purpose==='Handoff')continue;
       for(const hour of hours){
         if(w.start<=hour&&w.end>hour){
-          petTimeline.push({
-            ...w.slot,
-            lead:w.lead,
-            start:`${hour}:00`,
-            end:`${hour+1}:00`,
-            petsActive:true,
-            windowStart:`${w.start}:00`,
-            windowEnd:`${w.end}:00`,
-            petWindowId:w.id
-          });
+          petTimeline.push({...w.slot,lead:w.lead,start:`${hour}:00`,end:`${hour+1}:00`,petsActive:true,windowStart:`${w.start}:00`,windowEnd:`${w.end}:00`,petWindowId:w.id});
         }
       }
     }
 
-    // Fill all lanes hour by hour. PET carriers are pinned to the same Team for their full PET window.
+    // Fill all lanes hour-by-hour. PET rows are authoritative and pinned first.
     const assignments=[],previousBySlot=new Map(),useCount=new Map();
     for(const hour of hours){
       const petNow=petTimeline.filter(x=>Number(x.start.slice(0,2))===hour);
       const usedLeadKeys=new Set();
-
       for(const x of petNow){
         const lk=leadKey(x.lead);
         if(usedLeadKeys.has(lk))continue;
-        assignments.push({...x});
-        usedLeadKeys.add(lk);
+        assignments.push({...x});usedLeadKeys.add(lk);
         previousBySlot.set(`${x.allianceIndex}:${x.teamIndex}`,x.lead);
         useCount.set(lk,(useCount.get(lk)||0)+1);
       }
@@ -340,29 +330,14 @@
       for(const s of slots){
         if(assignments.some(a=>a.allianceIndex===s.allianceIndex&&a.teamIndex===s.teamIndex&&Number(a.start.slice(0,2))===hour))continue;
         const prev=previousBySlot.get(s.key);
-
-        // v1.9 safety:
-        // A Rally Lead cannot occupy the SAME Team as a neutral filler in the hour
-        // immediately before OR immediately after that Rally Lead's PET window.
-        // Example: PETS 15:00â17:00 => not neutral on that Team 14:00â15:00.
-        // Example: PETS 12:00â14:00 => not neutral on that Team 14:00â15:00.
-        // They may still rotate to another Team if the roster needs them.
         const petAdjacentHere=(p)=>{
           const lk=leadKey(p);
           return assignedWindows.some(w=>{
-            if(
-              leadKey(w.lead)!==lk ||
-              w.slot?.allianceIndex!==s.allianceIndex ||
-              w.slot?.teamIndex!==s.teamIndex
-            ) return false;
-            return Number(w.end)===hour || Number(w.start)===hour+1;
+            if(leadKey(w.lead)!==lk||w.slot?.key!==s.key)return false;
+            return Number(w.end)===hour||Number(w.start)===hour+1;
           });
         };
-
-        const choices=leads.filter(p=>
-          !usedLeadKeys.has(leadKey(p)) &&
-          !petAdjacentHere(p)
-        ).map(p=>{
+        const choices=leads.filter(p=>!usedLeadKeys.has(leadKey(p))&&!petAdjacentHere(p)).map(p=>{
           const continuity=prev&&leadKey(prev)===leadKey(p)?20:0;
           const usagePenalty=(useCount.get(leadKey(p))||0)*5;
           let purposeBonus=0;
@@ -373,16 +348,13 @@
         }).sort((a,b)=>b.score-a.score);
         const chosen=choices[0]?.p;
         if(!chosen)continue;
-        assignments.push({
-          ...s,lead:chosen,start:`${hour}:00`,end:`${hour+1}:00`,petsActive:false
-        });
-        usedLeadKeys.add(leadKey(chosen));
-        previousBySlot.set(s.key,chosen);
+        assignments.push({...s,lead:chosen,start:`${hour}:00`,end:`${hour+1}:00`,petsActive:false});
+        usedLeadKeys.add(leadKey(chosen));previousBySlot.set(s.key,chosen);
         useCount.set(leadKey(chosen),(useCount.get(leadKey(chosen))||0)+1);
       }
     }
 
-    // Absolute safety: Handoff never carries PETS.
+    // Absolute Handoff safety.
     for(const a of assignments)if(a.purpose==='Handoff')a.petsActive=false;
 
     const petLeadKeys=new Set(assignments.filter(a=>a.petsActive).map(a=>leadKey(a.lead)));
@@ -394,30 +366,15 @@
       const teamPetHours={};
       for(let ti=0;ti<Number(teamCounts[ai]||0);ti++){
         const purpose=tacticalPurpose(ai,ti,primaryIndex);
-        teamPetHours[ti]=purpose==='Handoff'?0:hours.filter(h=>
-          assignments.some(a=>a.allianceIndex===ai&&a.teamIndex===ti&&a.petsActive&&Number(a.start.slice(0,2))===h)
-        ).length;
+        teamPetHours[ti]=purpose==='Handoff'?0:hours.filter(h=>assignments.some(a=>a.allianceIndex===ai&&a.teamIndex===ti&&a.petsActive&&Number(a.start.slice(0,2))===h)).length;
       }
-      const complete=hours.every(h=>
-        Array.from({length:Number(teamCounts[ai]||0)},(_,ti)=>
-          assignments.some(a=>a.allianceIndex===ai&&a.teamIndex===ti&&Number(a.start.slice(0,2))===h)
-        ).every(Boolean)
-      );
-      coverage.push({
-        allianceIndex:ai,complete,totalHours:hours.length,teamPetHours,team1PetHours:teamPetHours[0]||0
-      });
+      const complete=hours.every(h=>Array.from({length:Number(teamCounts[ai]||0)},(_,ti)=>assignments.some(a=>a.allianceIndex===ai&&a.teamIndex===ti&&Number(a.start.slice(0,2))===h)).every(Boolean));
+      coverage.push({allianceIndex:ai,complete,totalHours:hours.length,teamPetHours,team1PetHours:teamPetHours[0]||0});
     }
 
-    const petWindows=assignedWindows
-      .filter(w=>w.slot&&w.slot.purpose!=='Handoff')
-      .map(w=>({
-        lead:w.lead,
-        start:`${w.start}:00`,
-        end:`${w.end}:00`,
-        allianceIndex:w.slot.allianceIndex,
-        teamIndex:w.slot.teamIndex,
-        purpose:w.slot.purpose
-      }));
+    const petWindows=assignedWindows.filter(w=>w.slot&&w.slot.purpose!=='Handoff').map(w=>({lead:w.lead,start:`${w.start}:00`,end:`${w.end}:00`,allianceIndex:w.slot.allianceIndex,teamIndex:w.slot.teamIndex,purpose:w.slot.purpose,kind:w.kind}));
+
+    const garrisonCoverageOk=!garrison||!primaryTeam1PetRequired||hours.every(h=>assignments.some(a=>a.allianceIndex===garrison.allianceIndex&&a.teamIndex===garrison.teamIndex&&a.petsActive&&Number(a.start.slice(0,2))===h));
 
     return {
       assignments,
@@ -426,6 +383,7 @@
       floating,
       active,
       coverage,
+      garrisonCoverageOk,
       petCurve:hours.map(h=>assignments.filter(x=>x.petsActive&&Number(x.start.slice(0,2))===h).length),
       hours:hours.map(h=>[`${h}:00`,`${h+1}:00`])
     };
@@ -437,7 +395,7 @@
   }
 
   window.NexaBattleStrategyEngine={
-    version:'1.9',loadMeta,rulesFor,bestRule,recommendation,joinerPlan,chooseAlternative,ensureConstraints,
+    version:'2.0',loadMeta,rulesFor,bestRule,recommendation,joinerPlan,chooseAlternative,ensureConstraints,
     scoreLead,tacticalPurpose,planSchedule,explainConfidence
   };
 })();

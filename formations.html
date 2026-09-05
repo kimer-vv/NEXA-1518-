@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • Formations</title>
 
-<!-- NEXA FORMATIONS V1.2 • iPhone/Safari-safe init • Brain Suggested support -->
+<!-- NEXA FORMATIONS V1.3 • hero portraits fix • consistent Attack/Defense ordering -->
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -189,7 +189,7 @@ textarea{min-height:76px;resize:vertical}
     const h=heroes.find(x=>x.name===n)||{};
     return `<div class="hero">${
       h.image_url
-        ? `<img crossorigin="anonymous" src="${esc(h.image_url)}" alt="">`
+        ? `<img src="${esc(h.image_url)}" alt="${esc(n)}">`
         : '<img alt="">'
     }<b class="${rarity(n)}">${esc(n)}</b></div>`;
   }
@@ -239,14 +239,23 @@ textarea{min-height:76px;resize:vertical}
     const list=$('#list');
     if(!list) return;
 
-    const wanted=rows.filter(r=>
-      Number(r.generation)===activeGeneration &&
-      (
-        tab==='approved'
-          ? (r.approval_status==='approved' && r.is_active!==false)
-          : r.approval_status==='corroborated'
+    const modeOrder={attack:0,defense:1};
+
+    const wanted=rows
+      .filter(r=>
+        Number(r.generation)===activeGeneration &&
+        (
+          tab==='approved'
+            ? (r.approval_status==='approved' && r.is_active!==false)
+            : r.approval_status==='corroborated'
+        )
       )
-    );
+      .sort((a,b)=>{
+        const ma=modeOrder[String(a.mode||'').toLowerCase()] ?? 99;
+        const mb=modeOrder[String(b.mode||'').toLowerCase()] ?? 99;
+        if(ma!==mb) return ma-mb;
+        return Number(b.confidence||0)-Number(a.confidence||0);
+      });
 
     const empty=tab==='suggested'
       ? `<div class="empty"><b>No Suggested formations yet for Gen ${activeGeneration}.</b><br>NEXA Brain has not produced a corroborated formation for the current generation yet.</div>`

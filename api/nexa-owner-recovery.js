@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import {
   json,
   bypassCookie,
-} from './_nexa-maintenance-common.js';
+} from '../server/_nexa-maintenance-common.js';
 
 function safeEqual(a, b) {
   const A = Buffer.from(String(a || ''));

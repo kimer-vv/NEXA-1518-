@@ -1,4 +1,4 @@
-// NEXA TRANSFER WORKSPACE FINISHER V2.7 — GROUP MEMBER / GROUP REMOVAL SAFEGUARDS / STABILITY
+// NEXA TRANSFER WORKSPACE FINISHER V2.8 — PERSISTENT GROUPS FOLDER / GROUP REMOVAL SAFEGUARDS / STABILITY
 (()=>{
 'use strict';
 
@@ -78,7 +78,19 @@ function syncGroupFolder(){
  let b=grid.querySelector('[data-nexa-groups-folder]');
  if(!b){b=document.createElement('button');b.type='button';b.className='folderBox';b.dataset.nexaGroupsFolder='1';b.innerHTML=`<strong>Groups</strong><span>${groups.length}</span>`;grid.appendChild(b);b.onclick=()=>{groupMode=true;activeGroup=null;setBaseApplicantsVisible(false);b.classList.add('active');grid.querySelectorAll('[data-folder]').forEach(x=>x.classList.remove('active'));renderGroupView()}}
  else b.querySelector('span').textContent=String(groups.length);
+ b.classList.toggle('active',groupMode);
  grid.querySelectorAll('[data-folder]').forEach(x=>{if(!x.dataset.nexaGroupExit){x.dataset.nexaGroupExit='1';x.addEventListener('click',leaveGroups)}})
+}
+function installPersistentGroupsFolder(){
+ if(window.__nexaGroupsFolderHooked)return;
+ const base=window.renderFolders;
+ if(typeof base!=='function')return;
+ window.__nexaGroupsFolderHooked=true;
+ window.renderFolders=function(...args){
+   const result=base.apply(this,args);
+   syncGroupFolder();
+   return result;
+ };
 }
 function groupStatus(g){return g.status==='approved'?'Approved':'Under Review'}
 async function snapshotApps(){const r=await SB.rpc('transfer_workspace_snapshot',{p_workspace_id:workspaceId,p_token:token});return r.data?.ok?(r.data.applications||[]):[]}
@@ -266,11 +278,12 @@ function attachHooks(){
  $('closeOverlay')?.addEventListener('click',()=>setTimeout(loadFormLibrary,120));window.addEventListener('message',e=>{if(e.origin===location.origin&&e.data?.type==='nexa-transfer-form-saved')setTimeout(loadFormLibrary,120)})
 }
 async function periodic(){
+ const ap=document.querySelector('[data-panel="applicants"]');if(ap?.classList.contains('active'))syncGroupFolder();
  const ip=document.querySelector('[data-panel="integrations"]');if(ip?.classList.contains('active')){await loadProfileRows()}
  const xp=document.querySelector('[data-panel="access"]');if(xp?.classList.contains('active'))enhanceUsername();
 }
 async function start(){
- if(booted)return;token=getToken();workspaceId=getWorkspaceId();const root=$('workspaceRoot');if(!SB||!token||!workspaceId||!root||root.classList.contains('hidden'))return;booted=true;injectStyles();ensureModal();await loadAccess();ensureAddGroupButton();ensureGroupView();attachHooks();installHistoryDeleteGuard();enhanceUsername();await heartbeat();await loadGroups(false);await loadFormLibrary();await loadProfileRows();presenceTimer=setInterval(heartbeat,30000);refreshTimer=setInterval(periodic,2500)
+ if(booted)return;token=getToken();workspaceId=getWorkspaceId();const root=$('workspaceRoot');if(!SB||!token||!workspaceId||!root||root.classList.contains('hidden'))return;booted=true;injectStyles();ensureModal();await loadAccess();ensureAddGroupButton();ensureGroupView();installPersistentGroupsFolder();attachHooks();installHistoryDeleteGuard();enhanceUsername();await heartbeat();await loadGroups(false);await loadFormLibrary();await loadProfileRows();presenceTimer=setInterval(heartbeat,30000);refreshTimer=setInterval(periodic,2500)
 }
 const boot=setInterval(()=>{start();if(booted)clearInterval(boot)},500);setTimeout(start,80);
 })();

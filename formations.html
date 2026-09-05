@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • Formations</title>
 
-<!-- NEXA FORMATIONS V1.5 • exact First-4 slots • mechanic-first joiner reasoning • Suggested 60%+ -->
+<!-- NEXA FORMATIONS V1.6 • exact duplicate First-4 slots • skill-effect reasoning • no legacy joiner filler -->
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -262,18 +262,11 @@ textarea{min-height:76px;resize:vertical}
 
   function safeJoiners(r){
     const md=metadata(r);
-    const slots=(r.joiner_primary||[]).map(x=>String(x||'').trim()).filter(Boolean).slice(0,4);
+    const slots=(md.raw_joiner_primary||r.joiner_primary||[])
+      .map(x=>String(x||'').trim()).filter(Boolean).slice(0,4);
     if(r.approval_status==='approved')return slots;
-    if(md.joiner_gate)return slots;
-    // Display-only compatibility for older Promising research rows:
-    // show the four researched First-4 slots when the FORMATION itself already clears
-    // the 60% + multi-source review gate. These do not become operational until approved.
-    if(
-      r.approval_status==='candidate' &&
-      Number(r.confidence||0)>=.60 &&
-      Number(r.independent_source_count||0)>=2 &&
-      Number(r.source_count||0)>=2
-    )return slots;
+    // Never surface legacy candidate joiners without the hardened gate.
+    if(md.joiner_gate&&slots.length===4)return slots;
     return [];
   }
 
@@ -296,23 +289,28 @@ textarea{min-height:76px;resize:vertical}
     return (i>80?cut.slice(0,i+1):cut.trimEnd()+'…');
   }
 
+  function mechanicText(x){
+    if(!x)return '';
+    const skill=String(x.skill_name||'').trim();
+    const effect=String(x.buff_effect||'').trim();
+    const why=String(x.why||'').trim();
+    if(skill&&effect&&why)return `${skill}: ${effect} ${why}`;
+    if(effect&&why)return `${effect} ${why}`;
+    return '';
+  }
+
   function whyFirstFour(r){
     const first=safeJoiners(r);
     if(!first.length){
-      return `<div class="muted">First-4 joiners are pending current-generation evidence review.</div>`;
+      return `<div class="muted">First-4 joiners are waiting for a current vetted skill-effect refresh.</div>`;
     }
     const ev=joinerEvidence(r,'primary');
-    return `<div style="display:grid;gap:7px;margin-top:6px">${first.map((hero,index)=>{
+    return `<div style="display:grid;gap:8px;margin-top:6px">${first.map((hero,index)=>{
       const x=ev.find(e=>norm(e.hero)===norm(hero));
-      let why=x?.why||'';
-      if(!why){
-        const md=metadata(r);
-        const raw=String(r.why_good||'');
-        why='This joiner is part of the researched First-4 set for this formation. Detailed buff-level reasoning will refresh on the next Brain research cycle.';
-      }
+      const why=mechanicText(x);
       return `<div>
         <b class="${rarity(hero)}">${index+1}. ${esc(hero)}</b>
-        <div class="muted">${esc(compactReason(why,260))}</div>
+        <div class="muted">${why?esc(compactReason(why,300)):'Skill/buff reasoning will populate after the next vetted Brain refresh.'}</div>
       </div>`;
     }).join('')}</div>`;
   }
@@ -324,7 +322,8 @@ textarea{min-height:76px;resize:vertical}
     return `<div style="display:grid;gap:6px;margin-top:6px">${pool.map(hero=>{
       const x=ev.find(e=>norm(e.hero)===norm(hero));
       const replace=x?.replaces?` • Backup for ${esc(x.replaces)}`:'';
-      const why=x?.why?`<div class="muted">${esc(compactReason(x.why))}</div>`:'';
+      const reason=mechanicText(x);
+      const why=reason?`<div class="muted">${esc(compactReason(reason,280))}</div>`:'';
       return `<div><b class="${rarity(hero)}">${esc(hero)}</b>${replace}${why}</div>`;
     }).join('')}</div>`;
   }

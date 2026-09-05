@@ -1,4 +1,4 @@
-// NEXA Brain Research v1.5 — exact First-4 slots + mechanic-first explanations + multi-variant Suggested
+// NEXA Brain Research v1.6 — four vetted joiner slots + skill-effect reasoning + multi-variant Suggested
 // Vercel env required: OPENAI_API_KEY, SUPABASE_SERVICE_ROLE_KEY, CRON_SECRET
 const SB='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const MODEL=process.env.NEXA_RESEARCH_MODEL||'gpt-5.6-terra';
@@ -87,7 +87,10 @@ function evidencePasses(row){
   if(!row?.hero||!allowedRelevance.has(row.generation_relevance))return false;
   const groups=new Set((row.independent_groups||[]).map(String).filter(Boolean));
   const urls=new Set((row.source_urls||[]).map(String).filter(Boolean));
-  return groups.size>=2&&urls.size>=2;
+  const skill=String(row.skill_name||'').trim();
+  const effect=String(row.buff_effect||'').trim();
+  const why=String(row.why||'').trim();
+  return groups.size>=2&&urls.size>=2&&skill&&effect&&why;
 }
 
 function vettedPrimaryJoiners(rawPrimary,evidence){
@@ -218,7 +221,8 @@ Backup Joiner Pool rules:
 - They may also include other current-generation-relevant joiners that preserve a useful buff family or add a compatible buff.
 - joiner_primary MUST contain exactly 4 joiner slots for every returned formation.
 - PRESERVE intentional duplicates exactly. If the supported First 4 are Norah / Norah / Hendrik / Patrick, return ["Norah","Norah","Hendrik","Patrick"]. Never deduplicate First-4 slots.
-- For EVERY First-4 hero, explain the actual expedition skill/buff or combat effect it contributes and WHY that effect helps THIS exact hero trio + troop ratio.
+- For EVERY First-4 hero, identify its FIRST EXPEDITION SKILL used as a rally joiner, the actual buff/debuff/combat effect of that skill, and WHY that effect helps THIS exact hero trio + troop ratio.
+- Never treat a hero appearing in the Rally Lead trio as proof that the same hero is a good joiner. Rally-leader value and joiner value are separate; every joiner seat must be independently corroborated through that hero's first Expedition skill.
 - The joiner "why" text must be mechanic-first. Do NOT mention source names, guide names, creators, websites, tables, or phrases such as "X source lists/recommends/supports". Provenance belongs only in sources/source_urls metadata.
 - Example style: "Hendrik lowers enemy Defense, helping the rally convert its existing damage/lethality into more effective damage against the target." Use only corroborated mechanics; do not invent skill behavior.
 - Duplicate First-4 heroes may reuse the same corroborated mechanical explanation, because they occupy separate buff seats.
@@ -247,7 +251,9 @@ Return ONLY valid JSON:
        "generation_relevance":"tested_with_current_generation|explicitly_recommended_for_current_generation|legacy_skill_only",
        "independent_groups":["origin_a","origin_b"],
        "source_urls":["https://...","https://..."],
-       "why":"mechanic-first explanation of this hero skill/buff/effect and why it benefits THIS exact formation; no source names",
+       "skill_name":"name of the hero's first Expedition skill used when joining",
+       "buff_effect":"plain-language effect of that first Expedition skill, including percentage/value when corroborated",
+       "why":"mechanic-first explanation of why that exact effect benefits THIS exact formation; no source names",
        "replaces":"for backup only: hero name, buff role, or flex"
      }
    ],
@@ -328,8 +334,11 @@ Return ONLY valid JSON:
       }
 
       const joinerEvidence=Array.isArray(f.joiner_evidence)?f.joiner_evidence:[];
-      const vettedPrimary=vettedPrimaryJoiners(f.joiner_primary||[],joinerEvidence);
+      const vettedPrimary=vettedPrimaryJoiners(rawPrimary,joinerEvidence);
       const vettedBackup=vettedBackupJoiners(f.backup_joiner_pool||[],joinerEvidence);
+      // Suggested must be operationally reviewable: four vetted First-4 seats.
+      // Intentional duplicate seats count separately and must survive.
+      if(vettedPrimary.length!==4)continue;
 
       const stableRuleKey=researchRuleKey(
         generation,

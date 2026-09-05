@@ -1,4 +1,4 @@
-// NEXA DISCORD BOT V1.7.0 — GROUP-AWARE APPLICANTS / INVITES / NOTIFICATIONS
+// NEXA DISCORD BOT V1.7.1 — GROUPS GUIDE / GROUP-AWARE APPLICANTS / INVITES
 import {
   rawBody,verifyDiscord,subcommand,db,getConfigByGuild,
   getCurrentEvent,currentApps,selectedApps,recruitingAlliances,inviteCounts,inviteReport,
@@ -244,7 +244,7 @@ function channelOverviewEmbed(cfg,area){
   const shared='\n\nNeed help with commands? Use `/help` to see all available commands and what each one does.';
   const map={
     invites:{title:'📨 Invite Operations Overview',text:'Use this channel to manage Transfer invitations directly from Discord. Review who still needs an invite, who is pending because of the Power Cap, who has already been sent one, and update invitation status without opening NEXA.'},
-    applicants:{title:'👤 Applicant Operations Overview',text:'Use this channel to review and manage Transfer applicants directly from Discord. View applicant information, check placement, and move applicants into the appropriate Transfer category without opening NEXA.'},
+    applicants:{title:'👤 Applicant Operations Overview',text:'Use this channel to review and manage Transfer applicants directly from Discord. View applicant information, check placement, and move applicants into the appropriate Transfer category without opening NEXA. Groups are a parallel view: use `/applicants list` → `Groups` to see members organized by Transfer Group. A player can remain in a Group while also being Ordinary, Special, Not Selected, or Next Transfer Cycle.'},
     new_applications:{title:'📥 New Applications Overview',text:'This channel receives automatic notifications when a new Transfer application is submitted, giving staff the key applicant information needed for a quick first review.'},
     announcements:{title:'📢 Transfer Announcements Overview',text:'This channel receives automatic Transfer Cycle updates, phase announcements, invite checks, reminders, and final warnings so staff can keep track of what still needs attention as the cycle progresses.'}
   };
@@ -398,7 +398,7 @@ export default async function handler(req,res){
 
     if(body.data.name==='overview'){const area=String(topOption(body,'area')||'invites');return res.status(200).json(responseEmbed(channelOverviewEmbed(cfg,area),{ephemeral:false}))}
     if(body.data.name==='help'){
-      const e=embed(cfg,{title:'🌌 NEXA Transfer Bot — Help',description:'Quick Discord tools for Transfer operations. `/overview` posts a permanent channel introduction.',color:COLORS.info,fields:[field('📌 Channel Overview','`/overview` — post a short introduction for Invites, Applicants, New Applications, or Announcements.',false),field('🌌 Transfer','`/transfer start` · schedule the Transfer timeline\n`/transfer end` · cancel/end it\n`/transfer status` · current cycle status\n`/transfer reminders` · reminders on/off\n`/transfer channels` · assign the four Discord routes',false),field('👤 Applicants','`/applicants unassigned` · current unassigned list\n`/applicants list` · list by placement, Groups, or All\n`/applicant view` · one applicant\n`/applicant move` · move one applicant',false),field('📨 Invites','`/invite list` · post the current invite report\n`/invite sent` · mark an invite sent\n`/invite pending` · mark Over Power Cap',false)]});return res.status(200).json(responseEmbed(e,{components:workspaceOnlyComponents(cfg,'Full Details')}));
+      const e=embed(cfg,{title:'🌌 NEXA Transfer Bot — Help',description:'Quick Discord tools for Transfer operations. `/overview` posts a permanent channel introduction.',color:COLORS.info,fields:[field('📌 Channel Overview','`/overview` — post a short introduction for Invites, Applicants, New Applications, or Announcements.',false),field('🌌 Transfer','`/transfer start` · schedule the Transfer timeline\n`/transfer end` · cancel/end it\n`/transfer status` · current cycle status\n`/transfer reminders` · reminders on/off\n`/transfer channels` · assign the four Discord routes',false),field('👤 Applicants','`/applicants unassigned` · current unassigned list\n`/applicants list` → Groups · view applicants organized by Transfer Group\n`/applicants list` → Ordinary / Special / Not Selected / Next Transfer Cycle / All · view by placement\nGroups are parallel to placement: changing a member to Ordinary or Special does not remove them from their Transfer Group.\n`/applicant view` · one applicant\n`/applicant move` · move one applicant',false),field('📨 Invites','`/invite list` · post the current invite report\n`/invite sent` · mark an invite sent\n`/invite pending` · mark Over Power Cap',false)]});return res.status(200).json(responseEmbed(e,{components:workspaceOnlyComponents(cfg,'Full Details')}));
     }
 
     if(body.data.name==='transfer'){

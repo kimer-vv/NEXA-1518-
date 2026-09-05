@@ -12,7 +12,7 @@ main{width:min(760px,100%);margin:auto;padding:22px 16px 90px}.top{display:grid;
 .tabs{display:flex;gap:8px;overflow:auto;margin:16px 0}.tabs button,.btn{border:1px solid rgba(115,135,210,.32);background:#080d22;color:#c6d0e8;border-radius:999px;min-height:42px;padding:0 14px;font-weight:900}.tabs button.active,.btn.primary{border-color:#8f73ff;background:linear-gradient(135deg,#4d3392,#245d88);color:#fff}
 .note{color:#aeb7d1;font-size:12px;line-height:1.5}.bar{display:flex;gap:8px;justify-content:space-between;align-items:center;flex-wrap:wrap;margin:12px 0}.status{font-size:12px;color:#8ff3ff;min-height:18px}.grid{display:grid;gap:12px}.card{border:1px solid rgba(255,255,255,.12);border-radius:18px;background:linear-gradient(145deg,rgba(12,18,40,.96),rgba(5,8,20,.96));padding:13px}.card.attack{border-color:rgba(255,105,130,.35)}.card.defense{border-color:rgba(103,223,177,.35)}.card-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.badge{font-size:9px;font-weight:950;letter-spacing:.08em;border:1px solid rgba(255,255,255,.15);border-radius:999px;padding:5px 7px}.badge.suggested{color:#ffe0a2;border-color:rgba(255,199,91,.38)}.badge.approved{color:#a5f3d4;border-color:rgba(103,223,177,.38)}
 .heroes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:330px;margin:12px auto 8px}.hero{text-align:center;min-width:0}.hero img{width:64px;height:64px;object-fit:cover;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:#101522}.hero b{display:block;font-size:11px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ratio{text-align:center;font-size:22px;font-weight:950}.muted{color:#96a3c3}.detail{display:none;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.09);font-size:12px;line-height:1.48}.card.open .detail{display:block}.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.chip{padding:5px 7px;border-radius:999px;border:1px solid rgba(255,255,255,.12);font-weight:900;font-size:10px}.rarity-mythic,.rarity-gold,.rarity-legendary{color:#ffd260}.rarity-epic,.rarity-purple{color:#c78bff}.rarity-rare,.rarity-blue{color:#68c9ff}
-.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.actions .btn{min-height:38px}.modal{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;place-items:center;padding:14px;z-index:50}.modal.open{display:grid}.modal-card{width:min(560px,100%);max-height:88dvh;overflow:auto;background:#071022;border:1px solid rgba(72,221,255,.28);border-radius:20px;padding:15px}.modal-card h3{margin:0 0 10px}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.formgrid .full{grid-column:1/-1}label{display:grid;gap:5px;color:#aeb7d1;font-size:11px;font-weight:850}input,select,textarea{width:100%;min-height:42px;border-radius:11px;border:1px solid rgba(122,142,203,.28);background:#050a19;color:#fff;padding:9px;font:inherit}textarea{min-height:76px;resize:vertical}.hero-picks{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}@media(max-width:580px){.formgrid{grid-template-columns:1fr}.formgrid .full{grid-column:auto}.hero img{width:56px;height:56px}}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.actions .btn{min-height:38px}.modal{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;place-items:center;padding:14px;z-index:50}.modal.open{display:grid}.modal-card{width:min(560px,100%);max-height:88dvh;overflow:auto;background:#071022;border:1px solid rgba(72,221,255,.28);border-radius:20px;padding:15px}.modal-card h3{margin:0 0 10px}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.formgrid .full{grid-column:1/-1}label{display:grid;gap:5px;color:#aeb7d1;font-size:11px;font-weight:850}input,select,textarea{width:100%;min-height:42px;border-radius:11px;border:1px solid rgba(122,142,203,.28);background:#050a19;color:#fff;padding:9px;font:inherit}textarea{min-height:76px;resize:vertical}.hero-picks{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.empty{border:1px dashed rgba(255,255,255,.14);border-radius:16px;padding:18px;text-align:center;color:#aeb7d1;font-size:12px;line-height:1.55}@media(max-width:580px){.formgrid{grid-template-columns:1fr}.formgrid .full{grid-column:auto}.hero img{width:56px;height:56px}}
 </style>
 </head>
 <body>
@@ -43,14 +43,36 @@ main{width:min(760px,100%);margin:auto;padding:22px 16px 90px}.top{display:grid;
 <script>
 const URL='https://dfxcxboxrkfmrnsgpyin.supabase.co',KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
 const sb=supabase.createClient(URL,KEY);
-let rows=[],heroes=[],tab='approved';
+let rows=[],heroes=[],tab='approved',activeGeneration=1;
 const $=s=>document.querySelector(s),status=t=>$('#status').textContent=t||'';
 const rarity=n=>{const h=heroes.find(x=>x.name===n);return 'rarity-'+String(h?.rarity||'').toLowerCase()};
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 function heroCard(n){const h=heroes.find(x=>x.name===n)||{};return `<div class="hero">${h.image_url?`<img crossorigin="anonymous" src="${esc(h.image_url)}" alt="">`:'<img alt="">'}<b class="${rarity(n)}">${esc(n)}</b></div>`}
 function chips(arr){return `<div class="chips">${(arr||[]).map(n=>`<span class="chip ${rarity(n)}">${esc(n)}</span>`).join('')}</div>`}
+function resolveGeneration(rows){
+  const now=Date.now();
+  const eligible=(rows||[]).filter(r=>{
+    const g=Number(r?.generation||0);
+    if(!g)return false;
+    if(r?.is_visible===true)return true;
+    if(r?.unlock_at){
+      const t=new Date(r.unlock_at).getTime();
+      return Number.isFinite(t)&&t<=now;
+    }
+    return false;
+  });
+  return Math.max(1,...eligible.map(r=>Number(r.generation||0)));
+}
 function render(){
-  const wanted=rows.filter(r=>tab==='approved'?(r.approval_status==='approved'&&r.is_active!==false):r.approval_status==='corroborated');
+  const wanted=rows.filter(r=>
+    Number(r.generation)===activeGeneration &&
+    (tab==='approved'
+      ?(r.approval_status==='approved'&&r.is_active!==false)
+      :r.approval_status==='corroborated')
+  );
+  const empty=tab==='suggested'
+    ?`<div class="empty"><b>No Suggested formations yet for Gen ${activeGeneration}.</b><br>NEXA Brain has not produced a corroborated formation for the current generation yet. After a successful research cycle, corroborated results will appear here for your approval.</div>`
+    :`<div class="empty">No active Approved formations found for Gen ${activeGeneration}.</div>`;
   $('#list').innerHTML=wanted.length?wanted.map(r=>`<article class="card ${r.mode}" data-id="${r.id}">
     <div class="card-head"><div><b>${r.mode==='attack'?'⚔ ATTACK':'🛡 DEFENSE'}</b><div class="muted" style="font-size:10px;margin-top:3px">Gen ${r.generation} • ${esc(r.rule_key)}</div></div><span class="badge ${tab==='approved'?'approved':'suggested'}">${tab==='approved'?'APPROVED':'CORROBORATED'}</span></div>
     <div class="heroes">${(r.leader_heroes||[]).map(heroCard).join('')}</div>
@@ -64,49 +86,73 @@ function render(){
       <div style="height:8px"></div><b>Evidence</b><div class="muted">${Math.round(Number(r.confidence||0)*100)}% confidence • ${Number(r.independent_source_count||0)} independent sources</div>
       ${tab==='suggested'?`<div class="actions"><button class="btn primary approve" data-id="${r.id}">Add / Approve</button></div>`:''}
     </div>
-  </article>`).join(''):'<div class="note">No formations in this section yet.</div>';
+  </article>`).join(''):empty;
   document.querySelectorAll('.card').forEach(c=>c.addEventListener('click',e=>{if(e.target.closest('button'))return;c.classList.toggle('open')}));
   document.querySelectorAll('.approve').forEach(b=>b.addEventListener('click',approve));
 }
 async function load(){
   status('Loading…');
-  const [a,b]=await Promise.all([
+  const [a,b,g]=await Promise.all([
     sb.from('nexa_battle_meta_rules').select('*').in('approval_status',['approved','corroborated']).order('generation',{ascending:false}).order('confidence',{ascending:false}),
-    sb.from('nexa_library_items').select('name,image_url,rarity,generation,troop_type').eq('item_type','hero').eq('is_active',true).order('generation')
+    sb.from('nexa_library_items').select('name,image_url,rarity,generation,troop_type').eq('item_type','hero').eq('is_active',true).order('generation'),
+    sb.from('nexa_library_generations').select('generation,is_visible,unlock_at').eq('item_type','hero').order('generation')
   ]);
   if(a.error){status(a.error.message);return}
-  rows=a.data||[];heroes=b.data||[];
-  const max=Math.max(1,...heroes.map(h=>Number(h.generation||0)));$('#generation').value=max;
-  const opts='<option value="">Select</option>'+heroes.map(h=>`<option value="${esc(h.name)}">${esc(h.name)} • Gen ${h.generation}</option>`).join('');
+  if(b.error){status(b.error.message);return}
+  if(g.error){status(g.error.message);return}
+  rows=a.data||[];
+  heroes=b.data||[];
+  activeGeneration=resolveGeneration(g.data||[]);
+  $('#generation').value=activeGeneration;
+  $('#generation').max=activeGeneration;
+  const eligibleHeroes=heroes.filter(h=>Number(h.generation||0)<=activeGeneration);
+  const opts='<option value="">Select</option>'+eligibleHeroes.map(h=>`<option value="${esc(h.name)}">${esc(h.name)} • Gen ${h.generation}</option>`).join('');
   ['#h0','#h1','#h2'].forEach(s=>$(s).innerHTML=opts);
-  status('');render();
+  status(`Current unlocked generation: Gen ${activeGeneration}`);
+  render();
 }
 async function approve(e){
   e.stopPropagation();status('Approving…');
   const id=e.currentTarget.dataset.id;
+  const row=rows.find(r=>String(r.id)===String(id));
+  if(!row||Number(row.generation)!==activeGeneration){status('Only the current unlocked generation can be approved here.');return}
   const {error}=await sb.from('nexa_battle_meta_rules').update({approval_status:'approved',is_active:true,verified_at:new Date().toISOString()}).eq('id',id);
-  if(error){status(error.message);return}await load();
+  if(error){status(error.message);return}
+  await load();
 }
 async function save(){
-  const ratio=[+$('#r0').value,+$('#r1').value,+$('#r2').value];if(ratio.reduce((a,b)=>a+b,0)!==100){status('Ratio must total 100.');return}
-  const hs=['#h0','#h1','#h2'].map(s=>$(s).value);if(hs.some(x=>!x)){status('Choose all 3 Rally Lead heroes.');return}
-  const jf=$('#joinfirst').value.split(',').map(x=>x.trim()).filter(Boolean),bp=$('#backup').value.split(',').map(x=>x.trim()).filter(Boolean);
+  const ratio=[+$('#r0').value,+$('#r1').value,+$('#r2').value];
+  if(ratio.reduce((a,b)=>a+b,0)!==100){status('Ratio must total 100.');return}
+  const hs=['#h0','#h1','#h2'].map(s=>$(s).value);
+  if(hs.some(x=>!x)){status('Choose all 3 Rally Lead heroes.');return}
+  const jf=$('#joinfirst').value.split(',').map(x=>x.trim()).filter(Boolean);
+  const bp=$('#backup').value.split(',').map(x=>x.trim()).filter(Boolean);
   if(jf.length!==4){status('Join First must contain exactly 4 hero names.');return}
-  const generation=+$('#generation').value,mode=$('#mode').value,name=$('#name').value.trim()||`Manual ${mode}`;
+  const generation=+$('#generation').value;
+  if(generation!==activeGeneration){status(`Only Gen ${activeGeneration} is currently unlocked.`);return}
+  const mode=$('#mode').value;
   const rule_key=`manual_${mode}_${Date.now()}`;
   status('Saving…');
   const {error}=await sb.from('nexa_battle_meta_rules').insert({
     generation,event_scope:'pvp_rally',mode,rule_key,leader_heroes:hs,primary_ratio:ratio,alternative_ratios:[],
-    alternative_formations:[],joiner_primary:jf,joiner_alternatives:bp,backup_joiner_pool:bp,constraints:{},
+    alternative_formations:[],joiner_primary:jf,joiner_alternatives:bp,backup_joiner_pool:bp,constraints:{max_generation:activeGeneration},
     confidence:1,evidence_status:'verified',evidence_note:'Manual approved formation.',why_good:$('#why').value.trim(),
     risk_note:$('#risk').value.trim(),source_urls:[],source_count:0,independent_source_count:0,
     approval_status:'approved',is_active:true,is_manual:true
   });
   if(error){status(error.message);return}
-  $('#modal').classList.remove('open');await load();
+  $('#modal').classList.remove('open');
+  await load();
 }
-document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('active'));b.classList.add('active');tab=b.dataset.tab;render()});
-$('#add').onclick=()=>$('#modal').classList.add('open');$('#close').onclick=()=>$('#modal').classList.remove('open');$('#save').onclick=save;
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  tab=b.dataset.tab;
+  render();
+});
+$('#add').onclick=()=>$('#modal').classList.add('open');
+$('#close').onclick=()=>$('#modal').classList.remove('open');
+$('#save').onclick=save;
 load();
 </script>
 </body></html>

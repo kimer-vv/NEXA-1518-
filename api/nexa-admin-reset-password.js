@@ -4,7 +4,7 @@ import {
   serviceKey,
   authUser,
   rest
-} from './_nexa-auth-common.js';
+} from '../server/_nexa-auth-common.js';
 
 export default async function handler(req,res){
   if(req.method!=='POST') return reply(res,405,{error:'Method not allowed.'});
@@ -30,7 +30,7 @@ export default async function handler(req,res){
       allowed=String(main?.alliance_role||'').toUpperCase()==='R5' &&
               String(main?.alliance_id??'')===String(target.alliance_id??'');
     }
-    if(!allowed) return reply(res,403,{error:'Owner, Admin, or the member’s R5 is required.'});
+    if(!allowed) return reply(res,403,{error:'Owner, Admin, or the memberâs R5 is required.'});
     if(target.user_id===caller.id && !['owner','admin'].includes(appRole))
       return reply(res,403,{error:'R5 cannot reset their own password.'});
 

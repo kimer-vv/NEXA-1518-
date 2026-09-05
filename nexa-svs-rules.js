@@ -1,4 +1,4 @@
-/* NEXA SvS Rules v1.7 — READ/UI ONLY • SINGLE WRITER = svs-operations.html • NO AUTO-HEAL WRITES */
+/* NEXA SvS Rules v2.0 — READ/UI ONLY • SINGLE WRITER = svs-operations.html • NO AUTO-HEAL WRITES */
 (()=> {
   'use strict';
 
@@ -17,12 +17,12 @@
     - svs_strategy_alliances
 
     svs-operations.html is the sole Strategy graph writer.
-    nexa-battle-strategy-engine.js v1.7 is the sole shared PET scheduler/strategy engine.
+    nexa-battle-strategy-engine.js v2.0 is the sole shared PET scheduler/strategy engine.
   */
 
   window.NEXA_SVS_RULES = Object.freeze({
     key:'svs',
-    version:'1.7',
+    version:'2.0',
     readOnly:true,
     battleStart:'12:00',
     battleEnd:'17:00',
@@ -38,7 +38,7 @@
       thisFile:'ui-read-only'
     }),
     coverage:Object.freeze({
-      garrison:'Primary Team 1 receives structural PET coverage priority when mathematically possible.',
+      garrison:'Primary Team 1 has mandatory continuous PET coverage for every battle hour; its final 16:00 activation may remain active past 17:00.',
       handoff:'Primary Team 2 is Handoff and never receives PETS.',
       counter:'All non-Handoff teams are Counter teams and PET coverage is dynamic by strength, phase and coverage need.'
     })
@@ -163,11 +163,11 @@
   `;
 
   function installReadability(){
-    if(document.getElementById('nexa-svs-layout-readability-v17'))return;
-    const old=document.getElementById('nexa-svs-layout-readability-v16');
+    if(document.getElementById('nexa-svs-layout-readability-v20'))return;
+    const old=document.querySelector('[id^="nexa-svs-layout-readability-v"]');
     if(old)old.remove();
     const style=document.createElement('style');
-    style.id='nexa-svs-layout-readability-v17';
+    style.id='nexa-svs-layout-readability-v20';
     style.textContent=css;
     document.head.appendChild(style);
   }
@@ -192,10 +192,10 @@
     nav.appendChild(b);
   }
 
-  function assertEngine17(){
+  function assertEngine20(){
     const v=String(window.NexaBattleStrategyEngine?.version||'');
-    if(v && v!=='1.7'){
-      console.warn(`[NEXA SvS Rules] Expected Battle Strategy Engine v1.7; found ${v}.`);
+    if(v && v!=='2.0'){
+      console.warn(`[NEXA SvS Rules] Expected Battle Strategy Engine v2.0; found ${v}.`);
     }
   }
 
@@ -203,7 +203,7 @@
     installReadability();
     installFormationsPill();
     clarifyFormationUI();
-    assertEngine17();
+    assertEngine20();
   }
 
   function boot(){

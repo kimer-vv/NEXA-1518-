@@ -1,4 +1,4 @@
-// NEXA TRANSFER WORKSPACE FINISHER V3.2 — CREATE RECRUITING ALLIANCE / I18N V1.3 / PERSISTENT GROUPS
+// NEXA TRANSFER WORKSPACE FINISHER V3.3 — KEEP INTEGRATIONS AFTER ALLIANCE CREATE / I18N V1.3 / PERSISTENT GROUPS
 (()=>{
 'use strict';
 
@@ -328,12 +328,27 @@ function ensureRecruitingAllianceCreator(){
      }
      status.textContent='Recruiting Alliance created ✓';
      window.NEXA_TRANSFER_WORKSPACE_I18N?.apply?.(box);
-     setTimeout(()=>location.reload(),350);
+     sessionStorage.setItem('nexa_transfer_workspace_restore_tab','integrations');
+     setTimeout(()=>location.reload(),180);
    }catch(e){status.textContent=e?.message||'Unable to create alliance.'}
    finally{btn.disabled=false}
  };
  input.addEventListener('input',()=>{input.value=input.value.toUpperCase().replace(/\s+/g,'')});
  window.NEXA_TRANSFER_WORKSPACE_I18N?.apply?.(box);
+}
+
+
+function restoreWorkspaceTabAfterReload(){
+ const wanted=sessionStorage.getItem('nexa_transfer_workspace_restore_tab');
+ if(!wanted)return;
+ const btn=document.querySelector(`[data-tab="${wanted}"]`);
+ const panel=document.querySelector(`[data-panel="${wanted}"]`);
+ if(!btn||!panel)return;
+ sessionStorage.removeItem('nexa_transfer_workspace_restore_tab');
+ btn.click();
+ setTimeout(()=>{
+   document.querySelector(`[data-panel="${wanted}"]`)?.scrollIntoView({block:'start'});
+ },60);
 }
 
 async function periodic(){
@@ -343,7 +358,7 @@ async function periodic(){
  const xp=document.querySelector('[data-panel="access"]');if(xp?.classList.contains('active'))enhanceUsername();ensureApplicantsGroupsGuide();window.NEXA_TRANSFER_WORKSPACE_I18N?.apply?.(document);
 }
 async function start(){
- if(booted)return;token=getToken();workspaceId=getWorkspaceId();const root=$('workspaceRoot');if(!SB||!token||!workspaceId||!root||root.classList.contains('hidden'))return;booted=true;ensureWorkspaceI18n();injectStyles();ensureModal();ensureApplicantsGroupsGuide();ensureRecruitingAllianceCreator();await loadAccess();ensureAddGroupButton();ensureGroupView();installPersistentGroupsFolder();attachHooks();installHistoryDeleteGuard();enhanceUsername();await heartbeat();await loadGroups(false);await loadFormLibrary();await loadProfileRows();ensureApplicantsGroupsGuide();window.NEXA_TRANSFER_WORKSPACE_I18N?.apply?.(document);presenceTimer=setInterval(heartbeat,30000);refreshTimer=setInterval(periodic,2500)
+ if(booted)return;token=getToken();workspaceId=getWorkspaceId();const root=$('workspaceRoot');if(!SB||!token||!workspaceId||!root||root.classList.contains('hidden'))return;booted=true;ensureWorkspaceI18n();injectStyles();ensureModal();ensureApplicantsGroupsGuide();ensureRecruitingAllianceCreator();restoreWorkspaceTabAfterReload();await loadAccess();ensureAddGroupButton();ensureGroupView();installPersistentGroupsFolder();attachHooks();installHistoryDeleteGuard();enhanceUsername();await heartbeat();await loadGroups(false);await loadFormLibrary();await loadProfileRows();ensureApplicantsGroupsGuide();window.NEXA_TRANSFER_WORKSPACE_I18N?.apply?.(document);presenceTimer=setInterval(heartbeat,30000);refreshTimer=setInterval(periodic,2500)
 }
 const boot=setInterval(()=>{start();if(booted)clearInterval(boot)},500);setTimeout(start,80);
 })();

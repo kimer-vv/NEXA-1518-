@@ -1,4 +1,4 @@
-/* NEXA SvS Rules v1.3 — PET priority rebalance + primary-only handoff + canonical Join First + compact formation UI */
+/* NEXA SvS Rules v1.5 — FORMATIONS PILL / ENGINE V1.4 OWNER / NO-PET HANDOFF / LEGIBLE TEAM LAYOUT */
 (()=> {
   'use strict';
 
@@ -7,7 +7,7 @@
     battleStart:'12:00',
     battleEnd:'17:00',
     team1PetRequired:true,
-    team2PetPreferred:true,
+    team2PetPreferred:false,
     petActivationHours:2,
     wholeHourScheduling:true,
     primaryAlliancePriority:true,
@@ -30,8 +30,8 @@
 
     coverage:{
       team1:'PETS must remain active continuously when mathematically possible.',
-      team2:'Use PETS when roster depth supports it without weakening Team 1.',
-      otherTeams:'Use strongest effective available Rally Lead; PETS are optional.'
+      team2:'Primary Team 2 is Handoff and never receives PETS.',
+      otherTeams:'Counter Teams receive PETS dynamically by strength, phase and coverage need.'
     }
   };
 
@@ -79,6 +79,25 @@
     .nexa-formation-col img{width:46px;height:46px;border-radius:9px;object-fit:cover;border:1px solid rgba(255,255,255,.15)}
     .nexa-formation-col b{font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:center}
     .nexa-formation-note{margin-top:8px;color:#98a6c7;font-size:9px;line-height:1.35;text-align:center}
+    .layout-sheet .layout-team .hero-line img{display:none!important}
+    .layout-sheet .layout-headrow,
+    .layout-sheet .layout-row{grid-template-columns:minmax(125px,.95fr) 1.05fr 1.05fr!important;gap:10px!important}
+    .layout-sheet .layout-row{font-size:12.5px!important;line-height:1.42!important;padding:9px 10px!important}
+    .layout-sheet .layout-headrow{font-size:10.5px!important;padding:8px 10px!important;letter-spacing:.08em}
+    .layout-sheet .pname b{font-size:12.8px!important;font-weight:950!important;letter-spacing:.01em}
+    .layout-sheet .hero-name{font-size:11.8px!important;font-weight:950!important;letter-spacing:.015em;overflow:visible!important;text-overflow:clip!important}
+    .layout-sheet .hero-line{gap:6px!important}
+    .layout-sheet .hero-line>b:first-child{font-size:10.8px!important;font-weight:950!important;min-width:12px}
+    .layout-sheet .hero-stack{gap:5px!important}
+    .layout-sheet .layout-team-title{font-size:14px!important}
+    .layout-sheet .layout-rally .rally{font-size:12px!important}
+    .layout-sheet .rl-formation-list{gap:9px!important}
+    .layout-sheet .rl-formation-card{padding:10px!important}
+    .layout-sheet .nexa-formation-grid{max-width:290px;margin:9px auto 0!important;gap:5px!important}
+    .layout-sheet .nexa-formation-pct{font-size:25px!important}
+    .layout-sheet .nexa-formation-col img{width:52px!important;height:52px!important}
+    .layout-sheet .nexa-formation-col b{font-size:10px!important;font-weight:950!important}
+
   `;
 
 
@@ -94,6 +113,7 @@
   function desiredPetCurveV13(leadCount,totalTeams){
     const cap=Math.max(1,Math.min(Number(totalTeams)||1,Number(leadCount)||1));
     let curve;
+    // Active PET leads per hour: strong opening/closing, broader pressure in the middle.
     if(leadCount>=15)curve=[4,6,5,6,4];
     else if(leadCount>=12)curve=[3,5,4,5,3];
     else if(leadCount>=10)curve=[3,4,4,4,3];
@@ -111,7 +131,9 @@
     return counts;
   }
   function strengthStartOrderV13(startCounts){
-    const left={...startCounts},order=[],priority=[12,16,13,15,14,12,16,13,15,14];
+    const left={...startCounts},order=[];
+    // Strongest PET users are spent on opening/closing first, then the middle.
+    const priority=[12,16,12,16,13,15,13,15,14,14,12,16,13,15,14];
     while(Object.values(left).some(n=>n>0)){
       let added=false;
       for(const h of priority){
@@ -130,16 +152,17 @@
         const isGarrison=isPrimary&&ti===0;
         const isHandoff=isPrimary&&ti===1&&Number(teamCounts[ai]||0)>1;
         const isCounter=!isGarrison&&!isHandoff;
+        // Handoff is a friendly transition rally. It never consumes a PET window.
+        if(isHandoff)continue;
         let priority;
         if(isGarrison)priority=1000;
-        else if(isHandoff)priority=28;
-        else if(ai!==primaryIndex&&ti===0)priority=255;
-        else if(ai!==primaryIndex&&ti===1)priority=235;
-        else if(ai!==primaryIndex)priority=210-Math.min(50,ti*8);
-        else priority=205-Math.min(45,Math.max(0,ti-2)*8);
-        if(isCounter&&(hour===12||hour===16))priority+=22;
-        if(isCounter&&hour>=13&&hour<=15)priority+=12;
-        out.push({allianceIndex:ai,teamIndex:ti,key,priority,covered,isGarrison,isHandoff,isCounter});
+        else if(ai!==primaryIndex&&ti===0)priority=270;
+        else if(ai!==primaryIndex&&ti===1)priority=250;
+        else if(ai!==primaryIndex)priority=225-Math.min(45,ti*7);
+        else priority=215-Math.min(40,Math.max(0,ti-2)*7);
+        if(isCounter&&(hour===12||hour===16))priority+=26;
+        if(isCounter&&hour>=13&&hour<=15)priority+=14;
+        out.push({allianceIndex:ai,teamIndex:ti,key,priority,covered,isGarrison,isHandoff:false,isCounter});
       }
     }
     return out;
@@ -169,7 +192,11 @@
     const petTimeline=[],petHoursBySlot=new Map(),windowSlotHistory=new Map();
     for(const hour of hours){
       const activeWindows=windows.filter(w=>w.start<=hour&&w.end>hour),usedSlots=new Set();
-      const anchorWindow=activeWindows.slice().sort((a,b)=>scoreLeadLocal(b.lead)-scoreLeadLocal(a.lead))[0];
+      const anchorWindow=activeWindows.slice().sort((a,b)=>{
+        const ah=(windowSlotHistory.get(a.id)||[]).some(x=>x.hour===hour-1&&x.allianceIndex===primaryIndex&&x.teamIndex===0)?1:0;
+        const bh=(windowSlotHistory.get(b.id)||[]).some(x=>x.hour===hour-1&&x.allianceIndex===primaryIndex&&x.teamIndex===0)?1:0;
+        return (bh-ah)*1e12+(scoreLeadLocal(b.lead)-scoreLeadLocal(a.lead));
+      })[0];
       if(anchorWindow&&teamCounts[primaryIndex]>0){
         const entry={allianceIndex:primaryIndex,teamIndex:0,lead:anchorWindow.lead,start:`${hour}:00`,end:`${hour+1}:00`,petsActive:true,windowStart:`${anchorWindow.start}:00`,windowEnd:`${anchorWindow.end}:00`};
         petTimeline.push(entry);usedSlots.add(`${primaryIndex}:0`);
@@ -186,8 +213,7 @@
             const continuity=prev&&prev.allianceIndex===s.allianceIndex&&prev.teamIndex===s.teamIndex?18:0;
             const balancePenalty=s.covered*24;
             const counterAllianceBonus=s.isCounter&&s.allianceIndex!==primaryIndex?14:0;
-            const handoffPenalty=s.isHandoff?36:0;
-            return {...s,score:s.priority+continuity+counterAllianceBonus-balancePenalty-handoffPenalty};
+            return {...s,score:s.priority+continuity+counterAllianceBonus-balancePenalty};
           }).sort((a,b)=>b.score-a.score);
         const slot=slots[0];if(!slot)continue;
         const entry={allianceIndex:slot.allianceIndex,teamIndex:slot.teamIndex,lead:w.lead,start:`${hour}:00`,end:`${hour+1}:00`,petsActive:true,windowStart:`${w.start}:00`,windowEnd:`${w.end}:00`};
@@ -226,6 +252,14 @@
       }
     }
 
+    // Hard safety: Primary Team 2 is Handoff. It must never be marked PET ACTIVE.
+    for(const a of assignments){
+      if(a.allianceIndex===primaryIndex&&a.teamIndex===1)a.petsActive=false;
+    }
+    for(let i=petTimeline.length-1;i>=0;i--){
+      if(petTimeline[i].allianceIndex===primaryIndex&&petTimeline[i].teamIndex===1)petTimeline.splice(i,1);
+    }
+
     const usedIds=new Set(assignments.map(a=>leadKeyLocal(a.lead)));
     const active=leads.filter(p=>usedIds.has(leadKeyLocal(p))),floating=leads.filter(p=>!usedIds.has(leadKeyLocal(p))),coverage=[];
     for(let ai=0;ai<allianceCount;ai++){
@@ -243,7 +277,7 @@
 
   function installSchedulerOverride(){
     if(!window.NexaBattleStrategyEngine?.planSchedule)return;
-    if(window.NexaBattleStrategyEngine.version==='1.3.2'&&!window.NexaBattleStrategyEngine.__svsV13){
+    if(String(window.NexaBattleStrategyEngine.version||'')<'1.4'&&!window.NexaBattleStrategyEngine.__svsV13){
       window.NexaBattleStrategyEngine.planSchedule=planScheduleV13;
       window.NexaBattleStrategyEngine.__svsV13=true;
     }
@@ -272,23 +306,47 @@
     }
   }
 
-  async function canonicalizeJoinFirst(strategyId){
+  async function optimizeSandboxBuffDepth(strategyId){
     if(!sb||!strategyId)return;
+    const sr=await sb.from('svs_strategies').select('assist_config').eq('id',strategyId).single();
+    if(sr.error||!sr.data?.assist_config?.test_sandbox)return; // never overwrite real-player inventory decisions
     const g=await graphFor(strategyId);
     if(!g.joiners.length)return;
+
     const {data:heroRows}=await sb.from('nexa_library_items').select('id,name').eq('item_type','hero').eq('is_active',true);
     const heroId=new Map((heroRows||[]).map(h=>[String(h.name).toLowerCase(),h.id]));
-    const attack=['Norah','Norah','Hendrik','Patrick'],defense=['Renee','Mia','Patrick','Hendrik'];
-    const attackB=['Hendrik','Patrick','Norah','Norah'],defenseB=['Mia','Renee','Renee','Renee'];
+    const get=n=>heroId.get(String(n).toLowerCase())||null;
+
+    const topAttack=['Norah','Norah','Hendrik','Patrick'];
+    const topAttackB=['Hendrik','Patrick','Norah','Norah'];
+    const topDefense=['Renee','Mia','Patrick','Hendrik'];
+    const topDefenseB=['Mia','Renee','Renee','Renee'];
+
+    // Seats 5+ are contingency buff depth. They keep useful buff families available
+    // instead of repeating one stale Jessie/Seo-yoon pair throughout the Team.
+    const attackDepth=['Norah','Hendrik','Patrick','Gatot','Jessie','Jasser','Seo-yoon','Norah','Hendrik','Patrick'];
+    const attackDepthB=['Hendrik','Norah','Norah','Patrick','Norah','Hendrik','Patrick','Patrick','Norah','Hendrik'];
+    const defenseDepth=['Renee','Mia','Patrick','Hendrik','Wu Ming','Gatot','Sergey','Jessie','Renee','Mia'];
+    const defenseDepthB=['Mia','Renee','Renee','Renee','Hendrik','Renee','Mia','Patrick','Patrick','Renee'];
+
     for(const t of g.teams){
-      const rows=g.joiners.filter(j=>String(j.team_id)===String(t.id)).sort((a,b)=>a.sort_order-b.sort_order).slice(0,4);
+      const rows=g.joiners.filter(j=>String(j.team_id)===String(t.id)).sort((a,b)=>a.sort_order-b.sort_order);
       for(let i=0;i<rows.length;i++){
-        const j=rows[i],patch={
-          join_first:true,
-          attack_a_hero_id:heroId.get(attack[i].toLowerCase())||j.attack_a_hero_id,
-          attack_b_hero_id:heroId.get(attackB[i].toLowerCase())||j.attack_b_hero_id,
-          defense_a_hero_id:heroId.get(defense[i].toLowerCase())||j.defense_a_hero_id,
-          defense_b_hero_id:heroId.get(defenseB[i].toLowerCase())||j.defense_b_hero_id
+        const j=rows[i];
+        let aa,ab,da,db;
+        if(i<4){
+          aa=topAttack[i];ab=topAttackB[i];da=topDefense[i];db=topDefenseB[i];
+        }else{
+          const k=(i-4)%attackDepth.length;
+          aa=attackDepth[k];ab=attackDepthB[k];
+          da=defenseDepth[k%defenseDepth.length];db=defenseDepthB[k%defenseDepthB.length];
+        }
+        const patch={
+          join_first:i<4,
+          attack_a_hero_id:get(aa)||j.attack_a_hero_id,
+          attack_b_hero_id:get(ab)||j.attack_b_hero_id,
+          defense_a_hero_id:get(da)||j.defense_a_hero_id,
+          defense_b_hero_id:get(db)||j.defense_b_hero_id
         };
         await sb.from('svs_strategy_joiners').update(patch).eq('id',j.id);
       }
@@ -308,11 +366,19 @@
         const col=document.createElement('div');col.className='nexa-formation-col';
         const pct=document.createElement('div');pct.className='nexa-formation-pct';pct.textContent=ratio[i];
         col.appendChild(pct);
-        const img=hero.querySelector('img')?.cloneNode(true);if(img)col.appendChild(img);
+        const srcImg=hero.querySelector('img');
+        if(srcImg?.src){
+          const img=document.createElement('img');
+          img.crossOrigin='anonymous';
+          img.referrerPolicy='no-referrer';
+          img.alt=srcImg.alt||'';
+          img.src=srcImg.src;
+          col.appendChild(img);
+        }
         const name=hero.querySelector('b')?.cloneNode(true);if(name)col.appendChild(name);
         grid.appendChild(col);
       });
-      const note=document.createElement('div');note.className='nexa-formation-note';note.textContent='Rally Lead heroes • Joiners use this troop ratio and their assigned Join First heroes in each Team.';
+      const note=document.createElement('div');note.className='nexa-formation-note';note.textContent='Rally Lead heroes • Joiners use this troop ratio with the assigned buff heroes shown in each Team.';
       card.appendChild(grid);card.appendChild(note);card.dataset.nexaCompact='1';
     });
   }
@@ -581,7 +647,7 @@
       }
 
       await normalizePetPurposes(strategyId);
-      await canonicalizeJoinFirst(strategyId);
+      await optimizeSandboxBuffDepth(strategyId);
       lastHealed=strategyId;
       status(`NEXA recovered the complete Strategy graph from Team Layout v${snap.version} ✓`);
       const picker=document.getElementById('strategy-picker');
@@ -612,7 +678,7 @@
           clearInterval(watchTimer);watchTimer=null;
           setTimeout(async()=>{
             await normalizePetPurposes(sid);
-            await canonicalizeJoinFirst(sid);
+            await optimizeSandboxBuffDepth(sid);
             await healStrategyGraph(sid,{quiet:false});
             const picker=document.getElementById('strategy-picker');
             if(picker&&picker.value===sid)picker.dispatchEvent(new Event('change',{bubbles:true}));
@@ -633,16 +699,32 @@
 
   async function initialHealthCheck(){
     const sid=currentStrategyId()||await latestStrategyId();
-    if(sid){await normalizePetPurposes(sid);await canonicalizeJoinFirst(sid);await healStrategyGraph(sid,{quiet:true});}
+    if(sid){await normalizePetPurposes(sid);await optimizeSandboxBuffDepth(sid);await healStrategyGraph(sid,{quiet:true});}
+  }
+
+
+  function installFormationsPill(){
+    const nav=document.querySelector('.nav');if(!nav||nav.querySelector('[data-nexa-formations]'))return;
+    const b=document.createElement('button');b.type='button';b.dataset.nexaFormations='1';b.textContent='Formations';
+    b.addEventListener('click',()=>{location.href='formations.html'});
+    nav.appendChild(b);
+  }
+  function ensureEngine14(){
+    if(String(window.NexaBattleStrategyEngine?.version||'')>='1.4')return;
+    if(document.querySelector('script[data-nexa-engine14]'))return;
+    const s=document.createElement('script');s.src='nexa-battle-strategy-engine.js?v=1.4';s.dataset.nexaEngine14='1';
+    document.head.appendChild(s);
   }
 
   function boot(){
+    ensureEngine14();
     installReadability();
+    installFormationsPill();
     installSchedulerOverride();
     installGenerationGuard();
     clarifyFormationUI();
     setTimeout(initialHealthCheck,1200);
-    setInterval(()=>{installSchedulerOverride();installGenerationGuard();clarifyFormationUI();},900);
+    setInterval(()=>{ensureEngine14();installFormationsPill();installSchedulerOverride();installGenerationGuard();clarifyFormationUI();},900);
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});

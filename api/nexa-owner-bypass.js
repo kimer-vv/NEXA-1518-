@@ -2,7 +2,7 @@ import {
   json,
   userRole,
   bypassCookie,
-} from './_nexa-maintenance-common.js';
+} from '../server/_nexa-maintenance-common.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {

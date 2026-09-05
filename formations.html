@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • Formations</title>
 
-<!-- NEXA FORMATIONS V1.3 • hero portraits fix • consistent Attack/Defense ordering -->
+<!-- NEXA FORMATIONS V1.4 • clean Suggested tiers • dedupe Approved • joiner reasoning -->
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -170,167 +170,245 @@ textarea{min-height:76px;resize:vertical}
   let activeGeneration=1;
 
   const $=s=>document.querySelector(s);
-  const status=t=>{ const el=$('#status'); if(el) el.textContent=t||''; };
-
-  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({
-    '&':'&amp;',
-    '<':'&lt;',
-    '>':'&gt;',
-    '"':'&quot;',
-    "'":'&#39;'
-  }[m]));
+  const status=t=>{const el=$('#status');if(el)el.textContent=t||''};
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const norm=s=>String(s||'').trim().toLowerCase();
 
   function rarity(n){
-    const h=heroes.find(x=>x.name===n);
+    const h=heroes.find(x=>norm(x.name)===norm(n));
     return 'rarity-'+String(h?.rarity||'').toLowerCase();
   }
 
   function heroCard(n){
-    const h=heroes.find(x=>x.name===n)||{};
-    return `<div class="hero">${
-      h.image_url
-        ? `<img src="${esc(h.image_url)}" alt="${esc(n)}">`
-        : '<img alt="">'
-    }<b class="${rarity(n)}">${esc(n)}</b></div>`;
+    const h=heroes.find(x=>norm(x.name)===norm(n))||{};
+    return `<div class="hero">${h.image_url?`<img src="${esc(h.image_url)}" alt="${esc(n)}">`:'<img alt="">'}<b class="${rarity(n)}">${esc(n)}</b></div>`;
   }
 
   function chips(arr){
-    return `<div class="chips">${(arr||[]).map(n=>
-      `<span class="chip ${rarity(n)}">${esc(n)}</span>`
-    ).join('')}</div>`;
+    return `<div class="chips">${(arr||[]).map(n=>`<span class="chip ${rarity(n)}">${esc(n)}</span>`).join('')}</div>`;
+  }
+
+  function signature(r){
+    const mode=norm(r?.mode);
+    const leaders=(r?.leader_heroes||[]).map(norm).join('|');
+    const ratio=(r?.primary_ratio||[]).map(Number).join('/');
+    return `${mode}::${leaders}::${ratio}`;
   }
 
   function resolveGeneration(generationRows){
     const now=Date.now();
     const eligible=(generationRows||[]).filter(r=>{
       const g=Number(r?.generation||0);
-      if(!g) return false;
-      if(r?.is_visible===true) return true;
+      if(!g)return false;
+      if(r?.is_visible===true)return true;
       if(r?.unlock_at){
         const t=new Date(r.unlock_at).getTime();
-        return Number.isFinite(t) && t<=now;
+        return Number.isFinite(t)&&t<=now;
       }
       return false;
     });
+    if(eligible.length)return Math.max(1,...eligible.map(r=>Number(r.generation||0)));
+    const heroGens=heroes.map(h=>Number(h.generation||0)).filter(Boolean);
+    if(heroGens.length)return Math.max(1,...heroGens);
+    const ruleGens=rows.map(r=>Number(r.generation||0)).filter(Boolean);
+    return ruleGens.length?Math.max(1,...ruleGens):1;
+  }
 
-    if(eligible.length){
-      return Math.max(1,...eligible.map(r=>Number(r.generation||0)));
+  function currentRows(){
+    return rows.filter(r=>Number(r.generation)===activeGeneration);
+  }
+
+  function researchRows(){
+    return currentRows().filter(r=>
+      r.approval_status==='corroborated' ||
+      (r.approval_status==='candidate' && Number(r.confidence||0)>=.60 && Number(r.independent_source_count||0)>=2 && Number(r.source_count||0)>=2)
+    );
+  }
+
+  function approvedRows(){
+    return currentRows().filter(r=>r.approval_status==='approved'&&r.is_active!==false);
+  }
+
+  function matchingResearch(approved){
+    return researchRows()
+      .filter(r=>signature(r)===signature(approved))
+      .sort((a,b)=>{
+        const ac=Number(a.confidence||0),bc=Number(b.confidence||0);
+        if(ac!==bc)return bc-ac;
+        return new Date(b.last_researched_at||0)-new Date(a.last_researched_at||0);
+      })[0]||null;
+  }
+
+  function evidenceRow(r){
+    if(r.approval_status==='approved')return matchingResearch(r)||r;
+    return r;
+  }
+
+  function suggestedRows(){
+    const approvedSignatures=new Set(approvedRows().map(signature));
+    return researchRows()
+      .filter(r=>!approvedSignatures.has(signature(r)))
+      .sort((a,b)=>{
+        const modeOrder={attack:0,defense:1};
+        const ma=modeOrder[norm(a.mode)]??99,mb=modeOrder[norm(b.mode)]??99;
+        if(ma!==mb)return ma-mb;
+        return Number(b.confidence||0)-Number(a.confidence||0);
+      });
+  }
+
+  function metadata(r){
+    return r?.research_metadata&&typeof r.research_metadata==='object'?r.research_metadata:{};
+  }
+
+  function safeJoiners(r){
+    const md=metadata(r);
+    if(r.approval_status==='approved')return r.joiner_primary||[];
+    // New Brain rows have an explicit evidence gate. Old candidate rows can still be useful
+    // as Promising formations, but their old unvetted joiner names are not operational.
+    if(md.joiner_gate)return r.joiner_primary||[];
+    return [];
+  }
+
+  function safeBackups(r){
+    const md=metadata(r);
+    if(r.approval_status==='approved')return r.backup_joiner_pool||[];
+    if(md.joiner_gate)return r.backup_joiner_pool||[];
+    return [];
+  }
+
+  function joinerEvidence(r,role){
+    return (metadata(r).joiner_evidence||[]).filter(x=>x?.role===role&&x?.hero);
+  }
+
+  function compactReason(text,max=220){
+    const s=String(text||'').trim();
+    if(s.length<=max)return s;
+    const cut=s.slice(0,max);
+    const i=Math.max(cut.lastIndexOf('. '),cut.lastIndexOf('; '));
+    return (i>80?cut.slice(0,i+1):cut.trimEnd()+'…');
+  }
+
+  function whyFirstFour(r){
+    const first=safeJoiners(r);
+    if(!first.length){
+      return `<div class="muted">First-4 joiners are pending current-generation evidence review.</div>`;
     }
-
-    // Safe fallback for anon/public Safari sessions:
-    // visible active heroes represent generations currently exposed to players.
-    const visibleHeroGens=heroes
-      .map(h=>Number(h.generation||0))
-      .filter(Boolean);
-
-    if(visibleHeroGens.length){
-      return Math.max(1,...visibleHeroGens);
+    const ev=joinerEvidence(r,'primary');
+    const groups=[];
+    for(const hero of first){
+      let g=groups.find(x=>norm(x.hero)===norm(hero));
+      if(!g){g={hero,count:0,evidence:ev.find(x=>norm(x.hero)===norm(hero))||null};groups.push(g)}
+      g.count++;
     }
+    return `<div style="display:grid;gap:6px;margin-top:6px">${groups.map(g=>{
+      const why=g.evidence?.why||'Current-generation joiner value is saved, but no short explanation was stored yet.';
+      return `<div><b class="${rarity(g.hero)}">${esc(g.hero)}${g.count>1?` ×${g.count}`:''}</b><div class="muted">${esc(compactReason(why))}</div></div>`;
+    }).join('')}</div>`;
+  }
 
-    const formationGens=rows
-      .filter(r=>r.approval_status==='approved' || r.approval_status==='corroborated')
-      .map(r=>Number(r.generation||0))
-      .filter(Boolean);
+  function backupExplanation(r){
+    const pool=safeBackups(r);
+    if(!pool.length)return `<div class="muted" style="margin-top:6px">No vetted backups yet. NEXA will not fill this pool with legacy names just to make it look complete.</div>`;
+    const ev=joinerEvidence(r,'backup');
+    return `<div style="display:grid;gap:6px;margin-top:6px">${pool.map(hero=>{
+      const x=ev.find(e=>norm(e.hero)===norm(hero));
+      const replace=x?.replaces?` • Backup for ${esc(x.replaces)}`:'';
+      const why=x?.why?`<div class="muted">${esc(compactReason(x.why))}</div>`:'';
+      return `<div><b class="${rarity(hero)}">${esc(hero)}</b>${replace}${why}</div>`;
+    }).join('')}</div>`;
+  }
 
-    return formationGens.length ? Math.max(1,...formationGens) : 1;
+  function tierLabel(r){
+    const conf=Number(r.confidence||0);
+    return conf>=.72&&Number(r.independent_source_count||0)>=3&&Number(r.source_count||0)>=3
+      ? 'CORROBORATED'
+      : 'PROMISING';
+  }
+
+  function ratioReasoning(r){
+    return metadata(r).ratio_reasoning || r?.constraints?.ratio_reasoning || '';
+  }
+
+  function renderCard(r,view){
+    const ev=evidenceRow(r);
+    const approved=view==='approved';
+    const label=approved?'APPROVED':tierLabel(r);
+    const joiners=safeJoiners(ev);
+    const backups=safeBackups(ev);
+    const why=ev.why_good||ev.evidence_note||r.why_good||r.evidence_note||'No explanation saved yet.';
+    const risk=ev.risk_note||r.risk_note||'';
+    const rr=ratioReasoning(ev);
+    const conf=Math.round(Number(ev.confidence||0)*100);
+    const indep=Number(ev.independent_source_count||0);
+    const sources=Number(ev.source_count||0);
+
+    return `<article class="card ${esc(r.mode)}" data-id="${esc(r.id)}">
+      <div class="card-head">
+        <div>
+          <b>${r.mode==='attack'?'⚔ ATTACK':'🛡 DEFENSE'}</b>
+          <div class="muted" style="font-size:10px;margin-top:3px">Gen ${esc(r.generation)}</div>
+        </div>
+        <span class="badge ${approved?'approved':'suggested'}">${label}</span>
+      </div>
+
+      <div class="heroes">${(r.leader_heroes||[]).map(heroCard).join('')}</div>
+      <div class="ratio">${(r.primary_ratio||[]).join(' / ')}</div>
+
+      <div class="detail">
+        <b>Join First 1–4</b>
+        ${joiners.length?chips(joiners):'<div class="muted" style="margin-top:6px">Pending vetted First-4 joiners.</div>'}
+
+        <div style="height:10px"></div>
+        <b>Why these First 4?</b>
+        ${whyFirstFour(ev)}
+
+        <div style="height:10px"></div>
+        <b>Backup Joiner Pool</b>
+        ${backups.length?chips(backups):''}
+        ${backupExplanation(ev)}
+
+        <div style="height:10px"></div>
+        <b>Why this formation</b>
+        <div class="muted">${esc(why)}</div>
+
+        ${rr?`<div style="height:10px"></div><b>Why this ratio</b><div class="muted">${esc(rr)}</div>`:''}
+
+        ${risk?`<div style="height:10px"></div><b>Risk / Variables</b><div class="muted">${esc(risk)}</div>`:''}
+
+        <div style="height:10px"></div>
+        <b>Evidence</b>
+        <div class="muted">${conf}% confidence • ${indep} independent source group${indep===1?'':'s'} • ${sources} source${sources===1?'':'s'}</div>
+
+        ${!approved?`<div class="actions"><button type="button" class="btn primary approve" data-id="${esc(r.id)}">Add / Approve</button></div>`:''}
+      </div>
+    </article>`;
   }
 
   function render(){
     const list=$('#list');
-    if(!list) return;
-
-    const modeOrder={attack:0,defense:1};
-
-    const wanted=rows
-      .filter(r=>
-        Number(r.generation)===activeGeneration &&
-        (
-          tab==='approved'
-            ? (r.approval_status==='approved' && r.is_active!==false)
-            : r.approval_status==='corroborated'
-        )
-      )
-      .sort((a,b)=>{
-        const ma=modeOrder[String(a.mode||'').toLowerCase()] ?? 99;
-        const mb=modeOrder[String(b.mode||'').toLowerCase()] ?? 99;
-        if(ma!==mb) return ma-mb;
-        return Number(b.confidence||0)-Number(a.confidence||0);
-      });
+    if(!list)return;
+    const wanted=tab==='approved'
+      ? approvedRows().sort((a,b)=>{
+          const mo={attack:0,defense:1};const ma=mo[norm(a.mode)]??99,mb=mo[norm(b.mode)]??99;
+          return ma!==mb?ma-mb:Number(evidenceRow(b).confidence||0)-Number(evidenceRow(a).confidence||0);
+        })
+      : suggestedRows();
 
     const empty=tab==='suggested'
-      ? `<div class="empty"><b>No Suggested formations yet for Gen ${activeGeneration}.</b><br>NEXA Brain has not produced a corroborated formation for the current generation yet.</div>`
+      ? `<div class="empty"><b>No review-worthy Suggested formations yet for Gen ${activeGeneration}.</b><br>Suggested only shows independently supported formations at 60%+ that are not already Approved.</div>`
       : `<div class="empty">No active Approved formations found for Gen ${activeGeneration}.</div>`;
 
-    list.innerHTML=wanted.length ? wanted.map(r=>`
-      <article class="card ${esc(r.mode)}" data-id="${esc(r.id)}">
-        <div class="card-head">
-          <div>
-            <b>${r.mode==='attack'?'⚔ ATTACK':'🛡 DEFENSE'}</b>
-            <div class="muted" style="font-size:10px;margin-top:3px">
-              Gen ${esc(r.generation)} • ${esc(r.rule_key)}
-            </div>
-          </div>
-          <span class="badge ${tab==='approved'?'approved':'suggested'}">
-            ${tab==='approved'?'APPROVED':'CORROBORATED'}
-          </span>
-        </div>
-
-        <div class="heroes">${(r.leader_heroes||[]).map(heroCard).join('')}</div>
-        <div class="ratio">${(r.primary_ratio||[]).join(' / ')}</div>
-
-        <div class="detail">
-          <b>Join First 1–4</b>
-          ${chips(r.joiner_primary)}
-
-          <div style="height:8px"></div>
-          <b>Backup Joiner Pool</b>
-          ${chips(r.backup_joiner_pool)}
-
-          ${r.alternative_formations?.length ? `
-            <div style="height:8px"></div>
-            <b>Secondary / Alternative Formation</b>
-            <div class="muted">
-              ${esc((r.alternative_formations[0].leader_heroes||[]).join(' • '))}
-              • ${(r.alternative_formations[0].ratio||[]).join(' / ')}
-            </div>
-          ` : ''}
-
-          <div style="height:8px"></div>
-          <b>Why this formation</b>
-          <div class="muted">${esc(r.why_good||r.evidence_note||'No explanation saved yet.')}</div>
-
-          ${r.risk_note ? `
-            <div style="height:8px"></div>
-            <b>Risk</b>
-            <div class="muted">${esc(r.risk_note)}</div>
-          ` : ''}
-
-          <div style="height:8px"></div>
-          <b>Evidence</b>
-          <div class="muted">
-            ${Math.round(Number(r.confidence||0)*100)}% confidence
-            • ${Number(r.independent_source_count||0)} independent sources
-          </div>
-
-          ${tab==='suggested' ? `
-            <div class="actions">
-              <button type="button" class="btn primary approve" data-id="${esc(r.id)}">Add / Approve</button>
-            </div>
-          ` : ''}
-        </div>
-      </article>
-    `).join('') : empty;
+    list.innerHTML=wanted.length
+      ? wanted.map(r=>renderCard(r,tab)).join('')
+      : empty;
 
     document.querySelectorAll('.card').forEach(c=>{
       c.addEventListener('click',e=>{
-        if(e.target.closest('button')) return;
+        if(e.target.closest('button'))return;
         c.classList.toggle('open');
       });
     });
-
-    document.querySelectorAll('.approve').forEach(b=>{
-      b.addEventListener('click',approve);
-    });
+    document.querySelectorAll('.approve').forEach(b=>b.addEventListener('click',approve));
   }
 
   function setTab(nextTab,button){
@@ -342,102 +420,38 @@ textarea{min-height:76px;resize:vertical}
 
   function bindUI(){
     document.querySelectorAll('.tabs button').forEach(button=>{
-      button.addEventListener('click',()=>{
-        setTab(button.dataset.tab,button);
-      });
+      button.addEventListener('click',()=>setTab(button.dataset.tab,button));
     });
-
-    $('#add')?.addEventListener('click',()=>{
-      $('#modal')?.classList.add('open');
-    });
-
-    $('#close')?.addEventListener('click',()=>{
-      $('#modal')?.classList.remove('open');
-    });
-
-    $('#modal')?.addEventListener('click',e=>{
-      if(e.target===e.currentTarget) e.currentTarget.classList.remove('open');
-    });
-
+    $('#add')?.addEventListener('click',()=>$('#modal')?.classList.add('open'));
+    $('#close')?.addEventListener('click',()=>$('#modal')?.classList.remove('open'));
+    $('#modal')?.addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open')});
     $('#save')?.addEventListener('click',save);
   }
 
   function buildHeroOptions(){
     const generationInput=$('#generation');
-    if(generationInput){
-      generationInput.value=activeGeneration;
-      generationInput.max=activeGeneration;
-    }
-
+    if(generationInput){generationInput.value=activeGeneration;generationInput.max=activeGeneration}
     const eligibleHeroes=heroes.filter(h=>Number(h.generation||0)<=activeGeneration);
-
-    const opts='<option value="">Select</option>'+
-      eligibleHeroes.map(h=>
-        `<option value="${esc(h.name)}">${esc(h.name)} • Gen ${esc(h.generation)}</option>`
-      ).join('');
-
-    ['#h0','#h1','#h2'].forEach(s=>{
-      const el=$(s);
-      if(el) el.innerHTML=opts;
-    });
+    const opts='<option value="">Select</option>'+eligibleHeroes.map(h=>`<option value="${esc(h.name)}">${esc(h.name)} • Gen ${esc(h.generation)}</option>`).join('');
+    ['#h0','#h1','#h2'].forEach(s=>{const el=$(s);if(el)el.innerHTML=opts});
   }
 
   async function load(){
-    if(!sb){
-      status('Database connection unavailable. Tabs and Add Formation are still usable.');
-      render();
-      return;
-    }
-
+    if(!sb){status('Database connection unavailable. Tabs and Add Formation are still usable.');render();return}
     status('Loading…');
-
     try{
-      const a=await sb
-        .from('nexa_battle_meta_rules')
-        .select('*')
-        .in('approval_status',['approved','corroborated'])
-        .order('generation',{ascending:false})
-        .order('confidence',{ascending:false});
+      const [a,b,g]=await Promise.all([
+        sb.from('nexa_battle_meta_rules').select('*').in('approval_status',['approved','corroborated','candidate']).order('generation',{ascending:false}).order('confidence',{ascending:false}),
+        sb.from('nexa_library_items').select('name,image_url,rarity,generation,troop_type').eq('item_type','hero').eq('is_active',true).order('generation'),
+        sb.from('nexa_library_generations').select('generation,is_visible,unlock_at').eq('item_type','hero').order('generation')
+      ]);
 
-      if(a.error){
-        status('Formation load error: '+a.error.message);
-        rows=[];
-      }else{
-        rows=a.data||[];
-      }
-
-      const b=await sb
-        .from('nexa_library_items')
-        .select('name,image_url,rarity,generation,troop_type')
-        .eq('item_type','hero')
-        .eq('is_active',true)
-        .order('generation');
-
-      if(b.error){
-        // Do not kill Suggested/Approved if hero portraits cannot load.
-        heroes=[];
-      }else{
-        heroes=b.data||[];
-      }
-
-      let generationRows=[];
-
-      const g=await sb
-        .from('nexa_library_generations')
-        .select('generation,is_visible,unlock_at')
-        .eq('item_type','hero')
-        .order('generation');
-
-      if(!g.error){
-        generationRows=g.data||[];
-      }
-
-      activeGeneration=resolveGeneration(generationRows);
+      if(a.error){status('Formation load error: '+a.error.message);rows=[]}else rows=a.data||[];
+      heroes=b.error?[]:(b.data||[]);
+      activeGeneration=resolveGeneration(g.error?[]:(g.data||[]));
       buildHeroOptions();
-
-      status(`Current unlocked generation: Gen ${activeGeneration}`);
+      status(`Current unlocked generation: Gen ${activeGeneration} • Suggested threshold: 60%+`);
       render();
-
     }catch(err){
       console.error('[NEXA Formations] load failed',err);
       activeGeneration=resolveGeneration([]);
@@ -449,39 +463,17 @@ textarea{min-height:76px;resize:vertical}
 
   async function approve(e){
     e.stopPropagation();
-
-    if(!sb){
-      status('Database connection unavailable.');
-      return;
-    }
-
-    status('Approving…');
-
+    if(!sb){status('Database connection unavailable.');return}
     const id=e.currentTarget.dataset.id;
     const row=rows.find(r=>String(r.id)===String(id));
-
-    if(!row || Number(row.generation)!==activeGeneration){
-      status('Only the current unlocked generation can be approved here.');
-      return;
-    }
-
+    if(!row||Number(row.generation)!==activeGeneration){status('Only the current unlocked generation can be approved here.');return}
+    status('Approving…');
     try{
-      const {error}=await sb
-        .from('nexa_battle_meta_rules')
-        .update({
-          approval_status:'approved',
-          is_active:true,
-          verified_at:new Date().toISOString()
-        })
+      const {error}=await sb.from('nexa_battle_meta_rules')
+        .update({approval_status:'approved',is_active:true,verified_at:new Date().toISOString()})
         .eq('id',id);
-
-      if(error){
-        status(error.message);
-        return;
-      }
-
+      if(error){status(error.message);return}
       await load();
-
     }catch(err){
       console.error('[NEXA Formations] approve failed',err);
       status('Could not approve this formation.');
@@ -489,92 +481,31 @@ textarea{min-height:76px;resize:vertical}
   }
 
   async function save(){
-    if(!sb){
-      status('Database connection unavailable.');
-      return;
-    }
-
-    const ratio=[
-      Number($('#r0')?.value||0),
-      Number($('#r1')?.value||0),
-      Number($('#r2')?.value||0)
-    ];
-
-    if(ratio.reduce((a,b)=>a+b,0)!==100){
-      status('Ratio must total 100.');
-      return;
-    }
-
+    if(!sb){status('Database connection unavailable.');return}
+    const ratio=[Number($('#r0')?.value||0),Number($('#r1')?.value||0),Number($('#r2')?.value||0)];
+    if(ratio.reduce((a,b)=>a+b,0)!==100){status('Ratio must total 100.');return}
     const hs=['#h0','#h1','#h2'].map(s=>$(s)?.value||'');
-
-    if(hs.some(x=>!x)){
-      status('Choose all 3 Rally Lead heroes.');
-      return;
-    }
-
-    const jf=($('#joinfirst')?.value||'')
-      .split(',')
-      .map(x=>x.trim())
-      .filter(Boolean);
-
-    const bp=($('#backup')?.value||'')
-      .split(',')
-      .map(x=>x.trim())
-      .filter(Boolean);
-
-    if(jf.length!==4){
-      status('Join First must contain exactly 4 hero names.');
-      return;
-    }
-
+    if(hs.some(x=>!x)){status('Choose all 3 Rally Lead heroes.');return}
+    const jf=($('#joinfirst')?.value||'').split(',').map(x=>x.trim()).filter(Boolean);
+    const bp=($('#backup')?.value||'').split(',').map(x=>x.trim()).filter(Boolean);
+    if(jf.length!==4){status('Join First must contain exactly 4 hero names.');return}
     const generation=Number($('#generation')?.value||0);
-
-    if(generation!==activeGeneration){
-      status(`Only Gen ${activeGeneration} is currently unlocked.`);
-      return;
-    }
-
+    if(generation!==activeGeneration){status(`Only Gen ${activeGeneration} is currently unlocked.`);return}
     const mode=$('#mode')?.value||'attack';
     const rule_key=`manual_${mode}_${Date.now()}`;
-
     status('Saving…');
-
     try{
       const {error}=await sb.from('nexa_battle_meta_rules').insert({
-        generation,
-        event_scope:'pvp_rally',
-        mode,
-        rule_key,
-        leader_heroes:hs,
-        primary_ratio:ratio,
-        alternative_ratios:[],
-        alternative_formations:[],
-        joiner_primary:jf,
-        joiner_alternatives:bp,
-        backup_joiner_pool:bp,
-        constraints:{max_generation:activeGeneration},
-        confidence:1,
-        evidence_status:'verified',
-        evidence_note:'Manual approved formation.',
-        why_good:($('#why')?.value||'').trim(),
-        risk_note:($('#risk')?.value||'').trim(),
-        source_urls:[],
-        source_count:0,
-        independent_source_count:0,
-        approval_status:'approved',
-        is_active:true,
-        is_manual:true,
+        generation,event_scope:'pvp_rally',mode,rule_key,leader_heroes:hs,primary_ratio:ratio,
+        alternative_ratios:[],alternative_formations:[],joiner_primary:jf,joiner_alternatives:bp,backup_joiner_pool:bp,
+        constraints:{max_generation:activeGeneration},confidence:1,evidence_status:'verified',
+        evidence_note:'Manual approved formation.',why_good:($('#why')?.value||'').trim(),risk_note:($('#risk')?.value||'').trim(),
+        source_urls:[],source_count:0,independent_source_count:0,approval_status:'approved',is_active:true,is_manual:true,
         verified_at:new Date().toISOString()
       });
-
-      if(error){
-        status(error.message);
-        return;
-      }
-
+      if(error){status(error.message);return}
       $('#modal')?.classList.remove('open');
       await load();
-
     }catch(err){
       console.error('[NEXA Formations] save failed',err);
       status('Could not save this formation.');
@@ -583,16 +514,10 @@ textarea{min-height:76px;resize:vertical}
 
   function connectSupabase(){
     try{
-      const clientFactory=window.supabase?.createClient;
-
-      if(typeof clientFactory!=='function'){
-        status('Supabase library did not load. Retrying…');
-        return false;
-      }
-
-      sb=clientFactory(SUPABASE_URL,SUPABASE_KEY);
+      const factory=window.supabase?.createClient;
+      if(typeof factory!=='function'){status('Supabase library did not load. Retrying…');return false}
+      sb=factory(SUPABASE_URL,SUPABASE_KEY);
       return true;
-
     }catch(err){
       console.error('[NEXA Formations] Supabase init failed',err);
       status('Supabase connection failed.');
@@ -601,43 +526,19 @@ textarea{min-height:76px;resize:vertical}
   }
 
   function start(){
-    // Critical: bind controls FIRST so Safari UI never dies because of a CDN/database failure.
     bindUI();
-
-    // Show immediate visible proof that JS is running.
     status('Starting Formations…');
-
-    if(connectSupabase()){
-      load();
-      return;
-    }
-
-    // CDN may finish a fraction later on Safari. Retry briefly without blocking the UI.
+    if(connectSupabase()){load();return}
     let attempts=0;
     const retry=setInterval(()=>{
       attempts++;
-
-      if(connectSupabase()){
-        clearInterval(retry);
-        load();
-        return;
-      }
-
-      if(attempts>=10){
-        clearInterval(retry);
-        activeGeneration=resolveGeneration([]);
-        buildHeroOptions();
-        render();
-        status('Database connection unavailable. Please reload this page.');
-      }
+      if(connectSupabase()){clearInterval(retry);load();return}
+      if(attempts>=10){clearInterval(retry);activeGeneration=resolveGeneration([]);buildHeroOptions();render();status('Database connection unavailable. Please reload this page.')}
     },300);
   }
 
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',start,{once:true});
-  }else{
-    start();
-  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});
+  else start();
 })();
 </script>
 </body>

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS STRATEGY V11.3.5 • engine v1.4 + rules v1.5 loader refresh -->
+<!-- NEXA SVS STRATEGY V11.3.6 • engine v1.5 dynamic PET coverage + clean Team Layout -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -87,7 +87,7 @@ input,select{width:100%;min-height:44px;background:#060b1c;color:#fff;border:1px
   -webkit-text-stroke:.25px rgba(0,0,0,.92);
   text-shadow:0 1px 0 #000,0 0 3px rgba(0,0,0,.95);
 }
-.layout-sheet .layout-row{font-size:11px;line-height:1.28}
+.layout-sheet .layout-row{font-size:14px;line-height:1.28}
 .layout-sheet .hero-stack{gap:4px}
 .layout-sheet .hero-line{gap:5px}
 .layout-sheet .rl-formation-hero img{width:40px;height:40px}
@@ -109,7 +109,12 @@ input,select{width:100%;min-height:44px;background:#060b1c;color:#fff;border:1px
 .layout-sheet{width:1400px;min-width:1400px;padding:22px;border-radius:18px;border:1px solid rgba(155,120,255,.55);box-shadow:0 0 24px rgba(139,89,255,.13);background:radial-gradient(circle at 8% 0%,rgba(95,69,205,.16),transparent 25%),linear-gradient(145deg,#050916,#0a0e20)}
 .layout-head{display:flex;align-items:center;gap:9px}.layout-head .emblem{width:54px;height:54px}.layout-teams{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:10px}
 .layout-team{border:1px solid var(--tc);border-radius:13px;overflow:hidden;background:rgba(4,8,20,.84)}.layout-team-title{text-align:center;padding:9px;font-weight:950;box-shadow:inset 0 -3px 0 var(--tc)}
-.layout-rally{padding:8px}.layout-headrow,.layout-row{display:grid;grid-template-columns:minmax(80px,.8fr) 1fr 1fr;gap:4px}.layout-headrow{background:rgba(255,255,255,.05);padding:7px;font-size:10px;font-weight:950;text-transform:uppercase}.layout-row{padding:7px;border-top:1px solid rgba(255,255,255,.07);font-size:10px}
+.layout-rally{padding:8px}
+.layout-headrow,.layout-row{display:grid;grid-template-columns:1fr;gap:0}
+.layout-headrow{background:rgba(255,255,255,.05);padding:8px 10px;font-size:11px;font-weight:950;text-transform:uppercase;letter-spacing:.06em}
+.layout-row{padding:10px 11px;border-top:1px solid rgba(255,255,255,.07);font-size:14px;line-height:1.25;min-height:40px}
+.layout-row .pname b{font-size:14px;letter-spacing:.01em}
+.layout-row.first .pname:after{content:"  JOIN FIRST";color:var(--gold);font-size:9px;font-weight:950;letter-spacing:.08em;margin-left:6px}
 .placeholder{text-align:center;color:#aeb7d1;padding:30px 14px}.placeholder b{display:block;color:#fff;font-size:19px;margin-bottom:6px}
 
 .pet-preview-inline{
@@ -259,7 +264,7 @@ body.pet-preview-open{overflow:hidden!important}
 .team-form-head{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:10px}.team-form-head strong{font-size:10px}
 .team-form-heroes{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}.team-form-heroes span{display:flex;align-items:center;gap:4px;font-size:9px;font-weight:850}.team-form-heroes img{width:22px;height:22px;border-radius:6px;object-fit:cover}
 </style>
-<script src="nexa-battle-strategy-engine.js?v=1.4"></script>
+<script src="nexa-battle-strategy-engine.js?v=1.5"></script>
 <script src="nexa-svs-rules.js?v=1.5"></script>
 </head>
 <body>
@@ -373,8 +378,8 @@ body.pet-preview-open{overflow:hidden!important}
     <div class="guide-page active" data-guide="0"><h4>Workspace & Mobile View</h4><p>Strategy Board is your editable Team Builder. On mobile, Team cards move sideways so they stay readable. Swipe left/right to inspect every Team. Desktop can show much more at once. Use Team Layout for the complete final sheet.</p></div>
     <div class="guide-page" data-guide="1"><h4>NEXA Assist & Manual Mode</h4><p>Live Auto Generate uses Battle Roles + Responses + Profile/Inventory automatically. Only Test Sandbox asks for Rally Leader and Joiner counts. NEXA decides how many sustainable Teams the roster can actually fill. Manual Build leaves every assignment to you and NEXA reviews it when you press Done.</p></div>
     <div class="guide-page" data-guide="2"><h4>Rally Leaders, Joiners & Heroes</h4><p>Rally Leaders come from one finite global pool. They may rotate between Alliances only when time blocks do not overlap. PETS use one continuous 2-hour window on whole-hour boundaries. Joiners remain fixed unless you move them; duplicate assignments trigger a warning. Every Rally Leader and Joiner can be removed individually.</p></div>
-    <div class="guide-page" data-guide="3"><h4>Pet Schedule & Formations</h4><p>Team 1 is the Primary Pet Team. Team 2 becomes Secondary PET / Support only when real Rally Leader depth allows it; Teams 3+ are normally strong mixed teams without PETS. NEXA preserves the canonical first four Join First buff seats. Joiners 5+ use resilient contingency mixes so a safe backup does not break the formation.</p></div>
-    <div class="guide-page" data-guide="4"><h4>Team Layout, Preview & Download</h4><p>Team Layout shows the complete final sheet. On mobile use Preview Layout and, for the clearest view, rotate your phone sideways. Preview fits the sheet to your screen; Download exports the full NEXA-styled layout.</p></div>
+    <div class="guide-page" data-guide="3"><h4>Pet Schedule & Formations</h4><p>PETS are scheduled by strength, coverage gaps, alliance purpose and time — never by a fixed Team number. Primary Team 1 is Garrison priority; Primary Team 2 is Handoff and never receives PETS. Counter PET carriers rotate across eligible Teams with strong opening/closing coverage and staggered middle relief. NEXA preserves the evidence-backed First 4 and uses vetted emergency backups when available.</p></div>
+    <div class="guide-page" data-guide="4"><h4>Team Layout, Preview & Download</h4><p>Team Layout is the final-sheet preview. Rally Lead Attack/Defense formations keep hero portraits and ratios at the top. Joiner rows intentionally show names only so the text can be larger and cleaner. Preview and Download use the same layout.</p></div>
     <div class="guide-count"><span id="guide-page-label">1 / 5</span></div>
     <div class="nexa-modal-actions"><button id="guide-prev" class="btn" type="button">‹ Previous</button><button id="guide-next" class="btn violet" type="button">Next ›</button></div>
   </div>
@@ -449,6 +454,16 @@ function playerStrength(p,role){
  const r=responseFor(p.id)||{},dep=Number(r.deployment_capacity||p.deployment_capacity||0),power=Number(p.power||0),rallyCap=Number(p.rally_capacity||0),quality=numericDeep(r.troop_quality),gear=numericDeep(p.hero_gear),heroes=numericDeep(role==='rally_lead'?r.rally_heroes:r.joiner_heroes);
  return dep*1.0+rallyCap*.9+power*.02+quality*220+gear*35+heroes*25
 }
+function petCarrierValue(p){
+ const c=responseFor(p.id)?.custom_answers||{};
+ let petSignal=0;
+ for(const [k,v] of Object.entries(c)){
+   if(/pet/i.test(k))petSignal+=numericDeep(v);
+ }
+ const tier=String(p?._tier||'').toUpperCase();
+ const tierBonus=tier.includes('MAX')?500000:tier.includes('STRONG')?220000:0;
+ return petSignal+tierBonus;
+}
 function strategyAllianceForTeam(tid){const t=teams.find(x=>x.id===tid);return t?alliances.find(a=>a.id===t.strategy_alliance_id):null}
 function teamForAssignment(tid){return teams.find(t=>t.id===tid)}
 function teamLabel(tid){const t=teamForAssignment(tid),a=t&&strategyAllianceForTeam(tid);return `${a?.alliance_tag||'Alliance'} • ${t?.name||'Team'}`}
@@ -485,7 +500,16 @@ function rallyFormationRecommendation(type){
      lancer:trio.find(h=>String(h.troop_type).toLowerCase()==='lancer')||trio[1]||null,
      marksman:trio.find(h=>String(h.troop_type).toLowerCase()==='marksman')||trio[2]||null,
      ratio:rec.ratio,alternatives:rec.alternatives||[],reason:rec.note||'',
-     confidence:rec.confidence,evidenceStatus:rec.evidenceStatus,sourceUrls:rec.sourceUrls||[],generation:rec.generation
+     confidence:rec.confidence,evidenceStatus:rec.evidenceStatus,sourceUrls:rec.sourceUrls||[],generation:rec.generation,
+     catalogAlternatives:(rec.catalogAlternatives||[]).map(x=>{
+       const trio=x.heroes||[];
+       return {
+         infantry:trio.find(h=>String(h.troop_type).toLowerCase()==='infantry')||trio[0]||null,
+         lancer:trio.find(h=>String(h.troop_type).toLowerCase()==='lancer')||trio[1]||null,
+         marksman:trio.find(h=>String(h.troop_type).toLowerCase()==='marksman')||trio[2]||null,
+         ratio:x.ratio,confidence:x.confidence,whyGood:x.whyGood||'',riskNote:x.riskNote||''
+       };
+     })
    };
  }
  const infantry=latestHero('infantry'),lancer=latestHero('lancer'),marksman=latestHero('marksman');
@@ -532,45 +556,31 @@ function metaJoinerProfile(mode,formation){
    return {r,score:exact*10000+match*100+Number(r.confidence||0)*10}
  }).sort((a,b)=>b.score-a.score);
  const best=candidates[0]?.r||null;
- const primary=[...(best?.joiner_primary||[])].filter(Boolean); // preserve duplicates intentionally
- const alternatives=[];
- for(const alt of (best?.joiner_alternatives||[])){
-   if(Array.isArray(alt))alternatives.push(...alt.filter(Boolean));
-   else if(typeof alt==='string'&&alt)alternatives.push(alt);
- }
- return {rule:best,primary,alternatives}
-}
-function fallbackJoinerNames(mode){
- return mode==='attack'
-   ?['Norah','Hendrik','Patrick','Gatot','Jessie','Jasser','Seo-yoon']
-   :['Renee','Mia','Patrick','Hendrik','Wu Ming','Gatot','Sergey','Jessie']
+ const primary=[...(best?.joiner_primary||[])].filter(Boolean); // duplicates intentionally preserved
+ const backups=[...(best?.backup_joiner_pool||[])].filter(Boolean);
+ const md=best?.research_metadata&&typeof best.research_metadata==='object'?best.research_metadata:{};
+ const evidence=Array.isArray(md.joiner_evidence)?md.joiner_evidence:[];
+ return {rule:best,primary,backups,evidence}
 }
 function strategicJoinOrder(mode,formation,index=0){
  const profile=metaJoinerProfile(mode,formation);
- const primary=profile.primary.length?profile.primary:fallbackJoinerNames(mode).slice(0,4);
- const alternatives=profile.alternatives||[];
- let target;
+ const primary=profile.primary||[],backups=profile.backups||[],evidence=profile.evidence||[];
+ if(!primary.length&&!backups.length)return [];
+ let target=null;
  if(index<4){
-   // Seats 1–4 are the exact canonical buff seats. Duplicate names are intentional.
-   target=primary[index%primary.length];
+   target=primary[index]||null;
  }else{
-   // Joiners 5+ are resilient contingency seats, not extra active buff seats.
-   // Keep the Top-4 families dominant while sprinkling safe complementary fallbacks.
-   const backupPattern=[
-     primary[0],
-     primary[2]||primary[0],
-     alternatives[0]||primary[3]||primary[0],
-     primary[1]||primary[0],
-     primary[3]||primary[0],
-     primary[0],
-     primary[2]||primary[0],
-     alternatives[1]||alternatives[0]||primary[3]||primary[0]
-   ].filter(Boolean);
-   target=backupPattern[(index-4)%backupPattern.length];
+   target=backups[(index-4)%Math.max(1,backups.length)]||primary[(index-4)%Math.max(1,primary.length)]||null;
  }
- const ordered=[target,...primary,...alternatives,...fallbackJoinerNames(mode)];
- // Duplicate targets remain valid across different Join First seats; one player's fallback list stays unique.
- return [...new Set(ordered.filter(Boolean))]
+ const targetedBackups=evidence
+   .filter(x=>x?.role==='backup'&&x?.hero)
+   .filter(x=>{
+     const rep=String(x.replaces||'').toLowerCase();
+     return !target||!rep||rep==='flex'||rep.includes(String(target).toLowerCase());
+   })
+   .map(x=>x.hero);
+ const ordered=[target,...targetedBackups,...backups,...primary].filter(Boolean);
+ return [...new Set(ordered)]
 }
 function rankedJoinHeroes(player,mode,formation,index=0){
  const names=strategicJoinOrder(mode,formation,index);
@@ -584,10 +594,7 @@ function rankedJoinHeroes(player,mode,formation,index=0){
    const quality=player?._test?500:joinHeroQuality(player.id,hero);
    scored.push({hero,score:preference+quality,pos,name:names[pos]})
  }
- if(!scored.length){
-   const owned=player?._test?visibleHeroes():inventoryForAccount(player.id);
-   for(const hero of owned)scored.push({hero,score:(player?._test?300:joinHeroQuality(player.id,hero)),pos:999,name:hero.name})
- }
+ // No evidence-backed names means no hero assignment. NEXA does not invent a generic fallback.
  return scored.sort((a,b)=>b.score-a.score)
 }
 function joinHeroPair(player,mode,index,mainFormation=null,altFormation=null){
@@ -645,7 +652,7 @@ async function base(){
  ]);
  heroes=h.data||[];allAlliances=a.data||[];playerPool=p.data||[];stateRoles=sr.data||[];visibleHeroGenerations=(gens.data||[]).map(x=>Number(x.generation));playerInventory=inv.data||[];
  if(!window.NexaBattleStrategyEngine?.planSchedule){
-   say('Battle Strategy Engine unavailable. Refresh after uploading v1.3.2.',true);
+   say('Battle Strategy Engine unavailable. Refresh after uploading engine v1.5.',true);
  }
  battleMetaRules=window.NexaBattleStrategyEngine?await window.NexaBattleStrategyEngine.loadMeta(sb):[];
  const opts='<option value="">Select alliance…</option>'+allAlliances.map(x=>`<option value="${x.id}">${esc(x.tag)}${x.name?` • ${esc(x.name)}`:''}</option>`).join('');
@@ -979,9 +986,11 @@ function renderLayout(){
  }).join('')}</div>`;
 }
 function layoutAlliance(a){
- return `<section style="margin-bottom:4px"><div class="note glow-violet">${esc(strategy.join_note||`Join First — First ${strategy.join_first_count} joiners enter with ${fmtSecs(strategy.join_first_seconds)} left on countdown. Other joiners join with ${fmtSecs(strategy.other_join_seconds)} left on countdown.`)}</div><div class="layout-teams">${Teams(a.id).map(layoutTeam).join('')}</div><div class="joiner-ratio-grid">${layoutJoinerRatioGroup(a,'attack')}${layoutJoinerRatioGroup(a,'defense')}</div></section>`
+ return `<section style="margin-bottom:4px"><div class="note glow-violet">${esc(strategy.join_note||`Join First — First ${strategy.join_first_count} joiners enter with ${fmtSecs(strategy.join_first_seconds)} left on countdown. Other joiners join with ${fmtSecs(strategy.other_join_seconds)} left on countdown.`)}</div><div class="layout-teams">${Teams(a.id).map(layoutTeam).join('')}</div></section>`
 }
-function layoutTeam(t){const def=defenseOn(t);return `<article class="layout-team" style="--tc:${tc(t)}"><div class="layout-team-title">${esc(t.name)}</div><div class="layout-rally"><div class="mini">Rally Leader Schedule (UTC)</div>${layoutRallyCards(t.id)||'<span class="muted tiny">—</span>'}</div><div class="layout-headrow"><div>Player</div><div>Attack</div><div>Defense</div></div>${Joiners(t.id).map(j=>`<div class="layout-row ${j.join_first?'first':''}"><div class="pname"><b>${esc(j.player_name)}</b></div><div class="hero-stack">${heroLine('A',j.attack_a_hero_id)}${heroLine('B',j.attack_b_hero_id)}</div><div class="hero-stack">${def?heroLine('A',j.defense_a_hero_id)+heroLine('B',j.defense_b_hero_id):'<span class="muted">—</span>'}</div></div>`).join('')}</article>`}
+function layoutTeam(t){
+ return `<article class="layout-team" style="--tc:${tc(t)}"><div class="layout-team-title">${esc(t.name)}</div><div class="layout-rally"><div class="mini">Rally Leader Schedule (UTC)</div>${layoutRallyCards(t.id)||'<span class="muted tiny">—</span>'}</div><div class="layout-headrow"><div>Joiners</div></div>${Joiners(t.id).map(j=>`<div class="layout-row ${j.join_first?'first':''}"><div class="pname"><b>${esc(j.player_name)}</b></div></div>`).join('')||'<div class="layout-row"><div class="pname muted">No Joiners assigned.</div></div>'}</article>`
+}
 
 function renderRecommendations(items,title='NEXA Strategy Analysis'){
  const box=$('#strategy-analysis-bottom');if(!box)return;
@@ -1024,10 +1033,8 @@ function chooseTeamCount(joinerPool,rlPool,allianceCount){
  const avgCap=(rlPool.reduce((sum,p)=>sum+(effectiveRallyCapacity(p,true)||2200000),0)/Math.max(1,rlPool.length))||2200000;
  const joinersPerRally=Math.max(4,Math.ceil(avgCap/avgDep));
  const byJoin=Math.max(allianceCount,Math.floor(joinerPool.length/joinersPerRally));
- // A 12–17 battle needs 3 different 2h PET activations per Alliance: 12–14, 14–16, 16–18.
- // Those RLs may rotate through Team 1 while still covering the other Teams.
- const petMinimum=3*allianceCount;
- if(rlPool.length<petMinimum)return Math.max(allianceCount,Math.min(byJoin,rlPool.length));
+ // PET availability does not dictate a fixed number of PET lanes per Alliance.
+ // Team count is based on sustainable Rally Leader + Joiner depth; the scheduler distributes PET coverage afterward.
  return Math.max(allianceCount,Math.min(byJoin,rlPool.length,allianceCount*5));
 }
 function weightedJoinerOrder(pool,counts){
@@ -1045,7 +1052,7 @@ async function runAssist(){
  if(counterIds.length!==activeCount-1)return renderRecommendations([`<b>Select all ${activeCount-1} Counter Rally Alliance${activeCount-1===1?'':'s'}.</b>`]);
  const chosenIds=[primaryId,...counterIds];if(new Set(chosenIds).size!==chosenIds.length)return renderRecommendations(['<b>Each participating Alliance must be unique.</b>']);
  if(!strategy){const created=await sb.from('svs_strategies').insert({state_number:state,name:'NEXA SvS Strategy',build_flow:'teams_first',primary_alliance_id:primaryId}).select().single();if(created.error)return say(created.error.message,true);strategy=created.data;await loadStrategies();await openStrategy(strategy.id)}
- const liveRL=playerPool.filter(p=>roleForPlayer(p)==='rally_lead').map(p=>({...p,_strength:playerStrength(p,'rally_lead')})).sort((a,b)=>b._strength-a._strength);
+ const liveRL=playerPool.filter(p=>roleForPlayer(p)==='rally_lead').map(p=>({...p,_strength:playerStrength(p,'rally_lead'),_petScore:petCarrierValue(p)})).sort((a,b)=>b._strength-a._strength);
  const liveJ=playerPool.filter(p=>roleForPlayer(p)==='joiner').map(p=>({...p,_strength:playerStrength(p,'joiner')})).sort((a,b)=>b._strength-a._strength);
  const rlCount=testSandbox?Number($('#assist-test-rl-count').value||6):liveRL.length,joinerCount=testSandbox?Number($('#assist-test-joiner-count').value||36):liveJ.length;
  const rlPool=testSandbox?testRallyPool(rlCount):liveRL,joinPool=testSandbox?testJoinerPool(joinerCount):liveJ;
@@ -1073,7 +1080,7 @@ async function runAssist(){
  for(const a of leadAssignments){const pack=teamJoiners.get(a.team.id),bucket=pack?.joiners||[];for(let j=0;j<bucket.length;j++){const x=bucket[j],[aa,ab]=joinHeroPair(x,'attack',j,atkVirtual,null),[da,db]=joinHeroPair(x,'defense',j,defVirtual,null);await sb.from('svs_strategy_joiners').insert({team_id:a.team.id,player_account_id:x.id||null,player_name:x.in_game_name,sort_order:j,join_first:j<4,attack_a_hero_id:aa?.id||null,attack_b_hero_id:ab?.id||null,defense_a_hero_id:da?.id||null,defense_b_hero_id:db?.id||null})}}
  // Shared NEXA battle scheduler: uses only as many RLs as the strategy actually needs.
  if(!window.NexaBattleStrategyEngine?.planSchedule){
-   throw new Error('NEXA Battle Strategy Engine did not load. Refresh after uploading v1.3.2.');
+   throw new Error('NEXA Battle Strategy Engine did not load. Refresh after uploading engine v1.5.');
  }
  const plan=window.NexaBattleStrategyEngine.planSchedule({
    rallyLeads:rlPool,teamCounts:teamRowsByAlliance.map(x=>x.length),primaryIndex:0,
@@ -1090,7 +1097,7 @@ async function runAssist(){
  }
  // Rally Lead Schedule: every Team appears, with violet only when that hourly assignment has PETS active.
  const petRowMap=new Map();
- const tacticalPurpose=(ai,ti)=>{const count=(teamRowsByAlliance[ai]||[]).length;if(ai===0&&ti===0)return'Garrison';if(count>1&&ti===count-1)return'Handoff';return'Counter'};
+ const tacticalPurpose=(ai,ti)=>{if(ai===0&&ti===0)return'Garrison';if(ai===0&&ti===1)return'Handoff';return'Counter'};
  for(let ai=0;ai<teamRowsByAlliance.length;ai++){
    for(let ti=0;ti<(teamRowsByAlliance[ai]||[]).length;ti++){
      const t=teamRowsByAlliance[ai][ti],tag=saRows[ai]?.alliance_tag||`Alliance ${ai+1}`,key=`${ai}:${ti}`,purpose=tacticalPurpose(ai,ti);
@@ -1103,9 +1110,27 @@ async function runAssist(){
    const ins=await sb.from('svs_pet_schedule_assignments').insert({row_id:rowId,player_account_id:x.lead.id||null,player_name:x.lead.in_game_name,start_utc:x.start,end_utc:x.end,pets_active:!!x.petsActive,sort_order:Number(x.start.slice(0,2))});
    if(ins.error)return say(ins.error.message,true);
  }
- // Automatic Rally Lead hero + troop formations. Save failures are surfaced.
+ // Automatic Rally Lead hero + troop formations. Main + up to 2 additional Approved variants.
  const atk=atkRec,def=defRec,formationErrors=[];
- for(let ai=0;ai<saRows.length;ai++){const {error}=await sb.from('svs_rally_formations').insert([{strategy_alliance_id:saRows[ai].id,formation_type:'attack',name:'Main Attack',ratio:atk.ratio,hero_infantry_id:atk.infantry?.id||null,hero_lancer_id:atk.lancer?.id||null,hero_marksman_id:atk.marksman?.id||null,is_recommended:true,sort_order:0},{strategy_alliance_id:saRows[ai].id,formation_type:'defense',name:'Main Defense',ratio:def.ratio,hero_infantry_id:def.infantry?.id||null,hero_lancer_id:def.lancer?.id||null,hero_marksman_id:def.marksman?.id||null,is_recommended:true,sort_order:0}]);if(error)formationErrors.push(`${saRows[ai].alliance_tag}: ${error.message}`)}
+ const formationRowsFor=(a,type,rec)=>{
+   const presets=[rec,...(rec.catalogAlternatives||[])].filter(x=>Array.isArray(x.ratio)&&x.ratio.length===3).slice(0,3);
+   return presets.map((x,i)=>({
+     strategy_alliance_id:a.id,
+     formation_type:type,
+     name:i===0?`Main ${type==='attack'?'Attack':'Defense'}`:`Alt ${type==='attack'?'Attack':'Defense'}${i>1?` ${i}`:''}`,
+     ratio:x.ratio,
+     hero_infantry_id:x.infantry?.id||null,
+     hero_lancer_id:x.lancer?.id||null,
+     hero_marksman_id:x.marksman?.id||null,
+     is_recommended:i===0,
+     sort_order:i
+   }));
+ };
+ for(let ai=0;ai<saRows.length;ai++){
+   const payload=[...formationRowsFor(saRows[ai],'attack',atk),...formationRowsFor(saRows[ai],'defense',def)];
+   const {error}=await sb.from('svs_rally_formations').insert(payload);
+   if(error)formationErrors.push(`${saRows[ai].alliance_tag}: ${error.message}`);
+ }
  await openStrategy(strategy.id);
  // Important: optimize Join First only AFTER the exact Rally Lead formations exist.
  // This makes A follow Main and B follow Alt when present, per alliance.
@@ -1118,9 +1143,9 @@ async function runAssist(){
  const structure=saRows.map((a,i)=>`${a.alliance_tag}: ${teamCounts[i]} Team${teamCounts[i]===1?'':'s'}`).join(' • '),fills=leadAssignments.map(a=>teamJoiners.get(a.team.id)?.fill||0),avgFill=fills.length?Math.round(fills.reduce((s,n)=>s+n,0)/fills.length*100):0;
  renderRecommendations([
    `<b>Structure:</b> ${saRows.map((a,i)=>`${a.alliance_tag}: ${teamRowsByAlliance[i]?.length||0} Team${(teamRowsByAlliance[i]?.length||0)===1?'':'s'}`).join(' • ')}.`,
-   `<b>Coverage:</b> ${plan?.coverage?.every(x=>x.complete)?'all generated Teams are covered 12:00–17:00. Castle/Garrison T1 keeps continuous PET coverage; other T1/T2/T3 PET windows are distributed dynamically by strength, phase and coverage need.':'NEXA detected a coverage limitation; review the schedule before publishing.'}`,
+   `<b>Coverage:</b> ${plan?.coverage?.every(x=>x.complete)?'all generated Teams are covered 12:00–17:00. Garrison receives priority PET coverage when roster depth allows; Handoff receives none; Counter PET windows move dynamically wherever coverage is most useful.':'NEXA detected a coverage limitation; review the schedule before publishing.'}`,
    `<b>Rally Leads:</b> ${rlPool.length} available • ${activeRL.length} used • ${floatingRL.length} floating/reserve${floatingRL.length?' (protected from forced PET use)':''}.`,
-   `<b>PET Distribution:</b> secondary PETS are balanced across T1/T2/T3 instead of locking every extra PET to Team 2. Opening and closing favor quality; middle battle can carry more total strong PETS when the roster supports it.}`,
+   `<b>PET Distribution:</b> opening and closing reserve maxed/almost-maxed strength when possible. Middle windows stagger strong/near-strong reliefs so expiring buffs do not leave a power gap. Counter PETS are not tied to a fixed Team number.}`,
    `<b>Capacity:</b> active Teams are limited by Rally Capacity + Joiner Deployment Capacity. Extra rally-capable players may remain floating or be used as Joiners.`,
    `<b>Join First:</b> optimized after Rally Lead formations. A follows Main formation; B follows Alt formation when present, otherwise B is the best owned backup/interchangeable hero from the same optimized pool.`
  ]);

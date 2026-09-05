@@ -1,4 +1,4 @@
-// NEXA Brain Research v1.4 — multi-variant research + Promising 60% gate + evidence-safe joiners
+// NEXA Brain Research v1.5 — exact First-4 slots + mechanic-first explanations + multi-variant Suggested
 // Vercel env required: OPENAI_API_KEY, SUPABASE_SERVICE_ROLE_KEY, CRON_SECRET
 const SB='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const MODEL=process.env.NEXA_RESEARCH_MODEL||'gpt-5.6-terra';
@@ -216,7 +216,14 @@ Backup Joiner Pool rules:
 - Backups are emergency substitutes, not random filler.
 - They may include heroes also represented in the First 4 if a duplicated/interchangeable slot is genuinely useful.
 - They may also include other current-generation-relevant joiners that preserve a useful buff family or add a compatible buff.
-- For each backup, say which First-4 role/hero it can replace (or "flex") and what value it preserves/adds.
+- joiner_primary MUST contain exactly 4 joiner slots for every returned formation.
+- PRESERVE intentional duplicates exactly. If the supported First 4 are Norah / Norah / Hendrik / Patrick, return ["Norah","Norah","Hendrik","Patrick"]. Never deduplicate First-4 slots.
+- For EVERY First-4 hero, explain the actual expedition skill/buff or combat effect it contributes and WHY that effect helps THIS exact hero trio + troop ratio.
+- The joiner "why" text must be mechanic-first. Do NOT mention source names, guide names, creators, websites, tables, or phrases such as "X source lists/recommends/supports". Provenance belongs only in sources/source_urls metadata.
+- Example style: "Hendrik lowers enemy Defense, helping the rally convert its existing damage/lethality into more effective damage against the target." Use only corroborated mechanics; do not invent skill behavior.
+- Duplicate First-4 heroes may reuse the same corroborated mechanical explanation, because they occupy separate buff seats.
+- For each backup, say which First-4 role/hero it can replace (or "flex"), what buff/effect it preserves or adds, and why that matters to THIS formation.
+- Backup explanations must also be mechanic-first and must not cite source names in the visible reasoning.
 - If no backup is corroborated, return an empty pool. Never fill it just to make the card look complete.
 
 Return ONLY valid JSON:
@@ -240,7 +247,7 @@ Return ONLY valid JSON:
        "generation_relevance":"tested_with_current_generation|explicitly_recommended_for_current_generation|legacy_skill_only",
        "independent_groups":["origin_a","origin_b"],
        "source_urls":["https://...","https://..."],
-       "why":"what this hero contributes to THIS formation",
+       "why":"mechanic-first explanation of this hero skill/buff/effect and why it benefits THIS exact formation; no source names",
        "replaces":"for backup only: hero name, buff role, or flex"
      }
    ],
@@ -302,6 +309,10 @@ Return ONLY valid JSON:
       ).length;
 
       const confidence=Math.max(0,Math.min(1,Number(f.confidence||0)));
+      const rawPrimary=(f.joiner_primary||[]).map(x=>String(x||'').trim()).filter(Boolean).slice(0,4);
+      // Every Suggested formation must be operationally reviewable: four explicit First-4 slots.
+      // Intentional duplicates are valid and preserved.
+      if(rawPrimary.length!==4)continue;
 
       // Suggested threshold: 60%+ AND at least two independent evidence groups / sources.
       // Brain never auto-approves.
@@ -354,7 +365,7 @@ Return ONLY valid JSON:
           model:MODEL,
           researched_generation:generation,
           model_rule_key:f.rule_key||null,
-          raw_joiner_primary:f.joiner_primary||[],
+          raw_joiner_primary:rawPrimary,
           raw_backup_joiner_pool:f.backup_joiner_pool||[],
           ratio_reasoning:f.ratio_reasoning||'',
           joiner_evidence:joinerEvidence,

@@ -1,4 +1,4 @@
-// NEXA TRANSFER FORM I18N V1.0 — EXACT PUBLIC FORM TRANSLATIONS / AUTO LANGUAGE
+// NEXA TRANSFER FORM I18N V1.2 — PHILOSOPHY + ACKNOWLEDGEMENT TRANSLATION / EXACT PUBLIC FORM
 (()=>{
 'use strict';
 
@@ -166,6 +166,14 @@ function pattern(s){
  if((m=s.match(/^How does State (\d+) run major events\?$/)))return lang==='es'?`¿Cómo organiza el Estado ${m[1]} los eventos principales?`:lang==='tr'?`Eyalet ${m[1]} büyük etkinlikleri nasıl yürütüyor?`:lang==='ko'?`${m[1]}주는 주요 이벤트를 어떻게 운영하나요?`:lang==='ar'?`كيف تدير الولاية ${m[1]} الفعاليات الرئيسية؟`:s;
  if((m=s.match(/^In major coordinated events, we play for (\d+) first\. 💜$/)))return lang==='es'?`En los eventos principales coordinados, jugamos primero por ${m[1]}. 💜`:s;
  if((m=s.match(/^Assigned (.+)$/)))return lang==='es'?`Asignado ${m[1]}`:lang==='tr'?`Atandı ${m[1]}`:lang==='ko'?`${m[1]} 배정`:lang==='ar'?`مُعيّن ${m[1]}`:s;
+ if((m=s.match(/^✨\s*(.+?)\s*✨$/))){
+  const inner=(DICTS[lang]||{})[m[1]]||m[1];
+  return `✨ ${inner} ✨`;
+ }
+ if((m=s.match(/^🌟\s*(.+)$/))){
+  const inner=(DICTS[lang]||{})[m[1]]||m[1];
+  return `🌟 ${inner}`;
+ }
  return s;
 }
 function translate(s){

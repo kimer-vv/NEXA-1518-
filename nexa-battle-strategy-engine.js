@@ -1,4 +1,4 @@
-/* NEXA Battle Strategy Engine v1.5
+/* NEXA Battle Strategy Engine v1.6
    Shared battle brain for SvS / FDT / TAL / Matchup Lab.
    Approved formation catalog + resilient Join First/backup pools + purpose-aware PET scheduler.
 */
@@ -148,8 +148,8 @@
     return base+explicit*80+tierBonus;
   }
 
-  function petStartOrder(startHour,endHour,count){
-    const first=startHour,last=endHour-1;
+  function petStartOrder(startHour,endHour,count,petDurationHours=2){
+    const first=startHour,last=Math.max(startHour,endHour-petDurationHours);
     const mids=[];
     for(let h=startHour+1;h<last;h++)mids.push(h);
     const order=[first,last,first,last];
@@ -199,19 +199,21 @@
       Math.max(primaryTeam1PetRequired?3:1, Math.min(8, 3+Math.ceil(counterSlots.length*1.35)))
     );
 
-    const starts=petStartOrder(startHour,endHour,desiredWindows);
+    const starts=petStartOrder(startHour,endHour,desiredWindows,petDurationHours);
     const windows=leads.slice(0,desiredWindows).map((lead,i)=>({
       id:`${leadKey(lead)}:${starts[i]}:${i}`,
       lead,
       start:starts[i],
-      end:starts[i]+petDurationHours,
+      end:Math.min(endHour,starts[i]+petDurationHours),
       strength:petCarrierScore(lead),
       slot:null
     }));
 
     // Guarantee the Garrison lane has a 12 / middle / closing chain when roster depth allows.
     const garrison=slots.find(s=>s.purpose==='Garrison');
-    const garrisonStarts=[startHour,Math.min(startHour+2,endHour-1),endHour-1];
+    const closingStart=Math.max(startHour,endHour-petDurationHours);
+    const middleStart=Math.min(startHour+2,closingStart);
+    const garrisonStarts=[startHour,middleStart,closingStart];
     if(garrison&&primaryTeam1PetRequired){
       for(const gs of garrisonStarts){
         let w=windows
@@ -224,7 +226,7 @@
             return edgeB-edgeA;
           })[0];
         if(!w)break;
-        w.start=gs;w.end=gs+petDurationHours;w.slot=garrison;
+        w.start=gs;w.end=Math.min(endHour,gs+petDurationHours);w.slot=garrison;
       }
     }
 
@@ -385,7 +387,7 @@
   }
 
   window.NexaBattleStrategyEngine={
-    version:'1.5',loadMeta,rulesFor,bestRule,recommendation,joinerPlan,chooseAlternative,ensureConstraints,
+    version:'1.6',loadMeta,rulesFor,bestRule,recommendation,joinerPlan,chooseAlternative,ensureConstraints,
     scoreLead,tacticalPurpose,planSchedule,explainConfidence
   };
 })();

@@ -1,4 +1,4 @@
-// NEXA TRANSFER WORKSPACE I18N V1.1 — FULL WORKSPACE / GUIDES / DISCORD INTEGRATION / AUTO-APPLY
+// NEXA TRANSFER WORKSPACE I18N V1.2 — IDEMPOTENT TRANSLATION / MOBILE PROFILE FIX / FULL WORKSPACE
 (()=>{
 'use strict';
 
@@ -260,20 +260,28 @@ function pattern(s){
  if((m=s.match(/^(.+) • expires in 30 minutes$/)))return lang==='es'?`${m[1]} • vence en 30 minutos`:lang==='tr'?`${m[1]} • 30 dakika içinde sona erer`:lang==='ko'?`${m[1]} • 30분 후 만료`:lang==='ar'?`${m[1]} • ينتهي خلال 30 دقيقة`:s;
  return s;
 }
+function escRe(s){return String(s).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
+function replaceEnglishFragments(raw,d){
+ let out=raw;
+ const keys=Object.keys(d).filter(k=>k&&raw.includes(k)).sort((a,b)=>b.length-a.length);
+ for(const k of keys){
+   const startsWord=/^[A-Za-z0-9]/.test(k),endsWord=/[A-Za-z0-9]$/.test(k);
+   const re=new RegExp(`${startsWord?'\\b':''}${escRe(k)}${endsWord?'\\b':''}`,'g');
+   out=out.replace(re,d[k]);
+ }
+ return out;
+}
 function tr(s){
  if(lang==='en')return s;
  const raw=String(s||''),clean=raw.trim();if(!clean)return s;
  const d=DICTS[lang]||{};
- let x=d[clean]||pattern(clean);
- if(x===clean){
-   x=raw;
-   const keys=Object.keys(d).filter(k=>k&&raw.includes(k)).sort((a,b)=>b.length-a.length);
-   for(const k of keys)x=x.split(k).join(d[k]);
-   if(x===raw)return s;
-   return x;
+ const direct=d[clean]||pattern(clean);
+ if(direct!==clean){
+   const lead=raw.match(/^\s*/)?.[0]||'',trail=raw.match(/\s*$/)?.[0]||'';
+   return lead+direct+trail;
  }
- const lead=raw.match(/^\s*/)?.[0]||'',trail=raw.match(/\s*$/)?.[0]||'';
- return lead+x+trail;
+ const x=replaceEnglishFragments(raw,d);
+ return x===raw?s:x;
 }
 function apply(root=document){
  if(!root||lang==='en')return;
@@ -287,8 +295,26 @@ function apply(root=document){
   if(el.hasAttribute(a)){const old=el.getAttribute(a),x=tr(old);if(x!==old)el.setAttribute(a,x)}
  }));
 }
+
+function ensureI18nLayoutFix(){
+ if(document.getElementById('nexaWorkspaceI18nLayoutV12'))return;
+ const s=document.createElement('style');s.id='nexaWorkspaceI18nLayoutV12';s.textContent=`
+ .profileCard,.profileHeader,.profileHeader>*{min-width:0}
+ .profileCard{overflow:hidden}
+ .profileHeader .actions{min-width:0;max-width:100%}
+ .profileHeader .actions .btn{max-width:100%;min-width:0;overflow-wrap:anywhere;white-space:normal}
+ @media(max-width:760px){
+   .profileCard .profileHeader{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+   .profileCard .profileHeader>.actions{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;width:100%;margin:0!important}
+   .profileCard .profileHeader>.actions .btn{width:100%;min-height:42px}
+   .profileCard .profileHeader>.actions .btn:first-child:nth-last-child(3){grid-column:1/-1}
+ }
+ `;
+ document.head.appendChild(s);
+}
+
 async function boot(){
- await resolve();apply(document);
+ await resolve();ensureI18nLayoutFix();apply(document);
  if(timer)clearInterval(timer);
  timer=setInterval(()=>apply(document),700);
 }

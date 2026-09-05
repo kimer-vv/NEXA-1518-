@@ -1,4 +1,4 @@
-/* NEXA Battle Strategy Engine v1.4
+/* NEXA Battle Strategy Engine v1.5
    Shared battle brain for SvS / FDT / TAL / Matchup Lab.
    Approved formation catalog + resilient Join First/backup pools + purpose-aware PET scheduler.
 */
@@ -12,7 +12,7 @@
   async function loadMeta(sb,{includeSuggestions=false}={}){
     if(!sb)return [];
     let q=sb.from('nexa_battle_meta_rules')
-      .select('id,generation,event_scope,mode,rule_key,leader_heroes,primary_ratio,alternative_ratios,alternative_formations,joiner_primary,joiner_alternatives,backup_joiner_pool,constraints,confidence,evidence_status,evidence_note,why_good,risk_note,source_urls,source_count,independent_source_count,approval_status,verified_at,last_researched_at,is_active,is_manual')
+      .select('id,generation,event_scope,mode,rule_key,leader_heroes,primary_ratio,alternative_ratios,alternative_formations,joiner_primary,joiner_alternatives,backup_joiner_pool,constraints,confidence,evidence_status,evidence_note,why_good,risk_note,source_urls,source_count,independent_source_count,research_metadata,approval_status,verified_at,last_researched_at,is_active,is_manual')
       .order('generation').order('confidence',{ascending:false});
     if(!includeSuggestions)q=q.eq('approval_status','approved').eq('is_active',true);
     const {data,error}=await q;
@@ -54,17 +54,34 @@
         const hs=(f.leader_heroes||[]).map(n=>byName.get(norm(n))).filter(Boolean);
         return hs.length===3?{...f,heroes:hs,heroNames:hs.map(h=>h.name),ratio:ensureConstraints(f,f.ratio)}:null;
       }).filter(Boolean);
+      const siblingRules=candidates
+        .filter(x=>String(x.id)!==String(rule.id))
+        .map(x=>{
+          const hs=(x.leader_heroes||[]).map(n=>byName.get(norm(n))).filter(Boolean);
+          if(hs.length!==3)return null;
+          return {
+            id:x.id,ruleKey:x.rule_key,heroes:hs,heroNames:hs.map(h=>h.name),
+            ratio:ensureConstraints(x,x.primary_ratio),
+            joiners:x.joiner_primary||[],
+            backupJoinerPool:x.backup_joiner_pool||[],
+            confidence:num(x.confidence,.5),
+            evidenceStatus:x.evidence_status||'baseline',
+            whyGood:x.why_good||'',riskNote:x.risk_note||''
+          };
+        }).filter(Boolean);
+
       return {
         id:rule.id,generation:Number(rule.generation),mode,ruleKey:rule.rule_key,
         heroes:resolved,heroNames:resolved.map(h=>h.name),ratio:ensureConstraints(rule,rule.primary_ratio),
         alternatives:(rule.alternative_ratios||[]).filter(ratioOk).map(r=>ensureConstraints(rule,r)),
         alternativeFormations:altForms,
+        catalogAlternatives:siblingRules,
         joiners:rule.joiner_primary||[],
         joinerAlternatives:rule.joiner_alternatives||[],
         backupJoinerPool:rule.backup_joiner_pool||[],
         confidence:num(rule.confidence,.5),evidenceStatus:rule.evidence_status||'baseline',
         approvalStatus:rule.approval_status||'approved',note:rule.evidence_note||'',
-        whyGood:rule.why_good||'',riskNote:rule.risk_note||'',sourceUrls:rule.source_urls||[],
+        whyGood:rule.why_good||'',riskNote:rule.risk_note||'',sourceUrls:rule.source_urls||[],researchMetadata:rule.research_metadata||{},
         constraints:rule.constraints||{},exactGeneration:Number(rule.generation)===gen
       };
     }
@@ -123,83 +140,200 @@
     return'Counter';
   }
 
-  function desiredPetCurve(leadCount,totalTeams){
-    const cap=Math.max(1,Math.min(Number(totalTeams)||1,Number(leadCount)||1));
-    let curve;
-    if(leadCount>=15)curve=[4,6,5,6,4];
-    else if(leadCount>=12)curve=[3,5,4,5,3];
-    else if(leadCount>=10)curve=[3,4,4,4,3];
-    else if(leadCount>=8)curve=[2,4,3,4,2];
-    else if(leadCount>=6)curve=[2,3,3,3,2];
-    else curve=[1,2,2,2,1];
-    return curve.map(x=>Math.min(cap,x));
+  function petCarrierScore(p){
+    const base=scoreLead(p);
+    const explicit=num(p?._petScore)||num(p?.pet_score)||num(p?.petScore);
+    const tier=norm(p?._tier);
+    const tierBonus=tier.includes('max')?base*.18:tier.includes('strong')?base*.09:0;
+    return base+explicit*80+tierBonus;
   }
 
-  function planSchedule({rallyLeads=[],teamCounts=[],primaryIndex=0,startHour=12,endHour=17,primaryTeam1PetRequired=true}={}){
-    const leads=[...(rallyLeads||[])].sort((a,b)=>scoreLead(b)-scoreLead(a));
+  function petStartOrder(startHour,endHour,count){
+    const first=startHour,last=endHour-1;
+    const mids=[];
+    for(let h=startHour+1;h<last;h++)mids.push(h);
+    const order=[first,last,first,last];
+    let left=0,right=mids.length-1;
+    while(order.length<count&&left<=right){
+      order.push(mids[left++]);
+      if(order.length<count&&left<=right)order.push(mids[right--]);
+    }
+    while(order.length<count)order.push(startHour+Math.floor((order.length-4)%Math.max(1,endHour-startHour)));
+    return order.slice(0,count);
+  }
+
+  function planSchedule({
+    rallyLeads=[],
+    teamCounts=[],
+    primaryIndex=0,
+    startHour=12,
+    endHour=17,
+    primaryTeam1PetRequired=true,
+    petDurationHours=2
+  }={}){
+    const leads=[...(rallyLeads||[])].sort((a,b)=>petCarrierScore(b)-petCarrierScore(a));
     const hours=[];for(let h=startHour;h<endHour;h++)hours.push(h);
-    const totalTeams=teamCounts.reduce((s,n)=>s+Number(n||0),0);
-    if(!leads.length||!totalTeams)return{assignments:[],petTimeline:[],petWindows:[],floating:leads,active:[],coverage:[],petCurve:[],hours:[]};
-
-    const curve=desiredPetCurve(leads.length,totalTeams);
-    const petTimeline=[],assignments=[],petHours=new Map(),prevSlotByLead=new Map();
     const slots=[];
-    for(let ai=0;ai<teamCounts.length;ai++)for(let ti=0;ti<Number(teamCounts[ai]||0);ti++){
-      slots.push({allianceIndex:ai,teamIndex:ti,key:`${ai}:${ti}`,purpose:tacticalPurpose(ai,ti,primaryIndex)});
+    for(let ai=0;ai<teamCounts.length;ai++){
+      for(let ti=0;ti<Number(teamCounts[ai]||0);ti++){
+        slots.push({
+          allianceIndex:ai,
+          teamIndex:ti,
+          key:`${ai}:${ti}`,
+          purpose:tacticalPurpose(ai,ti,primaryIndex)
+        });
+      }
+    }
+    const petEligible=slots.filter(s=>s.purpose!=='Handoff');
+    const counterSlots=slots.filter(s=>s.purpose==='Counter');
+    if(!leads.length||!slots.length)return{
+      assignments:[],petTimeline:[],petWindows:[],floating:leads,active:[],coverage:[],petCurve:[],hours:[]
+    };
+
+    // We do not spend every Rally Lead on PETS. Keep a reserve and use staggered 2h windows.
+    // Opening and closing consume the strongest carriers; middle windows use strong/near-strong reliefs.
+    const reserve=Math.max(1,Math.ceil(leads.length*.22));
+    const usablePetLeads=Math.max(1,leads.length-reserve);
+    const desiredWindows=Math.min(
+      usablePetLeads,
+      Math.max(primaryTeam1PetRequired?3:1, Math.min(8, 3+Math.ceil(counterSlots.length*1.35)))
+    );
+
+    const starts=petStartOrder(startHour,endHour,desiredWindows);
+    const windows=leads.slice(0,desiredWindows).map((lead,i)=>({
+      id:`${leadKey(lead)}:${starts[i]}:${i}`,
+      lead,
+      start:starts[i],
+      end:starts[i]+petDurationHours,
+      strength:petCarrierScore(lead),
+      slot:null
+    }));
+
+    // Guarantee the Garrison lane has a 12 / middle / closing chain when roster depth allows.
+    const garrison=slots.find(s=>s.purpose==='Garrison');
+    const garrisonStarts=[startHour,Math.min(startHour+2,endHour-1),endHour-1];
+    if(garrison&&primaryTeam1PetRequired){
+      for(const gs of garrisonStarts){
+        let w=windows
+          .filter(x=>!x.slot)
+          .sort((a,b)=>{
+            const ad=Math.abs(a.start-gs),bd=Math.abs(b.start-gs);
+            if(ad!==bd)return ad-bd;
+            const edgeA=(gs===startHour||gs===endHour-1)?a.strength:0;
+            const edgeB=(gs===startHour||gs===endHour-1)?b.strength:0;
+            return edgeB-edgeA;
+          })[0];
+        if(!w)break;
+        w.start=gs;w.end=gs+petDurationHours;w.slot=garrison;
+      }
     }
 
-    // PET assignment is recalculated hour-by-hour. Handoff is a hard exclusion.
-    for(let hi=0;hi<hours.length;hi++){
-      const hour=hours[hi],petTarget=Math.min(curve[hi]||1,leads.length);
-      const petLeads=leads.slice(0,petTarget);
-      const usedSlots=new Set();
+    // Remaining windows go to Counter lanes by actual coverage need, not by team number.
+    const petHoursBySlot=new Map();
+    const windowCountBySlot=new Map();
+    for(const w of windows.filter(x=>x.slot)){
+      const key=w.slot.key;
+      const activeHours=hours.filter(h=>w.start<=h&&w.end>h).length;
+      petHoursBySlot.set(key,(petHoursBySlot.get(key)||0)+activeHours);
+      windowCountBySlot.set(key,(windowCountBySlot.get(key)||0)+1);
+    }
 
-      // Garrison first, but only one PET lane is reserved there.
-      const garrison=slots.find(s=>s.purpose==='Garrison');
-      if(garrison&&petLeads[0]){
-        const x={...garrison,lead:petLeads[0],start:`${hour}:00`,end:`${hour+1}:00`,petsActive:true};
-        petTimeline.push(x);assignments.push(x);usedSlots.add(garrison.key);
-        petHours.set(garrison.key,(petHours.get(garrison.key)||0)+1);
-        prevSlotByLead.set(leadKey(petLeads[0]),garrison.key);
+    for(const w of windows.filter(x=>!x.slot)){
+      const candidates=counterSlots.map(s=>{
+        const covered=petHoursBySlot.get(s.key)||0;
+        const activations=windowCountBySlot.get(s.key)||0;
+        const otherAlliance=s.allianceIndex!==primaryIndex?18:0;
+        const primaryCounter=s.allianceIndex===primaryIndex&&s.teamIndex>=2?10:0;
+        const phaseEdge=(w.start===startHour||w.start===endHour-1)?12:0;
+        // Team number is only a tiny tie-breaker, never a fixed PET rule.
+        const depthTie=Math.max(0,4-s.teamIndex);
+        return {...s,score:180+otherAlliance+primaryCounter+phaseEdge+depthTie-covered*28-activations*20};
+      }).sort((a,b)=>b.score-a.score);
+      const s=candidates[0]||petEligible.find(x=>x.purpose!=='Handoff');
+      if(!s)continue;
+      w.slot=s;
+      const activeHours=hours.filter(h=>w.start<=h&&w.end>h).length;
+      petHoursBySlot.set(s.key,(petHoursBySlot.get(s.key)||0)+activeHours);
+      windowCountBySlot.set(s.key,(windowCountBySlot.get(s.key)||0)+1);
+    }
+
+    const petTimeline=[];
+    for(const w of windows){
+      if(!w.slot||w.slot.purpose==='Handoff')continue;
+      for(const hour of hours){
+        if(w.start<=hour&&w.end>hour){
+          petTimeline.push({
+            ...w.slot,
+            lead:w.lead,
+            start:`${hour}:00`,
+            end:`${hour+1}:00`,
+            petsActive:true,
+            windowStart:`${w.start}:00`,
+            windowEnd:`${w.end}:00`,
+            petWindowId:w.id
+          });
+        }
+      }
+    }
+
+    // If two PET windows collide on the same slot/hour, keep the stronger one and move the weaker one
+    // to the best uncovered Counter slot when possible.
+    const collisionKey=x=>`${x.allianceIndex}:${x.teamIndex}:${x.start}`;
+    const seenTimeline=new Map();
+    for(const x of petTimeline.slice().sort((a,b)=>petCarrierScore(b.lead)-petCarrierScore(a.lead))){
+      const key=collisionKey(x);
+      if(!seenTimeline.has(key)){seenTimeline.set(key,x);continue}
+      const hour=Number(x.start.slice(0,2));
+      const alt=counterSlots
+        .filter(s=>!seenTimeline.has(`${s.allianceIndex}:${s.teamIndex}:${x.start}`))
+        .sort((a,b)=>{
+          const ac=[...seenTimeline.values()].filter(y=>y.allianceIndex===a.allianceIndex&&y.teamIndex===a.teamIndex).length;
+          const bc=[...seenTimeline.values()].filter(y=>y.allianceIndex===b.allianceIndex&&y.teamIndex===b.teamIndex).length;
+          return ac-bc;
+        })[0];
+      if(alt){
+        x.allianceIndex=alt.allianceIndex;x.teamIndex=alt.teamIndex;x.key=alt.key;x.purpose='Counter';
+        seenTimeline.set(collisionKey(x),x);
+      }
+    }
+    const cleanPetTimeline=[...seenTimeline.values()].filter(x=>x.purpose!=='Handoff');
+
+    // Fill all lanes hour by hour. PET carriers are pinned to the lane where their active window lives.
+    const assignments=[],previousBySlot=new Map(),useCount=new Map();
+    for(const hour of hours){
+      const petNow=cleanPetTimeline.filter(x=>Number(x.start.slice(0,2))===hour);
+      const usedLeadKeys=new Set();
+      for(const x of petNow){
+        assignments.push({...x});
+        usedLeadKeys.add(leadKey(x.lead));
+        previousBySlot.set(`${x.allianceIndex}:${x.teamIndex}`,x.lead);
+        useCount.set(leadKey(x.lead),(useCount.get(leadKey(x.lead))||0)+1);
       }
 
-      for(const lead of petLeads.slice(1)){
-        const candidates=slots.filter(s=>s.purpose==='Counter'&&!usedSlots.has(s.key)).map(s=>{
-          const covered=petHours.get(s.key)||0;
-          const continuity=prevSlotByLead.get(leadKey(lead))===s.key?12:0;
-          const otherAlliance=s.allianceIndex!==primaryIndex?18:0;
-          const openingClosing=(hour===startHour||hour===endHour-1)?12:0;
-          const middle=(hour>startHour&&hour<endHour-1)?8:0;
-          const teamDepth=Math.max(0,22-s.teamIndex*3);
-          return {...s,score:220+otherAlliance+openingClosing+middle+teamDepth+continuity-covered*30};
-        }).sort((a,b)=>b.score-a.score);
-        const s=candidates[0];if(!s)continue;
-        const x={...s,lead,start:`${hour}:00`,end:`${hour+1}:00`,petsActive:true};
-        petTimeline.push(x);assignments.push(x);usedSlots.add(s.key);
-        petHours.set(s.key,(petHours.get(s.key)||0)+1);prevSlotByLead.set(leadKey(lead),s.key);
-      }
-
-      // Fill every remaining lane with non-PET leads, including Handoff.
-      const usedLeads=new Set(assignments.filter(a=>a.start===`${hour}:00`).map(a=>leadKey(a.lead)));
       for(const s of slots){
-        if(usedSlots.has(s.key))continue;
-        const avail=leads.filter(p=>!usedLeads.has(leadKey(p))).map(p=>{
-          const continuity=prevSlotByLead.get(leadKey(p))===s.key?16:0;
+        if(assignments.some(a=>a.allianceIndex===s.allianceIndex&&a.teamIndex===s.teamIndex&&Number(a.start.slice(0,2))===hour))continue;
+        const prev=previousBySlot.get(s.key);
+        const choices=leads.filter(p=>!usedLeadKeys.has(leadKey(p))).map(p=>{
+          const continuity=prev&&leadKey(prev)===leadKey(p)?20:0;
+          const usagePenalty=(useCount.get(leadKey(p))||0)*5;
           let purposeBonus=0;
-          if(s.purpose==='Garrison')purposeBonus=scoreLead(p)*.025;
-          else if(s.purpose==='Counter')purposeBonus=scoreLead(p)*.01;
-          else purposeBonus=-scoreLead(p)*.01; // keep top PET-capable whales available for real pressure
-          return {p,score:scoreLead(p)+continuity+purposeBonus};
+          if(s.purpose==='Garrison')purposeBonus=scoreLead(p)*.024;
+          else if(s.purpose==='Counter')purposeBonus=scoreLead(p)*.010;
+          else purposeBonus=-petCarrierScore(p)*.012; // preserve whale/PET depth away from Handoff
+          return {p,score:scoreLead(p)+continuity+purposeBonus-usagePenalty};
         }).sort((a,b)=>b.score-a.score);
-        const chosen=avail[0]?.p;if(!chosen)continue;
-        const x={...s,lead:chosen,start:`${hour}:00`,end:`${hour+1}:00`,petsActive:false};
-        assignments.push(x);usedLeads.add(leadKey(chosen));prevSlotByLead.set(leadKey(chosen),s.key);
+        const chosen=choices[0]?.p;if(!chosen)continue;
+        assignments.push({
+          ...s,lead:chosen,start:`${hour}:00`,end:`${hour+1}:00`,petsActive:false
+        });
+        usedLeadKeys.add(leadKey(chosen));
+        previousBySlot.set(s.key,chosen);
+        useCount.set(leadKey(chosen),(useCount.get(leadKey(chosen))||0)+1);
       }
     }
 
-    // Hard safety: Handoff can never be PET ACTIVE.
+    // Absolute safety: Handoff never carries PETS.
     for(const a of assignments)if(a.purpose==='Handoff')a.petsActive=false;
-    for(let i=petTimeline.length-1;i>=0;i--)if(petTimeline[i].purpose==='Handoff')petTimeline.splice(i,1);
 
     const used=new Set(assignments.map(a=>leadKey(a.lead)));
     const active=leads.filter(p=>used.has(leadKey(p))),floating=leads.filter(p=>!used.has(leadKey(p)));
@@ -207,14 +341,42 @@
     for(let ai=0;ai<teamCounts.length;ai++){
       const teamPetHours={};
       for(let ti=0;ti<Number(teamCounts[ai]||0);ti++){
-        const key=`${ai}:${ti}`,purpose=tacticalPurpose(ai,ti,primaryIndex);
-        teamPetHours[ti]=hours.filter(h=>petTimeline.some(a=>a.allianceIndex===ai&&a.teamIndex===ti&&a.start===`${h}:00`)).length;
-        if(purpose==='Handoff')teamPetHours[ti]=0;
+        const purpose=tacticalPurpose(ai,ti,primaryIndex);
+        teamPetHours[ti]=purpose==='Handoff'?0:hours.filter(h=>
+          assignments.some(a=>a.allianceIndex===ai&&a.teamIndex===ti&&a.petsActive&&Number(a.start.slice(0,2))===h)
+        ).length;
       }
-      const complete=hours.every(h=>Array.from({length:Number(teamCounts[ai]||0)},(_,ti)=>assignments.some(a=>a.allianceIndex===ai&&a.teamIndex===ti&&a.start===`${h}:00`)).every(Boolean));
-      coverage.push({allianceIndex:ai,complete,totalHours:hours.length,teamPetHours,team1PetHours:teamPetHours[0]||0});
+      const complete=hours.every(h=>
+        Array.from({length:Number(teamCounts[ai]||0)},(_,ti)=>
+          assignments.some(a=>a.allianceIndex===ai&&a.teamIndex===ti&&Number(a.start.slice(0,2))===h)
+        ).every(Boolean)
+      );
+      coverage.push({
+        allianceIndex:ai,complete,totalHours:hours.length,teamPetHours,team1PetHours:teamPetHours[0]||0
+      });
     }
-    return{assignments,petTimeline,petWindows:[],floating,active,coverage,petCurve:curve,hours:hours.map(h=>[`${h}:00`,`${h+1}:00`])};
+
+    const petWindows=windows
+      .filter(w=>w.slot&&w.slot.purpose!=='Handoff')
+      .map(w=>({
+        lead:w.lead,
+        start:`${w.start}:00`,
+        end:`${w.end}:00`,
+        allianceIndex:w.slot.allianceIndex,
+        teamIndex:w.slot.teamIndex,
+        purpose:w.slot.purpose
+      }));
+
+    return {
+      assignments,
+      petTimeline:cleanPetTimeline,
+      petWindows,
+      floating,
+      active,
+      coverage,
+      petCurve:hours.map(h=>cleanPetTimeline.filter(x=>Number(x.start.slice(0,2))===h).length),
+      hours:hours.map(h=>[`${h}:00`,`${h+1}:00`])
+    };
   }
 
   function explainConfidence(rec){
@@ -223,7 +385,7 @@
   }
 
   window.NexaBattleStrategyEngine={
-    version:'1.4',loadMeta,rulesFor,bestRule,recommendation,joinerPlan,chooseAlternative,ensureConstraints,
+    version:'1.5',loadMeta,rulesFor,bestRule,recommendation,joinerPlan,chooseAlternative,ensureConstraints,
     scoreLead,tacticalPurpose,planSchedule,explainConfidence
   };
 })();

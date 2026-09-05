@@ -6,7 +6,7 @@ import {
   normalizeGameId,
   cleanName,
   rest
-} from './_nexa-auth-common.js';
+} from '../server/_nexa-auth-common.js';
 
 async function adminCreate(email,password,metadata){
   const service=serviceKey();

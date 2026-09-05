@@ -1,4 +1,4 @@
-// NEXA TRANSFER WORKSPACE FINISHER V2.8 — PERSISTENT GROUPS FOLDER / GROUP REMOVAL SAFEGUARDS / STABILITY
+// NEXA TRANSFER WORKSPACE FINISHER V2.9 — WORKSPACE I18N LOADER / GROUPS GUIDE / PERSISTENT GROUPS
 (()=>{
 'use strict';
 
@@ -15,6 +15,20 @@ const isHalfHour=v=>/^([01]\d|2[0-3]):(?:00|30)$/.test(String(v||'').trim());
 function getToken(){return localStorage.getItem('nexa_transfer_staff_token')||sessionStorage.getItem('nexa_transfer_staff_token')||''}
 function getWorkspaceId(){const q=new URLSearchParams(location.search),d=q.get('workspace');if(d&&/^[0-9a-f-]{36}$/i.test(d))return d;const i=$('workspaceLink');if(i?.value){try{const u=new URL(i.value,location.href),x=u.searchParams.get('workspace');if(x)return x}catch{}}return''}
 async function copyText(t,b){try{await navigator.clipboard.writeText(String(t||''));if(b){const o=b.textContent;b.textContent='Copied ✓';setTimeout(()=>b.textContent=o,1000)}}catch{}}
+
+
+function ensureWorkspaceI18n(){
+ if(window.NEXA_TRANSFER_WORKSPACE_I18N){window.NEXA_TRANSFER_WORKSPACE_I18N.apply?.(document);return}
+ if(document.getElementById('nexaWorkspaceI18nV1'))return;
+ const s=document.createElement('script');s.id='nexaWorkspaceI18nV1';s.src='nexa-transfer-workspace-i18n-v1.js?v=1.0';s.defer=true;document.head.appendChild(s);
+}
+function ensureApplicantsGroupsGuide(){
+ const ul=document.querySelector('#appHelpModal .guide ul');if(!ul||ul.querySelector('[data-nexa-groups-guide]'))return;
+ const li=document.createElement('li');li.dataset.nexaGroupsGuide='1';
+ li.innerHTML='<strong>Groups</strong> — group membership is tracked separately from Ordinary/Special placement. Open Groups to review members by Transfer Group; changing a member to Ordinary or Special does not remove them from their group.';
+ const before=[...ul.children].find(x=>x.textContent.includes('Blue card'));ul.insertBefore(li,before||null);
+ window.NEXA_TRANSFER_WORKSPACE_I18N?.apply?.(li);
+}
 
 function injectStyles(){
  if($('nexaFinisherStylesV17'))return;
@@ -46,7 +60,7 @@ function ensureModal(){
  if($('nexaFinisherModal'))return;
  const m=document.createElement('div');m.id='nexaFinisherModal';m.className='nexa-finisher-modal';m.innerHTML=`<div class="nexa-finisher-card"><div class="nexa-finisher-head"><div><div class="tag" id="nexaFinisherTag">NEXA</div><h3 id="nexaFinisherTitle" style="margin:4px 0 0">Details</h3></div><button class="nexa-finisher-close" id="nexaFinisherClose" type="button">×</button></div><div id="nexaFinisherBody"></div></div>`;document.body.appendChild(m);$('nexaFinisherClose').onclick=()=>m.classList.remove('open');m.onclick=e=>{if(e.target===m)m.classList.remove('open')}
 }
-function openModal(tag,title,html){ensureModal();$('nexaFinisherTag').textContent=tag;$('nexaFinisherTitle').textContent=title;$('nexaFinisherBody').innerHTML=html;$('nexaFinisherModal').classList.add('open')}
+function openModal(tag,title,html){ensureModal();$('nexaFinisherTag').textContent=tag;$('nexaFinisherTitle').textContent=title;$('nexaFinisherBody').innerHTML=html;$('nexaFinisherModal').classList.add('open');window.NEXA_TRANSFER_WORKSPACE_I18N?.apply?.($('nexaFinisherModal'))}
 function closeModal(){$('nexaFinisherModal')?.classList.remove('open')}
 
 async function loadAccess(){try{const r=await SB.rpc('transfer_staff_access_list',{p_workspace_id:workspaceId,p_token:token});canManage=r.data?.ok===true&&r.data?.can_manage===true}catch{}}
@@ -280,10 +294,10 @@ function attachHooks(){
 async function periodic(){
  const ap=document.querySelector('[data-panel="applicants"]');if(ap?.classList.contains('active'))syncGroupFolder();
  const ip=document.querySelector('[data-panel="integrations"]');if(ip?.classList.contains('active')){await loadProfileRows()}
- const xp=document.querySelector('[data-panel="access"]');if(xp?.classList.contains('active'))enhanceUsername();
+ const xp=document.querySelector('[data-panel="access"]');if(xp?.classList.contains('active'))enhanceUsername();ensureApplicantsGroupsGuide();window.NEXA_TRANSFER_WORKSPACE_I18N?.apply?.(document);
 }
 async function start(){
- if(booted)return;token=getToken();workspaceId=getWorkspaceId();const root=$('workspaceRoot');if(!SB||!token||!workspaceId||!root||root.classList.contains('hidden'))return;booted=true;injectStyles();ensureModal();await loadAccess();ensureAddGroupButton();ensureGroupView();installPersistentGroupsFolder();attachHooks();installHistoryDeleteGuard();enhanceUsername();await heartbeat();await loadGroups(false);await loadFormLibrary();await loadProfileRows();presenceTimer=setInterval(heartbeat,30000);refreshTimer=setInterval(periodic,2500)
+ if(booted)return;token=getToken();workspaceId=getWorkspaceId();const root=$('workspaceRoot');if(!SB||!token||!workspaceId||!root||root.classList.contains('hidden'))return;booted=true;ensureWorkspaceI18n();injectStyles();ensureModal();ensureApplicantsGroupsGuide();await loadAccess();ensureAddGroupButton();ensureGroupView();installPersistentGroupsFolder();attachHooks();installHistoryDeleteGuard();enhanceUsername();await heartbeat();await loadGroups(false);await loadFormLibrary();await loadProfileRows();ensureApplicantsGroupsGuide();window.NEXA_TRANSFER_WORKSPACE_I18N?.apply?.(document);presenceTimer=setInterval(heartbeat,30000);refreshTimer=setInterval(periodic,2500)
 }
 const boot=setInterval(()=>{start();if(booted)clearInterval(boot)},500);setTimeout(start,80);
 })();

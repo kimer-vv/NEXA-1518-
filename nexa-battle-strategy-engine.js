@@ -1,7 +1,7 @@
-/* NEXA Battle Strategy Engine v1.8
+/* NEXA Battle Strategy Engine v1.9
    Shared battle brain for SvS / FDT / TAL / Matchup Lab.
    Approved formation catalog + resilient Join First/backup pools + FULL-USE purpose-aware PET scheduler.
-   v1.8: full PET-carrier use + post-PET same-lane rotation safety.
+   v1.9: full PET-carrier use + pre/post-PET same-lane rotation safety.
 */
 (()=> {
   'use strict';
@@ -215,7 +215,7 @@
     };
 
     /*
-      v1.8 FULL-USE PET RULE
+      v1.9 FULL-USE PET RULE
       ---------------------
       - Every Rally Lead gets one PET window whenever the graph has a legal lane/time for it.
       - Reserve means WHEN the RL activates, never "leave the PET unused."
@@ -341,23 +341,27 @@
         if(assignments.some(a=>a.allianceIndex===s.allianceIndex&&a.teamIndex===s.teamIndex&&Number(a.start.slice(0,2))===hour))continue;
         const prev=previousBySlot.get(s.key);
 
-        // v1.8 safety:
-        // A Rally Lead whose PET window just expired on this exact Team cannot remain
-        // on the same Team as a neutral filler in the immediately following hour.
-        // They may rotate elsewhere if the roster needs them.
-        const justExpiredHere=(p)=>{
+        // v1.9 safety:
+        // A Rally Lead cannot occupy the SAME Team as a neutral filler in the hour
+        // immediately before OR immediately after that Rally Lead's PET window.
+        // Example: PETS 15:00â17:00 => not neutral on that Team 14:00â15:00.
+        // Example: PETS 12:00â14:00 => not neutral on that Team 14:00â15:00.
+        // They may still rotate to another Team if the roster needs them.
+        const petAdjacentHere=(p)=>{
           const lk=leadKey(p);
-          return assignedWindows.some(w=>
-            leadKey(w.lead)===lk &&
-            w.slot?.allianceIndex===s.allianceIndex &&
-            w.slot?.teamIndex===s.teamIndex &&
-            Number(w.end)===hour
-          );
+          return assignedWindows.some(w=>{
+            if(
+              leadKey(w.lead)!==lk ||
+              w.slot?.allianceIndex!==s.allianceIndex ||
+              w.slot?.teamIndex!==s.teamIndex
+            ) return false;
+            return Number(w.end)===hour || Number(w.start)===hour+1;
+          });
         };
 
         const choices=leads.filter(p=>
           !usedLeadKeys.has(leadKey(p)) &&
-          !justExpiredHere(p)
+          !petAdjacentHere(p)
         ).map(p=>{
           const continuity=prev&&leadKey(prev)===leadKey(p)?20:0;
           const usagePenalty=(useCount.get(leadKey(p))||0)*5;
@@ -433,7 +437,7 @@
   }
 
   window.NexaBattleStrategyEngine={
-    version:'1.8',loadMeta,rulesFor,bestRule,recommendation,joinerPlan,chooseAlternative,ensureConstraints,
+    version:'1.9',loadMeta,rulesFor,bestRule,recommendation,joinerPlan,chooseAlternative,ensureConstraints,
     scoreLead,tacticalPurpose,planSchedule,explainConfidence
   };
 })();

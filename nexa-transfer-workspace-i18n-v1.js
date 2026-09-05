@@ -1,4 +1,4 @@
-// NEXA TRANSFER WORKSPACE I18N V1.0 — EXACT WORKSPACE TRANSLATIONS / AUTO-APPLY
+// NEXA TRANSFER WORKSPACE I18N V1.1 — FULL WORKSPACE / GUIDES / DISCORD INTEGRATION / AUTO-APPLY
 (()=>{
 'use strict';
 
@@ -92,6 +92,92 @@ const ES={
 'This also permanently deletes Ordinary and Special applicant records attached to that cycle.':'Esto también elimina permanentemente los registros de solicitantes Ordinarios y Especiales vinculados a ese ciclo.','Delete Permanently':'Eliminar permanentemente'
 };
 
+
+Object.assign(ES,{
+'Guide':'Guía','DISCORD INTEGRATION':'INTEGRACIÓN DE DISCORD','NEXA Transfer Bot':'Bot de Transferencias NEXA',
+'Connected':'Conectado','Configured · Off':'Configurado · Desactivado','Not Connected':'No conectado',
+'Collapse Integration ▴':'Contraer integración ▴','Manage Integration ▾':'Administrar integración ▾',
+'Discord Server':'Servidor de Discord','Discord Server ID':'ID del servidor de Discord','Load Channels':'Cargar canales','Install / Add Bot':'Instalar / Añadir bot',
+'New Applications Channel':'Canal de Nuevas Solicitudes','Applicant Operations Channel':'Canal de Operaciones de Solicitantes',
+'Transfer Announcements Channel':'Canal de Anuncios de Transferencia','Invite Operations Channel':'Canal de Operaciones de Invitaciones',
+'Event Start Date':'Fecha de inicio del evento','Invite Check Times':'Horas de revisión de invitaciones',
+'Final Warning Before Open Transfer':'Advertencia final antes de abrir Transferencias','Test Notifications':'Probar notificaciones',
+'Save Discord Integration':'Guardar integración de Discord','Discord Integration Guide':'Guía de Integración de Discord',
+'Not selected':'No seleccionado','Saved channel':'Canal guardado','Not scheduled.':'No programado.','Invalid date.':'Fecha no válida.',
+'Game/Server:':'Juego/Servidor:','Your local time:':'Tu hora local:','Warning:':'Advertencia:','Game/Server send time:':'Hora de envío Juego/Servidor:',
+'Discord server':'Servidor de Discord','New Applications channel':'Canal de Nuevas Solicitudes','Applicant Operations channel':'Canal de Operaciones de Solicitantes',
+'Transfer Announcements channel':'Canal de Anuncios de Transferencia','Invite Operations channel':'Canal de Operaciones de Invitaciones',
+'Integration enabled':'Integración activada','Bot Ready ✓':'Bot listo ✓','Setup incomplete':'Configuración incompleta',
+'channels configured':'canales configurados','Reminders':'Recordatorios','On':'Activados','Off':'Desactivados','Start':'Inicio','Start Not scheduled':'Inicio no programado',
+'No Invite Check Times configured.':'No hay horas de revisión de invitaciones configuradas.','Add a UTC/Game Time to see the local-time preview.':'Añade una hora UTC/Hora del Juego para ver la vista previa en tu hora local.',
+'Receives automatic alerts whenever a new Transfer application is submitted.':'Recibe alertas automáticas cada vez que se envía una nueva solicitud de Transferencia.',
+'Receives applicant-management commands and applicant list posts.':'Recibe comandos de administración de solicitantes y publicaciones de listas de solicitantes.',
+'Receives Transfer timeline announcements and reminders.':'Recibe anuncios y recordatorios del calendario de Transferencias.',
+'Receives invite lists and invite-operation posts.':'Recibe listas de invitaciones y publicaciones de operaciones de invitación.',
+'Enable Discord Integration':'Activar Integración de Discord','Enable Reminders':'Activar recordatorios',
+'Clear Start Date':'Borrar fecha de inicio','Hours':'Horas','Minutes':'Minutos','Add Time':'Añadir hora',
+'Test New Applications':'Probar Nuevas Solicitudes','Test Applicant Operations':'Probar Operaciones de Solicitantes',
+'Test Transfer Announcements':'Probar Anuncios de Transferencia','Test Invite Operations':'Probar Operaciones de Invitaciones',
+'Discord Server:':'Servidor de Discord:','enter the Server ID where NEXA is installed.':'introduce el ID del servidor donde está instalado NEXA.',
+'adds NEXA to that server.':'añade NEXA a ese servidor.','Load Channels:':'Cargar canales:',
+'refreshes the channel list from the connected Discord server. It does not create or change channels.':'actualiza la lista de canales desde el servidor de Discord conectado. No crea ni modifica canales.',
+'New Applications Channel:':'Canal de Nuevas Solicitudes:','receives automatic alerts when a new Transfer application is submitted.':'recibe alertas automáticas cuando se envía una nueva solicitud de Transferencia.',
+'Applicant Operations Channel:':'Canal de Operaciones de Solicitantes:','the dedicated channel for the':'el canal dedicado para el flujo de comandos',
+'command workflow.':'de comandos.',
+'Transfer Announcements Channel:':'Canal de Anuncios de Transferencia:','receives Transfer Start, Invitational Phase, Invite Checks, Final Warning, Open Transfer, and Event Ended announcements.':'recibe anuncios de Inicio de Transferencia, Fase de Invitaciones, Revisiones de Invitaciones, Advertencia Final, Transferencia Abierta y Evento Finalizado.',
+'Invite Operations Channel:':'Canal de Operaciones de Invitaciones:','receives invite lists and invite-operation posts.':'recibe listas de invitaciones y publicaciones de operaciones de invitación.',
+'Event Start Date:':'Fecha de inicio del evento:','use the':'usa la','WOS Game/Server date':'fecha del Juego/Servidor de WOS','at reset.':'al reset.',
+'NEXA always interprets this as':'NEXA siempre interpreta esto como','Your local calendar date can be different.':'La fecha de tu calendario local puede ser diferente.',
+'The preview below the field shows both.':'La vista previa debajo del campo muestra ambas.','and then Save to remove the schedule completely.':'y luego Guardar para eliminar por completo la programación.',
+'Invite Check Times:':'Horas de revisión de invitaciones:','enter times in':'introduce horas en','24-hour UTC / Game Time':'UTC de 24 horas / Hora del Juego',
+'for example':'por ejemplo','NEXA shows the local-time equivalent underneath.':'NEXA muestra debajo el equivalente en tu hora local.',
+'Final Warning Before Open Transfer:':'Advertencia final antes de abrir Transferencias:','choose how long before Open Transfer you want the final warning.':'elige con cuánto tiempo de anticipación a la apertura de Transferencias quieres la advertencia final.',
+'Example: 3 hours 0 minutes means the warning sends three hours before Open Transfer.':'Ejemplo: 3 horas 0 minutos significa que la advertencia se envía tres horas antes de abrir Transferencias.',
+'The preview shows both UTC/Game Time and local time.':'La vista previa muestra tanto UTC/Hora del Juego como la hora local.',
+'Test Notifications:':'Probar notificaciones:','sends a clearly marked TEST message to each configured notification route without creating applicants, changing invites, or changing the Transfer timeline.':'envía un mensaje claramente marcado como PRUEBA a cada ruta de notificación configurada sin crear solicitantes, cambiar invitaciones ni modificar el calendario de Transferencias.',
+'Save Discord Integration:':'Guardar integración de Discord:','saves the complete configuration for this Workspace.':'guarda la configuración completa de este Workspace.',
+'Placeholder for future Transfer notifications. No Discord connection is required for current operations.':'Espacio reservado para futuras notificaciones de Transferencia. No se requiere una conexión de Discord para las operaciones actuales.',
+'Exactly what applicants will see for this Transfer Cycle.':'Exactamente lo que verán los solicitantes para este Ciclo de Transferencia.',
+'Public Form Preview':'Vista previa del formulario público','Refresh':'Actualizar',
+'Official Transfer schedule source':'Fuente oficial del horario de Transferencias',
+'These are the alliances and schedules used by the Transfer Application.':'Estas son las alianzas y los horarios utilizados por la Solicitud de Transferencia.',
+'Bear:':'Bear:','Foundry:':'Foundry:','Canyon:':'Canyon:','Edit':'Editar','Set Inactive':'Desactivar','Activate':'Activar','Delete':'Eliminar',
+'Available to add to Transfer':'Disponible para añadir a Transferencias','No Recruiting Alliances configured yet. Use + Add Alliance.':'Todavía no hay Alianzas de Reclutamiento configuradas. Usa + Añadir alianza.',
+'Transfer Staff · Pending Registration':'Personal de Transferencias · Pendiente de registro','Transfer Staff · Active':'Personal de Transferencias · Activo',
+'Toggle Access Management':'Alternar Gestión de Acceso','Owner':'Owner','Change Password':'Cambiar contraseña','Copy Username':'Copiar usuario','Generate Recovery Code':'Generar código de recuperación',
+'History & Archive':'Historial y Archivo','Transfer Cycle records and recoverable applicants are kept separately.':'Los registros de los Ciclos de Transferencia y los solicitantes recuperables se guardan por separado.',
+'Applicant Archive':'Archivo de Solicitantes','Transfer Cycles':'Ciclos de Transferencia','Restore':'Restaurar','Archived':'Archivado',
+'Loading archived cycle…':'Cargando ciclo archivado…','Unable to load archived cycle.':'No se pudo cargar el ciclo archivado.',
+'CLASSIFICATION':'CLASIFICACIÓN','POWER CAP':'LÍMITE DE PODER','HISTORY DATES':'FECHAS DEL HISTORIAL','INVITES SENT':'INVITACIONES ENVIADAS',
+'ORDINARY / SPECIAL':'ORDINARIO / ESPECIAL','RECRUITING ALLIANCES':'ALIANZAS DE RECLUTAMIENTO',
+'Use the four folders to organize the applications selected for Transfer. New/unclassified applications appear in the default New Applications view.':'Usa las carpetas para organizar las solicitudes seleccionadas para Transferencia. Las solicitudes nuevas o sin clasificar aparecen en la vista predeterminada Nuevas Solicitudes.',
+' — applicants assigned to the Ordinary transfer route.':' — solicitantes asignados a la ruta de transferencia Ordinaria.',
+' — applicants actually assigned to a Special Invite.':' — solicitantes realmente asignados a una Invitación Especial.',
+' — applicants not selected for this Transfer cycle.':' — solicitantes no seleccionados para este ciclo de Transferencia.',
+' — applicants intentionally saved for a future cycle. Dates never move applicants automatically.':' — solicitantes guardados intencionalmente para un ciclo futuro. Las fechas nunca mueven solicitantes automáticamente.',
+' — group membership is tracked separately from Ordinary/Special placement. Open Groups to review members by Transfer Group; changing a member to Ordinary or Special does not remove them from their group.':' — la pertenencia a un grupo se rastrea por separado de la clasificación Ordinario/Especial. Abre Grupos para revisar los miembros por Grupo de Transferencia; cambiar un miembro a Ordinario o Especial no lo elimina de su grupo.',
+' — the applicant is within the Ordinary Power Cap.':' — el solicitante está dentro del límite de poder ordinario.',
+' — the applicant is above the Ordinary Power Cap. Gold does ':' — el solicitante está por encima del límite de poder ordinario. Dorado ',
+' automatically mean Special Invite; staff may use a power reduction or another route.':' no significa automáticamente Invitación Especial; el personal puede usar una reducción de poder u otra ruta.',
+' — changes the applicant folder directly from the card.':' — cambia la carpeta del solicitante directamente desde la tarjeta.',
+' — assigns one active Recruiting Alliance directly from the card.':' — asigna una Alianza de Reclutamiento activa directamente desde la tarjeta.',
+' — marks whether the invite has been sent.':' — indica si la invitación fue enviada.',
+' — opens the full application in read-only mode.':' — abre la solicitud completa en modo de solo lectura.',
+' — drag and drop is kept as a convenience where the browser supports it. Mobile never depends on drag and drop.':' — arrastrar y soltar se mantiene como comodidad donde el navegador lo permite. En móvil nunca se depende de arrastrar y soltar.',
+'The state applicants are applying to join.':'El estado al que los solicitantes desean unirse.','This should normally match the Workspace state.':'Normalmente debe coincidir con el estado del Workspace.',
+' uses 35 Ordinary invitations.':' usa 35 invitaciones ordinarias.',' uses 20 Ordinary invitations.':' usa 20 invitaciones ordinarias.',
+' keeps the Leading capacity and allows Special Invite planning.':' mantiene la capacidad de Líder y permite planificar invitaciones especiales.',
+'Ordinary capacity is calculated automatically from Classification.':'La capacidad Ordinaria se calcula automáticamente según la Clasificación.',
+'Cards use it for the blue/gold visual status.':'Las tarjetas lo usan para el estado visual azul/dorado.',
+'Special Invites are configured separately.':'Las Invitaciones Especiales se configuran por separado.',
+'leaves Ordinary counts open.':'deja abiertas las cantidades Ordinarias.','distributes the Ordinary capacity evenly.':'distribuye uniformemente la capacidad Ordinaria.',
+'lets staff enter counts directly.':'permite que el personal introduzca las cantidades directamente.','Over-allocation shows a warning but does not block Save Cycle.':'Una sobreasignación muestra una advertencia, pero no bloquea Guardar ciclo.',
+'Alliance activation and official Bear / Foundry / Canyon schedules are managed under ':'La activación de alianzas y los horarios oficiales de Bear / Foundry / Canyon se administran en ',
+'Clear All does not permanently delete applicants. Ordinary and Special applicants from the finished cycle remain inside Transfer History. Every active New Application and Not Selected applicant moves to Applicant Archive, including restored applicants. Next Transfer Cycle is not affected.':'Archivar todos no elimina permanentemente a los solicitantes. Los solicitantes Ordinarios y Especiales del ciclo finalizado permanecen dentro del Historial de Transferencias. Cada Nueva Solicitud activa y cada solicitante No Seleccionado se mueve al Archivo de Solicitantes, incluidos los restaurados. Próximo Ciclo de Transferencia no se ve afectado.',
+'This closes the active Transfer Cycle and moves its cycle record to History. It does not move, archive, or delete any applicants. New Applicants, Ordinary, Special, Not Selected, and Next Transfer Cycle remain unchanged. Afterward, a new Transfer Cycle can be opened.':'Esto cierra el Ciclo de Transferencia activo y mueve su registro al Historial. No mueve, archiva ni elimina solicitantes. Nuevas Solicitudes, Ordinario, Especial, No Seleccionado y Próximo Ciclo de Transferencia permanecen sin cambios. Después se puede abrir un nuevo Ciclo de Transferencia.',
+'Contact Workspace Management. A ★ manager can find your account by Game Name or Game ID and copy your username.':'Contacta a la Administración del Workspace. Un administrador ★ puede encontrar tu cuenta por Nombre en el Juego o ID de Juego y copiar tu nombre de usuario.'
+});
+
 const TR={
 'Staff Access':'Personel Erişimi','Log In':'Giriş Yap','First Time? Register':'İlk kez mi? Kaydol','Username or Game ID':'Kullanıcı adı veya Oyun Kimliği','Password':'Şifre','Remember me on this device':'Bu cihazda beni hatırla',
 'Forgot username?':'Kullanıcı adını mı unuttun?','Forgot password?':'Şifreni mi unuttun?','Register':'Kaydol','Transfer Workspace':'Transfer Çalışma Alanı','Applicants':'Başvuranlar','Integrations':'Entegrasyonlar','Access':'Erişim','History':'Geçmiş',
@@ -176,9 +262,17 @@ function pattern(s){
 }
 function tr(s){
  if(lang==='en')return s;
- const clean=String(s||'').trim();if(!clean)return s;
- const d=DICTS[lang]||{},x=d[clean]||pattern(clean);if(x===clean)return s;
- const lead=String(s).match(/^\s*/)?.[0]||'',trail=String(s).match(/\s*$/)?.[0]||'';
+ const raw=String(s||''),clean=raw.trim();if(!clean)return s;
+ const d=DICTS[lang]||{};
+ let x=d[clean]||pattern(clean);
+ if(x===clean){
+   x=raw;
+   const keys=Object.keys(d).filter(k=>k&&raw.includes(k)).sort((a,b)=>b.length-a.length);
+   for(const k of keys)x=x.split(k).join(d[k]);
+   if(x===raw)return s;
+   return x;
+ }
+ const lead=raw.match(/^\s*/)?.[0]||'',trail=raw.match(/\s*$/)?.[0]||'';
  return lead+x+trail;
 }
 function apply(root=document){

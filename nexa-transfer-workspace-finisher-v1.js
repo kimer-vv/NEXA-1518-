@@ -1,4 +1,4 @@
-// NEXA TRANSFER WORKSPACE FINISHER V3.3 — KEEP INTEGRATIONS AFTER ALLIANCE CREATE / I18N V1.3 / PERSISTENT GROUPS
+// NEXA TRANSFER WORKSPACE FINISHER V3.4 — NO RELOAD AFTER ALLIANCE CREATE / STAY IN INTEGRATIONS / I18N V1.3
 (()=>{
 'use strict';
 
@@ -328,8 +328,11 @@ function ensureRecruitingAllianceCreator(){
      }
      status.textContent='Recruiting Alliance created ✓';
      window.NEXA_TRANSFER_WORKSPACE_I18N?.apply?.(box);
-     sessionStorage.setItem('nexa_transfer_workspace_restore_tab','integrations');
-     setTimeout(()=>location.reload(),180);
+     const created={alliance_id:r.data.alliance_id,tag:r.data.tag||tag,name:null,event_schedule:{bear:[],foundry:[],canyon:[]},is_active:true,profile_exists:true};
+     upsertCreatedRecruitingCard(created);
+     const modal=$('addAllianceModal');
+     if(modal)modal.classList.remove('open');
+     activateWorkspacePanel('integrations');
    }catch(e){status.textContent=e?.message||'Unable to create alliance.'}
    finally{btn.disabled=false}
  };
@@ -337,6 +340,61 @@ function ensureRecruitingAllianceCreator(){
  window.NEXA_TRANSFER_WORKSPACE_I18N?.apply?.(box);
 }
 
+
+
+function activateWorkspacePanel(name){
+ document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
+ document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.dataset.panel===name));
+}
+function upsertCreatedRecruitingCard(p){
+ const host=$('profileList');if(!host||!p?.alliance_id)return;
+ host.querySelector('.empty')?.remove();
+ let card=host.querySelector(`[data-profile="${CSS.escape(String(p.alliance_id))}"]`);
+ if(!card){
+   card=document.createElement('div');
+   card.className='profileCard';
+   card.dataset.profile=String(p.alliance_id);
+   host.prepend(card);
+ }
+ const render=()=>{
+   const s=p.event_schedule&&typeof p.event_schedule==='object'?p.event_schedule:{};
+   const bear=Array.isArray(s.bear)?s.bear:[],foundry=Array.isArray(s.foundry)?s.foundry:[],canyon=Array.isArray(s.canyon)?s.canyon:[];
+   const times=`<div class="profileTimes"><b>Bear:</b> ${bear.length?bear.map(x=>esc(x)+' UTC').join(' • '):'—'}<br><b>Foundry:</b> ${foundry.length?foundry.map(x=>esc(x)+' UTC').join(' • '):'—'}<br><b>Canyon:</b> ${canyon.length?canyon.map(x=>esc(x)+' UTC').join(' • '):'—'}</div>`;
+   card.innerHTML=`<div class="profileHeader"><div><b>${esc(p.tag||'Alliance')}</b> <span class="profileState good">ACTIVE</span>${times}</div><div class="actions" style="margin:0"><button class="btn secondary mini" data-nexa-new-edit>Edit</button><button class="btn secondary mini" data-nexa-new-inactive>Set Inactive</button><button class="btn danger mini" data-nexa-new-delete>Delete</button></div></div><div data-nexa-new-editor></div>`;
+   card.querySelector('[data-nexa-new-edit]').onclick=()=>{
+     const editor=card.querySelector('[data-nexa-new-editor]');
+     if(editor.innerHTML){editor.innerHTML='';return}
+     const row=(label,key,vals,max)=>`<div class="scheduleGroup"><b>${label}</b><div class="note">UTC 24-hour</div><div class="timeInputs ${max===2?'two':''}">${Array.from({length:max},(_,i)=>`<input class="nexa-manual-time" data-new-sched="${key}" inputmode="numeric" placeholder="HH:MM" value="${esc(vals[i]||'')}">`).join('')}</div></div>`;
+     editor.innerHTML=`<div class="scheduleEdit">${row('Bear Trap','bear',bear,4)}${row('Foundry','foundry',foundry,2)}${row('Canyon','canyon',canyon,2)}<div class="actions"><button class="btn mini" data-nexa-new-save>Save Schedule</button><button class="btn secondary mini" data-nexa-new-cancel>Cancel</button></div><div class="status" data-nexa-new-status></div></div>`;
+     editor.querySelectorAll('.nexa-manual-time').forEach(bindManualTimeInput);
+     editor.querySelector('[data-nexa-new-cancel]').onclick=()=>editor.innerHTML='';
+     editor.querySelector('[data-nexa-new-save]').onclick=async()=>{
+       const st=editor.querySelector('[data-nexa-new-status]');
+       const read=(key,max)=>[...editor.querySelectorAll(`[data-new-sched="${key}"]`)].map(x=>x.value.trim()).filter(Boolean).slice(0,max);
+       const next={bear:read('bear',4),foundry:read('foundry',2),canyon:read('canyon',2)};
+       const bad=[...next.bear,...next.foundry,...next.canyon].find(x=>!validTime(x));
+       if(bad){st.textContent='Manual time must use HH:MM (00:00–23:59).';return}
+       st.textContent='Saving…';
+       const rr=await SB.rpc('transfer_workspace_recruiting_profiles_save',{p_workspace_id:workspaceId,p_token:token,p_rows:[{alliance_id:Number(p.alliance_id),event_schedule:next,is_active:true}]});
+       if(rr.error||rr.data?.ok!==true){st.textContent=rr.data?.error||rr.error?.message||'Unable to save schedule.';return}
+       p.event_schedule=next;render();window.NEXA_TRANSFER_WORKSPACE_I18N?.apply?.(card);
+     };
+   };
+   card.querySelector('[data-nexa-new-inactive]').onclick=async()=>{
+     const rr=await SB.rpc('transfer_workspace_recruiting_profile_action',{p_workspace_id:workspaceId,p_token:token,p_alliance_id:Number(p.alliance_id),p_action:'inactive'});
+     if(rr.error||rr.data?.ok!==true)return;
+     card.remove();
+   };
+   card.querySelector('[data-nexa-new-delete]').onclick=async()=>{
+     if(!confirm(`Delete ${p.tag||'this alliance'} from Transfer Recruiting Alliances?`))return;
+     const rr=await SB.rpc('transfer_workspace_recruiting_profile_action',{p_workspace_id:workspaceId,p_token:token,p_alliance_id:Number(p.alliance_id),p_action:'delete'});
+     if(rr.error||rr.data?.ok!==true)return;
+     card.remove();
+   };
+   window.NEXA_TRANSFER_WORKSPACE_I18N?.apply?.(card);
+ };
+ render();
+}
 
 function restoreWorkspaceTabAfterReload(){
  const wanted=sessionStorage.getItem('nexa_transfer_workspace_restore_tab');

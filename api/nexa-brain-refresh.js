@@ -1,4 +1,4 @@
-// NEXA Brain Research v1.3 — generation-safe research + evidence-gated joiners + manual approval only
+// NEXA Brain Research v1.4 — multi-variant research + Promising 60% gate + evidence-safe joiners
 // Vercel env required: OPENAI_API_KEY, SUPABASE_SERVICE_ROLE_KEY, CRON_SECRET
 const SB='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const MODEL=process.env.NEXA_RESEARCH_MODEL||'gpt-5.6-terra';
@@ -71,19 +71,39 @@ function researchRuleKey(generation,mode,leaders,ratio){
   return `research_g${generation}_${slugPart(mode)}_${heroKey}_${ratioKey}`.slice(0,120);
 }
 
-function vettedJoiners(evidence,role){
-  const allowedRelevance=new Set(['tested_with_gen10','explicitly_recommended_for_gen10']);
-  const rows=(evidence||[]).filter(x=>x?.role===role && x?.hero);
+function sameFormation(aLeaders,aRatio,bLeaders,bRatio){
+  const al=(aLeaders||[]).map(x=>String(x||'').trim().toLowerCase());
+  const bl=(bLeaders||[]).map(x=>String(x||'').trim().toLowerCase());
+  const ar=(aRatio||[]).map(Number),br=(bRatio||[]).map(Number);
+  return al.length===bl.length&&al.every((x,i)=>x===bl[i])&&
+    ar.length===br.length&&ar.every((x,i)=>Number(x)===Number(br[i]));
+}
 
-  return [...new Set(
-    rows.filter(x=>{
-      const groups=new Set((x.independent_groups||[]).map(String).filter(Boolean));
-      const urls=[...(x.source_urls||[])].filter(Boolean);
-      return allowedRelevance.has(x.generation_relevance)
-        && groups.size>=2
-        && urls.length>=2;
-    }).map(x=>String(x.hero).trim()).filter(Boolean)
-  )];
+function evidencePasses(row){
+  const allowedRelevance=new Set([
+    'tested_with_current_generation',
+    'explicitly_recommended_for_current_generation'
+  ]);
+  if(!row?.hero||!allowedRelevance.has(row.generation_relevance))return false;
+  const groups=new Set((row.independent_groups||[]).map(String).filter(Boolean));
+  const urls=new Set((row.source_urls||[]).map(String).filter(Boolean));
+  return groups.size>=2&&urls.size>=2;
+}
+
+function vettedPrimaryJoiners(rawPrimary,evidence){
+  const good=new Set((evidence||[]).filter(x=>x?.role==='primary'&&evidencePasses(x)).map(x=>String(x.hero).trim().toLowerCase()));
+  // Preserve slot order AND intentional duplicates, e.g. Norah / Norah / Hendrik / Patrick.
+  return (rawPrimary||[]).map(x=>String(x||'').trim()).filter(x=>x&&good.has(x.toLowerCase())).slice(0,4);
+}
+
+function vettedBackupJoiners(rawBackup,evidence){
+  const good=new Set((evidence||[]).filter(x=>x?.role==='backup'&&evidencePasses(x)).map(x=>String(x.hero).trim().toLowerCase()));
+  const out=[];
+  for(const x of rawBackup||[]){
+    const n=String(x||'').trim();
+    if(n&&good.has(n.toLowerCase())&&!out.some(y=>y.toLowerCase()===n.toLowerCase()))out.push(n);
+  }
+  return out.slice(0,8);
 }
 
 export default async function handler(req,res){
@@ -161,58 +181,69 @@ export default async function handler(req,res){
 
 Research CURRENTLY UNLOCKED Generation ${generation} PvP rally formations for ATTACK and DEFENSE for State 1518.
 
-Use broad independent web research, including YouTube gameplay where useful, game-specific sites, guides, battle reports, community discussions, and independent creators.
+Your job is NOT to return only one attack and one defense. Return EVERY distinct formation variant that is worth human review, as long as it has at least 60% confidence and enough independent evidence. A different hero trio OR a materially different troop ratio is a separate formation and must be a separate object.
 
-Rules:
+Use broad independent web research, including direct gameplay, YouTube battle footage, battle reports, game-specific sites, guides, community discussions, and independent creators.
+
+Hard rules:
 - Do not use heroes from any generation higher than ${generation}.
-- Research the CURRENT Gen ${generation} meta, not generic old joiner lists.
-- A legacy hero is NOT a valid current backup merely because its expedition skill was historically popular.
-- Do not include a primary or backup joiner unless you can tie that hero to CURRENT Gen ${generation} rally use through at least 2 independent evidence groups and at least 2 source URLs.
-- Mark each joiner recommendation with generation_relevance:
-  * tested_with_gen10 = visible/current Gen ${generation} battle use or test
-  * explicitly_recommended_for_gen10 = an independent source explicitly recommends it for Gen ${generation}
-  * legacy_skill_only = only generic/older skill logic; NEXA will reject these from operational joiner fields
-- If a backup pool cannot be corroborated at current Gen ${generation}, return an empty backup_joiner_pool. NEVER fill it with familiar names just to have backups.
-- Do not trust a claim merely because many pages copied the same source.
-- Identify independent evidence groups.
-- Prefer direct gameplay, battle reports, visible rally compositions, tested comparisons, and multiple independent creators.
-- Do not fabricate sources, hero names, ratios, evidence, or conclusions.
-- If evidence is weak or conflicting, lower confidence and return it as a candidate instead of pretending it is verified.
+- Research the CURRENT Gen ${generation} meta, not generic old lists.
+- Do not invent a ratio because it sounds logical.
+- If a source says a ratio should preserve Lancer presence or another troop-class requirement, explain WHY only when the underlying mechanic is actually corroborated.
+- If 40/10/50, 50/0/50, 50/10/40, or any other ratio is independently supported, do NOT hide it inside the explanation of another formation. Return it as its own formation object if it reaches the 60% review threshold.
+- Likewise, if a different trio such as Gregory/Freya/Xura is supported at 60%+, return it as its own formation object. Never mention another hero trio as a hidden recommendation inside a different card.
+- Each formation's why_good, ratio_reasoning, joiner explanations, and risk_note must discuss ONLY that formation.
+- Confidence 0.72+ with >=3 independent groups and >=3 sources can be Corroborated.
+- Confidence 0.60-0.719 with >=2 independent groups and >=2 sources is a Promising human-review candidate.
+- Below 0.60 is not a Suggested formation and should not be returned.
+- Do not trust duplicated/copy-pasted sources as independent.
 - Ratios must total exactly 100.
-- Return ONLY valid JSON. No markdown fences and no commentary.
+- Do not fabricate sources, hero names, skills, mechanics, ratios, evidence, or conclusions.
 
-Return exactly this shape:
+Join First rules:
+- Return exactly four Join First slots whenever four can be corroborated.
+- Intentional duplicates are allowed and must be preserved if evidence supports the duplicated hero in multiple join slots.
+- For every unique First-4 hero, explain what buff/mechanic it contributes and why that contribution complements THIS rally.
+- A legacy hero is not valid merely because it was historically popular.
+- A primary or backup joiner must be tied to CURRENT Gen ${generation} rally use through at least 2 independent evidence groups and 2 source URLs.
+- generation_relevance must use:
+  * tested_with_current_generation
+  * explicitly_recommended_for_current_generation
+  * legacy_skill_only
+- legacy_skill_only is rejected from operational fields.
+
+Backup Joiner Pool rules:
+- Backups are emergency substitutes, not random filler.
+- They may include heroes also represented in the First 4 if a duplicated/interchangeable slot is genuinely useful.
+- They may also include other current-generation-relevant joiners that preserve a useful buff family or add a compatible buff.
+- For each backup, say which First-4 role/hero it can replace (or "flex") and what value it preserves/adds.
+- If no backup is corroborated, return an empty pool. Never fill it just to make the card look complete.
+
+Return ONLY valid JSON:
 {
  "generation":${generation},
  "formations":[
   {
    "mode":"attack|defense",
-   "rule_key":"short_stable_key",
    "leader_heroes":["hero","hero","hero"],
    "primary_ratio":[0,0,0],
+   "confidence":0.60,
+   "why_good":"brief but useful explanation of why these heroes + this ratio work together",
+   "ratio_reasoning":"brief explanation of why this exact troop split matters; only corroborated mechanics",
+   "risk_note":"uncertainty, counters, investment variables, or matchup limitations for THIS formation only",
    "joiner_primary":["hero","hero","hero","hero"],
    "backup_joiner_pool":["hero","..."],
    "joiner_evidence":[
      {
        "hero":"hero",
        "role":"primary|backup",
-       "generation_relevance":"tested_with_gen10|explicitly_recommended_for_gen10|legacy_skill_only",
+       "generation_relevance":"tested_with_current_generation|explicitly_recommended_for_current_generation|legacy_skill_only",
        "independent_groups":["origin_a","origin_b"],
        "source_urls":["https://...","https://..."],
-       "why":"why this hero is relevant specifically to current Gen ${generation}"
+       "why":"what this hero contributes to THIS formation",
+       "replaces":"for backup only: hero name, buff role, or flex"
      }
    ],
-   "alternative_formations":[
-     {
-       "leader_heroes":["hero","hero","hero"],
-       "ratio":[0,0,0],
-       "joiner_primary":["hero","hero","hero","hero"],
-       "backup_joiner_pool":["hero","..."]
-     }
-   ],
-   "confidence":0.0,
-   "why_good":"concise technical explanation",
-   "risk_note":"known uncertainty, counters, or limitations",
    "sources":[
      {
        "url":"https://...",
@@ -272,10 +303,12 @@ Return exactly this shape:
 
       const confidence=Math.max(0,Math.min(1,Number(f.confidence||0)));
 
-      // NEXA Brain never auto-approves. Research can only become
-      // Candidate or Corroborated; a human must approve it in Formations.
+      // Suggested threshold: 60%+ AND at least two independent evidence groups / sources.
+      // Brain never auto-approves.
+      if(confidence<.60||independent<2||src.length<2)continue;
+
       let approval_status='candidate';
-      let evidence_status='experimental';
+      let evidence_status='promising';
       const active=false;
 
       if(confidence>=.72&&independent>=3&&src.length>=3){
@@ -284,8 +317,8 @@ Return exactly this shape:
       }
 
       const joinerEvidence=Array.isArray(f.joiner_evidence)?f.joiner_evidence:[];
-      const vettedPrimary=vettedJoiners(joinerEvidence,'primary');
-      const vettedBackup=vettedJoiners(joinerEvidence,'backup');
+      const vettedPrimary=vettedPrimaryJoiners(f.joiner_primary||[],joinerEvidence);
+      const vettedBackup=vettedBackupJoiners(f.backup_joiner_pool||[],joinerEvidence);
 
       const stableRuleKey=researchRuleKey(
         generation,
@@ -302,11 +335,11 @@ Return exactly this shape:
         leader_heroes:f.leader_heroes||[],
         primary_ratio:ratio,
         alternative_ratios:[],
-        alternative_formations:f.alternative_formations||[],
+        alternative_formations:[],
         joiner_primary:vettedPrimary,
         joiner_alternatives:vettedBackup,
         backup_joiner_pool:vettedBackup,
-        constraints:{max_generation:generation},
+        constraints:{max_generation:generation,ratio_reasoning:f.ratio_reasoning||''},
         confidence,
         evidence_status,
         evidence_note:f.why_good||'',
@@ -323,15 +356,17 @@ Return exactly this shape:
           model_rule_key:f.rule_key||null,
           raw_joiner_primary:f.joiner_primary||[],
           raw_backup_joiner_pool:f.backup_joiner_pool||[],
+          ratio_reasoning:f.ratio_reasoning||'',
           joiner_evidence:joinerEvidence,
           vetted_joiner_primary:vettedPrimary,
           vetted_backup_joiner_pool:vettedBackup,
           joiner_gate:{
             min_independent_groups:2,
             min_source_urls:2,
+            preserving_primary_duplicates:true,
             allowed_generation_relevance:[
-              'tested_with_gen10',
-              'explicitly_recommended_for_gen10'
+              'tested_with_current_generation',
+              'explicitly_recommended_for_current_generation'
             ]
           }
         },
@@ -348,7 +383,39 @@ Return exactly this shape:
       // overwrite an existing manual/approved canonical formation.
       const q='nexa_battle_meta_rules?on_conflict=generation,event_scope,mode,rule_key';
       const out=await sb(q,{method:'POST',body:row});
-      saved.push(out?.[0]||row);
+      const savedRow=out?.[0]||row;
+      saved.push(savedRow);
+
+      // If the exact same trio + ratio is already human-Approved, refresh its research
+      // evidence and vetted joiners instead of making NEXA show contradictory duplicates.
+      // This NEVER approves a new/different formation.
+      const approved=await sb(
+        `nexa_battle_meta_rules?generation=eq.${generation}&event_scope=eq.pvp_rally&mode=eq.${encodeURIComponent(f.mode)}&approval_status=eq.approved&is_active=eq.true&select=id,leader_heroes,primary_ratio`
+      );
+      const exact=(approved||[]).find(x=>sameFormation(x.leader_heroes,x.primary_ratio,f.leader_heroes||[],ratio));
+      if(exact?.id){
+        await sb(`nexa_battle_meta_rules?id=eq.${exact.id}`,{
+          method:'PATCH',
+          body:{
+            joiner_primary:vettedPrimary,
+            joiner_alternatives:vettedBackup,
+            backup_joiner_pool:vettedBackup,
+            constraints:{max_generation:generation,ratio_reasoning:f.ratio_reasoning||''},
+            confidence,
+            evidence_status,
+            evidence_note:f.why_good||'',
+            why_good:f.why_good||'',
+            risk_note:f.risk_note||'',
+            source_urls:src.map(x=>x.url),
+            source_count:src.length,
+            independent_source_count:independent,
+            research_metadata:row.research_metadata,
+            last_researched_at:row.last_researched_at,
+            next_research_at:row.next_research_at,
+            updated_at:new Date().toISOString()
+          }
+        });
+      }
     }
 
     stage='complete_run';

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • Formations</title>
 
-<!-- NEXA FORMATIONS V1.4 • clean Suggested tiers • dedupe Approved • joiner reasoning -->
+<!-- NEXA FORMATIONS V1.5 • exact First-4 slots • mechanic-first joiner reasoning • Suggested 60%+ -->
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -262,10 +262,18 @@ textarea{min-height:76px;resize:vertical}
 
   function safeJoiners(r){
     const md=metadata(r);
-    if(r.approval_status==='approved')return r.joiner_primary||[];
-    // New Brain rows have an explicit evidence gate. Old candidate rows can still be useful
-    // as Promising formations, but their old unvetted joiner names are not operational.
-    if(md.joiner_gate)return r.joiner_primary||[];
+    const slots=(r.joiner_primary||[]).map(x=>String(x||'').trim()).filter(Boolean).slice(0,4);
+    if(r.approval_status==='approved')return slots;
+    if(md.joiner_gate)return slots;
+    // Display-only compatibility for older Promising research rows:
+    // show the four researched First-4 slots when the FORMATION itself already clears
+    // the 60% + multi-source review gate. These do not become operational until approved.
+    if(
+      r.approval_status==='candidate' &&
+      Number(r.confidence||0)>=.60 &&
+      Number(r.independent_source_count||0)>=2 &&
+      Number(r.source_count||0)>=2
+    )return slots;
     return [];
   }
 
@@ -294,21 +302,24 @@ textarea{min-height:76px;resize:vertical}
       return `<div class="muted">First-4 joiners are pending current-generation evidence review.</div>`;
     }
     const ev=joinerEvidence(r,'primary');
-    const groups=[];
-    for(const hero of first){
-      let g=groups.find(x=>norm(x.hero)===norm(hero));
-      if(!g){g={hero,count:0,evidence:ev.find(x=>norm(x.hero)===norm(hero))||null};groups.push(g)}
-      g.count++;
-    }
-    return `<div style="display:grid;gap:6px;margin-top:6px">${groups.map(g=>{
-      const why=g.evidence?.why||'Current-generation joiner value is saved, but no short explanation was stored yet.';
-      return `<div><b class="${rarity(g.hero)}">${esc(g.hero)}${g.count>1?` ×${g.count}`:''}</b><div class="muted">${esc(compactReason(why))}</div></div>`;
+    return `<div style="display:grid;gap:7px;margin-top:6px">${first.map((hero,index)=>{
+      const x=ev.find(e=>norm(e.hero)===norm(hero));
+      let why=x?.why||'';
+      if(!why){
+        const md=metadata(r);
+        const raw=String(r.why_good||'');
+        why='This joiner is part of the researched First-4 set for this formation. Detailed buff-level reasoning will refresh on the next Brain research cycle.';
+      }
+      return `<div>
+        <b class="${rarity(hero)}">${index+1}. ${esc(hero)}</b>
+        <div class="muted">${esc(compactReason(why,260))}</div>
+      </div>`;
     }).join('')}</div>`;
   }
 
   function backupExplanation(r){
     const pool=safeBackups(r);
-    if(!pool.length)return `<div class="muted" style="margin-top:6px">No vetted backups yet. NEXA will not fill this pool with legacy names just to make it look complete.</div>`;
+    if(!pool.length)return `<div class="muted" style="margin-top:6px">No vetted backup replacements yet. NEXA will add backups only when their buff/effect can safely replace or support a First-4 role.</div>`;
     const ev=joinerEvidence(r,'backup');
     return `<div style="display:grid;gap:6px;margin-top:6px">${pool.map(hero=>{
       const x=ev.find(e=>norm(e.hero)===norm(hero));

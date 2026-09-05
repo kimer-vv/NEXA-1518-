@@ -1,4 +1,4 @@
-// NEXA TRANSFER WORKSPACE I18N V1.2 — IDEMPOTENT TRANSLATION / MOBILE PROFILE FIX / FULL WORKSPACE
+// NEXA TRANSFER WORKSPACE I18N V1.3 — RECRUITING CREATOR / IDEMPOTENT TRANSLATION / FULL WORKSPACE
 (()=>{
 'use strict';
 
@@ -176,6 +176,21 @@ Object.assign(ES,{
 'Clear All does not permanently delete applicants. Ordinary and Special applicants from the finished cycle remain inside Transfer History. Every active New Application and Not Selected applicant moves to Applicant Archive, including restored applicants. Next Transfer Cycle is not affected.':'Archivar todos no elimina permanentemente a los solicitantes. Los solicitantes Ordinarios y Especiales del ciclo finalizado permanecen dentro del Historial de Transferencias. Cada Nueva Solicitud activa y cada solicitante No Seleccionado se mueve al Archivo de Solicitantes, incluidos los restaurados. Próximo Ciclo de Transferencia no se ve afectado.',
 'This closes the active Transfer Cycle and moves its cycle record to History. It does not move, archive, or delete any applicants. New Applicants, Ordinary, Special, Not Selected, and Next Transfer Cycle remain unchanged. Afterward, a new Transfer Cycle can be opened.':'Esto cierra el Ciclo de Transferencia activo y mueve su registro al Historial. No mueve, archiva ni elimina solicitantes. Nuevas Solicitudes, Ordinario, Especial, No Seleccionado y Próximo Ciclo de Transferencia permanecen sin cambios. Después se puede abrir un nuevo Ciclo de Transferencia.',
 'Contact Workspace Management. A ★ manager can find your account by Game Name or Game ID and copy your username.':'Contacta a la Administración del Workspace. Un administrador ★ puede encontrar tu cuenta por Nombre en el Juego o ID de Juego y copiar tu nombre de usuario.'
+});
+
+
+Object.assign(ES,{
+'CREATE NEW ALLIANCE':'CREAR NUEVA ALIANZA',
+'Create New Recruiting Alliance':'Crear Nueva Alianza de Reclutamiento',
+'Create a new Recruiting Alliance for this Transfer Workspace. It will be added as Active immediately.':'Crea una nueva Alianza de Reclutamiento para este Workspace de Transferencias. Se añadirá como Activa inmediatamente.',
+'Alliance Tag':'Tag de alianza',
+'Create & Add':'Crear y añadir',
+'Alliance Tag is required.':'El Tag de alianza es obligatorio.',
+'Creating…':'Creando…',
+'Recruiting Alliance created ✓':'Alianza de Reclutamiento creada ✓',
+'That Alliance Tag already exists in this Workspace.':'Ese Tag de alianza ya existe en este Workspace.',
+'Alliance Tag must be 12 characters or fewer.':'El Tag de alianza debe tener 12 caracteres o menos.',
+'Unable to create alliance.':'No se pudo crear la alianza.'
 });
 
 const TR={

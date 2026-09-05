@@ -4,155 +4,632 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • Formations</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- NEXA FORMATIONS V1.2 • iPhone/Safari-safe init • Brain Suggested support -->
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
 :root{--a:#48ddff;--m:#aeb7d1;--violet:#9b78ff;--gold:#ffc75b;--green:#67dfb1;--red:#ff7289}
-*{box-sizing:border-box}body{margin:0;background:#02030b;color:#fff;font-family:Inter,system-ui,-apple-system,sans-serif}
-main{width:min(760px,100%);margin:auto;padding:22px 16px 90px}.top{display:grid;grid-template-columns:46px 1fr 46px;align-items:center;gap:10px}.round{width:46px;height:46px;border-radius:50%;border:1px solid rgba(72,221,255,.35);background:#081329;color:#bff6ff;display:grid;place-items:center;text-decoration:none;font-size:26px}.title{text-align:center}.title small{font-size:9px;letter-spacing:.16em;color:#9aa8c6;font-weight:900}.title h1{margin:4px 0;font-size:34px}
-.tabs{display:flex;gap:8px;overflow:auto;margin:16px 0}.tabs button,.btn{border:1px solid rgba(115,135,210,.32);background:#080d22;color:#c6d0e8;border-radius:999px;min-height:42px;padding:0 14px;font-weight:900}.tabs button.active,.btn.primary{border-color:#8f73ff;background:linear-gradient(135deg,#4d3392,#245d88);color:#fff}
-.note{color:#aeb7d1;font-size:12px;line-height:1.5}.bar{display:flex;gap:8px;justify-content:space-between;align-items:center;flex-wrap:wrap;margin:12px 0}.status{font-size:12px;color:#8ff3ff;min-height:18px}.grid{display:grid;gap:12px}.card{border:1px solid rgba(255,255,255,.12);border-radius:18px;background:linear-gradient(145deg,rgba(12,18,40,.96),rgba(5,8,20,.96));padding:13px}.card.attack{border-color:rgba(255,105,130,.35)}.card.defense{border-color:rgba(103,223,177,.35)}.card-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.badge{font-size:9px;font-weight:950;letter-spacing:.08em;border:1px solid rgba(255,255,255,.15);border-radius:999px;padding:5px 7px}.badge.suggested{color:#ffe0a2;border-color:rgba(255,199,91,.38)}.badge.approved{color:#a5f3d4;border-color:rgba(103,223,177,.38)}
-.heroes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:330px;margin:12px auto 8px}.hero{text-align:center;min-width:0}.hero img{width:64px;height:64px;object-fit:cover;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:#101522}.hero b{display:block;font-size:11px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ratio{text-align:center;font-size:22px;font-weight:950}.muted{color:#96a3c3}.detail{display:none;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.09);font-size:12px;line-height:1.48}.card.open .detail{display:block}.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.chip{padding:5px 7px;border-radius:999px;border:1px solid rgba(255,255,255,.12);font-weight:900;font-size:10px}.rarity-mythic,.rarity-gold,.rarity-legendary{color:#ffd260}.rarity-epic,.rarity-purple{color:#c78bff}.rarity-rare,.rarity-blue{color:#68c9ff}
-.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.actions .btn{min-height:38px}.modal{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;place-items:center;padding:14px;z-index:50}.modal.open{display:grid}.modal-card{width:min(560px,100%);max-height:88dvh;overflow:auto;background:#071022;border:1px solid rgba(72,221,255,.28);border-radius:20px;padding:15px}.modal-card h3{margin:0 0 10px}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.formgrid .full{grid-column:1/-1}label{display:grid;gap:5px;color:#aeb7d1;font-size:11px;font-weight:850}input,select,textarea{width:100%;min-height:42px;border-radius:11px;border:1px solid rgba(122,142,203,.28);background:#050a19;color:#fff;padding:9px;font:inherit}textarea{min-height:76px;resize:vertical}.hero-picks{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.empty{border:1px dashed rgba(255,255,255,.14);border-radius:16px;padding:18px;text-align:center;color:#aeb7d1;font-size:12px;line-height:1.55}@media(max-width:580px){.formgrid{grid-template-columns:1fr}.formgrid .full{grid-column:auto}.hero img{width:56px;height:56px}}
+*{box-sizing:border-box}
+body{margin:0;background:#02030b;color:#fff;font-family:Inter,system-ui,-apple-system,sans-serif}
+main{width:min(760px,100%);margin:auto;padding:22px 16px 90px}
+.top{display:grid;grid-template-columns:46px 1fr 46px;align-items:center;gap:10px}
+.round{width:46px;height:46px;border-radius:50%;border:1px solid rgba(72,221,255,.35);background:#081329;color:#bff6ff;display:grid;place-items:center;text-decoration:none;font-size:26px}
+.title{text-align:center}
+.title small{font-size:9px;letter-spacing:.16em;color:#9aa8c6;font-weight:900}
+.title h1{margin:4px 0;font-size:34px}
+.tabs{display:flex;gap:8px;overflow:auto;margin:16px 0}
+.tabs button,.btn{border:1px solid rgba(115,135,210,.32);background:#080d22;color:#c6d0e8;border-radius:999px;min-height:42px;padding:0 14px;font-weight:900}
+.tabs button.active,.btn.primary{border-color:#8f73ff;background:linear-gradient(135deg,#4d3392,#245d88);color:#fff}
+.note{color:#aeb7d1;font-size:12px;line-height:1.5}
+.bar{display:flex;gap:8px;justify-content:space-between;align-items:center;flex-wrap:wrap;margin:12px 0}
+.status{font-size:12px;color:#8ff3ff;min-height:18px}
+.grid{display:grid;gap:12px}
+.card{border:1px solid rgba(255,255,255,.12);border-radius:18px;background:linear-gradient(145deg,rgba(12,18,40,.96),rgba(5,8,20,.96));padding:13px}
+.card.attack{border-color:rgba(255,105,130,.35)}
+.card.defense{border-color:rgba(103,223,177,.35)}
+.card-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.badge{font-size:9px;font-weight:950;letter-spacing:.08em;border:1px solid rgba(255,255,255,.15);border-radius:999px;padding:5px 7px}
+.badge.suggested{color:#ffe0a2;border-color:rgba(255,199,91,.38)}
+.badge.approved{color:#a5f3d4;border-color:rgba(103,223,177,.38)}
+.heroes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:330px;margin:12px auto 8px}
+.hero{text-align:center;min-width:0}
+.hero img{width:64px;height:64px;object-fit:cover;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:#101522}
+.hero b{display:block;font-size:11px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ratio{text-align:center;font-size:22px;font-weight:950}
+.muted{color:#96a3c3}
+.detail{display:none;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.09);font-size:12px;line-height:1.48}
+.card.open .detail{display:block}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.chip{padding:5px 7px;border-radius:999px;border:1px solid rgba(255,255,255,.12);font-weight:900;font-size:10px}
+.rarity-mythic,.rarity-gold,.rarity-legendary{color:#ffd260}
+.rarity-epic,.rarity-purple{color:#c78bff}
+.rarity-rare,.rarity-blue{color:#68c9ff}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.actions .btn{min-height:38px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;place-items:center;padding:14px;z-index:50}
+.modal.open{display:grid}
+.modal-card{width:min(560px,100%);max-height:88dvh;overflow:auto;background:#071022;border:1px solid rgba(72,221,255,.28);border-radius:20px;padding:15px}
+.modal-card h3{margin:0 0 10px}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.formgrid .full{grid-column:1/-1}
+label{display:grid;gap:5px;color:#aeb7d1;font-size:11px;font-weight:850}
+input,select,textarea{width:100%;min-height:42px;border-radius:11px;border:1px solid rgba(122,142,203,.28);background:#050a19;color:#fff;padding:9px;font:inherit}
+textarea{min-height:76px;resize:vertical}
+.hero-picks{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.empty{border:1px dashed rgba(255,255,255,.14);border-radius:16px;padding:18px;text-align:center;color:#aeb7d1;font-size:12px;line-height:1.55}
+@media(max-width:580px){
+  .formgrid{grid-template-columns:1fr}
+  .formgrid .full{grid-column:auto}
+  .hero img{width:56px;height:56px}
+}
 </style>
 </head>
+
 <body>
 <main>
-  <div class="top"><a class="round" href="svs-operations.html">‹</a><div class="title"><small>BATTLE OPERATIONS • SVS</small><h1>Formations</h1></div><a class="round" href="index.html">×</a></div>
-  <div class="tabs"><button class="active" data-tab="approved">Approved</button><button data-tab="suggested">Suggested</button></div>
-  <div class="bar"><div class="note">Approved formations are the only ones Strategy Board may use. Suggested formations stay here until you approve them.</div><button id="add" class="btn primary">+ Add Formation</button></div>
+  <div class="top">
+    <a class="round" href="svs-operations.html">‹</a>
+    <div class="title">
+      <small>BATTLE OPERATIONS • SVS</small>
+      <h1>Formations</h1>
+    </div>
+    <a class="round" href="index.html">×</a>
+  </div>
+
+  <div class="tabs">
+    <button class="active" type="button" data-tab="approved">Approved</button>
+    <button type="button" data-tab="suggested">Suggested</button>
+  </div>
+
+  <div class="bar">
+    <div class="note">Approved formations are the only ones Strategy Board may use. Suggested formations stay here until you approve them.</div>
+    <button id="add" type="button" class="btn primary">+ Add Formation</button>
+  </div>
+
   <div id="status" class="status"></div>
   <div id="list" class="grid"></div>
 </main>
-<div id="modal" class="modal"><div class="modal-card">
-  <div class="bar"><h3>Add Formation</h3><button id="close" class="btn">Close</button></div>
-  <div class="formgrid">
-    <label>Generation<input id="generation" type="number" min="1"></label>
-    <label>Type<select id="mode"><option value="attack">Attack</option><option value="defense">Defense</option></select></label>
-    <label class="full">Name<input id="name" placeholder="e.g. Main Attack"></label>
-    <label>Infantry %<input id="r0" type="number" min="0" max="100" value="50"></label>
-    <label>Lancer %<input id="r1" type="number" min="0" max="100" value="20"></label>
-    <label>Marksman %<input id="r2" type="number" min="0" max="100" value="30"></label>
-    <div class="full"><div class="note">Rally Lead heroes</div><div class="hero-picks"><select id="h0"></select><select id="h1"></select><select id="h2"></select></div></div>
-    <label class="full">Join First 1–4 <span class="muted">comma separated</span><input id="joinfirst" placeholder="Norah, Norah, Hendrik, Patrick"></label>
-    <label class="full">Backup Joiner Pool <span class="muted">comma separated</span><input id="backup" placeholder="Hendrik, Gatot, Mia"></label>
-    <label class="full">Why this formation is good<textarea id="why"></textarea></label>
-    <label class="full">Risk / limitations<textarea id="risk"></textarea></label>
-  </div>
-  <div class="actions"><button id="save" class="btn primary">Add Approved Formation</button></div>
-</div></div>
-<script>
-const URL='https://dfxcxboxrkfmrnsgpyin.supabase.co',KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
-const sb=supabase.createClient(URL,KEY);
-let rows=[],heroes=[],tab='approved',activeGeneration=1;
-const $=s=>document.querySelector(s),status=t=>$('#status').textContent=t||'';
-const rarity=n=>{const h=heroes.find(x=>x.name===n);return 'rarity-'+String(h?.rarity||'').toLowerCase()};
-const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-function heroCard(n){const h=heroes.find(x=>x.name===n)||{};return `<div class="hero">${h.image_url?`<img crossorigin="anonymous" src="${esc(h.image_url)}" alt="">`:'<img alt="">'}<b class="${rarity(n)}">${esc(n)}</b></div>`}
-function chips(arr){return `<div class="chips">${(arr||[]).map(n=>`<span class="chip ${rarity(n)}">${esc(n)}</span>`).join('')}</div>`}
-function resolveGeneration(rows){
-  const now=Date.now();
-  const eligible=(rows||[]).filter(r=>{
-    const g=Number(r?.generation||0);
-    if(!g)return false;
-    if(r?.is_visible===true)return true;
-    if(r?.unlock_at){
-      const t=new Date(r.unlock_at).getTime();
-      return Number.isFinite(t)&&t<=now;
-    }
-    return false;
-  });
-  return Math.max(1,...eligible.map(r=>Number(r.generation||0)));
-}
-function render(){
-  const wanted=rows.filter(r=>
-    Number(r.generation)===activeGeneration &&
-    (tab==='approved'
-      ?(r.approval_status==='approved'&&r.is_active!==false)
-      :r.approval_status==='corroborated')
-  );
-  const empty=tab==='suggested'
-    ?`<div class="empty"><b>No Suggested formations yet for Gen ${activeGeneration}.</b><br>NEXA Brain has not produced a corroborated formation for the current generation yet. After a successful research cycle, corroborated results will appear here for your approval.</div>`
-    :`<div class="empty">No active Approved formations found for Gen ${activeGeneration}.</div>`;
-  $('#list').innerHTML=wanted.length?wanted.map(r=>`<article class="card ${r.mode}" data-id="${r.id}">
-    <div class="card-head"><div><b>${r.mode==='attack'?'⚔ ATTACK':'🛡 DEFENSE'}</b><div class="muted" style="font-size:10px;margin-top:3px">Gen ${r.generation} • ${esc(r.rule_key)}</div></div><span class="badge ${tab==='approved'?'approved':'suggested'}">${tab==='approved'?'APPROVED':'CORROBORATED'}</span></div>
-    <div class="heroes">${(r.leader_heroes||[]).map(heroCard).join('')}</div>
-    <div class="ratio">${(r.primary_ratio||[]).join(' / ')}</div>
-    <div class="detail">
-      <b>Join First 1–4</b>${chips(r.joiner_primary)}
-      <div style="height:8px"></div><b>Backup Joiner Pool</b>${chips(r.backup_joiner_pool)}
-      ${r.alternative_formations?.length?`<div style="height:8px"></div><b>Secondary / Alternative Formation</b><div class="muted">${esc((r.alternative_formations[0].leader_heroes||[]).join(' • '))} • ${(r.alternative_formations[0].ratio||[]).join(' / ')}</div>`:''}
-      <div style="height:8px"></div><b>Why this formation</b><div class="muted">${esc(r.why_good||r.evidence_note||'No explanation saved yet.')}</div>
-      ${r.risk_note?`<div style="height:8px"></div><b>Risk</b><div class="muted">${esc(r.risk_note)}</div>`:''}
-      <div style="height:8px"></div><b>Evidence</b><div class="muted">${Math.round(Number(r.confidence||0)*100)}% confidence • ${Number(r.independent_source_count||0)} independent sources</div>
-      ${tab==='suggested'?`<div class="actions"><button class="btn primary approve" data-id="${r.id}">Add / Approve</button></div>`:''}
+
+<div id="modal" class="modal">
+  <div class="modal-card">
+    <div class="bar">
+      <h3>Add Formation</h3>
+      <button id="close" type="button" class="btn">Close</button>
     </div>
-  </article>`).join(''):empty;
-  document.querySelectorAll('.card').forEach(c=>c.addEventListener('click',e=>{if(e.target.closest('button'))return;c.classList.toggle('open')}));
-  document.querySelectorAll('.approve').forEach(b=>b.addEventListener('click',approve));
-}
-async function load(){
-  status('Loading…');
-  const [a,b,g]=await Promise.all([
-    sb.from('nexa_battle_meta_rules').select('*').in('approval_status',['approved','corroborated']).order('generation',{ascending:false}).order('confidence',{ascending:false}),
-    sb.from('nexa_library_items').select('name,image_url,rarity,generation,troop_type').eq('item_type','hero').eq('is_active',true).order('generation'),
-    sb.from('nexa_library_generations').select('generation,is_visible,unlock_at').eq('item_type','hero').order('generation')
-  ]);
-  if(a.error){status(a.error.message);return}
-  if(b.error){status(b.error.message);return}
-  if(g.error){status(g.error.message);return}
-  rows=a.data||[];
-  heroes=b.data||[];
-  activeGeneration=resolveGeneration(g.data||[]);
-  $('#generation').value=activeGeneration;
-  $('#generation').max=activeGeneration;
-  const eligibleHeroes=heroes.filter(h=>Number(h.generation||0)<=activeGeneration);
-  const opts='<option value="">Select</option>'+eligibleHeroes.map(h=>`<option value="${esc(h.name)}">${esc(h.name)} • Gen ${h.generation}</option>`).join('');
-  ['#h0','#h1','#h2'].forEach(s=>$(s).innerHTML=opts);
-  status(`Current unlocked generation: Gen ${activeGeneration}`);
-  render();
-}
-async function approve(e){
-  e.stopPropagation();status('Approving…');
-  const id=e.currentTarget.dataset.id;
-  const row=rows.find(r=>String(r.id)===String(id));
-  if(!row||Number(row.generation)!==activeGeneration){status('Only the current unlocked generation can be approved here.');return}
-  const {error}=await sb.from('nexa_battle_meta_rules').update({approval_status:'approved',is_active:true,verified_at:new Date().toISOString()}).eq('id',id);
-  if(error){status(error.message);return}
-  await load();
-}
-async function save(){
-  const ratio=[+$('#r0').value,+$('#r1').value,+$('#r2').value];
-  if(ratio.reduce((a,b)=>a+b,0)!==100){status('Ratio must total 100.');return}
-  const hs=['#h0','#h1','#h2'].map(s=>$(s).value);
-  if(hs.some(x=>!x)){status('Choose all 3 Rally Lead heroes.');return}
-  const jf=$('#joinfirst').value.split(',').map(x=>x.trim()).filter(Boolean);
-  const bp=$('#backup').value.split(',').map(x=>x.trim()).filter(Boolean);
-  if(jf.length!==4){status('Join First must contain exactly 4 hero names.');return}
-  const generation=+$('#generation').value;
-  if(generation!==activeGeneration){status(`Only Gen ${activeGeneration} is currently unlocked.`);return}
-  const mode=$('#mode').value;
-  const rule_key=`manual_${mode}_${Date.now()}`;
-  status('Saving…');
-  const {error}=await sb.from('nexa_battle_meta_rules').insert({
-    generation,event_scope:'pvp_rally',mode,rule_key,leader_heroes:hs,primary_ratio:ratio,alternative_ratios:[],
-    alternative_formations:[],joiner_primary:jf,joiner_alternatives:bp,backup_joiner_pool:bp,constraints:{max_generation:activeGeneration},
-    confidence:1,evidence_status:'verified',evidence_note:'Manual approved formation.',why_good:$('#why').value.trim(),
-    risk_note:$('#risk').value.trim(),source_urls:[],source_count:0,independent_source_count:0,
-    approval_status:'approved',is_active:true,is_manual:true
-  });
-  if(error){status(error.message);return}
-  $('#modal').classList.remove('open');
-  await load();
-}
-document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('active'));
-  b.classList.add('active');
-  tab=b.dataset.tab;
-  render();
-});
-$('#add').onclick=()=>$('#modal').classList.add('open');
-$('#close').onclick=()=>$('#modal').classList.remove('open');
-$('#save').onclick=save;
-load();
+
+    <div class="formgrid">
+      <label>Generation<input id="generation" type="number" min="1"></label>
+
+      <label>Type
+        <select id="mode">
+          <option value="attack">Attack</option>
+          <option value="defense">Defense</option>
+        </select>
+      </label>
+
+      <label class="full">Name
+        <input id="name" placeholder="e.g. Main Attack">
+      </label>
+
+      <label>Infantry %
+        <input id="r0" type="number" min="0" max="100" value="50">
+      </label>
+
+      <label>Lancer %
+        <input id="r1" type="number" min="0" max="100" value="20">
+      </label>
+
+      <label>Marksman %
+        <input id="r2" type="number" min="0" max="100" value="30">
+      </label>
+
+      <div class="full">
+        <div class="note">Rally Lead heroes</div>
+        <div class="hero-picks">
+          <select id="h0"></select>
+          <select id="h1"></select>
+          <select id="h2"></select>
+        </div>
+      </div>
+
+      <label class="full">Join First 1–4 <span class="muted">comma separated</span>
+        <input id="joinfirst" placeholder="Norah, Norah, Hendrik, Patrick">
+      </label>
+
+      <label class="full">Backup Joiner Pool <span class="muted">comma separated</span>
+        <input id="backup" placeholder="Hendrik, Gatot, Mia">
+      </label>
+
+      <label class="full">Why this formation is good
+        <textarea id="why"></textarea>
+      </label>
+
+      <label class="full">Risk / limitations
+        <textarea id="risk"></textarea>
+      </label>
+    </div>
+
+    <div class="actions">
+      <button id="save" type="button" class="btn primary">Add Approved Formation</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  const SUPABASE_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
+  const SUPABASE_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
+
+  let sb=null;
+  let rows=[];
+  let heroes=[];
+  let tab='approved';
+  let activeGeneration=1;
+
+  const $=s=>document.querySelector(s);
+  const status=t=>{ const el=$('#status'); if(el) el.textContent=t||''; };
+
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    '"':'&quot;',
+    "'":'&#39;'
+  }[m]));
+
+  function rarity(n){
+    const h=heroes.find(x=>x.name===n);
+    return 'rarity-'+String(h?.rarity||'').toLowerCase();
+  }
+
+  function heroCard(n){
+    const h=heroes.find(x=>x.name===n)||{};
+    return `<div class="hero">${
+      h.image_url
+        ? `<img crossorigin="anonymous" src="${esc(h.image_url)}" alt="">`
+        : '<img alt="">'
+    }<b class="${rarity(n)}">${esc(n)}</b></div>`;
+  }
+
+  function chips(arr){
+    return `<div class="chips">${(arr||[]).map(n=>
+      `<span class="chip ${rarity(n)}">${esc(n)}</span>`
+    ).join('')}</div>`;
+  }
+
+  function resolveGeneration(generationRows){
+    const now=Date.now();
+    const eligible=(generationRows||[]).filter(r=>{
+      const g=Number(r?.generation||0);
+      if(!g) return false;
+      if(r?.is_visible===true) return true;
+      if(r?.unlock_at){
+        const t=new Date(r.unlock_at).getTime();
+        return Number.isFinite(t) && t<=now;
+      }
+      return false;
+    });
+
+    if(eligible.length){
+      return Math.max(1,...eligible.map(r=>Number(r.generation||0)));
+    }
+
+    // Safe fallback for anon/public Safari sessions:
+    // visible active heroes represent generations currently exposed to players.
+    const visibleHeroGens=heroes
+      .map(h=>Number(h.generation||0))
+      .filter(Boolean);
+
+    if(visibleHeroGens.length){
+      return Math.max(1,...visibleHeroGens);
+    }
+
+    const formationGens=rows
+      .filter(r=>r.approval_status==='approved' || r.approval_status==='corroborated')
+      .map(r=>Number(r.generation||0))
+      .filter(Boolean);
+
+    return formationGens.length ? Math.max(1,...formationGens) : 1;
+  }
+
+  function render(){
+    const list=$('#list');
+    if(!list) return;
+
+    const wanted=rows.filter(r=>
+      Number(r.generation)===activeGeneration &&
+      (
+        tab==='approved'
+          ? (r.approval_status==='approved' && r.is_active!==false)
+          : r.approval_status==='corroborated'
+      )
+    );
+
+    const empty=tab==='suggested'
+      ? `<div class="empty"><b>No Suggested formations yet for Gen ${activeGeneration}.</b><br>NEXA Brain has not produced a corroborated formation for the current generation yet.</div>`
+      : `<div class="empty">No active Approved formations found for Gen ${activeGeneration}.</div>`;
+
+    list.innerHTML=wanted.length ? wanted.map(r=>`
+      <article class="card ${esc(r.mode)}" data-id="${esc(r.id)}">
+        <div class="card-head">
+          <div>
+            <b>${r.mode==='attack'?'⚔ ATTACK':'🛡 DEFENSE'}</b>
+            <div class="muted" style="font-size:10px;margin-top:3px">
+              Gen ${esc(r.generation)} • ${esc(r.rule_key)}
+            </div>
+          </div>
+          <span class="badge ${tab==='approved'?'approved':'suggested'}">
+            ${tab==='approved'?'APPROVED':'CORROBORATED'}
+          </span>
+        </div>
+
+        <div class="heroes">${(r.leader_heroes||[]).map(heroCard).join('')}</div>
+        <div class="ratio">${(r.primary_ratio||[]).join(' / ')}</div>
+
+        <div class="detail">
+          <b>Join First 1–4</b>
+          ${chips(r.joiner_primary)}
+
+          <div style="height:8px"></div>
+          <b>Backup Joiner Pool</b>
+          ${chips(r.backup_joiner_pool)}
+
+          ${r.alternative_formations?.length ? `
+            <div style="height:8px"></div>
+            <b>Secondary / Alternative Formation</b>
+            <div class="muted">
+              ${esc((r.alternative_formations[0].leader_heroes||[]).join(' • '))}
+              • ${(r.alternative_formations[0].ratio||[]).join(' / ')}
+            </div>
+          ` : ''}
+
+          <div style="height:8px"></div>
+          <b>Why this formation</b>
+          <div class="muted">${esc(r.why_good||r.evidence_note||'No explanation saved yet.')}</div>
+
+          ${r.risk_note ? `
+            <div style="height:8px"></div>
+            <b>Risk</b>
+            <div class="muted">${esc(r.risk_note)}</div>
+          ` : ''}
+
+          <div style="height:8px"></div>
+          <b>Evidence</b>
+          <div class="muted">
+            ${Math.round(Number(r.confidence||0)*100)}% confidence
+            • ${Number(r.independent_source_count||0)} independent sources
+          </div>
+
+          ${tab==='suggested' ? `
+            <div class="actions">
+              <button type="button" class="btn primary approve" data-id="${esc(r.id)}">Add / Approve</button>
+            </div>
+          ` : ''}
+        </div>
+      </article>
+    `).join('') : empty;
+
+    document.querySelectorAll('.card').forEach(c=>{
+      c.addEventListener('click',e=>{
+        if(e.target.closest('button')) return;
+        c.classList.toggle('open');
+      });
+    });
+
+    document.querySelectorAll('.approve').forEach(b=>{
+      b.addEventListener('click',approve);
+    });
+  }
+
+  function setTab(nextTab,button){
+    tab=nextTab;
+    document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('active'));
+    button.classList.add('active');
+    render();
+  }
+
+  function bindUI(){
+    document.querySelectorAll('.tabs button').forEach(button=>{
+      button.addEventListener('click',()=>{
+        setTab(button.dataset.tab,button);
+      });
+    });
+
+    $('#add')?.addEventListener('click',()=>{
+      $('#modal')?.classList.add('open');
+    });
+
+    $('#close')?.addEventListener('click',()=>{
+      $('#modal')?.classList.remove('open');
+    });
+
+    $('#modal')?.addEventListener('click',e=>{
+      if(e.target===e.currentTarget) e.currentTarget.classList.remove('open');
+    });
+
+    $('#save')?.addEventListener('click',save);
+  }
+
+  function buildHeroOptions(){
+    const generationInput=$('#generation');
+    if(generationInput){
+      generationInput.value=activeGeneration;
+      generationInput.max=activeGeneration;
+    }
+
+    const eligibleHeroes=heroes.filter(h=>Number(h.generation||0)<=activeGeneration);
+
+    const opts='<option value="">Select</option>'+
+      eligibleHeroes.map(h=>
+        `<option value="${esc(h.name)}">${esc(h.name)} • Gen ${esc(h.generation)}</option>`
+      ).join('');
+
+    ['#h0','#h1','#h2'].forEach(s=>{
+      const el=$(s);
+      if(el) el.innerHTML=opts;
+    });
+  }
+
+  async function load(){
+    if(!sb){
+      status('Database connection unavailable. Tabs and Add Formation are still usable.');
+      render();
+      return;
+    }
+
+    status('Loading…');
+
+    try{
+      const a=await sb
+        .from('nexa_battle_meta_rules')
+        .select('*')
+        .in('approval_status',['approved','corroborated'])
+        .order('generation',{ascending:false})
+        .order('confidence',{ascending:false});
+
+      if(a.error){
+        status('Formation load error: '+a.error.message);
+        rows=[];
+      }else{
+        rows=a.data||[];
+      }
+
+      const b=await sb
+        .from('nexa_library_items')
+        .select('name,image_url,rarity,generation,troop_type')
+        .eq('item_type','hero')
+        .eq('is_active',true)
+        .order('generation');
+
+      if(b.error){
+        // Do not kill Suggested/Approved if hero portraits cannot load.
+        heroes=[];
+      }else{
+        heroes=b.data||[];
+      }
+
+      let generationRows=[];
+
+      const g=await sb
+        .from('nexa_library_generations')
+        .select('generation,is_visible,unlock_at')
+        .eq('item_type','hero')
+        .order('generation');
+
+      if(!g.error){
+        generationRows=g.data||[];
+      }
+
+      activeGeneration=resolveGeneration(generationRows);
+      buildHeroOptions();
+
+      status(`Current unlocked generation: Gen ${activeGeneration}`);
+      render();
+
+    }catch(err){
+      console.error('[NEXA Formations] load failed',err);
+      activeGeneration=resolveGeneration([]);
+      buildHeroOptions();
+      status('Could not finish loading formation data.');
+      render();
+    }
+  }
+
+  async function approve(e){
+    e.stopPropagation();
+
+    if(!sb){
+      status('Database connection unavailable.');
+      return;
+    }
+
+    status('Approving…');
+
+    const id=e.currentTarget.dataset.id;
+    const row=rows.find(r=>String(r.id)===String(id));
+
+    if(!row || Number(row.generation)!==activeGeneration){
+      status('Only the current unlocked generation can be approved here.');
+      return;
+    }
+
+    try{
+      const {error}=await sb
+        .from('nexa_battle_meta_rules')
+        .update({
+          approval_status:'approved',
+          is_active:true,
+          verified_at:new Date().toISOString()
+        })
+        .eq('id',id);
+
+      if(error){
+        status(error.message);
+        return;
+      }
+
+      await load();
+
+    }catch(err){
+      console.error('[NEXA Formations] approve failed',err);
+      status('Could not approve this formation.');
+    }
+  }
+
+  async function save(){
+    if(!sb){
+      status('Database connection unavailable.');
+      return;
+    }
+
+    const ratio=[
+      Number($('#r0')?.value||0),
+      Number($('#r1')?.value||0),
+      Number($('#r2')?.value||0)
+    ];
+
+    if(ratio.reduce((a,b)=>a+b,0)!==100){
+      status('Ratio must total 100.');
+      return;
+    }
+
+    const hs=['#h0','#h1','#h2'].map(s=>$(s)?.value||'');
+
+    if(hs.some(x=>!x)){
+      status('Choose all 3 Rally Lead heroes.');
+      return;
+    }
+
+    const jf=($('#joinfirst')?.value||'')
+      .split(',')
+      .map(x=>x.trim())
+      .filter(Boolean);
+
+    const bp=($('#backup')?.value||'')
+      .split(',')
+      .map(x=>x.trim())
+      .filter(Boolean);
+
+    if(jf.length!==4){
+      status('Join First must contain exactly 4 hero names.');
+      return;
+    }
+
+    const generation=Number($('#generation')?.value||0);
+
+    if(generation!==activeGeneration){
+      status(`Only Gen ${activeGeneration} is currently unlocked.`);
+      return;
+    }
+
+    const mode=$('#mode')?.value||'attack';
+    const rule_key=`manual_${mode}_${Date.now()}`;
+
+    status('Saving…');
+
+    try{
+      const {error}=await sb.from('nexa_battle_meta_rules').insert({
+        generation,
+        event_scope:'pvp_rally',
+        mode,
+        rule_key,
+        leader_heroes:hs,
+        primary_ratio:ratio,
+        alternative_ratios:[],
+        alternative_formations:[],
+        joiner_primary:jf,
+        joiner_alternatives:bp,
+        backup_joiner_pool:bp,
+        constraints:{max_generation:activeGeneration},
+        confidence:1,
+        evidence_status:'verified',
+        evidence_note:'Manual approved formation.',
+        why_good:($('#why')?.value||'').trim(),
+        risk_note:($('#risk')?.value||'').trim(),
+        source_urls:[],
+        source_count:0,
+        independent_source_count:0,
+        approval_status:'approved',
+        is_active:true,
+        is_manual:true,
+        verified_at:new Date().toISOString()
+      });
+
+      if(error){
+        status(error.message);
+        return;
+      }
+
+      $('#modal')?.classList.remove('open');
+      await load();
+
+    }catch(err){
+      console.error('[NEXA Formations] save failed',err);
+      status('Could not save this formation.');
+    }
+  }
+
+  function connectSupabase(){
+    try{
+      const clientFactory=window.supabase?.createClient;
+
+      if(typeof clientFactory!=='function'){
+        status('Supabase library did not load. Retrying…');
+        return false;
+      }
+
+      sb=clientFactory(SUPABASE_URL,SUPABASE_KEY);
+      return true;
+
+    }catch(err){
+      console.error('[NEXA Formations] Supabase init failed',err);
+      status('Supabase connection failed.');
+      return false;
+    }
+  }
+
+  function start(){
+    // Critical: bind controls FIRST so Safari UI never dies because of a CDN/database failure.
+    bindUI();
+
+    // Show immediate visible proof that JS is running.
+    status('Starting Formations…');
+
+    if(connectSupabase()){
+      load();
+      return;
+    }
+
+    // CDN may finish a fraction later on Safari. Retry briefly without blocking the UI.
+    let attempts=0;
+    const retry=setInterval(()=>{
+      attempts++;
+
+      if(connectSupabase()){
+        clearInterval(retry);
+        load();
+        return;
+      }
+
+      if(attempts>=10){
+        clearInterval(retry);
+        activeGeneration=resolveGeneration([]);
+        buildHeroOptions();
+        render();
+        status('Database connection unavailable. Please reload this page.');
+      }
+    },300);
+  }
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',start,{once:true});
+  }else{
+    start();
+  }
+})();
 </script>
-</body></html>
+</body>
+</html>

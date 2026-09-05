@@ -1,4 +1,4 @@
-/* NEXA SvS Rules v1.6 — READ/UI ONLY • SINGLE WRITER = svs-operations.html • NO AUTO-HEAL WRITES */
+/* NEXA SvS Rules v1.7 — READ/UI ONLY • SINGLE WRITER = svs-operations.html • NO AUTO-HEAL WRITES */
 (()=> {
   'use strict';
 
@@ -17,12 +17,12 @@
     - svs_strategy_alliances
 
     svs-operations.html is the sole Strategy graph writer.
-    nexa-battle-strategy-engine.js v1.6 is the sole shared PET scheduler/strategy engine.
+    nexa-battle-strategy-engine.js v1.7 is the sole shared PET scheduler/strategy engine.
   */
 
   window.NEXA_SVS_RULES = Object.freeze({
     key:'svs',
-    version:'1.6',
+    version:'1.7',
     readOnly:true,
     battleStart:'12:00',
     battleEnd:'17:00',
@@ -31,6 +31,7 @@
     primaryAlliancePriority:true,
     allowCrossAllianceRotation:true,
     floatingRallyLeads:true,
+    useAllEligiblePetRallyLeads:true,
     ownership:Object.freeze({
       strategyWriter:'svs-operations.html',
       battleEngine:'nexa-battle-strategy-engine.js',
@@ -114,8 +115,32 @@
     .layout-sheet .layout-team-title{font-size:14px!important}
     .layout-sheet .layout-rally .rally{font-size:12px!important}
 
-    /* Keep the native V11.3.8 top formation block authoritative.
-       Attack/Defense portraits, names and ratios remain visible. */
+    /* Strategy Board: make PET state impossible to miss.
+       The .pet class comes from svs_strategy_rally_slots.pets_active, the same schedule generated for Pet Schedule. */
+    .strategy-alliance .team .rally.pet{
+      position:relative!important;
+      padding-right:92px!important;
+      box-shadow:0 0 0 1px rgba(170,115,255,.58),0 0 16px rgba(143,94,255,.24)!important;
+    }
+    .strategy-alliance .team .rally.pet::after{
+      content:"🐾 PET ACTIVE";
+      position:absolute;
+      right:8px;
+      top:50%;
+      transform:translateY(-50%);
+      padding:4px 6px;
+      border-radius:999px;
+      border:1px solid rgba(197,164,255,.62);
+      background:rgba(93,54,148,.66);
+      color:#f1e8ff;
+      font-size:8px;
+      line-height:1;
+      font-weight:950;
+      letter-spacing:.05em;
+      white-space:nowrap;
+    }
+
+    /* Keep the native top formation block authoritative. */
     .layout-sheet .rl-formations-group h4{
       font-size:12px!important;
       letter-spacing:.09em;
@@ -133,15 +158,16 @@
       font-weight:950!important;
     }
 
-    /* Legacy enhancer grids are suppressed; the native top formation UI is the source of truth. */
     .layout-sheet .nexa-formation-grid{display:none!important}
     .joiner-ratio-grid{display:none!important}
   `;
 
   function installReadability(){
-    if(document.getElementById('nexa-svs-layout-readability-v16'))return;
+    if(document.getElementById('nexa-svs-layout-readability-v17'))return;
+    const old=document.getElementById('nexa-svs-layout-readability-v16');
+    if(old)old.remove();
     const style=document.createElement('style');
-    style.id='nexa-svs-layout-readability-v16';
+    style.id='nexa-svs-layout-readability-v17';
     style.textContent=css;
     document.head.appendChild(style);
   }
@@ -166,10 +192,10 @@
     nav.appendChild(b);
   }
 
-  function assertEngine16(){
+  function assertEngine17(){
     const v=String(window.NexaBattleStrategyEngine?.version||'');
-    if(v && v!=='1.6'){
-      console.warn(`[NEXA SvS Rules] Expected Battle Strategy Engine v1.6; found ${v}.`);
+    if(v && v!=='1.7'){
+      console.warn(`[NEXA SvS Rules] Expected Battle Strategy Engine v1.7; found ${v}.`);
     }
   }
 
@@ -177,17 +203,11 @@
     installReadability();
     installFormationsPill();
     clarifyFormationUI();
-    assertEngine16();
+    assertEngine17();
   }
 
   function boot(){
     refreshUiOnly();
-
-    /*
-      Strategy Board rerenders sections dynamically.
-      This timer only reapplies presentation labels/styles.
-      It performs ZERO Supabase reads/writes and ZERO graph healing.
-    */
     setInterval(refreshUiOnly,900);
   }
 

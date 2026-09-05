@@ -1,4 +1,4 @@
-// NEXA Brain Research v1.1 — generation-safe scheduled corroboration pipeline
+// NEXA Brain Research v1.2 — generation-safe pipeline + safe stage diagnostics
 // Vercel env required: OPENAI_API_KEY, SUPABASE_SERVICE_ROLE_KEY, CRON_SECRET
 const SB='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const MODEL=process.env.NEXA_RESEARCH_MODEL||'gpt-5.6-terra';
@@ -70,8 +70,10 @@ export default async function handler(req,res){
     return res.status(500).json({error:'Missing research environment variables'});
 
   let run;
+  let stage='startup';
 
   try{
+    stage='generation_lookup';
     const generations=await sb(
       'nexa_library_generations?item_type=eq.hero&select=generation,is_visible,unlock_at&order=generation.asc'
     );
@@ -81,6 +83,7 @@ export default async function handler(req,res){
 
     const manual=req.query?.manual==='1';
 
+    stage='prior_run_lookup';
     const prior=await sb(
       'nexa_battle_research_runs?status=eq.completed&state_number=eq.1518&select=generation,completed_at&order=completed_at.desc&limit=1'
     );
@@ -112,6 +115,7 @@ export default async function handler(req,res){
       });
     }
 
+    stage='create_run';
     [run]=await sb('nexa_battle_research_runs',{
       method:'POST',
       body:{
@@ -173,6 +177,7 @@ Return exactly this shape:
  ]
 }`;
 
+    stage='openai_request';
     const or=await fetch('https://api.openai.com/v1/responses',{
       method:'POST',
       headers:{
@@ -192,12 +197,14 @@ Return exactly this shape:
     const openaiRaw=await or.text();
     if(!or.ok)throw new Error(`OpenAI ${or.status}: ${openaiRaw}`);
 
+    stage='openai_parse';
     const openaiResp=JSON.parse(openaiRaw);
     const data=cleanJson(textOf(openaiResp));
 
     if(Number(data?.generation)!==generation)
       throw new Error(`Research returned generation ${data?.generation}; expected ${generation}.`);
 
+    stage='save_results';
     const saved=[];
 
     for(const f of data.formations||[]){
@@ -271,6 +278,7 @@ Return exactly this shape:
       saved.push(out?.[0]||row);
     }
 
+    stage='complete_run';
     await sb(`nexa_battle_research_runs?id=eq.${run.id}`,{
       method:'PATCH',
       body:{
@@ -294,6 +302,7 @@ Return exactly this shape:
       }
     });
 
+    stage='done';
     return res.status(200).json({
       ok:true,
       generation,
@@ -307,6 +316,8 @@ Return exactly this shape:
     });
 
   }catch(e){
+    const message=String(e?.message||e||'Unknown error');
+
     if(run?.id){
       try{
         await sb(`nexa_battle_research_runs?id=eq.${run.id}`,{
@@ -314,14 +325,20 @@ Return exactly this shape:
           body:{
             status:'failed',
             completed_at:new Date().toISOString(),
-            error_text:String(e.message||e)
+            error_text:`[${stage}] ${message}`
           }
         });
       }catch{}
     }
 
+    console.error('[NEXA Brain]', {
+      stage,
+      message
+    });
+
     return res.status(500).json({
-      error:String(e.message||e)
+      error:message,
+      stage
     });
   }
 }

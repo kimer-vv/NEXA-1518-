@@ -1,4 +1,4 @@
-// NEXA TRANSFER WORKSPACE FINISHER V3.1 — I18N V1.2 / MOBILE PROFILE FIX / PERSISTENT GROUPS
+// NEXA TRANSFER WORKSPACE FINISHER V3.2 — CREATE RECRUITING ALLIANCE / I18N V1.3 / PERSISTENT GROUPS
 (()=>{
 'use strict';
 
@@ -20,7 +20,7 @@ async function copyText(t,b){try{await navigator.clipboard.writeText(String(t||'
 function ensureWorkspaceI18n(){
  if(window.NEXA_TRANSFER_WORKSPACE_I18N){window.NEXA_TRANSFER_WORKSPACE_I18N.apply?.(document);return}
  if(document.getElementById('nexaWorkspaceI18nV1'))return;
- const s=document.createElement('script');s.id='nexaWorkspaceI18nV1';s.src='nexa-transfer-workspace-i18n-v1.js?v=1.2';s.defer=true;document.head.appendChild(s);
+ const s=document.createElement('script');s.id='nexaWorkspaceI18nV1';s.src='nexa-transfer-workspace-i18n-v1.js?v=1.3';s.defer=true;document.head.appendChild(s);
 }
 function ensureApplicantsGroupsGuide(){
  const ul=document.querySelector('#appHelpModal .guide ul');if(!ul||ul.querySelector('[data-nexa-groups-guide]'))return;
@@ -291,13 +291,59 @@ function attachHooks(){
  document.querySelectorAll('.tab').forEach(btn=>{if(btn.dataset.nexaV17)return;btn.dataset.nexaV17='1';btn.addEventListener('click',()=>{if(btn.dataset.tab==='applicants')setTimeout(()=>loadGroups(false),80);if(btn.dataset.tab==='integrations')setTimeout(()=>{loadFormLibrary();loadProfileRows()},80);if(btn.dataset.tab==='access')setTimeout(enhanceUsername,80);if(btn.dataset.tab!=='applicants')leaveGroups()})});
  $('closeOverlay')?.addEventListener('click',()=>setTimeout(loadFormLibrary,120));window.addEventListener('message',e=>{if(e.origin===location.origin&&e.data?.type==='nexa-transfer-form-saved')setTimeout(loadFormLibrary,120)})
 }
+function ensureRecruitingAllianceCreator(){
+ const modal=$('addAllianceModal');
+ if(!modal||modal.querySelector('[data-nexa-create-recruiting]'))return;
+ const list=$('availableAllianceList');
+ if(!list)return;
+ const box=document.createElement('div');
+ box.dataset.nexaCreateRecruiting='1';
+ box.className='profileCard';
+ box.style.marginBottom='12px';
+ box.innerHTML=`
+   <div class="tag">CREATE NEW ALLIANCE</div>
+   <h4 style="margin:6px 0 4px">Create New Recruiting Alliance</h4>
+   <p class="muted" style="margin:0">Create a new Recruiting Alliance for this Transfer Workspace. It will be added as Active immediately.</p>
+   <label class="field"><span>Alliance Tag</span><input id="nexaNewRecruitingTag" maxlength="12" autocomplete="off" autocapitalize="characters" placeholder="ABC"></label>
+   <div class="actions"><button class="btn mini" id="nexaCreateRecruitingBtn" type="button">Create & Add</button></div>
+   <div class="status" id="nexaCreateRecruitingStatus"></div>`;
+ list.parentNode.insertBefore(box,list);
+ const btn=$('nexaCreateRecruitingBtn'),input=$('nexaNewRecruitingTag'),status=$('nexaCreateRecruitingStatus');
+ btn.onclick=async()=>{
+   if(!canManage)return;
+   const tag=String(input.value||'').trim().toUpperCase();
+   if(!tag){status.textContent='Alliance Tag is required.';return}
+   btn.disabled=true;status.textContent='Creating…';
+   try{
+     const r=await SB.rpc('transfer_workspace_recruiting_profile_create',{
+       p_workspace_id:workspaceId,
+       p_token:token,
+       p_tag:tag,
+       p_event_schedule:{}
+     });
+     if(r.error||r.data?.ok!==true){
+       const e=r.data?.error||r.error?.message||'Unable to create alliance.';
+       status.textContent=e==='tag_exists'?'That Alliance Tag already exists in this Workspace.':e==='tag_too_long'?'Alliance Tag must be 12 characters or fewer.':e==='manager_required'?'Access Management is required.':e;
+       return;
+     }
+     status.textContent='Recruiting Alliance created ✓';
+     window.NEXA_TRANSFER_WORKSPACE_I18N?.apply?.(box);
+     setTimeout(()=>location.reload(),350);
+   }catch(e){status.textContent=e?.message||'Unable to create alliance.'}
+   finally{btn.disabled=false}
+ };
+ input.addEventListener('input',()=>{input.value=input.value.toUpperCase().replace(/\s+/g,'')});
+ window.NEXA_TRANSFER_WORKSPACE_I18N?.apply?.(box);
+}
+
 async function periodic(){
+ ensureRecruitingAllianceCreator();
  const ap=document.querySelector('[data-panel="applicants"]');if(ap?.classList.contains('active'))syncGroupFolder();
  const ip=document.querySelector('[data-panel="integrations"]');if(ip?.classList.contains('active')){await loadProfileRows()}
  const xp=document.querySelector('[data-panel="access"]');if(xp?.classList.contains('active'))enhanceUsername();ensureApplicantsGroupsGuide();window.NEXA_TRANSFER_WORKSPACE_I18N?.apply?.(document);
 }
 async function start(){
- if(booted)return;token=getToken();workspaceId=getWorkspaceId();const root=$('workspaceRoot');if(!SB||!token||!workspaceId||!root||root.classList.contains('hidden'))return;booted=true;ensureWorkspaceI18n();injectStyles();ensureModal();ensureApplicantsGroupsGuide();await loadAccess();ensureAddGroupButton();ensureGroupView();installPersistentGroupsFolder();attachHooks();installHistoryDeleteGuard();enhanceUsername();await heartbeat();await loadGroups(false);await loadFormLibrary();await loadProfileRows();ensureApplicantsGroupsGuide();window.NEXA_TRANSFER_WORKSPACE_I18N?.apply?.(document);presenceTimer=setInterval(heartbeat,30000);refreshTimer=setInterval(periodic,2500)
+ if(booted)return;token=getToken();workspaceId=getWorkspaceId();const root=$('workspaceRoot');if(!SB||!token||!workspaceId||!root||root.classList.contains('hidden'))return;booted=true;ensureWorkspaceI18n();injectStyles();ensureModal();ensureApplicantsGroupsGuide();ensureRecruitingAllianceCreator();await loadAccess();ensureAddGroupButton();ensureGroupView();installPersistentGroupsFolder();attachHooks();installHistoryDeleteGuard();enhanceUsername();await heartbeat();await loadGroups(false);await loadFormLibrary();await loadProfileRows();ensureApplicantsGroupsGuide();window.NEXA_TRANSFER_WORKSPACE_I18N?.apply?.(document);presenceTimer=setInterval(heartbeat,30000);refreshTimer=setInterval(periodic,2500)
 }
 const boot=setInterval(()=>{start();if(booted)clearInterval(boot)},500);setTimeout(start,80);
 })();

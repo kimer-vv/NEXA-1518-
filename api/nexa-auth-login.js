@@ -4,7 +4,7 @@ import {
   reply,
   normalizeGameId,
   rest
-} from './_nexa-auth-common.js';
+} from '../server/_nexa-auth-common.js';
 
 export default async function handler(req,res){
   if(req.method!=='POST')

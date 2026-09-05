@@ -1,7 +1,7 @@
-/* NEXA Battle Strategy Engine v1.7
+/* NEXA Battle Strategy Engine v1.8
    Shared battle brain for SvS / FDT / TAL / Matchup Lab.
    Approved formation catalog + resilient Join First/backup pools + FULL-USE purpose-aware PET scheduler.
-   v1.7: use every available Rally Lead as a PET carrier when a valid PET lane/window exists.
+   v1.8: full PET-carrier use + post-PET same-lane rotation safety.
 */
 (()=> {
   'use strict';
@@ -215,7 +215,7 @@
     };
 
     /*
-      v1.7 FULL-USE PET RULE
+      v1.8 FULL-USE PET RULE
       ---------------------
       - Every Rally Lead gets one PET window whenever the graph has a legal lane/time for it.
       - Reserve means WHEN the RL activates, never "leave the PET unused."
@@ -340,7 +340,25 @@
       for(const s of slots){
         if(assignments.some(a=>a.allianceIndex===s.allianceIndex&&a.teamIndex===s.teamIndex&&Number(a.start.slice(0,2))===hour))continue;
         const prev=previousBySlot.get(s.key);
-        const choices=leads.filter(p=>!usedLeadKeys.has(leadKey(p))).map(p=>{
+
+        // v1.8 safety:
+        // A Rally Lead whose PET window just expired on this exact Team cannot remain
+        // on the same Team as a neutral filler in the immediately following hour.
+        // They may rotate elsewhere if the roster needs them.
+        const justExpiredHere=(p)=>{
+          const lk=leadKey(p);
+          return assignedWindows.some(w=>
+            leadKey(w.lead)===lk &&
+            w.slot?.allianceIndex===s.allianceIndex &&
+            w.slot?.teamIndex===s.teamIndex &&
+            Number(w.end)===hour
+          );
+        };
+
+        const choices=leads.filter(p=>
+          !usedLeadKeys.has(leadKey(p)) &&
+          !justExpiredHere(p)
+        ).map(p=>{
           const continuity=prev&&leadKey(prev)===leadKey(p)?20:0;
           const usagePenalty=(useCount.get(leadKey(p))||0)*5;
           let purposeBonus=0;
@@ -415,7 +433,7 @@
   }
 
   window.NexaBattleStrategyEngine={
-    version:'1.7',loadMeta,rulesFor,bestRule,recommendation,joinerPlan,chooseAlternative,ensureConstraints,
+    version:'1.8',loadMeta,rulesFor,bestRule,recommendation,joinerPlan,chooseAlternative,ensureConstraints,
     scoreLead,tacticalPurpose,planSchedule,explainConfidence
   };
 })();

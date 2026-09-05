@@ -1,7 +1,7 @@
-/* NEXA Battle Strategy Engine v2.0
+/* NEXA Battle Strategy Engine v2.1
    Shared battle brain for SvS / FDT / TAL / Matchup Lab.
    Approved formation catalog + resilient Join First/backup pools + FULL-USE purpose-aware PET scheduler.
-   v2.0: hard continuous Main Team 1 PET lane + strategic Counter distribution + pre/post-PET lane safety.
+   v2.1: hard continuous Main Team 1 PET lane + strategic Counter distribution + smart up-to-2h same-team continuity + pre/post-PET lane safety.
 */
 (()=> {
   'use strict';
@@ -315,7 +315,7 @@
     }
 
     // Fill all lanes hour-by-hour. PET rows are authoritative and pinned first.
-    const assignments=[],previousBySlot=new Map(),useCount=new Map();
+    const assignments=[],previousBySlot=new Map(),streakBySlot=new Map(),useCount=new Map();
     for(const hour of hours){
       const petNow=petTimeline.filter(x=>Number(x.start.slice(0,2))===hour);
       const usedLeadKeys=new Set();
@@ -323,7 +323,11 @@
         const lk=leadKey(x.lead);
         if(usedLeadKeys.has(lk))continue;
         assignments.push({...x});usedLeadKeys.add(lk);
-        previousBySlot.set(`${x.allianceIndex}:${x.teamIndex}`,x.lead);
+        const slotKey=`${x.allianceIndex}:${x.teamIndex}`;
+        const oldPrev=previousBySlot.get(slotKey);
+        const oldStreak=streakBySlot.get(slotKey)||0;
+        streakBySlot.set(slotKey,oldPrev&&leadKey(oldPrev)===lk?oldStreak+1:1);
+        previousBySlot.set(slotKey,x.lead);
         useCount.set(lk,(useCount.get(lk)||0)+1);
       }
 
@@ -337,8 +341,17 @@
             return Number(w.end)===hour||Number(w.start)===hour+1;
           });
         };
-        const choices=leads.filter(p=>!usedLeadKeys.has(leadKey(p))&&!petAdjacentHere(p)).map(p=>{
-          const continuity=prev&&leadKey(prev)===leadKey(p)?20:0;
+        const baseChoices=leads.filter(p=>!usedLeadKeys.has(leadKey(p))&&!petAdjacentHere(p));
+        const currentStreak=streakBySlot.get(s.key)||0;
+        const rotatedChoices=(currentStreak>=2&&prev)
+          ? baseChoices.filter(p=>leadKey(p)!==leadKey(prev))
+          : baseChoices;
+        const scoringPool=rotatedChoices.length?rotatedChoices:baseChoices;
+        const choices=scoringPool.map(p=>{
+          const sameAsPrev=prev&&leadKey(prev)===leadKey(p);
+          // Strategic continuity: a second hour in the same Team is useful when it improves
+          // stability, but after 2 consecutive hours rotate if any legal alternative exists.
+          const continuity=sameAsPrev?34:0;
           const usagePenalty=(useCount.get(leadKey(p))||0)*5;
           let purposeBonus=0;
           if(s.purpose==='Garrison')purposeBonus=scoreLead(p)*.024;
@@ -349,7 +362,11 @@
         const chosen=choices[0]?.p;
         if(!chosen)continue;
         assignments.push({...s,lead:chosen,start:`${hour}:00`,end:`${hour+1}:00`,petsActive:false});
-        usedLeadKeys.add(leadKey(chosen));previousBySlot.set(s.key,chosen);
+        usedLeadKeys.add(leadKey(chosen));
+        const priorLead=previousBySlot.get(s.key);
+        const priorStreak=streakBySlot.get(s.key)||0;
+        streakBySlot.set(s.key,priorLead&&leadKey(priorLead)===leadKey(chosen)?priorStreak+1:1);
+        previousBySlot.set(s.key,chosen);
         useCount.set(leadKey(chosen),(useCount.get(leadKey(chosen))||0)+1);
       }
     }
@@ -395,7 +412,7 @@
   }
 
   window.NexaBattleStrategyEngine={
-    version:'2.0',loadMeta,rulesFor,bestRule,recommendation,joinerPlan,chooseAlternative,ensureConstraints,
+    version:'2.1',loadMeta,rulesFor,bestRule,recommendation,joinerPlan,chooseAlternative,ensureConstraints,
     scoreLead,tacticalPurpose,planSchedule,explainConfidence
   };
 })();

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS STRATEGY V11.3.8 • engine v1.6 • legacy PET auto-heal • formation portraits restored -->
+<!-- NEXA SVS STRATEGY V11.3.9 • Team Layout clarity • PET scheduler unchanged -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -114,7 +114,15 @@ input,select{width:100%;min-height:44px;background:#060b1c;color:#fff;border:1px
 .layout-head{display:flex;align-items:center;gap:9px}.layout-head .emblem{width:54px;height:54px}.layout-teams{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:10px}
 .layout-team{border:1px solid var(--tc);border-radius:13px;overflow:hidden;background:rgba(4,8,20,.84)}.layout-team-title{text-align:center;padding:9px;font-weight:950;box-shadow:inset 0 -3px 0 var(--tc)}
 .layout-rally{padding:8px}
-.layout-headrow,.layout-row{display:grid;grid-template-columns:1fr;gap:0}
+.layout-headrow,.layout-row{display:grid;grid-template-columns:minmax(112px,.92fr) minmax(0,1.08fr) minmax(0,1.08fr);gap:10px;align-items:start}
+.layout-sheet .rl-formation-hero img{width:48px!important;height:48px!important}
+.layout-sheet .rl-formation-hero b{font-size:12px!important;line-height:1.15!important;margin-top:5px!important;font-weight:950!important;white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important}
+.layout-sheet .rl-formation-heroes{margin-top:3px!important}
+.layout-sheet .rl-formation-card .f-ratio{font-size:20px!important;line-height:1!important;margin:0 0 5px!important}
+.layout-hero-pair{display:grid;gap:4px;min-width:0}
+.layout-hero-text{font-size:12px;font-weight:950;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.layout-hero-text>b{color:#aeb7d1;margin-right:4px;font-size:10px}
+.layout-headrow>div:nth-child(2){color:#ffb0ba}.layout-headrow>div:nth-child(3){color:#a4e6ff}
 .layout-headrow{background:rgba(255,255,255,.05);padding:8px 10px;font-size:11px;font-weight:950;text-transform:uppercase;letter-spacing:.06em}
 .layout-row{padding:10px 11px;border-top:1px solid rgba(255,255,255,.07);font-size:14px;line-height:1.25;min-height:40px}
 .layout-row .pname b{font-size:14px;letter-spacing:.01em}
@@ -270,7 +278,7 @@ body.pet-preview-open{overflow:hidden!important}
 </style>
 <script src="nexa-battle-strategy-engine.js?v=2.1"></script>
 <script src="nexa-svs-rules.js?v=2.0"></script>
-</head> 
+</head>
 <body>
 <main class="sh">
   <div class="top">
@@ -1058,13 +1066,13 @@ function closePetPreview(){
 $('#preview-pets').onclick=openPetPreview;
 $('#close-pet-preview').onclick=closePetPreview;
 
-function formationHeroMini(id,pct){
- const h=H(id);if(!h)return `<div class="rl-formation-hero"><strong>${esc(pct)}%</strong><span class="muted">—</span></div>`;
- return `<div class="rl-formation-hero"><strong style="display:block;font-size:22px;line-height:1;margin-bottom:5px">${esc(pct)}%</strong>${h.image_url?`<img src="${esc(h.image_url)}" alt="${esc(h.name)}" loading="eager" referrerpolicy="no-referrer">`:''}<b class="${rarityClass(h.rarity)}">${esc(h.name)}</b></div>`
+function formationHeroMini(id){
+ const h=H(id);if(!h)return `<div class="rl-formation-hero"><span class="muted">—</span></div>`;
+ return `<div class="rl-formation-hero">${h.image_url?`<img src="${esc(h.image_url)}" alt="${esc(h.name)}" loading="eager" referrerpolicy="no-referrer">`:''}<b class="${rarityClass(h.rarity)}">${esc(h.name)}</b></div>`
 }
 function layoutRallyLeadFormationGroup(a,type){
  const fs=formationsFor(a.id,type),count=Math.max(1,Math.min(3,fs.length||1));
- return `<div class="rl-formations-group ${type}"><h4>${type==='attack'?'⚔ Rally Lead Attack Formation':'🛡 Rally Lead Defense Formation'}</h4><div class="rl-formation-list" style="--count:${count}">${fs.length?fs.map(f=>{const rr=parseRatio(f.ratio,type==='attack'?[49,2,49]:[40,0,60]);return `<div class="rl-formation-card"><div class="f-title">${esc(formationDisplayName(f))}</div><div class="f-ratio">${rr.join(' / ')}</div><div class="rl-formation-heroes">${formationHeroMini(f.hero_infantry_id,rr[0])}${formationHeroMini(f.hero_lancer_id,rr[1])}${formationHeroMini(f.hero_marksman_id,rr[2])}</div></div>`}).join(''):'<div class="muted tiny">No formation configured.</div>'}</div></div>`
+ return `<div class="rl-formations-group ${type}"><h4>${type==='attack'?'⚔ Attack Formation':'🛡 Defense Formation'}</h4><div class="rl-formation-list" style="--count:${count}">${fs.length?fs.map(f=>{const rr=parseRatio(f.ratio,type==='attack'?[49,2,49]:[40,0,60]);return `<div class="rl-formation-card"><div class="f-ratio">${rr.join(' / ')}</div><div class="rl-formation-heroes">${formationHeroMini(f.hero_infantry_id)}${formationHeroMini(f.hero_lancer_id)}${formationHeroMini(f.hero_marksman_id)}</div></div>`}).join(''):'<div class="muted tiny">No formation configured.</div>'}</div></div>`
 }
 function layoutJoinerRatioGroup(a,type){
  const fs=formationsFor(a.id,type),count=Math.max(1,Math.min(3,fs.length||1));
@@ -1090,8 +1098,13 @@ function renderLayout(){
 function layoutAlliance(a){
  return `<section style="margin-bottom:4px"><div class="note glow-violet">${esc(strategy.join_note||`Join First — First ${strategy.join_first_count} joiners enter with ${fmtSecs(strategy.join_first_seconds)} left on countdown. Other joiners join with ${fmtSecs(strategy.other_join_seconds)} left on countdown.`)}</div><div class="layout-teams">${Teams(a.id).map(layoutTeam).join('')}</div></section>`
 }
+function layoutHeroText(letter,id){
+ const h=H(id);
+ return `<div class="layout-hero-text"><b>${letter}</b><span class="${rarityClass(h?.rarity)}">${esc(h?.name||'—')}</span></div>`
+}
 function layoutTeam(t){
- return `<article class="layout-team" style="--tc:${tc(t)}"><div class="layout-team-title">${esc(t.name)}</div><div class="layout-rally"><div class="mini">Rally Leader Schedule (UTC)</div>${layoutRallyCards(t.id)||'<span class="muted tiny">—</span>'}</div><div class="layout-headrow"><div>Joiners</div></div>${Joiners(t.id).map(j=>`<div class="layout-row ${j.join_first?'first':''}"><div class="pname"><b>${esc(j.player_name)}</b></div></div>`).join('')||'<div class="layout-row"><div class="pname muted">No Joiners assigned.</div></div>'}</article>`
+ const def=defenseOn(t);
+ return `<article class="layout-team" style="--tc:${tc(t)}"><div class="layout-team-title">${esc(t.name)}</div><div class="layout-rally"><div class="mini">Rally Leader Schedule (UTC)</div>${layoutRallyCards(t.id)||'<span class="muted tiny">—</span>'}</div><div class="layout-headrow"><div>Joiners</div><div>Attack A / B</div><div>Defense A / B</div></div>${Joiners(t.id).map(j=>`<div class="layout-row ${j.join_first?'first':''}"><div class="pname"><b>${esc(j.player_name)}</b></div><div class="layout-hero-pair">${layoutHeroText('A',j.attack_a_hero_id)}${layoutHeroText('B',j.attack_b_hero_id)}</div><div class="layout-hero-pair">${def?layoutHeroText('A',j.defense_a_hero_id)+layoutHeroText('B',j.defense_b_hero_id):'<span class="muted">—</span>'}</div></div>`).join('')||'<div class="layout-row"><div class="pname muted">No Joiners assigned.</div><div></div><div></div></div>'}</article>`
 }
 
 function renderRecommendations(items,title='NEXA Strategy Analysis'){

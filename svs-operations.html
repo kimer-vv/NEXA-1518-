@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS STRATEGY V11.5.5 • NEXA-styled move dialogs + inline Rally edit + live rerender + interleaved troop depth + Top-2 Approved sync -->
+<!-- NEXA SVS STRATEGY V11.5.6 • Rally→PET single-source sync + PET/Reserve overlap validation + live schedule persistence -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -491,6 +491,17 @@ function nexaConfirm(title,message,{confirmLabel='Move',cancelLabel='Cancel',ton
    $('[data-nexa-no]',ov).onclick=()=>finish(false);
    $('[data-nexa-yes]',ov).onclick=()=>finish(true);
    ov.onclick=e=>{if(e.target===ov)finish(false)};
+ });
+}
+
+function nexaNotice(title,message,label='OK'){
+ return new Promise(resolve=>{
+   const ov=document.createElement('div');ov.className='nexa-modal';
+   ov.innerHTML=`<div class="nexa-modal-card"><h3>${esc(title)}</h3><div class="select-note" style="margin-top:8px">${esc(message)}</div><div class="nexa-modal-actions" style="grid-template-columns:1fr"><button class="btn violet" data-nexa-ok type="button">${esc(label)}</button></div></div>`;
+   document.body.appendChild(ov);
+   const finish=()=>{ov.remove();resolve(true)};
+   $('[data-nexa-ok]',ov).onclick=finish;
+   ov.onclick=e=>{if(e.target===ov)finish()};
  });
 }
 
@@ -1092,6 +1103,73 @@ function bindStrategy(){
 }
 
 
+function petModeLabel(row){
+ if(row?.pet_status==='reserve')return 'Reserve PET';
+ if(row?.pets_active)return 'PET Active';
+ return 'No PET';
+}
+function sameRallyPlayer(row,player){
+ if(!row||!player)return false;
+ if(player.id&&row.player_account_id)return String(row.player_account_id)===String(player.id);
+ return String(row.player_name||'').toLowerCase()===String(player.in_game_name||'').toLowerCase();
+}
+function petOverlapConflict(player,start,end,mode,excludeIds=[]){
+ if(mode!=='active'&&mode!=='reserve')return null;
+ const excluded=new Set((excludeIds||[]).map(String));
+ return rally.find(r=>{
+   if(excluded.has(String(r.id)))return false;
+   if(!sameRallyPlayer(r,player))return false;
+   if(!(r.pets_active||r.pet_status==='reserve'))return false;
+   return overlaps(start,end,r.start_utc,r.end_utc);
+ })||null;
+}
+function purposeForTeamId(teamId){
+ const t=teamForAssignment(teamId),a=t&&A(t.strategy_alliance_id);
+ if(!t||!a)return 'Counter';
+ if(Number(a.sort_order||0)===0&&Number(t.sort_order||0)===0)return 'Garrison';
+ if(Number(a.sort_order||0)===0&&Number(t.sort_order||0)===1)return 'Handoff';
+ return 'Counter';
+}
+async function ensurePetRowForTeam(teamId){
+ let row=petRows.find(r=>String(r.source_team_id)===String(teamId));
+ if(row)return row;
+ const t=teamForAssignment(teamId),a=t&&A(t.strategy_alliance_id);if(!strategy||!t||!a)return null;
+ const payload={
+   strategy_id:strategy.id,strategy_alliance_id:a.id,source_team_id:t.id,
+   purpose:purposeForTeamId(t.id),slot_label:`${a.alliance_tag||'Alliance'} T${Number(t.sort_order||0)+1}`,
+   sort_order:Number(a.sort_order||0)*10+Number(t.sort_order||0)
+ };
+ const ins=await sb.from('svs_pet_schedule_rows').insert(payload).select().single();
+ if(ins.error)throw ins.error;
+ row=ins.data;petRows.push(row);return row;
+}
+async function syncPetAssignmentsForTeams(teamIds){
+ const ids=[...new Set((teamIds||[]).filter(Boolean).map(String))];
+ if(!ids.length)return;
+ const actualIds=teams.filter(t=>ids.includes(String(t.id))).map(t=>t.id);
+ if(!actualIds.length)return;
+ const {data:slots,error:slotErr}=await sb.from('svs_strategy_rally_slots').select('*').in('team_id',actualIds).order('sort_order');
+ if(slotErr)throw slotErr;
+ for(const tid of actualIds){
+   const row=await ensurePetRowForTeam(tid);if(!row)continue;
+   const wipe=await sb.from('svs_pet_schedule_assignments').delete().eq('row_id',row.id);if(wipe.error)throw wipe.error;
+   const source=(slots||[]).filter(x=>String(x.team_id)===String(tid));
+   if(source.length){
+     const payload=source.map((x,i)=>({
+       row_id:row.id,player_account_id:x.player_account_id||null,player_name:x.player_name,
+       start_utc:x.start_utc,end_utc:x.end_utc,pets_active:!!x.pets_active,
+       pet_status:x.pet_status==='reserve'?'reserve':x.pets_active?'active':'none',sort_order:Number(x.sort_order??i)
+     }));
+     const ins=await sb.from('svs_pet_schedule_assignments').insert(payload);if(ins.error)throw ins.error;
+   }
+ }
+}
+async function showPetConflict(player,conflict,start,end,mode){
+ const requested=mode==='reserve'?'Reserve PET':'PET Active';
+ await nexaNotice('PET time conflict',`${player.in_game_name} already has ${petModeLabel(conflict)} on ${teamLabel(conflict.team_id)} from ${conflict.start_utc}–${conflict.end_utc} UTC. ${requested} ${start}–${end} overlaps that PET window. Choose a non-overlapping time.`);
+}
+
+
 async function editRallyPlayer(teamId,key){
  const rows=Rally(teamId).filter(x=>String(x.player_account_id||x.player_name)===String(key)).sort((a,b)=>minutesOf(a.start_utc)-minutesOf(b.start_utc));if(!rows.length)return;
  const first=rows[0],player=selectedPlayer(first.player_account_id)||{id:first.player_account_id||null,in_game_name:first.player_name};
@@ -1101,11 +1179,15 @@ async function editRallyPlayer(teamId,key){
    const aid=$('#m-edit-rally-alliance',modalEl).value,tid=$('#m-edit-rally-team',modalEl).value,st=$('#m-edit-rally-start',modalEl).value,en=$('#m-edit-rally-end',modalEl).value,petMode=$('#m-edit-rally-pets',modalEl).value||'none';
    if(!tid){say('Select a Team.',true);return false}
    if(minutesOf(en)<=minutesOf(st)){say('End time must be after Start.',true);return false}
-   const other=rally.filter(r=>!rows.some(x=>String(x.id)===String(r.id))&&(player.id?String(r.player_account_id)===String(player.id):String(r.player_name).toLowerCase()===String(player.in_game_name).toLowerCase())&&overlaps(st,en,r.start_utc,r.end_utc));
-   if(other.length){const c=other[0],ok=await nexaConfirm('Move Rally Leader?',`${player.in_game_name} already has another slot on ${teamLabel(c.team_id)} at ${c.start_utc}–${c.end_utc} UTC. Replace that conflicting slot?`);if(!ok)return false;for(const x of other){const d=await sb.from('svs_strategy_rally_slots').delete().eq('id',x.id);if(d.error)throw d.error}}
+   const petConflict=petOverlapConflict(player,st,en,petMode,rows.map(x=>x.id));
+   if(petConflict){await showPetConflict(player,petConflict,st,en,petMode);return false}
+   const other=rally.filter(r=>!rows.some(x=>String(x.id)===String(r.id))&&sameRallyPlayer(r,player)&&overlaps(st,en,r.start_utc,r.end_utc));
+   const touched=[teamId,tid];
+   if(other.length){const c=other[0],ok=await nexaConfirm('Move Rally Leader?',`${player.in_game_name} already has another slot on ${teamLabel(c.team_id)} at ${c.start_utc}–${c.end_utc} UTC. Replace that conflicting slot?`);if(!ok)return false;for(const x of other){touched.push(x.team_id);const d=await sb.from('svs_strategy_rally_slots').delete().eq('id',x.id);if(d.error)throw d.error}}
    const del=await sb.from('svs_strategy_rally_slots').delete().in('id',rows.map(x=>x.id));if(del.error)throw del.error;
    const pets=petMode==='active',reserve=petMode==='reserve';
    const ins=await sb.from('svs_strategy_rally_slots').insert({team_id:tid,player_account_id:player.id||null,player_name:player.in_game_name,start_utc:st,end_utc:en,pets_active:pets,pet_status:pets?'active':reserve?'reserve':'none',sort_order:0});if(ins.error)throw ins.error;
+   await syncPetAssignmentsForTeams(touched);
    await openStrategy(strategy.id);return true;
  });
  const as=$('#m-edit-rally-alliance',ov),ts=$('#m-edit-rally-team',ov);as.onchange=()=>{ts.innerHTML=inlineTeamOptions(as.value,'')||'<option value="">No Teams</option>'};
@@ -1114,9 +1196,9 @@ async function editRallyPlayer(teamId,key){
 async function deleteRallyPlayer(teamId,key){
  const rows=Rally(teamId).filter(x=>String(x.player_account_id||x.player_name)===String(key));if(!rows.length)return;
  if(!await nexaConfirm('Remove Rally Leader?',`Remove ${rows[0].player_name} from this Team schedule?`,{confirmLabel:'Remove'}))return;
- const {error}=await sb.from('svs_strategy_rally_slots').delete().in('id',rows.map(r=>r.id));if(error)return say(error.message,true);await openStrategy(strategy.id)
+ const {error}=await sb.from('svs_strategy_rally_slots').delete().in('id',rows.map(r=>r.id));if(error)return say(error.message,true);await syncPetAssignmentsForTeams([teamId]);await openStrategy(strategy.id)
 }
-async function deleteRally(id){const x=rally.find(r=>r.id===id);if(!x)return;if(!await nexaConfirm('Remove Rally Leader?',`Remove ${x.player_name} from this Rally Leader slot?`,{confirmLabel:'Remove'}))return;const {error}=await sb.from('svs_strategy_rally_slots').delete().eq('id',id);if(error)return say(error.message,true);await openStrategy(strategy.id)}
+async function deleteRally(id){const x=rally.find(r=>r.id===id);if(!x)return;if(!await nexaConfirm('Remove Rally Leader?',`Remove ${x.player_name} from this Rally Leader slot?`,{confirmLabel:'Remove'}))return;const {error}=await sb.from('svs_strategy_rally_slots').delete().eq('id',id);if(error)return say(error.message,true);await syncPetAssignmentsForTeams([x.team_id]);await openStrategy(strategy.id)}
 async function deleteJoiner(id){const x=joiners.find(r=>r.id===id);if(!x)return;if(!await nexaConfirm('Remove Joiner?',`Remove ${x.player_name} from this Team?`,{confirmLabel:'Remove'}))return;const {error}=await sb.from('svs_strategy_joiners').delete().eq('id',id);if(error)return say(error.message,true);await openStrategy(strategy.id)}
 
 async function deleteTeam(tid){
@@ -1197,15 +1279,19 @@ function openInlineRallyPicker(originTid){
        const tid=ts.value,s=$('[data-inline-start]',ed).value,en=$('[data-inline-end]',ed).value,mode=$('[data-inline-pets]',ed).value||'none';
        if(!tid){say('Select a Team.',true);btn.disabled=false;return}
        if(minutesOf(en)<=minutesOf(s)){say('End time must be after Start.',true);btn.disabled=false;return}
-       const conflicts=rally.filter(r=>(p.id?String(r.player_account_id)===String(p.id):String(r.player_name).toLowerCase()===String(p.in_game_name).toLowerCase())&&overlaps(s,en,r.start_utc,r.end_utc));
+       const petConflict=petOverlapConflict(p,s,en,mode,[]);
+       if(petConflict){await showPetConflict(p,petConflict,s,en,mode);btn.disabled=false;return}
+       const conflicts=rally.filter(r=>sameRallyPlayer(r,p)&&overlaps(s,en,r.start_utc,r.end_utc));
+       const touched=[tid];
        if(conflicts.length){
          const c=conflicts[0],ok=await nexaConfirm('Move Rally Leader?',`${p.in_game_name} is already assigned to ${teamLabel(c.team_id)} at ${c.start_utc}–${c.end_utc} UTC. Move the conflicting slot to ${teamLabel(tid)}?`);
          if(!ok){btn.disabled=false;return}
-         for(const x of conflicts){const d=await sb.from('svs_strategy_rally_slots').delete().eq('id',x.id);if(d.error)throw d.error}
+         for(const x of conflicts){touched.push(x.team_id);const d=await sb.from('svs_strategy_rally_slots').delete().eq('id',x.id);if(d.error)throw d.error}
        }
        const pets=mode==='active',reserve=mode==='reserve';
        const ins=await sb.from('svs_strategy_rally_slots').insert({team_id:tid,player_account_id:p.id||null,player_name:p.in_game_name,start_utc:s,end_utc:en,pets_active:pets,pet_status:pets?'active':reserve?'reserve':'none',sort_order:Rally(tid).length});
        if(ins.error)throw ins.error;
+       await syncPetAssignmentsForTeams(touched);
        ov.remove();await openStrategy(strategy.id);say('Rally Leader added.');
      }catch(err){say(err?.message||String(err),true);btn.disabled=false}
    };
@@ -1217,9 +1303,10 @@ function openRallyEditor(tid,p){
   const s=$('#m-rally-start',ov).value,e=$('#m-rally-end',ov).value,petMode=$('#m-rally-pets',ov).value||'none';
   const pets=petMode==='active',reserve=petMode==='reserve';
   if(minutesOf(e)<=minutesOf(s)){say('End time must be after Start.',true);return false}
-  const conflicts=rally.filter(r=>(p.id?String(r.player_account_id)===String(p.id):String(r.player_name).toLowerCase()===p.in_game_name.toLowerCase())&&overlaps(s,e,r.start_utc,r.end_utc));
-  if(conflicts.length){const c=conflicts[0];if(!await nexaConfirm('Move Rally Leader?',`${p.in_game_name} is already assigned to ${teamLabel(c.team_id)} at ${c.start_utc}–${c.end_utc} UTC. Move this conflicting slot here?`))return false;for(const x of conflicts)await sb.from('svs_strategy_rally_slots').delete().eq('id',x.id)}
-  const {error}=await sb.from('svs_strategy_rally_slots').insert({team_id:tid,player_account_id:p.id||null,player_name:p.in_game_name,start_utc:s,end_utc:e,pets_active:pets,pet_status:pets?'active':reserve?'reserve':'none',sort_order:Rally(tid).length});if(error)throw error;await openStrategy(strategy.id)
+  const petConflict=petOverlapConflict(p,s,e,petMode,[]);if(petConflict){await showPetConflict(p,petConflict,s,e,petMode);return false}
+  const conflicts=rally.filter(r=>sameRallyPlayer(r,p)&&overlaps(s,e,r.start_utc,r.end_utc)),touched=[tid];
+  if(conflicts.length){const c=conflicts[0];if(!await nexaConfirm('Move Rally Leader?',`${p.in_game_name} is already assigned to ${teamLabel(c.team_id)} at ${c.start_utc}–${c.end_utc} UTC. Move this conflicting slot here?`))return false;for(const x of conflicts){touched.push(x.team_id);const d=await sb.from('svs_strategy_rally_slots').delete().eq('id',x.id);if(d.error)throw d.error}}
+  const {error}=await sb.from('svs_strategy_rally_slots').insert({team_id:tid,player_account_id:p.id||null,player_name:p.in_game_name,start_utc:s,end_utc:e,pets_active:pets,pet_status:pets?'active':reserve?'reserve':'none',sort_order:Rally(tid).length});if(error)throw error;await syncPetAssignmentsForTeams(touched);await openStrategy(strategy.id)
  });
 }
 async function addRally(tid,preselectedId=''){
@@ -1286,7 +1373,7 @@ function scheduleDisplayAssignment(rowId,label){
 function renderPet(){
  const h=$('#pet-editor');if(!strategy){h.innerHTML='<span class="muted">Open a strategy first.</span>';$('#pet-export').innerHTML='';return}
  const times=['12:00','13:00','14:00','15:00','16:00'];
- h.innerHTML=`<div class="pet-grid-wrap"><table class="pet-grid"><thead><tr><th>Assignment</th>${times.map(t=>`<th>${t}</th>`).join('')}</tr></thead><tbody>${petRows.map(r=>`<tr><td><b>${esc(r.slot_label||'Team')}</b><br><span class="tiny muted">${esc(r.purpose||'')}</span></td>${times.map(t=>{const a=scheduleDisplayAssignment(r.id,t),reserve=a?.pet_status==='reserve';return `<td class="${a?.pets_active?'petactive':reserve?'petreserve':a?'rl-neutral':''}">${a?`${reserve?'◇ ':''}${esc(a.player_name)}`:''}</td>`}).join('')}</tr>`).join('')}</tbody></table></div><div class="tiny muted" style="margin-top:8px">Violet = PET ACTIVE • ◇ = Reserve PET — activate only if needed based on battle pressure • Neutral = Assigned without PETS</div>`;
+ h.innerHTML=`<div class="pet-grid-wrap"><table class="pet-grid"><thead><tr><th>Assignment</th>${times.map(t=>`<th>${t}</th>`).join('')}</tr></thead><tbody>${petRows.map(r=>`<tr><td><b>${esc(r.slot_label||'Team')}</b><br><span class="tiny muted">${esc(r.purpose||'')}</span></td>${times.map(t=>{const a=scheduleDisplayAssignment(r.id,t),reserve=a?.pet_status==='reserve';return `<td class="${a?.pets_active?'petactive':reserve?'petreserve':a?'rl-neutral':''}">${a?`${reserve?'◇ ':''}${esc(a.player_name)}`:''}</td>`}).join('')}</tr>`).join('')}</tbody></table></div><div class="tiny muted" style="margin-top:8px">Violet = PET ACTIVE • ◇ = Reserve PET • Neutral = Assigned without PETS • Schedule stays synced from Rally Lead assignments</div>`;
  renderPetExport();
 }
 async function addPet(id){
@@ -1294,13 +1381,18 @@ async function addPet(id){
    const p=selectedPlayer($('#m-pet-player',ov).value);if(!p){say('Select a Rally Leader.',true);return false}
    const s=$('#m-pet-start',ov).value,e=$('#m-pet-end',ov).value,petMode=$('#m-pet-on',ov).value||'none';
    if(minutesOf(e)<=minutesOf(s)){say('End time must be after Start.',true);return false}
+   const row=petRows.find(x=>String(x.id)===String(id));if(!row?.source_team_id){say('This schedule row is not linked to a Team.',true);return false}
+   const conflict=petOverlapConflict(p,s,e,petMode,[]);if(conflict){await showPetConflict(p,conflict,s,e,petMode);return false}
+   const physical=rally.filter(r=>sameRallyPlayer(r,p)&&overlaps(s,e,r.start_utc,r.end_utc)),touched=[row.source_team_id];
+   if(physical.length){const c=physical[0];if(!await nexaConfirm('Move Rally Leader?',`${p.in_game_name} is already assigned to ${teamLabel(c.team_id)} at ${c.start_utc}–${c.end_utc} UTC. Move this conflicting slot here?`))return false;for(const x of physical){touched.push(x.team_id);const d=await sb.from('svs_strategy_rally_slots').delete().eq('id',x.id);if(d.error)throw d.error}}
    const pets=petMode==='active',reserve=petMode==='reserve';
-   const {error}=await sb.from('svs_pet_schedule_assignments').insert({row_id:id,player_account_id:p.id||null,player_name:p.in_game_name,start_utc:s,end_utc:e,pets_active:pets,pet_status:pets?'active':reserve?'reserve':'none',sort_order:petAssignments.filter(x=>x.row_id===id).length});if(error)throw error;await openStrategy(strategy.id);
+   const ins=await sb.from('svs_strategy_rally_slots').insert({team_id:row.source_team_id,player_account_id:p.id||null,player_name:p.in_game_name,start_utc:s,end_utc:e,pets_active:pets,pet_status:pets?'active':reserve?'reserve':'none',sort_order:Rally(row.source_team_id).length});if(ins.error)throw ins.error;
+   await syncPetAssignmentsForTeams(touched);await openStrategy(strategy.id);
  });
 }
 function renderPetExport(){
  const times=['12:00','13:00','14:00','15:00','16:00'];
- $('#pet-export').innerHTML=`<div id="pet-sheet" class="layout-sheet"><div class="layout-head"><div><div class="tiny muted">NEXA • SvS</div><h2 style="margin:2px 0 10px">Pet Schedule</h2></div></div><div class="pet-grid-wrap"><table class="pet-grid"><thead><tr><th>Assignment</th>${times.map(t=>`<th>${t}</th>`).join('')}</tr></thead><tbody>${petRows.map(r=>`<tr><td><b>${esc(r.slot_label||'Team')}</b><br><span class="tiny muted">${esc(r.purpose||'')}</span></td>${times.map(t=>{const a=scheduleDisplayAssignment(r.id,t),reserve=a?.pet_status==='reserve';return `<td class="${a?.pets_active?'petactive':reserve?'petreserve':a?'rl-neutral':''}">${a?`${reserve?'◇ ':''}${esc(a.player_name)}`:''}</td>`}).join('')}</tr>`).join('')}</tbody></table></div><div class="tiny muted" style="margin-top:8px">Violet = PET ACTIVE • ◇ Reserve PET — activate only if needed based on battle pressure • Neutral = Assigned without PETS</div></div>`;
+ $('#pet-export').innerHTML=`<div id="pet-sheet" class="layout-sheet"><div class="layout-head"><div><div class="tiny muted">NEXA • SvS</div><h2 style="margin:2px 0 10px">Pet Schedule</h2></div></div><div class="pet-grid-wrap"><table class="pet-grid"><thead><tr><th>Assignment</th>${times.map(t=>`<th>${t}</th>`).join('')}</tr></thead><tbody>${petRows.map(r=>`<tr><td><b>${esc(r.slot_label||'Team')}</b><br><span class="tiny muted">${esc(r.purpose||'')}</span></td>${times.map(t=>{const a=scheduleDisplayAssignment(r.id,t),reserve=a?.pet_status==='reserve';return `<td class="${a?.pets_active?'petactive':reserve?'petreserve':a?'rl-neutral':''}">${a?`${reserve?'◇ ':''}${esc(a.player_name)}`:''}</td>`}).join('')}</tr>`).join('')}</tbody></table></div><div class="tiny muted" style="margin-top:8px">Violet = PET ACTIVE • ◇ Reserve PET • Neutral = Assigned without PETS • Synced from Rally Lead assignments</div></div>`;
 }
 $('#download-pets').onclick=()=>exportNodes([$('#pet-sheet')],['NEXA-SvS-Pet-Schedule.png']);
 

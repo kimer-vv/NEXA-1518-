@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • Formations</title>
 
-<!-- NEXA FORMATIONS V1.8 • library-derived Approved backup pools • clean horizontal backups • vetted First-4 skill reasoning -->
+<!-- NEXA FORMATIONS V1.9 • visual current-generation hero picker • Rare/Blue excluded • single-tap save/close -->
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -63,6 +63,15 @@ textarea{min-height:76px;resize:vertical}
   .formgrid .full{grid-column:auto}
   .hero img{width:56px;height:56px}
 }
+
+.hero-source-select{display:none!important}
+.formation-hero-picker{width:100%;min-height:104px;border:1px solid rgba(122,142,203,.28);border-radius:13px;background:#050a19;color:#fff;padding:8px;display:grid;justify-items:center;align-content:center;gap:4px;text-align:center}
+.formation-hero-picker img{width:58px;height:58px;border-radius:11px;object-fit:cover;border:1px solid rgba(255,255,255,.14)}
+.formation-hero-picker b{font-size:10px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.formation-hero-picker small{font-size:8px;color:#96a3c3}
+.formation-hero-overlay{position:fixed;inset:0;z-index:80;display:grid;place-items:center;background:rgba(0,0,0,.82);padding:14px}.formation-hero-overlay-card{width:min(620px,100%);max-height:88dvh;overflow:auto;-webkit-overflow-scrolling:touch;border:1px solid rgba(72,221,255,.28);border-radius:20px;background:#071022;padding:13px}
+.formation-hero-choice-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}.formation-hero-choice{border:1px solid rgba(255,255,255,.11);border-radius:13px;background:rgba(255,255,255,.035);color:#fff;padding:8px;display:grid;justify-items:center;gap:4px}.formation-hero-choice.selected{border-color:rgba(155,120,255,.8);box-shadow:0 0 16px rgba(139,89,255,.18)}.formation-hero-choice img{width:58px;height:58px;border-radius:11px;object-fit:cover}.formation-hero-choice b{font-size:10px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.formation-hero-choice small{font-size:8px;color:#96a3c3;text-align:center}
+@media(max-width:580px){.formation-hero-choice-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.formation-hero-picker{min-height:94px}.formation-hero-picker img{width:52px;height:52px}}
+
 </style>
 </head>
 
@@ -127,9 +136,9 @@ textarea{min-height:76px;resize:vertical}
       <div class="full">
         <div class="note">Rally Lead heroes</div>
         <div class="hero-picks">
-          <select id="h0"></select>
-          <select id="h1"></select>
-          <select id="h2"></select>
+          <div><select id="h0" class="hero-source-select" aria-hidden="true"></select><button class="formation-hero-picker" data-formation-hero="h0" data-troop="infantry" type="button"></button></div>
+          <div><select id="h1" class="hero-source-select" aria-hidden="true"></select><button class="formation-hero-picker" data-formation-hero="h1" data-troop="lancer" type="button"></button></div>
+          <div><select id="h2" class="hero-source-select" aria-hidden="true"></select><button class="formation-hero-picker" data-formation-hero="h2" data-troop="marksman" type="button"></button></div>
         </div>
       </div>
 
@@ -168,6 +177,7 @@ textarea{min-height:76px;resize:vertical}
   let heroes=[];
   let tab='approved';
   let activeGeneration=1;
+  let saveBusy=false;
 
   const $=s=>document.querySelector(s);
   const status=t=>{const el=$('#status');if(el)el.textContent=t||''};
@@ -506,22 +516,33 @@ textarea{min-height:76px;resize:vertical}
     render();
   }
 
+  function pickableRarity(h){const r=String(h?.rarity||'').toLowerCase();return r.includes('legendary')||r.includes('myth')||r.includes('gold')||r.includes('epic')||r.includes('purple')}
+  function formationHeroFace(name){const h=heroes.find(x=>norm(x.name)===norm(name));return h?`${h.image_url?`<img src="${esc(h.image_url)}" alt="">`:''}<b class="${rarity(h.name)}">${esc(h.name)}</b><small>Gen ${esc(h.generation)} • ${esc(h.rarity||'')}</small>`:'<b>Choose Hero</b><small>Epic/Purple or Legendary</small>'}
+  function refreshFormationHeroButtons(){document.querySelectorAll('[data-formation-hero]').forEach(b=>{const el=document.getElementById(b.dataset.formationHero);b.innerHTML=formationHeroFace(el?.value||'')})}
+  function openFormationHeroPicker(button){
+    const target=document.getElementById(button.dataset.formationHero),type=button.dataset.troop,current=target?.value||'';
+    const pool=heroes.filter(h=>Number(h.generation||0)<=activeGeneration&&pickableRarity(h)&&String(h.troop_type||'').toLowerCase()===type).sort((a,b)=>Number(b.generation||0)-Number(a.generation||0)||String(a.name).localeCompare(String(b.name)));
+    const ov=document.createElement('div');ov.className='formation-hero-overlay';
+    ov.innerHTML=`<div class="formation-hero-overlay-card"><div class="bar"><div><h3 style="margin:0">Choose ${esc(type[0].toUpperCase()+type.slice(1))} Hero</h3><div class="note">Gen ${activeGeneration} or earlier • Epic/Purple + Legendary only</div></div><button class="btn" data-close-hero type="button">Close</button></div><div class="formation-hero-choice-grid">${pool.map(h=>`<button class="formation-hero-choice ${norm(h.name)===norm(current)?'selected':''}" data-name="${esc(h.name)}" type="button">${h.image_url?`<img src="${esc(h.image_url)}" alt="">`:''}<b class="${rarity(h.name)}">${esc(h.name)}</b><small>Gen ${esc(h.generation)} • ${esc(h.rarity||'')}</small></button>`).join('')}</div></div>`;
+    document.body.appendChild(ov);$('[data-close-hero]',ov).onclick=()=>ov.remove();ov.querySelectorAll('[data-name]').forEach(x=>x.onclick=()=>{if(target)target.value=x.dataset.name||'';button.innerHTML=formationHeroFace(target?.value||'');ov.remove()});
+  }
   function bindUI(){
     document.querySelectorAll('.tabs button').forEach(button=>{
       button.addEventListener('click',()=>setTab(button.dataset.tab,button));
     });
-    $('#add')?.addEventListener('click',()=>$('#modal')?.classList.add('open'));
+    $('#add')?.addEventListener('click',()=>{$('#modal')?.classList.add('open');refreshFormationHeroButtons()});
     $('#close')?.addEventListener('click',()=>$('#modal')?.classList.remove('open'));
     $('#modal')?.addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open')});
+    document.querySelectorAll('[data-formation-hero]').forEach(b=>b.addEventListener('click',()=>openFormationHeroPicker(b)));
     $('#save')?.addEventListener('click',save);
   }
 
   function buildHeroOptions(){
     const generationInput=$('#generation');
     if(generationInput){generationInput.value=activeGeneration;generationInput.max=activeGeneration}
-    const eligibleHeroes=heroes.filter(h=>Number(h.generation||0)<=activeGeneration);
-    const opts='<option value="">Select</option>'+eligibleHeroes.map(h=>`<option value="${esc(h.name)}">${esc(h.name)} • Gen ${esc(h.generation)}</option>`).join('');
-    ['#h0','#h1','#h2'].forEach(s=>{const el=$(s);if(el)el.innerHTML=opts});
+    const types=['infantry','lancer','marksman'];
+    ['#h0','#h1','#h2'].forEach((sel,i)=>{const el=$(sel);if(!el)return;const old=el.value,pool=heroes.filter(h=>Number(h.generation||0)<=activeGeneration&&pickableRarity(h)&&String(h.troop_type||'').toLowerCase()===types[i]).sort((a,b)=>Number(b.generation||0)-Number(a.generation||0)||String(a.name).localeCompare(String(b.name)));el.innerHTML='<option value="">Select</option>'+pool.map(h=>`<option value="${esc(h.name)}">${esc(h.name)} • Gen ${esc(h.generation)}</option>`).join('');if(pool.some(h=>h.name===old))el.value=old});
+    refreshFormationHeroButtons();
   }
 
   async function load(attempt=0){
@@ -598,6 +619,7 @@ textarea{min-height:76px;resize:vertical}
 
   async function save(){
     if(!sb){status('Database connection unavailable.');return}
+    if(saveBusy)return;
     const ratio=[Number($('#r0')?.value||0),Number($('#r1')?.value||0),Number($('#r2')?.value||0)];
     if(ratio.reduce((a,b)=>a+b,0)!==100){status('Ratio must total 100.');return}
     const hs=['#h0','#h1','#h2'].map(s=>$(s)?.value||'');
@@ -607,9 +629,8 @@ textarea{min-height:76px;resize:vertical}
     if(jf.length!==4){status('Join First must contain exactly 4 hero names.');return}
     const generation=Number($('#generation')?.value||0);
     if(generation!==activeGeneration){status(`Only Gen ${activeGeneration} is currently unlocked.`);return}
-    const mode=$('#mode')?.value||'attack';
-    const rule_key=`manual_${mode}_${Date.now()}`;
-    status('Saving…');
+    const mode=$('#mode')?.value||'attack',rule_key=`manual_${mode}_${Date.now()}`,button=$('#save');
+    saveBusy=true;if(button){button.disabled=true;button.textContent='Saving…'}status('Saving…');
     try{
       const {error}=await sb.from('nexa_battle_meta_rules').insert({
         generation,event_scope:'pvp_rally',mode,rule_key,leader_heroes:hs,primary_ratio:ratio,
@@ -621,10 +642,13 @@ textarea{min-height:76px;resize:vertical}
       });
       if(error){status(error.message);return}
       $('#modal')?.classList.remove('open');
+      status('Formation saved.');
       await load();
     }catch(err){
       console.error('[NEXA Formations] save failed',err);
       status('Could not save this formation.');
+    }finally{
+      saveBusy=false;if(button){button.disabled=false;button.textContent='Add Approved Formation'}
     }
   }
 

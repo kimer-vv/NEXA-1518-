@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • Formations</title>
 
-<!-- NEXA FORMATIONS V1.11 • Rally-fit Top 4 synergy + source-free visible reasoning + visual current-generation hero picker -->
+<!-- NEXA FORMATIONS V1.12 • simplified Top 4 + backup pool + formation rationale -->
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -148,10 +148,6 @@ textarea{min-height:76px;resize:vertical}
 
       <label class="full">Backup Joiner Pool <span class="muted">comma separated</span>
         <input id="backup" placeholder="Hendrik, Gatot, Mia">
-      </label>
-
-      <label class="full">Top 4 Synergy & Stack
-        <textarea id="top4synergy" placeholder="Explain why these four joiner effects complement each other, how they fit the exact Rally Lead trio + troop ratio, what stacks, and what the combined package adds to this formation."></textarea>
       </label>
 
       <label class="full">Why this formation is good
@@ -484,15 +480,7 @@ textarea{min-height:76px;resize:vertical}
         ${joiners.length?chips(joiners):'<div class="muted" style="margin-top:6px">Pending vetted Top 4 joiners.</div>'}
 
         <div style="height:10px"></div>
-        <b>Top 4 Synergy & Stack</b>
-        <div class="muted" style="margin-top:6px">${esc(compactReason(top4SynergyText(ev),650))}</div>
-
-        <div style="height:10px"></div>
-        <b>Why each seat fits this Rally</b>
-        ${whyFirstFour(ev)}
-
-        <div style="height:10px"></div>
-        <b>Backup Joiner Pool</b>
+        <b>Alternative / Backup Joiner Pool</b>
         ${backups.length?chips(backups):'<div class="muted" style="margin-top:6px">No compatible backup buffs found in the unlocked Hero Library yet.</div>'}
 
         <div style="height:10px"></div>
@@ -502,10 +490,6 @@ textarea{min-height:76px;resize:vertical}
         ${rr?`<div style="height:10px"></div><b>Why this ratio</b><div class="muted">${esc(rr)}</div>`:''}
 
         ${risk?`<div style="height:10px"></div><b>Risk / Variables</b><div class="muted">${esc(risk)}</div>`:''}
-
-        <div style="height:10px"></div>
-        <b>Evidence</b>
-        <div class="muted">${conf}% confidence • ${indep} independent source group${indep===1?'':'s'} • ${sources} source${sources===1?'':'s'}</div>
 
         ${!approved?`<div class="actions"><button type="button" class="btn primary approve" data-id="${esc(r.id)}">Add / Approve</button></div>`:''}
       </div>
@@ -666,7 +650,7 @@ textarea{min-height:76px;resize:vertical}
         generation,event_scope:'pvp_rally',mode,rule_key,leader_heroes:hs,primary_ratio:ratio,
         alternative_ratios:[],alternative_formations:[],joiner_primary:jf,joiner_alternatives:bp,backup_joiner_pool:bp,
         constraints:{max_generation:activeGeneration},confidence:1,evidence_status:'verified',
-        research_metadata:{top4_synergy:($('#top4synergy')?.value||'').trim()},
+        research_metadata:{},
         evidence_note:'Manual approved formation.',why_good:($('#why')?.value||'').trim(),risk_note:($('#risk')?.value||'').trim(),
         source_urls:[],source_count:0,independent_source_count:0,approval_status:'approved',is_active:true,is_manual:true,
         verified_at:new Date().toISOString()

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS STRATEGY V11.5.0 • Approved-only formation selector + ranked SBS candidates + visual hero pickers + editable Joiners + response quick-assign -->
+<!-- NEXA SVS STRATEGY V11.5.1 • Approved-only formations + ranked SBS candidates + visual hero pickers + editable Joiners + troop-quality PET routing -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -866,12 +866,13 @@ $('#toggle-test-sandbox').onclick=()=>{
 async function healLegacyPetScheduleIfNeeded(){
   if(!strategy||!window.NexaBattleStrategyEngine?.planSchedule)return false;
   const cfg=strategy.assist_config||{};
-  if(!cfg.active_alliance_count||cfg.pet_logic_version==='1.6')return false;
+  if(!cfg.active_alliance_count||cfg.pet_logic_version==='1.7')return false;
   if(!teams.length||!rally.length||!petRows.length)return false;
 
   const orderedAlliances=[...alliances].sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
   const teamsByAlliance=orderedAlliances.map(a=>Teams(a.id).slice().sort((x,y)=>Number(x.sort_order||0)-Number(y.sort_order||0)));
-  const teamCounts=teamsByAlliance.map(x=>x.length);
+  const scheduleTeamsByAlliance=petScheduleTeamsByQuality(teamsByAlliance,Math.max(0,orderedAlliances.findIndex(a=>String(a.alliance_id)===String(cfg.primary_alliance_id))));
+  const teamCounts=scheduleTeamsByAlliance.map(x=>x.length);
   if(!teamCounts.length)return false;
 
   const unique=new Map();
@@ -924,14 +925,14 @@ async function healLegacyPetScheduleIfNeeded(){
   }
 
   for(const a of plan.assignments){
-    const team=teamsByAlliance[a.allianceIndex]?.[a.teamIndex];
+    const team=scheduleTeamsByAlliance[a.allianceIndex]?.[a.teamIndex];
     if(!team||!a.lead)continue;
-    const safePet=purposeFor(a.allianceIndex,a.teamIndex)==='Handoff'?false:!!a.petsActive;
+    const pd=petQualityDecision(team,a.allianceIndex,a.teamIndex,!!a.petsActive);
 
     const rr=await sb.from('svs_strategy_rally_slots').insert({
       team_id:team.id,player_account_id:a.lead.id||null,
       player_name:a.lead.in_game_name||'Rally Lead',
-      start_utc:a.start,end_utc:a.end,pets_active:safePet,pet_status:safePet?'active':'none',
+      start_utc:a.start,end_utc:a.end,pets_active:pd.active,pet_status:pd.status,
       sort_order:Number(a.start.slice(0,2))
     });
     if(rr.error)throw rr.error;
@@ -941,14 +942,14 @@ async function healLegacyPetScheduleIfNeeded(){
       const pr=await sb.from('svs_pet_schedule_assignments').insert({
         row_id:row.id,player_account_id:a.lead.id||null,
         player_name:a.lead.in_game_name||'Rally Lead',
-        start_utc:a.start,end_utc:a.end,pets_active:safePet,
+        start_utc:a.start,end_utc:a.end,pets_active:pd.active,pet_status:pd.status,
         sort_order:Number(a.start.slice(0,2))
       });
       if(pr.error)throw pr.error;
     }
   }
 
-  const nextCfg={...cfg,pet_logic_version:'1.6'};
+  const nextCfg={...cfg,pet_logic_version:'1.7',pet_team_quality_route_version:'1.0'};
   const up=await sb.from('svs_strategies').update({assist_config:nextCfg}).eq('id',strategy.id);
   if(up.error)throw up.error;
   strategy.assist_config=nextCfg;
@@ -1363,6 +1364,24 @@ function petQualityDecision(team,ai,ti,requested){
  if(team?.pet_eligible===false||String(team?.troop_strength_tier||'C')==='C')return {active:false,status:'reserve'};
  return {active:true,status:'active'};
 }
+function petScheduleTeamsByQuality(teamRowsByAlliance,primaryIndex=0){
+ const score=t=>{
+   const troop=Number(t?.troop_strength_score||0),overall=Number(t?.team_strength_score||0);
+   const tier=String(t?.troop_strength_tier||'C').toUpperCase();
+   const tierBoost=tier==='S'?300:tier==='A'?200:tier==='B'?100:0;
+   return troop*1000+overall*100+tierBoost;
+ };
+ return (teamRowsByAlliance||[]).map((rows,ai)=>{
+   const list=[...(rows||[])];
+   if(ai===primaryIndex){
+     const garrison=list.find(t=>Number(t.sort_order||0)===0)||list[0]||null;
+     const handoff=list.find(t=>Number(t.sort_order||0)===1)||list[1]||null;
+     const counters=list.filter(t=>t!==garrison&&t!==handoff).sort((a,b)=>score(b)-score(a));
+     return [garrison,handoff,...counters].filter(Boolean);
+   }
+   return list.sort((a,b)=>score(b)-score(a));
+ });
+}
 async function runAssist(){
  const activeCount=Math.max(1,Number($('#assist-alliance-count').value)||1),primaryId=Number($('#assist-primary-alliance').value||0);
  if(!primaryId)return renderRecommendations(['<b>Select the Primary Castle Alliance first.</b>']);
@@ -1377,7 +1396,7 @@ async function runAssist(){
  const rlPool=testSandbox?decorateRallyPool(testRallyPool(rlCount)):liveRL,joinPool=testSandbox?testJoinerPool(joinerCount):liveJ;
  if(rlPool.length<activeCount)return renderRecommendations([`<b>Not enough Rally Leaders.</b> ${activeCount} active Alliances require at least ${activeCount} viable leads.`]);
  const teamTotal=chooseTeamCount(joinPool,rlPool,activeCount),teamCounts=distributeTeamCounts(teamTotal,activeCount);
- const config={active_alliance_count:activeCount,primary_alliance_id:primaryId,counter_alliance_ids:counterIds,test_sandbox:testSandbox,test_rally_leads:testSandbox?rlCount:null,test_joiners:testSandbox?joinerCount:null,recommended_team_counts:teamCounts,pet_logic_version:'1.6',team_quality_version:'1.0',pet_quality_gate_version:'1.0'};
+ const config={active_alliance_count:activeCount,primary_alliance_id:primaryId,counter_alliance_ids:counterIds,test_sandbox:testSandbox,test_rally_leads:testSandbox?rlCount:null,test_joiners:testSandbox?joinerCount:null,recommended_team_counts:teamCounts,pet_logic_version:'1.7',team_quality_version:'1.0',pet_quality_gate_version:'1.0',pet_team_quality_route_version:'1.0'};
  await sb.from('svs_strategies').update({primary_alliance_id:primaryId,assist_config:config}).eq('id',strategy.id);
  await clearCurrentDraft();await openStrategy(strategy.id);
  const saRows=[],teamRowsByAlliance=[];
@@ -1405,18 +1424,21 @@ async function runAssist(){
      const ins=await sb.from('svs_strategy_joiners').insert({team_id:a.team.id,player_account_id:x.id||null,player_name:x.in_game_name,sort_order:j,join_first:j<4,attack_a_hero_id:aa?.id||null,attack_b_hero_id:ab?.id||null,defense_a_hero_id:da?.id||null,defense_b_hero_id:db?.id||null});if(ins.error)throw ins.error;
    }
  }
+ // PET routing layer: preserve Main T1 + Handoff positions, then rank every Counter lane by real SBS troop/team strength.
+ // Engine v2.1 still owns exact 2-hour windows and opening/middle/closing staggering; this ordering makes those PET windows land on the strongest eligible Teams first.
+ const scheduleTeamsByAlliance=petScheduleTeamsByQuality(teamRowsByAlliance,0);
  // Shared NEXA battle scheduler: uses only as many RLs as the strategy actually needs.
  if(!window.NexaBattleStrategyEngine?.planSchedule){
    throw new Error('NEXA Battle Strategy Engine did not load. Refresh after uploading engine v1.5.');
  }
  const plan=window.NexaBattleStrategyEngine.planSchedule({
-   rallyLeads:rlPool,teamCounts:teamRowsByAlliance.map(x=>x.length),primaryIndex:0,
+   rallyLeads:rlPool,teamCounts:scheduleTeamsByAlliance.map(x=>x.length),primaryIndex:0,
    startHour:12,endHour:17,primaryTeam1PetRequired:true
  });
  const scheduleAssignments=plan?.assignments||[],floatingRL=plan?.floating||[],activeRL=plan?.active||[];
  if(!scheduleAssignments.length&&rlPool.length)throw new Error('NEXA could not create Rally Leader assignments. Regenerate after engine reload.');
  for(const a of scheduleAssignments){
-   const team=teamRowsByAlliance[a.allianceIndex]?.[a.teamIndex];if(!team||!a.lead)continue;
+   const team=scheduleTeamsByAlliance[a.allianceIndex]?.[a.teamIndex];if(!team||!a.lead)continue;
    const pd=petQualityDecision(team,a.allianceIndex,a.teamIndex,!!a.petsActive);
    await sb.from('svs_strategy_rally_slots').insert({
      team_id:team.id,player_account_id:a.lead.id||null,player_name:a.lead.in_game_name,
@@ -1428,14 +1450,15 @@ async function runAssist(){
  const tacticalPurpose=(ai,ti)=>{if(ai===0&&ti===0)return'Garrison';if(ai===0&&ti===1)return'Handoff';return'Counter'};
  for(let ai=0;ai<teamRowsByAlliance.length;ai++){
    for(let ti=0;ti<(teamRowsByAlliance[ai]||[]).length;ti++){
-     const t=teamRowsByAlliance[ai][ti],tag=saRows[ai]?.alliance_tag||`Alliance ${ai+1}`,key=`${ai}:${ti}`,purpose=tacticalPurpose(ai,ti);
+     const t=teamRowsByAlliance[ai][ti],tag=saRows[ai]?.alliance_tag||`Alliance ${ai+1}`,purpose=tacticalPurpose(ai,ti);
      const row=await sb.from('svs_pet_schedule_rows').insert({strategy_id:strategy.id,strategy_alliance_id:saRows[ai].id,source_team_id:t.id,purpose,slot_label:`${tag} T${ti+1}`,sort_order:ai*10+ti}).select().single();
-     if(row.error)return say(row.error.message,true);petRowMap.set(key,row.data.id);
+     if(row.error)return say(row.error.message,true);petRowMap.set(String(t.id),row.data.id);
    }
  }
  for(const x of scheduleAssignments){
-   const rowId=petRowMap.get(`${x.allianceIndex}:${x.teamIndex}`);if(!rowId)continue;
-   const team=teamRowsByAlliance[x.allianceIndex]?.[x.teamIndex],pd=petQualityDecision(team,x.allianceIndex,x.teamIndex,!!x.petsActive);
+   const team=scheduleTeamsByAlliance[x.allianceIndex]?.[x.teamIndex];if(!team)continue;
+   const rowId=petRowMap.get(String(team.id));if(!rowId)continue;
+   const pd=petQualityDecision(team,x.allianceIndex,x.teamIndex,!!x.petsActive);
    const ins=await sb.from('svs_pet_schedule_assignments').insert({row_id:rowId,player_account_id:x.lead.id||null,player_name:x.lead.in_game_name,start_utc:x.start,end_utc:x.end,pets_active:pd.active,pet_status:pd.status,sort_order:Number(x.start.slice(0,2))});
    if(ins.error)return say(ins.error.message,true);
  }
@@ -1465,7 +1488,7 @@ async function runAssist(){
    `<b>Structure:</b> ${saRows.map((a,i)=>`${a.alliance_tag}: ${teamRowsByAlliance[i]?.length||0} Team${(teamRowsByAlliance[i]?.length||0)===1?'':'s'}`).join(' • ')}.`,
    `<b>Coverage:</b> ${plan?.coverage?.every(x=>x.complete)?'all generated Teams are covered 12:00–17:00. Garrison receives priority PET coverage when roster depth allows; Handoff receives none; Counter PET windows move dynamically wherever coverage is most useful.':'NEXA detected a coverage limitation; review the schedule before publishing.'}`,
    `<b>Rally Leads:</b> ${rlPool.length} available • ${activeRL.length} used • ${floatingRL.length} floating/reserve${floatingRL.length?' (protected from forced PET use)':''}.`,
-   `<b>PET Distribution:</b> opening and closing reserve maxed/almost-maxed strength when possible. Middle windows stagger strong/near-strong reliefs so expiring buffs do not leave a power gap. Counter PETS are not tied to a fixed Team number.}`,
+   `<b>PET Distribution:</b> Main T1 keeps continuous priority coverage. Handoff is excluded. Counter PET windows are routed by SBS troop/team strength (S → A → B), staggered across the strongest Teams for opening, middle relief and closing. C-only lanes are Reserve PET only.`,
    `<b>Capacity:</b> active Teams are limited by Rally Capacity + Joiner Deployment Capacity. Extra rally-capable players may remain floating or be used as Joiners.`,
    `<b>Join First:</b> optimized after Rally Lead formations. A follows Main formation; B follows Alt formation when present, otherwise B is the best owned backup/interchangeable hero from the same optimized pool.`
  ]);

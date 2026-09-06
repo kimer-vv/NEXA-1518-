@@ -1,4 +1,4 @@
-// NEXA Brain Research v1.6 — four vetted joiner slots + skill-effect reasoning + multi-variant Suggested
+// NEXA Brain Research v1.7 — Top 4 joiner synergy/stack research + multi-variant Suggested
 // Vercel env required: OPENAI_API_KEY, SUPABASE_SERVICE_ROLE_KEY, CRON_SECRET
 const SB='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const MODEL=process.env.NEXA_RESEARCH_MODEL||'gpt-5.6-terra';
@@ -195,7 +195,7 @@ Hard rules:
 - If a source says a ratio should preserve Lancer presence or another troop-class requirement, explain WHY only when the underlying mechanic is actually corroborated.
 - If 40/10/50, 50/0/50, 50/10/40, or any other ratio is independently supported, do NOT hide it inside the explanation of another formation. Return it as its own formation object if it reaches the 60% review threshold.
 - Likewise, if a different trio such as Gregory/Freya/Xura is supported at 60%+, return it as its own formation object. Never mention another hero trio as a hidden recommendation inside a different card.
-- Each formation's why_good, ratio_reasoning, joiner explanations, and risk_note must discuss ONLY that formation.
+- Each formation's why_good, ratio_reasoning, joiner explanations, top4_synergy, and risk_note must discuss ONLY that formation.
 - Confidence 0.72+ with >=3 independent groups and >=3 sources can be Corroborated.
 - Confidence 0.60-0.719 with >=2 independent groups and >=2 sources is a Promising human-review candidate.
 - Below 0.60 is not a Suggested formation and should not be returned.
@@ -203,10 +203,14 @@ Hard rules:
 - Ratios must total exactly 100.
 - Do not fabricate sources, hero names, skills, mechanics, ratios, evidence, or conclusions.
 
-Join First rules:
-- Return exactly four Join First slots whenever four can be corroborated.
-- Intentional duplicates are allowed and must be preserved if evidence supports the duplicated hero in multiple join slots.
-- For every unique First-4 hero, explain what buff/mechanic it contributes and why that contribution complements THIS rally.
+Join First / Top 4 Stack rules:
+- Return exactly four Top 4 Joiner slots whenever four can be corroborated.
+- Treat the four slots as ONE synergy/stack package, not as four individually ranked skills.
+- Intentional duplicates are allowed and must be preserved when the duplicate effect is useful in separate join seats and is corroborated.
+- Select the Top 4 by how their joiner effects complement each other, what can stack or coexist, and how the combined package supports THIS exact Rally Lead trio + troop ratio.
+- Do NOT choose or rank the Top 4 merely because four heroes have individually strong skills/buffs.
+- For every unique Top-4 hero, identify the actual joiner effect it contributes, but visible reasoning must emphasize its ROLE IN THE COMBINED STACK.
+- Return one concise formation-level field named top4_synergy explaining: (a) why these four belong together, (b) what effects complement or stack, (c) what the combined package adds to this exact formation, and (d) any important stacking limitation or non-stacking interaction when corroborated.
 - A legacy hero is not valid merely because it was historically popular.
 - A primary or backup joiner must be tied to CURRENT Gen ${generation} rally use through at least 2 independent evidence groups and 2 source URLs.
 - generation_relevance must use:
@@ -217,16 +221,15 @@ Join First rules:
 
 Backup Joiner Pool rules:
 - Backups are emergency substitutes, not random filler.
-- They may include heroes also represented in the First 4 if a duplicated/interchangeable slot is genuinely useful.
+- They may include heroes also represented in the Top 4 if a duplicated/interchangeable slot is genuinely useful.
 - They may also include other current-generation-relevant joiners that preserve a useful buff family or add a compatible buff.
 - joiner_primary MUST contain exactly 4 joiner slots for every returned formation.
-- PRESERVE intentional duplicates exactly. If the supported First 4 are Norah / Norah / Hendrik / Patrick, return ["Norah","Norah","Hendrik","Patrick"]. Never deduplicate First-4 slots.
-- For EVERY First-4 hero, identify its FIRST EXPEDITION SKILL used as a rally joiner, the actual buff/debuff/combat effect of that skill, and WHY that effect helps THIS exact hero trio + troop ratio.
+- PRESERVE intentional duplicates exactly. If the supported Top 4 are Norah / Norah / Hendrik / Patrick, return ["Norah","Norah","Hendrik","Patrick"]. Never deduplicate Top-4 slots.
+- For EVERY Top-4 hero, identify its FIRST EXPEDITION SKILL used as a rally joiner, the actual buff/debuff/combat effect of that skill, and WHY that effect helps the COMBINED Top-4 stack for THIS exact hero trio + troop ratio.
 - Never treat a hero appearing in the Rally Lead trio as proof that the same hero is a good joiner. Rally-leader value and joiner value are separate; every joiner seat must be independently corroborated through that hero's first Expedition skill.
-- The joiner "why" text must be mechanic-first. Do NOT mention source names, guide names, creators, websites, tables, or phrases such as "X source lists/recommends/supports". Provenance belongs only in sources/source_urls metadata.
-- Example style: "Hendrik lowers enemy Defense, helping the rally convert its existing damage/lethality into more effective damage against the target." Use only corroborated mechanics; do not invent skill behavior.
-- Duplicate First-4 heroes may reuse the same corroborated mechanical explanation, because they occupy separate buff seats.
-- For each backup, say which First-4 role/hero it can replace (or "flex"), what buff/effect it preserves or adds, and why that matters to THIS formation.
+- The joiner "why" text must be mechanic-first and synergy-aware. Do NOT mention source names, guide names, creators, websites, tables, or phrases such as "X source lists/recommends/supports". Provenance belongs only in sources/source_urls metadata.
+- Duplicate Top-4 heroes may reuse the same corroborated mechanical explanation when they occupy separate buff seats, but top4_synergy must explain why the duplicate is useful in the combined package.
+- For each backup, say which Top-4 role/hero it can replace (or "flex"), what buff/effect it preserves or adds, and why that matters to THIS formation.
 - Backup explanations must also be mechanic-first and must not cite source names in the visible reasoning.
 - If no backup is corroborated, return an empty pool. Never fill it just to make the card look complete.
 
@@ -243,6 +246,7 @@ Return ONLY valid JSON:
    "ratio_reasoning":"brief explanation of why this exact troop split matters; only corroborated mechanics",
    "risk_note":"uncertainty, counters, investment variables, or matchup limitations for THIS formation only",
    "joiner_primary":["hero","hero","hero","hero"],
+   "top4_synergy":"formation-level explanation of why these four joiner effects complement/stack together and what the combined package adds to this exact rally",
    "backup_joiner_pool":["hero","..."],
    "joiner_evidence":[
      {
@@ -253,7 +257,7 @@ Return ONLY valid JSON:
        "source_urls":["https://...","https://..."],
        "skill_name":"name of the hero's first Expedition skill used when joining",
        "buff_effect":"plain-language effect of that first Expedition skill, including percentage/value when corroborated",
-       "why":"mechanic-first explanation of why that exact effect benefits THIS exact formation; no source names",
+       "why":"mechanic-first explanation of this hero's role inside the combined Top-4 stack for THIS exact formation; no source names",
        "replaces":"for backup only: hero name, buff role, or flex"
      }
    ],
@@ -316,7 +320,7 @@ Return ONLY valid JSON:
 
       const confidence=Math.max(0,Math.min(1,Number(f.confidence||0)));
       const rawPrimary=(f.joiner_primary||[]).map(x=>String(x||'').trim()).filter(Boolean).slice(0,4);
-      // Every Suggested formation must be operationally reviewable: four explicit First-4 slots.
+      // Every Suggested formation must be operationally reviewable: four explicit Top-4 slots.
       // Intentional duplicates are valid and preserved.
       if(rawPrimary.length!==4)continue;
 
@@ -336,7 +340,7 @@ Return ONLY valid JSON:
       const joinerEvidence=Array.isArray(f.joiner_evidence)?f.joiner_evidence:[];
       const vettedPrimary=vettedPrimaryJoiners(rawPrimary,joinerEvidence);
       const vettedBackup=vettedBackupJoiners(f.backup_joiner_pool||[],joinerEvidence);
-      // Suggested must be operationally reviewable: four vetted First-4 seats.
+      // Suggested must be operationally reviewable: four vetted Top-4 seats.
       // Intentional duplicate seats count separately and must survive.
       if(vettedPrimary.length!==4)continue;
 
@@ -377,6 +381,7 @@ Return ONLY valid JSON:
           raw_joiner_primary:rawPrimary,
           raw_backup_joiner_pool:f.backup_joiner_pool||[],
           ratio_reasoning:f.ratio_reasoning||'',
+          top4_synergy:f.top4_synergy||'',
           joiner_evidence:joinerEvidence,
           vetted_joiner_primary:vettedPrimary,
           vetted_backup_joiner_pool:vettedBackup,
@@ -384,6 +389,7 @@ Return ONLY valid JSON:
             min_independent_groups:2,
             min_source_urls:2,
             preserving_primary_duplicates:true,
+            selection_basis:'combined_synergy_and_stack',
             allowed_generation_relevance:[
               'tested_with_current_generation',
               'explicitly_recommended_for_current_generation'

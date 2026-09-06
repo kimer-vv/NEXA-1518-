@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS STRATEGY V11.5.1 • Approved-only formations + ranked SBS candidates + visual hero pickers + editable Joiners + troop-quality PET routing -->
+<!-- NEXA SVS STRATEGY V11.5.2 • inline Joiner assignment + instant Approved close + active PET rotation + surplus RL reserves -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -298,6 +298,16 @@ body.pet-preview-open{overflow:hidden!important}
 .global-formation-note{font-size:8.5px;line-height:1.25;color:#8f9bbb;margin:-3px 0 7px;text-transform:none;letter-spacing:.015em}
 @media(max-width:620px){.visual-hero-grid{grid-template-columns:1fr 1fr}.hero-choice-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hero-picker-btn{min-height:66px;padding:6px}.hero-picker-btn img{width:42px;height:42px}}
 
+/* V11.5.2 — inline SBS assignment + surplus PET reserve roster */
+.inline-picker-overlay{position:fixed;inset:0;z-index:2147483550;display:grid;place-items:center;background:rgba(0,0,0,.80);padding:14px}
+.inline-picker-card{width:min(650px,100%);max-height:90dvh;overflow:auto;-webkit-overflow-scrolling:touch;border:1px solid rgba(72,221,255,.30);border-radius:22px;background:linear-gradient(180deg,#091126,#050916);padding:13px;box-shadow:0 30px 90px rgba(0,0,0,.55)}
+.inline-picker-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}.inline-picker-head h3{margin:0}.inline-picker-head .mini-x{flex:0 0 auto}
+.candidate-inline-editor{display:none;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.10)}
+.candidate-card.expanded{border-color:rgba(155,120,255,.82);box-shadow:0 0 18px rgba(139,89,255,.20);background:rgba(100,67,180,.14)}
+.candidate-card.expanded .candidate-inline-editor{display:block}.inline-assignment-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.inline-warning{margin:8px 0;border:1px solid rgba(255,199,91,.34);background:rgba(93,58,6,.18);border-radius:11px;padding:8px;color:#ffd98e;font-size:10px;font-weight:850;line-height:1.4}.inline-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.inline-actions .btn{width:100%}
+.response-test-banner{margin:0 0 9px;border:1px solid rgba(155,120,255,.30);border-radius:12px;padding:8px;color:#d8ccff;background:rgba(112,70,196,.10);font-size:10px;font-weight:850}
+@media(max-width:620px){.inline-assignment-grid{grid-template-columns:1fr 1fr}}
+
 </style>
 <script src="nexa-battle-strategy-engine.js?v=2.1"></script>
 <script src="nexa-svs-rules.js?v=2.0"></script>
@@ -413,7 +423,7 @@ body.pet-preview-open{overflow:hidden!important}
     <div class="guide-page active" data-guide="0"><h4>Workspace & Mobile View</h4><p>Strategy Board is your editable Team Builder. On mobile, Team cards move sideways so they stay readable. Swipe left/right to inspect every Team. Desktop can show much more at once. Use Team Layout for the complete final sheet.</p></div>
     <div class="guide-page" data-guide="1"><h4>NEXA Assist & Manual Mode</h4><p>Live Auto Generate uses Battle Roles + Responses + Profile/Inventory automatically. Only Test Sandbox asks for Rally Leader and Joiner counts. NEXA decides how many sustainable Teams the roster can actually fill. Manual Build leaves every assignment to you and NEXA reviews it when you press Done.</p></div>
     <div class="guide-page" data-guide="2"><h4>Rally Leaders, Joiners & Heroes</h4><p>Rally Leaders come from one finite global pool. They may rotate between Alliances only when time blocks do not overlap. PETS use one continuous 2-hour window on whole-hour boundaries. Joiners remain fixed unless you move them; duplicate assignments trigger a warning. Every Rally Leader and Joiner can be removed individually.</p></div>
-    <div class="guide-page" data-guide="3"><h4>Pet Schedule & Formations</h4><p>PETS are scheduled by Rally Lead strength, Team troop tier, coverage gaps, alliance purpose and time. Primary Team 1 is Garrison priority; Primary Team 2 is Handoff and normally receives no PETS. Counter PET carriers rotate across Troop Tier S/A/B Teams with strong opening/closing coverage and staggered middle relief. C-only windows become ◇ Reserve PET. NEXA preserves the evidence-backed First 4 and uses vetted emergency backups when available.</p></div>
+    <div class="guide-page" data-guide="3"><h4>Pet Schedule & Formations</h4><p>PETS are scheduled by Rally Lead strength, Team troop tier, coverage gaps, alliance purpose and time. Primary Team 1 is Garrison priority; Primary Team 2 is Handoff and normally receives no PETS. Counter PET carriers rotate across the strongest Teams first, with strong opening/closing coverage and staggered middle relief. Rally Leads not needed in the active rotation remain visible as ◇ Reserve PET options. NEXA preserves the evidence-backed First 4 and uses vetted emergency backups when available.</p></div>
     <div class="guide-page" data-guide="4"><h4>Team Layout, Preview & Download</h4><p>Team Layout is the final-sheet preview. Rally Lead Attack/Defense formations keep hero portraits and ratios at the top. Joiner rows intentionally show names only so the text can be larger and cleaner. Preview and Download use the same layout.</p></div>
     <div class="guide-count"><span id="guide-page-label">1 / 5</span></div>
     <div class="nexa-modal-actions"><button id="guide-prev" class="btn" type="button">‹ Previous</button><button id="guide-next" class="btn violet" type="button">Next ›</button></div>
@@ -860,13 +870,14 @@ $('#toggle-test-sandbox').onclick=()=>{
  $('#toggle-test-sandbox').classList.toggle('sandbox-on',testSandbox);
  $('#test-sandbox-controls').style.display=testSandbox?'block':'none';
  renderRecommendations([testSandbox?'<b>Test Sandbox active.</b> Live Responses and player assignments remain untouched.':'<b>Live mode active.</b> NEXA will use Responses, Battle Roles and saved player profiles.']);
+ loadResponses();
 };
 
 
 async function healLegacyPetScheduleIfNeeded(){
   if(!strategy||!window.NexaBattleStrategyEngine?.planSchedule)return false;
   const cfg=strategy.assist_config||{};
-  if(!cfg.active_alliance_count||cfg.pet_logic_version==='1.7')return false;
+  if(!cfg.active_alliance_count||cfg.pet_logic_version==='1.7'||cfg.pet_logic_version==='1.8')return false;
   if(!teams.length||!rally.length||!petRows.length)return false;
 
   const orderedAlliances=[...alliances].sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
@@ -949,7 +960,7 @@ async function healLegacyPetScheduleIfNeeded(){
     }
   }
 
-  const nextCfg={...cfg,pet_logic_version:'1.7',pet_team_quality_route_version:'1.0'};
+  const nextCfg={...cfg,pet_logic_version:'1.8',pet_team_quality_route_version:'1.1',pet_reserve_roster_version:'1.0'};
   const up=await sb.from('svs_strategies').update({assist_config:nextCfg}).eq('id',strategy.id);
   if(up.error)throw up.error;
   strategy.assist_config=nextCfg;
@@ -992,7 +1003,10 @@ async function loadResponses(){
  if(error){$('#responses-list').textContent='Responses could not be loaded.';return}
  responses=data||[];const ids=[...new Set(responses.map(x=>x.player_account_id).filter(Boolean))];responsePlayers={};
  if(ids.length){const p=await sb.from('player_accounts').select('id,in_game_name,player_id,alliance_id,battle_role,deployment_capacity,rally_capacity,power').in('id',ids);(p.data||[]).forEach(x=>responsePlayers[x.id]=x)}
- $('#responses-list').innerHTML=responses.length?`<div class="response-card-list">${responses.map(r=>{const p=responsePlayers[r.player_account_id]||playerPool.find(x=>String(x.id)===String(r.player_account_id))||{},role=r.role||p.battle_role||'Unassigned',live=playerPool.find(x=>String(x.id)===String(r.player_account_id))||p,hasTq=!!(r.troop_quality&&typeof r.troop_quality==='object'&&Object.keys(r.troop_quality).length),assigned=assignedLabel(live,role);return `<article class="response-card"><div class="candidate-main"><div><b>${esc(p.in_game_name||'Player')}</b><div class="tiny muted">ID ${esc(p.player_id||'—')} • ${esc(playerAllianceLabel(p))}</div></div><span class="candidate-tier">${esc(role==='rally_lead'?'RL':hasTq?troopQualityProfile(live).tier:'—')}</span></div><div class="tiny">${hasTq?esc(troopSummary(live)):'Troop quality not submitted'}</div><div class="tiny muted" style="margin-top:5px">${esc(role)} • Deployment ${Number(r.deployment_capacity||p.deployment_capacity||0).toLocaleString()}${assigned?` • ${esc(assigned)}`:' • Unassigned'}</div><button class="btn response-assign" data-response-player="${esc(String(r.player_account_id||''))}" data-response-role="${esc(role)}" type="button">Assign to Strategy</button></article>`}).join('')}</div>`:'No SvS responses yet.';
+ const realCards=responses.map(r=>{const p=responsePlayers[r.player_account_id]||playerPool.find(x=>String(x.id)===String(r.player_account_id))||{},role=r.role||p.battle_role||'Unassigned',live=playerPool.find(x=>String(x.id)===String(r.player_account_id))||p,hasTq=!!(r.troop_quality&&typeof r.troop_quality==='object'&&Object.keys(r.troop_quality).length),assigned=assignedLabel(live,role);return `<article class="response-card"><div class="candidate-main"><div><b>${esc(p.in_game_name||'Player')}</b><div class="tiny muted">ID ${esc(p.player_id||'—')} • ${esc(playerAllianceLabel(p))}</div></div><span class="candidate-tier">${esc(role==='rally_lead'?'RL':hasTq?troopQualityProfile(live).tier:'—')}</span></div><div class="tiny">${hasTq?esc(troopSummary(live)):'Troop quality not submitted'}</div><div class="tiny muted" style="margin-top:5px">${esc(role)} • Deployment ${Number(r.deployment_capacity||p.deployment_capacity||0).toLocaleString()}${assigned?` • ${esc(assigned)}`:' • Unassigned'}</div><button class="btn response-assign" data-response-player="${esc(String(r.player_account_id||''))}" data-response-role="${esc(role)}" type="button">Assign to Strategy</button></article>`}).join('');
+ const demoCards=testSandbox?`<div class="response-test-banner">TEST SANDBOX • these cards are visual demos only and do not create Battle Responses.</div><article class="response-card"><div class="candidate-main"><div><b>TEST • Joiner Demo</b><div class="tiny muted">ID TEST-J01 • Sandbox</div></div><span class="candidate-tier">A</span></div><div class="tiny">INF T12 S3 • LAN T12 S2 • MAR T11</div><div class="tiny muted" style="margin-top:5px">joiner • Deployment 285,000 • Unassigned</div><button class="btn response-assign" data-response-player="test:Joiner Demo" data-response-role="joiner" type="button">Assign to Strategy</button></article><article class="response-card"><div class="candidate-main"><div><b>TEST • Rally Lead Demo</b><div class="tiny muted">ID TEST-RL01 • Sandbox</div></div><span class="candidate-tier">ALMOST MAX</span></div><div class="tiny">INF T12 S3 • LAN T12 S3 • MAR T12 S2</div><div class="tiny muted" style="margin-top:5px">rally_lead • RL Score 89 • Rally 2,450,000 • Deploy 310,000</div><button class="btn response-assign" data-response-player="test:Rally Lead Demo" data-response-role="rally_lead" type="button">Assign to Strategy</button></article>`:'';
+ const cards=demoCards+realCards;
+ $('#responses-list').innerHTML=cards?`<div class="response-card-list">${cards}</div>`:'No SvS responses yet.';
  $$('.response-assign',$('#responses-list')).forEach(b=>b.onclick=()=>quickAssignResponse(b.dataset.responsePlayer,b.dataset.responseRole));
 }
 $('#refresh-responses').onclick=loadResponses;
@@ -1106,7 +1120,9 @@ async function selectApprovedFormation(aid,type){
    const x=resolved.find(v=>String(v.rule.id)===String(id));if(!x)return false;if(ruleAlreadySelected(aid,type,x)){say('That Approved formation is already selected for this Alliance.',true);return false}
    const name=list.length?`Alt ${type==='attack'?'Attack':'Defense'}${list.length>1?` ${list.length}`:''}`:`Main ${type==='attack'?'Attack':'Defense'}`;
    const {error}=await sb.from('svs_rally_formations').insert({strategy_alliance_id:aid,formation_type:type,name,ratio:x.ratio,hero_infantry_id:x.infantry?.id||null,hero_lancer_id:x.lancer?.id||null,hero_marksman_id:x.marksman?.id||null,is_recommended:list.length===0,sort_order:list.length});if(error)throw error;
+   ov.remove();
    await openStrategy(strategy.id);try{await reoptimizeJoinersForCurrentFormations();await openStrategy(strategy.id)}catch(e){say(e?.message||String(e),true)}
+   return false;
  });
 }
 async function deleteFormation(id){if(!confirm('Delete this formation preset?'))return;const {error}=await sb.from('svs_rally_formations').delete().eq('id',id);if(error)return say(error.message,true);await openStrategy(strategy.id)}
@@ -1136,10 +1152,36 @@ function openRallyEditor(tid,p){
  });
  const petsSel=$('#m-rally-pets',ov),startSel=$('#m-rally-start',ov),endSel=$('#m-rally-end',ov),sync=()=>{if(petsSel.value==='yes'){endSel.value=timeFromMinutes(minutesOf(startSel.value)+120);endSel.disabled=true}else endSel.disabled=false};petsSel.onchange=sync;startSel.onchange=sync;
 }
+function openInlineRallyPicker(originTid){
+ const pool=rallyCandidatePool();if(!pool.length)return say('No Rally Leader candidates are available.',true);
+ const originTeam=teamForAssignment(originTid),originAlliance=originTeam&&A(originTeam.strategy_alliance_id);
+ const ov=document.createElement('div');ov.className='inline-picker-overlay';
+ ov.innerHTML=`<div class="inline-picker-card"><div class="inline-picker-head"><div><h3>Add Rally Leader</h3><div class="select-note">Tap a Rally Lead card. Team, time, PETS and Save/Cancel open directly under that player.</div></div><button class="mini-x" data-inline-close type="button">×</button></div><div class="candidate-list">${pool.map((p,i)=>{const val=p._pickValue||p.id,assigned=assignedLabel(p,'rally_lead'),warn=assigned?`<div class="inline-warning">${esc(assigned)}. If the selected time overlaps another assignment, NEXA will ask before moving that conflicting slot.</div>`:'',key=`rp-${i}`;return `<div class="candidate-card" data-inline-rally="${esc(String(val))}" data-inline-key="${key}">${rallyCandidateCard(p).replace(/^<label class="candidate-card"><input[^>]+>/,'').replace(/<\/label>$/,'')}<div class="candidate-inline-editor" data-inline-editor>${warn}<div class="inline-assignment-grid"><label>Alliance<select data-inline-alliance>${alliances.map(a=>`<option value="${a.id}" ${String(a.id)===String(originAlliance?.id)?'selected':''}>${esc(a.alliance_tag)}</option>`).join('')}</select></label><label>Team<select data-inline-team>${originAlliance?inlineTeamOptions(originAlliance.id,originTid):''}</select></label><label>Start<select data-inline-start>${timeOptions('12:00')}</select></label><label>End<select data-inline-end>${timeOptions('14:00')}</select></label></div><label style="margin-top:9px">PETS<select data-inline-pets><option value="no">No</option><option value="yes">Yes — continuous 2 hours</option></select></label><div class="inline-actions"><button class="btn" data-inline-cancel type="button">Cancel</button><button class="btn violet" data-inline-save type="button">Save</button></div></div></div>`}).join('')}</div></div>`;
+ document.body.appendChild(ov);$('[data-inline-close]',ov).onclick=()=>ov.remove();
+ $$('[data-inline-rally]',ov).forEach(card=>card.onclick=e=>{
+   if(e.target.closest('button,select,input'))return;
+   $$('[data-inline-rally]',ov).forEach(x=>x.classList.toggle('expanded',x===card));
+   const p=selectedPlayer(card.dataset.inlineRally);if(!p)return;
+   const editor=$('[data-inline-editor]',card),allianceSel=$('[data-inline-alliance]',editor),teamSel=$('[data-inline-team]',editor),startSel=$('[data-inline-start]',editor),endSel=$('[data-inline-end]',editor),petsSel=$('[data-inline-pets]',editor);
+   const setTeamOptions=()=>{teamSel.innerHTML=inlineTeamOptions(allianceSel.value,teamSel.value)||'<option value="">No Teams</option>'};allianceSel.onchange=()=>{teamSel.value='';setTeamOptions()};setTeamOptions();
+   const sync=()=>{if(petsSel.value==='yes'){endSel.value=timeFromMinutes(minutesOf(startSel.value)+120);endSel.disabled=true}else endSel.disabled=false};petsSel.onchange=sync;startSel.onchange=sync;
+   $('[data-inline-cancel]',editor).onclick=ev=>{ev.stopPropagation();card.classList.remove('expanded')};
+   $('[data-inline-save]',editor).onclick=async ev=>{ev.stopPropagation();const save=ev.currentTarget;if(save.disabled)return;save.disabled=true;
+     try{
+       const tid=teamSel.value;if(!tid){say('Select a Team.',true);save.disabled=false;return}
+       let st=startSel.value,en=endSel.value,pets=petsSel.value==='yes';if(pets)en=timeFromMinutes(minutesOf(st)+120);if(en<=st){say('End time must be after Start.',true);save.disabled=false;return}
+       const conflicts=rally.filter(r=>(p.id?String(r.player_account_id)===String(p.id):String(r.player_name).toLowerCase()===p.in_game_name.toLowerCase())&&overlaps(st,en,r.start_utc,r.end_utc));
+       if(conflicts.length){const c=conflicts[0];if(!confirm(`${p.in_game_name} is already assigned to ${teamLabel(c.team_id)} at ${c.start_utc}–${c.end_utc} UTC. Move the conflicting slot here?`)){save.disabled=false;return}for(const x of conflicts){const {error}=await sb.from('svs_strategy_rally_slots').delete().eq('id',x.id);if(error)throw error}}
+       if(pets){const oldPet=rally.find(r=>r.pets_active&&(p.id?String(r.player_account_id)===String(p.id):String(r.player_name).toLowerCase()===p.in_game_name.toLowerCase()));if(oldPet){say(`${p.in_game_name} already has a PETS window (${oldPet.start_utc}–${oldPet.end_utc}).`,true);save.disabled=false;return}}
+       const {error}=await sb.from('svs_strategy_rally_slots').insert({team_id:tid,player_account_id:p.id||null,player_name:p.in_game_name,start_utc:st,end_utc:en,pets_active:pets,pet_status:pets?'active':'none',sort_order:Rally(tid).length});if(error)throw error;
+       ov.remove();await openStrategy(strategy.id);say('Rally Leader assigned.');
+     }catch(err){say(err?.message||String(err),true);save.disabled=false}
+   };
+ });
+}
 async function addRally(tid,preselectedId=''){
  if(preselectedId){const p=rallyCandidatePool().find(x=>String(x.id)===String(preselectedId))||selectedPlayer(preselectedId);if(!p)return say('Rally Leader not found.',true);return openRallyEditor(tid,p)}
- const pool=rallyCandidatePool();if(!pool.length)return say('No Rally Leader candidates are available.',true);
- modal('Add Rally Leader',`<div class="select-note">Ranked strongest → weakest by NEXA Rally Lead composite.</div><div class="candidate-list">${pool.map(rallyCandidateCard).join('')}</div>`,async ov=>{const val=$('input[name="rally-candidate"]:checked',ov)?.value;if(!val){say('Select a Rally Leader.',true);return false}const p=selectedPlayer(val);if(!p)return false;setTimeout(()=>openRallyEditor(tid,p),0);return true});
+ return openInlineRallyPicker(tid);
 }
 function suggestedJoinerHeroes(tid,p){const t=teamForAssignment(tid),a=t&&A(t.strategy_alliance_id),idx=Joiners(tid).length,atk=formationsFor(a?.id,'attack'),def=formationsFor(a?.id,'defense'),ap=joinHeroPair(p,'attack',idx,atk[0]||null,atk[1]||null),dp=joinHeroPair(p,'defense',idx,def[0]||null,def[1]||null);return {aa:ap[0]?.id||'',ab:ap[1]?.id||'',da:dp[0]?.id||'',db:dp[1]?.id||''}}
 function openJoinerEditor(tid,p,row=null){
@@ -1151,10 +1193,43 @@ function openJoinerEditor(tid,p,row=null){
    await openStrategy(strategy.id)
  });bindVisualHeroPickers(ov);
 }
+function inlineTeamOptions(aid,selectedTid=''){
+ return Teams(aid).map(t=>`<option value="${t.id}" ${String(t.id)===String(selectedTid)?'selected':''}>${esc(t.name)}</option>`).join('')
+}
+function openInlineJoinerPicker(originTid){
+ const pool=joinerCandidatePool();if(!pool.length)return say('No Joiners with submitted Troop Quality are available.',true);
+ const originTeam=teamForAssignment(originTid),originAlliance=originTeam&&A(originTeam.strategy_alliance_id);
+ const ov=document.createElement('div');ov.className='inline-picker-overlay';
+ ov.innerHTML=`<div class="inline-picker-card"><div class="inline-picker-head"><div><h3>Add Joiner</h3><div class="select-note">Tap a player card. Assignment, heroes, Join First and Save/Cancel open directly under that player.</div></div><button class="mini-x" data-inline-close type="button">×</button></div><div class="candidate-list">${pool.map((p,i)=>{const val=p._pickValue||p.id,existing=p.id?joiners.find(j=>String(j.player_account_id)===String(p.id)):joiners.find(j=>String(j.player_name).toLowerCase()===String(p.in_game_name).toLowerCase()),existingTeam=existing&&teamForAssignment(existing.team_id),existingAlliance=existingTeam&&A(existingTeam.strategy_alliance_id),warn=existing?`<div class="inline-warning">Already assigned • ${esc(teamLabel(existing.team_id))}. Saving to another Team will MOVE this Joiner, not duplicate them.</div>`:'',key=`jp-${i}`;return `<div class="candidate-card" data-inline-candidate="${esc(String(val))}" data-inline-key="${key}">${joinerCandidateCard(p).replace(/^<label class="candidate-card"><input[^>]+>/,'').replace(/<\/label>$/,'')}<div class="candidate-inline-editor" data-inline-editor>${warn}<div class="inline-assignment-grid"><label>Alliance<select data-inline-alliance>${alliances.map(a=>`<option value="${a.id}" ${String(a.id)===String(originAlliance?.id)?'selected':''}>${esc(a.alliance_tag)}</option>`).join('')}</select></label><label>Team<select data-inline-team>${originAlliance?inlineTeamOptions(originAlliance.id,originTid):''}</select></label></div><div class="visual-hero-grid" style="margin-top:9px"></div><label style="margin-top:9px">Join First<select data-inline-jf><option value="no">No — Regular Joiner</option><option value="yes">Yes — Join First</option></select></label><div class="inline-actions"><button class="btn" data-inline-cancel type="button">Cancel</button><button class="btn violet" data-inline-save type="button">Save</button></div></div></div>`}).join('')}</div></div>`;
+ document.body.appendChild(ov);$('[data-inline-close]',ov).onclick=()=>ov.remove();
+ $$('[data-inline-candidate]',ov).forEach((card,i)=>card.onclick=e=>{
+   if(e.target.closest('button,select,input'))return;
+   $$('[data-inline-candidate]',ov).forEach(x=>x.classList.toggle('expanded',x===card));
+   const val=card.dataset.inlineCandidate,p=selectedPlayer(val);if(!p)return;
+   const editor=$('[data-inline-editor]',card),allianceSel=$('[data-inline-alliance]',editor),teamSel=$('[data-inline-team]',editor),heroGrid=$('.visual-hero-grid',editor);
+   const setTeamOptions=()=>{teamSel.innerHTML=inlineTeamOptions(allianceSel.value,teamSel.value)||'<option value="">No Teams</option>'};
+   allianceSel.onchange=()=>{teamSel.value='';setTeamOptions()};
+   setTeamOptions();
+   const targetTid=teamSel.value||originTid,sug=suggestedJoinerHeroes(targetTid,p),prefix=`inline-${i}`;
+   heroGrid.innerHTML=heroPickerField(`${prefix}-aa`,'Attack A',sug.aa,p.id||'')+heroPickerField(`${prefix}-ab`,'Attack B',sug.ab,p.id||'')+heroPickerField(`${prefix}-da`,'Defense A',sug.da,p.id||'')+heroPickerField(`${prefix}-db`,'Defense B',sug.db,p.id||'');
+   bindVisualHeroPickers(editor);
+   $('[data-inline-cancel]',editor).onclick=ev=>{ev.stopPropagation();card.classList.remove('expanded')};
+   $('[data-inline-save]',editor).onclick=async ev=>{ev.stopPropagation();const save=ev.currentTarget;if(save.disabled)return;save.disabled=true;
+     try{
+       const tid=teamSel.value;if(!tid){say('Select a Team.',true);save.disabled=false;return}
+       const existing=p.id?joiners.find(j=>String(j.player_account_id)===String(p.id)):joiners.find(j=>String(j.player_name).toLowerCase()===String(p.in_game_name).toLowerCase());
+       if(existing&&String(existing.team_id)!==String(tid)&&!confirm(`${p.in_game_name} is already assigned to ${teamLabel(existing.team_id)}. Move this Joiner to ${teamLabel(tid)}?`)){save.disabled=false;return}
+       const patch={team_id:tid,player_account_id:p.id||null,player_name:p.in_game_name,join_first:$('[data-inline-jf]',editor).value==='yes',attack_a_hero_id:document.getElementById(`${prefix}-aa`)?.value||null,attack_b_hero_id:document.getElementById(`${prefix}-ab`)?.value||null,defense_a_hero_id:document.getElementById(`${prefix}-da`)?.value||null,defense_b_hero_id:document.getElementById(`${prefix}-db`)?.value||null};
+       if(existing){const {error}=await sb.from('svs_strategy_joiners').update({...patch,sort_order:String(existing.team_id)===String(tid)?existing.sort_order:Joiners(tid).length}).eq('id',existing.id);if(error)throw error}
+       else{const {error}=await sb.from('svs_strategy_joiners').insert({...patch,sort_order:Joiners(tid).length});if(error)throw error}
+       ov.remove();await openStrategy(strategy.id);say(existing?'Joiner updated / moved.':'Joiner added.');
+     }catch(err){say(err?.message||String(err),true);save.disabled=false}
+   };
+ });
+}
 async function addJoiner(tid,preselectedId=''){
  if(preselectedId){const p=selectedPlayer(preselectedId);if(!p)return say('Joiner not found.',true);if(!p._test&&!responseHasTroopQuality(p))return say(`${p.in_game_name} has not submitted Troop Quality yet.`,true);return openJoinerEditor(tid,p,null)}
- const pool=joinerCandidatePool();if(!pool.length)return say('No Joiners with submitted Troop Quality are available.',true);
- modal('Add Joiner',`<div class="select-note">Only SvS responders with Troop Quality are shown. Ranked strongest → weakest by SBS Joiner Score.</div><div class="candidate-list">${pool.map(joinerCandidateCard).join('')}</div>`,async ov=>{const val=$('input[name="joiner-candidate"]:checked',ov)?.value;if(!val){say('Select a Joiner.',true);return false}const p=selectedPlayer(val);if(!p)return false;setTimeout(()=>openJoinerEditor(tid,p,null),0);return true});
+ return openInlineJoinerPicker(tid);
 }
 function editJoiner(id){const row=joiners.find(x=>String(x.id)===String(id));if(!row)return;const p=playerPool.find(x=>String(x.id)===String(row.player_account_id))||{id:row.player_account_id,in_game_name:row.player_name};openJoinerEditor(row.team_id,p,row)}
 
@@ -1360,8 +1435,8 @@ function applyTeamStrength(pack){
 function petQualityDecision(team,ai,ti,requested){
  const purpose=ai===0&&ti===0?'Garrison':ai===0&&ti===1?'Handoff':'Counter';
  if(!requested||purpose==='Handoff')return {active:false,status:'none'};
- if(purpose==='Garrison')return {active:true,status:'active'};
- if(team?.pet_eligible===false||String(team?.troop_strength_tier||'C')==='C')return {active:false,status:'reserve'};
+ // Team quality decides WHERE active Counter PETS go; it no longer turns every non-Main lane into Reserve.
+ // Reserve PET is reserved for Rally Leads left outside the required active rotation.
  return {active:true,status:'active'};
 }
 function petScheduleTeamsByQuality(teamRowsByAlliance,primaryIndex=0){
@@ -1396,7 +1471,7 @@ async function runAssist(){
  const rlPool=testSandbox?decorateRallyPool(testRallyPool(rlCount)):liveRL,joinPool=testSandbox?testJoinerPool(joinerCount):liveJ;
  if(rlPool.length<activeCount)return renderRecommendations([`<b>Not enough Rally Leaders.</b> ${activeCount} active Alliances require at least ${activeCount} viable leads.`]);
  const teamTotal=chooseTeamCount(joinPool,rlPool,activeCount),teamCounts=distributeTeamCounts(teamTotal,activeCount);
- const config={active_alliance_count:activeCount,primary_alliance_id:primaryId,counter_alliance_ids:counterIds,test_sandbox:testSandbox,test_rally_leads:testSandbox?rlCount:null,test_joiners:testSandbox?joinerCount:null,recommended_team_counts:teamCounts,pet_logic_version:'1.7',team_quality_version:'1.0',pet_quality_gate_version:'1.0',pet_team_quality_route_version:'1.0'};
+ const config={active_alliance_count:activeCount,primary_alliance_id:primaryId,counter_alliance_ids:counterIds,test_sandbox:testSandbox,test_rally_leads:testSandbox?rlCount:null,test_joiners:testSandbox?joinerCount:null,recommended_team_counts:teamCounts,pet_logic_version:'1.8',team_quality_version:'1.0',pet_quality_gate_version:'1.1',pet_team_quality_route_version:'1.1',pet_reserve_roster_version:'1.0'};
  await sb.from('svs_strategies').update({primary_alliance_id:primaryId,assist_config:config}).eq('id',strategy.id);
  await clearCurrentDraft();await openStrategy(strategy.id);
  const saRows=[],teamRowsByAlliance=[];
@@ -1462,6 +1537,16 @@ async function runAssist(){
    const ins=await sb.from('svs_pet_schedule_assignments').insert({row_id:rowId,player_account_id:x.lead.id||null,player_name:x.lead.in_game_name,start_utc:x.start,end_utc:x.end,pets_active:pd.active,pet_status:pd.status,sort_order:Number(x.start.slice(0,2))});
    if(ins.error)return say(ins.error.message,true);
  }
+ // Surplus Rally Leads stay visible as real PET reserves instead of disappearing or making every Counter lane "Reserve".
+ // Their suggested 2h windows are staggered opening / closing / middle, but they activate only if battle pressure requires extra force.
+ const reserveStarts=[12,15,14,13];
+ for(let i=0;i<floatingRL.length;i++){
+   const lead=floatingRL[i],start=reserveStarts[i%reserveStarts.length],end=start+2;
+   const row=await sb.from('svs_pet_schedule_rows').insert({strategy_id:strategy.id,strategy_alliance_id:null,source_team_id:null,purpose:'Reserve PET',slot_label:`◇ Reserve • ${lead.in_game_name}`,sort_order:900+i}).select().single();
+   if(row.error)return say(row.error.message,true);
+   const ins=await sb.from('svs_pet_schedule_assignments').insert({row_id:row.data.id,player_account_id:lead.id||null,player_name:lead.in_game_name,start_utc:`${String(start).padStart(2,'0')}:00`,end_utc:`${String(end).padStart(2,'0')}:00`,pets_active:false,pet_status:'reserve',sort_order:start});
+   if(ins.error)return say(ins.error.message,true);
+ }
  // Automatic Rally Lead hero + troop formations. Main + up to 2 additional Approved variants.
  const atk=atkRec,def=defRec,formationErrors=[];
  const formationRowsFor=(a,type)=>{
@@ -1488,7 +1573,7 @@ async function runAssist(){
    `<b>Structure:</b> ${saRows.map((a,i)=>`${a.alliance_tag}: ${teamRowsByAlliance[i]?.length||0} Team${(teamRowsByAlliance[i]?.length||0)===1?'':'s'}`).join(' • ')}.`,
    `<b>Coverage:</b> ${plan?.coverage?.every(x=>x.complete)?'all generated Teams are covered 12:00–17:00. Garrison receives priority PET coverage when roster depth allows; Handoff receives none; Counter PET windows move dynamically wherever coverage is most useful.':'NEXA detected a coverage limitation; review the schedule before publishing.'}`,
    `<b>Rally Leads:</b> ${rlPool.length} available • ${activeRL.length} used • ${floatingRL.length} floating/reserve${floatingRL.length?' (protected from forced PET use)':''}.`,
-   `<b>PET Distribution:</b> Main T1 keeps continuous priority coverage. Handoff is excluded. Counter PET windows are routed by SBS troop/team strength (S → A → B), staggered across the strongest Teams for opening, middle relief and closing. C-only lanes are Reserve PET only.`,
+   `<b>PET Distribution:</b> Main T1 keeps continuous priority coverage. Handoff is excluded. Counter PET windows are routed by SBS troop/team strength, staggered across the strongest Teams for opening, middle relief and closing. Rally Leads left outside the required active rotation are listed separately as ◇ Reserve PET.`,
    `<b>Capacity:</b> active Teams are limited by Rally Capacity + Joiner Deployment Capacity. Extra rally-capable players may remain floating or be used as Joiners.`,
    `<b>Join First:</b> optimized after Rally Lead formations. A follows Main formation; B follows Alt formation when present, otherwise B is the best owned backup/interchangeable hero from the same optimized pool.`
  ]);

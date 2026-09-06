@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS STRATEGY V11.3.9 • Team Layout clarity • PET scheduler unchanged -->
+<!-- NEXA SVS STRATEGY V11.3.11 • Team Layout per-hero troop percentages + portrait load fix • PET scheduler unchanged -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -118,6 +118,7 @@ input,select{width:100%;min-height:44px;background:#060b1c;color:#fff;border:1px
 .layout-sheet .rl-formation-hero img{width:48px!important;height:48px!important}
 .layout-sheet .rl-formation-hero b{font-size:12px!important;line-height:1.15!important;margin-top:5px!important;font-weight:950!important;white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important}
 .layout-sheet .rl-formation-heroes{margin-top:3px!important}
+.layout-sheet .rl-hero-pct{font-size:16px!important;line-height:1!important;color:#fff!important;font-weight:950!important;margin-bottom:6px!important;white-space:nowrap!important}
 .layout-sheet .rl-formation-card .f-ratio{font-size:20px!important;line-height:1!important;margin:0 0 5px!important}
 .layout-hero-pair{display:grid;gap:4px;min-width:0}
 .layout-hero-text{font-size:12px;font-weight:950;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1066,13 +1067,14 @@ function closePetPreview(){
 $('#preview-pets').onclick=openPetPreview;
 $('#close-pet-preview').onclick=closePetPreview;
 
-function formationHeroMini(id){
- const h=H(id);if(!h)return `<div class="rl-formation-hero"><span class="muted">—</span></div>`;
- return `<div class="rl-formation-hero">${h.image_url?`<img src="${esc(h.image_url)}" alt="${esc(h.name)}" loading="eager" referrerpolicy="no-referrer">`:''}<b class="${rarityClass(h.rarity)}">${esc(h.name)}</b></div>`
+function formationHeroMini(id,pct){
+ const h=H(id);
+ if(!h)return `<div class="rl-formation-hero"><div class="rl-hero-pct">${esc(pct)}%</div><span class="muted">—</span></div>`;
+ return `<div class="rl-formation-hero"><div class="rl-hero-pct">${esc(pct)}%</div>${h.image_url?`<img src="${esc(h.image_url)}" alt="${esc(h.name)}" loading="eager">`:''}<b class="${rarityClass(h.rarity)}">${esc(h.name)}</b></div>`
 }
 function layoutRallyLeadFormationGroup(a,type){
  const fs=formationsFor(a.id,type),count=Math.max(1,Math.min(3,fs.length||1));
- return `<div class="rl-formations-group ${type}"><h4>${type==='attack'?'⚔ Attack Formation':'🛡 Defense Formation'}</h4><div class="rl-formation-list" style="--count:${count}">${fs.length?fs.map(f=>{const rr=parseRatio(f.ratio,type==='attack'?[49,2,49]:[40,0,60]);return `<div class="rl-formation-card"><div class="f-ratio">${rr.join(' / ')}</div><div class="rl-formation-heroes">${formationHeroMini(f.hero_infantry_id)}${formationHeroMini(f.hero_lancer_id)}${formationHeroMini(f.hero_marksman_id)}</div></div>`}).join(''):'<div class="muted tiny">No formation configured.</div>'}</div></div>`
+ return `<div class="rl-formations-group ${type}"><h4>${type==='attack'?'⚔ Attack Formation':'🛡 Defense Formation'}</h4><div class="rl-formation-list" style="--count:${count}">${fs.length?fs.map(f=>{const rr=parseRatio(f.ratio,type==='attack'?[49,2,49]:[40,0,60]);return `<div class="rl-formation-card"><div class="rl-formation-heroes">${formationHeroMini(f.hero_infantry_id,rr[0])}${formationHeroMini(f.hero_lancer_id,rr[1])}${formationHeroMini(f.hero_marksman_id,rr[2])}</div></div>`}).join(''):'<div class="muted tiny">No formation configured.</div>'}</div></div>`
 }
 function layoutJoinerRatioGroup(a,type){
  const fs=formationsFor(a.id,type),count=Math.max(1,Math.min(3,fs.length||1));

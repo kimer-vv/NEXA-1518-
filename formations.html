@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • Formations</title>
 
-<!-- NEXA FORMATIONS V1.10 • Top 4 Joiner synergy/stack explanation + visual current-generation hero picker -->
+<!-- NEXA FORMATIONS V1.11 • Rally-fit Top 4 synergy + source-free visible reasoning + visual current-generation hero picker -->
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -151,7 +151,7 @@ textarea{min-height:76px;resize:vertical}
       </label>
 
       <label class="full">Top 4 Synergy & Stack
-        <textarea id="top4synergy" placeholder="Explain why these four joiner effects complement each other, what stacks, and what the combined package adds to this exact rally formation."></textarea>
+        <textarea id="top4synergy" placeholder="Explain why these four joiner effects complement each other, how they fit the exact Rally Lead trio + troop ratio, what stacks, and what the combined package adds to this formation."></textarea>
       </label>
 
       <label class="full">Why this formation is good
@@ -393,40 +393,51 @@ textarea{min-height:76px;resize:vertical}
     return (i>80?cut.slice(0,i+1):cut.trimEnd()+'…');
   }
 
+  function sourceFreeReason(text){
+    const s=String(text||'').trim();if(!s)return '';
+    const bad=/(whiteout|wos guru|guide|source|youtube|creator|website|table|lists?|recommends?|supports?|according to)/i;
+    const parts=s.split(/(?<=[.!?])\s+/).map(x=>x.trim()).filter(Boolean).filter(x=>!bad.test(x));
+    return parts.join(' ').trim();
+  }
+
   function mechanicText(x){
     if(!x)return '';
     const effect=String(x.buff_effect||'').trim();
-    const why=String(x.why||'').trim();
+    const fit=sourceFreeReason(x.rally_fit||'');
+    const why=sourceFreeReason(x.why||'');
+    if(effect&&fit)return `${effect} ${fit}`;
     if(effect&&why)return `${effect} ${why}`;
-    return effect||why;
+    return effect||fit||why;
   }
 
   function top4SynergyText(r){
     const md=metadata(r);
-    const explicit=String(md.top4_synergy||md.joiner_stack_reasoning||md.joiner_synergy||'').trim();
+    const leaders=(r?.leader_heroes||[]).filter(Boolean).join(' / ');
+    const ratio=(r?.primary_ratio||[]).map(Number).join(' / ');
+    const explicit=sourceFreeReason(md.top4_synergy||md.joiner_stack_reasoning||md.joiner_synergy||'');
     if(explicit)return explicit;
     const first=safeJoiners(r),ev=joinerEvidence(r,'primary');
-    const parts=first.map(hero=>{
+    const effects=first.map(hero=>{
       const x=ev.find(e=>norm(e.hero)===norm(hero));
       const effect=String(x?.buff_effect||'').trim();
       return effect?`${hero}: ${effect}`:'';
     }).filter(Boolean);
-    if(parts.length)return `These four seats are treated as one stack package rather than four isolated skill picks. ${parts.join(' • ')}. The goal is complementary effects that can operate together for this exact Rally Lead trio and troop ratio.`;
-    return 'Top 4 stack explanation will populate after the next vetted Brain refresh.';
+    if(effects.length)return `These four seats are treated as one combined package for ${leaders||'this Rally Lead trio'} at ${ratio||'this troop ratio'}. ${effects.join(' • ')}. NEXA uses the package only when those effects complement the rally role and can coexist without a corroborated stacking conflict.`;
+    return 'Top 4 rally-fit synergy will populate after the next vetted Brain refresh.';
   }
 
   function whyFirstFour(r){
     const first=safeJoiners(r);
     if(!first.length){
-      return `<div class="muted">Top 4 joiners are waiting for a current vetted synergy/stack refresh.</div>`;
+      return `<div class="muted">Top 4 joiners are waiting for a current vetted rally-fit synergy refresh.</div>`;
     }
     const ev=joinerEvidence(r,'primary');
     return `<div style="display:grid;gap:8px;margin-top:6px">${first.map((hero,index)=>{
       const x=ev.find(e=>norm(e.hero)===norm(hero));
-      const why=mechanicText(x);
+      const text=mechanicText(x);
       return `<div>
         <b class="${rarity(hero)}">${index+1}. ${esc(hero)}</b>
-        <div class="muted">${why?esc(compactReason(why,300)):'Stack contribution will populate after the next vetted Brain refresh.'}</div>
+        <div class="muted"><b style="color:#d7def5">Why it fits this rally:</b> ${text?esc(compactReason(text,320)):'Rally-fit explanation will populate after the next vetted Brain refresh.'}</div>
       </div>`;
     }).join('')}</div>`;
   }
@@ -477,7 +488,7 @@ textarea{min-height:76px;resize:vertical}
         <div class="muted" style="margin-top:6px">${esc(compactReason(top4SynergyText(ev),650))}</div>
 
         <div style="height:10px"></div>
-        <b>How each seat contributes to the stack</b>
+        <b>Why each seat fits this Rally</b>
         ${whyFirstFour(ev)}
 
         <div style="height:10px"></div>

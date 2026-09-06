@@ -1,4 +1,4 @@
-// NEXA Brain Research v1.7 — Top 4 joiner synergy/stack research + multi-variant Suggested
+// NEXA Brain Research v1.8 — Top 4 rally-fit synergy/stack research + multi-variant Suggested
 // Vercel env required: OPENAI_API_KEY, SUPABASE_SERVICE_ROLE_KEY, CRON_SECRET
 const SB='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const MODEL=process.env.NEXA_RESEARCH_MODEL||'gpt-5.6-terra';
@@ -90,7 +90,8 @@ function evidencePasses(row){
   const skill=String(row.skill_name||'').trim();
   const effect=String(row.buff_effect||'').trim();
   const why=String(row.why||'').trim();
-  return groups.size>=2&&urls.size>=2&&skill&&effect&&why;
+  const rallyFit=String(row.rally_fit||'').trim();
+  return groups.size>=2&&urls.size>=2&&skill&&effect&&why&&rallyFit;
 }
 
 function vettedPrimaryJoiners(rawPrimary,evidence){
@@ -210,7 +211,10 @@ Join First / Top 4 Stack rules:
 - Select the Top 4 by how their joiner effects complement each other, what can stack or coexist, and how the combined package supports THIS exact Rally Lead trio + troop ratio.
 - Do NOT choose or rank the Top 4 merely because four heroes have individually strong skills/buffs.
 - For every unique Top-4 hero, identify the actual joiner effect it contributes, but visible reasoning must emphasize its ROLE IN THE COMBINED STACK.
-- Return one concise formation-level field named top4_synergy explaining: (a) why these four belong together, (b) what effects complement or stack, (c) what the combined package adds to this exact formation, and (d) any important stacking limitation or non-stacking interaction when corroborated.
+- Return one concise formation-level field named top4_synergy explaining: (a) why these four belong together, (b) what effects complement or stack, (c) HOW the package specifically complements the exact Rally Lead trio, (d) HOW it supports the exact troop ratio/formation role, and (e) any important stacking limitation or non-stacking interaction when corroborated.
+- For each Top-4 seat, return rally_fit: a mechanic-first explanation of why THAT joiner effect is useful for THIS exact Rally Lead trio + troop ratio. Tie it to the rally's needs (damage conversion, survivability, defense reduction, lethality, troop-class pressure, etc.) only when corroborated.
+- Never claim a direct hero-to-hero interaction unless the evidence actually demonstrates it. If only a formation-level interaction is supported, say that instead.
+- Visible reasoning must never name sources, websites, creators, guides, videos, or phrases such as 'X recommends'.
 - A legacy hero is not valid merely because it was historically popular.
 - A primary or backup joiner must be tied to CURRENT Gen ${generation} rally use through at least 2 independent evidence groups and 2 source URLs.
 - generation_relevance must use:
@@ -257,7 +261,8 @@ Return ONLY valid JSON:
        "source_urls":["https://...","https://..."],
        "skill_name":"name of the hero's first Expedition skill used when joining",
        "buff_effect":"plain-language effect of that first Expedition skill, including percentage/value when corroborated",
-       "why":"mechanic-first explanation of this hero's role inside the combined Top-4 stack for THIS exact formation; no source names",
+       "why":"mechanic-first explanation of this hero's role inside the combined Top-4 stack; no source names",
+       "rally_fit":"why this exact joiner effect complements THIS Rally Lead trio + troop ratio; no source names and no invented direct hero interaction",
        "replaces":"for backup only: hero name, buff role, or flex"
      }
    ],
@@ -389,7 +394,8 @@ Return ONLY valid JSON:
             min_independent_groups:2,
             min_source_urls:2,
             preserving_primary_duplicates:true,
-            selection_basis:'combined_synergy_and_stack',
+            selection_basis:'combined_synergy_stack_and_rally_fit',
+            requires_rally_fit:true,
             allowed_generation_relevance:[
               'tested_with_current_generation',
               'explicitly_recommended_for_current_generation'

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS STRATEGY V11.4.0 • SBS troop tiers + RL composite strength + PET quality gate/reserve • top-name fix included -->
+<!-- NEXA SVS STRATEGY V11.5.0 • Approved-only formation selector + ranked SBS candidates + visual hero pickers + editable Joiners + response quick-assign -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -279,6 +279,25 @@ body.pet-preview-open{overflow:hidden!important}
 .team-form-mini{border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:7px;margin-top:6px;background:rgba(255,255,255,.025)}
 .team-form-head{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:10px}.team-form-head strong{font-size:10px}
 .team-form-heroes{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}.team-form-heroes span{display:flex;align-items:center;gap:4px;font-size:9px;font-weight:850}.team-form-heroes img{width:22px;height:22px;border-radius:6px;object-fit:cover}
+
+
+/* V11.5.0 — visual hero selection, ranked SBS candidates, Approved-only formation selection */
+.candidate-list,.response-card-list,.approved-rule-list{display:grid;gap:9px;margin-top:10px}
+.candidate-card,.response-card,.approved-rule-card{display:block;border:1px solid rgba(255,255,255,.11);border-radius:14px;background:rgba(255,255,255,.035);padding:10px;color:#fff}
+.candidate-card{cursor:pointer}.candidate-card>input,.approved-rule-card>input{position:absolute;opacity:0;pointer-events:none}
+.candidate-card:has(input:checked),.approved-rule-card:has(input:checked){border-color:rgba(155,120,255,.82);box-shadow:0 0 18px rgba(139,89,255,.20);background:rgba(100,67,180,.14)}
+.candidate-main{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}.candidate-tier{flex:0 0 auto;border:1px solid rgba(155,120,255,.42);border-radius:999px;padding:4px 7px;color:#dfd3ff;font-size:9px;font-weight:1000}
+.candidate-troops{margin:8px 0 5px;font-size:11px;font-weight:950;color:#d9e6ff;letter-spacing:.015em}.candidate-selected .candidate-card{margin:0}
+.response-card .response-assign{width:100%;margin-top:9px;min-height:38px}.response-card{background:linear-gradient(145deg,rgba(13,28,56,.70),rgba(44,25,90,.40))}
+.member-actions{display:flex;gap:2px;align-items:flex-start}.member-edit{border:0;background:rgba(72,221,255,.10);color:#9eeeff;border-radius:8px;font-size:15px;font-weight:950;min-width:28px;height:28px}
+.visual-hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.visual-hero-field{min-width:0}.hero-picker-btn{width:100%;min-height:72px;border:1px solid rgba(122,142,203,.30);border-radius:13px;background:#060b1c;color:#fff;padding:8px;display:flex;align-items:center;gap:9px;text-align:left}.hero-picker-btn img{width:48px;height:48px;border-radius:10px;object-fit:cover;border:1px solid rgba(255,255,255,.13)}.hero-picker-btn span{display:grid;gap:3px;min-width:0}.hero-picker-btn b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.hero-picker-btn small{color:#8f9bbb;font-size:9px}
+.hero-choice-overlay{position:fixed;inset:0;z-index:2147483600;display:grid;place-items:center;background:rgba(0,0,0,.80);padding:14px}.hero-choice-card{width:min(620px,100%);max-height:88dvh;overflow:auto;-webkit-overflow-scrolling:touch;border:1px solid rgba(72,221,255,.30);border-radius:20px;background:#071022;padding:13px}.hero-choice-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:11px}.hero-choice-item{min-width:0;border:1px solid rgba(255,255,255,.10);border-radius:13px;background:rgba(255,255,255,.035);color:#fff;padding:8px;display:grid;justify-items:center;gap:4px}.hero-choice-item.selected{border-color:rgba(155,120,255,.80);box-shadow:0 0 15px rgba(139,89,255,.18)}.hero-choice-item img{width:54px;height:54px;border-radius:11px;object-fit:cover}.hero-choice-item b{font-size:10px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.hero-choice-item small{font-size:8px;color:#8f9bbb;text-align:center}.empty-choice{min-height:92px;align-content:center}
+.approved-rule-card{cursor:pointer}.approved-rule-card .formation-heroes{margin-top:7px}.approved-rule-card .formation-hero img{width:42px;height:42px}
+.formation-card.alt-attack,.rl-formation-card.alt-attack{background:linear-gradient(145deg,rgba(157,39,59,.24),rgba(78,15,29,.16));border-color:rgba(255,105,130,.38)}
+.formation-card.alt-defense,.rl-formation-card.alt-defense{background:linear-gradient(145deg,rgba(34,126,83,.24),rgba(16,72,48,.16));border-color:rgba(103,223,177,.38)}
+.global-formation-note{font-size:8.5px;line-height:1.25;color:#8f9bbb;margin:-3px 0 7px;text-transform:none;letter-spacing:.015em}
+@media(max-width:620px){.visual-hero-grid{grid-template-columns:1fr 1fr}.hero-choice-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hero-picker-btn{min-height:66px;padding:6px}.hero-picker-btn img{width:42px;height:42px}}
+
 </style>
 <script src="nexa-battle-strategy-engine.js?v=2.1"></script>
 <script src="nexa-svs-rules.js?v=2.0"></script>
@@ -428,7 +447,7 @@ const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>Array.from(r.query
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const state=Number(String(window.NEXA_ACTIVE_STATE||localStorage.getItem('nexa_active_state_v49')||1518).replace(/\D/g,''))||1518;
 const colors=['#ff7289','#56bfff','#64dfa7','#b989ff','#ffb865','#65e1e6'];
-let strategy=null,alliances=[],teams=[],rally=[],joiners=[],heroes=[],libraryItems=[],petRows=[],petAssignments=[],allAlliances=[],responses=[],playerPool=[],stateRoles=[],strategyList=[],formations=[],visibleHeroGenerations=[],playerInventory=[],battleMetaRules=[],testSandbox=false;
+let strategy=null,alliances=[],teams=[],rally=[],joiners=[],heroes=[],libraryItems=[],petRows=[],petAssignments=[],allAlliances=[],responses=[],playerPool=[],stateRoles=[],strategyList=[],formations=[],visibleHeroGenerations=[],heroGenerationRows=[],playerInventory=[],battleMetaRules=[],responsePlayers={},testSandbox=false;
 $('#state-label').textContent=`State ${state}`;
 
 
@@ -440,7 +459,16 @@ function timeOptions(selected=''){
 function modal(title,body,onSave){
  const ov=document.createElement('div');ov.className='nexa-modal';
  ov.innerHTML=`<div class="nexa-modal-card"><h3>${esc(title)}</h3>${body}<div class="nexa-modal-actions"><button class="btn" data-cancel type="button">Cancel</button><button class="btn violet" data-save type="button">Save</button></div></div>`;
- document.body.appendChild(ov);$('[data-cancel]',ov).onclick=()=>ov.remove();$('[data-save]',ov).onclick=async()=>{try{const keep=await onSave(ov);if(keep!==false)ov.remove()}catch(e){say(e.message||String(e),true)}};return ov;
+ document.body.appendChild(ov);
+ $('[data-cancel]',ov).onclick=()=>ov.remove();
+ const save=$('[data-save]',ov);let busy=false;
+ save.onclick=async()=>{
+   if(busy)return;busy=true;save.disabled=true;
+   try{const keep=await onSave(ov);if(keep!==false)ov.remove()}
+   catch(e){say(e.message||String(e),true)}
+   finally{if(document.body.contains(ov)){busy=false;save.disabled=false}}
+ };
+ return ov;
 }
 function roleForPlayer(p){return stateRoles.find(r=>r.player_account_id===p.id)?.role||p.battle_role||''}
 const TEST_RLS=['Iron Gold','YQFelix','Peanut','Zima','Evster','Skadi','Jenny','Sushi','Jules','Raja','Drakco','Cutie','Archer','Nova','Storm','Valkyrie','Atlas','Koda'];
@@ -520,6 +548,26 @@ function joinerSbsScore(p){
  const depN=Math.min(1,dep/320000),heroN=Math.min(1,responseHeroSignal(p,'joiner')/20),expertN=Math.min(1,responseExpertSignal(p)/6);
  return tq.avg*7.5+depN*15+heroN*7+expertN*3;
 }
+function responseHasTroopQuality(p){const r=responseFor(p?.id),q=r?.troop_quality;return !!(r&&q&&typeof q==='object'&&Object.keys(q).length)}
+function troopShort(q){q=q||{};const t12=boolish(q.t12_unlocked)||boolish(q.exalted_unlocked),skill=Math.max(Number(q.advanced_skill||0)||0,Number(q.exalted_skill_level||0)||0);if(t12)return `T12${skill?` S${skill}`:''}`;if(boolish(q.t11_unlocked))return'T11';const t=Number(q.tier??q.troop_tier??0)||0;return t?`T${t}`:'—'}
+function troopSummary(p){const q=troopQualityObject(p);return `INF ${troopShort(q.infantry)} • LAN ${troopShort(q.lancer)} • MAR ${troopShort(q.marksman)}`}
+function playerAllianceLabel(p){const a=allAlliances.find(x=>String(x.id)===String(p?.alliance_id));return a?.tag||'No Alliance'}
+function assignedLabel(p,role='joiner'){
+ if(!p?.id)return'';
+ if(role==='rally_lead'){const x=rally.find(r=>String(r.player_account_id)===String(p.id));return x?`Assigned • ${teamLabel(x.team_id)}`:''}
+ const x=joiners.find(j=>String(j.player_account_id)===String(p.id));return x?`Assigned • ${teamLabel(x.team_id)}`:'';
+}
+function joinerCandidatePool(){
+ if(testSandbox)return TEST_JOINERS.map(n=>({id:null,_pickValue:`test:${n}`,in_game_name:n,_test:true,deployment_capacity:250000}));
+ return playerPool.filter(p=>(roleForPlayer(p)==='joiner'||!roleForPlayer(p))&&responseHasTroopQuality(p)).sort((a,b)=>joinerSbsScore(b)-joinerSbsScore(a));
+}
+function joinerCandidateCard(p){const score=p._test?0:joinerSbsScore(p),tier=p._test?'TEST':troopQualityProfile(p).tier,assigned=assignedLabel(p,'joiner'),val=p._pickValue||p.id;return `<label class="candidate-card"><input type="radio" name="joiner-candidate" value="${esc(val)}"><div class="candidate-main"><div><b>${esc(p.in_game_name)}</b><div class="tiny muted">${p._test?'Test Sandbox':`ID ${esc(p.player_id||'—')} • ${esc(playerAllianceLabel(p))}`}</div></div><span class="candidate-tier">${esc(tier)}</span></div><div class="candidate-troops">${p._test?'Synthetic test profile':esc(troopSummary(p))}</div>${p._test?'':`<div class="tiny muted">SBS Joiner Score ${score.toFixed(1)}${assigned?` • ${esc(assigned)}`:''}</div>`}</label>`}
+function rallyCandidatePool(){
+ if(testSandbox)return TEST_RLS.map(n=>({id:null,_pickValue:`test:${n}`,in_game_name:n,_test:true,deployment_capacity:285000,rally_capacity:2050000}));
+ return decorateRallyPool(playerPool.filter(p=>roleForPlayer(p)==='rally_lead'||!roleForPlayer(p)));
+}
+function rallyCandidateCard(p){const tier=p._test?'TEST':p._tier||'RALLY CAPABLE',score=p._test?0:Math.round(Number(p._rlComposite||0)*100),assigned=assignedLabel(p,'rally_lead'),val=p._pickValue||p.id;return `<label class="candidate-card"><input type="radio" name="rally-candidate" value="${esc(val)}"><div class="candidate-main"><div><b>${esc(p.in_game_name)}</b><div class="tiny muted">${p._test?'Test Sandbox':`ID ${esc(p.player_id||'—')} • ${esc(playerAllianceLabel(p))}`}</div></div><span class="candidate-tier">${esc(tier)}</span></div>${responseFor(p.id)?`<div class="candidate-troops">${esc(troopSummary(p))}</div>`:''}<div class="tiny muted">${p._test?'Synthetic Rally Lead':`RL Score ${score} • Rally ${Number(p.rally_capacity||0).toLocaleString()} • Deploy ${Number(deploymentOf(p)||0).toLocaleString()}${assigned?` • ${esc(assigned)}`:''}`}</div></label>`}
+
 function rallyRawFeatures(p){
  return {troop:troopQualityProfile(p).avg,heroes:categorySignal(p,'hero')+responseHeroSignal(p,'rally_lead')*150,experts:categorySignal(p,'expert')+responseExpertSignal(p)*150,pets:categorySignal(p,'pet')+numericDeep(responseFor(p?.id)?.custom_answers||{})*.01,gear:categorySignal(p,'chief_gear')+categorySignal(p,'chief_charm')+numericDeep(p?.hero_gear||{}),rally:Number(p?.rally_capacity||0),deploy:Number(responseFor(p?.id)?.deployment_capacity||p?.deployment_capacity||0),power:Number(p?.power||0)};
 }
@@ -570,8 +618,28 @@ function fmtSecs(sec){sec=Number(sec)||0;const m=Math.floor(sec/60),s=sec%60;ret
 function rarityClass(r){r=String(r||'').toLowerCase();if(r.includes('myth')||r.includes('gold')||r.includes('legendary'))return'rarity-mythic';if(r.includes('epic')||r.includes('purple'))return'rarity-epic';if(r.includes('rare')||r.includes('blue'))return'rarity-rare';return''}
 function H(id){return heroes.find(x=>String(x.id)===String(id))}
 function heroLine(letter,id){const h=H(id);if(!h)return `<div class="hero-line"><b>${letter}</b><span class="muted">—</span></div>`;return `<div class="hero-line"><b>${letter}</b>${h.image_url?`<img src="${esc(h.image_url)}" alt="">`:''}<span class="hero-name ${rarityClass(h.rarity)}">${esc(h.name)}</span></div>`}
-function heroOptions(sel=''){return '<option value="">—</option>'+heroes.map(h=>`<option value="${h.id}" ${String(h.id)===String(sel)?'selected':''}>${esc(h.name)}</option>`).join('')}
-function heroOptionsTroop(type,sel=''){return '<option value="">—</option>'+heroes.filter(h=>String(h.troop_type||'').toLowerCase()===type).map(h=>`<option value="${h.id}" ${String(h.id)===String(sel)?'selected':''}>${esc(h.name)} • Gen ${h.generation??'—'}</option>`).join('')}
+function activeHeroGeneration(){return Math.max(...visibleHeroGenerations,0)}
+function isPickableRarity(h){const r=String(h?.rarity||'').toLowerCase();return r.includes('legendary')||r.includes('myth')||r.includes('gold')||r.includes('epic')||r.includes('purple')}
+function pickableHeroes(type=''){
+ const max=activeHeroGeneration();
+ return heroes.filter(h=>Number(h.generation||0)<=max&&isPickableRarity(h)&&(!type||String(h.troop_type||'').toLowerCase()===type)).sort((a,b)=>Number(b.generation||0)-Number(a.generation||0)||String(a.name).localeCompare(String(b.name)));
+}
+function heroOptions(sel=''){return '<option value="">—</option>'+pickableHeroes().map(h=>`<option value="${h.id}" ${String(h.id)===String(sel)?'selected':''}>${esc(h.name)}</option>`).join('')}
+function heroOptionsTroop(type,sel=''){return '<option value="">—</option>'+pickableHeroes(type).map(h=>`<option value="${h.id}" ${String(h.id)===String(sel)?'selected':''}>${esc(h.name)} • Gen ${h.generation??'—'}</option>`).join('')}
+function heroPickerFace(id){const h=H(id);return h?`${h.image_url?`<img src="${esc(h.image_url)}" alt="">`:''}<span><b class="${rarityClass(h.rarity)}">${esc(h.name)}</b><small>Gen ${esc(h.generation??'—')} • ${esc(h.rarity||'')}</small></span>`:'<span><b>—</b><small>Select hero</small></span>'}
+function heroPickerField(id,label,selected='',accountId=''){
+ return `<div class="visual-hero-field"><label>${esc(label)}</label><input id="${esc(id)}" type="hidden" value="${esc(selected||'')}"><button class="hero-picker-btn" data-hero-picker="${esc(id)}" data-account-id="${esc(accountId||'')}" type="button">${heroPickerFace(selected)}</button></div>`;
+}
+function openHeroPicker(targetId,button,type='',accountId=''){
+ const current=document.getElementById(targetId)?.value||'';
+ let pool=pickableHeroes(type);
+ if(accountId){const owned=new Set(playerInventory.filter(x=>String(x.player_account_id)===String(accountId)&&x.owned).map(x=>String(x.library_item_id)));pool=pool.filter(h=>owned.has(String(h.id)))}
+ const ov=document.createElement('div');ov.className='hero-choice-overlay';
+ ov.innerHTML=`<div class="hero-choice-card"><div class="section-head"><div><h3 style="margin:0">Choose Hero</h3><div class="tiny muted">Gen ${activeHeroGeneration()} or earlier • Epic/Purple + Legendary only</div></div><button class="mini-x" data-close-hero type="button">×</button></div><div class="hero-choice-grid"><button class="hero-choice-item empty-choice ${!current?'selected':''}" data-hero-id="" type="button"><b>—</b><small>Leave empty</small></button>${pool.map(h=>`<button class="hero-choice-item ${String(h.id)===String(current)?'selected':''}" data-hero-id="${h.id}" type="button">${h.image_url?`<img src="${esc(h.image_url)}" alt="">`:''}<b class="${rarityClass(h.rarity)}">${esc(h.name)}</b><small>Gen ${esc(h.generation??'—')} • ${esc(h.rarity||'')}</small></button>`).join('')}</div></div>`;
+ document.body.appendChild(ov);$('[data-close-hero]',ov).onclick=()=>ov.remove();
+ $$('[data-hero-id]',ov).forEach(x=>x.onclick=()=>{const val=x.dataset.heroId||'',input=document.getElementById(targetId);if(input)input.value=val;if(button)button.innerHTML=heroPickerFace(val);ov.remove()});
+}
+function bindVisualHeroPickers(root=document){$$('[data-hero-picker]',root).forEach(b=>b.onclick=()=>openHeroPicker(b.dataset.heroPicker,b,b.dataset.heroType||'',b.dataset.accountId||''))}
 function visibleHeroes(){return heroes.filter(h=>visibleHeroGenerations.includes(Number(h.generation)))}
 function latestHero(type){return visibleHeroes().filter(h=>String(h.troop_type||'').toLowerCase()===type).sort((a,b)=>(b.generation||0)-(a.generation||0))[0]||null}
 function namedVisibleHero(name){return visibleHeroes().find(h=>String(h.name||'').toLowerCase()===String(name).toLowerCase())||null}
@@ -738,10 +806,12 @@ async function base(){
   sb.from('alliances').select('id,tag,name,emblem_url,state_number').eq('state_number',state).eq('is_active',true).order('server_rank'),
   sb.from('player_accounts').select('id,in_game_name,player_id,alliance_id,battle_role,deployment_capacity,rally_capacity,power,hero_gear,alliance_verified_at').eq('state_number',state).order('deployment_capacity',{ascending:false}),
   sb.from('state_battle_roles').select('player_account_id,role,state_number').eq('state_number',state),
-  sb.from('nexa_library_generations').select('generation,is_visible').eq('item_type','hero').eq('is_visible',true),
+  sb.from('nexa_library_generations').select('generation,is_visible,unlock_at').eq('item_type','hero').order('generation'),
   sb.from('player_library_inventory').select('player_account_id,library_item_id,owned,current_level,progress').eq('owned',true)
  ]);
- heroes=h.data||[];libraryItems=lib.data||[];allAlliances=a.data||[];playerPool=p.data||[];stateRoles=sr.data||[];visibleHeroGenerations=(gens.data||[]).map(x=>Number(x.generation));playerInventory=inv.data||[];
+ heroes=h.data||[];libraryItems=lib.data||[];allAlliances=a.data||[];playerPool=p.data||[];stateRoles=sr.data||[];heroGenerationRows=gens.data||[];
+ const now=Date.now(),eligibleGenRows=heroGenerationRows.filter(x=>x.is_visible===true||(x.unlock_at&&new Date(x.unlock_at).getTime()<=now)),activeGen=Math.max(0,...eligibleGenRows.map(x=>Number(x.generation||0)));
+ visibleHeroGenerations=[...new Set(heroes.map(x=>Number(x.generation||0)).filter(g=>g>0&&g<=activeGen))];playerInventory=inv.data||[];
  if(!window.NexaBattleStrategyEngine?.planSchedule){
    say('Battle Strategy Engine unavailable. Refresh after uploading engine v1.5.',true);
  }
@@ -749,7 +819,7 @@ async function base(){
  const opts='<option value="">Select alliance…</option>'+allAlliances.map(x=>`<option value="${x.id}">${esc(x.tag)}${x.name?` • ${esc(x.name)}`:''}</option>`).join('');
  $('#assist-primary-alliance').innerHTML=opts;
  renderCounterAllianceSelectors();
- await Promise.all([loadStrategies(),loadResponses()]);$('#hero-gen-note').textContent=`Hero recommendations are limited to visible State generations • Highest visible Gen ${Math.max(...visibleHeroGenerations,0)}`;
+ await Promise.all([loadStrategies(),loadResponses()]);$('#hero-gen-note').textContent=`Hero recommendations and hero pickers are limited to the currently unlocked generation • Gen ${activeHeroGeneration()}`;
 }
 async function loadStrategies(){
  const {data,error}=await sb.from('svs_strategies').select('*').eq('state_number',state).order('updated_at',{ascending:false});
@@ -919,11 +989,17 @@ async function openStrategy(id){
 async function loadResponses(){
  const {data,error}=await sb.from('battle_form_responses').select('id,player_account_id,role,deployment_capacity,availability,troop_quality,joiner_heroes,rally_heroes,experts,custom_answers,updated_at').order('updated_at',{ascending:false}).limit(150);
  if(error){$('#responses-list').textContent='Responses could not be loaded.';return}
- responses=data||[];const ids=[...new Set(responses.map(x=>x.player_account_id).filter(Boolean))];let names={};
- if(ids.length){const p=await sb.from('player_accounts').select('id,in_game_name,battle_role').in('id',ids);(p.data||[]).forEach(x=>names[x.id]=x)}
- $('#responses-list').innerHTML=responses.length?responses.map(r=>{const p=names[r.player_account_id]||{};return `<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08)"><b>${esc(p.in_game_name||'Player')}</b><div class="tiny muted">${esc(r.role||p.battle_role||'Unassigned')} • Deployment ${esc(r.deployment_capacity||'—')}</div></div>`}).join(''):'No SvS responses yet.';
+ responses=data||[];const ids=[...new Set(responses.map(x=>x.player_account_id).filter(Boolean))];responsePlayers={};
+ if(ids.length){const p=await sb.from('player_accounts').select('id,in_game_name,player_id,alliance_id,battle_role,deployment_capacity,rally_capacity,power').in('id',ids);(p.data||[]).forEach(x=>responsePlayers[x.id]=x)}
+ $('#responses-list').innerHTML=responses.length?`<div class="response-card-list">${responses.map(r=>{const p=responsePlayers[r.player_account_id]||playerPool.find(x=>String(x.id)===String(r.player_account_id))||{},role=r.role||p.battle_role||'Unassigned',live=playerPool.find(x=>String(x.id)===String(r.player_account_id))||p,hasTq=!!(r.troop_quality&&typeof r.troop_quality==='object'&&Object.keys(r.troop_quality).length),assigned=assignedLabel(live,role);return `<article class="response-card"><div class="candidate-main"><div><b>${esc(p.in_game_name||'Player')}</b><div class="tiny muted">ID ${esc(p.player_id||'—')} • ${esc(playerAllianceLabel(p))}</div></div><span class="candidate-tier">${esc(role==='rally_lead'?'RL':hasTq?troopQualityProfile(live).tier:'—')}</span></div><div class="tiny">${hasTq?esc(troopSummary(live)):'Troop quality not submitted'}</div><div class="tiny muted" style="margin-top:5px">${esc(role)} • Deployment ${Number(r.deployment_capacity||p.deployment_capacity||0).toLocaleString()}${assigned?` • ${esc(assigned)}`:' • Unassigned'}</div><button class="btn response-assign" data-response-player="${esc(String(r.player_account_id||''))}" data-response-role="${esc(role)}" type="button">Assign to Strategy</button></article>`}).join('')}</div>`:'No SvS responses yet.';
+ $$('.response-assign',$('#responses-list')).forEach(b=>b.onclick=()=>quickAssignResponse(b.dataset.responsePlayer,b.dataset.responseRole));
 }
 $('#refresh-responses').onclick=loadResponses;
+function quickAssignResponse(playerId,role){
+ if(!strategy||!teams.length)return say('Open or create a Strategy with Teams first.',true);
+ const opts=alliances.flatMap(a=>Teams(a.id).map(t=>`<option value="${t.id}">${esc(a.alliance_tag)} • ${esc(t.name)}</option>`)).join('');
+ modal('Assign Response to Strategy',`<label>Alliance / Team<select id="response-team"><option value="">Select Team…</option>${opts}</select></label><div class="select-note" style="margin-top:8px">Responses is the review queue. Hero setup, Join First and Rally timing stay inside Strategy Board.</div>`,async ov=>{const tid=$('#response-team',ov).value;if(!tid){say('Select a Team.',true);return false}showTab('strategy');setTimeout(()=>String(role)==='rally_lead'?addRally(tid,playerId):addJoiner(tid,playerId),0);return true});
+}
 
 function renderStrategy(){
  const host=$('#strategy-editor');if(!strategy){host.innerHTML='';return}
@@ -935,8 +1011,8 @@ function renderStrategy(){
  bindStrategy();
 }
 function renderAlliance(a){
- return `<article class="strategy-alliance" data-aid="${a.id}"><div class="alliance-head">${a.emblem_url?`<img class="emblem" src="${esc(a.emblem_url)}" alt="">`:''}<div><div class="alliance-name">${esc(a.alliance_tag)}${a.alliance_name?` • ${esc(a.alliance_name)}`:''}</div><div class="ratios"><span class="ratio attack">⚔ ${ratio(a.attack_ratio,[49,2,49])}</span>${a.defense_enabled?`<span class="ratio defense">🛡 ${ratio(a.defense_ratio,[40,0,60])}</span>`:''}</div></div></div>
- <div style="padding:11px"><div class="grid3"><label>Main Attack Ratio<input class="a-atk" value="${ratio(a.attack_ratio,[49,2,49])}"></label><label>Main Defense Ratio<input class="a-def" value="${ratio(a.defense_ratio,[40,0,60])}"></label><label>Defense<select class="a-on"><option value="yes" ${a.defense_enabled?'selected':''}>Enabled</option><option value="no" ${!a.defense_enabled?'selected':''}>Off</option></select></label></div><div class="joiner-ratio-editor"><div class="joiner-ratio-editor-head"><div><b>Joiner Formation Ratios</b><div class="tiny muted">Up to 3 Attack and 3 Defense presets. Presets mirror the alliance Rally Lead formations.</div></div><div class="row"><button class="btn add-ratio-attack" type="button">+ Attack Ratio</button><button class="btn add-ratio-defense" type="button">+ Defense Ratio</button></div></div><div class="joiner-ratio-editor-pills">${formationsFor(a.id,'attack').map((f,i)=>`<span class="ratio attack">⚔ ${i===0?'Main':`Alt ${i}`} • ${ratio(f.ratio,[49,2,49])}</span>`).join('')}${formationsFor(a.id,'defense').map((f,i)=>`<span class="ratio defense">🛡 ${i===0?'Main':`Alt ${i}`} • ${ratio(f.ratio,[40,0,60])}</span>`).join('')}</div></div><div class="row" style="margin-top:8px"><button class="btn save-a">Save</button><button class="btn violet add-team">+ Team</button></div></div>
+ return `<article class="strategy-alliance" data-aid="${a.id}"><div class="alliance-head">${a.emblem_url?`<img class="emblem" src="${esc(a.emblem_url)}" alt="">`:''}<div><div class="alliance-name">${esc(a.alliance_tag)}${a.alliance_name?` • ${esc(a.alliance_name)}`:''}</div><div class="ratios"><span class="ratio defense">🛡 Defense Heroes ${a.defense_enabled?'Enabled':'Off'}</span></div></div></div>
+ <div style="padding:11px"><div class="row"><label class="grow">Defense Heroes<select class="a-on"><option value="yes" ${a.defense_enabled?'selected':''}>Enabled</option><option value="no" ${!a.defense_enabled?'selected':''}>Off</option></select></label><button class="btn save-a" type="button">Save</button><button class="btn violet add-team" type="button">+ Team</button></div><div class="select-note" style="margin-top:8px">Rally Lead formations below come only from Formation Center → Approved. Strategy Board selects them; it does not create or edit formation ratios/heroes.</div></div>
  <div class="teams">${Teams(a.id).map(renderTeam).join('')||'<div class="muted tiny">No Teams yet.</div>'}</div>
  ${renderFormationBoard(a)}
  </article>`
@@ -951,7 +1027,7 @@ function renderTeam(t){
      <button class="btn add-rally" style="width:100%;margin-top:6px" type="button">+ Rally Leader</button>
      <div class="mini" style="margin-top:13px">Joiners</div>
      <div class="join-head"><div>Player</div><div>Attack</div><div>Defense</div></div>
-     ${js.map(j=>`<div class="joiner ${j.join_first?'first':''}"><div class="pname"><b>${esc(j.player_name)}</b></div><div class="hero-stack">${heroLine('A',j.attack_a_hero_id)}${heroLine('B',j.attack_b_hero_id)}</div><div class="hero-stack">${def?heroLine('A',j.defense_a_hero_id)+heroLine('B',j.defense_b_hero_id):'<span class="muted">—</span>'}</div><button class="member-x" data-delete-joiner="${j.id}" type="button">×</button></div>`).join('')||'<div class="muted tiny">No Joiners assigned.</div>'}
+     ${js.map(j=>`<div class="joiner ${j.join_first?'first':''}"><div class="pname"><b>${esc(j.player_name)}</b>${j.join_first?'<div class="tiny" style="color:var(--gold);margin-top:3px">JOIN FIRST</div>':''}</div><div class="hero-stack">${heroLine('A',j.attack_a_hero_id)}${heroLine('B',j.attack_b_hero_id)}</div><div class="hero-stack">${def?heroLine('A',j.defense_a_hero_id)+heroLine('B',j.defense_b_hero_id):'<span class="muted">—</span>'}</div><div class="member-actions"><button class="member-edit" data-edit-joiner="${j.id}" type="button">✎</button><button class="member-x" data-delete-joiner="${j.id}" type="button">×</button></div></div>`).join('')||'<div class="muted tiny">No Joiners assigned.</div>'}
      <button class="btn add-joiner" style="width:100%;margin-top:8px" type="button">+ Joiner</button>
    </div>
  </article>`
@@ -980,9 +1056,9 @@ function teamFormationNote(t){
  return `<div class="team-formations"><div class="mini" style="margin-top:0">RALLY LEAD FORMATIONS</div>${mini(fa,'⚔ Attack','attack')}${mini(fd,'🛡 Defense','defense')}<small>Joiners use the same troop ratio as the Rally Lead formation.</small></div>`
 }
 function bindStrategy(){
- $$('.strategy-alliance').forEach(c=>{const aid=c.dataset.aid;const saveBtn=$('.save-a',c),addBtn=$('.add-team',c);if(saveBtn)saveBtn.onclick=async()=>{const {error}=await sb.from('svs_strategy_alliances').update({attack_ratio:parseRatio($('.a-atk',c).value,[49,2,49]),defense_ratio:parseRatio($('.a-def',c).value,[40,0,60]),defense_enabled:$('.a-on',c).value==='yes'}).eq('id',aid);if(error)return say(error.message,true);await openStrategy(strategy.id)};if(addBtn)addBtn.onclick=()=>addTeam(aid);const ar=$('.add-ratio-attack',c),dr=$('.add-ratio-defense',c);if(ar)ar.onclick=()=>addFormation(aid,'attack');if(dr)dr.onclick=()=>addFormation(aid,'defense')});
- $$('.team').forEach(c=>{const tid=c.dataset.tid;$('.add-rally',c).onclick=()=>addRally(tid);$('.add-joiner',c).onclick=()=>addJoiner(tid);$('[data-delete-team]',c).onclick=()=>deleteTeam(tid);$$('[data-delete-rally]',c).forEach(b=>b.onclick=()=>deleteRally(b.dataset.deleteRally));$$('[data-delete-rally-player]',c).forEach(b=>b.onclick=()=>deleteRallyPlayer(tid,b.dataset.deleteRallyPlayer));$$('[data-delete-joiner]',c).forEach(b=>b.onclick=()=>deleteJoiner(b.dataset.deleteJoiner))});
- $$('[data-add-formation]').forEach(b=>b.onclick=()=>addFormation(b.dataset.aid,b.dataset.addFormation));
+ $$('.strategy-alliance').forEach(c=>{const aid=c.dataset.aid,saveBtn=$('.save-a',c),addBtn=$('.add-team',c);if(saveBtn)saveBtn.onclick=async()=>{const {error}=await sb.from('svs_strategy_alliances').update({defense_enabled:$('.a-on',c).value==='yes'}).eq('id',aid);if(error)return say(error.message,true);await openStrategy(strategy.id)};if(addBtn)addBtn.onclick=()=>addTeam(aid)});
+ $$('.team').forEach(c=>{const tid=c.dataset.tid;$('.add-rally',c).onclick=()=>addRally(tid);$('.add-joiner',c).onclick=()=>addJoiner(tid);$('[data-delete-team]',c).onclick=()=>deleteTeam(tid);$$('[data-delete-rally]',c).forEach(b=>b.onclick=()=>deleteRally(b.dataset.deleteRally));$$('[data-delete-rally-player]',c).forEach(b=>b.onclick=()=>deleteRallyPlayer(tid,b.dataset.deleteRallyPlayer));$$('[data-edit-joiner]',c).forEach(b=>b.onclick=()=>editJoiner(b.dataset.editJoiner));$$('[data-delete-joiner]',c).forEach(b=>b.onclick=()=>deleteJoiner(b.dataset.deleteJoiner))});
+ $$('[data-add-formation]').forEach(b=>b.onclick=()=>selectApprovedFormation(b.dataset.aid,b.dataset.addFormation));
  $$('[data-delete-formation]').forEach(b=>b.onclick=()=>deleteFormation(b.dataset.deleteFormation));
 }
 
@@ -1009,20 +1085,27 @@ function formationDisplayName(f){
  return idx===0?`Main ${type}`:`Alt ${type}${idx>1?` ${idx}`:''}`;
 }
 function formationCard(f){
- const rr=Array.isArray(f.ratio)?f.ratio:[49,2,49],label=formationDisplayName(f);
- return `<div class="formation-card ${f.is_recommended?'recommended':''}"><div class="formation-top"><div><span class="formation-name">${esc(label)}</span>${f.is_recommended?'<br><span class="recommended-badge">Recommended</span>':''}</div><button class="mini-x" data-delete-formation="${f.id}" type="button">×</button></div><div class="formation-ratio">${f.formation_type==='attack'?'⚔':'🛡'} ${rr.join(' / ')}</div><div class="formation-heroes">${formationHeroCell(f.hero_infantry_id,rr[0])}${formationHeroCell(f.hero_lancer_id,rr[1])}${formationHeroCell(f.hero_marksman_id,rr[2])}</div></div>`
+ const rr=Array.isArray(f.ratio)?f.ratio:[49,2,49],label=formationDisplayName(f),list=formationsFor(f.strategy_alliance_id,f.formation_type),idx=Math.max(0,list.findIndex(x=>String(x.id)===String(f.id))),alt=idx>0?(f.formation_type==='attack'?'alt-attack':'alt-defense'):'';
+ return `<div class="formation-card ${alt} ${f.is_recommended?'recommended':''}"><div class="formation-top"><div><span class="formation-name">${esc(label)}</span>${f.is_recommended?'<br><span class="recommended-badge">Main Approved</span>':''}</div><button class="mini-x" data-delete-formation="${f.id}" type="button">×</button></div><div class="formation-ratio">${f.formation_type==='attack'?'⚔':'🛡'} ${rr.join(' / ')}</div><div class="formation-heroes">${formationHeroCell(f.hero_infantry_id,rr[0])}${formationHeroCell(f.hero_lancer_id,rr[1])}${formationHeroCell(f.hero_marksman_id,rr[2])}</div></div>`
 }
 function renderFormationBoard(a){
  const atk=formationsFor(a.id,'attack'),def=formationsFor(a.id,'defense');
- return `<div class="formations-wrap"><div class="formations-title"><h4>Rally Lead Formations</h4><span>Main + optional alternatives</span></div><div class="formations-board"><div class="formation-column"><div class="formation-column-head"><strong>⚔ Attack</strong><button class="btn" data-add-formation="attack" data-aid="${a.id}" type="button">${atk.length?'+ Alt':'+ Add'}</button></div>${atk.map(formationCard).join('')||'<div class="muted tiny">No attack preset yet.</div>'}</div><div class="formation-column"><div class="formation-column-head"><strong>🛡 Defense</strong><button class="btn" data-add-formation="defense" data-aid="${a.id}" type="button">${def.length?'+ Alt':'+ Add'}</button></div>${def.map(formationCard).join('')||'<div class="muted tiny">No defense preset yet.</div>'}</div></div></div>`
+ return `<div class="formations-wrap"><div class="formations-title"><h4>Rally Lead Formations</h4><span>Formation Center → Approved only</span></div><div class="formations-board"><div class="formation-column"><div class="formation-column-head"><strong>⚔ Attack</strong><button class="btn" data-add-formation="attack" data-aid="${a.id}" type="button">+ Select Approved</button></div>${atk.map(formationCard).join('')||'<div class="muted tiny">No approved Attack selected.</div>'}</div><div class="formation-column"><div class="formation-column-head"><strong>🛡 Defense</strong><button class="btn" data-add-formation="defense" data-aid="${a.id}" type="button">+ Select Approved</button></div>${def.map(formationCard).join('')||'<div class="muted tiny">No approved Defense selected.</div>'}</div></div></div>`
 }
-async function addFormation(aid,type){
- const list=formationsFor(aid,type);if(list.length>=3)return say(`Maximum 3 ${type} formation presets per alliance.`,true);
- const defRatio=type==='attack'?[49,2,49]:[40,0,60],letter=String.fromCharCode(65+list.length),defaultName=list.length?`Alt ${type==='attack'?'Attack':'Defense'}`:`Main ${type==='attack'?'Attack':'Defense'}`;
- const rec=rallyFormationRecommendation(type),hi=rec.infantry,hl=rec.lancer,hm=rec.marksman;
- modal(`Add ${type==='attack'?'Attack':'Defense'} Formation`,`<div class="grid2"><label>Name<input id="fm-name" value="${defaultName}"></label><label>Ratio<input id="fm-ratio" value="${defRatio.join(' / ')}"></label></div><div class="grid3" style="margin-top:9px"><label>Hero 1<select id="fm-i">${heroOptionsTroop('infantry',hi?.id||'')}</select></label><label>Hero 2<select id="fm-l">${heroOptionsTroop('lancer',hl?.id||'')}</select></label><label>Hero 3<select id="fm-m">${heroOptionsTroop('marksman',hm?.id||'')}</select></label></div><label style="margin-top:9px">Recommendation<select id="fm-rec"><option value="no">Normal Preset</option><option value="yes">NEXA Recommended</option></select></label><div class="select-note" style="margin-top:7px">NEXA reads the current evidence registry for this State generation, can mix older heroes when the supported lineup is stronger, and enforces troop-type constraints such as required Lancer presence.</div>`,async ov=>{
-   const r=parseRatio($('#fm-ratio',ov).value,defRatio),name=$('#fm-name',ov).value.trim()||defaultName;
-   const {error}=await sb.from('svs_rally_formations').insert({strategy_alliance_id:aid,formation_type:type,name,ratio:r,hero_infantry_id:$('#fm-i',ov).value||null,hero_lancer_id:$('#fm-l',ov).value||null,hero_marksman_id:$('#fm-m',ov).value||null,is_recommended:$('#fm-rec',ov).value==='yes',sort_order:list.length});if(error)throw error;await openStrategy(strategy.id);try{await reoptimizeJoinersForCurrentFormations();await openStrategy(strategy.id)}catch(e){return say(e?.message||String(e),true)};
+function approvedFormationRules(type){const g=activeHeroGeneration();return (battleMetaRules||[]).filter(r=>Number(r.generation)===g&&r.mode===type&&r.event_scope==='pvp_rally'&&(r.approval_status||'approved')==='approved'&&r.is_active!==false).sort((a,b)=>Number(b.confidence||0)-Number(a.confidence||0))}
+function resolvedApprovedFormation(rule){const hs=(rule?.leader_heroes||[]).map(stateHeroByName);if(hs.length!==3||hs.some(x=>!x))return null;return {rule,infantry:hs.find(h=>String(h.troop_type||'').toLowerCase()==='infantry')||hs[0],lancer:hs.find(h=>String(h.troop_type||'').toLowerCase()==='lancer')||hs[1],marksman:hs.find(h=>String(h.troop_type||'').toLowerCase()==='marksman')||hs[2],ratio:(rule.primary_ratio||[]).map(Number)}}
+function ruleAlreadySelected(aid,type,x){return formationsFor(aid,type).some(f=>{const rr=(f.ratio||[]).map(Number),names=[H(f.hero_infantry_id)?.name,H(f.hero_lancer_id)?.name,H(f.hero_marksman_id)?.name].map(v=>String(v||'').toLowerCase()).sort(),rn=[x.infantry?.name,x.lancer?.name,x.marksman?.name].map(v=>String(v||'').toLowerCase()).sort();return rr.join('/')===x.ratio.join('/')&&names.join('|')===rn.join('|')})}
+function approvedRuleCard(x){const r=x.rule,hero=(h,p)=>`<div class="formation-hero"><div class="formation-pct">${esc(p)}%</div>${h?.image_url?`<img src="${esc(h.image_url)}" alt="">`:''}<b class="${rarityClass(h?.rarity)}">${esc(h?.name||'—')}</b></div>`;return `<label class="approved-rule-card"><input type="radio" name="approved-rule" value="${esc(r.id)}"><div class="candidate-main"><b>${r.mode==='attack'?'⚔ ATTACK':'🛡 DEFENSE'}</b><span class="candidate-tier">${Math.round(Number(r.confidence||0)*100)}%</span></div><div class="formation-ratio">${x.ratio.join(' / ')}</div><div class="formation-heroes">${hero(x.infantry,x.ratio[0])}${hero(x.lancer,x.ratio[1])}${hero(x.marksman,x.ratio[2])}</div></label>`}
+async function selectApprovedFormation(aid,type){
+ const list=formationsFor(aid,type);if(list.length>=3)return say(`Maximum 3 selected ${type} formations per alliance.`,true);
+ const resolved=approvedFormationRules(type).map(resolvedApprovedFormation).filter(x=>x&&x.ratio.length===3&&x.ratio.reduce((a,b)=>a+b,0)===100);
+ if(!resolved.length)return say(`No Gen ${activeHeroGeneration()} Approved ${type} formations are available in Formation Center.`,true);
+ modal(`Select Approved ${type==='attack'?'Attack':'Defense'}`,`<div class="select-note">Every Approved Gen ${activeHeroGeneration()} formation appears here. Strategy Board only selects; ratios and Rally Lead heroes are controlled in Formation Center.</div><div class="approved-rule-list">${resolved.map(approvedRuleCard).join('')}</div>`,async ov=>{
+   const id=$('input[name="approved-rule"]:checked',ov)?.value;if(!id){say('Select an Approved formation.',true);return false}
+   const x=resolved.find(v=>String(v.rule.id)===String(id));if(!x)return false;if(ruleAlreadySelected(aid,type,x)){say('That Approved formation is already selected for this Alliance.',true);return false}
+   const name=list.length?`Alt ${type==='attack'?'Attack':'Defense'}${list.length>1?` ${list.length}`:''}`:`Main ${type==='attack'?'Attack':'Defense'}`;
+   const {error}=await sb.from('svs_rally_formations').insert({strategy_alliance_id:aid,formation_type:type,name,ratio:x.ratio,hero_infantry_id:x.infantry?.id||null,hero_lancer_id:x.lancer?.id||null,hero_marksman_id:x.marksman?.id||null,is_recommended:list.length===0,sort_order:list.length});if(error)throw error;
+   await openStrategy(strategy.id);try{await reoptimizeJoinersForCurrentFormations();await openStrategy(strategy.id)}catch(e){say(e?.message||String(e),true)}
  });
 }
 async function deleteFormation(id){if(!confirm('Delete this formation preset?'))return;const {error}=await sb.from('svs_rally_formations').delete().eq('id',id);if(error)return say(error.message,true);await openStrategy(strategy.id)}
@@ -1042,40 +1125,37 @@ async function addTeam(aid){
  });
  setTimeout(()=>{const ov=$$('.nexa-modal').at(-1),sel=$('#m-team-name',ov);sel.onchange=()=>$('#custom-team-wrap',ov).style.display=sel.value==='custom'?'grid':'none'},0);
 }
-async function addRally(tid){
- const opts=playerOptions('rally_lead',true);
- const ov=modal('Add Rally Leader',`<label>Rally Leader<select id="m-rally-player">${opts}</select></label><div class="grid2" style="margin-top:9px"><label>Start<select id="m-rally-start">${timeOptions('12:00')}</select></label><label>End<select id="m-rally-end">${timeOptions('14:00')}</select></label></div><label style="margin-top:9px">Pets<select id="m-rally-pets"><option value="no">No</option><option value="yes">Yes — continuous 2 hours</option></select></label><div class="select-note" style="margin-top:8px">Rally Leaders may rotate between Alliances when their time blocks do not overlap. PETS always use one continuous 2-hour window.</div>`,async ov=>{
-  const p=selectedPlayer($('#m-rally-player',ov).value);if(!p){say('Select a Rally Leader.',true);return false}
-  let s=$('#m-rally-start',ov).value,e=$('#m-rally-end',ov).value,pets=$('#m-rally-pets',ov).value==='yes';
-  if(pets)e=timeFromMinutes(minutesOf(s)+120);
-  if(e<=s){say('End time must be after Start.',true);return false}
+function openRallyEditor(tid,p){
+ const ov=modal(`Add Rally Leader • ${p.in_game_name}`,`<div class="candidate-selected">${rallyCandidateCard(p).replace(/<input[^>]+>/,'')}</div><div class="grid2" style="margin-top:9px"><label>Start<select id="m-rally-start">${timeOptions('12:00')}</select></label><label>End<select id="m-rally-end">${timeOptions('14:00')}</select></label></div><label style="margin-top:9px">Pets<select id="m-rally-pets"><option value="no">No</option><option value="yes">Yes — continuous 2 hours</option></select></label><div class="select-note" style="margin-top:8px">Rally Leaders are ranked with the full SBS Rally Lead composite: Troops + Heroes + Experts + Pets + Gear/Charms + Rally/Deployment Capacity + relevant account strength.</div>`,async ov=>{
+  let s=$('#m-rally-start',ov).value,e=$('#m-rally-end',ov).value,pets=$('#m-rally-pets',ov).value==='yes';if(pets)e=timeFromMinutes(minutesOf(s)+120);if(e<=s){say('End time must be after Start.',true);return false}
   const conflicts=rally.filter(r=>(p.id?String(r.player_account_id)===String(p.id):String(r.player_name).toLowerCase()===p.in_game_name.toLowerCase())&&overlaps(s,e,r.start_utc,r.end_utc));
-  if(conflicts.length){
-    const c=conflicts[0];if(!confirm(`${p.in_game_name} is already assigned to ${teamLabel(c.team_id)} at ${c.start_utc}–${c.end_utc} UTC. Move this conflicting slot here?`))return false;
-    for(const x of conflicts)await sb.from('svs_strategy_rally_slots').delete().eq('id',x.id);
-  }
-  if(pets){
-    const oldPet=rally.find(r=>r.pets_active&&(p.id?String(r.player_account_id)===String(p.id):String(r.player_name).toLowerCase()===p.in_game_name.toLowerCase()));
-    if(oldPet){say(`${p.in_game_name} already has a PETS window (${oldPet.start_utc}–${oldPet.end_utc}). PETS must stay one continuous 2-hour block.`,true);return false}
-  }
-  const {error}=await sb.from('svs_strategy_rally_slots').insert({team_id:tid,player_account_id:p.id||null,player_name:p.in_game_name,start_utc:s,end_utc:e,pets_active:pets,pet_status:pets?'active':'none',sort_order:Rally(tid).length});if(error)throw error;await openStrategy(strategy.id);
+  if(conflicts.length){const c=conflicts[0];if(!confirm(`${p.in_game_name} is already assigned to ${teamLabel(c.team_id)} at ${c.start_utc}–${c.end_utc} UTC. Move this conflicting slot here?`))return false;for(const x of conflicts)await sb.from('svs_strategy_rally_slots').delete().eq('id',x.id)}
+  if(pets){const oldPet=rally.find(r=>r.pets_active&&(p.id?String(r.player_account_id)===String(p.id):String(r.player_name).toLowerCase()===p.in_game_name.toLowerCase()));if(oldPet){say(`${p.in_game_name} already has a PETS window (${oldPet.start_utc}–${oldPet.end_utc}). PETS must stay one continuous 2-hour block.`,true);return false}}
+  const {error}=await sb.from('svs_strategy_rally_slots').insert({team_id:tid,player_account_id:p.id||null,player_name:p.in_game_name,start_utc:s,end_utc:e,pets_active:pets,pet_status:pets?'active':'none',sort_order:Rally(tid).length});if(error)throw error;await openStrategy(strategy.id)
  });
- const petsSel=$('#m-rally-pets',ov),startSel=$('#m-rally-start',ov),endSel=$('#m-rally-end',ov);
- const sync=()=>{if(petsSel.value==='yes'){endSel.value=timeFromMinutes(minutesOf(startSel.value)+120);endSel.disabled=true}else endSel.disabled=false};petsSel.onchange=sync;startSel.onchange=sync;
+ const petsSel=$('#m-rally-pets',ov),startSel=$('#m-rally-start',ov),endSel=$('#m-rally-end',ov),sync=()=>{if(petsSel.value==='yes'){endSel.value=timeFromMinutes(minutesOf(startSel.value)+120);endSel.disabled=true}else endSel.disabled=false};petsSel.onchange=sync;startSel.onchange=sync;
 }
-async function addJoiner(tid){
- modal('Add Joiner',`<label>Joiner<select id="m-join-player">${playerOptions('joiner',true)}</select></label><div class="grid2" style="margin-top:9px"><label>Attack A<select id="aa">${heroOptions()}</select></label><label>Attack B<select id="ab">${heroOptions()}</select></label><label>Defense A<select id="da">${heroOptions()}</select></label><label>Defense B<select id="db">${heroOptions()}</select></label></div><label style="margin-top:9px">Join First<select id="jf"><option value="no">No</option><option value="yes">Yes</option></select></label>`,async ov=>{
-  const p=selectedPlayer($('#m-join-player',ov).value);if(!p){say('Select a Joiner.',true);return false}
-  const existing=joiners.find(j=>(p.id?String(j.player_account_id)===String(p.id):String(j.player_name).toLowerCase()===p.in_game_name.toLowerCase())&&j.team_id!==tid);
-  if(existing){
-    if(!confirm(`${p.in_game_name} is already assigned to ${teamLabel(existing.team_id)}. Move this player to ${teamLabel(tid)}?`))return false;
-    await sb.from('svs_strategy_joiners').delete().eq('id',existing.id);
-  }
-  const here=joiners.find(j=>(p.id?String(j.player_account_id)===String(p.id):String(j.player_name).toLowerCase()===p.in_game_name.toLowerCase())&&j.team_id===tid);
-  if(here){say(`${p.in_game_name} is already assigned to this Team.`,true);return false}
-  const {error}=await sb.from('svs_strategy_joiners').insert({team_id:tid,player_account_id:p.id||null,player_name:p.in_game_name,sort_order:Joiners(tid).length,join_first:$('#jf',ov).value==='yes',attack_a_hero_id:$('#aa',ov).value||null,attack_b_hero_id:$('#ab',ov).value||null,defense_a_hero_id:$('#da',ov).value||null,defense_b_hero_id:$('#db',ov).value||null});if(error)throw error;await openStrategy(strategy.id);
- });
+async function addRally(tid,preselectedId=''){
+ if(preselectedId){const p=rallyCandidatePool().find(x=>String(x.id)===String(preselectedId))||selectedPlayer(preselectedId);if(!p)return say('Rally Leader not found.',true);return openRallyEditor(tid,p)}
+ const pool=rallyCandidatePool();if(!pool.length)return say('No Rally Leader candidates are available.',true);
+ modal('Add Rally Leader',`<div class="select-note">Ranked strongest → weakest by NEXA Rally Lead composite.</div><div class="candidate-list">${pool.map(rallyCandidateCard).join('')}</div>`,async ov=>{const val=$('input[name="rally-candidate"]:checked',ov)?.value;if(!val){say('Select a Rally Leader.',true);return false}const p=selectedPlayer(val);if(!p)return false;setTimeout(()=>openRallyEditor(tid,p),0);return true});
 }
+function suggestedJoinerHeroes(tid,p){const t=teamForAssignment(tid),a=t&&A(t.strategy_alliance_id),idx=Joiners(tid).length,atk=formationsFor(a?.id,'attack'),def=formationsFor(a?.id,'defense'),ap=joinHeroPair(p,'attack',idx,atk[0]||null,atk[1]||null),dp=joinHeroPair(p,'defense',idx,def[0]||null,def[1]||null);return {aa:ap[0]?.id||'',ab:ap[1]?.id||'',da:dp[0]?.id||'',db:dp[1]?.id||''}}
+function openJoinerEditor(tid,p,row=null){
+ const sug=row?{aa:row.attack_a_hero_id||'',ab:row.attack_b_hero_id||'',da:row.defense_a_hero_id||'',db:row.defense_b_hero_id||''}:suggestedJoinerHeroes(tid,p),def=defenseOn(teamForAssignment(tid));
+ const ov=modal(`${row?'Edit':'Add'} Joiner • ${p.in_game_name}`,`<div class="candidate-selected">${p._test?`<b>${esc(p.in_game_name)}</b>`:joinerCandidateCard(p).replace(/<input[^>]+>/,'')}</div><div class="visual-hero-grid" style="margin-top:10px">${heroPickerField('aa','Attack A',sug.aa,p.id||'')}${heroPickerField('ab','Attack B',sug.ab,p.id||'')}${def?heroPickerField('da','Defense A',sug.da,p.id||'')+heroPickerField('db','Defense B',sug.db,p.id||''):'<div class="select-note">Defense Heroes are OFF for this Alliance.</div>'}</div><label style="margin-top:10px">Join First<select id="jf"><option value="no" ${!row?.join_first?'selected':''}>No — Regular Joiner</option><option value="yes" ${row?.join_first?'selected':''}>Yes — Join First</option></select></label><div class="select-note" style="margin-top:8px">Hero picker shows only heroes this account owns, limited to the currently unlocked generation: Epic/Purple and Legendary/Mythic. Rare/Blue and future generations are excluded.</div>`,async ov=>{
+   const patch={team_id:tid,player_account_id:p.id||null,player_name:p.in_game_name,join_first:$('#jf',ov).value==='yes',attack_a_hero_id:$('#aa',ov)?.value||null,attack_b_hero_id:$('#ab',ov)?.value||null,defense_a_hero_id:$('#da',ov)?.value||null,defense_b_hero_id:$('#db',ov)?.value||null};
+   if(row){const {error}=await sb.from('svs_strategy_joiners').update(patch).eq('id',row.id);if(error)throw error}
+   else{const existing=joiners.find(j=>(p.id?String(j.player_account_id)===String(p.id):String(j.player_name).toLowerCase()===p.in_game_name.toLowerCase()));if(existing){if(!confirm(`${p.in_game_name} is already assigned to ${teamLabel(existing.team_id)}. Move this player to ${teamLabel(tid)}?`))return false;const {error}=await sb.from('svs_strategy_joiners').update({...patch,sort_order:Joiners(tid).length}).eq('id',existing.id);if(error)throw error}else{const {error}=await sb.from('svs_strategy_joiners').insert({...patch,sort_order:Joiners(tid).length});if(error)throw error}}
+   await openStrategy(strategy.id)
+ });bindVisualHeroPickers(ov);
+}
+async function addJoiner(tid,preselectedId=''){
+ if(preselectedId){const p=selectedPlayer(preselectedId);if(!p)return say('Joiner not found.',true);if(!p._test&&!responseHasTroopQuality(p))return say(`${p.in_game_name} has not submitted Troop Quality yet.`,true);return openJoinerEditor(tid,p,null)}
+ const pool=joinerCandidatePool();if(!pool.length)return say('No Joiners with submitted Troop Quality are available.',true);
+ modal('Add Joiner',`<div class="select-note">Only SvS responders with Troop Quality are shown. Ranked strongest → weakest by SBS Joiner Score.</div><div class="candidate-list">${pool.map(joinerCandidateCard).join('')}</div>`,async ov=>{const val=$('input[name="joiner-candidate"]:checked',ov)?.value;if(!val){say('Select a Joiner.',true);return false}const p=selectedPlayer(val);if(!p)return false;setTimeout(()=>openJoinerEditor(tid,p,null),0);return true});
+}
+function editJoiner(id){const row=joiners.find(x=>String(x.id)===String(id));if(!row)return;const p=playerPool.find(x=>String(x.id)===String(row.player_account_id))||{id:row.player_account_id,in_game_name:row.player_name};openJoinerEditor(row.team_id,p,row)}
 
 $('#rows-from-teams').onclick=async()=>{if(!strategy)return say('Open a strategy first.',true);const ex=new Set(petRows.map(x=>x.source_team_id).filter(Boolean)),todo=teams.filter(x=>!ex.has(x.id));if(!todo.length)return say('Every Team already has a Pet Schedule row.');const {error}=await sb.from('svs_pet_schedule_rows').insert(todo.map((t,i)=>({strategy_id:strategy.id,strategy_alliance_id:t.strategy_alliance_id,source_team_id:t.id,sort_order:petRows.length+i})));if(error)return say(error.message,true);await openStrategy(strategy.id);say('Rows created. Assign each Purpose manually.')}
 $('#add-pet-row').onclick=async()=>{if(!strategy)return say('Open a strategy first.',true);const {error}=await sb.from('svs_pet_schedule_rows').insert({strategy_id:strategy.id,sort_order:petRows.length});if(error)return say(error.message,true);await openStrategy(strategy.id)}
@@ -1157,7 +1237,7 @@ function formationHeroMini(id,pct){
 }
 function layoutRallyLeadFormationGroup(a,type){
  const fs=formationsFor(a.id,type),count=Math.max(1,Math.min(3,fs.length||1));
- return `<div class="rl-formations-group ${type}"><h4>${type==='attack'?'⚔ Attack Formation':'🛡 Defense Formation'}</h4><div class="rl-formation-list" style="--count:${count}">${fs.length?fs.map(f=>{const rr=parseRatio(f.ratio,type==='attack'?[49,2,49]:[40,0,60]);return `<div class="rl-formation-card"><div class="rl-formation-heroes">${formationHeroMini(f.hero_infantry_id,rr[0])}${formationHeroMini(f.hero_lancer_id,rr[1])}${formationHeroMini(f.hero_marksman_id,rr[2])}</div></div>`}).join(''):'<div class="muted tiny">No formation configured.</div>'}</div></div>`
+ return `<div class="rl-formations-group ${type}"><h4>${type==='attack'?'⚔ Attack Formation':'🛡 Defense Formation'}</h4><div class="global-formation-note">Global Rally Formation • troop ratio + Rally Leader hero setup for this Alliance.</div><div class="rl-formation-list" style="--count:${count}">${fs.length?fs.map((f,i)=>{const rr=parseRatio(f.ratio,type==='attack'?[49,2,49]:[40,0,60]),alt=i>0?(type==='attack'?'alt-attack':'alt-defense'):'';return `<div class="rl-formation-card ${alt}"><div class="rl-formation-heroes">${formationHeroMini(f.hero_infantry_id,rr[0])}${formationHeroMini(f.hero_lancer_id,rr[1])}${formationHeroMini(f.hero_marksman_id,rr[2])}</div></div>`}).join(''):'<div class="muted tiny">No formation configured.</div>'}</div></div>`
 }
 function layoutJoinerRatioGroup(a,type){
  const fs=formationsFor(a.id,type),count=Math.max(1,Math.min(3,fs.length||1));
@@ -1290,9 +1370,9 @@ async function runAssist(){
  if(counterIds.length!==activeCount-1)return renderRecommendations([`<b>Select all ${activeCount-1} Counter Rally Alliance${activeCount-1===1?'':'s'}.</b>`]);
  const chosenIds=[primaryId,...counterIds];if(new Set(chosenIds).size!==chosenIds.length)return renderRecommendations(['<b>Each participating Alliance must be unique.</b>']);
  if(!strategy){const created=await sb.from('svs_strategies').insert({state_number:state,name:'NEXA SvS Strategy',build_flow:'teams_first',primary_alliance_id:primaryId}).select().single();if(created.error)return say(created.error.message,true);strategy=created.data;await loadStrategies();await openStrategy(strategy.id)}
- const liveRLBase=playerPool.filter(p=>roleForPlayer(p)==='rally_lead');
+ const liveRLBase=playerPool.filter(p=>roleForPlayer(p)==='rally_lead'&&!!responseFor(p.id));
  const liveRL=decorateRallyPool(liveRLBase);
- const liveJ=playerPool.filter(p=>roleForPlayer(p)==='joiner').map(p=>({...p,_strength:joinerSbsScore(p)*100000})).sort((a,b)=>b._strength-a._strength);
+ const liveJ=playerPool.filter(p=>roleForPlayer(p)==='joiner'&&responseHasTroopQuality(p)).map(p=>({...p,_strength:joinerSbsScore(p)*100000})).sort((a,b)=>b._strength-a._strength);
  const rlCount=testSandbox?Number($('#assist-test-rl-count').value||6):liveRL.length,joinerCount=testSandbox?Number($('#assist-test-joiner-count').value||36):liveJ.length;
  const rlPool=testSandbox?decorateRallyPool(testRallyPool(rlCount)):liveRL,joinPool=testSandbox?testJoinerPool(joinerCount):liveJ;
  if(rlPool.length<activeCount)return renderRecommendations([`<b>Not enough Rally Leaders.</b> ${activeCount} active Alliances require at least ${activeCount} viable leads.`]);
@@ -1361,22 +1441,13 @@ async function runAssist(){
  }
  // Automatic Rally Lead hero + troop formations. Main + up to 2 additional Approved variants.
  const atk=atkRec,def=defRec,formationErrors=[];
- const formationRowsFor=(a,type,rec)=>{
-   const presets=[rec,...(rec.catalogAlternatives||[])].filter(x=>Array.isArray(x.ratio)&&x.ratio.length===3).slice(0,3);
-   return presets.map((x,i)=>({
-     strategy_alliance_id:a.id,
-     formation_type:type,
-     name:i===0?`Main ${type==='attack'?'Attack':'Defense'}`:`Alt ${type==='attack'?'Attack':'Defense'}${i>1?` ${i}`:''}`,
-     ratio:x.ratio,
-     hero_infantry_id:x.infantry?.id||null,
-     hero_lancer_id:x.lancer?.id||null,
-     hero_marksman_id:x.marksman?.id||null,
-     is_recommended:i===0,
-     sort_order:i
-   }));
+ const formationRowsFor=(a,type)=>{
+   const x=approvedFormationRules(type).map(resolvedApprovedFormation).find(v=>v&&Array.isArray(v.ratio)&&v.ratio.length===3&&v.ratio.reduce((n,m)=>n+m,0)===100);
+   if(!x)return [];
+   return [{strategy_alliance_id:a.id,formation_type:type,name:`Main ${type==='attack'?'Attack':'Defense'}`,ratio:x.ratio,hero_infantry_id:x.infantry?.id||null,hero_lancer_id:x.lancer?.id||null,hero_marksman_id:x.marksman?.id||null,is_recommended:true,sort_order:0}];
  };
  for(let ai=0;ai<saRows.length;ai++){
-   const payload=[...formationRowsFor(saRows[ai],'attack',atk),...formationRowsFor(saRows[ai],'defense',def)];
+   const payload=[...formationRowsFor(saRows[ai],'attack'),...formationRowsFor(saRows[ai],'defense')];
    const {error}=await sb.from('svs_rally_formations').insert(payload);
    if(error)formationErrors.push(`${saRows[ai].alliance_tag}: ${error.message}`);
  }

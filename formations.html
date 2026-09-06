@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • Formations</title>
 
-<!-- NEXA FORMATIONS V1.7 • resilient Approved load • vetted Suggested First-4 • visible skill/buff reasoning -->
+<!-- NEXA FORMATIONS V1.8 • library-derived Approved backup pools • clean horizontal backups • vetted First-4 skill reasoning -->
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -282,10 +282,88 @@ textarea{min-height:76px;resize:vertical}
     return [];
   }
 
-  function safeBackups(r){
+  function firstExpeditionSkill(hero){
+    const list=hero?.metadata?.expedition_skills;
+    return Array.isArray(list)&&list.length?list[0]:null;
+  }
+
+  function maxPercent(text){
+    const nums=String(text||'').match(/\d+(?:\.\d+)?%/g)||[];
+    return nums.length?Math.max(...nums.map(x=>Number(x.replace('%',''))||0)):0;
+  }
+
+  function buffFamily(hero){
+    const sk=firstExpeditionSkill(hero);
+    if(!sk)return '';
+    const text=`${sk.effect||''} ${sk.description||''}`.toLowerCase();
+    if(/enemy.*defen|enemy defense down|reducing all enemy troops'? defense/.test(text))return'enemy_defense_down';
+    if(/enemy damage taken up|target.*damage taken|increasing target.*damage taken/.test(text))return'enemy_damage_taken_up';
+    if(/enemy.*lethality.*down|enemy lethality down/.test(text))return'enemy_lethality_down';
+    if(/enemy.*attack.*down|reduces enemy attack|reducing all enemy troops'? attack/.test(text))return'enemy_attack_down';
+    if(/enemy damage down|enemy.*damage dealt.*reduc|reducing damage dealt.*enemy/.test(text))return'enemy_damage_down';
+    if(/damage taken down|reducing damage taken|reduce.*damage taken/.test(text))return'damage_taken_down';
+    if(/health up|increasing health/.test(text))return'health_up';
+    if(/defense up|increasing defense/.test(text))return'defense_up';
+    if(/lethality up|increasing.*lethality/.test(text))return'lethality_up';
+    if(/normal attack damage up/.test(text))return'normal_attack_damage_up';
+    if(/attack up|increasing attack|boosting .*attack/.test(text))return'attack_up';
+    if(/damage up|increasing damage dealt|increasing damage by|boosting damage dealt/.test(text))return'damage_up';
+    if(/crit rate/.test(text))return'crit_rate';
+    if(/dodge/.test(text))return'dodge';
+    return'';
+  }
+
+  function backupWeight(family,mode){
+    const attack={
+      enemy_defense_down:110,enemy_damage_taken_up:108,lethality_up:102,
+      attack_up:98,damage_up:98,normal_attack_damage_up:88,crit_rate:82
+    };
+    const defense={
+      damage_taken_down:110,enemy_attack_down:108,enemy_damage_down:106,
+      enemy_lethality_down:103,health_up:100,defense_up:94,dodge:84
+    };
+    return (mode==='defense'?defense:attack)[family]||0;
+  }
+
+  function calculatedBackups(r){
+    const mode=norm(r?.mode)==='defense'?'defense':'attack';
+    const excluded=new Set([
+      ...(r?.leader_heroes||[]),
+      ...safeJoiners(r)
+    ].map(norm));
+    const candidates=heroes
+      .filter(h=>Number(h.generation||0)<=activeGeneration&&!excluded.has(norm(h.name)))
+      .map(h=>{
+        const sk=firstExpeditionSkill(h),family=buffFamily(h),base=backupWeight(family,mode);
+        if(!sk||!base)return null;
+        const text=`${sk.effect||''} ${sk.description||''}`;
+        const global=/all troops|all enemy troops|friendly troop|friendly troops|target.*damage taken/i.test(text);
+        const direct=!/chance/i.test(text);
+        const score=base+(global?10:-10)+(direct?5:0)+Math.min(50,maxPercent(text))*.12;
+        return {hero:h,family,score};
+      })
+      .filter(Boolean)
+      .sort((a,b)=>b.score-a.score||Number(b.hero.generation||0)-Number(a.hero.generation||0));
+
+    const picked=[],families=new Set();
+    for(const x of candidates){
+      if(picked.length>=6)break;
+      if(families.has(x.family))continue;
+      picked.push(x.hero.name);families.add(x.family);
+    }
+    for(const x of candidates){
+      if(picked.length>=6)break;
+      if(!picked.includes(x.hero.name))picked.push(x.hero.name);
+    }
+    return picked;
+  }
+
+  function safeBackups(r,allowCalculated=false){
     const md=metadata(r);
-    if(r.approval_status==='approved')return r.backup_joiner_pool||[];
-    if(md.joiner_gate)return r.backup_joiner_pool||[];
+    const stored=(r.backup_joiner_pool||[]).map(x=>String(x||'').trim()).filter(Boolean);
+    if(stored.length)return stored;
+    if(allowCalculated)return calculatedBackups(r);
+    if(md.joiner_gate)return stored;
     return [];
   }
 
@@ -328,18 +406,6 @@ textarea{min-height:76px;resize:vertical}
     }).join('')}</div>`;
   }
 
-  function backupExplanation(r){
-    const pool=safeBackups(r);
-    if(!pool.length)return `<div class="muted" style="margin-top:6px">No vetted backup replacements yet. NEXA will add backups only when their buff/effect can safely replace or support a First-4 role.</div>`;
-    const ev=joinerEvidence(r,'backup');
-    return `<div style="display:grid;gap:6px;margin-top:6px">${pool.map(hero=>{
-      const x=ev.find(e=>norm(e.hero)===norm(hero));
-      const replace=x?.replaces?` • Backup for ${esc(x.replaces)}`:'';
-      const reason=mechanicText(x);
-      const why=reason?`<div class="muted">${esc(compactReason(reason,280))}</div>`:'';
-      return `<div><b class="${rarity(hero)}">${esc(hero)}</b>${replace}${why}</div>`;
-    }).join('')}</div>`;
-  }
 
   function tierLabel(r){
     const conf=Number(r.confidence||0);
@@ -357,7 +423,7 @@ textarea{min-height:76px;resize:vertical}
     const approved=view==='approved';
     const label=approved?'APPROVED':tierLabel(r);
     const joiners=safeJoiners(ev);
-    const backups=safeBackups(ev);
+    const backups=safeBackups(ev,approved);
     const why=ev.why_good||ev.evidence_note||r.why_good||r.evidence_note||'No explanation saved yet.';
     const risk=ev.risk_note||r.risk_note||'';
     const rr=ratioReasoning(ev);
@@ -387,8 +453,7 @@ textarea{min-height:76px;resize:vertical}
 
         <div style="height:10px"></div>
         <b>Backup Joiner Pool</b>
-        ${backups.length?chips(backups):''}
-        ${backupExplanation(ev)}
+        ${backups.length?chips(backups):'<div class="muted" style="margin-top:6px">No compatible backup buffs found in the unlocked Hero Library yet.</div>'}
 
         <div style="height:10px"></div>
         <b>Why this formation</b>
@@ -465,7 +530,7 @@ textarea{min-height:76px;resize:vertical}
     try{
       const [a,b,g]=await Promise.all([
         sb.from('nexa_battle_meta_rules').select('*').in('approval_status',['approved','corroborated','candidate']).order('generation',{ascending:false}).order('confidence',{ascending:false}),
-        sb.from('nexa_library_items').select('name,image_url,rarity,generation,troop_type').eq('item_type','hero').eq('is_active',true).order('generation'),
+        sb.from('nexa_library_items').select('name,image_url,rarity,generation,troop_type,metadata').eq('item_type','hero').eq('is_active',true).order('generation'),
         sb.from('nexa_library_generations').select('generation,is_visible,unlock_at').eq('item_type','hero').order('generation')
       ]);
 

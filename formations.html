@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • Formations</title>
 
-<!-- NEXA FORMATIONS V1.9 • visual current-generation hero picker • Rare/Blue excluded • single-tap save/close -->
+<!-- NEXA FORMATIONS V1.10 • Top 4 Joiner synergy/stack explanation + visual current-generation hero picker -->
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -142,12 +142,16 @@ textarea{min-height:76px;resize:vertical}
         </div>
       </div>
 
-      <label class="full">Join First 1–4 <span class="muted">comma separated</span>
+      <label class="full">Top 4 Joiners <span class="muted">stack order • comma separated</span>
         <input id="joinfirst" placeholder="Norah, Norah, Hendrik, Patrick">
       </label>
 
       <label class="full">Backup Joiner Pool <span class="muted">comma separated</span>
         <input id="backup" placeholder="Hendrik, Gatot, Mia">
+      </label>
+
+      <label class="full">Top 4 Synergy & Stack
+        <textarea id="top4synergy" placeholder="Explain why these four joiner effects complement each other, what stacks, and what the combined package adds to this exact rally formation."></textarea>
       </label>
 
       <label class="full">Why this formation is good
@@ -391,19 +395,30 @@ textarea{min-height:76px;resize:vertical}
 
   function mechanicText(x){
     if(!x)return '';
-    const skill=String(x.skill_name||'').trim();
     const effect=String(x.buff_effect||'').trim();
     const why=String(x.why||'').trim();
-    if(skill&&effect)return `${skill}: ${effect}${why?' '+why:''}`;
-    if(effect)return `${effect}${why?' '+why:''}`;
-    if(skill&&why)return `${skill}: ${why}`;
-    return why;
+    if(effect&&why)return `${effect} ${why}`;
+    return effect||why;
+  }
+
+  function top4SynergyText(r){
+    const md=metadata(r);
+    const explicit=String(md.top4_synergy||md.joiner_stack_reasoning||md.joiner_synergy||'').trim();
+    if(explicit)return explicit;
+    const first=safeJoiners(r),ev=joinerEvidence(r,'primary');
+    const parts=first.map(hero=>{
+      const x=ev.find(e=>norm(e.hero)===norm(hero));
+      const effect=String(x?.buff_effect||'').trim();
+      return effect?`${hero}: ${effect}`:'';
+    }).filter(Boolean);
+    if(parts.length)return `These four seats are treated as one stack package rather than four isolated skill picks. ${parts.join(' • ')}. The goal is complementary effects that can operate together for this exact Rally Lead trio and troop ratio.`;
+    return 'Top 4 stack explanation will populate after the next vetted Brain refresh.';
   }
 
   function whyFirstFour(r){
     const first=safeJoiners(r);
     if(!first.length){
-      return `<div class="muted">First-4 joiners are waiting for a current vetted skill-effect refresh.</div>`;
+      return `<div class="muted">Top 4 joiners are waiting for a current vetted synergy/stack refresh.</div>`;
     }
     const ev=joinerEvidence(r,'primary');
     return `<div style="display:grid;gap:8px;margin-top:6px">${first.map((hero,index)=>{
@@ -411,7 +426,7 @@ textarea{min-height:76px;resize:vertical}
       const why=mechanicText(x);
       return `<div>
         <b class="${rarity(hero)}">${index+1}. ${esc(hero)}</b>
-        <div class="muted">${why?esc(compactReason(why,300)):'Skill/buff reasoning will populate after the next vetted Brain refresh.'}</div>
+        <div class="muted">${why?esc(compactReason(why,300)):'Stack contribution will populate after the next vetted Brain refresh.'}</div>
       </div>`;
     }).join('')}</div>`;
   }
@@ -454,11 +469,15 @@ textarea{min-height:76px;resize:vertical}
       <div class="ratio">${(r.primary_ratio||[]).join(' / ')}</div>
 
       <div class="detail">
-        <b>Join First 1–4</b>
-        ${joiners.length?chips(joiners):'<div class="muted" style="margin-top:6px">Pending vetted First-4 joiners.</div>'}
+        <b>Top 4 Joiners • Stack Order</b>
+        ${joiners.length?chips(joiners):'<div class="muted" style="margin-top:6px">Pending vetted Top 4 joiners.</div>'}
 
         <div style="height:10px"></div>
-        <b>Why these First 4?</b>
+        <b>Top 4 Synergy & Stack</b>
+        <div class="muted" style="margin-top:6px">${esc(compactReason(top4SynergyText(ev),650))}</div>
+
+        <div style="height:10px"></div>
+        <b>How each seat contributes to the stack</b>
         ${whyFirstFour(ev)}
 
         <div style="height:10px"></div>
@@ -626,7 +645,7 @@ textarea{min-height:76px;resize:vertical}
     if(hs.some(x=>!x)){status('Choose all 3 Rally Lead heroes.');return}
     const jf=($('#joinfirst')?.value||'').split(',').map(x=>x.trim()).filter(Boolean);
     const bp=($('#backup')?.value||'').split(',').map(x=>x.trim()).filter(Boolean);
-    if(jf.length!==4){status('Join First must contain exactly 4 hero names.');return}
+    if(jf.length!==4){status('Top 4 Joiners must contain exactly 4 hero names.');return}
     const generation=Number($('#generation')?.value||0);
     if(generation!==activeGeneration){status(`Only Gen ${activeGeneration} is currently unlocked.`);return}
     const mode=$('#mode')?.value||'attack',rule_key=`manual_${mode}_${Date.now()}`,button=$('#save');
@@ -636,6 +655,7 @@ textarea{min-height:76px;resize:vertical}
         generation,event_scope:'pvp_rally',mode,rule_key,leader_heroes:hs,primary_ratio:ratio,
         alternative_ratios:[],alternative_formations:[],joiner_primary:jf,joiner_alternatives:bp,backup_joiner_pool:bp,
         constraints:{max_generation:activeGeneration},confidence:1,evidence_status:'verified',
+        research_metadata:{top4_synergy:($('#top4synergy')?.value||'').trim()},
         evidence_note:'Manual approved formation.',why_good:($('#why')?.value||'').trim(),risk_note:($('#risk')?.value||'').trim(),
         source_urls:[],source_count:0,independent_source_count:0,approval_status:'approved',is_active:true,is_manual:true,
         verified_at:new Date().toISOString()

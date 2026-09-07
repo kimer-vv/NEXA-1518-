@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V11.9.2 • calibrated reference timing + bulk city identification + simplified city editor + V11.9.1 export studio quality/legend controls -->
+<!-- NEXA SVS OPERATIONS V11.9.3 • durable Castle autosave + local recovery + cloud retry + calibrated timing + bulk identification + export studio -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -1337,6 +1337,8 @@ $('#create-strategy').onclick=async()=>{
  if(error)return say(error.message,true);strategy=data;await loadStrategies();await openStrategy(data.id);showTab(data.build_flow==='pets_first'?'pets':'strategy');say('Strategy created.');
 };
 async function openStrategy(id){
+ // Never replace the current in-memory Castle workspace before its latest edit is persisted.
+ if(strategy&&castleSnapshot)await castleFlushSave();
  const {data:s,error}=await sb.from('svs_strategies').select('*').eq('id',id).single();if(error)return say(error.message,true);strategy=s;
  let r=await sb.from('svs_strategy_alliances').select('*').eq('strategy_id',id).order('sort_order');alliances=r.data||[];
  const aids=alliances.map(x=>x.id);teams=[];rally=[];joiners=[];petRows=[];petAssignments=[];
@@ -1349,9 +1351,20 @@ async function openStrategy(id){
  if(aids.length){r=await sb.from('svs_rally_formations').select('*').in('strategy_alliance_id',aids).order('formation_type').order('sort_order');formations=r.data||[]}
  const bp=await sb.from('svs_battle_plan_items').select('*').eq('strategy_id',id).order('sort_order');battlePlanItems=bp.error?[]:(bp.data||[]);
  const cs=await sb.from('svs_castle_seating').select('*').eq('strategy_id',id).maybeSingle();
+ if(cs.error)console.warn('[NEXA] Castle cloud load failed',cs.error);
  castleRow=cs.error?null:(cs.data||null);
- castleSnapshot=castleNormalizeSnapshot(castleRow?.snapshot||null);
+ const localCastle=castleLoadLocal(id);
+ const cloudCandidate=castleRow?{snapshot:castleRow.snapshot,updated_at:castleRow.updated_at}:null;
+ const chosenCastle=castleSnapshotTime(localCastle)>castleSnapshotTime(cloudCandidate)?localCastle:cloudCandidate;
+ castleSnapshot=castleNormalizeSnapshot(chosenCastle?.snapshot||null);
+ // Preserve the source timestamp so newest-copy comparison remains meaningful.
+ if(chosenCastle?.updated_at&&!castleSnapshot.updated_at)castleSnapshot.updated_at=chosenCastle.updated_at;
  castleSelection.clear();castleUndo=[];castleRedo=[];
+ // If this device had the newer copy, immediately push it back to Supabase.
+ if(localCastle&&castleSnapshotTime(localCastle)>castleSnapshotTime(cloudCandidate)){
+   castleSaveLocal(id,castleSnapshot);
+   setTimeout(()=>castleSaveNow({quiet:true}).catch(()=>{}),60);
+ }
  $('#strategy-picker').value=id;
  const cfg=strategy.assist_config||{};
  if(cfg.active_alliance_count)$('#assist-alliance-count').value=String(cfg.active_alliance_count);
@@ -1953,7 +1966,7 @@ function layoutTeam(t){
 }
 
 /* =========================================================
-   V11.9.2 — CASTLE SEATING
+   V11.9.3 — CASTLE SEATING
    Castle Seating workspace is independent from Battle Plan.
    Turret-to-turret lanes corrected to 6 Cities.
    ========================================================= */
@@ -1980,7 +1993,7 @@ const CASTLE_REF_SECONDS=[36,39,43,45,47,48,50,53,55,58,61,62,63,66,67,69,73,74,
 
 function castleDefaultSnapshot(){
  return {
-   version:'1.6',
+   version:'1.7',
    red_zone_visible:true,
    view_mode:'straight',
    viewport:{...CASTLE_HOME},
@@ -2009,7 +2022,7 @@ function castleNormalizeSnapshot(raw){
  const v=s.viewport&&Number.isFinite(Number(s.viewport.x))?{
    x:Number(s.viewport.x),y:Number(s.viewport.y),w:Math.max(300,Number(s.viewport.w)||1400),h:Math.max(300,Number(s.viewport.h)||1400)
  }:{...CASTLE_HOME};
- return {...d,...s,version:'1.6',cities,viewport:v,view_mode:s.view_mode==='diamond'?'diamond':'straight',red_zone_visible:s.red_zone_visible!==false};
+ return {...d,...s,version:'1.7',cities,viewport:v,view_mode:s.view_mode==='diamond'?'diamond':'straight',red_zone_visible:s.red_zone_visible!==false};
 }
 function castleCloneSnapshot(){return JSON.parse(JSON.stringify(castleSnapshot||castleDefaultSnapshot()))}
 function castlePushUndo(){castleUndo.push(castleCloneSnapshot());if(castleUndo.length>40)castleUndo.shift();castleRedo=[];castleRefreshUndoButtons()}
@@ -2102,17 +2115,64 @@ function castleSecondsForAnchor(x,y){
  if(pos&&pos.kind==='matrix')return castleTimingCell(pos.depth,pos.slot);
  return castleReferenceDistanceSeconds(x,y);
 }
+function castleStorageKey(strategyId){return `nexa:castle-seating:${String(strategyId||'')}`}
+function castleSaveLocal(strategyId,snapshot){
+ if(!strategyId||!snapshot)return false;
+ try{
+   localStorage.setItem(castleStorageKey(strategyId),JSON.stringify({strategy_id:String(strategyId),snapshot,updated_at:snapshot.updated_at||new Date().toISOString()}));
+   return true;
+ }catch(e){console.warn('[NEXA] Castle local backup failed',e);return false}
+}
+function castleLoadLocal(strategyId){
+ if(!strategyId)return null;
+ try{
+   const raw=localStorage.getItem(castleStorageKey(strategyId));if(!raw)return null;
+   const parsed=JSON.parse(raw);
+   return parsed&&parsed.snapshot?parsed:null;
+ }catch(e){console.warn('[NEXA] Castle local recovery failed',e);return null}
+}
+function castleSnapshotTime(x){
+ const t=Date.parse(x?.updated_at||x?.snapshot?.updated_at||'');return Number.isFinite(t)?t:0;
+}
 function castleQueueSave(){
  if(!strategy||!castleSnapshot)return;
- setSaveState('saving');clearTimeout(castleSaveTimer);
- castleSaveTimer=setTimeout(()=>castleSaveNow().catch(e=>{say(e?.message||String(e),true);setSaveState('saved')}),420);
-}
-async function castleSaveNow(){
- if(!strategy||!castleSnapshot)return;
+ // Every mutation gets a synchronous local backup immediately.
  castleSnapshot.updated_at=new Date().toISOString();
- const payload={strategy_id:strategy.id,snapshot:castleSnapshot,updated_at:new Date().toISOString()};
+ castleSaveLocal(strategy.id,castleSnapshot);
+ setSaveState('saving');clearTimeout(castleSaveTimer);
+ // Cloud save follows quickly, but local persistence does not wait for the debounce.
+ castleSaveTimer=setTimeout(()=>castleSaveNow({quiet:true}).catch(()=>{}),150);
+}
+async function castleSaveNow({quiet=false}={}){
+ if(!strategy||!castleSnapshot)return false;
+ clearTimeout(castleSaveTimer);castleSaveTimer=null;
+ castleSnapshot.updated_at=new Date().toISOString();
+ castleSaveLocal(strategy.id,castleSnapshot);
+ const payload={strategy_id:strategy.id,snapshot:castleSnapshot,updated_at:castleSnapshot.updated_at};
  const up=await sb.from('svs_castle_seating').upsert(payload,{onConflict:'strategy_id'}).select().single();
- if(up.error)throw up.error;castleRow=up.data;setSaveState('saved');
+ if(up.error){
+   console.warn('[NEXA] Castle cloud autosave failed',up.error);
+   setSaveState('saving');
+   const status=$('#status');if(status)status.textContent='Castle saved on this device • cloud retry pending';
+   // Do not lie by showing Saved. Keep retrying while the page remains open.
+   clearTimeout(castleSaveTimer);
+   castleSaveTimer=setTimeout(()=>castleSaveNow({quiet:true}).catch(()=>{}),2500);
+   if(!quiet)say(`Castle local backup saved. Cloud sync: ${up.error.message||'retry pending'}`,true);
+   return false;
+ }
+ castleRow=up.data;
+ castleSaveLocal(strategy.id,castleSnapshot);
+ setSaveState('saved');
+ return true;
+}
+async function castleFlushSave(){
+ if(!strategy||!castleSnapshot)return true;
+ clearTimeout(castleSaveTimer);castleSaveTimer=null;
+ try{return await castleSaveNow({quiet:true})}catch(e){
+   console.warn('[NEXA] Castle flush failed',e);
+   castleSaveLocal(strategy.id,castleSnapshot);
+   return false;
+ }
 }
 function castleSetViewport(v,{save=false}={}){
  if(!castleSnapshot)castleSnapshot=castleDefaultSnapshot();
@@ -2292,7 +2352,7 @@ function castleRefresh(){
 }
 function renderCastleSeating(){
  const svg=$('#castle-stage');if(!svg)return;
- if(!strategy){castleSnapshot=castleDefaultSnapshot();castleSelection.clear()}
+ // Rendering must never erase a previously loaded/edited workspace.
  if(!castleSnapshot)castleSnapshot=castleDefaultSnapshot();
  castleRefresh();castleBindControls();castleBindExportStudio();
 }
@@ -2319,6 +2379,27 @@ function castleBindControls(){
  svg.addEventListener('wheel',e=>{if(!castleSnapshot)return;e.preventDefault();castleZoom(e.deltaY>0?1.12:.89,e.clientX,e.clientY)},{passive:false});
  svg.addEventListener('pointerdown',castlePointerDown);svg.addEventListener('pointermove',castlePointerMove);svg.addEventListener('pointerup',castlePointerUp);svg.addEventListener('pointercancel',castlePointerUp);
 }
+let castlePersistenceBound=false;
+function castleBindPersistenceLifecycle(){
+ if(castlePersistenceBound)return;castlePersistenceBound=true;
+ const backupNow=()=>{
+   if(strategy&&castleSnapshot){
+     castleSnapshot.updated_at=new Date().toISOString();
+     castleSaveLocal(strategy.id,castleSnapshot);
+   }
+ };
+ window.addEventListener('pagehide',backupNow);
+ window.addEventListener('beforeunload',backupNow);
+ document.addEventListener('visibilitychange',()=>{
+   if(document.visibilityState==='hidden'){
+     backupNow();
+     // Best-effort cloud flush; local backup already completed synchronously.
+     castleFlushSave().catch(()=>{});
+   }
+ });
+}
+castleBindPersistenceLifecycle();
+
 function castlePointerDown(e){
  if(!castleSnapshot||!strategy)return;
  const svg=$('#castle-stage');svg.setPointerCapture?.(e.pointerId);
@@ -2599,4 +2680,535 @@ async function castleExport(){
  castleOpenExportStudio();
 }
 function castleBattleSnapshot(){
- const snap=ca
+ const snap=castleCloneSnapshot();
+ return {
+   section:'Castle City',source:'castle_seating',source_strategy_id:strategy?.id||null,cities:snap.cities,red_zone_visible:snap.red_zone_visible,view_mode:snap.view_mode,viewport:snap.viewport,
+   geometry:{city_footprint:'2x2',turret_footprint:'2x2',cities_between_turrets:6,red_zone_depth_cities:4,march_seconds_reference:'explicit_side_rows_plus_calibrated_2d_reference_no_pet_buff'},
+   sent_at:new Date().toISOString()
+ };
+}
+function castleBattlePlanChoice(existingCount){
+ return new Promise(resolve=>{
+   const ov=document.createElement('div');ov.className='nexa-modal nexa-alert-modal';
+   ov.innerHTML=`<div class="nexa-modal-card"><h3>Send to Battle Plan</h3><div class="select-note" style="margin-top:8px">${existingCount?`Battle Plan already has ${existingCount} Castle City cop${existingCount===1?'y':'ies'}. Choose how to send this layout.`:'Create an independent Castle City snapshot in Battle Plan.'}</div><div class="nexa-modal-actions" style="grid-template-columns:1fr"><button class="btn violet" data-castle-bp="add" type="button">${existingCount?'Add as New':'Send'}</button>${existingCount?'<button class="btn castle-danger" data-castle-bp="replace" type="button">Replace Existing Castle City Section</button>':''}<button class="btn" data-castle-bp="cancel" type="button">Cancel</button></div></div>`;
+   document.body.appendChild(ov);
+   $$('[data-castle-bp]',ov).forEach(b=>b.onclick=()=>{const v=b.dataset.castleBp;ov.remove();resolve(v)});
+   ov.onclick=e=>{if(e.target===ov){ov.remove();resolve('cancel')}};
+ });
+}
+async function castleSendToBattlePlan(){
+ if(!strategy)return say('Open a Strategy first.',true);
+ if(!castleSnapshot?.cities?.length)return say('Place at least one city before sending to Battle Plan.',true);
+ const existing=battlePlanItems.filter(x=>x.item_type==='castle_city'),choice=await castleBattlePlanChoice(existing.length);if(choice==='cancel')return;
+ setSaveState('saving');
+ if(choice==='replace'&&existing.length){
+   const d=await sb.from('svs_battle_plan_items').delete().eq('strategy_id',strategy.id).eq('item_type','castle_city');if(d.error)return say(d.error.message,true);
+   battlePlanItems=battlePlanItems.filter(x=>x.item_type!=='castle_city');
+ }
+ const sort=900+battlePlanItems.filter(x=>x.item_type==='castle_city').length;
+ const ins=await sb.from('svs_battle_plan_items').insert({strategy_id:strategy.id,team_id:null,item_type:'castle_city',sort_order:sort,snapshot:castleBattleSnapshot(),updated_at:new Date().toISOString()}).select().single();
+ if(ins.error)return say(ins.error.message,true);battlePlanItems.push(ins.data);renderBattlePlan();setSaveState('saved');say('Castle Seating sent to Battle Plan • Castle City.');
+}
+async function castleRemoveCityFromBattleCopy(itemId,cityId){
+ const item=battlePlanItems.find(x=>String(x.id)===String(itemId));if(!item||item.item_type!=='castle_city')return;
+ const snap=JSON.parse(JSON.stringify(item.snapshot||{})),cities=Array.isArray(snap.cities)?snap.cities:[];
+ snap.cities=cities.filter(c=>String(c.id)!==String(cityId));setSaveState('saving');
+ const up=await sb.from('svs_battle_plan_items').update({snapshot:snap,updated_at:new Date().toISOString()}).eq('id',item.id).select().single();
+ if(up.error)return say(up.error.message,true);
+ const i=battlePlanItems.findIndex(x=>String(x.id)===String(item.id));if(i>=0)battlePlanItems[i]=up.data;renderBattlePlan();setSaveState('saved');
+}
+
+function teamBattleSnapshot(t){
+
+ const a=A(t.strategy_alliance_id);return {alliance_tag:a?.alliance_tag||'',team:{...t},rally_slots:Rally(t.id),joiners:Joiners(t.id),formations:{attack:formationsFor(a?.id,'attack'),defense:formationsFor(a?.id,'defense')},sent_at:new Date().toISOString()};
+}
+async function sendTeamToBattlePlan(teamId){
+ if(!strategy)return;const t=teamForAssignment(teamId);if(!t)return;setSaveState('saving');
+ const payload={strategy_id:strategy.id,team_id:t.id,item_type:'team',sort_order:Number(A(t.strategy_alliance_id)?.sort_order||0)*10+Number(t.sort_order||0),snapshot:teamBattleSnapshot(t),updated_at:new Date().toISOString()};
+ const up=await sb.from('svs_battle_plan_items').upsert(payload,{onConflict:'strategy_id,team_id,item_type'}).select().single();if(up.error)return say(up.error.message,true);
+ const i=battlePlanItems.findIndex(x=>String(x.team_id)===String(t.id));if(i>=0)battlePlanItems[i]=up.data;else battlePlanItems.push(up.data);renderLayout();renderBattlePlan();setSaveState('saved');say(`${teamLabel(t.id)} sent to Battle Plan.`);
+}
+async function removeTeamFromBattlePlan(id){const item=battlePlanItems.find(x=>String(x.id)===String(id));if(!item)return;setSaveState('saving');const d=await sb.from('svs_battle_plan_items').delete().eq('id',id);if(d.error)return say(d.error.message,true);battlePlanItems=battlePlanItems.filter(x=>String(x.id)!==String(id));renderLayout();renderBattlePlan();setSaveState('saved')}
+function renderBattlePlan(){
+ const h=$('#battle-plan-list');if(!h)return;if(!strategy){h.innerHTML='<div class="muted">Open a Team workspace first.</div>';return}
+ const items=battlePlanItems.slice().sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+ h.innerHTML=items.length?items.map(x=>{
+   const snap=x.snapshot||{};
+   if(x.item_type==='castle_city'){
+     const cities=Array.isArray(snap.cities)?snap.cities:[],inside=cities.filter(c=>castleIsRed(Number(c.x)||0,Number(c.y)||0)).length;
+     return `<div class="battle-plan-item castle-bp-copy"><b>Castle City</b><div class="tiny muted" style="margin-top:4px">${cities.length} Cities • ${inside} inside Red Zone • independent snapshot</div><div class="castle-bp-city-list">${cities.map(c=>`<button class="castle-bp-city" data-bp-castle-city="${esc(c.id)}" data-bp-castle-item="${x.id}" type="button" title="Remove this city from Battle Plan copy">${esc(c.player_name||c.label||c.alliance_tag||`City ${c.x},${c.y}`)} ×</button>`).join('')}</div><div class="battle-plan-actions"><button class="btn" data-remove-plan="${x.id}" type="button">Remove Castle City Section</button><button class="btn" data-open-castle-workspace type="button">Open Castle Seating</button></div><div class="tiny muted" style="margin-top:6px">Changes in Castle Seating do not modify this copy. Tap a city chip above to remove only that city from Battle Plan.</div></div>`;
+   }
+   const tag=snap.alliance_tag||'Alliance',name=snap.team?.name||'Team',rl=(snap.rally_slots||[]).length,j=(snap.joiners||[]).length;
+   return `<div class="battle-plan-item"><b>${esc(tag)} • ${esc(name)}</b><div class="tiny muted" style="margin-top:4px">${rl} Rally slot${rl===1?'':'s'} • ${j} Joiner${j===1?'':'s'} • synced from Team Layout</div><div class="battle-plan-actions"><button class="btn" data-remove-plan="${x.id}" type="button">Remove</button></div></div>`;
+ }).join(''):'<div class="muted">Nothing sent yet. Use “Send to Battle Plan” under a Team in Team Layout or send Castle Seating from Castle City.</div>';
+ $$('[data-remove-plan]',h).forEach(b=>b.onclick=()=>removeTeamFromBattlePlan(b.dataset.removePlan));
+ $$('[data-bp-castle-city]',h).forEach(b=>b.onclick=async()=>{if(await nexaConfirm('Remove Castle City?',`Remove only this city from the Battle Plan copy? Castle Seating will not be changed.`,{confirmLabel:'Remove',cancelLabel:'Cancel'}))castleRemoveCityFromBattleCopy(b.dataset.bpCastleItem,b.dataset.bpCastleCity)});
+ $$('[data-open-castle-workspace]',h).forEach(b=>b.onclick=()=>showTab('seating'));
+}
+
+function renderRecommendations(items,title='NEXA Strategy Analysis'){
+ const box=$('#strategy-analysis-bottom');if(!box)return;
+ box.style.display=items?.length?'block':'none';
+ box.innerHTML=items?.length?`<h3>${esc(title)}</h3><div class="analysis-grid">${items.map(x=>`<div class="analysis-item">${x}</div>`).join('')}</div>`:'';
+}
+
+async function clearCurrentDraft(){
+ const aa=await sb.from('svs_strategy_alliances').select('id').eq('strategy_id',strategy.id);if(aa.error)throw aa.error;
+ const aids=(aa.data||[]).map(x=>x.id);
+ const tr=aids.length?await sb.from('svs_strategy_teams').select('id').in('strategy_alliance_id',aids):{data:[],error:null};if(tr.error)throw tr.error;
+ const tids=(tr.data||[]).map(x=>x.id);
+ const pr=await sb.from('svs_pet_schedule_rows').select('id').eq('strategy_id',strategy.id);if(pr.error)throw pr.error;
+ const rowIds=(pr.data||[]).map(x=>x.id);
+ if(rowIds.length){const d=await sb.from('svs_pet_schedule_assignments').delete().in('row_id',rowIds);if(d.error)throw d.error}
+ if(rowIds.length){const d=await sb.from('svs_pet_schedule_rows').delete().in('id',rowIds);if(d.error)throw d.error}
+ if(tids.length){let d=await sb.from('svs_strategy_joiners').delete().in('team_id',tids);if(d.error)throw d.error;d=await sb.from('svs_strategy_rally_slots').delete().in('team_id',tids);if(d.error)throw d.error;d=await sb.from('svs_strategy_teams').delete().in('id',tids);if(d.error)throw d.error}
+ if(aids.length){let d=await sb.from('svs_rally_formations').delete().in('strategy_alliance_id',aids);if(d.error)throw d.error;d=await sb.from('svs_strategy_alliances').delete().in('id',aids);if(d.error)throw d.error}
+ alliances=[];teams=[];rally=[];joiners=[];petRows=[];petAssignments=[];formations=[];
+}
+
+async function clearAllianceDraft(aid){
+ const ts=Teams(aid),tids=ts.map(x=>x.id);
+ if(tids.length){
+   await sb.from('svs_strategy_joiners').delete().in('team_id',tids);
+   await sb.from('svs_strategy_rally_slots').delete().in('team_id',tids);
+   const rows=petRows.filter(r=>r.strategy_alliance_id===aid);if(rows.length){await sb.from('svs_pet_schedule_assignments').delete().in('row_id',rows.map(r=>r.id));await sb.from('svs_pet_schedule_rows').delete().in('id',rows.map(r=>r.id))}
+   await sb.from('svs_strategy_teams').delete().in('id',tids);
+ }
+}
+function testNames(kind,count){return (kind==='rl'?TEST_RLS:TEST_JOINERS).slice(0,count)}
+function distributeTeamCounts(totalTeams,allianceCount){
+ const out=Array(allianceCount).fill(1);let left=Math.max(0,totalTeams-allianceCount),i=0;
+ // Keep Team counts balanced; Primary gets only the first extra when the total is uneven. Strength priority is handled by player quality, not by starving Counter Alliances of Teams.
+ while(left>0){out[i%allianceCount]++;left--;i++}
+ return out
+}
+function chooseTeamCount(joinerPool,rlPool,allianceCount){
+ const m=recommendedTeamMetrics(joinerPool,rlPool);
+ // Auto Generate uses the same capacity guidance shown in Pet Schedule.
+ // Never create more Teams than Rally Lead capacity + available Joiner deployment can sustain.
+ return Math.max(allianceCount,Math.min(Math.max(allianceCount,m.teamCount||allianceCount),rlPool.length,allianceCount*5));
+}
+function weightedJoinerOrder(pool,counts){
+ const sorted=[...pool].sort((a,b)=>(b._strength??playerStrength(b,'joiner'))-(a._strength??playerStrength(a,'joiner'))),slots=[];
+ counts.forEach((n,ai)=>{for(let ti=0;ti<n;ti++)slots.push({ai,ti,priority:(ai===0?100:70)-(ti===0?0:ti===1?10:25+ti*3)})});
+ slots.sort((a,b)=>b.priority-a.priority);
+ const buckets=counts.map(n=>Array.from({length:n},()=>[]));let k=0;
+ for(const p of sorted){const s=slots[k%slots.length];buckets[s.ai][s.ti].push(p);k++}
+ return buckets
+}
+function teamPriorityRefs(teamRowsByAlliance){
+ const refs=[],push=(ai,ti)=>{const team=teamRowsByAlliance[ai]?.[ti];if(team)refs.push({ai,ti,team})};
+ push(0,0);push(0,1);
+ for(let ai=1;ai<teamRowsByAlliance.length;ai++)push(ai,0);
+ for(let ai=1;ai<teamRowsByAlliance.length;ai++)push(ai,1);
+ const max=Math.max(0,...teamRowsByAlliance.map(x=>x.length));
+ for(let ti=2;ti<max;ti++)for(let ai=0;ai<teamRowsByAlliance.length;ai++)push(ai,ti);
+ return refs;
+}
+function protectedTroopRefs(teamRowsByAlliance){
+ const weighted=[],push=(ai,ti,n=1)=>{const team=teamRowsByAlliance[ai]?.[ti];if(team)for(let i=0;i<n;i++)weighted.push({ai,ti,team})};
+ // T12 depth is spread by strategic layer, not by finishing deep Teams in one alliance.
+ // Main T1 is the strongest anchor; Main T2 stays strong but more mixed.
+ push(0,0,3);push(0,1,1);
+ for(let ai=1;ai<teamRowsByAlliance.length;ai++)push(ai,0,2);
+ for(let ai=1;ai<teamRowsByAlliance.length;ai++)push(ai,1,1);
+ return weighted;
+}
+function distributeJoinersByTroopQuality(players,leadAssignments,teamRowsByAlliance){
+ const packById=new Map();
+ for(const a of leadAssignments)packById.set(String(a.team.id),{lead:a.lead,joiners:[],used:0,capacity:Math.max(1,effectiveRallyCapacity(a.lead,true)||2200000),ai:a.ai,ti:Number(a.team.sort_order||0),team:a.team});
+ const allRefs=teamPriorityRefs(teamRowsByAlliance).filter(r=>packById.has(String(r.team.id))),protectedRefs=protectedTroopRefs(teamRowsByAlliance).filter(r=>packById.has(String(r.team.id)));
+ const sorted=[...players].sort((a,b)=>joinerSbsScore(b)-joinerSbsScore(a)),t12=sorted.filter(p=>troopQualityProfile(p).t12Count>0),rest=sorted.filter(p=>troopQualityProfile(p).t12Count===0);
+ const tryAssign=(p,refs,cursor)=>{if(!refs.length)return false;const dep=Math.max(1,deploymentOf(p)||250000);for(let k=0;k<refs.length;k++){const idx=(cursor.i+k)%refs.length,r=refs[idx],pack=packById.get(String(r.team.id));if(!pack)continue;if(pack.used+dep<=pack.capacity*1.06||pack.joiners.length===0){pack.joiners.push(p);pack.used+=dep;cursor.i=(idx+1)%refs.length;return true}}return false};
+ const c1={i:0},c2={i:0};
+ for(const p of t12){if(!tryAssign(p,protectedRefs,c1))tryAssign(p,allRefs,c2)}
+ for(const p of rest)tryAssign(p,allRefs,c2);
+ return packById;
+}
+function applyTeamStrength(pack){
+ const scores=pack.joiners.map(p=>troopQualityProfile(p).avg),troop=scores.length?scores.reduce((a,b)=>a+b,0)/scores.length:0;
+ const troopTier=teamTroopTier(troop),rl10=Math.max(0,Math.min(10,Number(pack.lead?._rlComposite||0)*10)),overall=troop*.72+rl10*.28,overallTier=teamOverallTier(overall),petEligible=troopTier!=='C';
+ Object.assign(pack.team,{troop_strength_score:troop,troop_strength_tier:troopTier,team_strength_score:overall,team_strength_tier:overallTier,pet_eligible:petEligible});
+ return {troop,troopTier,overall,overallTier,petEligible};
+}
+function petQualityDecision(team,ai,ti,requested){
+ const purpose=ai===0&&ti===0?'Garrison':ai===0&&ti===1?'Handoff':'Counter';
+ // Reserve PET is MANUAL ONLY. Auto Generate never creates Reserve PET.
+ if(!requested||purpose==='Handoff')return {active:false,status:'none'};
+ return {active:true,status:'active'};
+}
+function petScheduleTeamsByQuality(teamRowsByAlliance,primaryIndex=0){
+ const score=t=>{
+   const troop=Number(t?.troop_strength_score||0),overall=Number(t?.team_strength_score||0);
+   const tier=String(t?.troop_strength_tier||'C').toUpperCase();
+   const tierBoost=tier==='S'?300:tier==='A'?200:tier==='B'?100:0;
+   return troop*1000+overall*100+tierBoost;
+ };
+ return (teamRowsByAlliance||[]).map((rows,ai)=>{
+   const list=[...(rows||[])];
+   if(ai===primaryIndex){
+     const garrison=list.find(t=>Number(t.sort_order||0)===0)||list[0]||null;
+     const handoff=list.find(t=>Number(t.sort_order||0)===1)||list[1]||null;
+     const counters=list.filter(t=>t!==garrison&&t!==handoff).sort((a,b)=>score(b)-score(a));
+     return [garrison,handoff,...counters].filter(Boolean);
+   }
+   return list.sort((a,b)=>score(b)-score(a));
+ });
+}
+function ensureFinalHourCoverage(assignments,rlPool,scheduleTeamsByAlliance,startHour=12,endHour=17){
+ const out=[...(assignments||[])],fs=`${String(endHour-1).padStart(2,'0')}:00`,fe=`${String(endHour).padStart(2,'0')}:00`;
+ const overlapsFinal=a=>overlaps(fs,fe,a.start,a.end);
+ const leadKeyOf=x=>String(x?.id||x?.in_game_name||'');
+ const leadBusy=lead=>out.some(a=>leadKeyOf(a.lead)===leadKeyOf(lead)&&overlapsFinal(a));
+ const sorted=[...(rlPool||[])].sort((a,b)=>Number(b._rlComposite||0)-Number(a._rlComposite||0));
+ for(let ai=0;ai<(scheduleTeamsByAlliance||[]).length;ai++){
+   for(let ti=0;ti<(scheduleTeamsByAlliance[ai]||[]).length;ti++){
+     if(out.some(a=>a.allianceIndex===ai&&a.teamIndex===ti&&overlapsFinal(a)))continue;
+     const prior=out.filter(a=>a.allianceIndex===ai&&a.teamIndex===ti&&minutesOf(a.end)<=minutesOf(fs)).sort((a,b)=>minutesOf(b.end)-minutesOf(a.end))[0];
+     let lead=prior?.lead&&!leadBusy(prior.lead)?prior.lead:null;
+     if(!lead)lead=sorted.find(x=>!leadBusy(x))||null;
+     if(!lead)continue;
+     out.push({allianceIndex:ai,teamIndex:ti,lead,start:fs,end:fe,petsActive:ai===0&&ti===0,_nexaFinalHour:true});
+   }
+ }
+ return out.sort((a,b)=>a.allianceIndex-b.allianceIndex||a.teamIndex-b.teamIndex||minutesOf(a.start)-minutesOf(b.start));
+}
+
+async function runAssist(){
+ const activeCount=Math.max(1,Number($('#assist-alliance-count').value)||1),primaryId=Number($('#assist-primary-alliance').value||0);
+ if(!primaryId)return renderRecommendations(['<b>Select the Primary Castle Alliance first.</b>']);
+ const counterIds=$$('select[data-counter-alliance]').map(s=>Number(s.value||0)).filter(Boolean);
+ if(counterIds.length!==activeCount-1)return renderRecommendations([`<b>Select all ${activeCount-1} Counter Rally Alliance${activeCount-1===1?'':'s'}.</b>`]);
+ const chosenIds=[primaryId,...counterIds];if(new Set(chosenIds).size!==chosenIds.length)return renderRecommendations(['<b>Each participating Alliance must be unique.</b>']);
+ if(!strategy){const created=await sb.from('svs_strategies').insert({state_number:state,name:'NEXA SvS Strategy',build_flow:'teams_first',primary_alliance_id:primaryId}).select().single();if(created.error)return say(created.error.message,true);strategy=created.data;await loadStrategies();await openStrategy(strategy.id)}
+ const liveRLBase=playerPool.filter(p=>roleForPlayer(p)==='rally_lead'&&!!responseFor(p.id));
+ const liveRL=decorateRallyPool(liveRLBase);
+ const liveJ=playerPool.filter(p=>roleForPlayer(p)==='joiner'&&responseHasTroopQuality(p)).map(p=>({...p,_strength:joinerSbsScore(p)*100000})).sort((a,b)=>b._strength-a._strength);
+ const rlCount=testSandbox?Number($('#assist-test-rl-count').value||6):liveRL.length,joinerCount=testSandbox?Number($('#assist-test-joiner-count').value||36):liveJ.length;
+ const rlPool=testSandbox?decorateRallyPool(testRallyPool(rlCount)):liveRL,joinPool=testSandbox?testJoinerPool(joinerCount):liveJ;
+ if(rlPool.length<activeCount)return renderRecommendations([`<b>Not enough Rally Leaders.</b> ${activeCount} active Alliances require at least ${activeCount} viable leads.`]);
+ if(window.NexaBattleStrategyEngine?.loadMeta){
+   const freshMeta=await window.NexaBattleStrategyEngine.loadMeta(sb,{includeSuggestions:true});
+   if(Array.isArray(freshMeta))battleMetaRules=freshMeta;
+ }
+ const teamTotal=chooseTeamCount(joinPool,rlPool,activeCount),teamCounts=distributeTeamCounts(teamTotal,activeCount);
+ const config={active_alliance_count:activeCount,primary_alliance_id:primaryId,counter_alliance_ids:counterIds,test_sandbox:testSandbox,test_rally_leads:testSandbox?rlCount:null,test_joiners:testSandbox?joinerCount:null,recommended_team_counts:teamCounts,pet_logic_version:'2.0',team_quality_version:'1.1',pet_quality_gate_version:'1.1',pet_team_quality_route_version:'1.2',pet_reserve_roster_version:'1.0'};
+ await sb.from('svs_strategies').update({primary_alliance_id:primaryId,assist_config:config}).eq('id',strategy.id);
+ await clearCurrentDraft();await openStrategy(strategy.id);
+ const saRows=[],teamRowsByAlliance=[];
+ for(let ai=0;ai<chosenIds.length;ai++){
+   const real=allAlliances.find(a=>a.id===chosenIds[ai]);if(!real)continue;
+   const ins=await sb.from('svs_strategy_alliances').insert({strategy_id:strategy.id,alliance_id:real.id,alliance_tag:real.tag,alliance_name:real.name,emblem_url:real.emblem_url,sort_order:ai,attack_ratio:[48,4,48],defense_ratio:[50,40,10],defense_enabled:true}).select().single();if(ins.error)return say(ins.error.message,true);
+   saRows.push(ins.data);teamRowsByAlliance[ai]=[];
+   for(let ti=0;ti<teamCounts[ai];ti++){const t=await sb.from('svs_strategy_teams').insert({strategy_alliance_id:ins.data.id,name:`Team ${ti+1}`,sort_order:ti,color_key:'auto'}).select().single();if(t.error)return say(t.error.message,true);teamRowsByAlliance[ai].push(t.data)}
+ }
+ const leadAssignments=[];let leadIdx=0;
+ for(const ref of teamPriorityRefs(teamRowsByAlliance)){if(leadIdx<rlPool.length)leadAssignments.push({ai:ref.ai,team:ref.team,lead:rlPool[leadIdx++]})}
+ const activeLeadKeys=new Set(leadAssignments.map(x=>String(x.lead.id||x.lead.in_game_name))),depthRL=rlPool.filter(x=>!activeLeadKeys.has(String(x.id||x.in_game_name)));
+ const availableJoiners=[...joinPool,...depthRL.map(x=>({...x,_asJoiner:true,deployment_capacity:x.deployment_capacity||280000,_strength:joinerSbsScore(x)*100000}))];
+ const teamJoiners=distributeJoinersByTroopQuality(availableJoiners,leadAssignments,teamRowsByAlliance);
+ const atkRec=rallyFormationRecommendation('attack'),defRec=rallyFormationRecommendation('defense');
+ const atkVirtual={formation_type:'attack',hero_infantry_id:atkRec.infantry?.id||null,hero_lancer_id:atkRec.lancer?.id||null,hero_marksman_id:atkRec.marksman?.id||null,ratio:atkRec.ratio};
+ const defVirtual={formation_type:'defense',hero_infantry_id:defRec.infantry?.id||null,hero_lancer_id:defRec.lancer?.id||null,hero_marksman_id:defRec.marksman?.id||null,ratio:defRec.ratio};
+ for(const a of leadAssignments){
+   const pack=teamJoiners.get(String(a.team.id));if(!pack)continue;
+   const q=applyTeamStrength(pack);
+   const up=await sb.from('svs_strategy_teams').update({troop_strength_score:Number(q.troop.toFixed(3)),troop_strength_tier:q.troopTier,team_strength_score:Number(q.overall.toFixed(3)),team_strength_tier:q.overallTier,pet_eligible:q.petEligible}).eq('id',a.team.id);if(up.error)throw up.error;
+   const bucket=pack.joiners;
+   for(let j=0;j<bucket.length;j++){
+     const x=bucket[j],[aa,ab]=joinHeroPair(x,'attack',j,atkVirtual,null),[da,db]=joinHeroPair(x,'defense',j,defVirtual,null);
+     const ins=await sb.from('svs_strategy_joiners').insert({team_id:a.team.id,player_account_id:x.id||null,player_name:x.in_game_name,sort_order:j,join_first:j<4,attack_a_hero_id:aa?.id||null,attack_b_hero_id:ab?.id||null,defense_a_hero_id:da?.id||null,defense_b_hero_id:db?.id||null});if(ins.error)throw ins.error;
+   }
+ }
+ // PET routing layer: preserve Main T1 + Handoff positions, then rank every Counter lane by real SVS troop/team strength.
+ // Engine v2.1 still owns exact 2-hour windows and opening/middle/closing staggering; this ordering makes those PET windows land on the strongest eligible Teams first.
+ const scheduleTeamsByAlliance=petScheduleTeamsByQuality(teamRowsByAlliance,0);
+ // Shared NEXA battle scheduler: uses only as many RLs as the strategy actually needs.
+ if(!window.NexaBattleStrategyEngine?.planSchedule){
+   throw new Error('NEXA Battle Strategy Engine did not load. Refresh after uploading engine v1.5.');
+ }
+ const plan=window.NexaBattleStrategyEngine.planSchedule({
+   rallyLeads:rlPool,teamCounts:scheduleTeamsByAlliance.map(x=>x.length),primaryIndex:0,
+   startHour:12,endHour:17,primaryTeam1PetRequired:true
+ });
+ let scheduleAssignments=plan?.assignments||[];const floatingRL=plan?.floating||[],activeRL=plan?.active||[];
+ if(!scheduleAssignments.length&&rlPool.length)throw new Error('NEXA could not create Rally Leader assignments. Regenerate after engine reload.');
+ scheduleAssignments=ensureFinalHourCoverage(scheduleAssignments,rlPool,scheduleTeamsByAlliance,12,17);
+ for(const a of scheduleAssignments){
+   const team=scheduleTeamsByAlliance[a.allianceIndex]?.[a.teamIndex];if(!team||!a.lead)continue;
+   const pd=petQualityDecision(team,a.allianceIndex,a.teamIndex,!!a.petsActive);
+   await sb.from('svs_strategy_rally_slots').insert({
+     team_id:team.id,player_account_id:a.lead.id||null,player_name:a.lead.in_game_name,
+     start_utc:a.start,end_utc:a.end,pets_active:pd.active,pet_status:pd.status,sort_order:Number(a.start.slice(0,2))
+   });
+ }
+ // Rally Lead Schedule: every Team appears, with violet only when that hourly assignment has PETS active.
+ const petRowMap=new Map();
+ const tacticalPurpose=(ai,ti)=>{if(ai===0&&ti===0)return'Garrison';if(ai===0&&ti===1)return'Handoff';return'Counter'};
+ for(let ai=0;ai<teamRowsByAlliance.length;ai++){
+   for(let ti=0;ti<(teamRowsByAlliance[ai]||[]).length;ti++){
+     const t=teamRowsByAlliance[ai][ti],tag=saRows[ai]?.alliance_tag||`Alliance ${ai+1}`,purpose=tacticalPurpose(ai,ti);
+     const row=await sb.from('svs_pet_schedule_rows').insert({strategy_id:strategy.id,strategy_alliance_id:saRows[ai].id,source_team_id:t.id,purpose,slot_label:`${tag} T${ti+1}`,sort_order:ai*10+ti}).select().single();
+     if(row.error)return say(row.error.message,true);petRowMap.set(String(t.id),row.data.id);
+   }
+ }
+ for(const x of scheduleAssignments){
+   const team=scheduleTeamsByAlliance[x.allianceIndex]?.[x.teamIndex];if(!team)continue;
+   const rowId=petRowMap.get(String(team.id));if(!rowId)continue;
+   const pd=petQualityDecision(team,x.allianceIndex,x.teamIndex,!!x.petsActive);
+   const ins=await sb.from('svs_pet_schedule_assignments').insert({row_id:rowId,player_account_id:x.lead.id||null,player_name:x.lead.in_game_name,start_utc:x.start,end_utc:x.end,pets_active:pd.active,pet_status:pd.status,sort_order:Number(x.start.slice(0,2))});
+   if(ins.error)return say(ins.error.message,true);
+ }
+ // Automatic Rally Lead hero + troop formations. Main + up to 2 additional Approved variants.
+ const atk=atkRec,def=defRec,formationErrors=[];
+ const formationRowsFor=(a,type)=>{
+   // Auto Generate keeps the Formation Center focused: use the highest-confidence Approved
+   // formation first, then at most one additional Approved alternative.
+   const selected=approvedFormationRules(type)
+     .map(resolvedApprovedFormation)
+     .filter(v=>v&&Array.isArray(v.ratio)&&v.ratio.length===3&&v.ratio.reduce((n,m)=>n+m,0)===100)
+     .slice(0,2);
+   return selected.map((x,i)=>({
+     strategy_alliance_id:a.id,formation_type:type,
+     name:i===0?`Main ${type==='attack'?'Attack':'Defense'}`:`Alt ${type==='attack'?'Attack':'Defense'}`,
+     ratio:x.ratio,hero_infantry_id:x.infantry?.id||null,hero_lancer_id:x.lancer?.id||null,hero_marksman_id:x.marksman?.id||null,
+     is_recommended:i===0,sort_order:i
+   }));
+ };
+ for(let ai=0;ai<saRows.length;ai++){
+   const payload=[...formationRowsFor(saRows[ai],'attack'),...formationRowsFor(saRows[ai],'defense')];
+   const hasAttack=payload.some(x=>x.formation_type==='attack'),hasDefense=payload.some(x=>x.formation_type==='defense');
+   if(!hasAttack||!hasDefense)formationErrors.push(`${saRows[ai].alliance_tag}: Missing current-generation Approved ${!hasAttack&&!hasDefense?'Attack + Defense':!hasAttack?'Attack':'Defense'} formation.`);
+   // Auto Generate is authoritative for generated strategy formations: remove stale/manual leftovers
+   // from this newly generated alliance row, then sync the current Top-2 Approved set.
+   const wipe=await sb.from('svs_rally_formations').delete().eq('strategy_alliance_id',saRows[ai].id);if(wipe.error)formationErrors.push(`${saRows[ai].alliance_tag}: ${wipe.error.message}`);
+   if(payload.length){const {error}=await sb.from('svs_rally_formations').insert(payload);if(error)formationErrors.push(`${saRows[ai].alliance_tag}: ${error.message}`)}
+ }
+ await openStrategy(strategy.id);
+ // Important: optimize Join First only AFTER the exact Rally Lead formations exist.
+ // This makes A follow Main and B follow Alt when present, per alliance.
+ try{
+   await reoptimizeJoinersForCurrentFormations();
+   await openStrategy(strategy.id);
+ }catch(e){
+   throw new Error(`Join First optimization failed: ${e?.message||e}`);
+ }
+ // Force a fresh in-app view after regeneration so Safari never needs a manual browser refresh.
+ await openStrategy(strategy.id);
+ renderStrategy();renderPet();renderLayout();showTab('strategy');
+ const structure=saRows.map((a,i)=>`${a.alliance_tag}: ${teamCounts[i]} Team${teamCounts[i]===1?'':'s'}`).join(' • '),fills=leadAssignments.map(a=>teamJoiners.get(a.team.id)?.fill||0),avgFill=fills.length?Math.round(fills.reduce((s,n)=>s+n,0)/fills.length*100):0;
+ renderRecommendations([
+   `<b>Structure:</b> ${saRows.map((a,i)=>`${a.alliance_tag}: ${teamRowsByAlliance[i]?.length||0} Team${(teamRowsByAlliance[i]?.length||0)===1?'':'s'}`).join(' • ')}.`,
+   `<b>Coverage:</b> ${plan?.coverage?.every(x=>x.complete)?'all generated Teams are covered 12:00–17:00. Garrison receives priority PET coverage when roster depth allows; Handoff receives none; Counter PET windows move dynamically wherever coverage is most useful.':'NEXA detected a coverage limitation; review the schedule before publishing.'}`,
+   `<b>Rally Leads:</b> ${rlPool.length} available • ${activeRL.length} used • ${floatingRL.length} floating${floatingRL.length?'':''}.`,
+   `<b>PET Distribution:</b> Main T1 keeps continuous priority coverage. Handoff is excluded. Counter PET windows are routed by SVS troop/team strength, staggered across the strongest Teams for opening, middle relief and closing. Reserve PET is manual only; Auto Generate never creates Reserve PET.`,
+   `<b>Capacity:</b> active Teams are limited by Rally Capacity + Joiner Deployment Capacity. Extra rally-capable players may remain floating or be used as Joiners.`,
+   `<b>Top 4 Joiner Stack:</b> optimized after Rally Lead formations. NEXA treats the first four seats as a synergy/stack package: each seat must complement the other three and the selected Rally Lead formation. A follows Main formation; B follows Alt formation when present, otherwise B is the best owned compatible backup from the same vetted stack.`
+ ]);
+ say(formationErrors.length?'Teams regenerated and refreshed; review the formation warning.':'NEXA Teams regenerated and refreshed.');
+}
+let assistRunLock=false;
+async function guardedRunAssist(){
+ if(assistRunLock)return say('NEXA is already generating Teams.');
+ assistRunLock=true;const b=$('#run-assist');if(b){b.disabled=true;b.textContent='✦ Generating Teams…'}setSaveState('saving');say('Generating Teams…');
+ try{await runAssist()}catch(e){say(e?.message||String(e),true)}finally{assistRunLock=false;if(b){b.disabled=false;b.textContent='✦ Generate NEXA Teams'}setSaveState('saved')}
+}
+$('#run-assist').onclick=guardedRunAssist;
+$('#start-manual').onclick=async()=>{
+ if(!strategy){const r=await sb.from('svs_strategies').insert({state_number:state,name:'Manual SvS Strategy',build_flow:'manual'}).select().single();if(r.error)return say(r.error.message,true);strategy=r.data;await loadStrategies();await openStrategy(strategy.id)}
+ await sb.from('svs_strategies').update({build_flow:'manual'}).eq('id',strategy.id);
+ renderRecommendations(['<b>Manual Build ready.</b> Add Alliances and Teams below, then assign Rally Leaders and Joiners. NEXA will warn about duplicate Joiners, overlapping Rally Leaders and PET conflicts.'],'Manual Build');
+ say('Manual strategy ready.');
+};
+function manualReviewItems(){
+ const items=[],seen={};for(const j of joiners){const k=String(j.player_account_id||j.player_name);seen[k]=(seen[k]||0)+1}
+ const dups=Object.values(seen).filter(n=>n>1).length,overlapNames=[];
+ for(let i=0;i<rally.length;i++)for(let j=i+1;j<rally.length;j++){const a=rally[i],b=rally[j],same=(a.player_account_id&&b.player_account_id)?String(a.player_account_id)===String(b.player_account_id):a.player_name===b.player_name;if(same&&overlaps(a.start_utc,a.end_utc,b.start_utc,b.end_utc))overlapNames.push(a.player_name)}
+ const incomplete=teams.filter(t=>!Rally(t.id).length||!Joiners(t.id).length);
+ if(!dups&&!overlapNames.length&&!incomplete.length)items.push('<b class="review-ok">The team setup looks well-formed.</b> NEXA did not detect structural conflicts.');
+ if(dups)items.push(`<b class="review-warn">Duplicate Joiners:</b> ${dups} duplicate assignment(s) detected.`);
+ if(overlapNames.length)items.push(`<b class="review-warn">Rally Leader time conflicts:</b> ${[...new Set(overlapNames)].map(esc).join(', ')}.`);
+ if(incomplete.length)items.push(`<b class="review-warn">Incomplete Teams:</b> ${incomplete.map(t=>esc(t.name)).join(', ')} need a Rally Leader or Joiners.`);
+ const petAllianceCount=alliances.filter(a=>Teams(a.id).some(t=>Rally(t.id).some(r=>r.pets_active))).length;
+ if(petAllianceCount<alliances.length)items.push(`<b>NEXA suggestion:</b> ${alliances.length-petAllianceCount} Alliance(s) currently have no PET coverage.`);
+ return items;
+}
+$('#manual-done').onclick=async()=>{const items=manualReviewItems();renderRecommendations(items,'NEXA Manual Review');const warn=items.some(x=>x.includes('review-warn'));if(await nexaConfirm('Open Team Layout?',warn?'NEXA found suggestions or conflicts. Proceed to Team Layout anyway?':'The team seems well-formed. Proceed to Team Layout?',{confirmLabel:'Open Layout'}))showTab('layout')};
+
+
+async function publishLayout(){
+ if(!strategy)return say('Open a strategy first.',true);
+ const sid=strategy.id;
+ say('Syncing latest Team Board…');
+
+ // Re-read the whole strategy graph first so Layout can never publish stale in-memory rows.
+ await openStrategy(sid);
+ if(!strategy||String(strategy.id)!==String(sid))return say('Could not reload the current strategy.',true);
+ try{await reoptimizeJoinersForCurrentFormations();await openStrategy(sid)}catch(e){return say(e?.message||'Join First optimization failed.',true)}
+
+ const snap={
+   strategy,
+   alliances,
+   teams,
+   rally_slots:rally,
+   joiners,
+   formations,
+   pet_rows:petRows,
+   pet_assignments:petAssignments,
+   generated_at:new Date().toISOString()
+ };
+
+ const r=await sb.from('svs_team_layout_versions')
+   .select('version').eq('strategy_id',sid)
+   .order('version',{ascending:false}).limit(1);
+ if(r.error)return say(r.error.message,true);
+
+ const v=(r.data?.[0]?.version||0)+1;
+ const ins=await sb.from('svs_team_layout_versions')
+   .insert({strategy_id:sid,version:v,snapshot:snap});
+ if(ins.error)return say(ins.error.message,true);
+
+ const up=await sb.from('svs_strategies').update({status:'published'}).eq('id',sid);
+ if(up.error)return say(up.error.message,true);
+
+ renderLayout();
+ say(`Team Layout synced • Version ${v}`);
+ return v;
+}
+$('#publish-layout').onclick=async()=>{const v=await publishLayout();if(v)renderLayout()};
+function layoutSheets(){
+ const root=$('#layout-export');
+ return root?$$('.alliance-sheet',root):[];
+}
+function openLayoutChoice(mode){
+ renderLayout();
+ const sheets=layoutSheets();
+ if(!sheets.length)return say('Open or generate a Strategy first.',true);
+ const title=mode==='preview'?'Preview Layout':'Download Layout';
+ const verb=mode==='preview'?'Preview':'Download';
+ const ov=document.createElement('div');ov.className='nexa-export-picker';
+ ov.innerHTML=`<div class="nexa-export-picker-card"><h3>${title}</h3><div class="tiny muted" style="margin-bottom:10px">Which alliance do you want to ${mode}?</div><div class="nexa-export-picker-actions"><button class="btn violet" type="button" data-layout-choice="all">${verb} All Alliances</button>${sheets.map((node,i)=>`<button class="btn violet" type="button" data-layout-choice="${i}">${verb} ${esc(node.dataset.layoutTag||`Alliance ${i+1}`)}</button>`).join('')}<button class="btn" type="button" data-layout-close>Close</button></div></div>`;
+ document.body.appendChild(ov);
+ $$('[data-layout-choice]',ov).forEach(b=>b.onclick=async()=>{
+   const choice=b.dataset.layoutChoice;
+   ov.remove();
+   const selected=choice==='all'?sheets:[sheets[Number(choice)]].filter(Boolean);
+   if(mode==='preview')return showLayoutPreview(selected);
+   const names=selected.map((node,i)=>`NEXA-SvS-${String(node.dataset.layoutTag||`Alliance-${i+1}`).replace(/[^a-z0-9_-]+/gi,'-')}-Team-Layout.png`);
+   await exportNodes(selected,names);
+ });
+ $('[data-layout-close]',ov).onclick=()=>ov.remove();
+}
+$('#download-layout').onclick=()=>openLayoutChoice('download');
+async function canvasBlob(node){
+ if(!node)throw new Error('Nothing to export.');
+ const stage=document.createElement('div');stage.className='nexa-export-stage';
+ const clone=node.cloneNode(true);
+ clone.querySelectorAll('.no-export,[data-download-alliance]').forEach(x=>x.remove());
+ // PET preview is intentionally responsive on-screen. For export, expand the exact same sheet
+ // so html2canvas captures every time column instead of only the iPhone viewport.
+ if(clone.id==='pet-sheet'){
+   clone.classList.add('pet-export-sheet');
+   const wrap=clone.querySelector('.pet-grid-wrap'),table=clone.querySelector('.pet-grid');
+   if(wrap)wrap.style.overflow='visible';
+   if(table){
+     table.style.width='max-content';table.style.minWidth='0';
+     const approx=Math.max(980,(node.querySelector('.pet-grid')?.scrollWidth||0)+70);
+     clone.style.width=`${approx}px`;clone.style.minWidth=`${approx}px`;
+   }
+ }
+ stage.appendChild(clone);document.body.appendChild(stage);
+ try{
+   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+   const w=Math.ceil(Math.max(clone.scrollWidth,clone.getBoundingClientRect().width));
+   const h=Math.ceil(Math.max(clone.scrollHeight,clone.getBoundingClientRect().height));
+   const exportScale=clone.classList.contains('alliance-sheet')?3:2.25;
+   const c=await html2canvas(clone,{
+     backgroundColor:'#050916',scale:exportScale,useCORS:true,allowTaint:false,imageTimeout:15000,logging:false,
+     width:w,height:h,windowWidth:w,windowHeight:h,scrollX:0,scrollY:0
+   });
+   return await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error('Could not create image.')),'image/png'));
+ }finally{stage.remove()}
+}
+async function exportNodes(nodes,names){
+ const valid=(nodes||[]).filter(Boolean);if(!valid.length)return say('Nothing to download yet.',true);
+ say(valid.length>1?'Rendering alliance sheets…':'Rendering download…');
+ try{
+   const files=[];
+   for(let i=0;i<valid.length;i++){
+     const blob=await canvasBlob(valid[i]);
+     files.push(new File([blob],names[i]||`NEXA-${i+1}.png`,{type:'image/png'}));
+   }
+   if(navigator.share&&navigator.canShare&&navigator.canShare({files})){
+     await navigator.share({files,title:'NEXA SvS Layout'});
+     say(files.length>1?'Alliance sheets ready.':'Download ready.');
+     return;
+   }
+   for(const file of files){
+     const url=URL.createObjectURL(file),a=document.createElement('a');
+     a.href=url;a.download=file.name;a.style.display='none';document.body.appendChild(a);a.click();a.remove();
+     setTimeout(()=>URL.revokeObjectURL(url),1500);
+     await new Promise(r=>setTimeout(r,220));
+   }
+   say(files.length>1?'Alliance sheets downloaded separately.':'Download ready.');
+ }catch(e){
+   if(e?.name==='AbortError')return say('Export cancelled.');
+   say(e?.message||'Download failed.',true);
+ }
+}
+
+
+let guidePage=0;
+function renderGuide(){$$('.guide-page').forEach((p,i)=>p.classList.toggle('active',i===guidePage));$('#guide-page-label').textContent=`${guidePage+1} / 5`;$('#guide-prev').disabled=guidePage===0;$('#guide-next').textContent=guidePage===4?'Done':'Next ›'}
+$('#open-guide').onclick=()=>{$('#guide-overlay').style.display='grid';$('#guide-overlay').setAttribute('aria-hidden','false');guidePage=0;renderGuide()}
+$('#guide-close').onclick=()=>{$('#guide-overlay').style.display='none';$('#guide-overlay').setAttribute('aria-hidden','true')}
+$('#guide-prev').onclick=()=>{if(guidePage>0){guidePage--;renderGuide()}}
+$('#guide-next').onclick=()=>{if(guidePage<4){guidePage++;renderGuide()}else $('#guide-close').click()}
+
+function showLayoutPreview(sheets){
+ const selected=(sheets||[]).filter(Boolean);
+ if(!selected.length)return say('Nothing to preview yet.',true);
+ const ov=$('#layout-preview-overlay'),stage=$('#layout-preview-stage');
+ stage.innerHTML='';
+ const stack=document.createElement('div');
+ stack.className='layout-sheets';
+ stack.style.width='1400px';
+ for(const sheet of selected){
+   const clone=sheet.cloneNode(true);
+   clone.querySelectorAll('.no-export,[data-download-alliance]').forEach(x=>x.remove());
+   stack.appendChild(clone);
+ }
+ stage.appendChild(stack);
+ ov.classList.add('open');
+ ov.setAttribute('aria-hidden','false');
+ const fit=()=>{
+   stack.style.transform='none';
+   stack.style.width='1400px';
+   stack.style.transformOrigin='top left';
+   const naturalW=1400,naturalH=stack.scrollHeight||1,aw=Math.max(1,stage.clientWidth-8);
+   const scale=Math.min(1,aw/naturalW);
+   stack.style.transform=`scale(${scale})`;
+   stage.style.height=`${Math.ceil(naturalH*scale)+8}px`;
+ };
+ requestAnimationFrame(()=>requestAnimationFrame(fit));
+}
+$('#preview-layout').onclick=()=>openLayoutChoice('preview');
+$('#close-layout-preview').onclick=()=>{$('#layout-preview-overlay').classList.remove('open');$('#layout-preview-overlay').setAttribute('aria-hidden','true');$('#layout-preview-stage').innerHTML=''}
+
+
+(async()=>{
+ try{
+   const supabaseLib=await waitForSupabase();
+   sb=supabaseLib.createClient(SB_URL,SB_KEY);
+   await base();
+ }catch(e){
+   const message=e?.message||String(e);
+   say(message,true);
+   const label=$('#state-label');
+   if(label&&/Loading state/i.test(label.textContent||''))label.textContent=`State ${state}`;
+ }
+})();
+})();
+</script>
+</body>
+</html> 

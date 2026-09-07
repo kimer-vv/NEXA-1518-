@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V11.6.2 • occupied-slot replace guard + inline Formations + Pet Team delete + ghost-safe sync -->
+<!-- NEXA SVS OPERATIONS V11.6.3 • native inline Formations owner + Suggested parity + Add/Approve inside workspace -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -384,7 +384,7 @@ body.pet-preview-open{overflow:hidden!important}
   <section class="panel" data-panel="formations">
     <div class="desc">Approved and Suggested SvS Rally formations stay inside this Battle Operations workspace. Team Board only uses Approved formations.</div>
     <div class="card">
-      <div class="section-head"><div><h2>Formations</h2><div class="tiny muted">Current unlocked generation • Approved / Suggested.</div></div><button id="open-full-formations" class="btn" type="button">Manage Formations</button></div>
+      <div class="section-head"><div><h2>Formations</h2><div class="tiny muted">Current unlocked generation • Approved / Suggested.</div></div><button id="open-full-formations" class="btn violet" type="button">+ Add Formation</button></div>
       <div class="formation-center-tabs"><button class="btn violet active" data-formation-center-tab="approved" type="button">Approved</button><button class="btn" data-formation-center-tab="suggested" type="button">Suggested</button></div>
       <div id="formation-center-list" class="formation-center-grid"><div class="muted">Loading formations…</div></div>
     </div>
@@ -921,16 +921,60 @@ function formationCenterHero(name){
 function formationCenterCard(r,approved){
  const md=formationRuleMeta(r),ratio=(r.primary_ratio||[]).map(Number),top=(md.raw_joiner_primary||r.joiner_primary||[]).map(x=>String(x||'').trim()).filter(Boolean).slice(0,4),back=(r.backup_joiner_pool||[]).map(x=>String(x||'').trim()).filter(Boolean);
  const why=r.why_good||r.evidence_note||'No formation rationale saved yet.',risk=r.risk_note||'',badge=approved?'APPROVED':(Number(r.confidence||0)>=.72?'CORROBORATED':'PROMISING');
- return `<article class="formation-center-card ${esc(r.mode||'')}"><div class="formation-center-head"><div><b>${r.mode==='attack'?'⚔ ATTACK':'🛡 DEFENSE'}</b><div class="tiny muted">Gen ${esc(r.generation)}</div></div><span class="formation-center-badge ${approved?'approved':'suggested'}">${badge}</span></div><div class="formation-center-heroes">${(r.leader_heroes||[]).map(formationCenterHero).join('')}</div><div class="formation-center-ratio">${ratio.join(' / ')}</div><div class="formation-center-detail"><b>Top 4 Joiners • Stack Order</b><div class="tiny muted" style="margin-top:4px">${top.length?esc(top.join(' • ')):'Pending vetted Top 4 joiners.'}</div><div style="height:8px"></div><b>Alternative / Backup Joiner Pool</b><div class="tiny muted" style="margin-top:4px">${back.length?esc(back.join(' • ')):'No saved backup pool yet.'}</div><div style="height:8px"></div><b>Why this formation</b><div class="tiny muted" style="margin-top:4px">${esc(why)}</div>${risk?`<div style="height:8px"></div><b>Risk / Variables</b><div class="tiny muted" style="margin-top:4px">${esc(risk)}</div>`:''}</div></article>`
+ return `<article class="formation-center-card ${esc(r.mode||'')}" data-formation-center-card="${esc(r.id)}"><div class="formation-center-head"><div><b>${r.mode==='attack'?'⚔ ATTACK':'🛡 DEFENSE'}</b><div class="tiny muted">Gen ${esc(r.generation)}</div></div><span class="formation-center-badge ${approved?'approved':'suggested'}">${badge}</span></div><div class="formation-center-heroes">${(r.leader_heroes||[]).map(formationCenterHero).join('')}</div><div class="formation-center-ratio">${ratio.join(' / ')}</div><div class="formation-center-detail"><b>Top 4 Joiners • Stack Order</b><div class="tiny muted" style="margin-top:4px">${top.length?esc(top.join(' • ')):'Pending vetted Top 4 joiners.'}</div><div style="height:8px"></div><b>Alternative / Backup Joiner Pool</b><div class="tiny muted" style="margin-top:4px">${back.length?esc(back.join(' • ')):'No saved backup pool yet.'}</div><div style="height:8px"></div><b>Why this formation</b><div class="tiny muted" style="margin-top:4px">${esc(why)}</div>${risk?`<div style="height:8px"></div><b>Risk / Variables</b><div class="tiny muted" style="margin-top:4px">${esc(risk)}</div>`:''}${!approved?`<div style="margin-top:12px"><button class="btn violet" data-approve-inline-formation="${esc(r.id)}" type="button">Add / Approve</button></div>`:''}</div></article>`
+}
+async function reloadFormationCenterData(){
+ if(window.NexaBattleStrategyEngine?.loadMeta){
+   const fresh=await window.NexaBattleStrategyEngine.loadMeta(sb,{includeSuggestions:true});
+   if(Array.isArray(fresh))battleMetaRules=fresh;
+ }
+ renderFormationCenter();
+}
+async function approveInlineFormation(id){
+ const row=(battleMetaRules||[]).find(r=>String(r.id)===String(id));
+ if(!row||Number(row.generation)!==activeHeroGeneration())return say(`Only Gen ${activeHeroGeneration()} can be approved here.`,true);
+ const ok=await nexaConfirm('Approve Formation?',`${row.mode==='attack'?'Attack':'Defense'} • ${(row.leader_heroes||[]).join(' / ')} • ${(row.primary_ratio||[]).join(' / ')} will become available to Team Board.`,{confirmLabel:'Yes, Approve',cancelLabel:'Cancel'});
+ if(!ok)return;
+ setSaveState('saving');
+ try{
+   const {error}=await sb.from('nexa_battle_meta_rules').update({approval_status:'approved',is_active:true,verified_at:new Date().toISOString()}).eq('id',id);
+   if(error)throw error;
+   formationCenterTab='approved';
+   await reloadFormationCenterData();
+   say('Formation approved.');
+ }catch(e){say(e.message||String(e),true)}finally{setSaveState('saved')}
+}
+function inlineFormationHeroField(id,label,type){
+ return `<div class="visual-hero-field"><label>${esc(label)}</label><input id="${esc(id)}" type="hidden" value=""><button class="hero-picker-btn" data-hero-picker="${esc(id)}" data-hero-type="${esc(type)}" type="button">${heroPickerFace('')}</button></div>`;
+}
+function openInlineFormationAdd(){
+ const g=activeHeroGeneration();
+ const body=`<div class="grid2"><label>Generation<input id="if-gen" type="number" value="${g}" readonly></label><label>Type<select id="if-mode"><option value="attack">Attack</option><option value="defense">Defense</option></select></label></div><div style="height:10px"></div><label>Name<input id="if-name" placeholder="e.g. Main Attack"></label><div style="height:10px"></div><div class="grid3"><label>Infantry %<input id="if-r0" type="number" min="0" max="100" value="50"></label><label>Lancer %<input id="if-r1" type="number" min="0" max="100" value="20"></label><label>Marksman %<input id="if-r2" type="number" min="0" max="100" value="30"></label></div><div style="height:12px"></div><div class="visual-hero-grid">${inlineFormationHeroField('if-h0','Infantry Rally Hero','infantry')}${inlineFormationHeroField('if-h1','Lancer Rally Hero','lancer')}${inlineFormationHeroField('if-h2','Marksman Rally Hero','marksman')}</div><div style="height:12px"></div><label>Top 4 Joiners • comma separated<input id="if-top4" placeholder="Norah, Norah, Hendrik, Patrick"></label><div style="height:10px"></div><label>Backup Joiner Pool • comma separated<input id="if-backup" placeholder="Hendrik, Gatot, Mia"></label><div style="height:10px"></div><label>Why this formation<textarea id="if-why" style="width:100%;min-height:86px;background:#060b1c;color:#fff;border:1px solid rgba(122,142,203,.26);border-radius:12px;padding:10px;font:inherit"></textarea></label><div style="height:10px"></div><label>Risk / Variables<textarea id="if-risk" style="width:100%;min-height:76px;background:#060b1c;color:#fff;border:1px solid rgba(122,142,203,.26);border-radius:12px;padding:10px;font:inherit"></textarea></label>`;
+ const ov=modal('Add Formation',body,async root=>{
+   const ratio=['#if-r0','#if-r1','#if-r2'].map(x=>Number($(x,root)?.value||0));
+   if(ratio.reduce((a,b)=>a+b,0)!==100){say('Ratio must total 100.',true);return false}
+   const heroIds=['#if-h0','#if-h1','#if-h2'].map(x=>$(x,root)?.value||'');
+   if(heroIds.some(x=>!x)){say('Choose all 3 Rally Lead heroes.',true);return false}
+   const heroNames=heroIds.map(id=>H(id)?.name||'');if(heroNames.some(x=>!x)){say('One Rally Lead hero could not be resolved.',true);return false}
+   const top4=String($('#if-top4',root)?.value||'').split(',').map(x=>x.trim()).filter(Boolean);
+   if(top4.length!==4){say('Top 4 Joiners must contain exactly 4 hero names.',true);return false}
+   const backup=String($('#if-backup',root)?.value||'').split(',').map(x=>x.trim()).filter(Boolean),mode=$('#if-mode',root)?.value||'attack';
+   const {error}=await sb.from('nexa_battle_meta_rules').insert({generation:g,event_scope:'pvp_rally',mode,rule_key:`manual_${mode}_${Date.now()}`,leader_heroes:heroNames,primary_ratio:ratio,alternative_ratios:[],alternative_formations:[],joiner_primary:top4,joiner_alternatives:backup,backup_joiner_pool:backup,constraints:{max_generation:g},confidence:1,evidence_status:'verified',research_metadata:{},evidence_note:'Manual approved formation.',why_good:String($('#if-why',root)?.value||'').trim(),risk_note:String($('#if-risk',root)?.value||'').trim(),source_urls:[],source_count:0,independent_source_count:0,approval_status:'approved',is_active:true,is_manual:true,verified_at:new Date().toISOString()});
+   if(error)throw error;
+   formationCenterTab='approved';await reloadFormationCenterData();say('Formation saved.');
+ });
+ bindVisualHeroPickers(ov);
+ const save=$('[data-save]',ov);if(save)save.textContent='Add Approved Formation';
 }
 function renderFormationCenter(){
  const host=$('#formation-center-list');if(!host)return;
  const approved=formationCenterTab==='approved',rows=approved?formationCenterApprovedRows():formationCenterSuggestedRows();
  host.innerHTML=rows.length?rows.map(r=>formationCenterCard(r,approved)).join(''):`<div class="muted">No ${approved?'Approved':'Suggested'} Gen ${activeHeroGeneration()} formations available.</div>`;
  $$('[data-formation-center-tab]').forEach(b=>{b.classList.toggle('active',b.dataset.formationCenterTab===formationCenterTab);b.classList.toggle('violet',b.dataset.formationCenterTab===formationCenterTab)});
+ $$('[data-approve-inline-formation]',host).forEach(b=>b.onclick=e=>{e.stopPropagation();approveInlineFormation(b.dataset.approveInlineFormation)});
 }
 $$('[data-formation-center-tab]').forEach(b=>b.onclick=()=>{formationCenterTab=b.dataset.formationCenterTab;renderFormationCenter()});
-$('#open-full-formations').onclick=()=>{location.href='formations.html'};
+$('#open-full-formations').onclick=openInlineFormationAdd;
 
 async function base(){
  const [h,lib,a,p,sr,gens,inv]=await Promise.all([
@@ -948,7 +992,7 @@ async function base(){
  if(!window.NexaBattleStrategyEngine?.planSchedule){
    say('Battle Strategy Engine unavailable. Refresh after uploading engine v1.5.',true);
  }
- battleMetaRules=window.NexaBattleStrategyEngine?await window.NexaBattleStrategyEngine.loadMeta(sb):[];
+ battleMetaRules=window.NexaBattleStrategyEngine?await window.NexaBattleStrategyEngine.loadMeta(sb,{includeSuggestions:true}):[];
  const opts='<option value="">Select alliance…</option>'+allAlliances.map(x=>`<option value="${x.id}">${esc(x.tag)}${x.name?` • ${esc(x.name)}`:''}</option>`).join('');
  $('#assist-primary-alliance').innerHTML=opts;
  renderCounterAllianceSelectors();
@@ -1865,7 +1909,7 @@ async function runAssist(){
  const rlPool=testSandbox?decorateRallyPool(testRallyPool(rlCount)):liveRL,joinPool=testSandbox?testJoinerPool(joinerCount):liveJ;
  if(rlPool.length<activeCount)return renderRecommendations([`<b>Not enough Rally Leaders.</b> ${activeCount} active Alliances require at least ${activeCount} viable leads.`]);
  if(window.NexaBattleStrategyEngine?.loadMeta){
-   const freshMeta=await window.NexaBattleStrategyEngine.loadMeta(sb);
+   const freshMeta=await window.NexaBattleStrategyEngine.loadMeta(sb,{includeSuggestions:true});
    if(Array.isArray(freshMeta))battleMetaRules=freshMeta;
  }
  const teamTotal=chooseTeamCount(joinPool,rlPool,activeCount),teamCounts=distributeTeamCounts(teamTotal,activeCount);

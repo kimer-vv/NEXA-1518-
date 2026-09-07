@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V11.9.3 • durable Castle autosave + local recovery + cloud retry + calibrated timing + bulk identification + export studio -->
+<!-- NEXA SVS OPERATIONS V11.9.5 • final-frame Battle Plan export + preview-sized legend + readable city labels + custom alliances + durable autosave -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -364,6 +364,15 @@ body.pet-preview-open{overflow:hidden!important}
 
 .castle-paint-settings{display:grid;grid-template-columns:minmax(150px,1fr) 92px;gap:7px;min-width:min(100%,290px)}
 .castle-paint-settings select,.castle-paint-settings input{min-height:40px}
+.castle-custom-alliance-wrap{display:grid;gap:7px;margin-top:8px}
+.castle-custom-alliance-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.castle-custom-alliance-list{display:flex;gap:6px;flex-wrap:wrap}
+.castle-custom-alliance-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.13);border-radius:999px;background:rgba(255,255,255,.035);padding:5px 7px 5px 8px;font-size:10px;font-weight:950}
+.castle-custom-alliance-chip i{width:10px;height:10px;border-radius:3px;border:1px solid rgba(255,255,255,.5)}
+.castle-custom-alliance-chip button{border:0;background:transparent;color:#ff9cad;font-weight:950;padding:0 2px;font-size:13px;line-height:1}
+.castle-custom-alliance-note{font-size:9px;color:#8f9bbb;line-height:1.35}
+.castle-bp-preview svg{display:block;width:100%;height:auto;max-height:68vh}
+
 .castle-view-toggle{display:flex;gap:6px;flex:0 0 auto}
 .castle-view-toggle .castle-tool{min-width:82px}
 .castle-legend{position:absolute;left:9px;top:9px;z-index:6;display:none;min-width:116px;max-width:44%;border:1px solid rgba(72,221,255,.24);border-radius:12px;background:rgba(3,8,22,.88);backdrop-filter:blur(8px);padding:7px 8px;pointer-events:none}
@@ -396,11 +405,11 @@ body.pet-preview-open{overflow:hidden!important}
 .castle-export-tools .castle-export-wide{width:auto;min-width:62px;padding:0 10px;font-size:10px}
 .castle-export-tools .castle-export-legend-toggle{min-width:88px}
 .castle-export-status{position:absolute;left:50%;bottom:calc(10px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:5;max-width:88%;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:rgba(2,5,14,.86);padding:7px 11px;color:#dbe7ff;font-size:9px;font-weight:900;text-align:center}
-.castle-export-legend{position:absolute;left:12px;top:64px;z-index:7;display:none;gap:5px;min-width:104px;border:1px solid rgba(72,221,255,.28);border-radius:11px;background:rgba(3,8,22,.90);padding:8px 9px;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;box-shadow:0 10px 28px rgba(0,0,0,.28)}
+.castle-export-legend{position:absolute;left:12px;top:64px;z-index:7;display:none;gap:9px;min-width:176px;border:1px solid rgba(72,221,255,.32);border-radius:14px;background:rgba(3,8,22,.92);padding:13px 14px;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;box-shadow:0 12px 34px rgba(0,0,0,.34)}
 .castle-export-legend.dragging{cursor:grabbing}
 .castle-export-legend.show{display:grid}
-.castle-export-legend-row{display:grid;grid-template-columns:11px minmax(0,1fr);gap:6px;align-items:center;font-size:10px;font-weight:950}
-.castle-export-legend-swatch{width:11px;height:11px;border-radius:3px;border:1px solid rgba(255,255,255,.42)}
+.castle-export-legend-row{display:grid;grid-template-columns:18px minmax(0,1fr);gap:10px;align-items:center;font-size:16px;line-height:1.08;font-weight:900}
+.castle-export-legend-swatch{width:18px;height:18px;border-radius:4px;border:1px solid rgba(255,255,255,.52)}
 
 @media(max-width:620px){
  .castle-shell{margin-left:18px}
@@ -580,9 +589,18 @@ body.pet-preview-open{overflow:hidden!important}
             <button class="castle-tool active" data-castle-view="straight" type="button">Straight</button>
             <button class="castle-tool" data-castle-view="diamond" type="button">Diamond</button>
           </div>
-          <div class="castle-paint-settings">
-            <label>Paint Alliance<select id="castle-paint-alliance"></select></label>
-            <label>Paint Color<input id="castle-paint-color" type="color" value="#48ddff"></label>
+          <div>
+            <div class="castle-paint-settings">
+              <label>Paint Alliance<select id="castle-paint-alliance"></select></label>
+              <label>Paint Color<input id="castle-paint-color" type="color" value="#48ddff"></label>
+            </div>
+            <div class="castle-custom-alliance-wrap">
+              <div class="castle-custom-alliance-actions">
+                <button id="castle-add-custom-alliance" class="castle-tool" type="button">+ Custom Alliance</button>
+                <span class="castle-custom-alliance-note">Temporary for this Castle Seating only • not added to global Alliances.</span>
+              </div>
+              <div id="castle-custom-alliances" class="castle-custom-alliance-list"></div>
+            </div>
           </div>
         </div>
 
@@ -619,8 +637,7 @@ body.pet-preview-open{overflow:hidden!important}
         <div id="castle-alliance-summary" class="castle-alliance-summary"></div>
 
         <div class="castle-actions-bottom">
-          <button id="castle-export" class="btn" type="button">Preview / Crop Export</button>
-          <button id="castle-send-plan" class="btn violet" type="button">Send to Battle Plan</button>
+          <button id="castle-export" class="btn violet" type="button">Preview / Crop Export</button>
         </div>
         <div class="castle-note">Battle Plan is a snapshot. Deleting or changing a city here never deletes or changes a copy already sent to Battle Plan.</div>
       </div>
@@ -634,8 +651,11 @@ body.pet-preview-open{overflow:hidden!important}
 <div id="castle-export-studio" class="castle-export-studio" aria-hidden="true">
   <div class="castle-export-bar">
     <button id="castle-export-close" class="btn" type="button">Close</button>
-    <div class="castle-export-title"><b>Castle Export View</b><span>Pan + zoom • save only this frame</span></div>
-    <button id="castle-export-save" class="btn violet" type="button">Save Image</button>
+    <div class="castle-export-title"><b>Castle Export View</b><span>Pan + zoom • Set Frame defines the final composition</span></div>
+    <div class="row" style="justify-content:flex-end">
+      <button id="castle-export-save" class="btn" type="button">Save Image</button>
+      <button id="castle-export-send-plan" class="btn violet" type="button">Send to Battle Plan</button>
+    </div>
   </div>
   <div class="castle-export-canvas">
     <svg id="castle-export-stage" class="castle-export-stage" viewBox="-700 -700 1400 1400" aria-label="Castle export crop preview"></svg>
@@ -1966,7 +1986,7 @@ function layoutTeam(t){
 }
 
 /* =========================================================
-   V11.9.3 — CASTLE SEATING
+   V11.9.5 — CASTLE SEATING
    Castle Seating workspace is independent from Battle Plan.
    Turret-to-turret lanes corrected to 6 Cities.
    ========================================================= */
@@ -1993,10 +2013,11 @@ const CASTLE_REF_SECONDS=[36,39,43,45,47,48,50,53,55,58,61,62,63,66,67,69,73,74,
 
 function castleDefaultSnapshot(){
  return {
-   version:'1.7',
+   version:'1.9',
    red_zone_visible:true,
    view_mode:'straight',
    viewport:{...CASTLE_HOME},
+   custom_alliances:[],
    cities:[],
    updated_at:null
  };
@@ -2004,6 +2025,12 @@ function castleDefaultSnapshot(){
 function castleSnapAnchor(n){return Math.floor(Number(n||0)/CASTLE_CITY_CELLS)*CASTLE_CITY_CELLS}
 function castleNormalizeSnapshot(raw){
  const d=castleDefaultSnapshot(),s=raw&&typeof raw==='object'?raw:{};
+ const customSeen=new Set(),custom_alliances=[];
+ for(const [i,a] of (Array.isArray(s.custom_alliances)?s.custom_alliances:[]).entries()){
+   const id=String(a?.id||`custom-${Date.now()}-${i}`),tag=String(a?.tag||a?.name||'').trim();
+   if(!tag||customSeen.has(id))continue;customSeen.add(id);
+   custom_alliances.push({id,tag,color:/^#[0-9a-f]{6}$/i.test(String(a?.color||''))?String(a.color):'#48ddff'});
+ }
  const seen=new Set(),cities=[];
  for(const [i,c] of (Array.isArray(s.cities)?s.cities:[]).entries()){
    const x=castleSnapAnchor(c.x),y=castleSnapAnchor(c.y),key=`${x},${y}`;
@@ -2013,6 +2040,7 @@ function castleNormalizeSnapshot(raw){
      id:String(c.id||`city-${Date.now()}-${i}`),x,y,
      player_name:String(c.player_name||''),
      alliance_id:c.alliance_id==null?null:Number(c.alliance_id),
+     custom_alliance_id:c.custom_alliance_id==null?null:String(c.custom_alliance_id),
      alliance_tag:String(c.alliance_tag||''),
      color:String(c.color||'#48ddff'),
      label:String(c.label||''),
@@ -2022,7 +2050,7 @@ function castleNormalizeSnapshot(raw){
  const v=s.viewport&&Number.isFinite(Number(s.viewport.x))?{
    x:Number(s.viewport.x),y:Number(s.viewport.y),w:Math.max(300,Number(s.viewport.w)||1400),h:Math.max(300,Number(s.viewport.h)||1400)
  }:{...CASTLE_HOME};
- return {...d,...s,version:'1.7',cities,viewport:v,view_mode:s.view_mode==='diamond'?'diamond':'straight',red_zone_visible:s.red_zone_visible!==false};
+ return {...d,...s,version:'1.9',custom_alliances,cities,viewport:v,view_mode:s.view_mode==='diamond'?'diamond':'straight',red_zone_visible:s.red_zone_visible!==false};
 }
 function castleCloneSnapshot(){return JSON.parse(JSON.stringify(castleSnapshot||castleDefaultSnapshot()))}
 function castlePushUndo(){castleUndo.push(castleCloneSnapshot());if(castleUndo.length>40)castleUndo.shift();castleRedo=[];castleRefreshUndoButtons()}
@@ -2050,12 +2078,31 @@ function castleValidAnchor(x,y){
  return Number.isInteger(x)&&Number.isInteger(y)&&x%2===0&&y%2===0&&castleInVisibleGridAnchor(x,y)&&!castleInSunfireInteriorAnchor(x,y);
 }
 function castleAllianceById(id){return allAlliances.find(a=>String(a.id)===String(id))||null}
+function castleCustomAllianceById(id){return (castleSnapshot?.custom_alliances||[]).find(a=>String(a.id)===String(id))||null}
+function castleAllianceChoice(value){
+ const v=String(value??'');
+ if(v.startsWith('custom:')){
+   const a=castleCustomAllianceById(v.slice(7));
+   return a?{kind:'custom',id:a.id,tag:a.tag,color:a.color,raw:a}:null;
+ }
+ const a=castleAllianceById(v);
+ return a?{kind:'global',id:a.id,tag:a.tag||a.name||'',color:castleAllianceColor(a.id),raw:a}:null;
+}
+function castleCityAllianceKey(c){
+ if(c?.custom_alliance_id)return `custom:${c.custom_alliance_id}`;
+ return c?.alliance_id==null?'':String(c.alliance_id);
+}
 function castleAllianceColor(id){
+ const v=String(id??'');
+ if(v.startsWith('custom:'))return castleCustomAllianceById(v.slice(7))?.color||'#48ddff';
  const a=castleAllianceById(id);
  return String(a?.color||colors[(Math.max(0,allAlliances.findIndex(x=>String(x.id)===String(id))))%colors.length]||'#48ddff');
 }
 function castleAllianceOptions(selected=''){
- return '<option value="">Unassigned</option>'+allAlliances.filter(a=>a.is_active!==false).map(a=>`<option value="${a.id}" ${String(a.id)===String(selected)?'selected':''}>${esc(a.tag)}${a.name?` • ${esc(a.name)}`:''}</option>`).join('');
+ const sv=String(selected??'');
+ const globals=allAlliances.filter(a=>a.is_active!==false).map(a=>`<option value="${a.id}" ${String(a.id)===sv?'selected':''}>${esc(a.tag)}${a.name?` • ${esc(a.name)}`:''}</option>`).join('');
+ const custom=(castleSnapshot?.custom_alliances||[]).map(a=>`<option value="custom:${esc(a.id)}" ${`custom:${a.id}`===sv?'selected':''}>CUSTOM • ${esc(a.tag)}</option>`).join('');
+ return '<option value="">Unassigned</option>'+globals+(custom?`<optgroup label="Custom Seating Alliances">${custom}</optgroup>`:'');
 }
 function castleNearestReferenceSeconds(raw){
  let best=CASTLE_REF_SECONDS[0],delta=Infinity;
@@ -2220,24 +2267,54 @@ function castleSetView(mode,{fit=true,save=true}={}){
  castleRefresh();if(fit)castleFit();else if(save)castleQueueSave();
 }
 function castleUpdatePaintHud(){
- const a=castleAllianceById(castlePaintAllianceId),name=a?.tag||'Unassigned';
+ const a=castleAllianceChoice(castlePaintAllianceId),name=a?.tag||'Unassigned';
  const text=$('#castle-active-paint'),sw=$('#castle-active-swatch');
  if(text)text.textContent=name;if(sw)sw.style.background=castlePaintColor||'#48ddff';
+}
+function castleRenderCustomAlliances(){
+ const box=$('#castle-custom-alliances');if(!box||!castleSnapshot)return;
+ const rows=castleSnapshot.custom_alliances||[];
+ box.innerHTML=rows.map(a=>`<span class="castle-custom-alliance-chip"><i style="background:${esc(a.color)}"></i><span>${esc(a.tag)}</span><button type="button" data-delete-custom-alliance="${esc(a.id)}" title="Delete custom alliance">×</button></span>`).join('');
+ $$('[data-delete-custom-alliance]',box).forEach(b=>b.onclick=async()=>{
+   const id=b.dataset.deleteCustomAlliance,a=castleCustomAllianceById(id);if(!a)return;
+   if(!await nexaConfirm('Delete Custom Alliance?',`Remove ${a.tag} from this Castle Seating custom list? Existing Cities will keep their current tag/color until you reassign them.`,{confirmLabel:'Delete',cancelLabel:'Cancel'}))return;
+   castlePushUndo();
+   castleSnapshot.custom_alliances=(castleSnapshot.custom_alliances||[]).filter(x=>String(x.id)!==String(id));
+   for(const c of castleSnapshot.cities||[])if(String(c.custom_alliance_id||'')===String(id))c.custom_alliance_id=null;
+   if(String(castlePaintAllianceId||'')===`custom:${id}`)castlePaintAllianceId=null;
+   castleRefresh();castleQueueSave();say(`Custom alliance ${a.tag} removed.`);
+ });
+}
+function castleAddCustomAlliance(){
+ if(!castleSnapshot)return;
+ const ov=modal('Add Custom Alliance',`<div class="grid2"><label>Tag / Display Name<input id="castle-custom-tag" placeholder="FSU / APPS"></label><label>Color<input id="castle-custom-color" type="color" value="#48ddff"></label></div><div class="tiny muted" style="margin-top:8px">This exists only inside this Castle Seating workspace and is included in autosave/legend.</div>`,async box=>{
+   const tag=$('#castle-custom-tag',box).value.trim(),color=$('#castle-custom-color',box).value||'#48ddff';
+   if(!tag){say('Enter a custom alliance tag/name.',true);return false}
+   const dupe=(castleSnapshot.custom_alliances||[]).some(a=>String(a.tag).toLowerCase()===tag.toLowerCase());
+   if(dupe){say('That custom alliance already exists.',true);return false}
+   castlePushUndo();
+   const id=`ca-${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
+   castleSnapshot.custom_alliances.push({id,tag,color});
+   castlePaintAllianceId=`custom:${id}`;castlePaintColor=color;
+   castleRefresh();castleQueueSave();say(`Custom alliance ${tag} added.`);
+ });
+ setTimeout(()=>$('#castle-custom-tag',ov)?.focus(),40);
 }
 function castleSyncPaintControls(){
  const sel=$('#castle-paint-alliance'),col=$('#castle-paint-color');
  if(sel){sel.innerHTML=castleAllianceOptions(castlePaintAllianceId);sel.value=castlePaintAllianceId==null?'':String(castlePaintAllianceId)}
  if(col)col.value=/^#[0-9a-f]{6}$/i.test(castlePaintColor)?castlePaintColor:'#48ddff';
- castleUpdatePaintHud();
+ castleRenderCustomAlliances();castleUpdatePaintHud();
 }
 function castlePaintCell(cell,mode){
  const baseCell=cell.base||cell,anchor=cell.anchor||{x:castleSnapAnchor(baseCell.x),y:castleSnapAnchor(baseCell.y)};
  if(mode==='paint'){
    if(!castleValidAnchor(anchor.x,anchor.y)||castleCityAtAnchor(anchor.x,anchor.y))return false;
-   const a=castleAllianceById(castlePaintAllianceId);
+   const a=castleAllianceChoice(castlePaintAllianceId);
    castleSnapshot.cities.push({
      id:`city-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,x:anchor.x,y:anchor.y,player_name:'',
-     alliance_id:a?Number(a.id):null,alliance_tag:a?.tag||'',color:castlePaintColor||'#48ddff',label:'',notes:''
+     alliance_id:a?.kind==='global'?Number(a.id):null,custom_alliance_id:a?.kind==='custom'?String(a.id):null,
+     alliance_tag:a?.tag||'',color:castlePaintColor||a?.color||'#48ddff',label:'',notes:''
    });
    castleSelection.add(castleCellKey(anchor.x,anchor.y));return true;
  }
@@ -2260,6 +2337,13 @@ function castleTurretData(){
  ];
 }
 function castleTextTransform(cx,cy){return castleSnapshot?.view_mode==='diamond'?`rotate(-45 ${cx} ${cy})`:''}
+function castleReadableTextColor(hex){
+ const h=String(hex||'').trim(),m=/^#([0-9a-f]{6})$/i.exec(h);if(!m)return '#ffffff';
+ const n=parseInt(m[1],16),r=(n>>16)&255,g=(n>>8)&255,b=n&255;
+ const srgb=[r,g,b].map(v=>{v/=255;return v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4)});
+ const lum=.2126*srgb[0]+.7152*srgb[1]+.0722*srgb[2];
+ return lum>.46?'#090b10':'#ffffff';
+}
 function castleRenderSvg(){
  const svg=$('#castle-stage');if(!svg||!castleSnapshot)return;
  const drawMin=-CASTLE_DRAW_HALF_CELLS,drawMax=CASTLE_DRAW_HALF_CELLS,lines=[];
@@ -2274,9 +2358,10 @@ function castleRenderSvg(){
    const x=c.x*CASTLE_CELL,y=c.y*CASTLE_CELL,cx=x+CASTLE_CITY_SIZE/2,cy=y+CASTLE_CITY_SIZE/2;
    const selected=castleSelection.has(castleCellKey(c.x,c.y)),tag=c.alliance_tag||castleAllianceById(c.alliance_id)?.tag||'';
    const name=c.player_name||'',secs=castleSecondsForAnchor(c.x,c.y),fill=c.color||castleAllianceColor(c.alliance_id),tt=castleTextTransform(cx,cy);
+   const tc=castleReadableTextColor(fill),stroke=tc==='#090b10'?'rgba(255,255,255,.24)':'rgba(0,0,0,.48)';
    const text=name
-     ? `<text x="${cx}" y="${cy-3}" text-anchor="middle" font-size="7.8" font-weight="950" fill="#fff" transform="${tt}" style="paint-order:stroke;stroke:#02040b;stroke-width:1.8px">${esc(name.slice(0,12))}</text><text x="${cx}" y="${cy+9}" text-anchor="middle" font-size="7" font-weight="900" fill="#eaf5ff" transform="${tt}" style="paint-order:stroke;stroke:#02040b;stroke-width:1.4px">${secs}s</text>`
-     : `<text x="${cx}" y="${cy+3}" text-anchor="middle" font-size="7.2" font-weight="900" fill="#eaf5ff" transform="${tt}" style="paint-order:stroke;stroke:#02040b;stroke-width:1.4px">${secs}s</text>`;
+     ? `<text x="${cx}" y="${cy-3.5}" text-anchor="middle" font-size="9.4" font-weight="800" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:.7px">${esc(name.slice(0,15))}</text><text x="${cx}" y="${cy+9.5}" text-anchor="middle" font-size="7.8" font-weight="800" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:.55px">${secs}s</text>`
+     : `<text x="${cx}" y="${cy+3}" text-anchor="middle" font-size="8.5" font-weight="800" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:.55px">${secs}s</text>`;
    return `<g data-castle-city="${esc(c.id)}"><rect x="${x+2}" y="${y+2}" width="${CASTLE_CITY_SIZE-4}" height="${CASTLE_CITY_SIZE-4}" rx="7" fill="${esc(fill)}" fill-opacity=".84" stroke="${selected?'#ffffff':'rgba(255,255,255,.42)'}" stroke-width="${selected?3:1.3}"/>${text}</g>`;
  }).join('');
  svg.innerHTML=`
@@ -2342,7 +2427,8 @@ function castleRenderDrawer(){
  nameInput.disabled=false;
  nameInput.placeholder=selected.length>1?'Name to apply to all selected Cities (blank = keep current)':'Player, FC10 Fillers, T12 Fillers, etc.';
  if(bulkNote)bulkNote.style.display=selected.length>1?'block':'none';
- $('#castle-alliance').innerHTML=castleAllianceOptions(same('alliance_id')?first.alliance_id:'');
+ const allianceKeys=selected.map(c=>castleCityAllianceKey(c)),sameAlliance=allianceKeys.every(k=>k===allianceKeys[0]);
+ $('#castle-alliance').innerHTML=castleAllianceOptions(sameAlliance?allianceKeys[0]:'');
  $('#castle-color').value=/^#[0-9a-f]{6}$/i.test(first.color||'')?first.color:'#48ddff';
 }
 function castleRefresh(){
@@ -2369,12 +2455,13 @@ function castleBindControls(){
  $('#castle-undo').onclick=()=>{if(!castleUndo.length)return;castleRedo.push(castleCloneSnapshot());castleSnapshot=castleUndo.pop();castleSelection.clear();castleRefresh();castleQueueSave()};
  $('#castle-redo').onclick=()=>{if(!castleRedo.length)return;castleUndo.push(castleCloneSnapshot());castleSnapshot=castleRedo.pop();castleSelection.clear();castleRefresh();castleQueueSave()};
  $('#castle-paint-alliance').onchange=e=>{
-   castlePaintAllianceId=e.target.value?Number(e.target.value):null;
-   const a=castleAllianceById(castlePaintAllianceId);if(a)castlePaintColor=castleAllianceColor(a.id);
+   castlePaintAllianceId=e.target.value||null;
+   const a=castleAllianceChoice(castlePaintAllianceId);if(a)castlePaintColor=a.color||castleAllianceColor(castlePaintAllianceId);
    castleSyncPaintControls();
  };
+ $('#castle-add-custom-alliance').onclick=castleAddCustomAlliance;
  $('#castle-paint-color').oninput=e=>{castlePaintColor=e.target.value||'#48ddff';castleUpdatePaintHud()};
- $('#castle-alliance').onchange=e=>{const a=castleAllianceById(e.target.value);if(a&&/^#[0-9a-f]{6}$/i.test(castleAllianceColor(a.id)))$('#castle-color').value=castleAllianceColor(a.id)};
+ $('#castle-alliance').onchange=e=>{const a=castleAllianceChoice(e.target.value);if(a&&/^#[0-9a-f]{6}$/i.test(a.color||''))$('#castle-color').value=a.color};
  $('#castle-apply-selected').onclick=castleApplySelected;$('#castle-delete-selected').onclick=castleDeleteSelected;$('#castle-export').onclick=castleExport;$('#castle-send-plan').onclick=castleSendToBattlePlan;
  svg.addEventListener('wheel',e=>{if(!castleSnapshot)return;e.preventDefault();castleZoom(e.deltaY>0?1.12:.89,e.clientX,e.clientY)},{passive:false});
  svg.addEventListener('pointerdown',castlePointerDown);svg.addEventListener('pointermove',castlePointerMove);svg.addEventListener('pointerup',castlePointerUp);svg.addEventListener('pointercancel',castlePointerUp);
@@ -2444,15 +2531,17 @@ async function castleApplySelected(){
  if(!strategy||!castleSnapshot||!castleSelection.size)return;
  const selected=castleSnapshot.cities.filter(c=>castleSelection.has(castleCellKey(c.x,c.y)));if(!selected.length)return;
  castlePushUndo();
- const allianceId=$('#castle-alliance').value?Number($('#castle-alliance').value):null,a=castleAllianceById(allianceId),color=$('#castle-color').value||'#48ddff';
+ const allianceKey=$('#castle-alliance').value||'',a=castleAllianceChoice(allianceKey),color=$('#castle-color').value||'#48ddff';
  const identification=$('#castle-player-name').value.trim();
  for(const c of selected){
-   c.alliance_id=allianceId;c.alliance_tag=a?.tag||'';c.color=color;
+   c.alliance_id=a?.kind==='global'?Number(a.id):null;
+   c.custom_alliance_id=a?.kind==='custom'?String(a.id):null;
+   c.alliance_tag=a?.tag||'';c.color=color;
    if(selected.length===1)c.player_name=identification;
    else if(identification)c.player_name=identification;
  }
  // Continue painting with the same Alliance/Color the user just applied.
- castlePaintAllianceId=allianceId;castlePaintColor=color;
+ castlePaintAllianceId=allianceKey||null;castlePaintColor=color;
  castleRefresh();castleQueueSave();say(`${selected.length} Castle cit${selected.length===1?'y':'ies'} updated.`);
 }
 async function castleDeleteSelected(){
@@ -2541,7 +2630,7 @@ function castleExportZoom(factor,cx=null,cy=null){
 }
 function castleExportSetFrame(){
  castleExportFrame={...castleExportView};
- const st=$('#castle-export-frame-status');if(st)st.textContent='Export frame set • Save Image will export exactly this view.';
+ const st=$('#castle-export-frame-status');if(st)st.textContent='Frame set • Save Image and Send to Battle Plan use exactly this composition.';
 }
 function castleExportPointDown(e){
  const svg=$('#castle-export-stage');if(!svg||!castleExportView)return;
@@ -2574,38 +2663,45 @@ function castleExportPointUp(e){
    const p=[...castleExportPointers.values()][0];castleExportGesture={type:'pan',startX:p.x,startY:p.y,view:{...castleExportView}};
  }
 }
+function castleExportLegendMetrics(frame){
+ const box=$('#castle-export-legend'),canvas=$('.castle-export-canvas');
+ const cr=canvas?.getBoundingClientRect(),br=box?.getBoundingClientRect();
+ if(!cr||!br||!cr.width||!cr.height)return null;
+ return {
+   xNorm:castleExportLegendPos.x,yNorm:castleExportLegendPos.y,
+   wWorld:frame.w*(br.width/cr.width),hWorld:frame.h*(br.height/cr.height),
+   fontWorld:frame.h*(16/cr.height),swatchWorld:frame.h*(18/cr.height),
+   gapWorld:frame.w*(10/cr.width),padXWorld:frame.w*(14/cr.width),padYWorld:frame.h*(13/cr.height)
+ };
+}
 function castleExportSvgWithLegend(frame,width,height){
  const src=$('#castle-export-stage');if(!src)throw new Error('Export map is not ready.');
  const clone=src.cloneNode(true);
  clone.removeAttribute('class');clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
  clone.setAttribute('viewBox',`${frame.x} ${frame.y} ${frame.w} ${frame.h}`);
- // Critical for sharp PNG export: rasterize the vector SVG at the FINAL output size,
- // instead of letting iOS create a small default SVG bitmap and upscale it later.
  clone.setAttribute('width',String(width));clone.setAttribute('height',String(height));
  clone.setAttribute('preserveAspectRatio','xMidYMid meet');
-
- const rows=castleExportLegendVisible?castleExportLegendRows():[];
- if(rows.length){
+ const rows=castleExportLegendVisible?castleExportLegendRows():[],metrics=rows.length?castleExportLegendMetrics(frame):null;
+ if(rows.length&&metrics){
    const NS='http://www.w3.org/2000/svg',g=document.createElementNS(NS,'g');
-   const pxToWorld=frame.w/Math.max(1,width);
-   const pad=18*pxToWorld,rowH=34*pxToWorld;
-   const boxW=Math.max(150*pxToWorld,Math.min(frame.w*.24,260*pxToWorld));
-   const boxH=pad*2+rows.length*rowH;
-   const x=frame.x+castleExportLegendPos.x*frame.w;
-   const y=frame.y+castleExportLegendPos.y*frame.h;
-   const safeX=Math.max(frame.x+8*pxToWorld,Math.min(frame.x+frame.w-boxW-8*pxToWorld,x));
-   const safeY=Math.max(frame.y+8*pxToWorld,Math.min(frame.y+frame.h-boxH-8*pxToWorld,y));
-
+   const boxW=metrics.wWorld,boxH=metrics.hWorld;
+   const x=frame.x+metrics.xNorm*frame.w,y=frame.y+metrics.yNorm*frame.h;
+   const safeX=Math.max(frame.x,Math.min(frame.x+frame.w-boxW,x)),safeY=Math.max(frame.y,Math.min(frame.y+frame.h-boxH,y));
    const bg=document.createElementNS(NS,'rect');
    bg.setAttribute('x',safeX);bg.setAttribute('y',safeY);bg.setAttribute('width',boxW);bg.setAttribute('height',boxH);
-   bg.setAttribute('rx',String(11*pxToWorld));bg.setAttribute('fill','#030816');bg.setAttribute('fill-opacity','.90');bg.setAttribute('stroke','#48ddff');bg.setAttribute('stroke-opacity','.35');bg.setAttribute('stroke-width',String(1.5*pxToWorld));
-   g.appendChild(bg);
+   bg.setAttribute('rx',String(metrics.fontWorld*.9));bg.setAttribute('fill','#030816');bg.setAttribute('fill-opacity','.92');
+   bg.setAttribute('stroke','#48ddff');bg.setAttribute('stroke-opacity','.32');bg.setAttribute('stroke-width',String(metrics.fontWorld*.08));g.appendChild(bg);
+   const usableH=Math.max(0,boxH-metrics.padYWorld*2),rowH=rows.length?usableH/rows.length:usableH;
    rows.forEach((r,i)=>{
-     const yy=safeY+pad+i*rowH+10*pxToWorld;
+     const cy=safeY+metrics.padYWorld+rowH*(i+.5);
      const sw=document.createElementNS(NS,'rect');
-     sw.setAttribute('x',safeX+pad);sw.setAttribute('y',yy-10*pxToWorld);sw.setAttribute('width',14*pxToWorld);sw.setAttribute('height',14*pxToWorld);sw.setAttribute('rx',String(3*pxToWorld));sw.setAttribute('fill',r.color);g.appendChild(sw);
+     sw.setAttribute('x',safeX+metrics.padXWorld);sw.setAttribute('y',cy-metrics.swatchWorld/2);
+     sw.setAttribute('width',metrics.swatchWorld);sw.setAttribute('height',metrics.swatchWorld);
+     sw.setAttribute('rx',String(metrics.swatchWorld*.22));sw.setAttribute('fill',r.color);
+     sw.setAttribute('stroke','#ffffff');sw.setAttribute('stroke-opacity','.52');sw.setAttribute('stroke-width',String(metrics.fontWorld*.05));g.appendChild(sw);
      const t=document.createElementNS(NS,'text');
-     t.setAttribute('x',safeX+pad+22*pxToWorld);t.setAttribute('y',yy+2*pxToWorld);t.setAttribute('font-size',String(14*pxToWorld));t.setAttribute('font-weight','900');t.setAttribute('fill','#ffffff');t.textContent=r.tag;g.appendChild(t);
+     t.setAttribute('x',safeX+metrics.padXWorld+metrics.swatchWorld+metrics.gapWorld);t.setAttribute('y',cy+metrics.fontWorld*.34);
+     t.setAttribute('font-size',String(metrics.fontWorld));t.setAttribute('font-weight','900');t.setAttribute('fill','#ffffff');t.textContent=r.tag;g.appendChild(t);
    });
    clone.appendChild(g);
  }
@@ -2613,8 +2709,10 @@ function castleExportSvgWithLegend(frame,width,height){
 }
 async function castleSaveExportImage(){
  if(!castleExportView)return;
- const frame=castleExportFrame?{...castleExportFrame}:{...castleExportView};
- const st=$('#castle-export-frame-status');if(st)st.textContent='Rendering high-resolution map…';
+ const st=$('#castle-export-frame-status');
+ if(!castleExportFrame){if(st)st.textContent='Tap Set Frame first. That frame is the final image composition.';return}
+ const frame={...castleExportFrame};
+ if(st)st.textContent='Rendering high-resolution map…';
  try{
    // 4K on the LONG edge keeps the export sharp while staying mobile-safe.
    const aspect=frame.w/Math.max(1,frame.h),longEdge=4096;
@@ -2663,6 +2761,7 @@ function castleBindExportStudio(){
  $('#castle-export-set').onclick=castleExportSetFrame;
  $('#castle-export-legend-toggle').onclick=castleExportToggleLegend;
  $('#castle-export-save').onclick=castleSaveExportImage;
+ $('#castle-export-send-plan').onclick=castleSendToBattlePlan;
  const legend=$('#castle-export-legend');
  legend?.addEventListener('pointerdown',castleExportLegendPointerDown);
  legend?.addEventListener('pointermove',castleExportLegendPointerMove);
@@ -2680,9 +2779,17 @@ async function castleExport(){
  castleOpenExportStudio();
 }
 function castleBattleSnapshot(){
- const snap=castleCloneSnapshot();
+ const snap=castleCloneSnapshot(),frame=castleExportFrame?{...castleExportFrame}:null,metrics=frame&&castleExportLegendVisible?castleExportLegendMetrics(frame):null;
+ let exportSvg='';
+ if(frame){
+   try{
+     const h=Math.max(900,Math.round(1600*frame.h/frame.w)),clone=castleExportSvgWithLegend(frame,1600,h);
+     exportSvg=new XMLSerializer().serializeToString(clone);
+   }catch(e){console.warn('[NEXA] Could not serialize Castle Battle Plan preview',e)}
+ }
  return {
-   section:'Castle City',source:'castle_seating',source_strategy_id:strategy?.id||null,cities:snap.cities,red_zone_visible:snap.red_zone_visible,view_mode:snap.view_mode,viewport:snap.viewport,
+   section:'Castle City',source:'castle_seating',source_strategy_id:strategy?.id||null,cities:snap.cities,custom_alliances:snap.custom_alliances||[],red_zone_visible:snap.red_zone_visible,view_mode:snap.view_mode,viewport:snap.viewport,
+   export_frame:frame,export_legend:{visible:!!castleExportLegendVisible,position:{...castleExportLegendPos},metrics},export_svg:exportSvg,
    geometry:{city_footprint:'2x2',turret_footprint:'2x2',cities_between_turrets:6,red_zone_depth_cities:4,march_seconds_reference:'explicit_side_rows_plus_calibrated_2d_reference_no_pet_buff'},
    sent_at:new Date().toISOString()
  };
@@ -2698,7 +2805,9 @@ function castleBattlePlanChoice(existingCount){
 }
 async function castleSendToBattlePlan(){
  if(!strategy)return say('Open a Strategy first.',true);
+ const st=$('#castle-export-frame-status');
  if(!castleSnapshot?.cities?.length)return say('Place at least one city before sending to Battle Plan.',true);
+ if(!castleExportFrame){if(st)st.textContent='Tap Set Frame first. Battle Plan uses exactly that composition.';return}
  const existing=battlePlanItems.filter(x=>x.item_type==='castle_city'),choice=await castleBattlePlanChoice(existing.length);if(choice==='cancel')return;
  setSaveState('saving');
  if(choice==='replace'&&existing.length){
@@ -2736,7 +2845,8 @@ function renderBattlePlan(){
    const snap=x.snapshot||{};
    if(x.item_type==='castle_city'){
      const cities=Array.isArray(snap.cities)?snap.cities:[],inside=cities.filter(c=>castleIsRed(Number(c.x)||0,Number(c.y)||0)).length;
-     return `<div class="battle-plan-item castle-bp-copy"><b>Castle City</b><div class="tiny muted" style="margin-top:4px">${cities.length} Cities • ${inside} inside Red Zone • independent snapshot</div><div class="castle-bp-city-list">${cities.map(c=>`<button class="castle-bp-city" data-bp-castle-city="${esc(c.id)}" data-bp-castle-item="${x.id}" type="button" title="Remove this city from Battle Plan copy">${esc(c.player_name||c.label||c.alliance_tag||`City ${c.x},${c.y}`)} ×</button>`).join('')}</div><div class="battle-plan-actions"><button class="btn" data-remove-plan="${x.id}" type="button">Remove Castle City Section</button><button class="btn" data-open-castle-workspace type="button">Open Castle Seating</button></div><div class="tiny muted" style="margin-top:6px">Changes in Castle Seating do not modify this copy. Tap a city chip above to remove only that city from Battle Plan.</div></div>`;
+     const preview=snap.export_svg?`<div class="castle-bp-preview" style="margin-top:10px;border:1px solid rgba(255,255,255,.12);border-radius:14px;overflow:hidden;background:#030711">${snap.export_svg}</div>`:'';
+     return `<div class="battle-plan-item castle-bp-copy"><b>Castle City</b><div class="tiny muted" style="margin-top:4px">${cities.length} Cities • ${inside} inside Red Zone • exact Set Frame snapshot</div>${preview}<div class="castle-bp-city-list">${cities.map(c=>`<button class="castle-bp-city" data-bp-castle-city="${esc(c.id)}" data-bp-castle-item="${x.id}" type="button" title="Remove this city from Battle Plan copy">${esc(c.player_name||c.label||c.alliance_tag||`City ${c.x},${c.y}`)} ×</button>`).join('')}</div><div class="battle-plan-actions"><button class="btn" data-remove-plan="${x.id}" type="button">Remove Castle City Section</button><button class="btn" data-open-castle-workspace type="button">Open Castle Seating</button></div><div class="tiny muted" style="margin-top:6px">Battle Plan keeps this exact framed composition. Later Castle Seating edits do not modify this copy.</div></div>`;
    }
    const tag=snap.alliance_tag||'Alliance',name=snap.team?.name||'Team',rl=(snap.rally_slots||[]).length,j=(snap.joiners||[]).length;
    return `<div class="battle-plan-item"><b>${esc(tag)} • ${esc(name)}</b><div class="tiny muted" style="margin-top:4px">${rl} Rally slot${rl===1?'':'s'} • ${j} Joiner${j===1?'':'s'} • synced from Team Layout</div><div class="battle-plan-actions"><button class="btn" data-remove-plan="${x.id}" type="button">Remove</button></div></div>`;

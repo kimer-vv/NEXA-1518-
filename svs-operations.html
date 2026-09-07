@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V11.6.1 • boot guard + Team workflow + PET-first setup + availability advisories + movable PET ownership + Battle Plan handoff -->
+<!-- NEXA SVS OPERATIONS V11.6.2 • occupied-slot replace guard + inline Formations + Pet Team delete + ghost-safe sync -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -328,6 +328,27 @@ body.pet-preview-open{overflow:hidden!important}
 .layout-send-plan{width:calc(100% - 16px);margin:8px;min-height:38px}
 @media(max-width:620px){.pet-roster-summary{grid-template-columns:1fr 1fr}.pet-stat:last-child{grid-column:1/-1}.pet-team-line{grid-template-columns:1fr 1fr}.pet-team-line .btn{grid-column:1/-1}.pet-setup-card .grid2{grid-template-columns:1fr}}
 
+
+/* V11.6.2 — topmost decision modals + inline Formation Center */
+.nexa-alert-modal{z-index:2147483900!important}
+.formation-center-tabs{display:flex;gap:8px;overflow-x:auto;margin:10px 0 14px}
+.formation-center-tabs .btn.active{border-color:rgba(155,120,255,.82);background:linear-gradient(135deg,rgba(75,54,170,.9),rgba(28,82,130,.9))}
+.formation-center-grid{display:grid;gap:12px}
+.formation-center-card{border:1px solid rgba(255,255,255,.12);border-radius:18px;background:linear-gradient(145deg,rgba(12,18,40,.96),rgba(5,8,20,.96));padding:13px}
+.formation-center-card.attack{border-color:rgba(255,105,130,.35)}
+.formation-center-card.defense{border-color:rgba(103,223,177,.35)}
+.formation-center-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.formation-center-badge{font-size:9px;font-weight:950;letter-spacing:.08em;border:1px solid rgba(255,255,255,.15);border-radius:999px;padding:5px 7px}
+.formation-center-badge.approved{color:#a5f3d4;border-color:rgba(103,223,177,.38)}
+.formation-center-badge.suggested{color:#ffe0a2;border-color:rgba(255,199,91,.38)}
+.formation-center-heroes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:330px;margin:12px auto 8px}
+.formation-center-hero{text-align:center;min-width:0}
+.formation-center-hero img{width:58px;height:58px;object-fit:cover;border-radius:11px;border:1px solid rgba(255,255,255,.14);background:#101522}
+.formation-center-hero b{display:block;font-size:10px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.formation-center-ratio{text-align:center;font-size:21px;font-weight:950}
+.formation-center-detail{margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08);font-size:12px;line-height:1.48}
+.pet-team-line .pet-delete-team{min-width:42px;padding:8px;color:#ffb5c0;border-color:rgba(255,114,137,.34);background:rgba(103,28,43,.22)}
+
 </style>
 <script src="nexa-battle-strategy-engine.js?v=2.1"></script>
 <script src="nexa-svs-rules.js?v=2.0"></script>
@@ -342,7 +363,7 @@ body.pet-preview-open{overflow:hidden!important}
 
   <nav class="nav">
     <button class="active" data-tab="responses">Responses</button>
-    <button data-link="formations.html">Formations</button>
+    <button data-tab="formations" data-nexa-formations="1">Formations</button>
     <button data-tab="pets">Pet Schedule</button>
     <button data-tab="strategy">Team Board</button>
     <button data-tab="layout">Team Layout</button>
@@ -357,6 +378,15 @@ body.pet-preview-open{overflow:hidden!important}
     <div class="card">
       <div class="section-head"><div><h2>Responses</h2><div class="tiny muted">Battle Role, availability and saved battle information.</div></div><button id="refresh-responses" class="btn">Refresh</button></div>
       <div id="responses-list" class="muted" style="margin-top:12px">Loading…</div>
+    </div>
+  </section>
+
+  <section class="panel" data-panel="formations">
+    <div class="desc">Approved and Suggested SvS Rally formations stay inside this Battle Operations workspace. Team Board only uses Approved formations.</div>
+    <div class="card">
+      <div class="section-head"><div><h2>Formations</h2><div class="tiny muted">Current unlocked generation • Approved / Suggested.</div></div><button id="open-full-formations" class="btn" type="button">Manage Formations</button></div>
+      <div class="formation-center-tabs"><button class="btn violet active" data-formation-center-tab="approved" type="button">Approved</button><button class="btn" data-formation-center-tab="suggested" type="button">Suggested</button></div>
+      <div id="formation-center-list" class="formation-center-grid"><div class="muted">Loading formations…</div></div>
     </div>
   </section>
 
@@ -478,7 +508,7 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&
 const state=Number(String(window.NEXA_ACTIVE_STATE||localStorage.getItem('nexa_active_state_v49')||1518).replace(/\D/g,''))||1518;
 let sb=null;
 const colors=['#ff7289','#56bfff','#64dfa7','#b989ff','#ffb865','#65e1e6'];
-let strategy=null,alliances=[],teams=[],rally=[],joiners=[],heroes=[],libraryItems=[],petRows=[],petAssignments=[],allAlliances=[],responses=[],playerPool=[],stateRoles=[],strategyList=[],formations=[],visibleHeroGenerations=[],heroGenerationRows=[],playerInventory=[],battleMetaRules=[],responsePlayers={},battlePlanItems=[],testSandbox=false,petAssignmentHidden=false;
+let strategy=null,alliances=[],teams=[],rally=[],joiners=[],heroes=[],libraryItems=[],petRows=[],petAssignments=[],allAlliances=[],responses=[],playerPool=[],stateRoles=[],strategyList=[],formations=[],visibleHeroGenerations=[],heroGenerationRows=[],playerInventory=[],battleMetaRules=[],responsePlayers={},battlePlanItems=[],testSandbox=false,petAssignmentHidden=false,formationCenterTab='approved';
 const stateLabel=$('#state-label');
 if(stateLabel)stateLabel.textContent=`State ${state}`;
 
@@ -515,7 +545,7 @@ function modal(title,body,onSave){
 
 function nexaConfirm(title,message,{confirmLabel='Move',cancelLabel='Cancel',tone='violet'}={}){
  return new Promise(resolve=>{
-   const ov=document.createElement('div');ov.className='nexa-modal';
+   const ov=document.createElement('div');ov.className='nexa-modal nexa-alert-modal';
    ov.innerHTML=`<div class="nexa-modal-card"><h3>${esc(title)}</h3><div class="select-note" style="margin-top:8px">${esc(message)}</div><div class="nexa-modal-actions"><button class="btn" data-nexa-no type="button">${esc(cancelLabel)}</button><button class="btn ${tone==='violet'?'violet':''}" data-nexa-yes type="button">${esc(confirmLabel)}</button></div></div>`;
    document.body.appendChild(ov);
    let done=false;
@@ -528,7 +558,7 @@ function nexaConfirm(title,message,{confirmLabel='Move',cancelLabel='Cancel',ton
 
 function nexaNotice(title,message,label='OK'){
  return new Promise(resolve=>{
-   const ov=document.createElement('div');ov.className='nexa-modal';
+   const ov=document.createElement('div');ov.className='nexa-modal nexa-alert-modal';
    ov.innerHTML=`<div class="nexa-modal-card"><h3>${esc(title)}</h3><div class="select-note" style="margin-top:8px">${esc(message)}</div><div class="nexa-modal-actions" style="grid-template-columns:1fr"><button class="btn violet" data-nexa-ok type="button">${esc(label)}</button></div></div>`;
    document.body.appendChild(ov);
    const finish=()=>{ov.remove();resolve(true)};
@@ -629,7 +659,7 @@ function joinerCandidatePool(){
  if(testSandbox)return TEST_JOINERS.map(n=>({id:null,_pickValue:`test:${n}`,in_game_name:n,_test:true,deployment_capacity:250000}));
  return playerPool.filter(p=>(roleForPlayer(p)==='joiner'||!roleForPlayer(p))&&responseHasTroopQuality(p)).sort((a,b)=>joinerSbsScore(b)-joinerSbsScore(a));
 }
-function joinerCandidateCard(p){const score=p._test?0:joinerSbsScore(p),tier=p._test?'TEST':troopQualityProfile(p).tier,assigned=assignedLabel(p,'joiner'),val=p._pickValue||p.id;return `<label class="candidate-card"><input type="radio" name="joiner-candidate" value="${esc(val)}"><div class="candidate-main"><div><b>${esc(p.in_game_name)}</b><div class="tiny muted">${p._test?'Test Sandbox':`ID ${esc(p.player_id||'—')} • ${esc(playerAllianceLabel(p))}`}</div></div><span class="candidate-tier">${esc(tier)}</span></div><div class="candidate-troops">${p._test?'Synthetic test profile':esc(troopSummary(p))}</div>${p._test?'':`<div class="tiny muted">SBS Joiner Score ${score.toFixed(1)}${assigned?` • ${esc(assigned)}`:''}</div>`}</label>`}
+function joinerCandidateCard(p){const score=p._test?0:joinerSbsScore(p),tier=p._test?'TEST':troopQualityProfile(p).tier,assigned=assignedLabel(p,'joiner'),val=p._pickValue||p.id;return `<label class="candidate-card"><input type="radio" name="joiner-candidate" value="${esc(val)}"><div class="candidate-main"><div><b>${esc(p.in_game_name)}</b><div class="tiny muted">${p._test?'Test Sandbox':`ID ${esc(p.player_id||'—')} • ${esc(playerAllianceLabel(p))}`}</div></div><span class="candidate-tier">${esc(tier)}</span></div><div class="candidate-troops">${p._test?'Synthetic test profile':esc(troopSummary(p))}</div>${p._test?'':`<div class="tiny muted">SVS Joiner Score ${score.toFixed(1)}${assigned?` • ${esc(assigned)}`:''}</div>`}</label>`}
 function rallyCandidatePool(){
  if(testSandbox)return TEST_RLS.map(n=>({id:null,_pickValue:`test:${n}`,in_game_name:n,_test:true,deployment_capacity:285000,rally_capacity:2050000}));
  const base=playerPool.filter(p=>roleForPlayer(p)==='rally_lead'||!roleForPlayer(p));
@@ -867,7 +897,40 @@ function tc(t){return colors[t.sort_order%colors.length]}
 function defenseOn(t){return t.defense_enabled??A(t.strategy_alliance_id)?.defense_enabled!==false}
 
 $$('.nav button').forEach(b=>b.onclick=()=>{if(b.dataset.link){location.href=b.dataset.link;return}showTab(b.dataset.tab)});
-function showTab(name){$$('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));$$('.panel').forEach(p=>p.classList.toggle('active',p.dataset.panel===name));if(name==='pets')renderPet();if(name==='layout')renderLayout();if(name==='plan')renderBattlePlan()}
+function showTab(name){$$('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));$$('.panel').forEach(p=>p.classList.toggle('active',p.dataset.panel===name));if(name==='formations')renderFormationCenter();if(name==='pets')renderPet();if(name==='layout')renderLayout();if(name==='plan')renderBattlePlan()}
+
+function formationRuleMeta(r){return r?.research_metadata&&typeof r.research_metadata==='object'?r.research_metadata:{}}
+function formationRuleSignature(r){return `${String(r?.mode||'').toLowerCase()}::${(r?.leader_heroes||[]).map(x=>String(x||'').toLowerCase()).join('|')}::${(r?.primary_ratio||[]).map(Number).join('/')}`}
+function formationCenterApprovedRows(){
+ const g=activeHeroGeneration();
+ return (battleMetaRules||[]).filter(r=>Number(r.generation)===g&&r.event_scope==='pvp_rally'&&r.approval_status==='approved'&&r.is_active!==false).sort((a,b)=>(a.mode===b.mode?Number(b.confidence||0)-Number(a.confidence||0):(a.mode==='attack'?-1:1)))
+}
+function formationCenterSuggestedRows(){
+ const g=activeHeroGeneration(),approved=new Set(formationCenterApprovedRows().map(formationRuleSignature));
+ return (battleMetaRules||[]).filter(r=>{
+   if(Number(r.generation)!==g||r.event_scope!=='pvp_rally'||approved.has(formationRuleSignature(r)))return false;
+   const qualified=r.approval_status==='corroborated'||(r.approval_status==='candidate'&&Number(r.confidence||0)>=.60&&Number(r.independent_source_count||0)>=2&&Number(r.source_count||0)>=2);
+   if(!qualified)return false;
+   const md=formationRuleMeta(r),top=(md.raw_joiner_primary||r.joiner_primary||[]).map(x=>String(x||'').trim()).filter(Boolean).slice(0,4);
+   return top.length===4;
+ }).sort((a,b)=>(a.mode===b.mode?Number(b.confidence||0)-Number(a.confidence||0):(a.mode==='attack'?-1:1)));
+}
+function formationCenterHero(name){
+ const h=stateHeroByName(name);return `<div class="formation-center-hero">${h?.image_url?`<img src="${esc(h.image_url)}" alt="">`:'<img alt="">' }<b class="${rarityClass(h?.rarity)}">${esc(name||'—')}</b></div>`
+}
+function formationCenterCard(r,approved){
+ const md=formationRuleMeta(r),ratio=(r.primary_ratio||[]).map(Number),top=(md.raw_joiner_primary||r.joiner_primary||[]).map(x=>String(x||'').trim()).filter(Boolean).slice(0,4),back=(r.backup_joiner_pool||[]).map(x=>String(x||'').trim()).filter(Boolean);
+ const why=r.why_good||r.evidence_note||'No formation rationale saved yet.',risk=r.risk_note||'',badge=approved?'APPROVED':(Number(r.confidence||0)>=.72?'CORROBORATED':'PROMISING');
+ return `<article class="formation-center-card ${esc(r.mode||'')}"><div class="formation-center-head"><div><b>${r.mode==='attack'?'⚔ ATTACK':'🛡 DEFENSE'}</b><div class="tiny muted">Gen ${esc(r.generation)}</div></div><span class="formation-center-badge ${approved?'approved':'suggested'}">${badge}</span></div><div class="formation-center-heroes">${(r.leader_heroes||[]).map(formationCenterHero).join('')}</div><div class="formation-center-ratio">${ratio.join(' / ')}</div><div class="formation-center-detail"><b>Top 4 Joiners • Stack Order</b><div class="tiny muted" style="margin-top:4px">${top.length?esc(top.join(' • ')):'Pending vetted Top 4 joiners.'}</div><div style="height:8px"></div><b>Alternative / Backup Joiner Pool</b><div class="tiny muted" style="margin-top:4px">${back.length?esc(back.join(' • ')):'No saved backup pool yet.'}</div><div style="height:8px"></div><b>Why this formation</b><div class="tiny muted" style="margin-top:4px">${esc(why)}</div>${risk?`<div style="height:8px"></div><b>Risk / Variables</b><div class="tiny muted" style="margin-top:4px">${esc(risk)}</div>`:''}</div></article>`
+}
+function renderFormationCenter(){
+ const host=$('#formation-center-list');if(!host)return;
+ const approved=formationCenterTab==='approved',rows=approved?formationCenterApprovedRows():formationCenterSuggestedRows();
+ host.innerHTML=rows.length?rows.map(r=>formationCenterCard(r,approved)).join(''):`<div class="muted">No ${approved?'Approved':'Suggested'} Gen ${activeHeroGeneration()} formations available.</div>`;
+ $$('[data-formation-center-tab]').forEach(b=>{b.classList.toggle('active',b.dataset.formationCenterTab===formationCenterTab);b.classList.toggle('violet',b.dataset.formationCenterTab===formationCenterTab)});
+}
+$$('[data-formation-center-tab]').forEach(b=>b.onclick=()=>{formationCenterTab=b.dataset.formationCenterTab;renderFormationCenter()});
+$('#open-full-formations').onclick=()=>{location.href='formations.html'};
 
 async function base(){
  const [h,lib,a,p,sr,gens,inv]=await Promise.all([
@@ -1178,29 +1241,40 @@ function existingPetAssignments(player,excludeIds=[]){
  const excluded=new Set((excludeIds||[]).map(String));
  return rally.filter(r=>!excluded.has(String(r.id))&&sameRallyPlayer(r,player)&&(r.pets_active||r.pet_status==='reserve'));
 }
-async function moveExistingPetAssignmentIfNeeded(player,mode,excludeIds=[]){
- if(mode!=='active'&&mode!=='reserve')return {ok:true,touched:[]};
- const existing=existingPetAssignments(player,excludeIds);if(!existing.length)return {ok:true,touched:[]};
- const details=existing.map(x=>`${petModeLabel(x)} • ${teamLabel(x.team_id)} • ${x.start_utc}–${x.end_utc}`).join(' | ');
- const ok=await nexaConfirm('Move PET assignment?',`${player.in_game_name} already has ${details}. PET Active / Reserve PET can have one current assignment. Move the PET assignment to the new Team/time?`,{confirmLabel:'Yes, Move',cancelLabel:'Cancel'});
- if(!ok)return {ok:false,touched:[]};
- const touched=[];
- for(const x of existing){
-   touched.push(x.team_id);
-   const up=await sb.from('svs_strategy_rally_slots').update({pets_active:false,pet_status:'none'}).eq('id',x.id);if(up.error)throw up.error;
- }
- return {ok:true,touched};
-}
-async function resolvePhysicalRallyMove(player,start,end,excludeIds=[],targetTeamId=''){
+async function planRallyAssignmentChange(player,start,end,mode,targetTeamId,excludeIds=[]){
  const excluded=new Set((excludeIds||[]).map(String));
- const conflicts=rally.filter(r=>!excluded.has(String(r.id))&&sameRallyPlayer(r,player)&&overlaps(start,end,r.start_utc,r.end_utc));
- if(!conflicts.length)return {ok:true,touched:[],removedIds:[]};
- const c=conflicts[0];
- const ok=await nexaConfirm('Rally Leader conflict',`${player.in_game_name} is already assigned to ${teamLabel(c.team_id)} at ${c.start_utc}–${c.end_utc} UTC. Move the conflicting assignment${targetTeamId?` to ${teamLabel(targetTeamId)}`:''}?`,{confirmLabel:'Yes, Move',cancelLabel:'Cancel'});
- if(!ok)return {ok:false,touched:[],removedIds:[]};
- const touched=[],removedIds=[];
- for(const x of conflicts){touched.push(x.team_id);removedIds.push(x.id);const d=await sb.from('svs_strategy_rally_slots').delete().eq('id',x.id);if(d.error)throw d.error}
- return {ok:true,touched,removedIds};
+ const targetConflicts=rally.filter(r=>String(r.team_id)===String(targetTeamId)&&!excluded.has(String(r.id))&&!sameRallyPlayer(r,player)&&overlaps(start,end,r.start_utc,r.end_utc));
+ if(targetConflicts.length){
+   const names=[...new Set(targetConflicts.map(x=>x.player_name).filter(Boolean))],who=names.length===1?names[0]:names.join(', ');
+   const ok=await nexaConfirm('Slot already assigned',`${teamLabel(targetTeamId)} • ${start}–${end} UTC already has ${who} assigned. Replace ${names.length===1?who:'the current Rally Lead assignment'} with ${player.in_game_name}?`,{confirmLabel:'Yes, Replace',cancelLabel:'Cancel'});
+   if(!ok)return null;
+ }
+ const targetIds=new Set(targetConflicts.map(x=>String(x.id)));
+ const physicalConflicts=rally.filter(r=>!excluded.has(String(r.id))&&!targetIds.has(String(r.id))&&sameRallyPlayer(r,player)&&overlaps(start,end,r.start_utc,r.end_utc));
+ if(physicalConflicts.length){
+   const c=physicalConflicts[0];
+   const ok=await nexaConfirm('Rally Leader conflict',`${player.in_game_name} is already assigned to ${teamLabel(c.team_id)} at ${c.start_utc}–${c.end_utc} UTC. Move the conflicting assignment to ${teamLabel(targetTeamId)}?`,{confirmLabel:'Yes, Move',cancelLabel:'Cancel'});
+   if(!ok)return null;
+ }
+ const removedIds=new Set([...targetConflicts,...physicalConflicts].map(x=>String(x.id)));
+ const petExisting=(mode==='active'||mode==='reserve')
+   ? rally.filter(r=>!excluded.has(String(r.id))&&!removedIds.has(String(r.id))&&sameRallyPlayer(r,player)&&(r.pets_active||r.pet_status==='reserve'))
+   : [];
+ if(petExisting.length){
+   const details=petExisting.map(x=>`${petModeLabel(x)} • ${teamLabel(x.team_id)} • ${x.start_utc}–${x.end_utc}`).join(' | ');
+   const ok=await nexaConfirm('Move PET assignment?',`${player.in_game_name} already has ${details}. Move the PET assignment to ${teamLabel(targetTeamId)} • ${start}–${end} UTC?`,{confirmLabel:'Yes, Move',cancelLabel:'Cancel'});
+   if(!ok)return null;
+ }
+ return {
+   targetConflicts,physicalConflicts,petExisting,
+   touched:[targetTeamId,...targetConflicts.map(x=>x.team_id),...physicalConflicts.map(x=>x.team_id),...petExisting.map(x=>x.team_id)]
+ };
+}
+async function applyRallyAssignmentPlan(plan){
+ if(!plan)return;
+ const deleteIds=[...new Set([...(plan.targetConflicts||[]),...(plan.physicalConflicts||[])].map(x=>x.id).filter(Boolean))];
+ if(deleteIds.length){const d=await sb.from('svs_strategy_rally_slots').delete().in('id',deleteIds);if(d.error)throw d.error}
+ for(const x of plan.petExisting||[]){const u=await sb.from('svs_strategy_rally_slots').update({pets_active:false,pet_status:'none'}).eq('id',x.id);if(u.error)throw u.error}
 }
 function petOverlapConflict(player,start,end,mode,excludeIds=[]){
  if(mode!=='active'&&mode!=='reserve')return null;
@@ -1269,9 +1343,8 @@ async function editRallyPlayer(teamId,key){
    if(!tid){say('Select a Team.',true);return false}
    if(minutesOf(en)<=minutesOf(st)){say('End time must be after Start.',true);return false}
    if(!await confirmAvailability(player,st,en))return false;
-   const touched=[teamId,tid];
-   const physical=await resolvePhysicalRallyMove(player,st,en,rows.map(x=>x.id),tid);if(!physical.ok)return false;touched.push(...physical.touched);
-   const petMove=await moveExistingPetAssignmentIfNeeded(player,petMode,[...rows.map(x=>x.id),...(physical.removedIds||[])]);if(!petMove.ok)return false;touched.push(...petMove.touched);
+   const selfIds=rows.map(x=>x.id),plan=await planRallyAssignmentChange(player,st,en,petMode,tid,selfIds);if(!plan)return false;
+   const touched=[teamId,tid,...plan.touched];await applyRallyAssignmentPlan(plan);
    const del=await sb.from('svs_strategy_rally_slots').delete().in('id',rows.map(x=>x.id));if(del.error)throw del.error;
    const pets=petMode==='active',reserve=petMode==='reserve';
    const ins=await sb.from('svs_strategy_rally_slots').insert({team_id:tid,player_account_id:player.id||null,player_name:player.in_game_name,start_utc:st,end_utc:en,pets_active:pets,pet_status:pets?'active':reserve?'reserve':'none',sort_order:0});if(ins.error)throw ins.error;
@@ -1368,9 +1441,8 @@ function openInlineRallyPicker(originTid){
        if(!tid){say('Select a Team.',true);btn.disabled=false;return}
        if(minutesOf(en)<=minutesOf(s)){say('End time must be after Start.',true);btn.disabled=false;return}
        if(!await confirmAvailability(p,s,en)){btn.disabled=false;return}
-       const touched=[tid];
-       const physical=await resolvePhysicalRallyMove(p,s,en,[],tid);if(!physical.ok){btn.disabled=false;return}touched.push(...physical.touched);
-       const petMove=await moveExistingPetAssignmentIfNeeded(p,mode,physical.removedIds||[]);if(!petMove.ok){btn.disabled=false;return}touched.push(...petMove.touched);
+       const plan=await planRallyAssignmentChange(p,s,en,mode,tid,[]);if(!plan){btn.disabled=false;return}
+       const touched=[tid,...plan.touched];await applyRallyAssignmentPlan(plan);
        const pets=mode==='active',reserve=mode==='reserve';
        const ins=await sb.from('svs_strategy_rally_slots').insert({team_id:tid,player_account_id:p.id||null,player_name:p.in_game_name,start_utc:s,end_utc:en,pets_active:pets,pet_status:pets?'active':reserve?'reserve':'none',sort_order:Rally(tid).length});
        if(ins.error)throw ins.error;
@@ -1382,14 +1454,13 @@ function openInlineRallyPicker(originTid){
 }
 
 function openRallyEditor(tid,p){
- const ov=modal(`Add Rally Leader • ${p.in_game_name}`,`<div class="candidate-selected">${rallyCandidateCard(p).replace(/<input[^>]+>/,'')}</div><div class="grid2" style="margin-top:9px"><label>Start<select id="m-rally-start">${timeOptions('12:00')}</select></label><label>End<select id="m-rally-end">${timeOptions('14:00')}</select></label></div><label style="margin-top:9px">PETS<select id="m-rally-pets"><option value="none">No PET</option><option value="active">PET Active</option><option value="reserve">◇ Reserve PET</option></select></label><div class="select-note" style="margin-top:8px">Manual scheduling is flexible. Choose any Start and End you need. Reserve PET is manual only.</div><div class="select-note" style="margin-top:6px">Rally Leaders are ranked with the full SBS Rally Lead composite.</div>`,async ov=>{
+ const ov=modal(`Add Rally Leader • ${p.in_game_name}`,`<div class="candidate-selected">${rallyCandidateCard(p).replace(/<input[^>]+>/,'')}</div><div class="grid2" style="margin-top:9px"><label>Start<select id="m-rally-start">${timeOptions('12:00')}</select></label><label>End<select id="m-rally-end">${timeOptions('14:00')}</select></label></div><label style="margin-top:9px">PETS<select id="m-rally-pets"><option value="none">No PET</option><option value="active">PET Active</option><option value="reserve">◇ Reserve PET</option></select></label><div class="select-note" style="margin-top:8px">Manual scheduling is flexible. Choose any Start and End you need. Reserve PET is manual only.</div><div class="select-note" style="margin-top:6px">Rally Leaders are ranked with the full SVS Rally Lead composite.</div>`,async ov=>{
   const s=$('#m-rally-start',ov).value,e=$('#m-rally-end',ov).value,petMode=$('#m-rally-pets',ov).value||'none';
   const pets=petMode==='active',reserve=petMode==='reserve';
   if(minutesOf(e)<=minutesOf(s)){say('End time must be after Start.',true);return false}
   if(!await confirmAvailability(p,s,e))return false;
-  const touched=[tid];
-  const physical=await resolvePhysicalRallyMove(p,s,e,[],tid);if(!physical.ok)return false;touched.push(...physical.touched);
-  const petMove=await moveExistingPetAssignmentIfNeeded(p,petMode,physical.removedIds||[]);if(!petMove.ok)return false;touched.push(...petMove.touched);
+  const plan=await planRallyAssignmentChange(p,s,e,petMode,tid,[]);if(!plan)return false;
+  const touched=[tid,...plan.touched];await applyRallyAssignmentPlan(plan);
   const {error}=await sb.from('svs_strategy_rally_slots').insert({team_id:tid,player_account_id:p.id||null,player_name:p.in_game_name,start_utc:s,end_utc:e,pets_active:pets,pet_status:pets?'active':reserve?'reserve':'none',sort_order:Rally(tid).length});if(error)throw error;await syncPetAssignmentsForTeams(touched);await openStrategy(strategy.id)
  });
 }
@@ -1476,12 +1547,13 @@ function renderPetWorkspace(){
  const {rl,jo,manual}=currentRosterPools(),m=recommendedTeamMetrics(jo,rl),cfg=strategy?.assist_config||{};
  const activeCount=Math.max(1,Number(cfg.active_alliance_count||$('#assist-alliance-count')?.value||1));
  const primary=cfg.primary_alliance_id||'',counters=Array.isArray(cfg.counter_alliance_ids)?cfg.counter_alliance_ids:[];
- const teamGroups=alliances.slice().sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0)).map(a=>`<div class="pet-team-group"><div class="section-head"><div><b>${esc(a.alliance_tag)}</b><div class="tiny muted">Create as many manual Handoff / Counter / Standard Teams as needed.</div></div><button class="btn" data-pet-add-team="${a.id}" type="button">+ Team</button></div><div>${Teams(a.id).map(t=>{const row=petRows.find(r=>String(r.source_team_id)===String(t.id));return `<div class="pet-team-line"><div><b>${esc(t.name)}</b><div class="tiny muted">${Rally(t.id).length} Rally slot${Rally(t.id).length===1?'':'s'}</div></div><label>Purpose<select data-pet-purpose="${t.id}">${petPurposeOptions(row?.purpose||purposeForTeamId(t.id))}</select></label><button class="btn" data-pet-add-rally="${t.id}" type="button">+ Rally Lead</button></div>`}).join('')||'<div class="tiny muted" style="margin-top:8px">No Teams yet.</div>'}</div></div>`).join('');
+ const teamGroups=alliances.slice().sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0)).map(a=>`<div class="pet-team-group"><div class="section-head"><div><b>${esc(a.alliance_tag)}</b><div class="tiny muted">Create as many manual Handoff / Counter / Standard Teams as needed.</div></div><button class="btn" data-pet-add-team="${a.id}" type="button">+ Team</button></div><div>${Teams(a.id).map(t=>{const row=petRows.find(r=>String(r.source_team_id)===String(t.id));return `<div class="pet-team-line"><div><b>${esc(t.name)}</b><div class="tiny muted">${Rally(t.id).length} Rally slot${Rally(t.id).length===1?'':'s'}</div></div><label>Purpose<select data-pet-purpose="${t.id}">${petPurposeOptions(row?.purpose||purposeForTeamId(t.id))}</select></label><button class="btn" data-pet-add-rally="${t.id}" type="button">+ Rally Lead</button><button class="btn pet-delete-team" data-pet-delete-team="${t.id}" type="button" aria-label="Delete ${esc(t.name)}">×</button></div>`}).join('')||'<div class="tiny muted" style="margin-top:8px">No Teams yet.</div>'}</div></div>`).join('');
  host.innerHTML=`<div class="pet-roster-summary"><div class="pet-stat"><b>${rl.length+manual.length}</b><small>Rally Leads Available${manual.length?` • ${manual.length} manual`:''}</small></div><div class="pet-stat"><b>${jo.length}</b><small>Joiners Available</small></div><div class="pet-stat"><b>${m.teamCount||'—'}</b><small>Recommended Teams</small></div></div><div class="pet-recommend"><b>Recommended Team Setup</b><br>${m.teamCount?`${m.teamCount} sustainable Team${m.teamCount===1?'':'s'} • Approx. ${m.minJoiners}${m.maxJoiners!==m.minJoiners?`–${m.maxJoiners}`:''} Joiners per Team`:'Waiting for enough Rally Lead + Joiner data.'}<br><span class="muted">Based on current Rally Capacity + available Joiner Deployment. Team depth may vary by capacity; this is guidance, not a player ranking.</span></div><div class="pet-setup-card"><div class="section-head"><div><h3 style="margin:0">Pet Schedule Setup</h3><div class="tiny muted">Choose the participating Alliances here if you want to build PETS first.</div></div><button id="pet-apply-setup" class="btn violet" type="button">Apply Setup</button></div><div class="grid2" style="margin-top:9px"><label>Participating Alliances<select id="pet-alliance-count"><option value="1" ${activeCount===1?'selected':''}>1 Alliance</option><option value="2" ${activeCount===2?'selected':''}>2 Alliances</option><option value="3" ${activeCount===3?'selected':''}>3 Alliances</option><option value="4" ${activeCount===4?'selected':''}>4 Alliances</option></select></label><label>Main Alliance<select id="pet-primary-alliance">${petAllianceOptions(primary)}</select></label></div><div id="pet-counter-wrap" class="grid2" style="margin-top:9px">${petCounterSelectors(activeCount,counters)}</div><div class="pet-team-manager">${teamGroups||'<div class="tiny muted">Apply the Alliance setup to begin adding Teams.</div>'}</div></div>`;
  $('#pet-alliance-count').onchange=e=>{$('#pet-counter-wrap').innerHTML=petCounterSelectors(Number(e.target.value||1),[])};
  $('#pet-apply-setup').onclick=applyPetSetup;
  $$('[data-pet-add-team]',host).forEach(b=>b.onclick=()=>addTeam(b.dataset.petAddTeam));
  $$('[data-pet-add-rally]',host).forEach(b=>b.onclick=()=>addRally(b.dataset.petAddRally));
+ $$('[data-pet-delete-team]',host).forEach(b=>b.onclick=()=>deleteTeam(b.dataset.petDeleteTeam));
  $$('[data-pet-purpose]',host).forEach(sel=>sel.onchange=()=>setPetPurpose(sel.dataset.petPurpose,sel.value));
 }
 async function ensureStrategyForPetSetup(primaryId){
@@ -1513,7 +1585,7 @@ function openManualRallyLead(){
  const opts=alliances.flatMap(a=>Teams(a.id).map(t=>`<option value="${t.id}">${esc(a.alliance_tag)} • ${esc(t.name)}</option>`)).join('');
  modal('Manual Rally Leader',`<label>Name<input id="manual-rl-name" placeholder="Rally Leader name"></label><label style="margin-top:9px">Team<select id="manual-rl-team">${opts}</select></label><div class="grid2" style="margin-top:9px"><label>Start<select id="manual-rl-start">${timeOptions('12:00')}</select></label><label>End<select id="manual-rl-end">${timeOptions('14:00')}</select></label></div><label style="margin-top:9px">PETS<select id="manual-rl-pets"><option value="none">No PET</option><option value="active">PET Active</option><option value="reserve">◇ Reserve PET</option></select></label><div class="select-note" style="margin-top:8px">Manual Rally Leads stay saved with this SvS workspace. Availability cannot be checked because there is no Battle Sign-Up response for this name.</div>`,async ov=>{
    const name=$('#manual-rl-name',ov).value.trim(),tid=$('#manual-rl-team',ov).value,st=$('#manual-rl-start',ov).value,en=$('#manual-rl-end',ov).value,mode=$('#manual-rl-pets',ov).value||'none';if(!name||!tid){say('Enter a name and Team.',true);return false}if(minutesOf(en)<=minutesOf(st)){say('End time must be after Start.',true);return false}
-   const p={id:null,in_game_name:name,_manual:true},touched=[tid];const physical=await resolvePhysicalRallyMove(p,st,en,[],tid);if(!physical.ok)return false;touched.push(...physical.touched);const petMove=await moveExistingPetAssignmentIfNeeded(p,mode,physical.removedIds||[]);if(!petMove.ok)return false;touched.push(...petMove.touched);
+   const p={id:null,in_game_name:name,_manual:true},plan=await planRallyAssignmentChange(p,st,en,mode,tid,[]);if(!plan)return false;const touched=[tid,...plan.touched];await applyRallyAssignmentPlan(plan);
    const pets=mode==='active',reserve=mode==='reserve';const ins=await sb.from('svs_strategy_rally_slots').insert({team_id:tid,player_account_id:null,player_name:name,start_utc:st,end_utc:en,pets_active:pets,pet_status:pets?'active':reserve?'reserve':'none',sort_order:Rally(tid).length});if(ins.error)throw ins.error;await syncPetAssignmentsForTeams(touched);await openStrategy(strategy.id);return true;
  });
 }
@@ -1538,9 +1610,8 @@ async function addPet(id){
    if(minutesOf(e)<=minutesOf(s)){say('End time must be after Start.',true);return false}
    const row=petRows.find(x=>String(x.id)===String(id));if(!row?.source_team_id){say('This schedule row is not linked to a Team.',true);return false}
    if(!await confirmAvailability(p,s,e))return false;
-   const touched=[row.source_team_id];
-   const physical=await resolvePhysicalRallyMove(p,s,e,[],row.source_team_id);if(!physical.ok)return false;touched.push(...physical.touched);
-   const petMove=await moveExistingPetAssignmentIfNeeded(p,petMode,physical.removedIds||[]);if(!petMove.ok)return false;touched.push(...petMove.touched);
+   const plan=await planRallyAssignmentChange(p,s,e,petMode,row.source_team_id,[]);if(!plan)return false;
+   const touched=[row.source_team_id,...plan.touched];await applyRallyAssignmentPlan(plan);
    const pets=petMode==='active',reserve=petMode==='reserve';
    const ins=await sb.from('svs_strategy_rally_slots').insert({team_id:row.source_team_id,player_account_id:p.id||null,player_name:p.in_game_name,start_utc:s,end_utc:e,pets_active:pets,pet_status:pets?'active':reserve?'reserve':'none',sort_order:Rally(row.source_team_id).length});if(ins.error)throw ins.error;
    await syncPetAssignmentsForTeams(touched);await openStrategy(strategy.id);

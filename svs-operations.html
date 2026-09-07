@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V11.8.0 • Castle Seating Straight/Diamond views + persistent Paint alliance/color + auto legend + mirrored march seconds + outside-Red-Zone placement -->
+<!-- NEXA SVS OPERATIONS V11.8.2 • Castle Seating 4x6 march-time matrix + corrected 6-slot turret geometry + persistent Paint alliance/color + auto legend + outside-Red-Zone placement -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -1285,7 +1285,7 @@ async function healLegacyPetScheduleIfNeeded(){
     }
   }
 
-  const nextCfg={...cfg,pet_logic_version:'1.9',pet_team_quality_route_version:'1.2',pet_reserve_roster_version:'1.0'};
+  const nextCfg={...cfg,pet_logic_version:'1.9',pet_team_quality_route_version:'1.4',pet_reserve_roster_version:'1.0'};
   const up=await sb.from('svs_strategies').update({assist_config:nextCfg}).eq('id',strategy.id);
   if(up.error)throw up.error;
   strategy.assist_config=nextCfg;
@@ -1914,8 +1914,9 @@ function layoutTeam(t){
 }
 
 /* =========================================================
-   V11.8.0 — CASTLE SEATING
+   V11.8.2 — CASTLE SEATING
    Castle Seating workspace is independent from Battle Plan.
+   Turret-to-turret lanes corrected to 6 Cities.
    ========================================================= */
 const CASTLE_CELL=28;
 const CASTLE_CITY_CELLS=2;
@@ -1927,8 +1928,13 @@ const CASTLE_RED_DEPTH_CELLS=CASTLE_RED_DEPTH_CITIES*CASTLE_CITY_CELLS;
 const CASTLE_OUTER_HALF_CELLS=CASTLE_INNER_HALF_CELLS+CASTLE_RED_DEPTH_CELLS;
 const CASTLE_DRAW_HALF_CELLS=25;           // visible working grid extends beyond Red Zone
 const CASTLE_HOME={x:-700,y:-700,w:1400,h:1400};
-const CASTLE_SIDE_SECONDS=[43,39,36,36,39,43];
-const CASTLE_REF_SECONDS=[36,39,43,48,50,53,55,58,61,62,63,66,67,69,73,74,79,85];
+const CASTLE_TIMING_ROWS=[
+ [43,39,36,36,39,43],     // depth 1 • closest to Sunfire
+ [50,47,45,45,47,50],     // depth 2
+ [58,55,53,53,55,58],     // depth 3
+ [66,63,62,62,63,66]      // depth 4 • outer Red Zone edge
+];
+const CASTLE_REF_SECONDS=[36,39,43,45,47,48,50,53,55,58,61,62,63,66,67,69,73,74,79,85];
 
 function castleDefaultSnapshot(){
  return {
@@ -1961,7 +1967,7 @@ function castleNormalizeSnapshot(raw){
  const v=s.viewport&&Number.isFinite(Number(s.viewport.x))?{
    x:Number(s.viewport.x),y:Number(s.viewport.y),w:Math.max(300,Number(s.viewport.w)||1400),h:Math.max(300,Number(s.viewport.h)||1400)
  }:{...CASTLE_HOME};
- return {...d,...s,version:'1.3',cities,viewport:v,view_mode:s.view_mode==='diamond'?'diamond':'straight',red_zone_visible:s.red_zone_visible!==false};
+ return {...d,...s,version:'1.4',cities,viewport:v,view_mode:s.view_mode==='diamond'?'diamond':'straight',red_zone_visible:s.red_zone_visible!==false};
 }
 function castleCloneSnapshot(){return JSON.parse(JSON.stringify(castleSnapshot||castleDefaultSnapshot()))}
 function castlePushUndo(){castleUndo.push(castleCloneSnapshot());if(castleUndo.length>40)castleUndo.shift();castleRedo=[];castleRefreshUndoButtons()}
@@ -2001,24 +2007,44 @@ function castleNearestReferenceSeconds(raw){
  for(const n of CASTLE_REF_SECONDS){const d=Math.abs(n-raw);if(d<delta){delta=d;best=n}}
  return best;
 }
-function castleLaneSlotSeconds(index){
- return CASTLE_SIDE_SECONDS[Math.max(0,Math.min(CASTLE_SIDE_SECONDS.length-1,Number(index)||0))]||43;
+function castleTimingCell(depth,slot){
+ const d=Math.max(1,Math.min(CASTLE_TIMING_ROWS.length,Number(depth)||1))-1;
+ const row=CASTLE_TIMING_ROWS[d]||CASTLE_TIMING_ROWS[0];
+ const i=Math.max(0,Math.min(row.length-1,Number(slot)||0));
+ return row[i]||43;
 }
 function castleCanonicalForTiming(x,y){
  const min=-CASTLE_INNER_HALF_CELLS,max=CASTLE_INNER_HALF_CELLS,step=CASTLE_CITY_CELLS;
- // Primary turret-to-turret lanes (6 slots) immediately outside the Sunfire interior.
- if(x===min-step&&y>=min&&y<=max-step)return {kind:'lane',slot:Math.round((max-step-y)/step)};          // West -> North
- if(y===min-step&&x>=min&&x<=max-step)return {kind:'lane',slot:Math.round((x-min)/step)};               // North -> East
- if(x===max&&y>=min&&y<=max-step)return {kind:'lane',slot:Math.round((y-min)/step)};                    // East -> South
- if(y===max&&x>=min&&x<=max-step)return {kind:'lane',slot:Math.round((max-step-x)/step)};               // South -> West
+
+ // Four independent timing lines on each side of Sunfire.
+ // depth 1 = closest to Castle; depth 4 = outer Red Zone edge.
+ for(let depth=1;depth<=CASTLE_RED_DEPTH_CITIES;depth++){
+   const westX=min-(depth*step);
+   const northY=min-(depth*step);
+   const eastX=max+((depth-1)*step);
+   const southY=max+((depth-1)*step);
+
+   if(x===westX&&y>=min&&y<=max-step)
+     return {kind:'matrix',depth,slot:Math.round((max-step-y)/step),side:'west-north'};
+
+   if(y===northY&&x>=min&&x<=max-step)
+     return {kind:'matrix',depth,slot:Math.round((x-min)/step),side:'north-east'};
+
+   if(x===eastX&&y>=min&&y<=max-step)
+     return {kind:'matrix',depth,slot:Math.round((y-min)/step),side:'east-south'};
+
+   if(y===southY&&x>=min&&x<=max-step)
+     return {kind:'matrix',depth,slot:Math.round((max-step-x)/step),side:'south-west'};
+ }
  return null;
 }
 function castleSecondsForAnchor(x,y){
- // Explicit six-slot timing on each turret-to-turret lane, mirrored by side.
- const lane=castleCanonicalForTiming(x,y);
- if(lane&&lane.kind==='lane')return castleLaneSlotSeconds(lane.slot);
+ // Exact 4-depth × 6-slot table from the Sunfire reference map.
+ // Every equivalent side uses the same table; rows no longer duplicate depth 1.
+ const pos=castleCanonicalForTiming(x,y);
+ if(pos&&pos.kind==='matrix')return castleTimingCell(pos.depth,pos.slot);
 
- // Fallback for corner / deeper Red Zone positions: mirrored distance approximation, snapped to the user reference set.
+ // Corner / grid-outside-red-zone fallback only.
  const cx=x+1,cy=y+1,ax=Math.abs(cx),ay=Math.abs(cy);
  const radial=Math.hypot(ax,ay);
  const raw=4.05*radial+1.6;
@@ -2176,7 +2202,7 @@ function castleRenderLegend(){
    cur.count++;cur.color=c.color||cur.color;rows.set(key,cur);
  }
  if(!rows.size){legend.classList.remove('show');legend.innerHTML='';return}
-legend.innerHTML=`<div class="castle-legend-title">Alliance Legend</div>${[...rows.values()].sort((a,b)=>a.tag.localeCompare(b.tag)).map(r=>`<div class="castle-legend-row"><i class="castle-legend-swatch" style="background:${esc(r.color)}"></i><span>${esc(r.tag)}</span><span class="castle-legend-count">${r.count}</span></div>`).join('')}<div class="castle-legend-note">March seconds = fixed 6-slot turret lanes + mirrored fallback • no Pet Buff</div>`;
+ legend.innerHTML=`<div class="castle-legend-title">Alliance Legend</div>${[...rows.values()].sort((a,b)=>a.tag.localeCompare(b.tag)).map(r=>`<div class="castle-legend-row"><i class="castle-legend-swatch" style="background:${esc(r.color)}"></i><span>${esc(r.tag)}</span><span class="castle-legend-count">${r.count}</span></div>`).join('')}<div class="castle-legend-note">March seconds = fixed 4×6 slot matrix • no Pet Buff</div>`;
  legend.classList.add('show');
 }
 function castleRenderSummary(){
@@ -2312,7 +2338,7 @@ function castleBattleSnapshot(){
  const snap=castleCloneSnapshot();
  return {
    section:'Castle City',source:'castle_seating',source_strategy_id:strategy?.id||null,cities:snap.cities,red_zone_visible:snap.red_zone_visible,view_mode:snap.view_mode,viewport:snap.viewport,
-   geometry:{city_footprint:'2x2',turret_footprint:'2x2',cities_between_turrets:6,red_zone_depth_cities:4,march_seconds_reference:'explicit_6_slot_lanes_no_pet_buff'},
+   geometry:{city_footprint:'2x2',turret_footprint:'2x2',cities_between_turrets:6,red_zone_depth_cities:4,march_seconds_reference:'fixed_4x6_matrix_no_pet_buff'},
    sent_at:new Date().toISOString()
  };
 }

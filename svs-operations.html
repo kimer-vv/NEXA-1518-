@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V11.9.7 • autosave/state loading guard + Castle touch/select recovery + organized alliance controls + apply paint color + larger turret labels + roomier export preview -->
+<!-- NEXA SVS OPERATIONS V11.9.8 • Castle duplicate alliance controls removed + custom Tag cleanup + autosave/state guard + turret/export fixes -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -609,11 +609,6 @@ body.pet-preview-open{overflow:hidden!important}
             <button class="castle-tool" data-castle-view="diamond" type="button">Diamond</button>
           </div>
           <div class="castle-alliance-controls">
-            <label class="castle-alliance-field">Alliances<select id="castle-paint-alliance"></select></label>
-            <div class="castle-color-row">
-              <label class="castle-color-field">Paint Color<input id="castle-paint-color" type="color" value="#48ddff"></label>
-              <button id="castle-apply-paint-color" class="castle-tool castle-color-ok" type="button">OK</button>
-            </div>
             <button id="castle-add-custom-alliance" class="castle-tool castle-custom-main" type="button">+ Custom Alliance</button>
             <div id="castle-custom-alliances" class="castle-custom-alliance-list"></div>
             <div class="castle-custom-alliance-note">Custom alliances stay only in this Castle Seating workspace.</div>
@@ -2303,7 +2298,7 @@ function castleRenderCustomAlliances(){
 }
 function castleAddCustomAlliance(){
  if(!castleSnapshot)return;
- const ov=modal('Add Custom Alliance',`<div class="grid2"><label>Tag / Display Name<input id="castle-custom-tag" placeholder="FSU / APPS"></label><label>Color<input id="castle-custom-color" type="color" value="#48ddff"></label></div><div class="tiny muted" style="margin-top:8px">This exists only inside this Castle Seating workspace and is included in autosave/legend.</div>`,async box=>{
+ const ov=modal('Add Custom Alliance',`<div class="grid2"><label>Tag<input id="castle-custom-tag" placeholder="TAG"></label><label>Color<input id="castle-custom-color" type="color" value="#48ddff"></label></div><div class="tiny muted" style="margin-top:8px">This exists only inside this Castle Seating workspace and is included in autosave/legend.</div>`,async box=>{
    const tag=$('#castle-custom-tag',box).value.trim(),color=$('#castle-custom-color',box).value||'#48ddff';
    if(!tag){say('Enter a custom alliance tag/name.',true);return false}
    const dupe=(castleSnapshot.custom_alliances||[]).some(a=>String(a.tag).toLowerCase()===tag.toLowerCase());
@@ -2317,9 +2312,6 @@ function castleAddCustomAlliance(){
  setTimeout(()=>$('#castle-custom-tag',ov)?.focus(),40);
 }
 function castleSyncPaintControls(){
- const sel=$('#castle-paint-alliance'),col=$('#castle-paint-color');
- if(sel){sel.innerHTML=castleAllianceOptions(castlePaintAllianceId);sel.value=castlePaintAllianceId==null?'':String(castlePaintAllianceId)}
- if(col)col.value=/^#[0-9a-f]{6}$/i.test(castlePaintColor)?castlePaintColor:'#48ddff';
  castleRenderCustomAlliances();castleUpdatePaintHud();
 }
 function castlePaintCell(cell,mode){
@@ -2470,19 +2462,7 @@ function castleBindControls(){
  $('#castle-clear-selection').onclick=()=>{castleSelection.clear();castleRefresh()};
  $('#castle-undo').onclick=()=>{if(!castleUndo.length)return;castleRedo.push(castleCloneSnapshot());castleSnapshot=castleUndo.pop();castleSelection.clear();castleRefresh();castleQueueSave()};
  $('#castle-redo').onclick=()=>{if(!castleRedo.length)return;castleUndo.push(castleCloneSnapshot());castleSnapshot=castleRedo.pop();castleSelection.clear();castleRefresh();castleQueueSave()};
- $('#castle-paint-alliance').onchange=e=>{
-   castlePaintAllianceId=e.target.value||null;
-   const a=castleAllianceChoice(castlePaintAllianceId);if(a)castlePaintColor=a.color||castleAllianceColor(castlePaintAllianceId);
-   castleSyncPaintControls();
- };
  $('#castle-add-custom-alliance').onclick=castleAddCustomAlliance;
- $('#castle-paint-color').oninput=e=>{castlePaintColor=e.target.value||'#48ddff';castleUpdatePaintHud()};
- $('#castle-apply-paint-color').onclick=()=>{
-   castlePaintColor=$('#castle-paint-color').value||'#48ddff';
-   castleUpdatePaintHud();
-   const a=castleAllianceChoice(castlePaintAllianceId);
-   say(a?`Paint ready • ${a.tag} • ${castlePaintColor}`:`Paint ready • Unassigned • ${castlePaintColor}`);
- };
  $('#castle-alliance').onchange=e=>{const a=castleAllianceChoice(e.target.value);if(a&&/^#[0-9a-f]{6}$/i.test(a.color||''))$('#castle-color').value=a.color};
  $('#castle-apply-selected').onclick=castleApplySelected;$('#castle-delete-selected').onclick=castleDeleteSelected;$('#castle-export').onclick=castleExport;
  svg.addEventListener('wheel',e=>{if(!castleSnapshot)return;e.preventDefault();castleZoom(e.deltaY>0?1.12:.89,e.clientX,e.clientY)},{passive:false});

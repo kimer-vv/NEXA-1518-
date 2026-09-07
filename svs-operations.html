@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V11.7.1 • calibrated Sunfire geometry + true 2x2 cities/turrets + 6-between-turrets + 4-city Red Zone depth -->
+<!-- NEXA SVS OPERATIONS V11.8.0 • Castle Seating Straight/Diamond views + persistent Paint alliance/color + auto legend + mirrored march seconds + outside-Red-Zone placement -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -361,6 +361,27 @@ body.pet-preview-open{overflow:hidden!important}
 .castle-bp-copy{border:1px solid rgba(155,120,255,.25);border-radius:13px;background:rgba(95,64,177,.09);padding:9px;margin-top:7px}
 .castle-bp-city-list{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;max-height:126px;overflow:auto}
 .castle-bp-city{border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:5px 7px;font-size:9px;font-weight:850;background:rgba(255,255,255,.03)}
+
+.castle-paint-settings{display:grid;grid-template-columns:minmax(150px,1fr) 92px;gap:7px;min-width:min(100%,290px)}
+.castle-paint-settings select,.castle-paint-settings input{min-height:40px}
+.castle-view-toggle{display:flex;gap:6px;flex:0 0 auto}
+.castle-view-toggle .castle-tool{min-width:82px}
+.castle-legend{position:absolute;left:9px;top:9px;z-index:6;display:none;min-width:116px;max-width:44%;border:1px solid rgba(72,221,255,.24);border-radius:12px;background:rgba(3,8,22,.88);backdrop-filter:blur(8px);padding:7px 8px;pointer-events:none}
+.castle-legend.show{display:grid;gap:5px}
+.castle-legend-title{font-size:8px;color:#8ea2c9;font-weight:950;letter-spacing:.12em;text-transform:uppercase}
+.castle-legend-row{display:grid;grid-template-columns:11px minmax(0,1fr) auto;gap:6px;align-items:center;font-size:9px;font-weight:950}
+.castle-legend-swatch{width:11px;height:11px;border-radius:3px;border:1px solid rgba(255,255,255,.40)}
+.castle-legend-count{color:#96a4c5;font-size:8px}
+.castle-legend-note{margin-top:2px;border-top:1px solid rgba(255,255,255,.08);padding-top:5px;color:#8998ba;font-size:7.5px;line-height:1.25}
+.castle-active-paint{border-color:rgba(72,221,255,.28)!important}
+.castle-active-paint strong{display:inline-flex;align-items:center;gap:5px}
+.castle-active-swatch{width:9px;height:9px;border-radius:3px;border:1px solid rgba(255,255,255,.45);display:inline-block}
+@media(max-width:520px){
+ .castle-paint-settings{grid-template-columns:minmax(138px,1fr) 78px}
+ .castle-view-toggle .castle-tool{min-width:74px}
+ .castle-legend{max-width:48%}
+}
+
 @media(max-width:620px){
  .castle-shell{margin-left:18px}
  .castle-stage{height:56dvh;min-height:390px}
@@ -534,9 +555,20 @@ body.pet-preview-open{overflow:hidden!important}
           <button id="castle-toggle-red" class="castle-tool" type="button">Red Zone: ON</button>
           <button id="castle-clear-selection" class="castle-tool" type="button">Clear Selection</button>
         </div>
+        <div class="castle-subtoolbar" style="align-items:end">
+          <div class="castle-view-toggle">
+            <button class="castle-tool active" data-castle-view="straight" type="button">Straight</button>
+            <button class="castle-tool" data-castle-view="diamond" type="button">Diamond</button>
+          </div>
+          <div class="castle-paint-settings">
+            <label>Paint Alliance<select id="castle-paint-alliance"></select></label>
+            <label>Paint Color<input id="castle-paint-color" type="color" value="#48ddff"></label>
+          </div>
+        </div>
 
         <div class="castle-stage-wrap">
           <svg id="castle-stage" class="castle-stage" viewBox="-560 -560 1120 1120" aria-label="Castle Seating interactive map"></svg>
+          <div id="castle-legend" class="castle-legend"></div>
           <div class="castle-floating">
             <button id="castle-zoom-in" class="castle-float" type="button">+</button>
             <button id="castle-zoom-out" class="castle-float" type="button">−</button>
@@ -545,6 +577,7 @@ body.pet-preview-open{overflow:hidden!important}
           <div class="castle-hud">
             <span class="castle-pill">Mode <strong id="castle-mode-label">PAN</strong></span>
             <span class="castle-pill">Selected <strong id="castle-selected-count">0</strong></span>
+            <span class="castle-pill castle-active-paint">Paint <strong><i id="castle-active-swatch" class="castle-active-swatch"></i><span id="castle-active-paint">Unassigned</span></strong></span>
           </div>
         </div>
 
@@ -620,7 +653,7 @@ const state=Number(String(window.NEXA_ACTIVE_STATE||localStorage.getItem('nexa_a
 let sb=null;
 const colors=['#ff7289','#56bfff','#64dfa7','#b989ff','#ffb865','#65e1e6'];
 let strategy=null,alliances=[],teams=[],rally=[],joiners=[],heroes=[],libraryItems=[],petRows=[],petAssignments=[],allAlliances=[],responses=[],playerPool=[],stateRoles=[],strategyList=[],formations=[],visibleHeroGenerations=[],heroGenerationRows=[],playerInventory=[],battleMetaRules=[],responsePlayers={},battlePlanItems=[],testSandbox=false,petAssignmentHidden=false,formationCenterTab='approved';
-let castleRow=null,castleSnapshot=null,castleTool='pan',castleSelection=new Set(),castleUndo=[],castleRedo=[],castlePointerState=new Map(),castleGesture=null,castleSaveTimer=null;
+let castleRow=null,castleSnapshot=null,castleTool='pan',castleSelection=new Set(),castleUndo=[],castleRedo=[],castlePointerState=new Map(),castleGesture=null,castleSaveTimer=null,castlePaintAllianceId=null,castlePaintColor='#48ddff';
 
 const stateLabel=$('#state-label');
 if(stateLabel)stateLabel.textContent=`State ${state}`;
@@ -1881,33 +1914,31 @@ function layoutTeam(t){
 }
 
 /* =========================================================
-   V11.7.0 — CASTLE SEATING
+   V11.8.0 — CASTLE SEATING
    Castle Seating workspace is independent from Battle Plan.
    ========================================================= */
-const CASTLE_CELL=28;                  // one visible grid square
-const CASTLE_CITY_CELLS=2;             // City/Turret = 2×2 visible squares
+const CASTLE_CELL=28;
+const CASTLE_CITY_CELLS=2;
 const CASTLE_CITY_SIZE=CASTLE_CELL*CASTLE_CITY_CELLS;
-const CASTLE_INNER_HALF_CELLS=8;        // Sunfire interior = 16×16 base cells
-const CASTLE_RED_DEPTH_CITIES=4;        // Red Zone = four City footprints deep
+const CASTLE_INNER_HALF_CELLS=8;          // 16 base cells across. With 2x2 corner Turrets -> six 2x2 City slots between Turrets.
+const CASTLE_RED_DEPTH_CITIES=4;
 const CASTLE_RED_DEPTH_CELLS=CASTLE_RED_DEPTH_CITIES*CASTLE_CITY_CELLS;
-const CASTLE_OUTER_HALF_CELLS=CASTLE_INNER_HALF_CELLS+CASTLE_RED_DEPTH_CELLS; // 16
-const CASTLE_DRAW_HALF_CELLS=21;
-const CASTLE_HOME={x:-620,y:-620,w:1240,h:1240};
+const CASTLE_OUTER_HALF_CELLS=CASTLE_INNER_HALF_CELLS+CASTLE_RED_DEPTH_CELLS;
+const CASTLE_DRAW_HALF_CELLS=25;           // visible working grid extends beyond Red Zone
+const CASTLE_HOME={x:-700,y:-700,w:1400,h:1400};
+const CASTLE_REF_SECONDS=[36,39,43,47,48,50,53,55,58,61,62,63,66,67,69,73,74,79,85];
 
 function castleDefaultSnapshot(){
  return {
-   version:'1.1',
+   version:'1.2',
    red_zone_visible:true,
+   view_mode:'straight',
    viewport:{...CASTLE_HOME},
    cities:[],
    updated_at:null
  };
 }
-function castleSnapAnchor(n){
- // City anchors live on the 2-cell lattice. This guarantees every City
- // occupies exactly four visible grid squares and sits directly on grid lines.
- return Math.floor(Number(n||0)/CASTLE_CITY_CELLS)*CASTLE_CITY_CELLS;
-}
+function castleSnapAnchor(n){return Math.floor(Number(n||0)/CASTLE_CITY_CELLS)*CASTLE_CITY_CELLS}
 function castleNormalizeSnapshot(raw){
  const d=castleDefaultSnapshot(),s=raw&&typeof raw==='object'?raw:{};
  const seen=new Set(),cities=[];
@@ -1916,8 +1947,7 @@ function castleNormalizeSnapshot(raw){
    if(seen.has(key))continue;
    seen.add(key);
    cities.push({
-     id:String(c.id||`city-${Date.now()}-${i}`),
-     x,y,
+     id:String(c.id||`city-${Date.now()}-${i}`),x,y,
      player_name:String(c.player_name||''),
      alliance_id:c.alliance_id==null?null:Number(c.alliance_id),
      alliance_tag:String(c.alliance_tag||''),
@@ -1927,42 +1957,34 @@ function castleNormalizeSnapshot(raw){
    });
  }
  const v=s.viewport&&Number.isFinite(Number(s.viewport.x))?{
-   x:Number(s.viewport.x),y:Number(s.viewport.y),w:Math.max(300,Number(s.viewport.w)||1240),h:Math.max(300,Number(s.viewport.h)||1240)
+   x:Number(s.viewport.x),y:Number(s.viewport.y),w:Math.max(300,Number(s.viewport.w)||1400),h:Math.max(300,Number(s.viewport.h)||1400)
  }:{...CASTLE_HOME};
- return {...d,...s,version:'1.1',cities,viewport:v,red_zone_visible:s.red_zone_visible!==false};
+ return {...d,...s,version:'1.2',cities,viewport:v,view_mode:s.view_mode==='diamond'?'diamond':'straight',red_zone_visible:s.red_zone_visible!==false};
 }
 function castleCloneSnapshot(){return JSON.parse(JSON.stringify(castleSnapshot||castleDefaultSnapshot()))}
-function castlePushUndo(){
- castleUndo.push(castleCloneSnapshot());
- if(castleUndo.length>40)castleUndo.shift();
- castleRedo=[];
- castleRefreshUndoButtons();
-}
-function castleRefreshUndoButtons(){
- const u=$('#castle-undo'),r=$('#castle-redo');
- if(u)u.disabled=!castleUndo.length;
- if(r)r.disabled=!castleRedo.length;
-}
+function castlePushUndo(){castleUndo.push(castleCloneSnapshot());if(castleUndo.length>40)castleUndo.shift();castleRedo=[];castleRefreshUndoButtons()}
+function castleRefreshUndoButtons(){const u=$('#castle-undo'),r=$('#castle-redo');if(u)u.disabled=!castleUndo.length;if(r)r.disabled=!castleRedo.length}
 function castleCellKey(x,y){return `${x},${y}`}
 function castleCityAtAnchor(x,y){return (castleSnapshot?.cities||[]).find(c=>c.x===x&&c.y===y)||null}
-function castleCityCoveringCell(x,y){
- return (castleSnapshot?.cities||[]).find(c=>x>=c.x&&x<c.x+CASTLE_CITY_CELLS&&y>=c.y&&y<c.y+CASTLE_CITY_CELLS)||null;
-}
-function castleRectIntersects(aMinX,aMinY,aMaxX,aMaxY,bMinX,bMinY,bMaxX,bMaxY){
- return aMinX<bMaxX&&aMaxX>bMinX&&aMinY<bMaxY&&aMaxY>bMinY;
-}
+function castleCityCoveringCell(x,y){return (castleSnapshot?.cities||[]).find(c=>x>=c.x&&x<c.x+CASTLE_CITY_CELLS&&y>=c.y&&y<c.y+CASTLE_CITY_CELLS)||null}
+function castleRectIntersects(aMinX,aMinY,aMaxX,aMaxY,bMinX,bMinY,bMaxX,bMaxY){return aMinX<bMaxX&&aMaxX>bMinX&&aMinY<bMaxY&&aMaxY>bMinY}
 function castleInSunfireInteriorAnchor(x,y){
  const min=-CASTLE_INNER_HALF_CELLS,max=CASTLE_INNER_HALF_CELLS;
  return castleRectIntersects(x,y,x+CASTLE_CITY_CELLS,y+CASTLE_CITY_CELLS,min,min,max,max);
 }
 function castleInRedZoneAnchor(x,y){
- const outerMin=-CASTLE_OUTER_HALF_CELLS,outerMax=CASTLE_OUTER_HALF_CELLS;
- const fullyInsideOuter=x>=outerMin&&y>=outerMin&&x+CASTLE_CITY_CELLS<=outerMax&&y+CASTLE_CITY_CELLS<=outerMax;
- return fullyInsideOuter&&!castleInSunfireInteriorAnchor(x,y);
+ const o=-CASTLE_OUTER_HALF_CELLS,O=CASTLE_OUTER_HALF_CELLS;
+ const insideOuter=x>=o&&y>=o&&x+2<=O&&y+2<=O;
+ return insideOuter&&!castleInSunfireInteriorAnchor(x,y);
+}
+function castleInVisibleGridAnchor(x,y){
+ const m=-CASTLE_DRAW_HALF_CELLS,M=CASTLE_DRAW_HALF_CELLS;
+ return x>=m&&y>=m&&x+CASTLE_CITY_CELLS<=M&&y+CASTLE_CITY_CELLS<=M;
 }
 function castleIsRed(x,y){return castleInRedZoneAnchor(Number(x),Number(y))}
 function castleValidAnchor(x,y){
- return Number.isInteger(x)&&Number.isInteger(y)&&x%2===0&&y%2===0&&castleInRedZoneAnchor(x,y);
+ // Cities may be placed anywhere on the visible grid except inside the fixed Sunfire interior.
+ return Number.isInteger(x)&&Number.isInteger(y)&&x%2===0&&y%2===0&&castleInVisibleGridAnchor(x,y)&&!castleInSunfireInteriorAnchor(x,y);
 }
 function castleAllianceById(id){return allAlliances.find(a=>String(a.id)===String(id))||null}
 function castleAllianceColor(id){
@@ -1972,10 +1994,22 @@ function castleAllianceColor(id){
 function castleAllianceOptions(selected=''){
  return '<option value="">Unassigned</option>'+allAlliances.filter(a=>a.is_active!==false).map(a=>`<option value="${a.id}" ${String(a.id)===String(selected)?'selected':''}>${esc(a.tag)}${a.name?` • ${esc(a.name)}`:''}</option>`).join('');
 }
+function castleNearestReferenceSeconds(raw){
+ let best=CASTLE_REF_SECONDS[0],delta=Infinity;
+ for(const n of CASTLE_REF_SECONDS){const d=Math.abs(n-raw);if(d<delta){delta=d;best=n}}
+ return best;
+}
+function castleSecondsForAnchor(x,y){
+ // Mirrored position reference derived from the user-provided Sunfire timing map.
+ // It intentionally ignores Player/Alliance and mirrors all four quadrants.
+ const cx=x+1,cy=y+1,ax=Math.abs(cx),ay=Math.abs(cy);
+ const radial=Math.hypot(ax,ay);
+ const raw=3.82*radial+1.8;
+ return castleNearestReferenceSeconds(raw);
+}
 function castleQueueSave(){
  if(!strategy||!castleSnapshot)return;
- setSaveState('saving');
- clearTimeout(castleSaveTimer);
+ setSaveState('saving');clearTimeout(castleSaveTimer);
  castleSaveTimer=setTimeout(()=>castleSaveNow().catch(e=>{say(e?.message||String(e),true);setSaveState('saved')}),420);
 }
 async function castleSaveNow(){
@@ -1983,75 +2017,86 @@ async function castleSaveNow(){
  castleSnapshot.updated_at=new Date().toISOString();
  const payload={strategy_id:strategy.id,snapshot:castleSnapshot,updated_at:new Date().toISOString()};
  const up=await sb.from('svs_castle_seating').upsert(payload,{onConflict:'strategy_id'}).select().single();
- if(up.error)throw up.error;
- castleRow=up.data;
- setSaveState('saved');
+ if(up.error)throw up.error;castleRow=up.data;setSaveState('saved');
 }
 function castleSetViewport(v,{save=false}={}){
  if(!castleSnapshot)castleSnapshot=castleDefaultSnapshot();
- const minW=360,maxW=1800,w=Math.max(minW,Math.min(maxW,Number(v.w)||1240));
+ const minW=360,maxW=2100,w=Math.max(minW,Math.min(maxW,Number(v.w)||1400));
  const ratio=($('#castle-stage')?.clientHeight||560)/Math.max(1,$('#castle-stage')?.clientWidth||560);
- const h=w*ratio;
- castleSnapshot.viewport={x:Number(v.x)||-w/2,y:Number(v.y)||-h/2,w,h};
- const svg=$('#castle-stage');
- if(svg)svg.setAttribute('viewBox',`${castleSnapshot.viewport.x} ${castleSnapshot.viewport.y} ${castleSnapshot.viewport.w} ${castleSnapshot.viewport.h}`);
+ const h=w*ratio;castleSnapshot.viewport={x:Number(v.x)||-w/2,y:Number(v.y)||-h/2,w,h};
+ const svg=$('#castle-stage');if(svg)svg.setAttribute('viewBox',`${castleSnapshot.viewport.x} ${castleSnapshot.viewport.y} ${castleSnapshot.viewport.w} ${castleSnapshot.viewport.h}`);
  if(save)castleQueueSave();
 }
 function castleFit(){
  if(!castleSnapshot)return;
  const svg=$('#castle-stage'),ratio=(svg?.clientHeight||560)/Math.max(1,svg?.clientWidth||560);
- const w=1120,h=w*ratio;
- castleSnapshot.viewport={x:-w/2,y:-h/2,w,h};
- castleSetViewport(castleSnapshot.viewport,{save:true});
+ const w=castleSnapshot.view_mode==='diamond'?1660:1400,h=w*ratio;
+ castleSnapshot.viewport={x:-w/2,y:-h/2,w,h};castleSetViewport(castleSnapshot.viewport,{save:true});
 }
 function castleZoom(factor,clientX=null,clientY=null){
  const svg=$('#castle-stage');if(!svg||!castleSnapshot)return;
  const v={...castleSnapshot.viewport},rect=svg.getBoundingClientRect();
  const px=clientX==null?.5:Math.max(0,Math.min(1,(clientX-rect.left)/Math.max(1,rect.width)));
  const py=clientY==null?.5:Math.max(0,Math.min(1,(clientY-rect.top)/Math.max(1,rect.height)));
- const nw=Math.max(360,Math.min(1800,v.w*factor)),nh=nw*(rect.height/Math.max(1,rect.width));
- const worldX=v.x+v.w*px,worldY=v.y+v.h*py;
- castleSetViewport({x:worldX-nw*px,y:worldY-nh*py,w:nw,h:nh},{save:true});
+ const nw=Math.max(360,Math.min(2100,v.w*factor)),nh=nw*(rect.height/Math.max(1,rect.width));
+ const worldX=v.x+v.w*px,worldY=v.y+v.h*py;castleSetViewport({x:worldX-nw*px,y:worldY-nh*py,w:nw,h:nh},{save:true});
 }
 function castlePointToWorld(ev){
  const svg=$('#castle-stage'),rect=svg.getBoundingClientRect(),v=castleSnapshot.viewport;
  return {x:v.x+(ev.clientX-rect.left)/rect.width*v.w,y:v.y+(ev.clientY-rect.top)/rect.height*v.h};
 }
+function castleDisplayToMapPoint(p){
+ if(castleSnapshot?.view_mode!=='diamond')return p;
+ const a=-Math.PI/4,ca=Math.cos(a),sa=Math.sin(a);
+ return {x:p.x*ca-p.y*sa,y:p.x*sa+p.y*ca};
+}
 function castlePointToBaseCell(ev){
- const p=castlePointToWorld(ev);
+ const p=castleDisplayToMapPoint(castlePointToWorld(ev));
  return {x:Math.floor(p.x/CASTLE_CELL),y:Math.floor(p.y/CASTLE_CELL)};
 }
-function castlePointToAnchor(ev){
- const c=castlePointToBaseCell(ev);
- return {x:castleSnapAnchor(c.x),y:castleSnapAnchor(c.y)};
-}
+function castlePointToAnchor(ev){const c=castlePointToBaseCell(ev);return {x:castleSnapAnchor(c.x),y:castleSnapAnchor(c.y)}}
 function castleSetTool(tool){
- castleTool=tool;
- $$('[data-castle-tool]').forEach(b=>b.classList.toggle('active',b.dataset.castleTool===tool));
+ castleTool=tool;$$('[data-castle-tool]').forEach(b=>b.classList.toggle('active',b.dataset.castleTool===tool));
  const label=$('#castle-mode-label');if(label)label.textContent=tool.toUpperCase();
 }
+function castleSetView(mode,{fit=true,save=true}={}){
+ if(!castleSnapshot)return;castleSnapshot.view_mode=mode==='diamond'?'diamond':'straight';
+ $$('[data-castle-view]').forEach(b=>b.classList.toggle('active',b.dataset.castleView===castleSnapshot.view_mode));
+ castleRefresh();if(fit)castleFit();else if(save)castleQueueSave();
+}
+function castleUpdatePaintHud(){
+ const a=castleAllianceById(castlePaintAllianceId),name=a?.tag||'Unassigned';
+ const text=$('#castle-active-paint'),sw=$('#castle-active-swatch');
+ if(text)text.textContent=name;if(sw)sw.style.background=castlePaintColor||'#48ddff';
+}
+function castleSyncPaintControls(){
+ const sel=$('#castle-paint-alliance'),col=$('#castle-paint-color');
+ if(sel){sel.innerHTML=castleAllianceOptions(castlePaintAllianceId);sel.value=castlePaintAllianceId==null?'':String(castlePaintAllianceId)}
+ if(col)col.value=/^#[0-9a-f]{6}$/i.test(castlePaintColor)?castlePaintColor:'#48ddff';
+ castleUpdatePaintHud();
+}
 function castlePaintCell(cell,mode){
- const baseCell=cell.base||cell;
- const anchor=cell.anchor||{x:castleSnapAnchor(baseCell.x),y:castleSnapAnchor(baseCell.y)};
+ const baseCell=cell.base||cell,anchor=cell.anchor||{x:castleSnapAnchor(baseCell.x),y:castleSnapAnchor(baseCell.y)};
  if(mode==='paint'){
    if(!castleValidAnchor(anchor.x,anchor.y)||castleCityAtAnchor(anchor.x,anchor.y))return false;
-   castleSnapshot.cities.push({id:`city-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,x:anchor.x,y:anchor.y,player_name:'',alliance_id:null,alliance_tag:'',color:'#48ddff',label:'',notes:''});
+   const a=castleAllianceById(castlePaintAllianceId);
+   castleSnapshot.cities.push({
+     id:`city-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,x:anchor.x,y:anchor.y,player_name:'',
+     alliance_id:a?Number(a.id):null,alliance_tag:a?.tag||'',color:castlePaintColor||'#48ddff',label:'',notes:''
+   });
    castleSelection.add(castleCellKey(anchor.x,anchor.y));return true;
  }
  const existing=castleCityCoveringCell(baseCell.x,baseCell.y);
  if(mode==='erase'){
-   if(!existing)return false;
-   castleSnapshot.cities=castleSnapshot.cities.filter(c=>c.id!==existing.id);
+   if(!existing)return false;castleSnapshot.cities=castleSnapshot.cities.filter(c=>c.id!==existing.id);
    castleSelection.delete(castleCellKey(existing.x,existing.y));return true;
  }
- if(mode==='select'){
-   if(!existing)return false;
-   castleSelection.add(castleCellKey(existing.x,existing.y));return true;
- }
+ if(mode==='select'){if(!existing)return false;castleSelection.add(castleCellKey(existing.x,existing.y));return true}
  return false;
 }
 function castleTurretData(){
  const min=-CASTLE_INNER_HALF_CELLS,max=CASTLE_INNER_HALF_CELLS;
+ // All four Turrets remain inside the Sunfire Castle square, occupying true 2x2 footprints at its corners.
  return [
    {key:'north-west',x:min,y:min,label:'North Turret'},
    {key:'north-east',x:max-2,y:min,label:'East Turret'},
@@ -2059,21 +2104,25 @@ function castleTurretData(){
    {key:'south-west',x:min,y:max-2,label:'West Turret'}
  ];
 }
+function castleTextTransform(cx,cy){return castleSnapshot?.view_mode==='diamond'?`rotate(-45 ${cx} ${cy})`:''}
 function castleRenderSvg(){
  const svg=$('#castle-stage');if(!svg||!castleSnapshot)return;
- const drawMin=-CASTLE_DRAW_HALF_CELLS,drawMax=CASTLE_DRAW_HALF_CELLS;
- const lines=[];
+ const drawMin=-CASTLE_DRAW_HALF_CELLS,drawMax=CASTLE_DRAW_HALF_CELLS,lines=[];
  for(let i=drawMin;i<=drawMax;i++){
    const p=i*CASTLE_CELL,lo=drawMin*CASTLE_CELL,hi=drawMax*CASTLE_CELL;
    lines.push(`<line x1="${p}" y1="${lo}" x2="${p}" y2="${hi}"/><line x1="${lo}" y1="${p}" x2="${hi}" y2="${p}"/>`);
  }
- const inner=CASTLE_INNER_HALF_CELLS*CASTLE_CELL;
- const outer=CASTLE_OUTER_HALF_CELLS*CASTLE_CELL;
+ const inner=CASTLE_INNER_HALF_CELLS*CASTLE_CELL,outer=CASTLE_OUTER_HALF_CELLS*CASTLE_CELL;
  const redPath=`M ${-outer} ${-outer} H ${outer} V ${outer} H ${-outer} Z M ${-inner} ${-inner} V ${inner} H ${inner} V ${-inner} Z`;
+ const mapTransform=castleSnapshot.view_mode==='diamond'?'rotate(45)':'';
  const cityMarkup=(castleSnapshot.cities||[]).map(c=>{
-   const x=c.x*CASTLE_CELL,y=c.y*CASTLE_CELL,selected=castleSelection.has(castleCellKey(c.x,c.y)),tag=c.alliance_tag||castleAllianceById(c.alliance_id)?.tag||'',label=c.player_name||c.label||tag||'';
-   const fill=c.color||castleAllianceColor(c.alliance_id);
-   return `<g data-castle-city="${esc(c.id)}"><rect x="${x+2}" y="${y+2}" width="${CASTLE_CITY_SIZE-4}" height="${CASTLE_CITY_SIZE-4}" rx="7" fill="${esc(fill)}" fill-opacity=".82" stroke="${selected?'#ffffff':'rgba(255,255,255,.42)'}" stroke-width="${selected?3:1.3}"/>${label?`<text x="${x+CASTLE_CITY_SIZE/2}" y="${y+CASTLE_CITY_SIZE/2+3}" text-anchor="middle" font-size="8.5" font-weight="900" fill="#fff" style="paint-order:stroke;stroke:#02040b;stroke-width:2px">${esc(label.slice(0,12))}</text>`:''}</g>`;
+   const x=c.x*CASTLE_CELL,y=c.y*CASTLE_CELL,cx=x+CASTLE_CITY_SIZE/2,cy=y+CASTLE_CITY_SIZE/2;
+   const selected=castleSelection.has(castleCellKey(c.x,c.y)),tag=c.alliance_tag||castleAllianceById(c.alliance_id)?.tag||'';
+   const name=c.player_name||c.label||tag||'',secs=castleSecondsForAnchor(c.x,c.y),fill=c.color||castleAllianceColor(c.alliance_id),tt=castleTextTransform(cx,cy);
+   const text=name
+     ? `<text x="${cx}" y="${cy-3}" text-anchor="middle" font-size="7.8" font-weight="950" fill="#fff" transform="${tt}" style="paint-order:stroke;stroke:#02040b;stroke-width:1.8px">${esc(name.slice(0,12))}</text><text x="${cx}" y="${cy+9}" text-anchor="middle" font-size="7" font-weight="900" fill="#eaf5ff" transform="${tt}" style="paint-order:stroke;stroke:#02040b;stroke-width:1.4px">${secs}s</text>`
+     : `<text x="${cx}" y="${cy+3}" text-anchor="middle" font-size="7.2" font-weight="900" fill="#eaf5ff" transform="${tt}" style="paint-order:stroke;stroke:#02040b;stroke-width:1.4px">${secs}s</text>`;
+   return `<g data-castle-city="${esc(c.id)}"><rect x="${x+2}" y="${y+2}" width="${CASTLE_CITY_SIZE-4}" height="${CASTLE_CITY_SIZE-4}" rx="7" fill="${esc(fill)}" fill-opacity=".84" stroke="${selected?'#ffffff':'rgba(255,255,255,.42)'}" stroke-width="${selected?3:1.3}"/>${text}</g>`;
  }).join('');
  svg.innerHTML=`
  <defs>
@@ -2081,37 +2130,56 @@ function castleRenderSvg(){
    <filter id="castle-glow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
  </defs>
  <rect x="${drawMin*CASTLE_CELL}" y="${drawMin*CASTLE_CELL}" width="${(drawMax-drawMin)*CASTLE_CELL}" height="${(drawMax-drawMin)*CASTLE_CELL}" fill="url(#castle-bg)"/>
- ${castleSnapshot.red_zone_visible?`<path d="${redPath}" fill="rgba(255,73,102,.13)" fill-rule="evenodd" stroke="rgba(255,83,111,.58)" stroke-width="3"/>`:''}
- <rect x="${-inner}" y="${-inner}" width="${inner*2}" height="${inner*2}" fill="rgba(65,12,28,.86)" stroke="rgba(151,55,79,.92)" stroke-width="4"/>
- <g stroke="rgba(117,159,219,.19)" stroke-width=".8">${lines.join('')}</g>
- <g opacity=".98">
-   ${castleTurretData().map(t=>castleTurretSvg(t.x,t.y,t.label)).join('')}
-   <rect x="${-3*CASTLE_CELL}" y="${-3*CASTLE_CELL}" width="${6*CASTLE_CELL}" height="${6*CASTLE_CELL}" rx="20" fill="#20162f" stroke="#ffc75b" stroke-width="4" filter="url(#castle-glow)"/>
-   <circle cx="0" cy="0" r="${CASTLE_CELL*1.55}" fill="#30173a" stroke="#b989ff" stroke-width="3"/>
-   <text x="0" y="-6" text-anchor="middle" font-size="15" font-weight="950" fill="#fff">SUNFIRE</text>
-   <text x="0" y="16" text-anchor="middle" font-size="15" font-weight="950" fill="#ffc75b">CASTLE</text>
- </g>
- <g>${cityMarkup}</g>`;
+ <g transform="${mapTransform}">
+   ${castleSnapshot.red_zone_visible?`<path d="${redPath}" fill="rgba(255,73,102,.13)" fill-rule="evenodd" stroke="rgba(255,83,111,.58)" stroke-width="3"/>`:''}
+   <rect x="${-inner}" y="${-inner}" width="${inner*2}" height="${inner*2}" fill="rgba(65,12,28,.86)" stroke="rgba(151,55,79,.92)" stroke-width="4"/>
+   <g stroke="rgba(117,159,219,.19)" stroke-width=".8">${lines.join('')}</g>
+   <g opacity=".98">
+     ${castleTurretData().map(t=>castleTurretSvg(t.x,t.y,t.label)).join('')}
+     <rect x="${-3*CASTLE_CELL}" y="${-3*CASTLE_CELL}" width="${6*CASTLE_CELL}" height="${6*CASTLE_CELL}" rx="20" fill="#20162f" stroke="#ffc75b" stroke-width="4" filter="url(#castle-glow)"/>
+     <circle cx="0" cy="0" r="${CASTLE_CELL*1.55}" fill="#30173a" stroke="#b989ff" stroke-width="3"/>
+     <text x="0" y="-6" text-anchor="middle" font-size="15" font-weight="950" fill="#fff" transform="${castleTextTransform(0,0)}">SUNFIRE</text>
+     <text x="0" y="16" text-anchor="middle" font-size="15" font-weight="950" fill="#ffc75b" transform="${castleTextTransform(0,0)}">CASTLE</text>
+   </g>
+   <g>${cityMarkup}</g>
+ </g>`;
  castleSetViewport(castleSnapshot.viewport);
 }
 function castleTurretSvg(gx,gy,label){
- const x=gx*CASTLE_CELL,y=gy*CASTLE_CELL;
- return `<g><rect x="${x+2}" y="${y+2}" width="${CASTLE_CITY_SIZE-4}" height="${CASTLE_CITY_SIZE-4}" rx="8" fill="#451827" stroke="#ff7289" stroke-width="3"/><circle cx="${x+CASTLE_CITY_SIZE/2}" cy="${y+CASTLE_CITY_SIZE/2-5}" r="10" fill="#70243a" stroke="#ff9dac" stroke-width="2"/><text x="${x+CASTLE_CITY_SIZE/2}" y="${y+CASTLE_CITY_SIZE/2+18}" text-anchor="middle" font-size="7.6" font-weight="950" fill="#fff">${label}</text></g>`;
+ const x=gx*CASTLE_CELL,y=gy*CASTLE_CELL,cx=x+CASTLE_CITY_SIZE/2,cy=y+CASTLE_CITY_SIZE/2,tt=castleTextTransform(cx,cy);
+ return `<g><rect x="${x+2}" y="${y+2}" width="${CASTLE_CITY_SIZE-4}" height="${CASTLE_CITY_SIZE-4}" rx="8" fill="#451827" stroke="#ff7289" stroke-width="3"/><circle cx="${cx}" cy="${cy-5}" r="10" fill="#70243a" stroke="#ff9dac" stroke-width="2"/><text x="${cx}" y="${cy+18}" text-anchor="middle" font-size="7.2" font-weight="950" fill="#fff" transform="${tt}">${label}</text></g>`;
+}
+function castleRenderLegend(){
+ const legend=$('#castle-legend');if(!legend||!castleSnapshot)return;
+ const rows=new Map();
+ for(const c of castleSnapshot.cities||[]){
+   const a=castleAllianceById(c.alliance_id),tag=c.alliance_tag||a?.tag||'';
+   if(!tag)continue;
+   const key=String(tag),cur=rows.get(key)||{tag:key,color:c.color||castleAllianceColor(c.alliance_id),count:0};
+   cur.count++;cur.color=c.color||cur.color;rows.set(key,cur);
+ }
+ if(!rows.size){legend.classList.remove('show');legend.innerHTML='';return}
+ legend.innerHTML=`<div class="castle-legend-title">Alliance Legend</div>${[...rows.values()].sort((a,b)=>a.tag.localeCompare(b.tag)).map(r=>`<div class="castle-legend-row"><i class="castle-legend-swatch" style="background:${esc(r.color)}"></i><span>${esc(r.tag)}</span><span class="castle-legend-count">${r.count}</span></div>`).join('')}<div class="castle-legend-note">March seconds = mirrored slot reference • no Pet Buff</div>`;
+ legend.classList.add('show');
 }
 function castleRenderSummary(){
  const box=$('#castle-summary'),chips=$('#castle-alliance-summary');if(!box||!castleSnapshot)return;
  const cities=castleSnapshot.cities||[],inside=cities.filter(c=>castleInRedZoneAnchor(c.x,c.y)).length,outside=cities.length-inside,unassigned=cities.filter(c=>!c.alliance_id&&!c.alliance_tag).length;
  box.innerHTML=`<div class="castle-stat"><b>${cities.length}</b><small>Total Cities</small></div><div class="castle-stat"><b>${inside}</b><small>Inside Red Zone</small></div><div class="castle-stat"><b>${outside}</b><small>Outside Red Zone</small></div><div class="castle-stat"><b>${unassigned}</b><small>Unassigned</small></div>`;
  const counts={};
- for(const c of cities){const tag=c.alliance_tag||castleAllianceById(c.alliance_id)?.tag||'Unassigned';counts[tag]=(counts[tag]||0)+1}
- chips.innerHTML=Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([tag,n])=>`<span class="castle-alliance-chip">${esc(tag)} • ${n}</span>`).join('');
+ for(const c of cities){
+   const a=castleAllianceById(c.alliance_id),tag=c.alliance_tag||a?.tag||'Unassigned',key=tag;
+   if(!counts[key])counts[key]={n:0,color:c.color||castleAllianceColor(c.alliance_id)};
+   counts[key].n++;counts[key].color=c.color||counts[key].color;
+ }
+ chips.innerHTML=Object.entries(counts).sort((a,b)=>b[1].n-a[1].n).map(([tag,v])=>`<span class="castle-alliance-chip"><i class="castle-active-swatch" style="background:${esc(v.color)};margin-right:5px"></i>${esc(tag)} • ${v.n}</span>`).join('');
  const sc=$('#castle-selected-count');if(sc)sc.textContent=String(castleSelection.size);
+ castleRenderLegend();
 }
 function castleRenderDrawer(){
  const d=$('#castle-selection-drawer');if(!d||!castleSnapshot)return;
  const selected=castleSnapshot.cities.filter(c=>castleSelection.has(castleCellKey(c.x,c.y)));
- d.classList.toggle('open',selected.length>0);
- if(!selected.length)return;
+ d.classList.toggle('open',selected.length>0);if(!selected.length)return;
  $('#castle-selection-title').textContent=`${selected.length} Cit${selected.length===1?'y':'ies'} Selected`;
  const first=selected[0],same=k=>selected.every(c=>String(c[k]??'')===String(first[k]??''));
  $('#castle-player-name').value=selected.length===1?first.player_name:'';
@@ -2119,49 +2187,41 @@ function castleRenderDrawer(){
  $('#castle-color').value=/^#[0-9a-f]{6}$/i.test(first.color||'')?first.color:'#48ddff';
  $('#castle-label').value=selected.length===1?first.label:'';
  $('#castle-notes').value=selected.length===1?first.notes:'';
- $('#castle-player-name').disabled=selected.length>1;
- $('#castle-label').disabled=selected.length>1;
- $('#castle-notes').disabled=selected.length>1;
+ $('#castle-player-name').disabled=selected.length>1;$('#castle-label').disabled=selected.length>1;$('#castle-notes').disabled=selected.length>1;
 }
 function castleRefresh(){
- castleRenderSvg();castleRenderSummary();castleRenderDrawer();castleRefreshUndoButtons();
+ castleRenderSvg();castleRenderSummary();castleRenderDrawer();castleRefreshUndoButtons();castleSyncPaintControls();
  const red=$('#castle-toggle-red');if(red)red.textContent=`Red Zone: ${castleSnapshot?.red_zone_visible!==false?'ON':'OFF'}`;
+ $$('[data-castle-view]').forEach(b=>b.classList.toggle('active',b.dataset.castleView===(castleSnapshot?.view_mode||'straight')));
 }
 function renderCastleSeating(){
  const svg=$('#castle-stage');if(!svg)return;
- if(!strategy){
-   castleSnapshot=castleDefaultSnapshot();
-   castleSelection.clear();
- }
+ if(!strategy){castleSnapshot=castleDefaultSnapshot();castleSelection.clear()}
  if(!castleSnapshot)castleSnapshot=castleDefaultSnapshot();
- castleRefresh();
- castleBindControls();
+ castleRefresh();castleBindControls();
 }
 let castleControlsBound=false;
 function castleBindControls(){
  if(castleControlsBound)return;
- const svg=$('#castle-stage');if(!svg)return;
- castleControlsBound=true;
+ const svg=$('#castle-stage');if(!svg)return;castleControlsBound=true;
  $$('[data-castle-tool]').forEach(b=>b.onclick=()=>castleSetTool(b.dataset.castleTool));
- $('#castle-center').onclick=$('#castle-home').onclick=castleFit;
- $('#castle-fit').onclick=castleFit;
- $('#castle-zoom-in').onclick=()=>castleZoom(.82);
- $('#castle-zoom-out').onclick=()=>castleZoom(1.22);
+ $$('[data-castle-view]').forEach(b=>b.onclick=()=>castleSetView(b.dataset.castleView));
+ $('#castle-center').onclick=$('#castle-home').onclick=castleFit;$('#castle-fit').onclick=castleFit;
+ $('#castle-zoom-in').onclick=()=>castleZoom(.82);$('#castle-zoom-out').onclick=()=>castleZoom(1.22);
  $('#castle-toggle-red').onclick=()=>{if(!castleSnapshot)return;castlePushUndo();castleSnapshot.red_zone_visible=!castleSnapshot.red_zone_visible;castleRefresh();castleQueueSave()};
  $('#castle-clear-selection').onclick=()=>{castleSelection.clear();castleRefresh()};
  $('#castle-undo').onclick=()=>{if(!castleUndo.length)return;castleRedo.push(castleCloneSnapshot());castleSnapshot=castleUndo.pop();castleSelection.clear();castleRefresh();castleQueueSave()};
  $('#castle-redo').onclick=()=>{if(!castleRedo.length)return;castleUndo.push(castleCloneSnapshot());castleSnapshot=castleRedo.pop();castleSelection.clear();castleRefresh();castleQueueSave()};
- $('#castle-alliance').onchange=e=>{const a=castleAllianceById(e.target.value);if(a&&/^#[0-9a-f]{6}$/i.test(a.color||''))$('#castle-color').value=a.color};
- $('#castle-apply-selected').onclick=castleApplySelected;
- $('#castle-delete-selected').onclick=castleDeleteSelected;
- $('#castle-export').onclick=castleExport;
- $('#castle-send-plan').onclick=castleSendToBattlePlan;
-
+ $('#castle-paint-alliance').onchange=e=>{
+   castlePaintAllianceId=e.target.value?Number(e.target.value):null;
+   const a=castleAllianceById(castlePaintAllianceId);if(a)castlePaintColor=castleAllianceColor(a.id);
+   castleSyncPaintControls();
+ };
+ $('#castle-paint-color').oninput=e=>{castlePaintColor=e.target.value||'#48ddff';castleUpdatePaintHud()};
+ $('#castle-alliance').onchange=e=>{const a=castleAllianceById(e.target.value);if(a&&/^#[0-9a-f]{6}$/i.test(castleAllianceColor(a.id)))$('#castle-color').value=castleAllianceColor(a.id)};
+ $('#castle-apply-selected').onclick=castleApplySelected;$('#castle-delete-selected').onclick=castleDeleteSelected;$('#castle-export').onclick=castleExport;$('#castle-send-plan').onclick=castleSendToBattlePlan;
  svg.addEventListener('wheel',e=>{if(!castleSnapshot)return;e.preventDefault();castleZoom(e.deltaY>0?1.12:.89,e.clientX,e.clientY)},{passive:false});
- svg.addEventListener('pointerdown',castlePointerDown);
- svg.addEventListener('pointermove',castlePointerMove);
- svg.addEventListener('pointerup',castlePointerUp);
- svg.addEventListener('pointercancel',castlePointerUp);
+ svg.addEventListener('pointerdown',castlePointerDown);svg.addEventListener('pointermove',castlePointerMove);svg.addEventListener('pointerup',castlePointerUp);svg.addEventListener('pointercancel',castlePointerUp);
 }
 function castlePointerDown(e){
  if(!castleSnapshot||!strategy)return;
@@ -2169,51 +2229,38 @@ function castlePointerDown(e){
  castlePointerState.set(e.pointerId,{x:e.clientX,y:e.clientY,lastX:e.clientX,lastY:e.clientY,startView:{...castleSnapshot.viewport}});
  if(castlePointerState.size===2){
    const p=[...castlePointerState.values()],dx=p[0].x-p[1].x,dy=p[0].y-p[1].y;
-   castleGesture={type:'pinch',distance:Math.hypot(dx,dy),view:{...castleSnapshot.viewport}};
-   return;
+   castleGesture={type:'pinch',distance:Math.hypot(dx,dy),view:{...castleSnapshot.viewport}};return;
  }
  if(castleTool==='pan'){castleGesture={type:'pan',startX:e.clientX,startY:e.clientY,view:{...castleSnapshot.viewport}};return}
- const base=castlePointToBaseCell(e),anchor=castlePointToAnchor(e);
- castlePushUndo();
- castleGesture={type:castleTool,changed:false,visited:new Set()};
- if(castleTool==='select')castleSelection.clear();
- castleBrushEvent({base,anchor});
+ const base=castlePointToBaseCell(e),anchor=castlePointToAnchor(e);castlePushUndo();castleGesture={type:castleTool,changed:false,visited:new Set()};
+ if(castleTool==='select')castleSelection.clear();castleBrushEvent({base,anchor});
 }
 function castleBrushEvent(cell){
  if(!castleGesture||!['paint','select','erase'].includes(castleGesture.type))return;
  const key=castleGesture.type==='paint'?castleCellKey(cell.anchor.x,cell.anchor.y):castleCellKey(cell.base.x,cell.base.y);
- if(castleGesture.visited.has(key))return;
- castleGesture.visited.add(key);
+ if(castleGesture.visited.has(key))return;castleGesture.visited.add(key);
  if(castlePaintCell(cell,castleGesture.type)){castleGesture.changed=true;castleRefresh()}
 }
 function castlePointerMove(e){
- const p=castlePointerState.get(e.pointerId);if(!p||!castleSnapshot)return;
- p.x=e.clientX;p.y=e.clientY;
+ const p=castlePointerState.get(e.pointerId);if(!p||!castleSnapshot)return;p.x=e.clientX;p.y=e.clientY;
  if(castlePointerState.size>=2&&castleGesture?.type==='pinch'){
    const pts=[...castlePointerState.values()],dx=pts[0].x-pts[1].x,dy=pts[0].y-pts[1].y,dist=Math.max(20,Math.hypot(dx,dy)),ratio=castleGesture.distance/dist;
-   const base=castleGesture.view,nw=Math.max(360,Math.min(1800,base.w*ratio));
-   const svg=$('#castle-stage'),ar=svg.clientHeight/Math.max(1,svg.clientWidth),nh=nw*ar;
-   castleSetViewport({x:base.x+(base.w-nw)/2,y:base.y+(base.h-nh)/2,w:nw,h:nh});
-   return;
+   const base=castleGesture.view,nw=Math.max(360,Math.min(2100,base.w*ratio)),svg=$('#castle-stage'),ar=svg.clientHeight/Math.max(1,svg.clientWidth),nh=nw*ar;
+   castleSetViewport({x:base.x+(base.w-nw)/2,y:base.y+(base.h-nh)/2,w:nw,h:nh});return;
  }
  if(castleGesture?.type==='pan'){
    const svg=$('#castle-stage'),rect=svg.getBoundingClientRect(),g=castleGesture,dx=(e.clientX-g.startX)/rect.width*g.view.w,dy=(e.clientY-g.startY)/rect.height*g.view.h;
-   castleSetViewport({x:g.view.x-dx,y:g.view.y-dy,w:g.view.w,h:g.view.h});
-   return;
+   castleSetViewport({x:g.view.x-dx,y:g.view.y-dy,w:g.view.w,h:g.view.h});return;
  }
  castleBrushEvent({base:castlePointToBaseCell(e),anchor:castlePointToAnchor(e)});
 }
 function castlePointerUp(e){
- castlePointerState.delete(e.pointerId);
- const g=castleGesture;
+ castlePointerState.delete(e.pointerId);const g=castleGesture;
  if(castlePointerState.size===0){
-   if(g?.type==='pan'||g?.type==='pinch')castleQueueSave();
-   else if(g?.changed)castleQueueSave();
-   else if(g&&['paint','erase','select'].includes(g.type)&&castleUndo.length)castleUndo.pop();
+   if(g?.type==='pan'||g?.type==='pinch')castleQueueSave();else if(g?.changed)castleQueueSave();else if(g&&['paint','erase','select'].includes(g.type)&&castleUndo.length)castleUndo.pop();
    castleGesture=null;castleRefreshUndoButtons();
  }else if(castlePointerState.size===1){
-   const remain=[...castlePointerState.values()][0];
-   castleGesture={type:'pan',startX:remain.x,startY:remain.y,view:{...castleSnapshot.viewport}};
+   const remain=[...castlePointerState.values()][0];castleGesture={type:'pan',startX:remain.x,startY:remain.y,view:{...castleSnapshot.viewport}};
  }
 }
 async function castleApplySelected(){
@@ -2225,41 +2272,30 @@ async function castleApplySelected(){
    c.alliance_id=allianceId;c.alliance_tag=a?.tag||'';c.color=color;
    if(selected.length===1){c.player_name=$('#castle-player-name').value.trim();c.label=$('#castle-label').value.trim();c.notes=$('#castle-notes').value.trim()}
  }
+ // Continue painting with the same Alliance/Color the user just applied.
+ castlePaintAllianceId=allianceId;castlePaintColor=color;
  castleRefresh();castleQueueSave();say(`${selected.length} Castle cit${selected.length===1?'y':'ies'} updated.`);
 }
 async function castleDeleteSelected(){
  if(!castleSnapshot||!castleSelection.size)return;
  const n=castleSelection.size;
  if(!await nexaConfirm('Delete selected cities?',`Delete ${n} selected cit${n===1?'y':'ies'} from Castle Seating? Battle Plan copies will not be changed.`,{confirmLabel:'Delete',cancelLabel:'Cancel'}))return;
- castlePushUndo();
- castleSnapshot.cities=castleSnapshot.cities.filter(c=>!castleSelection.has(castleCellKey(c.x,c.y)));
- castleSelection.clear();castleRefresh();castleQueueSave();say(`${n} Castle cit${n===1?'y':'ies'} deleted.`);
+ castlePushUndo();castleSnapshot.cities=castleSnapshot.cities.filter(c=>!castleSelection.has(castleCellKey(c.x,c.y)));castleSelection.clear();castleRefresh();castleQueueSave();say(`${n} Castle cit${n===1?'y':'ies'} deleted.`);
 }
 async function castleExport(){
  if(!castleSnapshot)return;
- const wrap=$('.castle-stage-wrap');if(!wrap)return;
- say('Rendering Castle Layout…');
+ const wrap=$('.castle-stage-wrap');if(!wrap)return;say('Rendering Castle Layout…');
  try{
    const blob=await canvasBlob(wrap),file=new File([blob],'NEXA-SvS-Castle-Seating.png',{type:'image/png'});
-   if(navigator.share&&navigator.canShare&&navigator.canShare({files})){await navigator.share({files:[file],title:'NEXA Castle Seating'});say('Castle Layout ready.');return}
+   if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'NEXA Castle Seating'});say('Castle Layout ready.');return}
    const url=URL.createObjectURL(file),a=document.createElement('a');a.href=url;a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1500);say('Castle Layout downloaded.');
  }catch(e){if(e?.name!=='AbortError')say(e?.message||'Castle export failed.',true)}
 }
 function castleBattleSnapshot(){
  const snap=castleCloneSnapshot();
  return {
-   section:'Castle City',
-   source:'castle_seating',
-   source_strategy_id:strategy?.id||null,
-   cities:snap.cities,
-   red_zone_visible:snap.red_zone_visible,
-   viewport:snap.viewport,
-   geometry:{
-     city_footprint:'2x2',
-     turret_footprint:'2x2',
-     cities_between_turrets:6,
-     red_zone_depth_cities:4
-   },
+   section:'Castle City',source:'castle_seating',source_strategy_id:strategy?.id||null,cities:snap.cities,red_zone_visible:snap.red_zone_visible,view_mode:snap.view_mode,viewport:snap.viewport,
+   geometry:{city_footprint:'2x2',turret_footprint:'2x2',cities_between_turrets:6,red_zone_depth_cities:4,march_seconds_reference:'mirrored_no_pet_buff'},
    sent_at:new Date().toISOString()
  };
 }
@@ -2275,8 +2311,7 @@ function castleBattlePlanChoice(existingCount){
 async function castleSendToBattlePlan(){
  if(!strategy)return say('Open a Strategy first.',true);
  if(!castleSnapshot?.cities?.length)return say('Place at least one city before sending to Battle Plan.',true);
- const existing=battlePlanItems.filter(x=>x.item_type==='castle_city');
- const choice=await castleBattlePlanChoice(existing.length);if(choice==='cancel')return;
+ const existing=battlePlanItems.filter(x=>x.item_type==='castle_city'),choice=await castleBattlePlanChoice(existing.length);if(choice==='cancel')return;
  setSaveState('saving');
  if(choice==='replace'&&existing.length){
    const d=await sb.from('svs_battle_plan_items').delete().eq('strategy_id',strategy.id).eq('item_type','castle_city');if(d.error)return say(d.error.message,true);
@@ -2284,18 +2319,15 @@ async function castleSendToBattlePlan(){
  }
  const sort=900+battlePlanItems.filter(x=>x.item_type==='castle_city').length;
  const ins=await sb.from('svs_battle_plan_items').insert({strategy_id:strategy.id,team_id:null,item_type:'castle_city',sort_order:sort,snapshot:castleBattleSnapshot(),updated_at:new Date().toISOString()}).select().single();
- if(ins.error)return say(ins.error.message,true);
- battlePlanItems.push(ins.data);renderBattlePlan();setSaveState('saved');say('Castle Seating sent to Battle Plan • Castle City.');
+ if(ins.error)return say(ins.error.message,true);battlePlanItems.push(ins.data);renderBattlePlan();setSaveState('saved');say('Castle Seating sent to Battle Plan • Castle City.');
 }
 async function castleRemoveCityFromBattleCopy(itemId,cityId){
  const item=battlePlanItems.find(x=>String(x.id)===String(itemId));if(!item||item.item_type!=='castle_city')return;
  const snap=JSON.parse(JSON.stringify(item.snapshot||{})),cities=Array.isArray(snap.cities)?snap.cities:[];
- snap.cities=cities.filter(c=>String(c.id)!==String(cityId));
- setSaveState('saving');
+ snap.cities=cities.filter(c=>String(c.id)!==String(cityId));setSaveState('saving');
  const up=await sb.from('svs_battle_plan_items').update({snapshot:snap,updated_at:new Date().toISOString()}).eq('id',item.id).select().single();
  if(up.error)return say(up.error.message,true);
- const i=battlePlanItems.findIndex(x=>String(x.id)===String(item.id));if(i>=0)battlePlanItems[i]=up.data;
- renderBattlePlan();setSaveState('saved');
+ const i=battlePlanItems.findIndex(x=>String(x.id)===String(item.id));if(i>=0)battlePlanItems[i]=up.data;renderBattlePlan();setSaveState('saved');
 }
 
 function teamBattleSnapshot(t){

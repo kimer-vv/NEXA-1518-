@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V11.6.3 • native inline Formations owner + Suggested parity + Add/Approve inside workspace -->
+<!-- NEXA SVS OPERATIONS V11.6.4 • inline Formations parity + collapsed detail cards + Add/Approve inside workspace -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -334,7 +334,8 @@ body.pet-preview-open{overflow:hidden!important}
 .formation-center-tabs{display:flex;gap:8px;overflow-x:auto;margin:10px 0 14px}
 .formation-center-tabs .btn.active{border-color:rgba(155,120,255,.82);background:linear-gradient(135deg,rgba(75,54,170,.9),rgba(28,82,130,.9))}
 .formation-center-grid{display:grid;gap:12px}
-.formation-center-card{border:1px solid rgba(255,255,255,.12);border-radius:18px;background:linear-gradient(145deg,rgba(12,18,40,.96),rgba(5,8,20,.96));padding:13px}
+.formation-center-card{border:1px solid rgba(255,255,255,.12);border-radius:18px;background:linear-gradient(145deg,rgba(12,18,40,.96),rgba(5,8,20,.96));padding:13px;cursor:pointer}
+.formation-center-card:focus-visible{outline:2px solid rgba(155,120,255,.9);outline-offset:2px}
 .formation-center-card.attack{border-color:rgba(255,105,130,.35)}
 .formation-center-card.defense{border-color:rgba(103,223,177,.35)}
 .formation-center-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
@@ -346,7 +347,8 @@ body.pet-preview-open{overflow:hidden!important}
 .formation-center-hero img{width:58px;height:58px;object-fit:cover;border-radius:11px;border:1px solid rgba(255,255,255,.14);background:#101522}
 .formation-center-hero b{display:block;font-size:10px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .formation-center-ratio{text-align:center;font-size:21px;font-weight:950}
-.formation-center-detail{margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08);font-size:12px;line-height:1.48}
+.formation-center-detail{display:none;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08);font-size:12px;line-height:1.48}
+.formation-center-card.open .formation-center-detail{display:block}
 .pet-team-line .pet-delete-team{min-width:42px;padding:8px;color:#ffb5c0;border-color:rgba(255,114,137,.34);background:rgba(103,28,43,.22)}
 
 </style>
@@ -921,7 +923,7 @@ function formationCenterHero(name){
 function formationCenterCard(r,approved){
  const md=formationRuleMeta(r),ratio=(r.primary_ratio||[]).map(Number),top=(md.raw_joiner_primary||r.joiner_primary||[]).map(x=>String(x||'').trim()).filter(Boolean).slice(0,4),back=(r.backup_joiner_pool||[]).map(x=>String(x||'').trim()).filter(Boolean);
  const why=r.why_good||r.evidence_note||'No formation rationale saved yet.',risk=r.risk_note||'',badge=approved?'APPROVED':(Number(r.confidence||0)>=.72?'CORROBORATED':'PROMISING');
- return `<article class="formation-center-card ${esc(r.mode||'')}" data-formation-center-card="${esc(r.id)}"><div class="formation-center-head"><div><b>${r.mode==='attack'?'⚔ ATTACK':'🛡 DEFENSE'}</b><div class="tiny muted">Gen ${esc(r.generation)}</div></div><span class="formation-center-badge ${approved?'approved':'suggested'}">${badge}</span></div><div class="formation-center-heroes">${(r.leader_heroes||[]).map(formationCenterHero).join('')}</div><div class="formation-center-ratio">${ratio.join(' / ')}</div><div class="formation-center-detail"><b>Top 4 Joiners • Stack Order</b><div class="tiny muted" style="margin-top:4px">${top.length?esc(top.join(' • ')):'Pending vetted Top 4 joiners.'}</div><div style="height:8px"></div><b>Alternative / Backup Joiner Pool</b><div class="tiny muted" style="margin-top:4px">${back.length?esc(back.join(' • ')):'No saved backup pool yet.'}</div><div style="height:8px"></div><b>Why this formation</b><div class="tiny muted" style="margin-top:4px">${esc(why)}</div>${risk?`<div style="height:8px"></div><b>Risk / Variables</b><div class="tiny muted" style="margin-top:4px">${esc(risk)}</div>`:''}${!approved?`<div style="margin-top:12px"><button class="btn violet" data-approve-inline-formation="${esc(r.id)}" type="button">Add / Approve</button></div>`:''}</div></article>`
+ return `<article class="formation-center-card ${esc(r.mode||'')}" data-formation-center-card="${esc(r.id)}" tabindex="0" aria-expanded="false"><div class="formation-center-head"><div><b>${r.mode==='attack'?'⚔ ATTACK':'🛡 DEFENSE'}</b><div class="tiny muted">Gen ${esc(r.generation)}</div></div><span class="formation-center-badge ${approved?'approved':'suggested'}">${badge}</span></div><div class="formation-center-heroes">${(r.leader_heroes||[]).map(formationCenterHero).join('')}</div><div class="formation-center-ratio">${ratio.join(' / ')}</div><div class="formation-center-detail"><b>Top 4 Joiners • Stack Order</b><div class="tiny muted" style="margin-top:4px">${top.length?esc(top.join(' • ')):'Pending vetted Top 4 joiners.'}</div><div style="height:8px"></div><b>Alternative / Backup Joiner Pool</b><div class="tiny muted" style="margin-top:4px">${back.length?esc(back.join(' • ')):'No saved backup pool yet.'}</div><div style="height:8px"></div><b>Why this formation</b><div class="tiny muted" style="margin-top:4px">${esc(why)}</div>${risk?`<div style="height:8px"></div><b>Risk / Variables</b><div class="tiny muted" style="margin-top:4px">${esc(risk)}</div>`:''}${!approved?`<div style="margin-top:12px"><button class="btn violet" data-approve-inline-formation="${esc(r.id)}" type="button">Add / Approve</button></div>`:''}</div></article>`
 }
 async function reloadFormationCenterData(){
  if(window.NexaBattleStrategyEngine?.loadMeta){
@@ -971,6 +973,11 @@ function renderFormationCenter(){
  const approved=formationCenterTab==='approved',rows=approved?formationCenterApprovedRows():formationCenterSuggestedRows();
  host.innerHTML=rows.length?rows.map(r=>formationCenterCard(r,approved)).join(''):`<div class="muted">No ${approved?'Approved':'Suggested'} Gen ${activeHeroGeneration()} formations available.</div>`;
  $$('[data-formation-center-tab]').forEach(b=>{b.classList.toggle('active',b.dataset.formationCenterTab===formationCenterTab);b.classList.toggle('violet',b.dataset.formationCenterTab===formationCenterTab)});
+ $$('[data-formation-center-card]',host).forEach(card=>{
+   const toggle=()=>{const open=!card.classList.contains('open');card.classList.toggle('open',open);card.setAttribute('aria-expanded',open?'true':'false')};
+   card.onclick=e=>{if(e.target.closest('button'))return;toggle()};
+   card.onkeydown=e=>{if((e.key==='Enter'||e.key===' ')&&!e.target.closest('button')){e.preventDefault();toggle()}};
+ });
  $$('[data-approve-inline-formation]',host).forEach(b=>b.onclick=e=>{e.stopPropagation();approveInlineFormation(b.dataset.approveInlineFormation)});
 }
 $$('[data-formation-center-tab]').forEach(b=>b.onclick=()=>{formationCenterTab=b.dataset.formationCenterTab;renderFormationCenter()});

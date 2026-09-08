@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V11.9.8 • Castle duplicate alliance controls removed + custom Tag cleanup + autosave/state guard + turret/export fixes -->
+<!-- NEXA SVS OPERATIONS V11.9.9 • Castle visual cleanup + always-on Red Zone + consolidated view controls + autosave/state guard -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -362,23 +362,23 @@ body.pet-preview-open{overflow:hidden!important}
 .castle-bp-city-list{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;max-height:126px;overflow:auto}
 .castle-bp-city{border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:5px 7px;font-size:9px;font-weight:850;background:rgba(255,255,255,.03)}
 
-.castle-alliance-controls{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 10px;align-items:end;width:100%}
+.castle-alliance-controls{display:grid;grid-template-columns:auto auto;gap:8px 10px;align-items:center;justify-content:start;width:100%}
 .castle-alliance-field{grid-column:1/2;min-width:0}
 .castle-color-row{grid-column:2/3;display:flex;align-items:end;gap:6px}
 .castle-color-field{width:82px}
 .castle-color-field input{min-height:44px;padding:5px}
 .castle-color-ok{min-width:52px;height:44px}
-.castle-custom-main{grid-column:1/-1;justify-self:start}
+.castle-custom-main{grid-column:1;justify-self:start}
 .castle-custom-alliance-list{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
 .castle-custom-alliance-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.13);border-radius:999px;background:rgba(255,255,255,.035);padding:5px 7px 5px 8px;font-size:10px;font-weight:950}
 .castle-custom-alliance-chip i{width:10px;height:10px;border-radius:3px;border:1px solid rgba(255,255,255,.5)}
 .castle-custom-alliance-chip button{border:0;background:transparent;color:#ff9cad;font-weight:950;padding:0 2px;font-size:13px;line-height:1}
 .castle-custom-alliance-note{grid-column:1/-1;font-size:9px;color:#8f9bbb;line-height:1.35}
 @media(max-width:560px){
- .castle-alliance-controls{grid-template-columns:minmax(0,1fr)}
- .castle-alliance-field,.castle-color-row,.castle-custom-main,.castle-custom-alliance-list,.castle-custom-alliance-note{grid-column:1}
- .castle-color-row{justify-content:flex-start}
- .castle-color-field{width:96px}
+ .castle-alliance-controls{grid-template-columns:auto auto;gap:7px;align-items:center}
+ .castle-custom-main{grid-column:1}
+ .castle-view-toggle{grid-column:2}
+ .castle-custom-alliance-list,.castle-custom-alliance-note{grid-column:1/-1}
 }
 .castle-bp-preview svg{display:block;width:100%;height:auto;max-height:68vh}
 
@@ -586,7 +586,6 @@ body.pet-preview-open{overflow:hidden!important}
       <div class="castle-card">
         <div class="castle-topline">
           <div><h2 style="margin:0">Castle Seating</h2><div class="tiny muted">Sunfire Castle • city placement workspace</div></div>
-          <button id="castle-center" class="btn" type="button">Center Castle</button>
         </div>
 
         <div class="castle-toolbar" style="margin-top:10px">
@@ -600,19 +599,17 @@ body.pet-preview-open{overflow:hidden!important}
           <button id="castle-undo" class="castle-tool" type="button">↩ Undo</button>
           <button id="castle-redo" class="castle-tool" type="button">↪ Redo</button>
           <button id="castle-fit" class="castle-tool" type="button">Fit</button>
-          <button id="castle-toggle-red" class="castle-tool" type="button">Red Zone: ON</button>
           <button id="castle-clear-selection" class="castle-tool" type="button">Clear Selection</button>
         </div>
-        <div class="castle-subtoolbar" style="align-items:end">
+
+        <div class="castle-alliance-controls">
+          <button id="castle-add-custom-alliance" class="castle-tool castle-custom-main" type="button">+ Custom Alliance</button>
           <div class="castle-view-toggle">
             <button class="castle-tool active" data-castle-view="straight" type="button">Straight</button>
             <button class="castle-tool" data-castle-view="diamond" type="button">Diamond</button>
           </div>
-          <div class="castle-alliance-controls">
-            <button id="castle-add-custom-alliance" class="castle-tool castle-custom-main" type="button">+ Custom Alliance</button>
-            <div id="castle-custom-alliances" class="castle-custom-alliance-list"></div>
-            <div class="castle-custom-alliance-note">Custom alliances stay only in this Castle Seating workspace.</div>
-          </div>
+          <div id="castle-custom-alliances" class="castle-custom-alliance-list"></div>
+          <div class="castle-custom-alliance-note">Custom alliances stay only in this Castle Seating workspace.</div>
         </div>
 
         <div class="castle-stage-wrap">
@@ -2061,7 +2058,7 @@ function castleNormalizeSnapshot(raw){
  const v=s.viewport&&Number.isFinite(Number(s.viewport.x))?{
    x:Number(s.viewport.x),y:Number(s.viewport.y),w:Math.max(300,Number(s.viewport.w)||1400),h:Math.max(300,Number(s.viewport.h)||1400)
  }:{...CASTLE_HOME};
- return {...d,...s,version:'1.9',custom_alliances,cities,viewport:v,view_mode:s.view_mode==='diamond'?'diamond':'straight',red_zone_visible:s.red_zone_visible!==false};
+ return {...d,...s,version:'1.9',custom_alliances,cities,viewport:v,view_mode:s.view_mode==='diamond'?'diamond':'straight',red_zone_visible:true};
 }
 function castleCloneSnapshot(){return JSON.parse(JSON.stringify(castleSnapshot||castleDefaultSnapshot()))}
 function castlePushUndo(){castleUndo.push(castleCloneSnapshot());if(castleUndo.length>40)castleUndo.shift();castleRedo=[];castleRefreshUndoButtons()}
@@ -2441,7 +2438,6 @@ function castleRenderDrawer(){
 }
 function castleRefresh(){
  castleRenderSvg();castleRenderSummary();castleRenderDrawer();castleRefreshUndoButtons();castleSyncPaintControls();
- const red=$('#castle-toggle-red');if(red)red.textContent=`Red Zone: ${castleSnapshot?.red_zone_visible!==false?'ON':'OFF'}`;
  $$('[data-castle-view]').forEach(b=>b.classList.toggle('active',b.dataset.castleView===(castleSnapshot?.view_mode||'straight')));
 }
 function renderCastleSeating(){
@@ -2456,9 +2452,8 @@ function castleBindControls(){
  const svg=$('#castle-stage');if(!svg)return;castleControlsBound=true;
  $$('[data-castle-tool]').forEach(b=>b.onclick=()=>castleSetTool(b.dataset.castleTool));
  $$('[data-castle-view]').forEach(b=>b.onclick=()=>castleSetView(b.dataset.castleView));
- $('#castle-center').onclick=$('#castle-home').onclick=castleFit;$('#castle-fit').onclick=castleFit;
+ $('#castle-home').onclick=castleFit;$('#castle-fit').onclick=castleFit;
  $('#castle-zoom-in').onclick=()=>castleZoom(.82);$('#castle-zoom-out').onclick=()=>castleZoom(1.22);
- $('#castle-toggle-red').onclick=()=>{if(!castleSnapshot)return;castlePushUndo();castleSnapshot.red_zone_visible=!castleSnapshot.red_zone_visible;castleRefresh();castleQueueSave()};
  $('#castle-clear-selection').onclick=()=>{castleSelection.clear();castleRefresh()};
  $('#castle-undo').onclick=()=>{if(!castleUndo.length)return;castleRedo.push(castleCloneSnapshot());castleSnapshot=castleUndo.pop();castleSelection.clear();castleRefresh();castleQueueSave()};
  $('#castle-redo').onclick=()=>{if(!castleRedo.length)return;castleUndo.push(castleCloneSnapshot());castleSnapshot=castleRedo.pop();castleSelection.clear();castleRefresh();castleQueueSave()};

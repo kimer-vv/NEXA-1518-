@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>NEXA • Battle Plan</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--a:#48ddff;--m:#aeb7d1}
+*{box-sizing:border-box}
+body{margin:0;min-height:100dvh;background:radial-gradient(circle at 8% 8%,rgba(72,221,255,.08),transparent 28%),radial-gradient(circle at 95% 0%,rgba(122,82,255,.12),transparent 30%),#02030b;color:#fff}
+.shell{width:min(920px,100%);margin:auto;padding:24px 16px 80px}
+.top{display:grid;grid-template-columns:46px 1fr 46px;gap:10px;align-items:center;margin-bottom:16px}
+.round{width:46px;height:46px;border-radius:50%;border:1px solid rgba(72,221,255,.34);background:#071126;color:#c7f8ff;text-decoration:none;display:grid;place-items:center;font-size:25px}
+.title{text-align:center}.title small{display:block;font-size:9px;letter-spacing:.18em;color:#9aa8ca;font-weight:950}.title h1{margin:4px 0 0;font-size:clamp(1.8rem,7vw,2.7rem)}
+.status{text-align:center;color:#8ea0c6;font-size:11px;font-weight:850;margin:8px 0 16px}
+.loading,.error{padding:18px;border:1px solid rgba(255,255,255,.12);border-radius:18px;background:rgba(8,16,35,.82);text-align:center;color:#aeb7d1}
+.error{color:#ffb4c1;border-color:rgba(255,100,125,.26)}
+.bp-document{border:1px solid rgba(155,120,255,.38);border-radius:20px;padding:18px;background:radial-gradient(circle at 100% 0%,rgba(91,65,183,.14),transparent 28%),linear-gradient(160deg,#071022,#050914)}
+.bp-doc-head{padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.10)}
+.bp-doc-head small{font-size:9px;letter-spacing:.18em;color:#8f9dc5;font-weight:950}
+.bp-doc-head h2{margin:5px 0 2px;font-size:28px}
+.bp-doc-meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+.bp-doc-pill{font-size:10px;font-weight:900;padding:5px 8px;border-radius:999px;border:1px solid rgba(72,221,255,.22);background:rgba(25,61,94,.18)}
+.bp-doc-section{padding:15px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.bp-doc-section:last-child{border-bottom:0}
+.bp-doc-section h3{margin:0 0 9px;font-size:16px}
+.bp-doc-section h4{margin:10px 0 6px;color:#cfdcff;font-size:12px}
+.bp-doc-copy{white-space:pre-wrap;color:#d8e1f5;font-size:12px;line-height:1.55}
+.bp-doc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.bp-doc-box{border:1px solid rgba(255,255,255,.09);border-radius:13px;padding:10px;background:rgba(255,255,255,.025)}
+.bp-doc-box b{display:block;margin-bottom:5px;font-size:11px;color:#fff}
+.bp-doc-snapshot{margin-top:10px;border:1px solid rgba(255,255,255,.12);border-radius:14px;overflow:hidden;background:#030711}
+.bp-doc-snapshot svg{display:block;width:100%;height:auto}
+.bp-team-card{border:1px solid rgba(72,221,255,.16);border-radius:14px;padding:11px;background:rgba(3,12,29,.58);margin-top:9px}
+.bp-team-card h4{margin:0 0 7px}.bp-team-meta{font-size:10px;color:#9eabc8}
+.bp-role-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.bp-role{border:1px solid rgba(255,255,255,.08);border-radius:11px;padding:8px;background:rgba(255,255,255,.022)}
+.bp-role b{display:block;font-size:9px;color:#9cabc9;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+.pet-grid-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}.pet-grid{min-width:720px;width:100%;border-collapse:collapse}.pet-grid th,.pet-grid td{border:1px solid rgba(255,255,255,.09);padding:7px;font-size:11px;text-align:center}.pet-grid th{background:#0c1430}.pet-grid td:first-child{text-align:left;min-width:130px}.petactive{background:linear-gradient(145deg,rgba(111,66,201,.88),rgba(70,40,138,.82));font-weight:900}.petreserve{background:rgba(255,199,91,.13);color:#ffe2a5;font-weight:900}.rl-neutral{background:rgba(255,255,255,.035)}
+.muted{color:#aeb7d1}.tiny{font-size:11px;line-height:1.4}
+@media(max-width:620px){.bp-doc-grid,.bp-role-grid{grid-template-columns:1fr}.bp-doc-head h2{font-size:24px}.shell{padding-left:12px;padding-right:12px}}
+</style>
+</head>
+<body>
+<main class="shell">
+  <div class="top">
+    <a class="round" href="index.html">‹</a>
+    <div class="title"><small>NEXA • READ ONLY</small><h1>Battle Plan</h1></div>
+    <a class="round" href="index.html">×</a>
+  </div>
+  <div id="status" class="status">Loading published plan…</div>
+  <div id="plan"><div class="loading">Loading Battle Plan…</div></div>
+</main>
+<script>
+(()=>{'use strict';
+const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
+const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
+const sb=window.supabase?.createClient?.(SB_URL,SB_KEY);
+const $=s=>document.querySelector(s);
+function fail(msg){$('#plan').innerHTML=`<div class="error">${msg}</div>`;$('#status').textContent='Battle Plan unavailable'}
+async function boot(){
+ if(!sb)return fail('NEXA could not connect to the Battle Plan service.');
+ const id=new URLSearchParams(location.search).get('id');
+ if(!id)return fail('No Battle Plan was selected.');
+ const {data,error}=await sb.from('svs_battle_plans').select('id,title,status,published_at,published_document').eq('id',id).eq('status','published').maybeSingle();
+ if(error)return fail('This Battle Plan could not be loaded. Make sure you are signed in to NEXA.');
+ if(!data)return fail('This Battle Plan is not published or is no longer available.');
+ const p=data.published_document||{},html=p.html;
+ if(!html)return fail('This published Battle Plan has no document snapshot.');
+ $('#plan').innerHTML=html;
+ $('#status').textContent=`Published ${data.published_at?new Date(data.published_at).toLocaleString():'to NEXA'}`;
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+</script>
+</body>
+</html>

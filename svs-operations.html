@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V12.2 • Battle Plan sends full Pet / Alliance / Castle visual snapshots + alliance-level Team Layout send -->
+<!-- NEXA SVS OPERATIONS V12.3 • Battle Plan simplified + reliable Pet / Alliance / Castle snapshot preview -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -358,8 +358,8 @@ body.pet-preview-open{overflow:hidden!important}
 .bp-doc-box b{display:block;margin-bottom:5px;font-size:11px;color:#fff}
 .bp-doc-snapshot{margin-top:10px;border:1px solid rgba(255,255,255,.12);border-radius:14px;overflow:hidden;background:#030711}
 .bp-doc-snapshot svg{display:block;width:100%;height:auto}
-.bp-doc-snapshot img{display:block;width:100%;height:auto}
-.bp-plan-image{display:block;width:100%;height:auto;border-radius:12px}
+.bp-doc-snapshot img{display:block!important;width:100%!important;max-width:100%!important;height:auto!important;object-fit:contain}
+.bp-plan-image{display:block!important;width:100%!important;max-width:100%!important;height:auto!important;border-radius:12px;background:#050916}
 .bp-team-card{border:1px solid rgba(72,221,255,.16);border-radius:14px;padding:11px;background:rgba(3,12,29,.58);margin-top:9px}
 .bp-team-card h4{margin:0 0 7px}
 .bp-team-meta{font-size:10px;color:#9eabc8}
@@ -3012,7 +3012,7 @@ const BP_ROLE_GUIDES={
 
 function battlePlanAllianceGroups(){
  const groups=new Map();
- battlePlanItems.filter(x=>x.item_type==='alliance_layout').forEach(x=>{
+ battlePlanItems.filter(x=>x.item_type==='alliance_layout'&&String(x.snapshot?.image_data_url||'').startsWith('data:image/')).forEach(x=>{
    const snap=x.snapshot||{},tag=String(snap.alliance_tag||'Alliance'),key=String(snap.alliance_id||tag);
    if(!groups.has(key))groups.set(key,{key,tag,items:[]});
    groups.get(key).items.push(x);
@@ -3033,7 +3033,7 @@ function bpPetSnapshotHtml(x){
 function battlePlanDocumentHtml(doc=battlePlanDoc(),items=battlePlanItems,{publicView=false}={}){
  const castle=items.filter(x=>x.item_type==='castle_city'),pet=items.find(x=>x.item_type==='pet_schedule');
  const groups=new Map();
- items.filter(x=>x.item_type==='alliance_layout').forEach(x=>{
+ items.filter(x=>x.item_type==='alliance_layout'&&String(x.snapshot?.image_data_url||'').startsWith('data:image/')).forEach(x=>{
    const s=x.snapshot||{},tag=String(s.alliance_tag||'Alliance'),key=String(s.alliance_id||tag);
    if(!groups.has(key))groups.set(key,{key,tag,items:[]});
    groups.get(key).items.push(x);
@@ -3049,17 +3049,9 @@ function battlePlanDocumentHtml(doc=battlePlanDoc(),items=battlePlanItems,{publi
  return `<article class="bp-document">
    <header class="bp-doc-head"><small>NEXA • SVS BATTLE PLAN</small><h2>${esc(title)}</h2>${meta.length?`<div class="bp-doc-meta">${meta.map(x=>`<span class="bp-doc-pill">${esc(x)}</span>`).join('')}</div>`:''}</header>
    ${String(doc.svs_rules||'').trim()?`<section class="bp-doc-section"><h3>SvS Rules</h3><div class="bp-doc-copy">${bpText(doc.svs_rules)}</div></section>`:''}
-   ${(doc.rally_lead_attack_hero_ids?.length||String(doc.rally_lead_attack_heroes||'').trim()||String(doc.rally_lead_attack_ratio||'').trim()||doc.rally_lead_defense_hero_ids?.length||String(doc.rally_lead_defense_heroes||'').trim()||String(doc.rally_lead_defense_ratio||'').trim())?`<section class="bp-doc-section"><h3>Suggested Rally Lead Heroes & Ratios</h3><div class="bp-doc-grid">
-     ${(doc.rally_lead_attack_hero_ids?.length||String(doc.rally_lead_attack_heroes||'').trim()||String(doc.rally_lead_attack_ratio||'').trim())?`<div class="bp-doc-box"><b>Attack</b>${bpDocHeroList(doc.rally_lead_attack_hero_ids,doc.rally_lead_attack_heroes)}${String(doc.rally_lead_attack_ratio||'').trim()?`<div class="tiny muted" style="margin-top:6px">Ratio</div><div>${bpText(doc.rally_lead_attack_ratio)}</div>`:''}</div>`:''}
-     ${(doc.rally_lead_defense_hero_ids?.length||String(doc.rally_lead_defense_heroes||'').trim()||String(doc.rally_lead_defense_ratio||'').trim())?`<div class="bp-doc-box"><b>Defense</b>${bpDocHeroList(doc.rally_lead_defense_hero_ids,doc.rally_lead_defense_heroes)}${String(doc.rally_lead_defense_ratio||'').trim()?`<div class="tiny muted" style="margin-top:6px">Ratio</div><div>${bpText(doc.rally_lead_defense_ratio)}</div>`:''}</div>`:''}
-   </div></section>`:''}
-   ${(doc.joiner_hero_ids?.length||String(doc.joiner_heroes||'').trim()||String(doc.joiner_ratio||'').trim())?`<section class="bp-doc-section"><h3>Suggested Rally Joiner Heroes & Ratios</h3><div class="bp-doc-grid">
-     ${(doc.joiner_hero_ids?.length||String(doc.joiner_heroes||'').trim())?`<div class="bp-doc-box"><b>Heroes</b>${bpDocHeroList(doc.joiner_hero_ids,doc.joiner_heroes)}</div>`:''}
-     ${String(doc.joiner_ratio||'').trim()?`<div class="bp-doc-box"><b>Ratio</b><div class="bp-doc-copy">${bpText(doc.joiner_ratio)}</div></div>`:''}
-   </div></section>`:''}
    ${String(doc.secondary_squads_notes||'').trim()?`<section class="bp-doc-section"><h3>Secondary Squads</h3><div class="bp-doc-copy">${bpText(doc.secondary_squads_notes)}</div></section>`:''}
    ${castle.length?`<section class="bp-doc-section"><h3>Alliance Seating Placement</h3>${castle.map(c=>c.snapshot?.export_svg?`<div class="bp-doc-snapshot">${c.snapshot.export_svg}</div>`:'').join('')}</section>`:''}
-   ${pet?`<section class="bp-doc-section"><h3>Pet Schedule</h3>${bpPetSnapshotHtml(pet)}</section>`:''}
+   ${pet&&String(pet.snapshot?.image_data_url||'').startsWith('data:image/')?`<section class="bp-doc-section"><h3>Pet Schedule</h3>${bpPetSnapshotHtml(pet)}</section>`:''}
    ${Object.entries(roleLabels).some(([k])=>String(doc.roles?.[k]||'').trim())?`<section class="bp-doc-section"><h3>Important Roles / Job Assignments</h3><div class="bp-role-grid">${Object.entries(roleLabels).filter(([k])=>String(doc.roles?.[k]||'').trim()).map(([k,l])=>`<div class="bp-role"><b>${esc(l)}</b><span>${bpText(doc.roles?.[k])}</span></div>`).join('')}</div></section>`:''}
    ${[...groups.values()].length?`<section class="bp-doc-section"><h3>Alliance Specific Plans</h3>${[...groups.values()].map(g=>{const note=doc.alliance_notes?.[g.key]||doc.alliance_notes?.[g.tag]||'';return `<div style="margin-top:12px"><h3 style="color:#bff6ff">${esc(g.tag)}</h3>${g.items.map(bpTeamSnapshotHtml).join('')}${String(note).trim()?`<h4>Alliance Important Callouts & Notes</h4><div class="bp-doc-copy">${bpText(note)}</div>`:''}</div>`}).join('')}</section>`:''}
  </article>`;
@@ -3074,8 +3066,8 @@ function battlePlanEditorHtml(){
  ];
  const sourceRows=[
    ['Castle Seating',`${battlePlanCastleItems().length} snapshot${battlePlanCastleItems().length===1?'':'s'}`],
-   ['Pet Schedule',battlePlanPetItem()?'Ready':'Not sent'],
-   ['Team Layout',`${battlePlanItems.filter(x=>x.item_type==='alliance_layout').length} alliance layout snapshot${battlePlanItems.filter(x=>x.item_type==='alliance_layout').length===1?'':'s'}`]
+   ['Pet Schedule',String(battlePlanPetItem()?.snapshot?.image_data_url||'').startsWith('data:image/')?'Ready':'Not sent'],
+   ['Team Layout',`${battlePlanItems.filter(x=>x.item_type==='alliance_layout'&&String(x.snapshot?.image_data_url||'').startsWith('data:image/')).length} alliance layout snapshot${battlePlanItems.filter(x=>x.item_type==='alliance_layout'&&String(x.snapshot?.image_data_url||'').startsWith('data:image/')).length===1?'':'s'}`]
  ];
  return `<div class="bp-editor">
    ${battlePlanRecord?.status==='published'?`<div class="bp-published-note">This Battle Plan is published to NEXA. Saving changes updates the draft only until you tap Update Published Plan.</div>`:''}
@@ -3085,16 +3077,6 @@ function battlePlanEditorHtml(){
      <label>Event Date<input id="bp-event-date" type="date" value="${bpVal(d.event_date)}"></label>
    </div></div>
    <div class="bp-section"><h3>SvS Rules</h3>${bpTextarea('bp-rules','Paste the established SvS rules',d.svs_rules,'tall')}</div>
-   <div class="bp-section"><h3>Suggested Rally Lead Heroes & Ratios</h3><div class="bp-field-grid">
-     ${bpHeroPicker('bp-rl-atk','Attack Heroes',d.rally_lead_attack_hero_ids)}
-     ${bpHeroPicker('bp-rl-def','Defense Heroes',d.rally_lead_defense_hero_ids)}
-     <label>Attack Ratio<input id="bp-rl-atk-ratio" value="${bpVal(d.rally_lead_attack_ratio)}" placeholder="e.g. 50 / 20 / 30"></label>
-     <label>Defense Ratio<input id="bp-rl-def-ratio" value="${bpVal(d.rally_lead_defense_ratio)}" placeholder="e.g. 60 / 20 / 20"></label>
-   </div></div>
-   <div class="bp-section"><h3>Suggested Rally Joiner Heroes & Ratios</h3><div class="bp-field-grid">
-     ${bpHeroPicker('bp-joiner','Joiner Heroes',d.joiner_hero_ids)}
-     <label>Joiner Ratio<input id="bp-joiner-ratio" value="${bpVal(d.joiner_ratio)}" placeholder="e.g. 50 / 10 / 40"></label>
-   </div></div>
    <div class="bp-section"><h3>Secondary Squads</h3>${bpTextarea('bp-secondary','Notes',d.secondary_squads_notes)}</div>
    <div class="bp-section"><h3>Snapshots Sent to Battle Plan</h3><div class="bp-source-box">${sourceRows.map(([a,b])=>`<div class="bp-source-row"><b>${a}</b><small>${b}</small></div>`).join('')}</div><div id="battle-plan-list" style="margin-top:10px"></div></div>
    <div class="bp-section"><h3>Important Roles / Job Assignments</h3><div class="bp-field-grid">${roleLabels.map(([k,l])=>`<label><span class="bp-role-label">${esc(l)} <button class="bp-guide-btn" type="button" data-bp-guide="${k}" aria-label="Role guide">i</button></span><input data-bp-role="${k}" value="${bpVal(d.roles?.[k])}" placeholder="Name / assignment"><span class="bp-guide" data-bp-guide-box="${k}">${esc(BP_ROLE_GUIDES[k]||'')}</span></label>`).join('')}</div></div>
@@ -3196,7 +3178,13 @@ function renderBattlePlanBuilder(){
  bpBindHeroPickers();
  $$('[data-bp-guide]').forEach(b=>b.onclick=()=>{const box=$(`[data-bp-guide-box="${b.dataset.bpGuide}"]`);if(box)box.classList.toggle('open')});
  $('#bp-save').onclick=()=>battlePlanSaveDraft();
- $('#bp-preview').onclick=async()=>{await battlePlanSaveDraft({quiet:true});battlePlanView='preview';renderBattlePlanBuilder()};
+ $('#bp-preview').onclick=async()=>{
+   await battlePlanSaveDraft({quiet:true});
+   battlePlanView='preview';
+   renderBattlePlanBuilder();
+   const imgs=$$('.bp-document img.bp-plan-image');
+   await Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(r=>{img.onload=img.onerror=()=>r()})));
+ };
  $('#bp-publish').onclick=battlePlanPublish;
 }
 
@@ -3223,14 +3211,19 @@ async function battlePlanImageDataUrl(node,kind='generic'){
    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
    const w=Math.ceil(Math.max(clone.scrollWidth,clone.getBoundingClientRect().width));
    const h=Math.ceil(Math.max(clone.scrollHeight,clone.getBoundingClientRect().height));
-   const scale=kind==='alliance'?1.45:1.6;
+   const maxLong=1900;
+   const baseLong=Math.max(w,h);
+   const scale=Math.max(.75,Math.min(1.35,maxLong/Math.max(1,baseLong)));
    const c=await html2canvas(clone,{backgroundColor:'#050916',scale,useCORS:true,allowTaint:false,imageTimeout:15000,logging:false,width:w,height:h,windowWidth:w,windowHeight:h,scrollX:0,scrollY:0});
-   return c.toDataURL('image/jpeg',.90);
+   const data=c.toDataURL('image/jpeg',.84);
+   if(!data.startsWith('data:image/'))throw new Error('Snapshot image could not be created.');
+   return data;
  }finally{stage.remove()}
 }
 function bpImageSnapshotHtml(snap){
- const src=snap?.image_data_url||'';
- return src?`<div class="bp-doc-snapshot"><img class="bp-plan-image" src="${src}" alt="${esc(snap.section||'Battle Plan snapshot')}"></div>`:'';
+ const src=String(snap?.image_data_url||'');
+ if(!src.startsWith('data:image/'))return '';
+ return `<div class="bp-doc-snapshot" data-bp-snapshot="${esc(snap.section||'snapshot')}"><img class="bp-plan-image" src="${src}" alt="${esc(snap.section||'Battle Plan snapshot')}" loading="eager" decoding="sync"></div>`;
 }
 
 function petBattleSnapshot(imageDataUrl){

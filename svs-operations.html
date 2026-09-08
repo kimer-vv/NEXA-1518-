@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V12.0 • Battle Plan Builder + Publish to NEXA + Pet/Team/Castle snapshots + Castle visual cleanup -->
+<!-- NEXA SVS OPERATIONS V12.2 • Battle Plan sends full Pet / Alliance / Castle visual snapshots + alliance-level Team Layout send -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -358,6 +358,8 @@ body.pet-preview-open{overflow:hidden!important}
 .bp-doc-box b{display:block;margin-bottom:5px;font-size:11px;color:#fff}
 .bp-doc-snapshot{margin-top:10px;border:1px solid rgba(255,255,255,.12);border-radius:14px;overflow:hidden;background:#030711}
 .bp-doc-snapshot svg{display:block;width:100%;height:auto}
+.bp-doc-snapshot img{display:block;width:100%;height:auto}
+.bp-plan-image{display:block;width:100%;height:auto;border-radius:12px}
 .bp-team-card{border:1px solid rgba(72,221,255,.16);border-radius:14px;padding:11px;background:rgba(3,12,29,.58);margin-top:9px}
 .bp-team-card h4{margin:0 0 7px}
 .bp-team-meta{font-size:10px;color:#9eabc8}
@@ -373,6 +375,20 @@ body.pet-preview-open{overflow:hidden!important}
  .bp-editor-actions{position:static}
  .bp-doc-head h2{font-size:24px}
 }
+.bp-alliance-manual{display:grid;gap:6px;margin-top:7px}
+.bp-hero-picker{display:grid;gap:8px}
+.bp-hero-select-row{display:flex;gap:8px;align-items:center}
+.bp-hero-select-row select{flex:1;min-width:0}
+.bp-hero-chips{display:flex;gap:7px;flex-wrap:wrap}
+.bp-hero-chip{display:flex;align-items:center;gap:7px;padding:5px 8px 5px 5px;border:1px solid rgba(72,221,255,.18);border-radius:999px;background:rgba(7,21,42,.72);font-size:10px;font-weight:900}
+.bp-hero-chip img,.bp-doc-hero img{width:28px;height:28px;object-fit:cover;border-radius:50%;border:1px solid rgba(255,255,255,.15);background:#091024}
+.bp-hero-chip button{border:0;background:transparent;color:#ff9caf;font-size:15px;line-height:1;padding:0 1px}
+.bp-doc-heroes{display:flex;gap:7px;flex-wrap:wrap}
+.bp-doc-hero{display:flex;align-items:center;gap:6px;padding:5px 8px 5px 5px;border:1px solid rgba(255,255,255,.09);border-radius:999px;background:rgba(255,255,255,.025);font-size:10px;font-weight:900}
+.bp-role-label{display:flex;align-items:center;gap:6px;font-weight:850}
+.bp-guide-btn{width:20px;height:20px;border-radius:50%;border:1px solid rgba(72,221,255,.32);background:rgba(29,80,110,.25);color:#bdf6ff;display:inline-grid;place-items:center;font-size:11px;font-weight:950;padding:0}
+.bp-guide{display:none;margin-top:6px;padding:8px 9px;border-radius:10px;border:1px solid rgba(72,221,255,.14);background:rgba(7,20,38,.62);color:#aebbd8;font-size:10px;line-height:1.45}
+.bp-guide.open{display:block}
 
 @media(max-width:620px){.pet-roster-summary{grid-template-columns:1fr 1fr}.pet-stat:last-child{grid-column:1/-1}.pet-team-line{grid-template-columns:1fr 1fr}.pet-team-line .btn{grid-column:1/-1}.pet-setup-card .grid2{grid-template-columns:1fr}}
 
@@ -2035,9 +2051,10 @@ function renderLayout(){
  if(!alliances.length){h.innerHTML='<span class="muted">No alliances configured.</span>';return}
  h.innerHTML=`<div id="team-sheets" class="layout-sheets">${alliances.map(a=>{
    const tag=esc(a.alliance_tag||a.alliance_name||'Alliance');
-   return `<div class="layout-sheet alliance-sheet" data-layout-alliance="${a.id}" data-layout-tag="${tag}"><div class="layout-main-head"><div class="layout-title-row">${a.emblem_url?`<img class="emblem" src="${esc(a.emblem_url)}" alt="">`:''}<div class="layout-title-copy"><div class="tiny muted">NEXA • BATTLE OPERATIONS • SVS</div><h2>${tag} • Team Layout</h2></div></div><div class="rl-formations-grid">${layoutRallyLeadFormationGroup(a,'attack')}${layoutRallyLeadFormationGroup(a,'defense')}</div></div>${layoutAlliance(a)}<div class="layout-footer-legend">Violet = PET ACTIVE • Neutral = Assigned without PETS</div></div>`
+   const sent=battlePlanItems.some(x=>x.item_type==='alliance_layout'&&String(x.snapshot?.alliance_id)===String(a.id));
+   return `<div class="layout-sheet alliance-sheet" data-layout-alliance="${a.id}" data-layout-tag="${tag}"><div class="layout-main-head"><div class="layout-title-row">${a.emblem_url?`<img class="emblem" src="${esc(a.emblem_url)}" alt="">`:''}<div class="layout-title-copy"><div class="tiny muted">NEXA • BATTLE OPERATIONS • SVS</div><h2>${tag} • Team Layout</h2></div></div><div class="rl-formations-grid">${layoutRallyLeadFormationGroup(a,'attack')}${layoutRallyLeadFormationGroup(a,'defense')}</div></div>${layoutAlliance(a)}<button class="btn layout-send-plan no-export" data-send-alliance-plan="${a.id}" type="button">${sent?'Update Battle Plan':'Send to Battle Plan'}</button><div class="layout-footer-legend">Violet = PET ACTIVE • Neutral = Assigned without PETS</div></div>`
  }).join('')}</div>`;
- $$('[data-send-team-plan]',h).forEach(b=>b.onclick=()=>sendTeamToBattlePlan(b.dataset.sendTeamPlan));
+ $$('[data-send-alliance-plan]',h).forEach(b=>b.onclick=()=>sendAllianceLayoutToBattlePlan(b.dataset.sendAlliancePlan));
 }
 function layoutAlliance(a){
  return `<section style="margin-bottom:4px"><div class="note glow-violet">${esc(strategy.join_note||`Join First — First ${strategy.join_first_count} joiners enter with ${fmtSecs(strategy.join_first_seconds)} left on countdown. Other joiners join with ${fmtSecs(strategy.other_join_seconds)} left on countdown.`)}</div><div class="layout-teams">${Teams(a.id).map(layoutTeam).join('')}</div></section>`
@@ -2047,8 +2064,8 @@ function layoutHeroText(letter,id){
  return `<div class="layout-hero-text"><b>${letter}</b><span class="${rarityClass(h?.rarity)}">${esc(h?.name||'—')}</span></div>`
 }
 function layoutTeam(t){
- const def=defenseOn(t),sent=battlePlanItems.some(x=>String(x.team_id)===String(t.id));
- return `<article class="layout-team" style="--tc:${tc(t)}"><div class="layout-team-title">${esc(t.name)}</div><div class="layout-rally"><div class="mini">Rally Leader Schedule (UTC)</div>${layoutRallyCards(t.id)||'<span class="muted tiny">—</span>'}</div><div class="layout-headrow"><div>Joiners</div><div>Attack A / B</div><div>Defense A / B</div></div>${Joiners(t.id).map(j=>`<div class="layout-row ${j.join_first?'first':''}"><div class="pname"><b>${esc(j.player_name)}</b></div><div class="layout-hero-pair">${layoutHeroText('A',j.attack_a_hero_id)}${layoutHeroText('B',j.attack_b_hero_id)}</div><div class="layout-hero-pair">${def?layoutHeroText('A',j.defense_a_hero_id)+layoutHeroText('B',j.defense_b_hero_id):'<span class="muted">—</span>'}</div></div>`).join('')||'<div class="layout-row"><div class="pname muted">No Joiners assigned.</div><div></div><div></div></div>'}<button class="btn layout-send-plan" data-send-team-plan="${t.id}" type="button">${sent?'Update Battle Plan':'Send to Battle Plan'}</button></article>`
+ const def=defenseOn(t);
+ return `<article class="layout-team" style="--tc:${tc(t)}"><div class="layout-team-title">${esc(t.name)}</div><div class="layout-rally"><div class="mini">Rally Leader Schedule (UTC)</div>${layoutRallyCards(t.id)||'<span class="muted tiny">—</span>'}</div><div class="layout-headrow"><div>Joiners</div><div>Attack A / B</div><div>Defense A / B</div></div>${Joiners(t.id).map(j=>`<div class="layout-row ${j.join_first?'first':''}"><div class="pname"><b>${esc(j.player_name)}</b></div><div class="layout-hero-pair">${layoutHeroText('A',j.attack_a_hero_id)}${layoutHeroText('B',j.attack_b_hero_id)}</div><div class="layout-hero-pair">${def?layoutHeroText('A',j.defense_a_hero_id)+layoutHeroText('B',j.defense_b_hero_id):'<span class="muted">—</span>'}</div></div>`).join('')||'<div class="layout-row"><div class="pname muted">No Joiners assigned.</div><div></div><div></div></div>'}</article>`
 }
 
 /* =========================================================
@@ -2891,18 +2908,23 @@ function battlePlanDefaultDocument(){
  return {
    version:'1.0',
    alliance_first_star:'',
+   alliance_first_star_manual:false,
    alliance_presidency:'',
+   alliance_presidency_manual:false,
    event_date:'',
    svs_rules:'',
    rally_lead_attack_heroes:'',
+   rally_lead_attack_hero_ids:[],
    rally_lead_attack_ratio:'',
    rally_lead_defense_heroes:'',
+   rally_lead_defense_hero_ids:[],
    rally_lead_defense_ratio:'',
    joiner_heroes:'',
+   joiner_hero_ids:[],
    joiner_ratio:'',
    secondary_squads_notes:'The time gap between rallies in SvS is generous enough to switch between attack and defense using the same safe heroes.',
    roles:{
-     handlers_draft:'',
+     hand_off:'',
      rally_caller:'',
      spotter:'',
      strat_adjustment:'',
@@ -2925,10 +2947,73 @@ function bpText(v){const s=String(v??'').trim();return s?esc(s):'<span class="mu
 function bpTextarea(id,label,value,cls=''){
  return `<label>${esc(label)}<textarea id="${id}" class="${cls}">${bpVal(value)}</textarea></label>`;
 }
+
+function bpAllianceOptions(current=''){
+ const rows=(allAlliances||[]).slice().sort((a,b)=>String(a.tag||a.name||'').localeCompare(String(b.tag||b.name||'')));
+ const names=new Set(),opts=[];
+ rows.forEach(a=>{const label=String(a.tag||a.name||'').trim();if(!label||names.has(label.toLowerCase()))return;names.add(label.toLowerCase());opts.push(`<option value="${esc(label)}"${String(current)===label?' selected':''}>${esc(label)}</option>`)});
+ return `<option value="">Select alliance…</option>${opts.join('')}<option value="__manual__"${current&&![...names].includes(String(current).toLowerCase())?' selected':''}>Enter manually</option>`;
+}
+function bpHeroById(id){return (heroes||[]).find(h=>String(h.id)===String(id))||null}
+function bpHeroImage(h){return h?.image_url||h?.image||h?.icon_url||h?.portrait_url||h?.url||''}
+function bpHeroName(h){return h?.name||h?.hero_name||'Hero'}
+function bpHeroPicker(id,label,ids=[]){
+ const selected=(Array.isArray(ids)?ids:[]).map(String);
+ const opts=(heroes||[]).slice().sort((a,b)=>bpHeroName(a).localeCompare(bpHeroName(b))).map(h=>`<option value="${esc(h.id)}">${esc(bpHeroName(h))}</option>`).join('');
+ return `<div class="bp-hero-picker" data-bp-hero-picker="${id}">
+   <label>${esc(label)}</label>
+   <div class="bp-hero-select-row"><select data-bp-hero-select><option value="">Select hero…</option>${opts}</select><button class="btn" type="button" data-bp-hero-add>Add</button></div>
+   <div class="bp-hero-chips" data-bp-hero-chips>${selected.map(hid=>bpHeroChipHtml(hid)).join('')}</div>
+ </div>`;
+}
+function bpHeroChipHtml(id){
+ const h=bpHeroById(id);if(!h)return '';
+ const img=bpHeroImage(h);
+ return `<span class="bp-hero-chip" data-hero-id="${esc(id)}">${img?`<img src="${esc(img)}" alt="">`:''}<span>${esc(bpHeroName(h))}</span><button type="button" data-bp-hero-remove="${esc(id)}" aria-label="Remove hero">×</button></span>`;
+}
+function bpHeroIdsFromPicker(id){return $$(`[data-bp-hero-picker="${id}"] [data-hero-id]`).map(x=>String(x.dataset.heroId))}
+function bpBindHeroPickers(){
+ $$('[data-bp-hero-picker]').forEach(box=>{
+   const select=$('[data-bp-hero-select]',box),chips=$('[data-bp-hero-chips]',box),add=$('[data-bp-hero-add]',box);
+   const bindRemove=()=>$$('[data-bp-hero-remove]',box).forEach(b=>b.onclick=()=>{b.closest('[data-hero-id]')?.remove()});
+   add.onclick=()=>{const id=select.value;if(!id)return;if($(`[data-hero-id="${CSS.escape(id)}"]`,box))return;chips.insertAdjacentHTML('beforeend',bpHeroChipHtml(id));select.value='';bindRemove()};
+   bindRemove();
+ });
+}
+function bpDocHeroList(ids=[],fallback=''){
+ const list=(Array.isArray(ids)?ids:[]).map(bpHeroById).filter(Boolean);
+ if(list.length)return `<div class="bp-doc-heroes">${list.map(h=>{const img=bpHeroImage(h);return `<span class="bp-doc-hero">${img?`<img src="${esc(img)}" alt="">`:''}<span>${esc(bpHeroName(h))}</span></span>`}).join('')}</div>`;
+ return bpText(fallback);
+}
+function bpAllianceField(id,label,value=''){
+ const rows=(allAlliances||[]).map(a=>String(a.tag||a.name||'').trim()).filter(Boolean);
+ const known=rows.some(x=>x.toLowerCase()===String(value||'').toLowerCase());
+ return `<label>${esc(label)}<select id="${id}">${bpAllianceOptions(known?value:'')}</select><div id="${id}-manual-wrap" class="bp-alliance-manual"${known||!value?' style="display:none"':''}><input id="${id}-manual" value="${known?'':bpVal(value)}" placeholder="Enter alliance tag or name"></div></label>`;
+}
+function bpBindAllianceFields(){
+ ['bp-first-star','bp-presidency'].forEach(id=>{
+   const s=$('#'+id),w=$('#'+id+'-manual-wrap');if(!s||!w)return;
+   const sync=()=>w.style.display=s.value==='__manual__'?'grid':'none';
+   s.onchange=sync;sync();
+ });
+}
+const BP_ROLE_GUIDES={
+ hand_off:'Coordinates the hand-off of active responsibilities, information, or rally ownership so the next person takes over without losing timing or context.',
+ rally_caller:'Calls the official rally timing and tells the group when to launch, hold, or change the next rally.',
+ spotter:'Watches the battlefield for enemy movement, open positions, incoming rallies, and urgent changes that leadership needs to know.',
+ strat_adjustment:'Tracks how the battle is developing and recommends real-time adjustments to the plan, teams, timing, or priorities.',
+ garrison_manager:'Manages who is garrisoning key structures, who should leave, who should replace them, and when defensive composition needs to change.',
+ countdown:'Keeps clear countdowns for coordinated launches, switches, pushes, or other time-sensitive actions.',
+ seating_chart:'Tracks Castle-area city placement and helps players move to the correct assigned seating position.',
+ enemy_intel_pre:'Collects and organizes enemy information before battle so the team understands likely rally leads, strengths, formations, and priorities.',
+ enemy_intel_during:'Updates enemy information live during battle as formations, rally leads, timing, or behavior changes.',
+ pet_schedule_formation_lead:'Keeps the pet activation schedule and formation tasks coordinated so the right players use the right setup at the right time.'
+};
+
 function battlePlanAllianceGroups(){
  const groups=new Map();
- battlePlanItems.filter(x=>x.item_type==='team').forEach(x=>{
-   const snap=x.snapshot||{},tag=String(snap.alliance_tag||'Alliance'),key=String(snap.team?.strategy_alliance_id||snap.strategy_alliance_id||tag);
+ battlePlanItems.filter(x=>x.item_type==='alliance_layout').forEach(x=>{
+   const snap=x.snapshot||{},tag=String(snap.alliance_tag||'Alliance'),key=String(snap.alliance_id||tag);
    if(!groups.has(key))groups.set(key,{key,tag,items:[]});
    groups.get(key).items.push(x);
  });
@@ -2937,30 +3022,24 @@ function battlePlanAllianceGroups(){
 function battlePlanPetItem(){return battlePlanItems.find(x=>x.item_type==='pet_schedule')||null}
 function battlePlanCastleItems(){return battlePlanItems.filter(x=>x.item_type==='castle_city')}
 function bpTeamSnapshotHtml(x){
- const s=x.snapshot||{},tag=s.alliance_tag||'Alliance',name=s.team?.name||'Team';
- const rl=Array.isArray(s.rally_slots)?s.rally_slots:[],jo=Array.isArray(s.joiners)?s.joiners:[],fa=s.formations?.attack||[],fd=s.formations?.defense||[];
- const formationBlock=(label,arr)=>arr?.length?`<div class="bp-doc-box"><b>${esc(label)}</b>${arr.map(f=>{
-   const hs=[f.hero_1_id,f.hero_2_id,f.hero_3_id].map(id=>H(id)?.name||'').filter(Boolean).join(' • ');
-   return `<div class="tiny" style="margin-top:5px"><strong>${esc(f.name||f.label||'Formation')}</strong>${f.ratio?` • ${esc(f.ratio)}`:''}${hs?`<br>${esc(hs)}`:''}</div>`;
- }).join('')}</div>`:'';
- return `<div class="bp-team-card"><h4>${esc(tag)} • ${esc(name)}</h4><div class="bp-team-meta">${rl.length} Rally slot${rl.length===1?'':'s'} • ${jo.length} Joiner${jo.length===1?'':'s'}</div>${(fa.length||fd.length)?`<div class="bp-doc-grid" style="margin-top:8px">${formationBlock('Attack',fa)}${formationBlock('Defense',fd)}</div>`:''}</div>`;
+ const s=x?.snapshot||{};
+ return bpImageSnapshotHtml(s);
 }
+
 function bpPetSnapshotHtml(x){
- const s=x?.snapshot||{},rows=Array.isArray(s.rows)?s.rows:[],times=Array.isArray(s.times)?s.times:[],assign=Array.isArray(s.assignments)?s.assignments:[];
- if(!rows.length)return '<div class="muted tiny">Pet Schedule snapshot is empty.</div>';
- const map=new Map(assign.map(a=>[`${a.row_id}|${a.start_utc}`,a]));
- return `<div class="pet-grid-wrap"><table class="pet-grid"><thead><tr><th>Assignment</th>${times.map(t=>`<th>${esc(t)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr><td><b>${esc(r.slot_label||'Team')}</b><br><span class="tiny muted">${esc(r.purpose||'')}</span></td>${times.map(t=>{const a=map.get(`${r.id}|${t}`);return `<td class="${a?.pets_active?'petactive':a?.pet_status==='reserve'?'petreserve':a?'rl-neutral':''}">${a?`${a.pet_status==='reserve'?'◇ ':''}${esc(a.player_name||'')}`:''}</td>`}).join('')}</tr>`).join('')}</tbody></table></div>`;
+ return bpImageSnapshotHtml(x?.snapshot||{});
 }
+
 function battlePlanDocumentHtml(doc=battlePlanDoc(),items=battlePlanItems,{publicView=false}={}){
  const castle=items.filter(x=>x.item_type==='castle_city'),pet=items.find(x=>x.item_type==='pet_schedule');
  const groups=new Map();
- items.filter(x=>x.item_type==='team').forEach(x=>{
-   const s=x.snapshot||{},tag=String(s.alliance_tag||'Alliance'),key=String(s.team?.strategy_alliance_id||s.strategy_alliance_id||tag);
+ items.filter(x=>x.item_type==='alliance_layout').forEach(x=>{
+   const s=x.snapshot||{},tag=String(s.alliance_tag||'Alliance'),key=String(s.alliance_id||tag);
    if(!groups.has(key))groups.set(key,{key,tag,items:[]});
    groups.get(key).items.push(x);
  });
  const roleLabels={
-   handlers_draft:'Handlers Draft',rally_caller:'Rally Caller',spotter:'Spotter',strat_adjustment:'Strat Adjustment',
+   hand_off:'Hand Off',rally_caller:'Rally Caller',spotter:'Spotter',strat_adjustment:'Strat Adjustment',
    garrison_manager:'Garrison Manager',countdown:'Countdown',seating_chart:'Seating Chart',
    enemy_intel_pre:'Enemy Intel • Pre-Battle',enemy_intel_during:'Enemy Intel • During Battle',
    pet_schedule_formation_lead:'Pet Schedule & Formation Task Lead'
@@ -2969,26 +3048,26 @@ function battlePlanDocumentHtml(doc=battlePlanDoc(),items=battlePlanItems,{publi
  const meta=[doc.event_date?`Event Date • ${doc.event_date}`:'',doc.alliance_first_star?`First Star • ${doc.alliance_first_star}`:'',doc.alliance_presidency?`Presidency • ${doc.alliance_presidency}`:''].filter(Boolean);
  return `<article class="bp-document">
    <header class="bp-doc-head"><small>NEXA • SVS BATTLE PLAN</small><h2>${esc(title)}</h2>${meta.length?`<div class="bp-doc-meta">${meta.map(x=>`<span class="bp-doc-pill">${esc(x)}</span>`).join('')}</div>`:''}</header>
-   <section class="bp-doc-section"><h3>SvS Rules</h3><div class="bp-doc-copy">${bpText(doc.svs_rules)}</div></section>
-   <section class="bp-doc-section"><h3>Suggested Rally Lead Heroes & Ratios</h3><div class="bp-doc-grid">
-     <div class="bp-doc-box"><b>Attack</b><div class="bp-doc-copy">${bpText(doc.rally_lead_attack_heroes)}</div><div class="tiny muted" style="margin-top:6px">Ratio</div><div>${bpText(doc.rally_lead_attack_ratio)}</div></div>
-     <div class="bp-doc-box"><b>Defense</b><div class="bp-doc-copy">${bpText(doc.rally_lead_defense_heroes)}</div><div class="tiny muted" style="margin-top:6px">Ratio</div><div>${bpText(doc.rally_lead_defense_ratio)}</div></div>
-   </div></section>
-   <section class="bp-doc-section"><h3>Suggested Rally Joiner Heroes & Ratios</h3><div class="bp-doc-grid">
-     <div class="bp-doc-box"><b>Heroes</b><div class="bp-doc-copy">${bpText(doc.joiner_heroes)}</div></div>
-     <div class="bp-doc-box"><b>Ratio</b><div class="bp-doc-copy">${bpText(doc.joiner_ratio)}</div></div>
-   </div></section>
-   <section class="bp-doc-section"><h3>Secondary Squads</h3><div class="bp-doc-copy">${bpText(doc.secondary_squads_notes)}</div></section>
-   <section class="bp-doc-section"><h3>Alliance Seating Placement</h3>${castle.length?castle.map(c=>c.snapshot?.export_svg?`<div class="bp-doc-snapshot">${c.snapshot.export_svg}</div>`:'<div class="muted tiny">Castle snapshot has no rendered frame.</div>').join(''):'<div class="muted">No Castle Seating snapshot sent yet.</div>'}</section>
-   <section class="bp-doc-section"><h3>Pet Schedule</h3>${pet?bpPetSnapshotHtml(pet):'<div class="muted">No Pet Schedule snapshot sent yet.</div>'}</section>
-   <section class="bp-doc-section"><h3>Important Roles / Job Assignments</h3><div class="bp-role-grid">${Object.entries(roleLabels).map(([k,l])=>`<div class="bp-role"><b>${esc(l)}</b><span>${bpText(doc.roles?.[k])}</span></div>`).join('')}</div></section>
-   <section class="bp-doc-section"><h3>Alliance Specific Plans</h3>${[...groups.values()].length?[...groups.values()].map(g=>`<div style="margin-top:12px"><h3 style="color:#bff6ff">${esc(g.tag)}</h3>${g.items.map(bpTeamSnapshotHtml).join('')}<h4>Alliance Important Callouts & Notes</h4><div class="bp-doc-copy">${bpText(doc.alliance_notes?.[g.key]||doc.alliance_notes?.[g.tag])}</div></div>`).join(''):'<div class="muted">No Team Layout snapshots sent yet.</div>'}</section>
+   ${String(doc.svs_rules||'').trim()?`<section class="bp-doc-section"><h3>SvS Rules</h3><div class="bp-doc-copy">${bpText(doc.svs_rules)}</div></section>`:''}
+   ${(doc.rally_lead_attack_hero_ids?.length||String(doc.rally_lead_attack_heroes||'').trim()||String(doc.rally_lead_attack_ratio||'').trim()||doc.rally_lead_defense_hero_ids?.length||String(doc.rally_lead_defense_heroes||'').trim()||String(doc.rally_lead_defense_ratio||'').trim())?`<section class="bp-doc-section"><h3>Suggested Rally Lead Heroes & Ratios</h3><div class="bp-doc-grid">
+     ${(doc.rally_lead_attack_hero_ids?.length||String(doc.rally_lead_attack_heroes||'').trim()||String(doc.rally_lead_attack_ratio||'').trim())?`<div class="bp-doc-box"><b>Attack</b>${bpDocHeroList(doc.rally_lead_attack_hero_ids,doc.rally_lead_attack_heroes)}${String(doc.rally_lead_attack_ratio||'').trim()?`<div class="tiny muted" style="margin-top:6px">Ratio</div><div>${bpText(doc.rally_lead_attack_ratio)}</div>`:''}</div>`:''}
+     ${(doc.rally_lead_defense_hero_ids?.length||String(doc.rally_lead_defense_heroes||'').trim()||String(doc.rally_lead_defense_ratio||'').trim())?`<div class="bp-doc-box"><b>Defense</b>${bpDocHeroList(doc.rally_lead_defense_hero_ids,doc.rally_lead_defense_heroes)}${String(doc.rally_lead_defense_ratio||'').trim()?`<div class="tiny muted" style="margin-top:6px">Ratio</div><div>${bpText(doc.rally_lead_defense_ratio)}</div>`:''}</div>`:''}
+   </div></section>`:''}
+   ${(doc.joiner_hero_ids?.length||String(doc.joiner_heroes||'').trim()||String(doc.joiner_ratio||'').trim())?`<section class="bp-doc-section"><h3>Suggested Rally Joiner Heroes & Ratios</h3><div class="bp-doc-grid">
+     ${(doc.joiner_hero_ids?.length||String(doc.joiner_heroes||'').trim())?`<div class="bp-doc-box"><b>Heroes</b>${bpDocHeroList(doc.joiner_hero_ids,doc.joiner_heroes)}</div>`:''}
+     ${String(doc.joiner_ratio||'').trim()?`<div class="bp-doc-box"><b>Ratio</b><div class="bp-doc-copy">${bpText(doc.joiner_ratio)}</div></div>`:''}
+   </div></section>`:''}
+   ${String(doc.secondary_squads_notes||'').trim()?`<section class="bp-doc-section"><h3>Secondary Squads</h3><div class="bp-doc-copy">${bpText(doc.secondary_squads_notes)}</div></section>`:''}
+   ${castle.length?`<section class="bp-doc-section"><h3>Alliance Seating Placement</h3>${castle.map(c=>c.snapshot?.export_svg?`<div class="bp-doc-snapshot">${c.snapshot.export_svg}</div>`:'').join('')}</section>`:''}
+   ${pet?`<section class="bp-doc-section"><h3>Pet Schedule</h3>${bpPetSnapshotHtml(pet)}</section>`:''}
+   ${Object.entries(roleLabels).some(([k])=>String(doc.roles?.[k]||'').trim())?`<section class="bp-doc-section"><h3>Important Roles / Job Assignments</h3><div class="bp-role-grid">${Object.entries(roleLabels).filter(([k])=>String(doc.roles?.[k]||'').trim()).map(([k,l])=>`<div class="bp-role"><b>${esc(l)}</b><span>${bpText(doc.roles?.[k])}</span></div>`).join('')}</div></section>`:''}
+   ${[...groups.values()].length?`<section class="bp-doc-section"><h3>Alliance Specific Plans</h3>${[...groups.values()].map(g=>{const note=doc.alliance_notes?.[g.key]||doc.alliance_notes?.[g.tag]||'';return `<div style="margin-top:12px"><h3 style="color:#bff6ff">${esc(g.tag)}</h3>${g.items.map(bpTeamSnapshotHtml).join('')}${String(note).trim()?`<h4>Alliance Important Callouts & Notes</h4><div class="bp-doc-copy">${bpText(note)}</div>`:''}</div>`}).join('')}</section>`:''}
  </article>`;
 }
 function battlePlanEditorHtml(){
  const d=battlePlanDoc(),groups=battlePlanAllianceGroups();
  const roleLabels=[
-  ['handlers_draft','Handlers Draft'],['rally_caller','Rally Caller'],['spotter','Spotter'],['strat_adjustment','Strat Adjustment'],
+  ['hand_off','Hand Off'],['rally_caller','Rally Caller'],['spotter','Spotter'],['strat_adjustment','Strat Adjustment'],
   ['garrison_manager','Garrison Manager'],['countdown','Countdown'],['seating_chart','Seating Chart'],
   ['enemy_intel_pre','Enemy Intel Pre-Battle'],['enemy_intel_during','Enemy Intel During Battle'],
   ['pet_schedule_formation_lead','Pet Schedule & Formation Task Lead']
@@ -2996,30 +3075,30 @@ function battlePlanEditorHtml(){
  const sourceRows=[
    ['Castle Seating',`${battlePlanCastleItems().length} snapshot${battlePlanCastleItems().length===1?'':'s'}`],
    ['Pet Schedule',battlePlanPetItem()?'Ready':'Not sent'],
-   ['Team Layout',`${battlePlanItems.filter(x=>x.item_type==='team').length} team snapshot${battlePlanItems.filter(x=>x.item_type==='team').length===1?'':'s'}`]
+   ['Team Layout',`${battlePlanItems.filter(x=>x.item_type==='alliance_layout').length} alliance layout snapshot${battlePlanItems.filter(x=>x.item_type==='alliance_layout').length===1?'':'s'}`]
  ];
  return `<div class="bp-editor">
    ${battlePlanRecord?.status==='published'?`<div class="bp-published-note">This Battle Plan is published to NEXA. Saving changes updates the draft only until you tap Update Published Plan.</div>`:''}
    <div class="bp-section"><h3>Event Setup</h3><div class="bp-field-grid three">
-     <label>Alliance Up First Star<input id="bp-first-star" value="${bpVal(d.alliance_first_star)}" placeholder="Alliance tag or name"></label>
-     <label>Alliance Up for Presidency<input id="bp-presidency" value="${bpVal(d.alliance_presidency)}" placeholder="Alliance tag or name"></label>
+     ${bpAllianceField('bp-first-star','Alliance Up First Star',d.alliance_first_star)}
+     ${bpAllianceField('bp-presidency','Alliance Up for Presidency',d.alliance_presidency)}
      <label>Event Date<input id="bp-event-date" type="date" value="${bpVal(d.event_date)}"></label>
    </div></div>
    <div class="bp-section"><h3>SvS Rules</h3>${bpTextarea('bp-rules','Paste the established SvS rules',d.svs_rules,'tall')}</div>
    <div class="bp-section"><h3>Suggested Rally Lead Heroes & Ratios</h3><div class="bp-field-grid">
-     ${bpTextarea('bp-rl-atk-heroes','Attack Heroes',d.rally_lead_attack_heroes)}
-     ${bpTextarea('bp-rl-def-heroes','Defense Heroes',d.rally_lead_defense_heroes)}
+     ${bpHeroPicker('bp-rl-atk','Attack Heroes',d.rally_lead_attack_hero_ids)}
+     ${bpHeroPicker('bp-rl-def','Defense Heroes',d.rally_lead_defense_hero_ids)}
      <label>Attack Ratio<input id="bp-rl-atk-ratio" value="${bpVal(d.rally_lead_attack_ratio)}" placeholder="e.g. 50 / 20 / 30"></label>
      <label>Defense Ratio<input id="bp-rl-def-ratio" value="${bpVal(d.rally_lead_defense_ratio)}" placeholder="e.g. 60 / 20 / 20"></label>
    </div></div>
    <div class="bp-section"><h3>Suggested Rally Joiner Heroes & Ratios</h3><div class="bp-field-grid">
-     ${bpTextarea('bp-joiner-heroes','Joiner Heroes',d.joiner_heroes)}
+     ${bpHeroPicker('bp-joiner','Joiner Heroes',d.joiner_hero_ids)}
      <label>Joiner Ratio<input id="bp-joiner-ratio" value="${bpVal(d.joiner_ratio)}" placeholder="e.g. 50 / 10 / 40"></label>
    </div></div>
    <div class="bp-section"><h3>Secondary Squads</h3>${bpTextarea('bp-secondary','Notes',d.secondary_squads_notes)}</div>
    <div class="bp-section"><h3>Snapshots Sent to Battle Plan</h3><div class="bp-source-box">${sourceRows.map(([a,b])=>`<div class="bp-source-row"><b>${a}</b><small>${b}</small></div>`).join('')}</div><div id="battle-plan-list" style="margin-top:10px"></div></div>
-   <div class="bp-section"><h3>Important Roles / Job Assignments</h3><div class="bp-field-grid">${roleLabels.map(([k,l])=>`<label>${esc(l)}<input data-bp-role="${k}" value="${bpVal(d.roles?.[k])}" placeholder="Name / assignment"></label>`).join('')}</div></div>
-   <div class="bp-section"><h3>Alliance Important Callouts & Notes</h3>${groups.length?groups.map(g=>bpTextarea(`bp-note-${String(g.key).replace(/[^a-zA-Z0-9_-]/g,'_')}`,g.tag,d.alliance_notes?.[g.key]||d.alliance_notes?.[g.tag]||'')).join(''):'<div class="muted tiny">Send Team Layout snapshots first. A notes field will appear for each alliance.</div>'}</div>
+   <div class="bp-section"><h3>Important Roles / Job Assignments</h3><div class="bp-field-grid">${roleLabels.map(([k,l])=>`<label><span class="bp-role-label">${esc(l)} <button class="bp-guide-btn" type="button" data-bp-guide="${k}" aria-label="Role guide">i</button></span><input data-bp-role="${k}" value="${bpVal(d.roles?.[k])}" placeholder="Name / assignment"><span class="bp-guide" data-bp-guide-box="${k}">${esc(BP_ROLE_GUIDES[k]||'')}</span></label>`).join('')}</div></div>
+   <div class="bp-section"><h3>Alliance Important Callouts & Notes</h3>${groups.length?groups.map(g=>bpTextarea(`bp-note-${String(g.key).replace(/[^a-zA-Z0-9_-]/g,'_')}`,g.tag,d.alliance_notes?.[g.key]||d.alliance_notes?.[g.tag]||'')).join(''):'<div class="muted tiny">Send an Alliance Team Layout first. A notes field will appear for each alliance.</div>'}</div>
    <div class="bp-editor-actions">
      <button id="bp-save" class="btn violet" type="button">Save Draft</button>
      <button id="bp-preview" class="btn" type="button">Preview Document</button>
@@ -3036,15 +3115,20 @@ function battlePlanCollectDocument(){
  });
  return {
    ...current,
-   alliance_first_star:$('#bp-first-star')?.value.trim()||'',
-   alliance_presidency:$('#bp-presidency')?.value.trim()||'',
+   alliance_first_star:$('#bp-first-star')?.value==='__manual__'?($('#bp-first-star-manual')?.value.trim()||''):($('#bp-first-star')?.value.trim()||''),
+   alliance_first_star_manual:$('#bp-first-star')?.value==='__manual__',
+   alliance_presidency:$('#bp-presidency')?.value==='__manual__'?($('#bp-presidency-manual')?.value.trim()||''):($('#bp-presidency')?.value.trim()||''),
+   alliance_presidency_manual:$('#bp-presidency')?.value==='__manual__',
    event_date:$('#bp-event-date')?.value||'',
    svs_rules:$('#bp-rules')?.value.trim()||'',
-   rally_lead_attack_heroes:$('#bp-rl-atk-heroes')?.value.trim()||'',
+   rally_lead_attack_heroes:'',
+   rally_lead_attack_hero_ids:bpHeroIdsFromPicker('bp-rl-atk'),
    rally_lead_attack_ratio:$('#bp-rl-atk-ratio')?.value.trim()||'',
-   rally_lead_defense_heroes:$('#bp-rl-def-heroes')?.value.trim()||'',
+   rally_lead_defense_heroes:'',
+   rally_lead_defense_hero_ids:bpHeroIdsFromPicker('bp-rl-def'),
    rally_lead_defense_ratio:$('#bp-rl-def-ratio')?.value.trim()||'',
-   joiner_heroes:$('#bp-joiner-heroes')?.value.trim()||'',
+   joiner_heroes:'',
+   joiner_hero_ids:bpHeroIdsFromPicker('bp-joiner'),
    joiner_ratio:$('#bp-joiner-ratio')?.value.trim()||'',
    secondary_squads_notes:$('#bp-secondary')?.value.trim()||'',
    roles,alliance_notes:notes,updated_at:new Date().toISOString()
@@ -3108,54 +3192,117 @@ function renderBattlePlanBuilder(){
  }
  host.innerHTML=battlePlanEditorHtml();
  renderBattlePlan();
+ bpBindAllianceFields();
+ bpBindHeroPickers();
+ $$('[data-bp-guide]').forEach(b=>b.onclick=()=>{const box=$(`[data-bp-guide-box="${b.dataset.bpGuide}"]`);if(box)box.classList.toggle('open')});
  $('#bp-save').onclick=()=>battlePlanSaveDraft();
  $('#bp-preview').onclick=async()=>{await battlePlanSaveDraft({quiet:true});battlePlanView='preview';renderBattlePlanBuilder()};
  $('#bp-publish').onclick=battlePlanPublish;
 }
-function petBattleSnapshot(){
- const times=[...new Set((petAssignments||[]).map(a=>a.start_utc).filter(Boolean))].sort();
- return {section:'Pet Schedule',source:'pet_schedule',rows:JSON.parse(JSON.stringify(petRows||[])),assignments:JSON.parse(JSON.stringify(petAssignments||[])),times,sent_at:new Date().toISOString()};
+
+async function battlePlanImageDataUrl(node,kind='generic'){
+ if(!node)throw new Error('Nothing to send to Battle Plan.');
+ const stage=document.createElement('div');stage.className='nexa-export-stage';
+ const clone=node.cloneNode(true);
+ clone.querySelectorAll('.no-export,[data-download-alliance],[data-send-alliance-plan],[data-send-team-plan]').forEach(x=>x.remove());
+ if(kind==='pet'||clone.id==='pet-sheet'){
+   clone.classList.add('pet-export-sheet');
+   const wrap=clone.querySelector('.pet-grid-wrap'),table=clone.querySelector('.pet-grid');
+   if(wrap)wrap.style.overflow='visible';
+   if(table){
+     table.style.width='max-content';table.style.minWidth='0';
+     const approx=Math.max(980,(node.querySelector('.pet-grid')?.scrollWidth||0)+70);
+     clone.style.width=`${approx}px`;clone.style.minWidth=`${approx}px`;
+   }
+ }
+ if(kind==='alliance'||clone.classList.contains('alliance-sheet')){
+   clone.style.width='1400px';clone.style.minWidth='1400px';clone.style.maxWidth='none';
+ }
+ stage.appendChild(clone);document.body.appendChild(stage);
+ try{
+   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+   const w=Math.ceil(Math.max(clone.scrollWidth,clone.getBoundingClientRect().width));
+   const h=Math.ceil(Math.max(clone.scrollHeight,clone.getBoundingClientRect().height));
+   const scale=kind==='alliance'?1.45:1.6;
+   const c=await html2canvas(clone,{backgroundColor:'#050916',scale,useCORS:true,allowTaint:false,imageTimeout:15000,logging:false,width:w,height:h,windowWidth:w,windowHeight:h,scrollX:0,scrollY:0});
+   return c.toDataURL('image/jpeg',.90);
+ }finally{stage.remove()}
+}
+function bpImageSnapshotHtml(snap){
+ const src=snap?.image_data_url||'';
+ return src?`<div class="bp-doc-snapshot"><img class="bp-plan-image" src="${src}" alt="${esc(snap.section||'Battle Plan snapshot')}"></div>`:'';
+}
+
+function petBattleSnapshot(imageDataUrl){
+ return {section:'Pet Schedule',source:'pet_schedule',image_data_url:imageDataUrl,sent_at:new Date().toISOString()};
 }
 async function sendPetScheduleToBattlePlan(){
  if(!strategy)return say('Open a Team workspace first.',true);
  if(!petRows.length)return say('Build the Pet Schedule before sending it to Battle Plan.',true);
- setSaveState('saving');
+ renderPetExport();
+ const sheet=$('#pet-sheet');if(!sheet)return say('Pet Schedule layout is not ready yet.',true);
+ setSaveState('saving');say('Rendering Pet Schedule snapshot…');
+ let imageDataUrl;
+ try{imageDataUrl=await battlePlanImageDataUrl(sheet,'pet')}catch(e){setSaveState('saved');return say(e.message||'Could not render Pet Schedule.',true)}
  const existing=battlePlanItems.find(x=>x.item_type==='pet_schedule');
  let r;
- const payload={strategy_id:strategy.id,team_id:null,item_type:'pet_schedule',sort_order:700,snapshot:petBattleSnapshot(),updated_at:new Date().toISOString()};
+ const payload={strategy_id:strategy.id,team_id:null,item_type:'pet_schedule',sort_order:700,snapshot:petBattleSnapshot(imageDataUrl),updated_at:new Date().toISOString()};
  if(existing)r=await sb.from('svs_battle_plan_items').update(payload).eq('id',existing.id).select().single();
  else r=await sb.from('svs_battle_plan_items').insert(payload).select().single();
  if(r.error){setSaveState('saved');return say(r.error.message,true)}
  if(existing){const i=battlePlanItems.findIndex(x=>x.id===existing.id);battlePlanItems[i]=r.data}else battlePlanItems.push(r.data);
- renderBattlePlanBuilder();setSaveState('saved');say('Pet Schedule sent to Battle Plan.');
+ renderBattlePlanBuilder();setSaveState('saved');say('Pet Schedule layout sent to Battle Plan.');
+}
+
+async function sendAllianceLayoutToBattlePlan(allianceId){
+ if(!strategy)return say('Open a Team workspace first.',true);
+ const a=alliances.find(x=>String(x.id)===String(allianceId));if(!a)return say('Alliance layout not found.',true);
+ const sheet=$(`[data-layout-alliance="${CSS.escape(String(allianceId))}"]`);if(!sheet)return say('Alliance layout is not ready yet.',true);
+ setSaveState('saving');say(`Rendering ${a.alliance_tag||a.alliance_name||'Alliance'} Team Layout…`);
+ let imageDataUrl;
+ try{imageDataUrl=await battlePlanImageDataUrl(sheet,'alliance')}catch(e){setSaveState('saved');return say(e.message||'Could not render Team Layout.',true)}
+ const oldTeamIds=Teams(a.id).map(t=>t.id);
+ if(oldTeamIds.length){
+   const oldRows=battlePlanItems.filter(x=>x.item_type==='team'&&oldTeamIds.some(id=>String(id)===String(x.team_id)));
+   if(oldRows.length){
+     const d=await sb.from('svs_battle_plan_items').delete().in('id',oldRows.map(x=>x.id));
+     if(d.error){setSaveState('saved');return say(d.error.message,true)}
+     const ids=new Set(oldRows.map(x=>String(x.id)));battlePlanItems=battlePlanItems.filter(x=>!ids.has(String(x.id)));
+   }
+ }
+ const existing=battlePlanItems.find(x=>x.item_type==='alliance_layout'&&String(x.snapshot?.alliance_id)===String(a.id));
+ const snap={section:'Alliance Specific Plan',source:'team_layout',alliance_id:a.id,alliance_tag:a.alliance_tag||a.alliance_name||'Alliance',image_data_url:imageDataUrl,sent_at:new Date().toISOString()};
+ const payload={strategy_id:strategy.id,team_id:null,item_type:'alliance_layout',sort_order:800+Number(a.sort_order||0),snapshot:snap,updated_at:new Date().toISOString()};
+ let r;
+ if(existing)r=await sb.from('svs_battle_plan_items').update(payload).eq('id',existing.id).select().single();
+ else r=await sb.from('svs_battle_plan_items').insert(payload).select().single();
+ if(r.error){setSaveState('saved');return say(r.error.message,true)}
+ if(existing){const i=battlePlanItems.findIndex(x=>String(x.id)===String(existing.id));battlePlanItems[i]=r.data}else battlePlanItems.push(r.data);
+ renderLayout();renderBattlePlanBuilder();setSaveState('saved');say(`${a.alliance_tag||a.alliance_name||'Alliance'} Team Layout sent to Battle Plan.`);
 }
 
 async function sendTeamToBattlePlan(teamId){
- if(!strategy)return;const t=teamForAssignment(teamId);if(!t)return;setSaveState('saving');
- const payload={strategy_id:strategy.id,team_id:t.id,item_type:'team',sort_order:Number(A(t.strategy_alliance_id)?.sort_order||0)*10+Number(t.sort_order||0),snapshot:teamBattleSnapshot(t),updated_at:new Date().toISOString()};
- const up=await sb.from('svs_battle_plan_items').upsert(payload,{onConflict:'strategy_id,team_id,item_type'}).select().single();if(up.error)return say(up.error.message,true);
- const i=battlePlanItems.findIndex(x=>String(x.team_id)===String(t.id));if(i>=0)battlePlanItems[i]=up.data;else battlePlanItems.push(up.data);renderLayout();renderBattlePlan();renderBattlePlanBuilder();setSaveState('saved');say(`${teamLabel(t.id)} sent to Battle Plan.`);
+ const t=teamForAssignment(teamId);if(!t)return;
+ return sendAllianceLayoutToBattlePlan(t.strategy_alliance_id);
 }
+
 async function removeTeamFromBattlePlan(id){const item=battlePlanItems.find(x=>String(x.id)===String(id));if(!item)return;setSaveState('saving');const d=await sb.from('svs_battle_plan_items').delete().eq('id',id);if(d.error)return say(d.error.message,true);battlePlanItems=battlePlanItems.filter(x=>String(x.id)!==String(id));renderLayout();renderBattlePlan();renderBattlePlanBuilder();setSaveState('saved')}
 function renderBattlePlan(){
  const h=$('#battle-plan-list');if(!h)return;if(!strategy){h.innerHTML='<div class="muted">Open a Team workspace first.</div>';return}
- const items=battlePlanItems.slice().sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+ const items=battlePlanItems.filter(x=>['castle_city','pet_schedule','alliance_layout'].includes(x.item_type)).slice().sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
  h.innerHTML=items.length?items.map(x=>{
    const snap=x.snapshot||{};
    if(x.item_type==='castle_city'){
-     const cities=Array.isArray(snap.cities)?snap.cities:[],inside=cities.filter(c=>castleIsRed(Number(c.x)||0,Number(c.y)||0)).length;
-     const preview=snap.export_svg?`<div class="castle-bp-preview" style="margin-top:10px;border:1px solid rgba(255,255,255,.12);border-radius:14px;overflow:hidden;background:#030711">${snap.export_svg}</div>`:'';
-     return `<div class="battle-plan-item castle-bp-copy"><b>Castle City</b><div class="tiny muted" style="margin-top:4px">${cities.length} Cities • ${inside} inside Red Zone • exact Set Frame snapshot</div>${preview}<div class="battle-plan-actions"><button class="btn" data-remove-plan="${x.id}" type="button">Remove Castle City Section</button><button class="btn" data-open-castle-workspace type="button">Open Castle Seating</button></div><div class="tiny muted" style="margin-top:6px">Battle Plan keeps this exact framed composition. Later Castle Seating edits do not modify this copy.</div></div>`;
+     const preview=snap.export_svg?`<div class="bp-doc-snapshot">${snap.export_svg}</div>`:'';
+     return `<div class="battle-plan-item"><b>Alliance Seating Placement</b>${preview}<div class="battle-plan-actions"><button class="btn" data-remove-plan="${x.id}" type="button">Remove</button></div></div>`;
    }
    if(x.item_type==='pet_schedule'){
-     return `<div class="battle-plan-item"><b>Pet Schedule</b><div class="tiny muted" style="margin-top:4px">${(snap.rows||[]).length} schedule row${(snap.rows||[]).length===1?'':'s'} • snapshot</div><div class="battle-plan-actions"><button class="btn" data-remove-plan="${x.id}" type="button">Remove Pet Schedule</button><button class="btn" data-open-pets-workspace type="button">Open Pet Schedule</button></div></div>`;
+     return `<div class="battle-plan-item"><b>Pet Schedule</b>${bpImageSnapshotHtml(snap)}<div class="battle-plan-actions"><button class="btn" data-remove-plan="${x.id}" type="button">Remove</button></div></div>`;
    }
-   const tag=snap.alliance_tag||'Alliance',name=snap.team?.name||'Team',rl=(snap.rally_slots||[]).length,j=(snap.joiners||[]).length;
-   return `<div class="battle-plan-item"><b>${esc(tag)} • ${esc(name)}</b><div class="tiny muted" style="margin-top:4px">${rl} Rally slot${rl===1?'':'s'} • ${j} Joiner${j===1?'':'s'} • snapshot from Team Layout</div><div class="battle-plan-actions"><button class="btn" data-remove-plan="${x.id}" type="button">Remove</button></div></div>`;
- }).join(''):'<div class="muted">Nothing sent yet. Send Team Layouts, Pet Schedule and Castle Seating snapshots into this Battle Plan.</div>';
+   const tag=snap.alliance_tag||'Alliance';
+   return `<div class="battle-plan-item"><b>${esc(tag)} • Team Layout</b>${bpImageSnapshotHtml(snap)}<div class="battle-plan-actions"><button class="btn" data-remove-plan="${x.id}" type="button">Remove</button></div></div>`;
+ }).join(''):'<div class="muted">Nothing sent yet. Send the full Pet Schedule, Alliance Team Layouts and Castle Seating snapshots into this Battle Plan.</div>';
  $$('[data-remove-plan]',h).forEach(b=>b.onclick=()=>removeTeamFromBattlePlan(b.dataset.removePlan));
- $$('[data-open-castle-workspace]',h).forEach(b=>b.onclick=()=>showTab('seating'));
- $$('[data-open-pets-workspace]',h).forEach(b=>b.onclick=()=>showTab('pets'));
 }
 
 function renderRecommendations(items,title='NEXA Strategy Analysis'){

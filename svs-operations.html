@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V12.9.4 • SvS Live Event Publish + Theme Payload -->
+<!-- NEXA SVS OPERATIONS V12.9.5 • SvS Publish Auth Context Fix -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -867,6 +867,11 @@ async function waitForSupabase(timeoutMs=8000){
 
 
 function say(v,e=false){$('#status').textContent=v||'';$('#status').style.color=e?'#ff9cad':'#82f0ff'}
+async function currentAuthUser(){
+ const {data,error}=await sb.auth.getUser();
+ if(error)throw error;
+ return data?.user||null;
+}
 function setSaveState(mode='saved'){const el=$('#autosave-state');if(!el)return;const saving=mode==='saving';el.textContent=saving?'AUTOSAVE • SAVING…':'AUTOSAVE • SAVED';el.classList.toggle('saving',saving)}
 function timeOptions(selected=''){
  const out=[];for(let h=11;h<=19;h++){const v=`${String(h).padStart(2,'0')}:00`;out.push(`<option value="${v}" ${v===selected?'selected':''}>${v} UTC</option>`)}
@@ -1685,12 +1690,13 @@ async function saveSvsSetup({quiet=false,keepOpen=false}={}){
  if(!form.opponent_state||!form.prep_monday){if(!quiet)say('Opponent State and SvS Prep Start Date are required.',true);return null}
  setSaveState('saving');
  try{
+   const actor=await currentAuthUser();
    const now=new Date().toISOString();
    let result;
    if(eventSetup?.id){
-     result=await sb.from('svs_events').update({...form,title:`SvS vs ${form.opponent_state}`,state_number:state,setup_updated_at:now,setup_updated_by:user?.id||null,updated_at:now}).eq('id',eventSetup.id).select().single();
+     result=await sb.from('svs_events').update({...form,title:`SvS vs ${form.opponent_state}`,state_number:state,setup_updated_at:now,setup_updated_by:actor?.id||null,updated_at:now}).eq('id',eventSetup.id).select().single();
    }else{
-     result=await sb.from('svs_events').insert({...form,title:`SvS vs ${form.opponent_state}`,state_number:state,status:'upcoming',is_live:false,prep_form_open:false,battle_form_open:false,schedule_published:false,setup_updated_at:now,setup_updated_by:user?.id||null}).select().single();
+     result=await sb.from('svs_events').insert({...form,title:`SvS vs ${form.opponent_state}`,state_number:state,status:'upcoming',is_live:false,prep_form_open:false,battle_form_open:false,schedule_published:false,setup_updated_at:now,setup_updated_by:actor?.id||null}).select().single();
    }
    if(result.error){if(!quiet)say(result.error.message,true);return null}
    eventSetup=result.data;
@@ -1714,6 +1720,7 @@ async function saveSvsSetup({quiet=false,keepOpen=false}={}){
 async function publishSvsSetup(){
  setSaveState('saving');
  try{
+   const actor=await currentAuthUser();
    let saved=eventSetup;
    if(setupEditing||!saved?.id){saved=await saveSvsSetup({quiet:true,keepOpen:true});if(!saved){say('Save the SvS Setup before publishing.',true);return}}
    const now=new Date().toISOString();
@@ -1725,7 +1732,7 @@ async function publishSvsSetup(){
      status:'live',is_live:true,schedule_published:true,
      description,live_event_payload:payload,
      setup_published_at:now,live_event_published_at:now,
-     updated_at:now,setup_updated_at:now,setup_updated_by:user?.id||null
+     updated_at:now,setup_updated_at:now,setup_updated_by:actor?.id||null
    }).eq('id',saved.id).select().single();
    if(r.error)throw r.error;
    eventSetup=r.data;eventSetupLoaded=true;setupEditing=false;renderSvsSetup();say('SvS Live Event published with schedule.');

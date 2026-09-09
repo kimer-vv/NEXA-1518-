@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V12.9 • SvS Setup + Battle Plan seed + event-scoped ranked Responses + loading state -->
+<!-- NEXA SVS OPERATIONS V12.9.1 • Joiner Response Hero Picker Fix -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -23,6 +23,14 @@ body{margin:0;min-height:100dvh;background:radial-gradient(circle at 5% 22%,rgba
 .nav button{flex:0 0 auto;min-height:44px;border-radius:22px;border:1px solid rgba(109,130,255,.35);background:#070b1f;color:#b8c5e4;padding:0 14px;font-weight:900}
 .nav button.active{color:#fff;border-color:rgba(148,111,255,.8);background:linear-gradient(135deg,rgba(75,54,170,.9),rgba(28,82,130,.9));box-shadow:0 0 18px rgba(112,66,255,.15)}
 .panel{display:none}.panel.active{display:block}
+.setup-status{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}
+.setup-badge{display:inline-flex;align-items:center;min-height:28px;padding:0 10px;border-radius:999px;border:1px solid rgba(155,120,255,.42);color:#dfd3ff;font-size:10px;font-weight:950;letter-spacing:.06em}
+.setup-badge.live{border-color:rgba(103,223,177,.50);color:#9ff4d1}
+.setup-date-confirm{margin-top:10px;border:1px solid rgba(72,221,255,.20);border-radius:14px;background:rgba(72,221,255,.055);padding:11px 12px;display:grid;gap:5px}
+.setup-date-confirm b{color:#d9fbff}.setup-date-confirm span{color:#aeb7d1;font-size:11px;line-height:1.4}
+.setup-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.setup-actions .btn{flex:1 1 150px}
+.setup-readonly{background:rgba(255,255,255,.035)!important;color:#c9d2e9!important}
 .card,.desc{margin-left:18px;border:1px solid rgba(255,255,255,.12);border-radius:20px;background:rgba(9,17,38,.82);padding:16px}
 .card{margin-bottom:14px}.desc{color:var(--m);margin-bottom:16px;line-height:1.5}
 .section-head{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
@@ -335,12 +343,6 @@ body.pet-preview-open{overflow:hidden!important}
 .bp-document{width:100%;overflow:hidden}
 .bp-alliance-layout-shot{width:100%;max-width:100%;overflow-x:auto!important;overflow-y:hidden;-webkit-overflow-scrolling:touch}
 .bp-alliance-layout-shot img{display:block;max-width:none!important}
-.svs-setup-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.svs-date-confirm{margin-top:10px;border:1px solid rgba(72,221,255,.18);background:rgba(5,18,34,.72);border-radius:14px;padding:11px;display:grid;gap:5px}
-.svs-date-confirm b{color:#bff6ff}.svs-date-confirm .warn{color:#ffd79a}
-.svs-setup-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-.response-role-group{display:grid;gap:8px;margin-top:12px}.response-role-head{display:flex;justify-content:space-between;gap:8px;align-items:end;border-bottom:1px solid rgba(255,255,255,.10);padding-bottom:7px}.response-score{color:#9eeeff;font-weight:950}
-@media(max-width:620px){.svs-setup-grid{grid-template-columns:1fr}}
 .bp-empty{padding:18px;border:1px dashed rgba(72,221,255,.28);border-radius:16px;background:rgba(4,12,28,.52);text-align:center}
 .bp-editor{display:grid;gap:12px}
 .bp-section{border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:13px;background:rgba(5,11,28,.62)}
@@ -589,18 +591,18 @@ body.pet-preview-open{overflow:hidden!important}
   <div id="status" class="status"></div>
 
   <section class="panel active" data-panel="setup">
-    <div class="desc">Configure the current SvS once, publish the Live Event when ready, and send the same event information directly to Battle Plan.</div>
+    <div class="desc">Start and maintain the SvS event here. Battle Sign-Up stays in Form Center; this Setup controls the event information, Live Event details, and the event data sent into Battle Plan.</div>
     <div class="card">
       <div class="section-head">
-        <div><h2>SvS Setup</h2><div class="tiny muted">This setup is independent from Battle Sign-Up. Battle Sign-Up stays managed in Form Center.</div></div>
-        <span id="svs-setup-status" class="bp-summary-status draft">LOADING</span>
+        <div><h2>SvS Setup</h2><div class="tiny muted">One event source for dates, opponent, Star/Presidency assignments and SvS Rules.</div></div>
+        <div id="svs-setup-state" class="setup-badge">LOADING</div>
       </div>
       <div id="svs-setup-host" style="margin-top:12px"><div class="muted">Loading SvS Setup…</div></div>
     </div>
   </section>
 
   <section class="panel" data-panel="responses">
-    <div class="desc">Responses come from the current event's SvS Battle Sign-Up in Form Center and are ranked by battle-role quality for strategy review.</div>
+    <div class="desc">Battle Sign-Up remains managed in Form Center. Responses for this SvS event appear here and are ranked from strongest to weakest using the submitted troop and battle data.</div>
     <div class="card">
       <div class="section-head"><div><h2>Responses</h2><div class="tiny muted">Battle Role, availability and saved battle information.</div></div><button id="refresh-responses" class="btn">Refresh</button></div>
       <div id="responses-list" class="muted" style="margin-top:12px">Loading…</div>
@@ -841,7 +843,7 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&
 const state=Number(String(window.NEXA_ACTIVE_STATE||localStorage.getItem('nexa_active_state_v49')||1518).replace(/\D/g,''))||1518;
 let sb=null;
 const colors=['#ff7289','#56bfff','#64dfa7','#b989ff','#ffb865','#65e1e6'];
-let strategy=null,alliances=[],teams=[],rally=[],joiners=[],heroes=[],libraryItems=[],petRows=[],petAssignments=[],allAlliances=[],responses=[],playerPool=[],stateRoles=[],strategyList=[],formations=[],visibleHeroGenerations=[],heroGenerationRows=[],playerInventory=[],battleMetaRules=[],responsePlayers={},battlePlanItems=[],battlePlanRecord=null,battlePlanView='summary',battlePlanLoaded=false,svsSetupEvent=null,svsSetupLoaded=false,strategyLoading=false,testSandbox=false,petAssignmentHidden=false,formationCenterTab='approved';
+let strategy=null,alliances=[],teams=[],rally=[],joiners=[],heroes=[],libraryItems=[],petRows=[],petAssignments=[],allAlliances=[],responses=[],playerPool=[],stateRoles=[],strategyList=[],formations=[],visibleHeroGenerations=[],heroGenerationRows=[],playerInventory=[],battleMetaRules=[],responsePlayers={},battlePlanItems=[],battlePlanRecord=null,battlePlanView='summary',battlePlanLoaded=false,eventSetup=null,eventSetupLoaded=false,appLoading=true,testSandbox=false,petAssignmentHidden=false,formationCenterTab='approved';
 let castleRow=null,castleSnapshot=null,castleTool='pan',castleSelection=new Set(),castleUndo=[],castleRedo=[],castlePointerState=new Map(),castleGesture=null,castleSaveTimer=null,castlePaintAllianceId=null,castlePaintColor='#48ddff',castleExportView=null,castleExportFrame=null,castleExportPointers=new Map(),castleExportGesture=null,castleExportLegendVisible=false,castleExportLegendPos={x:.03,y:.10},castleExportLegendDrag=null;
 
 const stateLabel=$('#state-label');
@@ -1062,19 +1064,29 @@ function pickableHeroes(type=''){
 function heroOptions(sel=''){return '<option value="">—</option>'+pickableHeroes().map(h=>`<option value="${h.id}" ${String(h.id)===String(sel)?'selected':''}>${esc(h.name)}</option>`).join('')}
 function heroOptionsTroop(type,sel=''){return '<option value="">—</option>'+pickableHeroes(type).map(h=>`<option value="${h.id}" ${String(h.id)===String(sel)?'selected':''}>${esc(h.name)} • Gen ${h.generation??'—'}</option>`).join('')}
 function heroPickerFace(id){const h=H(id);return h?`${h.image_url?`<img src="${esc(h.image_url)}" alt="">`:''}<span><b class="${rarityClass(h.rarity)}">${esc(h.name)}</b><small>Gen ${esc(h.generation??'—')} • ${esc(h.rarity||'')}</small></span>`:'<span><b>—</b><small>Select hero</small></span>'}
-function heroPickerField(id,label,selected='',accountId=''){
- return `<div class="visual-hero-field"><label>${esc(label)}</label><input id="${esc(id)}" type="hidden" value="${esc(selected||'')}"><button class="hero-picker-btn" data-hero-picker="${esc(id)}" data-account-id="${esc(accountId||'')}" type="button">${heroPickerFace(selected)}</button></div>`;
+function responseJoinerHeroPool(accountId){
+ const r=responseFor(accountId),raw=r?.joiner_heroes;
+ if(!r||!Array.isArray(raw))return null;
+ const names=new Set(raw.map(x=>String(x?.name||'').trim().toLowerCase()).filter(Boolean));
+ return pickableHeroes().filter(h=>names.has(String(h.name||'').trim().toLowerCase()));
 }
-function openHeroPicker(targetId,button,type='',accountId=''){
+function heroPickerField(id,label,selected='',accountId='',source='inventory'){
+ return `<div class="visual-hero-field"><label>${esc(label)}</label><input id="${esc(id)}" type="hidden" value="${esc(selected||'')}"><button class="hero-picker-btn" data-hero-picker="${esc(id)}" data-account-id="${esc(accountId||'')}" data-hero-source="${esc(source||'inventory')}" type="button">${heroPickerFace(selected)}</button></div>`;
+}
+function openHeroPicker(targetId,button,type='',accountId='',source='inventory'){
  const current=document.getElementById(targetId)?.value||'';
- let pool=pickableHeroes(type);
- if(accountId){const owned=new Set(playerInventory.filter(x=>String(x.player_account_id)===String(accountId)&&x.owned).map(x=>String(x.library_item_id)));pool=pool.filter(h=>owned.has(String(h.id)))}
+ let pool=pickableHeroes(type),responseScoped=false;
+ if(accountId&&source==='response_joiner'){
+   const approved=responseJoinerHeroPool(accountId);
+   if(approved!==null){pool=type?approved.filter(h=>String(h.troop_type||'').toLowerCase()===type):approved;responseScoped=true}
+ }
+ if(accountId&&!responseScoped){const owned=new Set(playerInventory.filter(x=>String(x.player_account_id)===String(accountId)&&x.owned).map(x=>String(x.library_item_id)));pool=pool.filter(h=>owned.has(String(h.id)))}
  const ov=document.createElement('div');ov.className='hero-choice-overlay';
- ov.innerHTML=`<div class="hero-choice-card"><div class="section-head"><div><h3 style="margin:0">Choose Hero</h3><div class="tiny muted">Gen ${activeHeroGeneration()} or earlier • Epic/Purple + Legendary only</div></div><button class="mini-x" data-close-hero type="button">×</button></div><div class="hero-choice-grid"><button class="hero-choice-item empty-choice ${!current?'selected':''}" data-hero-id="" type="button"><b>—</b><small>Leave empty</small></button>${pool.map(h=>`<button class="hero-choice-item ${String(h.id)===String(current)?'selected':''}" data-hero-id="${h.id}" type="button">${h.image_url?`<img src="${esc(h.image_url)}" alt="">`:''}<b class="${rarityClass(h.rarity)}">${esc(h.name)}</b><small>Gen ${esc(h.generation??'—')} • ${esc(h.rarity||'')}</small></button>`).join('')}</div></div>`;
+ ov.innerHTML=`<div class="hero-choice-card"><div class="section-head"><div><h3 style="margin:0">Choose Hero</h3><div class="tiny muted">${responseScoped?'Battle Sign-Up approved Joiner heroes only':`Gen ${activeHeroGeneration()} or earlier • Epic/Purple + Legendary only`}</div></div><button class="mini-x" data-close-hero type="button">×</button></div><div class="hero-choice-grid"><button class="hero-choice-item empty-choice ${!current?'selected':''}" data-hero-id="" type="button"><b>—</b><small>Leave empty</small></button>${pool.map(h=>`<button class="hero-choice-item ${String(h.id)===String(current)?'selected':''}" data-hero-id="${h.id}" type="button">${h.image_url?`<img src="${esc(h.image_url)}" alt="">`:''}<b class="${rarityClass(h.rarity)}">${esc(h.name)}</b><small>Gen ${esc(h.generation??'—')} • ${esc(h.rarity||'')}</small></button>`).join('')}</div></div>`;
  document.body.appendChild(ov);$('[data-close-hero]',ov).onclick=()=>ov.remove();
  $$('[data-hero-id]',ov).forEach(x=>x.onclick=()=>{const val=x.dataset.heroId||'',input=document.getElementById(targetId);if(input)input.value=val;if(button)button.innerHTML=heroPickerFace(val);ov.remove()});
 }
-function bindVisualHeroPickers(root=document){$$('[data-hero-picker]',root).forEach(b=>b.onclick=()=>openHeroPicker(b.dataset.heroPicker,b,b.dataset.heroType||'',b.dataset.accountId||''))}
+function bindVisualHeroPickers(root=document){$$('[data-hero-picker]',root).forEach(b=>b.onclick=()=>openHeroPicker(b.dataset.heroPicker,b,b.dataset.heroType||'',b.dataset.accountId||'',b.dataset.heroSource||'inventory'))}
 function visibleHeroes(){return heroes.filter(h=>visibleHeroGenerations.includes(Number(h.generation)))}
 function latestHero(type){return visibleHeroes().filter(h=>String(h.troop_type||'').toLowerCase()===type).sort((a,b)=>(b.generation||0)-(a.generation||0))[0]||null}
 function namedVisibleHero(name){return visibleHeroes().find(h=>String(h.name||'').toLowerCase()===String(name).toLowerCase())||null}
@@ -1342,7 +1354,12 @@ async function base(){
  const opts='<option value="">Select alliance…</option>'+allAlliances.map(x=>`<option value="${x.id}">${esc(x.tag)}${x.name?` • ${esc(x.name)}`:''}</option>`).join('');
  $('#assist-primary-alliance').innerHTML=opts;
  renderCounterAllianceSelectors();
- await loadStrategies();svsSetupLoaded=true;renderSvsSetup();await loadResponses();$('#hero-gen-note').textContent=`Hero recommendations and hero pickers are limited to the currently unlocked generation • Gen ${activeHeroGeneration()}`;
+ await loadStrategies();
+ if(!strategy)await loadResponses();
+ appLoading=false;
+ renderSvsSetup();
+ renderBattlePlanBuilder();
+ $('#hero-gen-note').textContent=`Hero recommendations and hero pickers are limited to the currently unlocked generation • Gen ${activeHeroGeneration()}`;
 }
 async function loadStrategies(){
  const {data,error}=await sb.from('svs_strategies').select('*').eq('state_number',state).order('updated_at',{ascending:false});
@@ -1487,13 +1504,10 @@ $('#create-strategy').onclick=async()=>{
  if(error)return say(error.message,true);strategy=data;await loadStrategies();await openStrategy(data.id);showTab(data.build_flow==='pets_first'?'pets':'strategy');say('Strategy created.');
 };
 async function openStrategy(id){
- strategyLoading=true;svsSetupLoaded=false;battlePlanLoaded=false;renderSvsSetup();renderBattlePlanBuilder();
+ battlePlanLoaded=false;eventSetupLoaded=false;renderBattlePlanBuilder();renderSvsSetup();
  // Never replace the current in-memory Castle workspace before its latest edit is persisted.
  if(strategy&&castleSnapshot)await castleFlushSave();
- const {data:s,error}=await sb.from('svs_strategies').select('*').eq('id',id).single();if(error){strategyLoading=false;svsSetupLoaded=true;return say(error.message,true)}strategy=s;
- svsSetupEvent=null;
- if(strategy.event_id){const ev=await sb.from('svs_events').select('*').eq('id',strategy.event_id).maybeSingle();svsSetupEvent=ev.error?null:(ev.data||null)}
- svsSetupLoaded=true;
+ const {data:s,error}=await sb.from('svs_strategies').select('*').eq('id',id).single();if(error)return say(error.message,true);strategy=s;
  let r=await sb.from('svs_strategy_alliances').select('*').eq('strategy_id',id).order('sort_order');alliances=r.data||[];
  const aids=alliances.map(x=>x.id);teams=[];rally=[];joiners=[];petRows=[];petAssignments=[];
  if(aids.length){r=await sb.from('svs_strategy_teams').select('*').in('strategy_alliance_id',aids).order('sort_order');teams=r.data||[]}
@@ -1533,162 +1547,155 @@ async function openStrategy(id){
  }catch(e){
    console.warn('[NEXA] PET auto-heal failed',e);
  }
- strategyLoading=false;renderSvsSetup();await loadResponses();renderStrategy();renderPet();renderLayout();renderCastleSeating();renderBattlePlan();renderBattlePlanBuilder();setSaveState('saved');
+ await loadSvsSetup();
+ await loadResponses();
+ renderStrategy();renderPet();renderLayout();renderCastleSeating();renderBattlePlan();renderBattlePlanBuilder();renderSvsSetup();setSaveState('saved');
 
 }
 
-function svsAddDays(dateStr,n){
- if(!dateStr)return '';
- const d=new Date(`${dateStr}T00:00:00Z`);d.setUTCDate(d.getUTCDate()+n);
+function setupAllianceOptions(selected=''){
+ const rows=(allAlliances||[]).slice().sort((a,b)=>String(a.tag||a.name||'').localeCompare(String(b.tag||b.name||'')));
+ return '<option value="">Select alliance…</option>'+rows.map(a=>`<option value="${a.id}" ${String(a.id)===String(selected||'')?'selected':''}>${esc(a.tag||a.name||'Alliance')}${a.name&&a.tag?` • ${esc(a.name)}`:''}</option>`).join('');
+}
+function setupAllianceTag(id){
+ const a=(allAlliances||[]).find(x=>String(x.id)===String(id||''));
+ return a?.tag||a?.name||'';
+}
+function setupBattleDate(prep){
+ if(!prep)return'';
+ const d=new Date(`${prep}T00:00:00Z`);if(Number.isNaN(d.getTime()))return'';
+ d.setUTCDate(d.getUTCDate()+5);
  return d.toISOString().slice(0,10);
 }
-function svsDateLabel(dateStr,tz='UTC'){
- if(!dateStr)return '—';
- const d=new Date(`${dateStr}T00:00:00Z`);
- return new Intl.DateTimeFormat('en-US',{timeZone:tz,weekday:'long',month:'long',day:'numeric',year:'numeric'}).format(d);
+function setupDateLabels(prep){
+ if(!prep)return{utc:'Select the first day of SvS Prep.',local:''};
+ const d=new Date(`${prep}T00:00:00Z`);if(Number.isNaN(d.getTime()))return{utc:'Invalid date',local:''};
+ const utc=new Intl.DateTimeFormat('en-US',{timeZone:'UTC',weekday:'long',month:'long',day:'numeric',year:'numeric'}).format(d)+' • 00:00 UTC';
+ const tz=Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC';
+ const local=new Intl.DateTimeFormat('en-US',{timeZone:tz,weekday:'long',month:'long',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit',hour12:true,timeZoneName:'short'}).format(d);
+ return{utc,local:`${local} • ${tz}`};
 }
-function svsLocalTz(){return Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC'}
-function svsAllianceTagById(id){
- const a=(allAlliances||[]).find(x=>String(x.id)===String(id));return a?.tag||a?.name||'';
-}
-function svsSetupAllianceOptions(selected=''){
- return `<option value="">Select alliance…</option>`+(allAlliances||[]).map(a=>`<option value="${esc(a.id)}"${String(a.id)===String(selected)?' selected':''}>${esc(a.tag||a.name||'Alliance')}${a.name&&a.tag?` • ${esc(a.name)}`:''}</option>`).join('');
+async function loadSvsSetup(){
+ eventSetupLoaded=false;renderSvsSetup();
+ if(!strategy){eventSetup=null;eventSetupLoaded=true;renderSvsSetup();return}
+ let row=null;
+ if(strategy.event_id){
+   const q=await sb.from('svs_events').select('*').eq('id',strategy.event_id).maybeSingle();
+   if(q.error)console.warn('[NEXA] SvS Setup load failed',q.error);
+   row=q.data||null;
+ }
+ eventSetup=row;eventSetupLoaded=true;renderSvsSetup();
 }
 function renderSvsSetup(){
- const host=$('#svs-setup-host'),badge=$('#svs-setup-status');if(!host)return;
- if(strategyLoading||!svsSetupLoaded){
-   host.innerHTML='<div class="bp-empty"><b>Loading SvS Setup…</b><div class="tiny muted" style="margin-top:5px">Loading the current SvS strategy and event information.</div></div>';
-   if(badge){badge.textContent='LOADING';badge.className='bp-summary-status draft'}return;
- }
- if(!strategy){
-   host.innerHTML='<div class="bp-empty"><b>Open an SvS Strategy first.</b><div class="tiny muted" style="margin-top:5px">SvS Setup stays attached to the active Battle Operations strategy.</div></div>';
-   if(badge){badge.textContent='NO STRATEGY';badge.className='bp-summary-status draft'}return;
- }
- const e=svsSetupEvent||{},prep=e.prep_monday||'',battle=prep?svsAddDays(prep,5):'',tz=svsLocalTz();
- const dirtyPublished=!!(e.setup_published_at&&e.setup_updated_at&&new Date(e.setup_updated_at)>new Date(e.setup_published_at));
- const live=String(e.status||'').toLowerCase()==='live'||e.is_live===true;
- if(badge){
-   badge.textContent=live?(dirtyPublished?'CHANGES NOT PUBLISHED':'LIVE'):(e.id?'DRAFT':'NOT SAVED');
-   badge.className=`bp-summary-status ${live&&!dirtyPublished?'live':'draft'}`;
- }
- host.innerHTML=`<div class="svs-setup-grid">
-   <label>Opponent State<input id="svs-setup-opponent" type="number" min="1" inputmode="numeric" value="${bpVal(e.opponent_state||'')}" placeholder="State number"></label>
-   <label>SvS Prep Start Date <span class="tiny muted">First day of Prep Phase • Game Date (UTC)</span><input id="svs-setup-prep" type="date" value="${bpVal(prep)}"></label>
-   <label>Alliance Going for the Star<select id="svs-setup-star">${svsSetupAllianceOptions(e.castle_alliance_id||'')}</select></label>
-   <label>Alliance Up for Presidency<select id="svs-setup-presidency">${svsSetupAllianceOptions(e.presidency_alliance_id||'')}</select></label>
+ const host=$('#svs-setup-host'),badge=$('#svs-setup-state');if(!host)return;
+ if(appLoading&&!strategy){host.innerHTML='<div class="muted">Loading SvS strategy and event setup…</div>';if(badge){badge.textContent='LOADING';badge.classList.remove('live')}return}
+ if(!strategy){host.innerHTML='<div class="muted">Open or create an SvS Strategy to attach the event setup.</div>';if(badge){badge.textContent='NO STRATEGY';badge.classList.remove('live')}return}
+ if(!eventSetupLoaded){host.innerHTML='<div class="muted">Loading SvS Setup…</div>';if(badge){badge.textContent='LOADING';badge.classList.remove('live')}return}
+ const e=eventSetup||{},prep=e.prep_monday||'',battle=setupBattleDate(prep),dates=setupDateLabels(prep),isLive=String(e.status||'').toLowerCase()==='live'||e.is_live===true;
+ if(badge){badge.textContent=isLive?'LIVE':'DRAFT';badge.classList.toggle('live',isLive)}
+ host.innerHTML=`<div class="grid2">
+   <label>Opponent State<input id="setup-opponent" type="number" min="1" inputmode="numeric" value="${bpVal(e.opponent_state||'')}" placeholder="Example: 1519"></label>
+   <label>SvS Prep Start Date<input id="setup-prep-date" type="date" value="${bpVal(prep)}"><span class="tiny muted">First day of the SvS Preparation Phase • Game/UTC date.</span></label>
+   <label>Battle Date<input id="setup-battle-date" class="setup-readonly" type="date" value="${bpVal(battle)}" readonly><span class="tiny muted">Calculated automatically as Prep Start + 5 days.</span></label>
+   <label>Alliance Going for the Star<select id="setup-star-alliance">${setupAllianceOptions(e.castle_alliance_id)}</select></label>
+   <label>Alliance Up for Presidency<select id="setup-presidency-alliance">${setupAllianceOptions(e.presidency_alliance_id)}</select></label>
  </div>
- <div id="svs-date-confirm" class="svs-date-confirm"></div>
- <label style="margin-top:10px">SvS Rules<textarea id="svs-setup-rules" class="tall" placeholder="One rule per line">${bpVal(e.rules_text||'')}</textarea></label>
- <div class="svs-setup-actions">
-   <button id="svs-setup-save" class="btn violet" type="button">Save</button>
-   <button id="svs-setup-publish" class="btn" type="button">${live?'Update Live Event':'Publish to Live Event'}</button>
-   <button id="svs-setup-send-plan" class="btn" type="button">Send to Battle Plan</button>
- </div>`;
- const updateDates=()=>{
-   const v=$('#svs-setup-prep')?.value||'',box=$('#svs-date-confirm');if(!box)return;
-   if(!v){box.innerHTML='<span class="muted">Choose the first SvS Prep date to confirm UTC and your local calendar date.</span>';return}
-   const b=svsAddDays(v,5);
-   box.innerHTML=`<div><b>UTC Prep Date:</b> ${esc(svsDateLabel(v,'UTC'))}</div><div><b>Your Local Date:</b> ${esc(svsDateLabel(v,tz))} <span class="tiny muted">(${esc(tz)})</span></div><div><b>Calculated Battle Day:</b> ${esc(svsDateLabel(b,'UTC'))} UTC</div><div class="tiny warn">Confirm these dates before saving. NEXA uses the UTC Prep date as the anchor for the SvS schedule.</div>`;
+ <div class="setup-date-confirm" id="setup-date-confirm"><b>Confirm the SvS start date</b><span><strong>UTC:</strong> ${esc(dates.utc)}</span><span><strong>Your local time:</strong> ${esc(dates.local||'—')}</span></div>
+ <label style="margin-top:12px">SvS Rules<textarea id="setup-rules" class="tall" placeholder="One rule per line">${bpVal(e.rules_text||'')}</textarea></label>
+ <div class="setup-actions">
+   <button id="setup-save" class="btn violet" type="button">Save</button>
+   <button id="setup-publish" class="btn" type="button">${isLive?'Update Live Event':'Publish to Live Event'}</button>
+   <button id="setup-send-plan" class="btn" type="button">Send to Battle Plan</button>
+ </div>
+ <div class="tiny muted" style="margin-top:9px">Battle Sign-Up stays in Form Center. Its deadline/open-close behavior is independent from SvS Setup.</div>`;
+ const date=$('#setup-prep-date');if(date)date.onchange=()=>{const b=setupBattleDate(date.value),d=setupDateLabels(date.value);$('#setup-battle-date').value=b;$('#setup-date-confirm').innerHTML=`<b>Confirm the SvS start date</b><span><strong>UTC:</strong> ${esc(d.utc)}</span><span><strong>Your local time:</strong> ${esc(d.local||'—')}</span>`};
+ $('#setup-save').onclick=()=>saveSvsSetup();
+ $('#setup-publish').onclick=publishSvsSetup;
+ $('#setup-send-plan').onclick=sendSetupToBattlePlan;
+}
+function collectSvsSetup(){
+ return{
+   opponent_state:Number($('#setup-opponent')?.value||0)||null,
+   prep_monday:$('#setup-prep-date')?.value||null,
+   castle_alliance_id:Number($('#setup-star-alliance')?.value||0)||null,
+   presidency_alliance_id:Number($('#setup-presidency-alliance')?.value||0)||null,
+   rules_text:$('#setup-rules')?.value.trim()||null
  };
- $('#svs-setup-prep').addEventListener('change',updateDates);updateDates();
- $('#svs-setup-save').onclick=()=>saveSvsSetup();
- $('#svs-setup-publish').onclick=publishSvsSetup;
- $('#svs-setup-send-plan').onclick=sendSvsSetupToBattlePlan;
 }
 async function saveSvsSetup({quiet=false}={}){
- if(!strategy)return say('Open an SvS Strategy first.',true);
- const opponent=Number($('#svs-setup-opponent')?.value||0),prep=$('#svs-setup-prep')?.value||'';
- const star=Number($('#svs-setup-star')?.value||0)||null,pres=Number($('#svs-setup-presidency')?.value||0)||null;
- const rules=$('#svs-setup-rules')?.value.trim()||'';
- if(!opponent||!prep)return say('Opponent State and SvS Prep Start Date are required.',true);
- const now=new Date().toISOString();
- const payload={state_number:Number(strategy.state_number||state),opponent_state:opponent,prep_monday:prep,castle_alliance_id:star,presidency_alliance_id:pres,rules_text:rules,title:`SvS vs ${opponent}`,setup_updated_at:now,updated_at:now};
+ if(!strategy){if(!quiet)say('Open or create an SvS Strategy first.',true);return null}
+ const form=collectSvsSetup();
+ if(!form.opponent_state||!form.prep_monday){if(!quiet)say('Opponent State and SvS Prep Start Date are required.',true);return null}
  setSaveState('saving');
- let r;
- if(svsSetupEvent?.id)r=await sb.from('svs_events').update(payload).eq('id',svsSetupEvent.id).select('*').single();
- else r=await sb.from('svs_events').insert({...payload,status:'upcoming',is_live:false,schedule_published:false}).select('*').single();
- if(r.error){setSaveState('saved');say(r.error.message,true);return false}
- svsSetupEvent=r.data;
- if(String(strategy.event_id||'')!==String(r.data.id)){
-   const sr=await sb.from('svs_strategies').update({event_id:r.data.id,updated_at:now}).eq('id',strategy.id).select('*').single();
-   if(sr.error){setSaveState('saved');say(sr.error.message,true);return false}
+ const now=new Date().toISOString();
+ let result;
+ if(eventSetup?.id){
+   result=await sb.from('svs_events').update({...form,title:`SvS vs ${form.opponent_state}`,state_number:state,setup_updated_at:now,setup_updated_by:user?.id||null,updated_at:now}).eq('id',eventSetup.id).select().single();
+ }else{
+   result=await sb.from('svs_events').insert({...form,title:`SvS vs ${form.opponent_state}`,state_number:state,status:'draft',is_live:false,prep_form_open:false,battle_form_open:false,schedule_published:false,setup_updated_at:now,setup_updated_by:user?.id||null}).select().single();
+ }
+ if(result.error){setSaveState('saved');if(!quiet)say(result.error.message,true);return null}
+ eventSetup=result.data;
+ if(String(strategy.event_id||'')!==String(eventSetup.id)){
+   const sr=await sb.from('svs_strategies').update({event_id:eventSetup.id,updated_at:now}).eq('id',strategy.id).select().single();
+   if(sr.error){setSaveState('saved');if(!quiet)say(sr.error.message,true);return null}
    strategy=sr.data;
  }
- svsSetupLoaded=true;setSaveState('saved');renderSvsSetup();
+ eventSetupLoaded=true;renderSvsSetup();setSaveState('saved');
+ await loadResponses();
  if(!quiet)say('SvS Setup saved.');
- return true;
+ return eventSetup;
 }
 async function publishSvsSetup(){
- const ok=await saveSvsSetup({quiet:true});if(!ok)return;
+ const saved=await saveSvsSetup({quiet:true});if(!saved)return;
+ setSaveState('saving');
  const now=new Date().toISOString();
- setSaveState('saving');
- const r=await sb.from('svs_events').update({status:'live',is_live:true,schedule_published:true,setup_published_at:now,setup_updated_at:now,updated_at:now}).eq('id',svsSetupEvent.id).select('*').single();
+ const r=await sb.from('svs_events').update({status:'live',is_live:true,updated_at:now,setup_updated_at:now,setup_updated_by:user?.id||null}).eq('id',saved.id).select().single();
  if(r.error){setSaveState('saved');return say(r.error.message,true)}
- svsSetupEvent=r.data;setSaveState('saved');renderSvsSetup();say('Live Event published / updated.');
+ eventSetup=r.data;renderSvsSetup();setSaveState('saved');say('SvS Live Event updated.');
 }
-async function ensureBattlePlanRecordForSetup(){
- if(battlePlanRecord)return battlePlanRecord;
- const ex=await sb.from('svs_battle_plans').select('*').eq('strategy_id',strategy.id).maybeSingle();
- if(ex.error)return say(ex.error.message,true),null;
- if(ex.data){battlePlanRecord=ex.data;battlePlanLoaded=true;return ex.data}
- const {data:{user}}=await sb.auth.getUser();
- const r=await sb.from('svs_battle_plans').insert({strategy_id:strategy.id,event_id:strategy.event_id||null,state_number:strategy.state_number||state,title:'SvS Battle Plan',document:battlePlanDefaultDocument(),status:'draft',version:1,updated_by:user?.id||null}).select('*').single();
- if(r.error)return say(r.error.message,true),null;
- battlePlanRecord=r.data;battlePlanLoaded=true;return r.data;
-}
-async function sendSvsSetupToBattlePlan(){
- const ok=await saveSvsSetup({quiet:true});if(!ok)return;
- const bp=await ensureBattlePlanRecordForSetup();if(!bp)return;
- const current=battlePlanDoc(),prep=svsSetupEvent.prep_monday||'';
+async function sendSetupToBattlePlan(){
+ const saved=await saveSvsSetup({quiet:true});if(!saved)return;
+ if(!battlePlanRecord){await battlePlanCreate();if(!battlePlanRecord)return}
+ const current=battlePlanDoc(),battleDate=setupBattleDate(saved.prep_monday);
  const doc={...current,
-   opponent_state:String(svsSetupEvent.opponent_state||''),
-   prep_start_date:prep,
-   event_date:prep?svsAddDays(prep,5):'',
-   alliance_first_star:svsAllianceTagById(svsSetupEvent.castle_alliance_id),
-   alliance_presidency:svsAllianceTagById(svsSetupEvent.presidency_alliance_id),
-   svs_rules:String(svsSetupEvent.rules_text||''),
-   setup_source_event_id:svsSetupEvent.id,
-   setup_synced_at:new Date().toISOString(),
-   updated_at:new Date().toISOString()
+   opponent_state:String(saved.opponent_state||''),
+   alliance_first_star:setupAllianceTag(saved.castle_alliance_id),
+   alliance_first_star_manual:false,
+   alliance_presidency:setupAllianceTag(saved.presidency_alliance_id),
+   alliance_presidency_manual:false,
+   event_date:battleDate,
+   svs_rules:String(saved.rules_text||''),
+   setup_event_id:saved.id,
+   setup_synced_at:new Date().toISOString()
  };
- setSaveState('saving');
- const r=await sb.from('svs_battle_plans').update({document:doc,event_id:svsSetupEvent.id,updated_at:new Date().toISOString()}).eq('id',bp.id).select('*').single();
- if(r.error){setSaveState('saved');return say(r.error.message,true)}
- battlePlanRecord=r.data;battlePlanView='summary';setSaveState('saved');renderBattlePlanBuilder();say('SvS Setup sent to Battle Plan.');
+ const r=await sb.from('svs_battle_plans').update({document:doc,event_id:saved.id,updated_at:new Date().toISOString()}).eq('id',battlePlanRecord.id).select().single();
+ if(r.error)return say(r.error.message,true);
+ battlePlanRecord=r.data;battlePlanView='summary';renderBattlePlanBuilder();say('SvS Setup sent to Battle Plan.');
 }
 
 async function loadResponses(){
  const host=$('#responses-list');if(!host)return;
- if(strategyLoading){host.innerHTML='<div class="muted">Loading current SvS Battle Sign-Up responses…</div>';return}
- if(!strategy){host.innerHTML='<div class="muted">Open an SvS Strategy to load its Battle Sign-Up responses.</div>';responses=[];return}
- if(!strategy.event_id){host.innerHTML='<div class="muted">Save SvS Setup first. Responses will be scoped to the Battle Sign-Up attached to this SvS event.</div>';responses=[];return}
- let q=sb.from('battle_form_responses').select('id,event_id,player_account_id,role,deployment_capacity,availability,availability_mode,troop_quality,joiner_heroes,rally_heroes,experts,custom_answers,updated_at').eq('event_id',strategy.event_id).limit(150);
- const {data,error}=await q;
+ const eventId=strategy?.event_id||eventSetup?.id||null;
+ if(!eventId){responses=[];responsePlayers={};host.innerHTML='<div class="muted">Save SvS Setup first. Responses here are linked only to this event’s Battle Sign-Up.</div>';return}
+ host.innerHTML='<div class="muted">Loading Battle Sign-Up responses…</div>';
+ const {data,error}=await sb.from('battle_form_responses').select('id,event_id,player_account_id,role,deployment_capacity,availability,availability_mode,troop_quality,joiner_heroes,rally_heroes,experts,custom_answers,updated_at').eq('event_id',eventId).limit(250);
  if(error){host.textContent='Responses could not be loaded.';return}
  responses=data||[];const ids=[...new Set(responses.map(x=>x.player_account_id).filter(Boolean))];responsePlayers={};
  if(ids.length){const p=await sb.from('player_accounts').select('id,in_game_name,player_id,alliance_id,battle_role,deployment_capacity,rally_capacity,power,hero_gear').in('id',ids);(p.data||[]).forEach(x=>responsePlayers[x.id]=x)}
- const rlPlayers=responses.map(r=>responsePlayers[r.player_account_id]||playerPool.find(x=>String(x.id)===String(r.player_account_id))).filter(Boolean).filter(p=>String(responseFor(p.id)?.role||p.battle_role||'').toLowerCase()==='rally_lead');
- const rlRank=new Map(decorateRallyPool(rlPlayers).map(p=>[String(p.id),p]));
- const decorated=responses.map(r=>{
-   const p=responsePlayers[r.player_account_id]||playerPool.find(x=>String(x.id)===String(r.player_account_id))||{};
-   const role=String(r.role||p.battle_role||'unassigned').toLowerCase();
-   const live=playerPool.find(x=>String(x.id)===String(r.player_account_id))||p;
-   const hasTq=!!(r.troop_quality&&typeof r.troop_quality==='object'&&Object.keys(r.troop_quality).length);
-   const assigned=assignedLabel(live,role);
-   const score=role==='rally_lead'?Number(rlRank.get(String(p.id))?._rlComposite||0)*100:joinerSbsScore(live);
-   const tier=role==='rally_lead'?(rlRank.get(String(p.id))?._tier||'RL'):(hasTq?troopQualityProfile(live).tier:'—');
-   return {r,p,role,live,hasTq,assigned,score,tier};
- });
- const orderRole=x=>x.role==='rally_lead'?0:x.role==='joiner'?1:2;
- decorated.sort((a,b)=>orderRole(a)-orderRole(b)||b.score-a.score||new Date(b.r.updated_at)-new Date(a.r.updated_at));
- const card=x=>`<article class="response-card"><div class="candidate-main"><div><b>${esc(x.p.in_game_name||'Player')}</b><div class="tiny muted">ID ${esc(x.p.player_id||'—')} • ${esc(playerAllianceLabel(x.p))}</div></div><span class="candidate-tier">${esc(x.tier)}</span></div><div class="tiny">${x.hasTq?esc(troopSummary(x.live)):'Troop quality not submitted'}</div><div class="tiny muted" style="margin-top:5px">${esc(x.role)} • Deployment ${Number(x.r.deployment_capacity||x.p.deployment_capacity||0).toLocaleString()} • <span class="response-score">Rank Score ${x.score.toFixed(1)}</span>${x.assigned?` • ${esc(x.assigned)}`:' • Unassigned'}</div><button class="btn response-assign" data-response-player="${esc(String(x.r.player_account_id||''))}" data-response-role="${esc(x.role)}" type="button">Assign to Strategy</button></article>`;
- const groups=[
-   ['Rally Leaders',decorated.filter(x=>x.role==='rally_lead')],
-   ['Joiners',decorated.filter(x=>x.role==='joiner')],
-   ['Other / Unassigned',decorated.filter(x=>x.role!=='rally_lead'&&x.role!=='joiner')]
- ].filter(([,rows])=>rows.length);
- const demoCards=testSandbox?`<div class="response-test-banner">TEST SANDBOX • live response ranking remains event-scoped.</div>`:'';
- host.innerHTML=groups.length?demoCards+groups.map(([label,rows])=>`<section class="response-role-group"><div class="response-role-head"><b>${label}</b><span class="tiny muted">Best → lower • ${rows.length}</span></div><div class="response-card-list">${rows.map(card).join('')}</div></section>`).join(''):'No SvS Battle Sign-Up responses yet for this event.';
+ const rawPlayers=responses.map(r=>playerPool.find(x=>String(x.id)===String(r.player_account_id))||responsePlayers[r.player_account_id]||{id:r.player_account_id,in_game_name:'Player'});
+ const rallyRank=new Map(decorateRallyPool(rawPlayers.filter(Boolean)).map(p=>[String(p.id),Math.round(Number(p._rlComposite||0)*100)]));
+ const ranked=responses.map(r=>{
+   const p=playerPool.find(x=>String(x.id)===String(r.player_account_id))||responsePlayers[r.player_account_id]||{id:r.player_account_id,in_game_name:'Player'};
+   const role=String(r.role||p.battle_role||'joiner').toLowerCase();
+   const js=Math.max(0,Math.min(100,joinerSbsScore(p)));
+   const rs=Math.max(0,Math.min(100,rallyRank.get(String(p.id))||0));
+   const score=role.includes('rally')?rs:role.includes('both')?Math.max(js,rs):js;
+   return{r,p,role,score,joinerScore:js,rallyScore:rs};
+ }).sort((a,b)=>b.score-a.score||new Date(b.r.updated_at||0)-new Date(a.r.updated_at||0));
+ const realCards=ranked.map(({r,p,role,score})=>{const hasTq=!!(r.troop_quality&&typeof r.troop_quality==='object'&&Object.keys(r.troop_quality).length),assigned=assignedLabel(p,role.includes('rally')?'rally_lead':'joiner'),roleLabel=role==='rally_lead'?'Rally Lead':role==='both'?'Both':'Joiner';return `<article class="response-card"><div class="candidate-main"><div><b>${esc(p.in_game_name||'Player')}</b><div class="tiny muted">ID ${esc(p.player_id||'—')} • ${esc(playerAllianceLabel(p))}</div></div><span class="candidate-tier">${score.toFixed(1)}</span></div><div class="candidate-troops">${hasTq?esc(troopSummary(p)):'Troop quality not submitted'}</div><div class="tiny muted">${esc(roleLabel)} • SVS Score ${score.toFixed(1)} • Deployment ${Number(r.deployment_capacity||p.deployment_capacity||0).toLocaleString()}${assigned?` • ${esc(assigned)}`:' • Unassigned'}</div><button class="btn response-assign" data-response-player="${esc(String(r.player_account_id||''))}" data-response-role="${esc(role.includes('rally')?'rally_lead':'joiner')}" type="button">Assign to Strategy</button></article>`}).join('');
+ const demoCards=testSandbox?`<div class="response-test-banner">TEST SANDBOX • these cards are visual demos only and do not create Battle Responses.</div>`:'';
+ host.innerHTML=(demoCards+realCards)?`<div class="response-card-list">${demoCards}${realCards}</div>`:'No Battle Sign-Up responses for this SvS event yet.';
  $$('.response-assign',host).forEach(b=>b.onclick=()=>quickAssignResponse(b.dataset.responsePlayer,b.dataset.responseRole));
 }
 $('#refresh-responses').onclick=loadResponses;
@@ -2026,9 +2033,16 @@ async function addRally(tid,preselectedId=''){
  return openInlineRallyPicker(tid);
 }
 function suggestedJoinerHeroes(tid,p){const t=teamForAssignment(tid),a=t&&A(t.strategy_alliance_id),idx=Joiners(tid).length,atk=formationsFor(a?.id,'attack'),def=formationsFor(a?.id,'defense'),ap=joinHeroPair(p,'attack',idx,atk[0]||null,atk[1]||null),dp=joinHeroPair(p,'defense',idx,def[0]||null,def[1]||null);return {aa:ap[0]?.id||'',ab:ap[1]?.id||'',da:dp[0]?.id||'',db:dp[1]?.id||''}}
+function responseScopedJoinerSuggestions(p,sug){
+ if(!p?.id)return sug;
+ const approved=responseJoinerHeroPool(p.id);
+ if(approved===null)return sug;
+ const ids=new Set(approved.map(h=>String(h.id)));
+ return {aa:ids.has(String(sug.aa||''))?sug.aa:'',ab:ids.has(String(sug.ab||''))?sug.ab:'',da:ids.has(String(sug.da||''))?sug.da:'',db:ids.has(String(sug.db||''))?sug.db:''};
+}
 function openJoinerEditor(tid,p,row=null){
- const sug=row?{aa:row.attack_a_hero_id||'',ab:row.attack_b_hero_id||'',da:row.defense_a_hero_id||'',db:row.defense_b_hero_id||''}:suggestedJoinerHeroes(tid,p),def=defenseOn(teamForAssignment(tid));
- const ov=modal(`${row?'Edit':'Add'} Joiner • ${p.in_game_name}`,`<div class="candidate-selected">${p._test?`<b>${esc(p.in_game_name)}</b>`:joinerCandidateCard(p).replace(/<input[^>]+>/,'')}</div><div class="visual-hero-grid" style="margin-top:10px">${heroPickerField('aa','Attack A',sug.aa,p.id||'')}${heroPickerField('ab','Attack B',sug.ab,p.id||'')}${def?heroPickerField('da','Defense A',sug.da,p.id||'')+heroPickerField('db','Defense B',sug.db,p.id||''):'<div class="select-note">Defense Heroes are OFF for this Alliance.</div>'}</div><label style="margin-top:10px">Join First<select id="jf"><option value="no" ${!row?.join_first?'selected':''}>No — Regular Joiner</option><option value="yes" ${row?.join_first?'selected':''}>Yes — Join First</option></select></label><div class="select-note" style="margin-top:8px">Hero picker shows only heroes this account owns, limited to the currently unlocked generation: Epic/Purple and Legendary/Mythic. Rare/Blue and future generations are excluded.</div>`,async ov=>{
+ const baseSug=row?{aa:row.attack_a_hero_id||'',ab:row.attack_b_hero_id||'',da:row.defense_a_hero_id||'',db:row.defense_b_hero_id||''}:suggestedJoinerHeroes(tid,p),sug=row?baseSug:responseScopedJoinerSuggestions(p,baseSug),def=defenseOn(teamForAssignment(tid));
+ const ov=modal(`${row?'Edit':'Add'} Joiner • ${p.in_game_name}`,`<div class="candidate-selected">${p._test?`<b>${esc(p.in_game_name)}</b>`:joinerCandidateCard(p).replace(/<input[^>]+>/,'')}</div><div class="visual-hero-grid" style="margin-top:10px">${heroPickerField('aa','Attack A',sug.aa,p.id||'','response_joiner')}${heroPickerField('ab','Attack B',sug.ab,p.id||'','response_joiner')}${def?heroPickerField('da','Defense A',sug.da,p.id||'','response_joiner')+heroPickerField('db','Defense B',sug.db,p.id||'','response_joiner'):'<div class="select-note">Defense Heroes are OFF for this Alliance.</div>'}</div><label style="margin-top:10px">Join First<select id="jf"><option value="no" ${!row?.join_first?'selected':''}>No — Regular Joiner</option><option value="yes" ${row?.join_first?'selected':''}>Yes — Join First</option></select></label><div class="select-note" style="margin-top:8px">Hero picker uses this player’s eligible Joiner heroes from the current SvS Battle Sign-Up. These are the heroes leadership selected for verification and the form confirmed as eligible.</div>`,async ov=>{
    const patch={team_id:tid,player_account_id:p.id||null,player_name:p.in_game_name,join_first:$('#jf',ov).value==='yes',attack_a_hero_id:$('#aa',ov)?.value||null,attack_b_hero_id:$('#ab',ov)?.value||null,defense_a_hero_id:$('#da',ov)?.value||null,defense_b_hero_id:$('#db',ov)?.value||null};
    if(row){const {error}=await sb.from('svs_strategy_joiners').update(patch).eq('id',row.id);if(error)throw error}
    else{const existing=joiners.find(j=>(p.id?String(j.player_account_id)===String(p.id):String(j.player_name).toLowerCase()===p.in_game_name.toLowerCase()));if(existing){if(!await nexaConfirm('Move Joiner?',`${p.in_game_name} is already assigned to ${teamLabel(existing.team_id)}. Move this player to ${teamLabel(tid)}?`))return false;const {error}=await sb.from('svs_strategy_joiners').update({...patch,sort_order:Joiners(tid).length}).eq('id',existing.id);if(error)throw error}else{const {error}=await sb.from('svs_strategy_joiners').insert({...patch,sort_order:Joiners(tid).length});if(error)throw error}}
@@ -2052,8 +2066,8 @@ function openInlineJoinerPicker(originTid){
    const setTeamOptions=()=>{teamSel.innerHTML=inlineTeamOptions(allianceSel.value,teamSel.value)||'<option value="">No Teams</option>'};
    allianceSel.onchange=()=>{teamSel.value='';setTeamOptions()};
    setTeamOptions();
-   const targetTid=teamSel.value||originTid,sug=suggestedJoinerHeroes(targetTid,p),prefix=`inline-${i}`;
-   heroGrid.innerHTML=heroPickerField(`${prefix}-aa`,'Attack A',sug.aa,p.id||'')+heroPickerField(`${prefix}-ab`,'Attack B',sug.ab,p.id||'')+heroPickerField(`${prefix}-da`,'Defense A',sug.da,p.id||'')+heroPickerField(`${prefix}-db`,'Defense B',sug.db,p.id||'');
+   const targetTid=teamSel.value||originTid,sug=responseScopedJoinerSuggestions(p,suggestedJoinerHeroes(targetTid,p)),prefix=`inline-${i}`;
+   heroGrid.innerHTML=heroPickerField(`${prefix}-aa`,'Attack A',sug.aa,p.id||'','response_joiner')+heroPickerField(`${prefix}-ab`,'Attack B',sug.ab,p.id||'','response_joiner')+heroPickerField(`${prefix}-da`,'Defense A',sug.da,p.id||'','response_joiner')+heroPickerField(`${prefix}-db`,'Defense B',sug.db,p.id||'','response_joiner');
    bindVisualHeroPickers(editor);
    $('[data-inline-cancel]',editor).onclick=ev=>{ev.stopPropagation();card.classList.remove('expanded')};
    $('[data-inline-save]',editor).onclick=async ev=>{ev.stopPropagation();const save=ev.currentTarget;if(save.disabled)return;save.disabled=true;
@@ -3154,9 +3168,8 @@ function battlePlanDefaultDocument(){
    alliance_first_star_manual:false,
    alliance_presidency:'',
    alliance_presidency_manual:false,
-   opponent_state:'',
-   prep_start_date:'',
    event_date:'',
+   opponent_state:'',
    svs_rules:'',
    rally_lead_attack_heroes:'',
    rally_lead_attack_hero_ids:[],
@@ -3296,7 +3309,7 @@ function battlePlanDocumentHtml(doc=battlePlanDoc(),items=battlePlanItems,{publi
    pet_schedule_formation_lead:'Pet Schedule & Formation Task Lead'
  };
  const title=battlePlanRecord?.title||'SvS Battle Plan';
- const meta=[doc.opponent_state?`Opponent • State ${doc.opponent_state}`:'',doc.event_date?`Battle Date • ${doc.event_date}`:'',doc.alliance_first_star?`Star Alliance • ${doc.alliance_first_star}`:'',doc.alliance_presidency?`Presidency • ${doc.alliance_presidency}`:''].filter(Boolean);
+ const meta=[doc.opponent_state?`Opponent State • ${doc.opponent_state}`:'',doc.event_date?`Battle Date • ${doc.event_date}`:'',doc.alliance_first_star?`Star Alliance • ${doc.alliance_first_star}`:'',doc.alliance_presidency?`Presidency • ${doc.alliance_presidency}`:''].filter(Boolean);
  return `<article class="bp-document">
    <header class="bp-doc-head"><small>NEXA • SVS BATTLE PLAN</small><h2>${esc(title)}</h2>${meta.length?`<div class="bp-doc-meta">${meta.map(x=>`<span class="bp-doc-pill">${esc(x)}</span>`).join('')}</div>`:''}</header>
    ${String(doc.svs_rules||'').trim()?`<section class="bp-doc-section"><h3>SvS Rules</h3>${bpBullets(doc.svs_rules)}</section>`:''}
@@ -3322,7 +3335,13 @@ function battlePlanEditorHtml(){
  ];
  return `<div class="bp-editor">
    ${battlePlanRecord?.status==='published'?`<div class="bp-published-note">This Battle Plan is published to NEXA. Saving changes updates the draft only until you tap Update Published Plan.</div>`:''}
-   <div class="bp-section"><h3>SvS Setup</h3><div class="tiny muted">Opponent, Battle Date, Star Alliance, Presidency and SvS Rules are managed in the SvS Setup pill. Use “Send to Battle Plan” there to update this document.</div></div>
+   <div class="bp-section"><h3>SvS Setup Source</h3><div class="bp-source-box">
+     <div class="bp-source-row"><b>Opponent</b><small>${esc(d.opponent_state||'Not sent')}</small></div>
+     <div class="bp-source-row"><b>Battle Date</b><small>${esc(d.event_date||'Not sent')}</small></div>
+     <div class="bp-source-row"><b>Star Alliance</b><small>${esc(d.alliance_first_star||'Not sent')}</small></div>
+     <div class="bp-source-row"><b>Presidency</b><small>${esc(d.alliance_presidency||'Not sent')}</small></div>
+     <div class="bp-source-row"><b>SvS Rules</b><small>${String(d.svs_rules||'').trim()?'Ready':'Not sent'}</small></div>
+   </div><div class="tiny muted" style="margin-top:8px">These fields are managed in SvS Setup. Use “Send to Battle Plan” there to update them.</div></div>
    <div class="bp-section"><h3>SvS Strategy Notes</h3>${bpTextarea('bp-secondary','One note per line',d.secondary_squads_notes)}</div>
    <div class="bp-section"><h3>Snapshots Sent to Battle Plan</h3><div class="bp-source-box">${sourceRows.map(([a,b])=>`<div class="bp-source-row"><b>${a}</b><small>${b}</small></div>`).join('')}</div><div id="battle-plan-list" style="margin-top:10px"></div></div>
    <div class="bp-section"><h3>Important Roles / Job Assignments</h3><div class="bp-field-grid">${roleLabels.map(([k,l])=>`<label><span class="bp-role-label">${esc(l)} <button class="bp-guide-btn" type="button" data-bp-guide="${k}" aria-label="Role guide">i</button></span><input data-bp-role="${k}" value="${bpVal(d.roles?.[k])}" placeholder="Name / assignment"><span class="bp-guide" data-bp-guide-box="${k}">${esc(BP_ROLE_GUIDES[k]||'')}</span></label>`).join('')}</div></div>
@@ -3343,14 +3362,6 @@ function battlePlanCollectDocument(){
  });
  return {
    ...current,
-   alliance_first_star:current.alliance_first_star||'',
-   alliance_first_star_manual:false,
-   alliance_presidency:current.alliance_presidency||'',
-   alliance_presidency_manual:false,
-   opponent_state:current.opponent_state||'',
-   prep_start_date:current.prep_start_date||'',
-   event_date:current.event_date||'',
-   svs_rules:current.svs_rules||'',
    secondary_squads_notes:$('#bp-secondary')?.value.trim()||'',
    roles,alliance_notes:notes,updated_at:new Date().toISOString()
  };
@@ -3392,8 +3403,6 @@ function battlePlanPublishedPackage(doc){
    state_number:strategy?.state_number||state,
    strategy_id:strategy?.id||null,
    event_id:strategy?.event_id||null,
-   opponent_state:doc.opponent_state||'',
-   prep_start_date:doc.prep_start_date||'',
    event_date:doc.event_date||'',
    first_star:doc.alliance_first_star||'',
    presidency:doc.alliance_presidency||'',
@@ -3461,11 +3470,11 @@ function battlePlanSummaryHtml(){
 }
 function renderBattlePlanBuilder(){
  const host=$('#battle-plan-builder'),top=$('#bp-top-status');if(!host)return;
- if(strategyLoading||!svsSetupLoaded){host.innerHTML='<div class="bp-empty"><b>Loading Battle Plan…</b><div class="tiny muted" style="margin-top:5px">Loading SvS strategy and saved plan.</div></div>';if(top)top.textContent='LOADING';return}
+ if(!strategy&&appLoading){host.innerHTML='<div class="bp-empty"><b>Loading Battle Plan…</b><div class="tiny muted" style="margin-top:5px">Loading SvS strategy and saved plan.</div></div>';if(top)top.textContent='LOADING';return}
  if(!strategy){host.innerHTML='<div class="bp-empty"><b>Open an SvS Strategy first.</b></div>';if(top)top.textContent='';return}
  if(!battlePlanLoaded){host.innerHTML='<div class="bp-empty"><b>Loading Battle Plan…</b><div class="tiny muted" style="margin-top:5px">Checking the saved SvS plan.</div></div>';if(top)top.textContent='LOADING';return}
  if(!battlePlanRecord){
-   host.innerHTML='<div class="bp-empty"><h3 style="margin:0 0 7px">No Battle Plan yet</h3><div class="tiny muted">Create a blank Battle Plan, fill it in, send snapshots from the other SvS workspaces, preview it, then share or publish it.</div><button id="bp-create" class="btn violet" type="button" style="margin-top:12px">Create Battle Plan</button></div>';
+   host.innerHTML='<div class="bp-empty"><h3 style="margin:0 0 7px">No Battle Plan yet</h3><div class="tiny muted">Create the Battle Plan shell, then send event information from SvS Setup and snapshots from the other SvS workspaces.</div><button id="bp-create" class="btn violet" type="button" style="margin-top:12px">Create Battle Plan</button></div>';
    if(top)top.textContent='NOT CREATED';
    $('#bp-create').onclick=battlePlanCreate;return;
  }

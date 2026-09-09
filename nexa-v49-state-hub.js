@@ -1272,11 +1272,28 @@ function openOwnedFormsCenterMenu(){ownedMenuSubview('FORMS CENTER',[
   ['Responses',()=>ownedMenuGo('survey-responses.html')]
 ]),true]
 ])}
-function openOwnedBattleOperationsMenu(){ownedMenuSubview('BATTLE OPERATIONS',[
-  ['SvS',()=>ownedMenuGo('svs-operations.html')],
-  ['FDT',()=>ownedMenuGo('battle-operations.html?event=fdt')],
-  ['TAL',()=>ownedMenuGo('battle-operations.html?event=tal')]
-])}
+async function openOwnedBattleOperationsMenu(){
+  const items=[
+    ['SvS',()=>ownedMenuGo('svs-operations.html')],
+    ['Matchup Lab',()=>ownedMenuGo('svs-matchup-lab.html')],
+    ['FDT',()=>ownedMenuGo('battle-operations.html?event=fdt')],
+    ['TAL',()=>ownedMenuGo('battle-operations.html?event=tal')]
+  ];
+  try{
+    const c=sb();
+    const {data:{user}}=await c.auth.getUser();
+    if(user){
+      const [{data:globalRoles},{data:stateAdmins}]=await Promise.all([
+        c.from('user_roles').select('role').eq('user_id',user.id),
+        c.from('state_hub_admins').select('admin_kind').eq('user_id',user.id).eq('state_number',activeState())
+      ]);
+      const canClear=(globalRoles||[]).some(x=>['owner','admin','administrator'].includes(String(x.role||'').toLowerCase())) || (stateAdmins||[]).length>0;
+      if(canClear)items.push(['Clear Working Data',()=>ownedMenuGo('battle-working-data.html')]);
+    }
+  }catch(_){}
+  ownedMenuSubview('BATTLE OPERATIONS',items);
+}
+
 function openOwnedTeamMenu(){ownedMenuSubview('TEAM BUILDER',[
   ['Build Teams',()=>ownedMenuGo('team-builder.html')],['Manage Teams',()=>ownedMenuGo('alliance-teams.html')],['Team View',()=>ownedMenuGo('team-layout.html')]
 ])}

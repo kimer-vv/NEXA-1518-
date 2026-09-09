@@ -1,8 +1,8 @@
-/* NEXA PULSE FORMS V2.1 — PUBLISHED FORMS + SVS BATTLE PLAN */
+/* NEXA PULSE FORMS V2.2 — PUBLISHED FORMS + LISTED SVS BATTLE PLAN */
 (()=>{
 'use strict';
-if(window.__NEXA_PULSE_FORMS_V21__)return;
-window.__NEXA_PULSE_FORMS_V21__=true;
+if(window.__NEXA_PULSE_FORMS_V22__)return;
+window.__NEXA_PULSE_FORMS_V22__=true;
 
 const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
@@ -87,7 +87,7 @@ async function renderPublishedForms(){
 async function renderPublishedBattlePlans(){
   const host=getHost();if(!host)return false;
   installCSS();const box=ensureBox(host,'nexa-pulse-battle-plans');
-  const {data,error}=await sb.from('svs_battle_plans').select('id,title,state_number,status,published_at,published_document').eq('status','published').order('published_at',{ascending:false}).limit(3);
+  const {data,error}=await sb.from('svs_battle_plans').select('id,title,state_number,status,is_listed,published_at,published_document').eq('status','published').eq('is_listed',true).order('published_at',{ascending:false}).limit(3);
   if(error){box.innerHTML='';return true}
   if(!(data||[]).length){box.innerHTML='';return true}
   box.innerHTML=(data||[]).map(x=>{

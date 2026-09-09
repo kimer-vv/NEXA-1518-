@@ -1859,6 +1859,338 @@ html.nexa-auth-boot body > #nexa-auth-gate { visibility:hidden!important; }
 <script src="nexa-v50-profile-troops.js?v=50-005-20260829" defer></script>
 <script src="nexa-v47-visual-assets.js?v=47-032-20260829" defer></script>
 <script src="nexa-v49-state-hub.js?v=49-026-transfer-menu-20260908" defer></script>
+
+<style id="nexa-live-event-theme-v1">
+#home-svs-section.nexa-live-themed{
+  --live-primary:#ff526d;
+  --live-secondary:#4e82c7;
+  --live-highlight:#f4b45f;
+  position:relative;
+  overflow:hidden;
+  border-color:color-mix(in srgb,var(--live-primary) 50%,transparent)!important;
+  background:
+    radial-gradient(circle at 8% 0%,color-mix(in srgb,var(--live-primary) 16%,transparent),transparent 34%),
+    radial-gradient(circle at 95% 100%,color-mix(in srgb,var(--live-secondary) 14%,transparent),transparent 36%),
+    rgba(7,10,24,.88)!important;
+  box-shadow:0 18px 46px rgba(0,0,0,.30),0 0 28px color-mix(in srgb,var(--live-primary) 12%,transparent);
+}
+#home-svs-section.nexa-live-theme-svs{
+  --live-primary:#ff526d;
+  --live-secondary:#4e82c7;
+  --live-highlight:#f4b45f;
+}
+#home-svs-section.nexa-live-theme-fdt{
+  --live-primary:#55d9ff;
+  --live-secondary:#b9d4e5;
+  --live-highlight:#7e9cff;
+}
+#home-svs-section.nexa-live-theme-tal{
+  --live-primary:#a76dff;
+  --live-secondary:#f5c75b;
+  --live-highlight:#6e48c9;
+}
+#home-svs-section.nexa-live-themed .nexa-v4711-top-accent,
+#home-svs-section.nexa-live-themed .nexa-v4711-left-accent{
+  background:linear-gradient(90deg,var(--live-primary),var(--live-highlight),var(--live-secondary))!important;
+  box-shadow:0 0 18px color-mix(in srgb,var(--live-primary) 30%,transparent)!important;
+}
+#home-svs-section.nexa-live-themed .head span,
+#home-svs-section.nexa-live-themed #home-event-countdown{
+  color:var(--live-highlight)!important;
+}
+#home-svs-section.nexa-live-themed #home-event-title{
+  color:#fff!important;
+  text-shadow:0 0 18px color-mix(in srgb,var(--live-primary) 22%,transparent);
+}
+#home-svs-section.nexa-live-themed .btn,
+#home-svs-section.nexa-live-themed button{
+  border-color:color-mix(in srgb,var(--live-primary) 50%,transparent)!important;
+}
+#home-live-event-details{
+  display:grid;
+  gap:10px;
+  margin-top:14px;
+  padding-top:14px;
+  border-top:1px solid color-mix(in srgb,var(--live-primary) 26%,transparent);
+}
+.nexa-live-event-identity{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+.nexa-live-event-chip,
+.nexa-live-schedule-row{
+  border:1px solid color-mix(in srgb,var(--live-primary) 24%,rgba(255,255,255,.08));
+  border-radius:14px;
+  background:rgba(255,255,255,.035);
+  padding:10px 11px;
+}
+.nexa-live-event-chip small,
+.nexa-live-schedule-row small{
+  display:block;
+  color:#9ea9c5;
+  font-size:9px;
+  font-weight:950;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  margin-bottom:4px;
+}
+.nexa-live-event-chip b{font-size:13px}
+.nexa-live-schedule{
+  display:grid;
+  gap:7px;
+}
+.nexa-live-schedule-row{
+  display:grid;
+  grid-template-columns:88px minmax(0,1fr);
+  gap:10px;
+  align-items:center;
+}
+.nexa-live-schedule-day{
+  color:var(--live-highlight);
+  font-weight:950;
+  font-size:12px;
+}
+.nexa-live-schedule-main b{display:block;font-size:12px}
+.nexa-live-schedule-main span{display:block;color:#aeb7d1;font-size:10px;line-height:1.35;margin-top:2px}
+@media(max-width:560px){
+  .nexa-live-event-identity{grid-template-columns:1fr}
+  .nexa-live-schedule-row{grid-template-columns:76px minmax(0,1fr)}
+}
+</style>
+
+<script id="nexa-live-event-theme-v1-script">
+(()=>{
+'use strict';
+if(window.__NEXA_LIVE_EVENT_THEME_V1__)return;
+window.__NEXA_LIVE_EVENT_THEME_V1__=true;
+
+const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
+const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
+let localClient=null;
+
+const $=(s,r=document)=>r?.querySelector?.(s)||null;
+const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({
+  '&':'&amp;',
+  '<':'&lt;',
+  '>':'&gt;',
+  '"':'&quot;',
+  "'":'&#39;'
+}[m]));
+
+function client(){
+  if(window.supabaseClient?.from)return window.supabaseClient;
+  if(window.sb?.from)return window.sb;
+  if(!localClient&&window.supabase?.createClient){
+    localClient=window.supabase.createClient(SB_URL,SB_KEY);
+  }
+  return localClient;
+}
+
+function activeState(){
+  const n=Number(
+    String(
+      window.NEXA_ACTIVE_STATE||
+      localStorage.getItem('nexa_active_state_v49')||
+      1518
+    ).replace(/\D/g,'')
+  );
+  return Number.isFinite(n)&&n>0?n:1518;
+}
+
+function fmtDate(v){
+  if(!v)return'—';
+  const d=new Date(`${v}T00:00:00Z`);
+  if(Number.isNaN(d.getTime()))return String(v);
+  return new Intl.DateTimeFormat('en-US',{
+    timeZone:'UTC',
+    weekday:'short',
+    month:'short',
+    day:'numeric'
+  }).format(d);
+}
+
+function applyTheme(type='svs'){
+  const section=$('#home-svs-section');
+  if(!section)return;
+
+  const key=['svs','fdt','tal'].includes(String(type).toLowerCase())
+    ?String(type).toLowerCase()
+    :'svs';
+
+  section.classList.remove(
+    'nexa-live-theme-svs',
+    'nexa-live-theme-fdt',
+    'nexa-live-theme-tal'
+  );
+
+  section.classList.add(
+    'nexa-live-themed',
+    `nexa-live-theme-${key}`
+  );
+
+  section.dataset.nexaLiveTheme=key;
+}
+
+window.NEXA_APPLY_LIVE_EVENT_THEME=applyTheme;
+
+function clearDetails(){
+  $('#home-live-event-details')?.remove();
+
+  const section=$('#home-svs-section');
+  if(section){
+    section.classList.remove(
+      'nexa-live-themed',
+      'nexa-live-theme-svs',
+      'nexa-live-theme-fdt',
+      'nexa-live-theme-tal'
+    );
+    delete section.dataset.nexaLiveTheme;
+  }
+}
+
+function scheduleRow(x){
+  const detail=[
+    x.ministry,
+    x.time_utc,
+    x.secondary
+  ].filter(Boolean).join(' • ');
+
+  return `
+    <div class="nexa-live-schedule-row">
+      <div>
+        <div class="nexa-live-schedule-day">${esc(x.day||'')}</div>
+        <small>${esc(fmtDate(x.date))}</small>
+      </div>
+      <div class="nexa-live-schedule-main">
+        <b>${esc(x.focus||'')}</b>
+        <span>${esc(detail||'')}</span>
+      </div>
+    </div>
+  `;
+}
+
+async function renderLiveDetails(){
+  const section=$('#home-svs-section');
+  const c=client();
+
+  if(!section||!c)return;
+
+  const st=activeState();
+
+  const {data:live,error}=await c
+    .from('svs_events')
+    .select('id,title,description,opponent_state,prep_monday,castle_alliance_id,presidency_alliance_id,live_event_payload,is_live,status,updated_at')
+    .eq('state_number',st)
+    .eq('is_live',true)
+    .order('updated_at',{ascending:false})
+    .limit(1)
+    .maybeSingle();
+
+  if(error){
+    console.warn('[NEXA] Live Event detail load failed',error);
+    return;
+  }
+
+  if(!live){
+    clearDetails();
+    return;
+  }
+
+  const p=
+    live.live_event_payload&&
+    typeof live.live_event_payload==='object'
+      ?live.live_event_payload
+      :{};
+
+  const type=String(
+    p.theme||
+    p.event_key||
+    'svs'
+  ).toLowerCase();
+
+  applyTheme(type);
+
+  let host=$('#home-live-event-details');
+
+  if(!host){
+    host=document.createElement('div');
+    host.id='home-live-event-details';
+    section.appendChild(host);
+  }
+
+  const opponent=
+    p.opponent_state||
+    live.opponent_state||
+    '—';
+
+  const star=
+    p.star_alliance?.tag||
+    '—';
+
+  const presidency=
+    p.presidency_alliance?.tag||
+    '—';
+
+  const schedule=
+    Array.isArray(p.schedule)
+      ?p.schedule
+      :[];
+
+  host.innerHTML=`
+    <div class="nexa-live-event-identity">
+      <div class="nexa-live-event-chip">
+        <small>Opponent State</small>
+        <b>State ${esc(opponent)}</b>
+      </div>
+
+      <div class="nexa-live-event-chip">
+        <small>Going for the Star</small>
+        <b>${esc(star)}</b>
+      </div>
+
+      <div class="nexa-live-event-chip">
+        <small>Up for Presidency</small>
+        <b>${esc(presidency)}</b>
+      </div>
+
+      <div class="nexa-live-event-chip">
+        <small>Battle Window</small>
+        <b>${esc(fmtDate(p.battle_date))} • 10:00–22:00 UTC</b>
+      </div>
+    </div>
+
+    ${
+      schedule.length
+        ?`<div class="nexa-live-schedule">${schedule.map(scheduleRow).join('')}</div>`
+        :''
+    }
+  `;
+}
+
+window.NEXA_REFRESH_LIVE_EVENT_DETAILS=renderLiveDetails;
+
+window.addEventListener(
+  'nexa:home-ready',
+  renderLiveDetails
+);
+
+window.addEventListener(
+  'nexa:active-state-changed',
+  renderLiveDetails
+);
+
+if(document.readyState==='loading'){
+  document.addEventListener(
+    'DOMContentLoaded',
+    ()=>setTimeout(renderLiveDetails,0),
+    {once:true}
+  );
+}else{
+  setTimeout(renderLiveDetails,0);
+}
+})();
+</script>
 <script src="/nexa-transfer-home-v1.js?v=4" defer></script>
 <script src="/nexa-form-runtime-v1.js?v=1" defer></script>
 <script src="nexa-v48-profile-tools.js?v=48-007-20260827" defer></script>

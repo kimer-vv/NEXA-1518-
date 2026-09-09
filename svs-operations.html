@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V12.4 • compact Battle Plan card + share link + NEXA listing + Manage Alliances + safer Castle paint -->
+<!-- NEXA SVS OPERATIONS V12.5 • Battle Plan load race fix + duplicate-safe create + mobile snapshot view cleanup -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -452,10 +452,12 @@ body.pet-preview-open{overflow:hidden!important}
 .bp-bullets{margin:0;padding-left:20px;color:#d8e1f5;font-size:12px;line-height:1.55}
 .bp-bullets li+li{margin-top:5px}
 .bp-alliance-layout-shot{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.bp-castle-shot{display:grid;place-items:center;overflow:hidden;border-radius:14px;background:#050916}
+.bp-castle-shot svg{display:block!important;width:100%!important;max-width:100%!important;height:auto!important;max-height:72vh!important;object-fit:contain}
 @media(max-width:620px){
  .castle-paint-setup{grid-template-columns:1fr}
  .bp-summary-actions{grid-template-columns:1fr 1fr}
- .bp-alliance-layout-shot img{min-width:720px!important;width:720px!important;max-width:none!important}
+ .bp-alliance-layout-shot img{min-width:620px!important;width:620px!important;max-width:none!important}
 }
 @media(max-width:560px){
  .castle-alliance-controls{grid-template-columns:auto auto;gap:7px;align-items:center}
@@ -815,7 +817,7 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&
 const state=Number(String(window.NEXA_ACTIVE_STATE||localStorage.getItem('nexa_active_state_v49')||1518).replace(/\D/g,''))||1518;
 let sb=null;
 const colors=['#ff7289','#56bfff','#64dfa7','#b989ff','#ffb865','#65e1e6'];
-let strategy=null,alliances=[],teams=[],rally=[],joiners=[],heroes=[],libraryItems=[],petRows=[],petAssignments=[],allAlliances=[],responses=[],playerPool=[],stateRoles=[],strategyList=[],formations=[],visibleHeroGenerations=[],heroGenerationRows=[],playerInventory=[],battleMetaRules=[],responsePlayers={},battlePlanItems=[],battlePlanRecord=null,battlePlanView='summary',testSandbox=false,petAssignmentHidden=false,formationCenterTab='approved';
+let strategy=null,alliances=[],teams=[],rally=[],joiners=[],heroes=[],libraryItems=[],petRows=[],petAssignments=[],allAlliances=[],responses=[],playerPool=[],stateRoles=[],strategyList=[],formations=[],visibleHeroGenerations=[],heroGenerationRows=[],playerInventory=[],battleMetaRules=[],responsePlayers={},battlePlanItems=[],battlePlanRecord=null,battlePlanView='summary',battlePlanLoaded=false,testSandbox=false,petAssignmentHidden=false,formationCenterTab='approved';
 let castleRow=null,castleSnapshot=null,castleTool='pan',castleSelection=new Set(),castleUndo=[],castleRedo=[],castlePointerState=new Map(),castleGesture=null,castleSaveTimer=null,castlePaintAllianceId=null,castlePaintColor='#48ddff',castleExportView=null,castleExportFrame=null,castleExportPointers=new Map(),castleExportGesture=null,castleExportLegendVisible=false,castleExportLegendPos={x:.03,y:.10},castleExportLegendDrag=null;
 
 const stateLabel=$('#state-label');
@@ -1474,7 +1476,7 @@ async function openStrategy(id){
  formations=[];
  if(aids.length){r=await sb.from('svs_rally_formations').select('*').in('strategy_alliance_id',aids).order('formation_type').order('sort_order');formations=r.data||[]}
  const bp=await sb.from('svs_battle_plan_items').select('*').eq('strategy_id',id).order('sort_order');battlePlanItems=bp.error?[]:(bp.data||[]);
- const bpr=await sb.from('svs_battle_plans').select('*').eq('strategy_id',id).maybeSingle();battlePlanRecord=bpr.error?null:(bpr.data||null);
+ const bpr=await sb.from('svs_battle_plans').select('*').eq('strategy_id',id).maybeSingle();battlePlanRecord=bpr.error?null:(bpr.data||null);battlePlanLoaded=true;
  const cs=await sb.from('svs_castle_seating').select('*').eq('strategy_id',id).maybeSingle();
  if(cs.error)console.warn('[NEXA] Castle cloud load failed',cs.error);
  castleRow=cs.error?null:(cs.data||null);
@@ -3120,12 +3122,12 @@ function battlePlanDocumentHtml(doc=battlePlanDoc(),items=battlePlanItems,{publi
    pet_schedule_formation_lead:'Pet Schedule & Formation Task Lead'
  };
  const title=battlePlanRecord?.title||'SvS Battle Plan';
- const meta=[doc.event_date?`Event Date • ${doc.event_date}`:'',doc.alliance_first_star?`First Star • ${doc.alliance_first_star}`:'',doc.alliance_presidency?`Presidency • ${doc.alliance_presidency}`:''].filter(Boolean);
+ const meta=[doc.event_date?`Event Date • ${doc.event_date}`:'',doc.alliance_first_star?`Star Alliance • ${doc.alliance_first_star}`:'',doc.alliance_presidency?`Presidency • ${doc.alliance_presidency}`:''].filter(Boolean);
  return `<article class="bp-document">
    <header class="bp-doc-head"><small>NEXA • SVS BATTLE PLAN</small><h2>${esc(title)}</h2>${meta.length?`<div class="bp-doc-meta">${meta.map(x=>`<span class="bp-doc-pill">${esc(x)}</span>`).join('')}</div>`:''}</header>
    ${String(doc.svs_rules||'').trim()?`<section class="bp-doc-section"><h3>SvS Rules</h3>${bpBullets(doc.svs_rules)}</section>`:''}
    ${String(doc.secondary_squads_notes||'').trim()?`<section class="bp-doc-section"><h3>SvS Strategy Notes</h3>${bpBullets(doc.secondary_squads_notes)}</section>`:''}
-   ${castle.length?`<section class="bp-doc-section"><h3>Alliance Seating Placement</h3>${castle.map(c=>c.snapshot?.export_svg?`<div class="bp-doc-snapshot">${c.snapshot.export_svg}</div>`:'').join('')}</section>`:''}
+   ${castle.length?`<section class="bp-doc-section"><h3>Alliance Seating Placement</h3>${castle.map(c=>c.snapshot?.export_svg?`<div class="bp-doc-snapshot bp-castle-shot">${c.snapshot.export_svg}</div>`:'').join('')}</section>`:''}
    ${pet&&String(pet.snapshot?.image_data_url||'').startsWith('data:image/')?`<section class="bp-doc-section"><h3>Pet Schedule</h3>${bpPetSnapshotHtml(pet)}</section>`:''}
    ${Object.entries(roleLabels).some(([k])=>String(doc.roles?.[k]||'').trim())?`<section class="bp-doc-section"><h3>Important Roles / Job Assignments</h3><div class="bp-role-grid">${Object.entries(roleLabels).filter(([k])=>String(doc.roles?.[k]||'').trim()).map(([k,l])=>`<div class="bp-role"><b>${esc(l)}</b><span>${bpText(doc.roles?.[k])}</span></div>`).join('')}</div></section>`:''}
    ${[...groups.values()].length?`<section class="bp-doc-section"><h3>Alliance Specific Plans</h3>${[...groups.values()].map(g=>{const note=doc.alliance_notes?.[g.key]||doc.alliance_notes?.[g.tag]||'';return `<div style="margin-top:12px"><h3 style="color:#bff6ff">${esc(g.tag)}</h3>${g.items.map(bpTeamSnapshotHtml).join('')}${String(note).trim()?`<h4>Alliance Important Callouts & Notes</h4>${bpBullets(note)}`:''}</div>`}).join('')}</section>`:''}
@@ -3147,7 +3149,7 @@ function battlePlanEditorHtml(){
  return `<div class="bp-editor">
    ${battlePlanRecord?.status==='published'?`<div class="bp-published-note">This Battle Plan is published to NEXA. Saving changes updates the draft only until you tap Update Published Plan.</div>`:''}
    <div class="bp-section"><h3>Event Setup</h3><div class="bp-field-grid three">
-     ${bpAllianceField('bp-first-star','Alliance Up First Star',d.alliance_first_star)}
+     ${bpAllianceField('bp-first-star','Alliance Going for the Star',d.alliance_first_star)}
      ${bpAllianceField('bp-presidency','Alliance Up for Presidency',d.alliance_presidency)}
      <label>Event Date<input id="bp-event-date" type="date" value="${bpVal(d.event_date)}"></label>
    </div></div>
@@ -3185,11 +3187,20 @@ function battlePlanCollectDocument(){
 async function battlePlanCreate(){
  if(!strategy)return say('Create or open an SvS Strategy first.',true);
  setSaveState('saving');
+ const existing=await sb.from('svs_battle_plans').select('*').eq('strategy_id',strategy.id).maybeSingle();
+ if(existing.data){battlePlanRecord=existing.data;battlePlanLoaded=true;battlePlanView='edit';renderBattlePlanBuilder();setSaveState('saved');return}
  const payload={strategy_id:strategy.id,event_id:strategy.event_id||null,state_number:strategy.state_number||state,title:'SvS Battle Plan',document:battlePlanDefaultDocument(),status:'draft',updated_at:new Date().toISOString()};
  const r=await sb.from('svs_battle_plans').insert(payload).select().single();
- if(r.error){setSaveState('saved');return say(r.error.message,true)}
- battlePlanRecord=r.data;battlePlanView='edit';renderBattlePlanBuilder();setSaveState('saved');say('Battle Plan created.');
+ if(r.error){
+   if(String(r.error.code||'')==='23505'||String(r.error.message||'').includes('svs_battle_plans_strategy_id_key')){
+     const again=await sb.from('svs_battle_plans').select('*').eq('strategy_id',strategy.id).maybeSingle();
+     if(again.data){battlePlanRecord=again.data;battlePlanLoaded=true;battlePlanView='edit';renderBattlePlanBuilder();setSaveState('saved');return}
+   }
+   setSaveState('saved');return say(r.error.message,true);
+ }
+ battlePlanRecord=r.data;battlePlanLoaded=true;battlePlanView='edit';renderBattlePlanBuilder();setSaveState('saved');
 }
+
 async function battlePlanSaveDraft({quiet=false,collapse=false}={}){
  if(!battlePlanRecord)return battlePlanCreate();
  const doc=battlePlanCollectDocument();
@@ -3278,6 +3289,7 @@ function battlePlanSummaryHtml(){
 function renderBattlePlanBuilder(){
  const host=$('#battle-plan-builder'),top=$('#bp-top-status');if(!host)return;
  if(!strategy){host.innerHTML='<div class="bp-empty"><b>Open an SvS Strategy first.</b></div>';if(top)top.textContent='';return}
+ if(!battlePlanLoaded){host.innerHTML='<div class="bp-empty"><b>Loading Battle Plan…</b><div class="tiny muted" style="margin-top:5px">Checking the saved SvS plan.</div></div>';if(top)top.textContent='LOADING';return}
  if(!battlePlanRecord){
    host.innerHTML='<div class="bp-empty"><h3 style="margin:0 0 7px">No Battle Plan yet</h3><div class="tiny muted">Create a blank Battle Plan, fill it in, send snapshots from the other SvS workspaces, preview it, then share or publish it.</div><button id="bp-create" class="btn violet" type="button" style="margin-top:12px">Create Battle Plan</button></div>';
    if(top)top.textContent='NOT CREATED';

@@ -2168,26 +2168,66 @@ async function renderLiveDetails(){
   `;
 }
 
-window.NEXA_REFRESH_LIVE_EVENT_DETAILS=renderLiveDetails;
+async function refreshLiveSurface({resync=false}={}){
+  try{
+    if(resync && typeof window.NEXA_SYNC_STATE_HOME==='function'){
+      await window.NEXA_SYNC_STATE_HOME();
+    }
+  }catch(err){
+    console.warn('[NEXA] Home Live Event resync failed',err);
+  }
+
+  await renderLiveDetails();
+
+  if(
+    window.NEXA_HOME_STATE_READY===true &&
+    window.NEXA_HOME_PROFILE_READY===true
+  ){
+    document.documentElement.classList.remove('nexa-home-boot');
+    window.NEXA_HOME_READY=true;
+  }
+
+  requestAnimationFrame(()=>{
+    const home=$('#home')||document.querySelector('main.shell');
+    if(home)void home.offsetHeight;
+  });
+}
+
+window.NEXA_REFRESH_LIVE_EVENT_DETAILS=
+  ()=>refreshLiveSurface({resync:false});
 
 window.addEventListener(
   'nexa:home-ready',
-  renderLiveDetails
+  ()=>refreshLiveSurface({resync:false})
 );
 
 window.addEventListener(
   'nexa:active-state-changed',
-  renderLiveDetails
+  ()=>refreshLiveSurface({resync:true})
+);
+
+window.addEventListener(
+  'pageshow',
+  ()=>refreshLiveSurface({resync:true})
+);
+
+document.addEventListener(
+  'visibilitychange',
+  ()=>{
+    if(!document.hidden){
+      refreshLiveSurface({resync:true});
+    }
+  }
 );
 
 if(document.readyState==='loading'){
   document.addEventListener(
     'DOMContentLoaded',
-    ()=>setTimeout(renderLiveDetails,0),
+    ()=>refreshLiveSurface({resync:false}),
     {once:true}
   );
 }else{
-  setTimeout(renderLiveDetails,0);
+  refreshLiveSurface({resync:false});
 }
 })();
 </script>

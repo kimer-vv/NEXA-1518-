@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V12.9.2 • Joiner Hero Picker Modal Layer Fix -->
+<!-- NEXA SVS OPERATIONS V12.9.4 • SvS Live Event Publish + Theme Payload -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -31,6 +31,13 @@ body{margin:0;min-height:100dvh;background:radial-gradient(circle at 5% 22%,rgba
 .setup-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .setup-actions .btn{flex:1 1 150px}
 .setup-readonly{background:rgba(255,255,255,.035)!important;color:#c9d2e9!important}
+#setup-rules{width:100%;min-height:150px;background:#060b1c!important;color:#fff!important;border:1px solid rgba(122,142,203,.26)!important;border-radius:12px;padding:12px;font:inherit;resize:vertical}
+.setup-summary-card{border:1px solid rgba(72,221,255,.18);border-radius:16px;background:rgba(5,12,28,.72);padding:13px;display:grid;gap:9px}
+.setup-summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.setup-summary-item{border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(255,255,255,.025);padding:9px 10px}
+.setup-summary-item small{display:block;color:#8f9bbb;font-size:9px;font-weight:950;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
+.setup-summary-item b{font-size:12px;line-height:1.35}
+@media(max-width:560px){.setup-summary-grid{grid-template-columns:1fr}}
 .card,.desc{margin-left:18px;border:1px solid rgba(255,255,255,.12);border-radius:20px;background:rgba(9,17,38,.82);padding:16px}
 .card{margin-bottom:14px}.desc{color:var(--m);margin-bottom:16px;line-height:1.5}
 .section-head{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
@@ -843,7 +850,7 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&
 const state=Number(String(window.NEXA_ACTIVE_STATE||localStorage.getItem('nexa_active_state_v49')||1518).replace(/\D/g,''))||1518;
 let sb=null;
 const colors=['#ff7289','#56bfff','#64dfa7','#b989ff','#ffb865','#65e1e6'];
-let strategy=null,alliances=[],teams=[],rally=[],joiners=[],heroes=[],libraryItems=[],petRows=[],petAssignments=[],allAlliances=[],responses=[],playerPool=[],stateRoles=[],strategyList=[],formations=[],visibleHeroGenerations=[],heroGenerationRows=[],playerInventory=[],battleMetaRules=[],responsePlayers={},battlePlanItems=[],battlePlanRecord=null,battlePlanView='summary',battlePlanLoaded=false,eventSetup=null,eventSetupLoaded=false,appLoading=true,testSandbox=false,petAssignmentHidden=false,formationCenterTab='approved';
+let strategy=null,alliances=[],teams=[],rally=[],joiners=[],heroes=[],libraryItems=[],petRows=[],petAssignments=[],allAlliances=[],responses=[],playerPool=[],stateRoles=[],strategyList=[],formations=[],visibleHeroGenerations=[],heroGenerationRows=[],playerInventory=[],battleMetaRules=[],responsePlayers={},battlePlanItems=[],battlePlanRecord=null,battlePlanView='summary',battlePlanLoaded=false,eventSetup=null,eventSetupLoaded=false,appLoading=true,testSandbox=false,petAssignmentHidden=false,formationCenterTab='approved',setupEditing=false;
 let castleRow=null,castleSnapshot=null,castleTool='pan',castleSelection=new Set(),castleUndo=[],castleRedo=[],castlePointerState=new Map(),castleGesture=null,castleSaveTimer=null,castlePaintAllianceId=null,castlePaintColor='#48ddff',castleExportView=null,castleExportFrame=null,castleExportPointers=new Map(),castleExportGesture=null,castleExportLegendVisible=false,castleExportLegendPos={x:.03,y:.10},castleExportLegendDrag=null;
 
 const stateLabel=$('#state-label');
@@ -1575,6 +1582,36 @@ function setupDateLabels(prep){
  const local=new Intl.DateTimeFormat('en-US',{timeZone:tz,weekday:'long',month:'long',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit',hour12:true,timeZoneName:'short'}).format(d);
  return{utc,local:`${local} • ${tz}`};
 }
+function setupDatePlus(prep,days=0){
+ if(!prep)return'';
+ const d=new Date(`${prep}T00:00:00Z`);if(Number.isNaN(d.getTime()))return'';
+ d.setUTCDate(d.getUTCDate()+Number(days||0));
+ return d.toISOString().slice(0,10);
+}
+function setupLiveEventPayload(saved){
+ const prep=saved?.prep_monday||'';
+ const battle=setupDatePlus(prep,5);
+ return{
+   schema_version:1,
+   event_key:'svs',
+   event_name:'State of Power (SvS)',
+   theme:'svs',
+   state_number:state,
+   opponent_state:Number(saved?.opponent_state||0)||null,
+   prep_start:prep||null,
+   battle_date:battle||null,
+   star_alliance:{id:saved?.castle_alliance_id||null,tag:setupAllianceTag(saved?.castle_alliance_id)||''},
+   presidency_alliance:{id:saved?.presidency_alliance_id||null,tag:setupAllianceTag(saved?.presidency_alliance_id)||''},
+   schedule:[
+     {day:'Monday',date:setupDatePlus(prep,0),focus:'Construction',ministry:'Vice President'},
+     {day:'Tuesday',date:setupDatePlus(prep,1),focus:'Research',ministry:'Vice President'},
+     {day:'Thursday',date:setupDatePlus(prep,3),focus:'Troop Training',ministry:'Minister of Education (MOE)'},
+     {day:'Saturday',date:battle,focus:'SvS Battle',ministry:'Battle Phase',time_utc:'10:00–22:00 UTC',secondary:'Sunfire Castle • 12:00 UTC'}
+   ],
+   rules:String(saved?.rules_text||''),
+   published_at:new Date().toISOString()
+ };
+}
 async function loadSvsSetup(){
  eventSetupLoaded=false;renderSvsSetup();
  if(!strategy){eventSetup=null;eventSetupLoaded=true;renderSvsSetup();return}
@@ -1592,7 +1629,27 @@ function renderSvsSetup(){
  if(!strategy){host.innerHTML='<div class="muted">Open or create an SvS Strategy to attach the event setup.</div>';if(badge){badge.textContent='NO STRATEGY';badge.classList.remove('live')}return}
  if(!eventSetupLoaded){host.innerHTML='<div class="muted">Loading SvS Setup…</div>';if(badge){badge.textContent='LOADING';badge.classList.remove('live')}return}
  const e=eventSetup||{},prep=e.prep_monday||'',battle=setupBattleDate(prep),dates=setupDateLabels(prep),isLive=String(e.status||'').toLowerCase()==='live'||e.is_live===true;
- if(badge){badge.textContent=isLive?'LIVE':'DRAFT';badge.classList.toggle('live',isLive)}
+ if(badge){badge.textContent=isLive?'LIVE':(e.id?'SAVED':'DRAFT');badge.classList.toggle('live',isLive)}
+ if(e.id&&!setupEditing){
+   host.innerHTML=`<div class="setup-summary-card">
+     <div class="setup-summary-grid">
+       <div class="setup-summary-item"><small>Opponent</small><b>State ${esc(e.opponent_state||'—')}</b></div>
+       <div class="setup-summary-item"><small>Prep Start</small><b>${esc(prep||'—')}</b></div>
+       <div class="setup-summary-item"><small>Battle Date</small><b>${esc(battle||'—')}</b></div>
+       <div class="setup-summary-item"><small>Star / Presidency</small><b>${esc(setupAllianceTag(e.castle_alliance_id)||'—')} / ${esc(setupAllianceTag(e.presidency_alliance_id)||'—')}</b></div>
+     </div>
+     <div class="setup-actions">
+       <button id="setup-edit" class="btn violet" type="button">Edit</button>
+       <button id="setup-publish" class="btn" type="button">${isLive?'Update Live Event':'Publish to Live Event'}</button>
+       <button id="setup-send-plan" class="btn" type="button">Send to Battle Plan</button>
+     </div>
+     <div class="tiny muted">${isLive?'This SvS Setup is live. Edit and save whenever leadership needs to update it.':'Setup saved. Publish it when you are ready for the Live Event.'}</div>
+   </div>`;
+   $('#setup-edit').onclick=()=>{setupEditing=true;renderSvsSetup()};
+   $('#setup-publish').onclick=publishSvsSetup;
+   $('#setup-send-plan').onclick=sendSetupToBattlePlan;
+   return;
+ }
  host.innerHTML=`<div class="grid2">
    <label>Opponent State<input id="setup-opponent" type="number" min="1" inputmode="numeric" value="${bpVal(e.opponent_state||'')}" placeholder="Example: 1519"></label>
    <label>SvS Prep Start Date<input id="setup-prep-date" type="date" value="${bpVal(prep)}"><span class="tiny muted">First day of the SvS Preparation Phase • Game/UTC date.</span></label>
@@ -1622,56 +1679,90 @@ function collectSvsSetup(){
    rules_text:$('#setup-rules')?.value.trim()||null
  };
 }
-async function saveSvsSetup({quiet=false}={}){
+async function saveSvsSetup({quiet=false,keepOpen=false}={}){
  if(!strategy){if(!quiet)say('Open or create an SvS Strategy first.',true);return null}
  const form=collectSvsSetup();
  if(!form.opponent_state||!form.prep_monday){if(!quiet)say('Opponent State and SvS Prep Start Date are required.',true);return null}
  setSaveState('saving');
- const now=new Date().toISOString();
- let result;
- if(eventSetup?.id){
-   result=await sb.from('svs_events').update({...form,title:`SvS vs ${form.opponent_state}`,state_number:state,setup_updated_at:now,setup_updated_by:user?.id||null,updated_at:now}).eq('id',eventSetup.id).select().single();
- }else{
-   result=await sb.from('svs_events').insert({...form,title:`SvS vs ${form.opponent_state}`,state_number:state,status:'draft',is_live:false,prep_form_open:false,battle_form_open:false,schedule_published:false,setup_updated_at:now,setup_updated_by:user?.id||null}).select().single();
+ try{
+   const now=new Date().toISOString();
+   let result;
+   if(eventSetup?.id){
+     result=await sb.from('svs_events').update({...form,title:`SvS vs ${form.opponent_state}`,state_number:state,setup_updated_at:now,setup_updated_by:user?.id||null,updated_at:now}).eq('id',eventSetup.id).select().single();
+   }else{
+     result=await sb.from('svs_events').insert({...form,title:`SvS vs ${form.opponent_state}`,state_number:state,status:'upcoming',is_live:false,prep_form_open:false,battle_form_open:false,schedule_published:false,setup_updated_at:now,setup_updated_by:user?.id||null}).select().single();
+   }
+   if(result.error){if(!quiet)say(result.error.message,true);return null}
+   eventSetup=result.data;
+   if(String(strategy.event_id||'')!==String(eventSetup.id)){
+     const sr=await sb.from('svs_strategies').update({event_id:eventSetup.id,updated_at:now}).eq('id',strategy.id).select().single();
+     if(sr.error){if(!quiet)say(sr.error.message,true);return null}
+     strategy=sr.data;
+   }
+   eventSetupLoaded=true;setupEditing=!!keepOpen;renderSvsSetup();
+   await loadResponses();
+   if(!quiet)say('SvS Setup saved.');
+   return eventSetup;
+ }catch(err){
+   console.error('[NEXA] SvS Setup save failed',err);
+   if(!quiet)say(err?.message||'SvS Setup could not be saved.',true);
+   return null;
+ }finally{
+   setSaveState('saved');
  }
- if(result.error){setSaveState('saved');if(!quiet)say(result.error.message,true);return null}
- eventSetup=result.data;
- if(String(strategy.event_id||'')!==String(eventSetup.id)){
-   const sr=await sb.from('svs_strategies').update({event_id:eventSetup.id,updated_at:now}).eq('id',strategy.id).select().single();
-   if(sr.error){setSaveState('saved');if(!quiet)say(sr.error.message,true);return null}
-   strategy=sr.data;
- }
- eventSetupLoaded=true;renderSvsSetup();setSaveState('saved');
- await loadResponses();
- if(!quiet)say('SvS Setup saved.');
- return eventSetup;
 }
 async function publishSvsSetup(){
- const saved=await saveSvsSetup({quiet:true});if(!saved)return;
  setSaveState('saving');
- const now=new Date().toISOString();
- const r=await sb.from('svs_events').update({status:'live',is_live:true,updated_at:now,setup_updated_at:now,setup_updated_by:user?.id||null}).eq('id',saved.id).select().single();
- if(r.error){setSaveState('saved');return say(r.error.message,true)}
- eventSetup=r.data;renderSvsSetup();setSaveState('saved');say('SvS Live Event updated.');
+ try{
+   let saved=eventSetup;
+   if(setupEditing||!saved?.id){saved=await saveSvsSetup({quiet:true,keepOpen:true});if(!saved){say('Save the SvS Setup before publishing.',true);return}}
+   const now=new Date().toISOString();
+   const payload=setupLiveEventPayload(saved);
+   const previous=await sb.from('svs_events').update({is_live:false,updated_at:now}).eq('state_number',state).eq('is_live',true).neq('id',saved.id);
+   if(previous.error)throw previous.error;
+   const description=`Prep ${payload.prep_start||'—'} • Battle ${payload.battle_date||'—'} • 10:00–22:00 UTC`;
+   const r=await sb.from('svs_events').update({
+     status:'live',is_live:true,schedule_published:true,
+     description,live_event_payload:payload,
+     setup_published_at:now,live_event_published_at:now,
+     updated_at:now,setup_updated_at:now,setup_updated_by:user?.id||null
+   }).eq('id',saved.id).select().single();
+   if(r.error)throw r.error;
+   eventSetup=r.data;eventSetupLoaded=true;setupEditing=false;renderSvsSetup();say('SvS Live Event published with schedule.');
+ }catch(err){
+   console.error('[NEXA] SvS Setup publish failed',err);
+   say(err?.message||'SvS Live Event could not be published.',true);
+ }finally{
+   setSaveState('saved');
+ }
 }
 async function sendSetupToBattlePlan(){
- const saved=await saveSvsSetup({quiet:true});if(!saved)return;
- if(!battlePlanRecord){await battlePlanCreate();if(!battlePlanRecord)return}
- const current=battlePlanDoc(),battleDate=setupBattleDate(saved.prep_monday);
- const doc={...current,
-   opponent_state:String(saved.opponent_state||''),
-   alliance_first_star:setupAllianceTag(saved.castle_alliance_id),
-   alliance_first_star_manual:false,
-   alliance_presidency:setupAllianceTag(saved.presidency_alliance_id),
-   alliance_presidency_manual:false,
-   event_date:battleDate,
-   svs_rules:String(saved.rules_text||''),
-   setup_event_id:saved.id,
-   setup_synced_at:new Date().toISOString()
- };
- const r=await sb.from('svs_battle_plans').update({document:doc,event_id:saved.id,updated_at:new Date().toISOString()}).eq('id',battlePlanRecord.id).select().single();
- if(r.error)return say(r.error.message,true);
- battlePlanRecord=r.data;battlePlanView='summary';renderBattlePlanBuilder();say('SvS Setup sent to Battle Plan.');
+ setSaveState('saving');
+ try{
+   let saved=eventSetup;
+   if(setupEditing||!saved?.id){saved=await saveSvsSetup({quiet:true,keepOpen:true});if(!saved)return say('Save the SvS Setup before sending it to Battle Plan.',true)}
+   if(!battlePlanRecord){await battlePlanCreate();if(!battlePlanRecord)return}
+   const current=battlePlanDoc(),battleDate=setupBattleDate(saved.prep_monday);
+   const doc={...current,
+     opponent_state:String(saved.opponent_state||''),
+     alliance_first_star:setupAllianceTag(saved.castle_alliance_id),
+     alliance_first_star_manual:false,
+     alliance_presidency:setupAllianceTag(saved.presidency_alliance_id),
+     alliance_presidency_manual:false,
+     event_date:battleDate,
+     svs_rules:String(saved.rules_text||''),
+     setup_event_id:saved.id,
+     setup_synced_at:new Date().toISOString()
+   };
+   const r=await sb.from('svs_battle_plans').update({document:doc,event_id:saved.id,updated_at:new Date().toISOString()}).eq('id',battlePlanRecord.id).select().single();
+   if(r.error)return say(r.error.message,true);
+   battlePlanRecord=r.data;battlePlanView='summary';setupEditing=false;renderSvsSetup();renderBattlePlanBuilder();say('SvS Setup sent to Battle Plan.');
+ }catch(err){
+   console.error('[NEXA] SvS Setup send-to-plan failed',err);
+   say(err?.message||'SvS Setup could not be sent to Battle Plan.',true);
+ }finally{
+   setSaveState('saved');
+ }
 }
 
 async function loadResponses(){

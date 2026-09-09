@@ -1292,7 +1292,7 @@ async function openOwnedBattleOperationsMenu(){
     }
   }catch(_){}
   ownedMenuSubview('BATTLE OPERATIONS',items);
-}
+} 
 
 function openOwnedTeamMenu(){ownedMenuSubview('TEAM BUILDER',[
   ['Build Teams',()=>ownedMenuGo('team-builder.html')],['Manage Teams',()=>ownedMenuGo('alliance-teams.html')],['Team View',()=>ownedMenuGo('team-layout.html')]

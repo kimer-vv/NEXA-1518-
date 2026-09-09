@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V12.5 • Battle Plan load race fix + duplicate-safe create + mobile snapshot view cleanup -->
+<!-- NEXA SVS OPERATIONS V12.7 • Battle Plan editor snapshot order fix + star label -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -3422,7 +3422,12 @@ async function sendTeamToBattlePlan(teamId){
 async function removeTeamFromBattlePlan(id){const item=battlePlanItems.find(x=>String(x.id)===String(id));if(!item)return;setSaveState('saving');const d=await sb.from('svs_battle_plan_items').delete().eq('id',id);if(d.error)return say(d.error.message,true);battlePlanItems=battlePlanItems.filter(x=>String(x.id)!==String(id));renderLayout();renderBattlePlan();renderBattlePlanBuilder();setSaveState('saved')}
 function renderBattlePlan(){
  const h=$('#battle-plan-list');if(!h)return;if(!strategy){h.innerHTML='<div class="muted">Open a Team workspace first.</div>';return}
- const items=battlePlanItems.filter(x=>['castle_city','pet_schedule','alliance_layout'].includes(x.item_type)).slice().sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+ const typeOrder={castle_city:0,pet_schedule:1,alliance_layout:2};
+ const items=battlePlanItems.filter(x=>['castle_city','pet_schedule','alliance_layout'].includes(x.item_type)).slice().sort((a,b)=>{
+   const ta=typeOrder[a.item_type]??99,tb=typeOrder[b.item_type]??99;
+   if(ta!==tb)return ta-tb;
+   return Number(a.sort_order||0)-Number(b.sort_order||0);
+ });
  h.innerHTML=items.length?items.map(x=>{
    const snap=x.snapshot||{};
    if(x.item_type==='castle_city'){

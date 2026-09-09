@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>NEXA • Clear Working Data</title>
+<!-- NEXA BATTLE WORKING DATA V1.0 • Owner/Admin only • selective SvS cleanup -->
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--a:#48ddff;--m:#aeb7d1;--red:#ff7289}
+*{box-sizing:border-box}
+body{margin:0;min-height:100dvh;background:radial-gradient(circle at 8% 10%,rgba(72,221,255,.08),transparent 28%),radial-gradient(circle at 95% 0%,rgba(125,76,255,.12),transparent 30%),#02030b;color:#fff}
+.sh{width:min(720px,100%);margin:auto;padding:24px 16px 90px}
+.top{display:grid;grid-template-columns:46px 1fr 46px;gap:10px;align-items:center}
+.round{width:46px;height:46px;border-radius:50%;border:1px solid rgba(72,221,255,.34);background:#071126;color:#c7f8ff;display:grid;place-items:center;font-size:25px}
+.title{text-align:center}.title small{display:block;font-size:9px;letter-spacing:.18em;color:#9aa8ca;font-weight:950}.title h1{margin:4px 0 0;font-size:clamp(1.7rem,7vw,2.5rem)}
+.card{margin-top:16px;padding:16px;border:1px solid rgba(255,255,255,.11);border-radius:18px;background:rgba(7,14,31,.78)}
+.card h2{margin:0 0 6px}.muted{color:var(--m);font-size:12px;line-height:1.45}
+label{display:grid;gap:6px;font-size:12px;font-weight:850;color:#c3cee7}
+select,input{width:100%;min-height:44px;border-radius:12px;border:1px solid rgba(120,141,204,.26);background:#061022;color:#fff;padding:10px;font:inherit}
+.mods{display:grid;gap:8px;margin-top:12px}
+.mod{display:flex;align-items:flex-start;gap:10px;padding:11px;border:1px solid rgba(255,255,255,.08);border-radius:13px;background:rgba(255,255,255,.02)}
+.mod input{width:20px;height:20px;min-height:20px;margin:0;flex:0 0 20px}.mod b{display:block;font-size:12px}.mod small{display:block;color:#8f9bbb;font-size:10px;margin-top:2px;line-height:1.35}
+.warning{margin-top:14px;padding:11px;border:1px solid rgba(255,114,137,.25);border-radius:13px;background:rgba(91,18,38,.16);color:#ffc0cd;font-size:11px;line-height:1.45}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{min-height:44px;border-radius:12px;border:1px solid rgba(72,221,255,.33);background:linear-gradient(135deg,rgba(19,104,111,.74),rgba(44,54,133,.78));color:#fff;font-weight:900;padding:9px 12px}
+.danger{border-color:rgba(255,83,119,.48);background:linear-gradient(135deg,#60172d,#361126);color:#ffd5de}.danger:disabled{opacity:.4}
+.status{min-height:20px;margin-top:10px;font-size:11px;color:#8cecff}.hidden{display:none!important}
+</style>
+</head>
+<body>
+<main class="sh">
+  <div class="top">
+    <button id="back" class="round" type="button">‹</button>
+    <div class="title"><small>BATTLE OPERATIONS • ADMIN</small><h1>Clear Working Data</h1></div>
+    <button id="close" class="round" type="button">×</button>
+  </div>
+  <div id="loading" class="card"><b>Loading SvS workspace…</b></div>
+  <div id="denied" class="card hidden"><h2>Owner / Admin only</h2><div class="muted">This control is only available to the NEXA Owner or a State Hub Administrator.</div></div>
+  <div id="panel" class="card hidden">
+    <h2>Delete in SvS</h2>
+    <div class="muted">Choose the SvS strategy and only the working modules you want to clear. Information and independent Battle Plan snapshots are not touched unless their own module is selected.</div>
+    <label style="margin-top:13px">SvS Strategy<select id="strategy"></select></label>
+    <div class="mods">
+      <label class="mod"><input type="checkbox" value="responses"><span><b>Responses</b><small>Battle form responses for this SvS event.</small></span></label>
+      <label class="mod"><input type="checkbox" value="pet_schedule"><span><b>Pet Schedule</b><small>Pet schedule rows and assignments.</small></span></label>
+      <label class="mod"><input type="checkbox" value="team_board"><span><b>Team Board / Teams</b><small>Teams, joiners, rally slots and alliance rally formations. Strategy shell and alliance list stay.</small></span></label>
+      <label class="mod"><input type="checkbox" value="team_layout"><span><b>Team Layout</b><small>Saved Team Layout versions only. Existing Battle Plan copy stays.</small></span></label>
+      <label class="mod"><input type="checkbox" value="castle_seating"><span><b>Castle Seating</b><small>Current Castle Seating workspace. Existing Battle Plan copy stays.</small></span></label>
+      <label class="mod"><input type="checkbox" value="battle_plan"><span><b>Battle Plan</b><small>Battle Plan document and its copied snapshots for this strategy.</small></span></label>
+    </div>
+    <div class="warning"><b>This cannot be undone.</b> Only checked modules are deleted. Type <b>DELETE</b> exactly to unlock the final button.</div>
+    <label style="margin-top:12px">Confirmation<input id="confirm" autocomplete="off" autocapitalize="characters" placeholder="Type DELETE"></label>
+    <div class="actions"><button id="clear" class="btn danger" type="button" disabled>Delete Selected Working Data</button></div>
+    <div id="status" class="status"></div>
+  </div>
+</main>
+<script>
+(()=>{'use strict';
+const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
+const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
+const sb=window.supabase.createClient(SB_URL,SB_KEY);
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const activeState=()=>Number(String(window.NEXA_ACTIVE_STATE||localStorage.getItem('nexa_active_state_v49')||1518).replace(/\D/g,''))||1518;
+function goBack(){if(history.length>1)history.back();else location.href='index.html'}
+$('#back').onclick=goBack;$('#close').onclick=()=>location.href='index.html';
+$('#confirm').oninput=()=>$('#clear').disabled=$('#confirm').value.trim()!=='DELETE';
+async function boot(){
+ const state=activeState();
+ const {data:strategies,error}=await sb.from('svs_strategies').select('id,name,status,event_id,updated_at').eq('state_number',state).order('updated_at',{ascending:false});
+ if(error||!(strategies||[]).length){$('#loading').innerHTML='<b>No SvS strategy is available for this State.</b>';return}
+ $('#strategy').innerHTML=(strategies||[]).map(s=>`<option value="${s.id}">${String(s.name||'SvS Strategy').replace(/[<>]/g,'')} • ${String(s.status||'draft').toUpperCase()}</option>`).join('');
+ const probe=await sb.rpc('nexa_clear_svs_working_data',{p_state:state,p_strategy_id:$('#strategy').value,p_modules:[]});
+ $('#loading').classList.add('hidden');
+ if(probe.error){$('#denied').classList.remove('hidden');return}
+ $('#panel').classList.remove('hidden');
+}
+$('#clear').onclick=async()=>{
+ const modules=$$('.mod input:checked').map(x=>x.value);
+ if(!modules.length){$('#status').textContent='Select at least one module.';return}
+ if($('#confirm').value.trim()!=='DELETE')return;
+ $('#clear').disabled=true;$('#status').textContent='Deleting selected working data…';
+ const {data,error}=await sb.rpc('nexa_clear_svs_working_data',{p_state:activeState(),p_strategy_id:$('#strategy').value,p_modules:modules});
+ if(error){$('#status').textContent=error.message;$('#clear').disabled=false;return}
+ $$('.mod input').forEach(x=>x.checked=false);$('#confirm').value='';
+ $('#status').textContent='Selected SvS working data cleared.';
+};
+boot();
+})();
+</script>
+</body>
+</html>

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • Clear Working Data</title>
-<!-- NEXA BATTLE WORKING DATA V1.0 • Owner/Admin only • selective SvS cleanup -->
+<!-- NEXA BATTLE WORKING DATA V1.1 • Owner/Admin only • 10-0 destructive confirmation -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -50,8 +50,8 @@ select,input{width:100%;min-height:44px;border-radius:12px;border:1px solid rgba
       <label class="mod"><input type="checkbox" value="castle_seating"><span><b>Castle Seating</b><small>Current Castle Seating workspace. Existing Battle Plan copy stays.</small></span></label>
       <label class="mod"><input type="checkbox" value="battle_plan"><span><b>Battle Plan</b><small>Battle Plan document and its copied snapshots for this strategy.</small></span></label>
     </div>
-    <div class="warning"><b>This cannot be undone.</b> Only checked modules are deleted. Type <b>DELETE</b> exactly to unlock the final button.</div>
-    <label style="margin-top:12px">Confirmation<input id="confirm" autocomplete="off" autocapitalize="characters" placeholder="Type DELETE"></label>
+    <div class="warning"><b>This cannot be undone.</b> Only checked modules are deleted. Type <b>10-0</b> exactly to unlock the final button.</div>
+    <label style="margin-top:12px">Confirmation<input id="confirm" autocomplete="off" autocapitalize="off" inputmode="text" placeholder="Type 10-0"></label>
     <div class="actions"><button id="clear" class="btn danger" type="button" disabled>Delete Selected Working Data</button></div>
     <div id="status" class="status"></div>
   </div>
@@ -65,7 +65,7 @@ const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const activeState=()=>Number(String(window.NEXA_ACTIVE_STATE||localStorage.getItem('nexa_active_state_v49')||1518).replace(/\D/g,''))||1518;
 function goBack(){if(history.length>1)history.back();else location.href='index.html'}
 $('#back').onclick=goBack;$('#close').onclick=()=>location.href='index.html';
-$('#confirm').oninput=()=>$('#clear').disabled=$('#confirm').value.trim()!=='DELETE';
+$('#confirm').oninput=()=>$('#clear').disabled=$('#confirm').value.trim()!=='10-0';
 async function boot(){
  const state=activeState();
  const {data:strategies,error}=await sb.from('svs_strategies').select('id,name,status,event_id,updated_at').eq('state_number',state).order('updated_at',{ascending:false});
@@ -79,7 +79,7 @@ async function boot(){
 $('#clear').onclick=async()=>{
  const modules=$$('.mod input:checked').map(x=>x.value);
  if(!modules.length){$('#status').textContent='Select at least one module.';return}
- if($('#confirm').value.trim()!=='DELETE')return;
+ if($('#confirm').value.trim()!=='10-0')return;
  $('#clear').disabled=true;$('#status').textContent='Deleting selected working data…';
  const {data,error}=await sb.rpc('nexa_clear_svs_working_data',{p_state:activeState(),p_strategy_id:$('#strategy').value,p_modules:modules});
  if(error){$('#status').textContent=error.message;$('#clear').disabled=false;return}

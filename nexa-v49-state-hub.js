@@ -88,7 +88,17 @@ function stateNum(v){
   return Number.isFinite(n)&&n>0?n:0;
 }
 function activeState(){
-  return stateNum(window.NEXA_ACTIVE_STATE||localStorage.getItem(ACTIVE_STATE_KEY)||0);
+  let raw=window.NEXA_ACTIVE_STATE||null;
+
+  if(!raw){
+    try{
+      raw=window.localStorage?.getItem(ACTIVE_STATE_KEY)||null;
+    }catch(err){
+      console.warn('[NEXA V49] active state storage unavailable',err);
+    }
+  }
+
+  return stateNum(raw||1518)||1518;
 }
 function setActiveState(value,{emit=true}={}){
   const n=stateNum(value);if(!n)return 0;
@@ -537,48 +547,139 @@ function transferEmpty(st){
   host.innerHTML=`<article class="event"><div class="event-row"><div><h3>Transfer Center</h3><div class="muted">Transfer cycles and recruiting information will appear here when active.</div></div></article>`;
 }
 async function syncStateHome(){
-  const st=activeState();if(!st)return;
-  positionTransferAfterAllianceSignal();
-  await syncTransferVisibility();
-  refreshHomeVisualOwner();
+  const st=activeState();
+  if(!st)return;
+
   updateStateLabels(st);
-  const c=sb();if(!c)return;
+
+  const c=sb();
+  if(!c)return;
+
+  /*
+    LIVE EVENT IS PRIMARY.
+    Transfer failures must never block the SvS Home card.
+  */
   try{
-    const hub=await hubStatus(st);
+    let hub=null;
+
+    try{
+      hub=await hubStatus(st);
+    }catch(err){
+      console.warn('[NEXA V49] hub status read failed',err?.message||err);
+    }
+
     if(hub&&hub.status==='pending_setup'){
-      const t=$('#home-event-title'),m=$('#home-event-meta');
+      const t=$('#home-event-title');
+      const m=$('#home-event-meta');
+      const count=$('#home-event-countdown');
+
       if(t)t.textContent='State Hub Setup Incomplete';
       if(m)m.textContent=`State ${st} needs one additional admin confirmation before full activation.`;
-      transferEmpty(st);
-      refreshHomeVisualOwner();
+      if(count)count.textContent='—';
+
       return;
     }
-    const [{data:live,error:le},{data:trans,error:te}]=await Promise.all([
-      c.from('svs_events').select('*').eq('state_number',st).eq('is_live',true).order('updated_at',{ascending:false}).limit(1).maybeSingle(),
-      c.from('transfer_events').select('*').eq('destination_state',st).order('updated_at',{ascending:false}).limit(1).maybeSingle()
-    ]);
-    if(le)throw le;if(te)throw te;
+
+    const {data:live,error:liveError}=await c
+      .from('svs_events')
+      .select('*')
+      .eq('state_number',st)
+      .eq('status','live')
+      .eq('is_live',true)
+      .order('updated_at',{ascending:false})
+      .limit(1)
+      .maybeSingle();
+
+    if(liveError)throw liveError;
+
     if(live){
-      const title=$('#home-event-title'),meta=$('#home-event-meta'),count=$('#home-event-countdown');
-      if(title)title.textContent=live.title||`SvS vs State ${live.opponent_state||'—'}`;
-      if(meta)meta.textContent=`State ${st} • ${live.description||'Live Event'}`;
-      if(count)count.textContent='LIVE';
-    }else{
+      const title=$('#home-event-title');
+      const meta=$('#home-event-meta');
+      const count=$('#home-event-countdown');
+
+      if(title){
+        title.textContent=
+          live.title||
+          `SvS vs State ${live.opponent_state||'—'}`;
+      }
+
+      if(meta){
+        meta.textContent=
+          `State ${st} • ${live.description||'Live Event'}`;
+      }
+
+      if(count){
+        count.textContent='LIVE';
+      }
+
+      try{
+        window.NEXA_APPLY_LIVE_EVENT_THEME?.(
+          live.live_event_payload?.theme||
+          live.live_event_payload?.event_key||
+          'svs'
+        );
+      }catch(_){}
+
       try{
         window.NEXA_REFRESH_LIVE_EVENT_DETAILS?.();
       }catch(_){}
+
+    }else{
+      console.warn(
+        `[NEXA V49] No live SvS event returned for State ${st}`
+      );
     }
 
+  }catch(err){
+    console.warn(
+      '[NEXA V49] Live Event load failed',
+      err?.message||err
+    );
+  }
+
+  /*
+    TRANSFERS ARE SECONDARY.
+    Nothing below this point can erase or block the Live Event.
+  */
+  try{
+    positionTransferAfterAllianceSignal();
+    await syncTransferVisibility();
+
+    const {data:trans,error:transferError}=await c
+      .from('transfer_events')
+      .select('*')
+      .eq('destination_state',st)
+      .order('updated_at',{ascending:false})
+      .limit(1)
+      .maybeSingle();
+
+    if(transferError)throw transferError;
+
     const host=$('#nexa-v49-transfer-events');
+
     if(host){
       if(trans){
-        const status=String(trans.status||'upcoming').replace(/_/g,' ').toUpperCase();
-        host.innerHTML=`<article class="event"><div class="event-row"><div><h3>${esc(trans.title||'Transfer Center')}</h3><div class="muted">${esc(status)}${trans.applications_open?' • Applications Open':''}</div></div></article>`;
-      }else transferEmpty(st);
+        const status=
+          String(trans.status||'upcoming')
+            .replace(/_/g,' ')
+            .toUpperCase();
+
+        host.innerHTML=
+          `<article class="event"><div class="event-row"><div><h3>${esc(trans.title||'Transfer Center')}</h3><div class="muted">${esc(status)}${trans.applications_open?' • Applications Open':''}</div></div></article>`;
+      }else{
+        transferEmpty(st);
+      }
     }
+
     refreshHomeVisualOwner();
     retireLegacyTransfer();
-  }catch(err){console.warn('[NEXA V49] state home',err?.message||err)}
+
+  }catch(err){
+    console.warn(
+      '[NEXA V49] Transfer Home load failed',
+      err?.message||err
+    );
+  }
 }
 
 function accountFormForState(){

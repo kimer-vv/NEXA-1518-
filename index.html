@@ -2082,11 +2082,34 @@ async function renderLiveDetails(){
 
   if(!section)return;
 
-  const st=activeState();
+  const title=$('#home-event-title');
+  const meta=$('#home-event-meta');
+  const count=$('#home-event-countdown');
 
-    let live=null;
+  const debug=(step,detail='')=>{
+    if(title)title.textContent=`LIVE DEBUG • ${step}`;
+    if(meta)meta.textContent=detail||'Diagnostic running…';
+    if(count)count.textContent='TEST';
+    console.log('[NEXA LIVE DEBUG]',step,detail);
+  };
+
+  debug('BOOT','Renderer started');
+
+  let st=1518;
 
   try{
+    st=activeState();
+    debug('STATE',`Active State ${st}`);
+  }catch(error){
+    debug('STATE ERROR',error?.message||String(error));
+    return;
+  }
+
+  let live=null;
+
+    try{
+    debug('REQUEST',`Requesting live SvS for State ${st}`);
+
     const url=
       `${SB_URL}/rest/v1/svs_events`+
       `?select=id,title,description,opponent_state,prep_monday,castle_alliance_id,presidency_alliance_id,live_event_payload,is_live,status,updated_at`+
@@ -2096,14 +2119,16 @@ async function renderLiveDetails(){
       `&order=updated_at.desc`+
       `&limit=1`;
 
-    const res=await fetch(url,{
+        const res=await fetch(url,{
       method:'GET',
       cache:'no-store',
       headers:{
-  apikey:SB_KEY,
-  Accept:'application/json'
-}
+        apikey:SB_KEY,
+        Accept:'application/json'
+      }
     });
+
+    debug('RESPONSE',`${res.status} ${res.statusText}`);
 
     if(!res.ok){
       throw new Error(
@@ -2111,8 +2136,23 @@ async function renderLiveDetails(){
       );
     }
 
-    const rows=await res.json();
+        const rows=await res.json();
+
+    debug(
+      'JSON',
+      `Rows returned: ${Array.isArray(rows)?rows.length:'not-array'}`
+    );
+
     live=Array.isArray(rows)?rows[0]||null:null;
+
+    if(live){
+      debug(
+        'EVENT FOUND',
+        `${live.title||'Untitled'} • State ${live.opponent_state||'—'}`
+      );
+    }else{
+      debug('NO ROW','REST returned no live event');
+    }
 
   }catch(error){
     console.warn(

@@ -647,8 +647,18 @@ async function syncStateHome(){
         ? `${live.title||'Live event found'} • Opponent ${live.opponent_state||'—'}`
         : 'No live row returned'
     );
+if(live){
+  window.NEXA_CURRENT_LIVE_EVENT=live;
 
-   if(live){
+  try{
+    window.dispatchEvent(new CustomEvent('nexa:live-event-ready',{
+      detail:{
+        live,
+        stateNumber:st
+      }
+    }));
+  }catch(_){}
+
   const section=$('#home-svs-section');
 
   if(section){

@@ -2085,17 +2085,42 @@ async function renderLiveDetails(){
 
   const st=activeState();
 
-  const {data:live,error}=await c
-    .from('svs_events')
-    .select('id,title,description,opponent_state,prep_monday,castle_alliance_id,presidency_alliance_id,live_event_payload,is_live,status,updated_at')
-    .eq('state_number',st)
-    .eq('is_live',true)
-    .order('updated_at',{ascending:false})
-    .limit(1)
-    .maybeSingle();
+    let live=null;
 
-  if(error){
-    console.warn('[NEXA] Live Event detail load failed',error);
+  try{
+    const url=
+      `${SB_URL}/rest/v1/svs_events`+
+      `?select=id,title,description,opponent_state,prep_monday,castle_alliance_id,presidency_alliance_id,live_event_payload,is_live,status,updated_at`+
+      `&state_number=eq.${encodeURIComponent(st)}`+
+      `&status=eq.live`+
+      `&is_live=eq.true`+
+      `&order=updated_at.desc`+
+      `&limit=1`;
+
+    const res=await fetch(url,{
+      method:'GET',
+      cache:'no-store',
+      headers:{
+        apikey:SB_KEY,
+        Authorization:`Bearer ${SB_KEY}`,
+        Accept:'application/json'
+      }
+    });
+
+    if(!res.ok){
+      throw new Error(
+        `Live Event request failed: ${res.status} ${res.statusText}`
+      );
+    }
+
+    const rows=await res.json();
+    live=Array.isArray(rows)?rows[0]||null:null;
+
+  }catch(error){
+    console.warn(
+      '[NEXA] Live Event direct load failed',
+      error
+    );
     return;
   }
 
@@ -2247,6 +2272,12 @@ window.addEventListener(
 window.addEventListener(
   'pageshow',
   ()=>refreshLiveSurface({resync:true})
+);
+
+window.addEventListener(
+  'load',
+  ()=>refreshLiveSurface({resync:false}),
+  {once:true}
 );
 
 document.addEventListener(

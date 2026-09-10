@@ -1885,17 +1885,39 @@ html.nexa-auth-boot body > #nexa-auth-gate { visibility:hidden!important; }
     const owner=
       typeof window.NEXA_SYNC_STATE_HOME;
 
-    const card=
-      !!document.getElementById('home-svs-section');
+    const cards=
+  Array.from(document.querySelectorAll('#home-svs-section'));
 
-    const title=
-      document.getElementById('home-event-title')?.textContent||'MISSING';
+const titles=
+  Array.from(document.querySelectorAll('#home-event-title'));
 
-    box.textContent=
-      'V49 EXECUTED: '+guard+
-      ' | OWNER: '+owner+
-      ' | CARD: '+card+
-      ' | TITLE: '+title;
+const allLiveLike=
+  Array.from(document.querySelectorAll('section,article,div'))
+    .filter(el=>{
+      const t=(el.textContent||'').trim();
+      return /^LIVE EVENT\b/i.test(t) || /\bNo Live Event\b/i.test(t);
+    })
+    .slice(0,6);
+
+const details=titles.map((el,i)=>{
+  const r=el.getBoundingClientRect();
+  const cs=getComputedStyle(el);
+
+  return (
+    '#'+(i+1)+
+    ' "'+(el.textContent||'').trim()+'"'+
+    ' display='+cs.display+
+    ' visible='+(r.width>0&&r.height>0)
+  );
+}).join(' || ');
+
+box.textContent=
+  'V49: '+guard+
+  ' | OWNER: '+owner+
+  ' | SVS CARDS: '+cards.length+
+  ' | TITLES: '+titles.length+
+  ' | '+details+
+  ' | LIVE-LIKE: '+allLiveLike.length;
   }
 
   window.addEventListener('load',()=>{

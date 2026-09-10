@@ -648,11 +648,43 @@ async function syncStateHome(){
         : 'No live row returned'
     );
 
-    if(live){
-      const title=$('#home-event-title');
-      const meta=$('#home-event-meta');
-      const count=$('#home-event-countdown');
+   if(live){
+  const section=$('#home-svs-section');
 
+  if(section){
+    section.classList.remove('hidden');
+
+    section.style.setProperty('display','block','important');
+    section.style.setProperty('visibility','visible','important');
+    section.style.setProperty('opacity','1','important');
+    section.style.setProperty('pointer-events','auto','important');
+  }
+
+  /*
+    Retire any legacy Home Live Event surface.
+    The real owner is #home-svs-section.
+  */
+  $$('section,article,div').forEach(el=>{
+    if(!el || el===section || section?.contains(el) || el.contains(section))return;
+
+    const text=String(el.textContent||'')
+      .replace(/\s+/g,' ')
+      .trim();
+
+    if(
+      /\bNo Live Event\b/i.test(text) &&
+      /\bUpcoming state events\b/i.test(text)
+    ){
+      el.style.setProperty('display','none','important');
+      el.style.setProperty('visibility','hidden','important');
+      el.style.setProperty('pointer-events','none','important');
+      el.setAttribute('aria-hidden','true');
+    }
+  });
+
+  const title=$('#home-event-title');
+  const meta=$('#home-event-meta');
+  const count=$('#home-event-countdown');
       if(title){
         title.textContent=
           live.title||

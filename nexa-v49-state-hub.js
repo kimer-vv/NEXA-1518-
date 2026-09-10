@@ -1671,71 +1671,199 @@ function bind(){
 }
 
 async function boot(){
-  if(booted)return;booted=true;
-  installCSS();
-  try{await restoreActiveContext()}catch(e){console.warn('[NEXA V49] restore',e?.message||e)}
-  updateStateLabels();
-  ensureTransferOwner();
-  /* Auth/session hydration on iPhone can finish after the first Home paint.
-     Recheck permission without changing the card owner. */
-  [250,800,1600,3000].forEach(ms=>setTimeout(()=>syncTransferVisibility(),ms));
-  buildOwnedHomeMenuRoot();
-  accountFormForState();
-  enhanceAccountManager();
-  enhanceFleet();
+  if(booted)return;
+  booted=true;
 
-  /* Access and Operational Roles exist only while their own page is active.
-     V26's direct ?admin=administration route activates at ~700ms, so V49 must
-     perform its final ownership pass AFTER that one-time route activation. */
-  hideAdminOwners();
-  relabelOperationalRolesUI();
-  scheduleAdminOwners();
-  [820,980,1250].forEach(ms=>setTimeout(scheduleAdminOwners,ms));
-
-  /* Old index Home sync was globally hard-coded to 1518. From V49 onward the
-     active Fleet State is the source of truth. */
+  /*
+    HOME DATA OWNER MUST EXIST FIRST.
+    Nothing in Fleet/Profile/Admin is allowed to block Live Event.
+  */
   window.NEXA_SYNC_STATE_HOME=syncStateHome;
   try{window.syncHomeLiveEvent=syncStateHome}catch(_){}
   try{window.syncHomeTransfers=syncStateHome}catch(_){}
-   await syncStateHome();
 
-  /* Keep Home hidden while the legacy DOMContentLoaded loader finishes.
-     This existing 650ms ownership handoff now happens off-screen, then
-     the fully hydrated Home is revealed once. */
+  try{
+    installCSS();
+  }catch(e){
+    console.warn('[NEXA V49] CSS install',e?.message||e);
+  }
+
+  try{
+    await restoreActiveContext();
+  }catch(e){
+    console.warn('[NEXA V49] restore',e?.message||e);
+  }
+
+  try{
+    updateStateLabels();
+  }catch(e){
+    console.warn('[NEXA V49] state labels',e?.message||e);
+  }
+
+  /*
+    LIVE EVENT FIRST.
+  */
+  try{
+    await syncStateHome();
+  }catch(e){
+    console.warn('[NEXA V49] initial Home sync',e?.message||e);
+  }
+
+  /*
+    EVERYTHING BELOW IS SECONDARY.
+    A failure here must never stop Home Live Event.
+  */
+  try{ensureTransferOwner()}catch(e){
+    console.warn('[NEXA V49] transfer owner',e?.message||e);
+  }
+
+  [250,800,1600,3000].forEach(ms=>{
+    setTimeout(()=>{
+      try{
+        syncTransferVisibility();
+      }catch(e){
+        console.warn('[NEXA V49] transfer visibility',e?.message||e);
+      }
+    },ms);
+  });
+
+  try{buildOwnedHomeMenuRoot()}catch(e){
+    console.warn('[NEXA V49] menu',e?.message||e);
+  }
+
+  try{accountFormForState()}catch(e){
+    console.warn('[NEXA V49] account state form',e?.message||e);
+  }
+
+  try{enhanceAccountManager()}catch(e){
+    console.warn('[NEXA V49] account manager',e?.message||e);
+  }
+
+  try{enhanceFleet()}catch(e){
+    console.warn('[NEXA V49] fleet',e?.message||e);
+  }
+
+  try{hideAdminOwners()}catch(e){
+    console.warn('[NEXA V49] admin owners',e?.message||e);
+  }
+
+  try{relabelOperationalRolesUI()}catch(e){
+    console.warn('[NEXA V49] role labels',e?.message||e);
+  }
+
+  try{scheduleAdminOwners()}catch(e){
+    console.warn('[NEXA V49] admin schedule',e?.message||e);
+  }
+
+  [820,980,1250].forEach(ms=>{
+    setTimeout(()=>{
+      try{scheduleAdminOwners()}catch(_){}
+    },ms);
+  });
+
+  /*
+    SECOND HOME PASS AFTER AUTH/DOM HYDRATION.
+  */
   setTimeout(async()=>{
     try{
       await syncStateHome();
-      retireLegacyTransfer();
-      try{window.NEXA_HOME_VISUALS_REFRESH?.()}catch(_){}
-    }finally{
-      markNexaHomeStateReady();
+    }catch(e){
+      console.warn('[NEXA V49] delayed Home sync',e?.message||e);
     }
+
+    try{retireLegacyTransfer()}catch(_){}
+    try{window.NEXA_HOME_VISUALS_REFRESH?.()}catch(_){}
+
+    markNexaHomeStateReady();
   },650);
 
-  bind();
+  try{
+    bind();
+  }catch(e){
+    console.warn('[NEXA V49] bind',e?.message||e);
+  }
 
-  /* If this signed-in player already has a pending second-admin invitation for
-     the selected State, one explicit confirmation path is exposed through Fleet. */
-  const st=activeState();
-  if(st){
-    try{
+  /*
+    Pending State Hub admin invitation.
+    Completely isolated from Home.
+  */
+  try{
+    const st=activeState();
+
+    if(st){
       const c=sb();
       const {data:{user}}=await c.auth.getUser();
+
       if(user){
         const rows=await ownAccounts();
         const acct=rows.find(x=>stateNum(x.state_number)===st);
+
         if(acct){
-          const {data:invite,error:inviteError}=await c.rpc('nexa_my_pending_state_admin_invite',{p_state:st});
+          const {
+            data:invite,
+            error:inviteError
+          }=await c.rpc(
+            'nexa_my_pending_state_admin_invite',
+            {p_state:st}
+          );
+
           if(!inviteError&&invite===true){
-            const ov=dialog(`<button class="nexa-v49-close" type="button">×</button><h3>State Hub Admin Invitation</h3>
-              <p>You were invited to help administer State ${esc(st)}.</p>
-              <div class="nexa-v49-warning">Accepting this invitation may complete activation of this State Hub.</div>
-              <div class="nexa-v49-actions"><button class="nexa-v49-primary" data-v49-accept-invite>ACCEPT ADMIN INVITATION</button></div>`);
-            $('[data-v49-accept-invite]',ov).onclick=async()=>{ov.remove();await acceptPendingInviteIfAny()};
+            const ov=dialog(`
+              <button
+                class="nexa-v49-close"
+                type="button"
+              >×</button>
+
+              <h3>State Hub Admin Invitation</h3>
+
+              <p>
+                You were invited to help administer
+                State ${esc(st)}.
+              </p>
+
+              <div class="nexa-v49-warning">
+                Accepting this invitation may complete
+                activation of this State Hub.
+              </div>
+
+              <div class="nexa-v49-actions">
+                <button
+                  class="nexa-v49-primary"
+                  data-v49-accept-invite
+                >
+                  ACCEPT ADMIN INVITATION
+                </button>
+              </div>
+            `);
+
+            const accept=$(
+              '[data-v49-accept-invite]',
+              ov
+            );
+
+            if(accept){
+              accept.onclick=async()=>{
+                ov.remove();
+
+                try{
+                  await acceptPendingInviteIfAny();
+                }catch(e){
+                  console.warn(
+                    '[NEXA V49] admin invitation',
+                    e?.message||e
+                  );
+                }
+              };
+            }
           }
         }
       }
-    }catch(_){}
+    }
+  }catch(e){
+    console.warn(
+      '[NEXA V49] pending admin invitation',
+      e?.message||e
+    );
   }
 }
 

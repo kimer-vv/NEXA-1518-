@@ -563,7 +563,11 @@ async function syncStateHome(){
       if(title)title.textContent=live.title||`SvS vs State ${live.opponent_state||'—'}`;
       if(meta)meta.textContent=`State ${st} • ${live.description||'Live Event'}`;
       if(count)count.textContent='LIVE';
-    }else liveEmpty(st);
+    }else{
+      try{
+        window.NEXA_REFRESH_LIVE_EVENT_DETAILS?.();
+      }catch(_){}
+    }
 
     const host=$('#nexa-v49-transfer-events');
     if(host){

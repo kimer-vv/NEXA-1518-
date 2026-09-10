@@ -652,12 +652,35 @@ async function syncStateHome(){
   const section=$('#home-svs-section');
 
   if(section){
+    /*
+      V49 is the single Live Event owner.
+      Recover the real card from any legacy Home container that may
+      have moved it into a hidden/retired surface.
+    */
+    const homeMain=document.querySelector('main.shell');
+    const profile=document.getElementById('nexa-profile-launcher-section');
+
+    if(homeMain && section.parentElement!==homeMain){
+      if(profile && profile.parentElement===homeMain){
+        profile.insertAdjacentElement('afterend',section);
+      }else{
+        homeMain.prepend(section);
+      }
+    }
+
     section.classList.remove('hidden');
+    section.removeAttribute('hidden');
+    section.setAttribute('aria-hidden','false');
 
     section.style.setProperty('display','block','important');
     section.style.setProperty('visibility','visible','important');
     section.style.setProperty('opacity','1','important');
     section.style.setProperty('pointer-events','auto','important');
+
+    if(homeMain){
+      homeMain.style.setProperty('visibility','visible','important');
+      homeMain.style.setProperty('opacity','1','important');
+    }
   }
 
   /*

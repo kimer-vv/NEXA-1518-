@@ -1,11 +1,12 @@
-/* NEXA V49.31 — LIVE EVENT FINAL OWNER TAKEOVER
-   COMPLETE FILE
+/* NEXA V49.32 — LIVE EVENT VISUAL OWNER
+   COMPLETE REPLACEMENT FILE
+   File: nexa-v49-live-owner-v49-31.js
 
-   Purpose:
-   - Keep nexa-v49-state-hub.js as the State/Fleet/Admin owner.
-   - Make the real #home-svs-section the final visible Home Live Event surface.
-   - Repaint from the current live svs_events row after late Home renderers finish.
-   - Retire only obsolete "No Live Event" surfaces outside the real card.
+   Architecture:
+   - nexa-v49-state-hub.js remains the ONLY data owner for Home Live Event.
+   - This file performs NO Supabase query.
+   - It asks V49 to sync, then only restores/locks the already-painted real card.
+   - It retires stale duplicate "No Live Event" surfaces outside the real card.
 
    No MutationObserver.
    No polling.
@@ -15,322 +16,253 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4931_LIVE_OWNER_TAKEOVER__) return;
-window.__NEXA_V4931_LIVE_OWNER_TAKEOVER__=true;
+if(window.__NEXA_V4932_LIVE_VISUAL_OWNER__) return;
+window.__NEXA_V4932_LIVE_VISUAL_OWNER__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
-const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
-const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
-const ACTIVE_STATE_KEY='nexa_active_state_v49';
 
-let localSb=null;
-let lastLive=null;
-let lastState=0;
-let takeoverGeneration=0;
+let generation=0;
+let lastGood={
+  title:'',
+  meta:'',
+  count:''
+};
 
-function sb(){
-  if(window.supabaseClient?.from) return window.supabaseClient;
-  if(window.sb?.from) return window.sb;
-  if(!localSb && window.supabase?.createClient){
-    localSb=window.supabase.createClient(SB_URL,SB_KEY);
-  }
-  return localSb;
-}
-
-function stateNum(v){
-  const n=Number(String(v??'').replace(/\D/g,''));
-  return Number.isFinite(n)&&n>0?n:0;
-}
-
-function activeState(){
-  let raw=window.NEXA_ACTIVE_STATE||null;
-  if(!raw){
-    try{ raw=window.localStorage?.getItem(ACTIVE_STATE_KEY)||null; }
-    catch(_){}
-  }
-  return stateNum(raw||1518)||1518;
-}
-
-function normalizeText(el){
+function text(el){
   return String(el?.textContent||'').replace(/\s+/g,' ').trim();
 }
 
-function realLiveSection(){
+function section(){
   return $('#home-svs-section');
 }
 
-function visibleRect(el){
-  if(!el?.getBoundingClientRect) return false;
-  const r=el.getBoundingClientRect();
-  const cs=getComputedStyle(el);
-  return r.width>0 && r.height>0 &&
-    cs.display!=='none' &&
-    cs.visibility!=='hidden' &&
-    Number(cs.opacity||1)>0;
+function homeMain(sec){
+  return $('main.shell') || sec?.closest?.('main') || $('#home') || $('main');
 }
 
-function chooseHomeMain(section){
-  const directMain=$('main.shell');
-  if(directMain) return directMain;
-  return section?.closest?.('main') || $('#home') || $('main');
+function rememberPaint(sec){
+  if(!sec) return false;
+
+  const title=$('#home-event-title',sec) || $('#home-event-title');
+  const meta=$('#home-event-meta',sec) || $('#home-event-meta');
+  const count=$('#home-event-countdown',sec) || $('#home-event-countdown');
+
+  const t=text(title);
+  const m=text(meta);
+  const c=text(count);
+
+  const isRealLive=
+    !!t &&
+    !/^No Live Event$/i.test(t) &&
+    !/^V49 TRACE\b/i.test(t) &&
+    !/^State Hub Setup Incomplete$/i.test(t);
+
+  if(!isRealLive) return false;
+
+  lastGood={
+    title:t,
+    meta:m,
+    count:c||'LIVE'
+  };
+  return true;
 }
 
-function restoreRealSurface(section){
-  if(!section) return null;
+function restoreRealCard(){
+  const sec=section();
+  if(!sec) return null;
 
-  const homeMain=chooseHomeMain(section);
+  const main=homeMain(sec);
   const profile=$('#nexa-profile-launcher-section');
 
-  if(homeMain && section.parentElement!==homeMain){
-    if(profile && profile.parentElement===homeMain){
-      profile.insertAdjacentElement('afterend',section);
+  if(main && sec.parentElement!==main){
+    if(profile && profile.parentElement===main){
+      profile.insertAdjacentElement('afterend',sec);
     }else{
-      const firstSignal=
-        $('#nexa-v31-signals',homeMain) ||
-        $('#nexa-v302-pulse',homeMain) ||
-        $('#nexa-v31-alliance',homeMain);
+      const anchor=
+        $('#nexa-v31-signals',main) ||
+        $('#nexa-v302-pulse',main) ||
+        $('#nexa-v31-alliance',main);
 
-      if(firstSignal?.parentElement===homeMain){
-        firstSignal.insertAdjacentElement('beforebegin',section);
+      if(anchor?.parentElement===main){
+        anchor.insertAdjacentElement('beforebegin',sec);
       }else{
-        homeMain.prepend(section);
+        main.prepend(sec);
       }
     }
   }
 
-  section.classList.remove('hidden');
-  section.removeAttribute('hidden');
-  section.setAttribute('aria-hidden','false');
+  sec.classList.remove('hidden');
+  sec.removeAttribute('hidden');
+  sec.setAttribute('aria-hidden','false');
+  sec.dataset.nexaLiveVisualOwner='v49-32';
 
-  section.style.setProperty('display','block','important');
-  section.style.setProperty('visibility','visible','important');
-  section.style.setProperty('opacity','1','important');
-  section.style.setProperty('pointer-events','auto','important');
-  section.style.setProperty('position','relative','important');
-  section.style.setProperty('width','100%','important');
-  section.style.setProperty('height','auto','important');
-  section.style.setProperty('min-height','1px','important');
-  section.style.setProperty('overflow','visible','important');
+  sec.style.setProperty('display','block','important');
+  sec.style.setProperty('visibility','visible','important');
+  sec.style.setProperty('opacity','1','important');
+  sec.style.setProperty('pointer-events','auto','important');
+  sec.style.setProperty('position','relative','important');
+  sec.style.setProperty('width','100%','important');
+  sec.style.setProperty('height','auto','important');
+  sec.style.setProperty('min-height','1px','important');
+  sec.style.setProperty('overflow','visible','important');
 
-  if(homeMain){
-    homeMain.classList.remove('hidden');
-    homeMain.removeAttribute('hidden');
-    homeMain.setAttribute('aria-hidden','false');
-    homeMain.style.setProperty('display','block','important');
-    homeMain.style.setProperty('visibility','visible','important');
-    homeMain.style.setProperty('opacity','1','important');
+  if(main){
+    main.classList.remove('hidden');
+    main.removeAttribute('hidden');
+    main.setAttribute('aria-hidden','false');
+    main.style.setProperty('visibility','visible','important');
+    main.style.setProperty('opacity','1','important');
   }
 
-  return section;
+  return sec;
 }
 
-function retireObsoleteLiveSurfaces(section){
-  if(!section) return;
+function restoreLastGood(sec){
+  if(!sec || !lastGood.title) return false;
 
-  const candidates=new Set();
+  const title=$('#home-event-title',sec) || $('#home-event-title');
+  const meta=$('#home-event-meta',sec) || $('#home-event-meta');
+  const count=$('#home-event-countdown',sec) || $('#home-event-countdown');
+
+  const current=text(title);
+
+  if(
+    !current ||
+    /^No Live Event$/i.test(current) ||
+    /^V49 TRACE\b/i.test(current)
+  ){
+    if(title) title.textContent=lastGood.title;
+    if(meta) meta.textContent=lastGood.meta;
+    if(count) count.textContent=lastGood.count||'LIVE';
+  }
+
+  return true;
+}
+
+function retireLegacyNoLive(sec){
+  if(!sec) return;
 
   $$('section,article,div').forEach(el=>{
-    if(!el || el===section || section.contains(el) || el.contains(section)) return;
+    if(!el || el===sec || sec.contains(el) || el.contains(sec)) return;
     if(el===document.body || el===document.documentElement) return;
     if(el.matches?.('main,main.shell,#home')) return;
 
-    const text=normalizeText(el);
-    if(!/\bNo Live Event\b/i.test(text)) return;
+    const raw=text(el);
+    if(!/\bNo Live Event\b/i.test(raw)) return;
 
-    const looksLikeLiveSurface=
-      /\bLIVE EVENT\b/i.test(text) ||
-      /\bUpcoming state events\b/i.test(text) ||
-      /\bactive or upcoming event\b/i.test(text) ||
-      /\bleadership publishes\b/i.test(text);
+    const looksLegacy=
+      /\bLIVE EVENT\b/i.test(raw) ||
+      /\bUpcoming state events\b/i.test(raw) ||
+      /\bactive or upcoming event\b/i.test(raw) ||
+      /\bleadership publishes\b/i.test(raw);
 
-    if(!looksLikeLiveSurface) return;
+    if(!looksLegacy) return;
 
-    let card=el.closest?.(
+    const card=el.closest?.(
       'section,.section,article,[data-nexa-tech="live"],[class*="event-card"],[class*="signal"]'
     ) || el;
 
     if(
       !card ||
-      card===section ||
-      section.contains(card) ||
-      card.contains(section) ||
+      card===sec ||
+      sec.contains(card) ||
+      card.contains(sec) ||
       card===document.body ||
       card===document.documentElement ||
       card.matches?.('main,main.shell,#home')
     ) return;
 
-    candidates.add(card);
-  });
-
-  candidates.forEach(el=>{
-    if(!visibleRect(el) && el.getAttribute('aria-hidden')==='true') return;
-    el.setAttribute('aria-hidden','true');
-    el.dataset.nexaRetiredLiveSurface='v49-31';
-    el.style.setProperty('display','none','important');
-    el.style.setProperty('visibility','hidden','important');
-    el.style.setProperty('opacity','0','important');
-    el.style.setProperty('pointer-events','none','important');
+    card.dataset.nexaRetiredLiveSurface='v49-32';
+    card.setAttribute('aria-hidden','true');
+    card.style.setProperty('display','none','important');
+    card.style.setProperty('visibility','hidden','important');
+    card.style.setProperty('opacity','0','important');
+    card.style.setProperty('pointer-events','none','important');
   });
 }
 
-function paintLive(live,st){
-  if(!live || !st) return false;
+function lockVisual(){
+  const sec=restoreRealCard();
+  if(!sec) return false;
 
-  const section=restoreRealSurface(realLiveSection());
-  if(!section) return false;
+  rememberPaint(sec);
+  restoreLastGood(sec);
+  retireLegacyNoLive(sec);
 
-  retireObsoleteLiveSurfaces(section);
-
-  const title=$('#home-event-title',section) || $('#home-event-title');
-  const meta=$('#home-event-meta',section) || $('#home-event-meta');
-  const count=$('#home-event-countdown',section) || $('#home-event-countdown');
-
-  if(title){
-    title.textContent=
-      live.title ||
-      `SvS vs State ${live.opponent_state||'—'}`;
-  }
-
-  if(meta){
-    meta.textContent=`State ${st} • ${live.description||'Live Event'}`;
-  }
-
-  if(count){
-    count.textContent='LIVE';
-  }
-
-  section.dataset.nexaLiveOwner='v49-31';
-  section.dataset.nexaLiveEventId=String(live.id||'');
-
-  try{
-    window.NEXA_APPLY_LIVE_EVENT_THEME?.(
-      live.live_event_payload?.theme ||
-      live.live_event_payload?.event_key ||
-      'svs'
-    );
-  }catch(_){}
-
-  try{ window.NEXA_REFRESH_LIVE_EVENT_DETAILS?.(); }
-  catch(_){}
-
+  /* A visual refresher may restyle or move cards synchronously. */
   try{ window.NEXA_HOME_VISUALS_REFRESH?.(); }
   catch(_){}
 
-  /* A visual refresher may restyle/move cards synchronously.
-     Re-assert the real owner's final visibility immediately afterward. */
-  section.classList.remove('hidden');
-  section.removeAttribute('hidden');
-  section.setAttribute('aria-hidden','false');
-  section.style.setProperty('display','block','important');
-  section.style.setProperty('visibility','visible','important');
-  section.style.setProperty('opacity','1','important');
-  section.style.setProperty('height','auto','important');
-  section.style.setProperty('min-height','1px','important');
+  restoreRealCard();
+  restoreLastGood(sec);
+  retireLegacyNoLive(sec);
 
-  if(title){
-    title.textContent=
-      live.title ||
-      `SvS vs State ${live.opponent_state||'—'}`;
-  }
-  if(meta){
-    meta.textContent=`State ${st} • ${live.description||'Live Event'}`;
-  }
-  if(count) count.textContent='LIVE';
-
-  retireObsoleteLiveSurfaces(section);
   return true;
 }
 
-function scheduleFinalTakeover(live,st){
-  if(!live || !st) return;
+async function syncFromV49(){
+  const owner=window.NEXA_SYNC_STATE_HOME;
 
-  lastLive=live;
-  lastState=st;
-  const generation=++takeoverGeneration;
+  if(typeof owner!=='function'){
+    return false;
+  }
 
-  /* Fixed, finite hydration passes. This is not polling. */
-  [0,120,350,700,1200,2000,3200,4800].forEach(ms=>{
-    setTimeout(()=>{
-      if(generation!==takeoverGeneration) return;
-      try{ paintLive(live,st); }
-      catch(err){
-        console.warn('[NEXA V49.31] Live owner paint',err?.message||err);
+  try{
+    await owner();
+  }catch(err){
+    console.warn(
+      '[NEXA V49.32] V49 Home sync failed',
+      err?.message||err
+    );
+  }
+
+  lockVisual();
+  return true;
+}
+
+function scheduleFinitePasses(){
+  const mine=++generation;
+
+  [0,120,350,700,1200,2000,3200,4800].forEach((ms,index)=>{
+    setTimeout(async()=>{
+      if(mine!==generation) return;
+
+      /*
+        First passes ask V49 to refresh its data-owned surface.
+        Later passes are visual-only so this file never becomes a second data owner.
+      */
+      if(index<=2){
+        await syncFromV49();
+      }else{
+        lockVisual();
       }
     },ms);
   });
 }
 
-async function fetchAndTakeover(){
-  const st=activeState();
-  const c=sb();
-
-  if(!st || !c?.from) return;
-
-  try{
-    const {data:live,error}=await c
-      .from('svs_events')
-      .select('*')
-      .eq('state_number',st)
-      .eq('status','live')
-      .eq('is_live',true)
-      .order('updated_at',{ascending:false})
-      .limit(1)
-      .maybeSingle();
-
-    if(error) throw error;
-
-    if(!live){
-      if(lastState===st){
-        lastLive=null;
-        takeoverGeneration++;
-      }
-      console.warn(`[NEXA V49.31] No live SvS event returned for State ${st}`);
-      return;
-    }
-
-    scheduleFinalTakeover(live,st);
-
-  }catch(err){
-    console.warn(
-      '[NEXA V49.31] Live Event takeover load failed',
-      err?.message||err
-    );
-  }
-}
-
-function repaintCached(){
-  if(lastLive && lastState){
-    scheduleFinalTakeover(lastLive,lastState);
-  }else{
-    fetchAndTakeover();
-  }
-}
-
 function boot(){
-  fetchAndTakeover();
+  scheduleFinitePasses();
 
   window.addEventListener('load',()=>{
-    repaintCached();
+    scheduleFinitePasses();
   },{once:true});
 
   window.addEventListener('pageshow',()=>{
-    repaintCached();
+    scheduleFinitePasses();
   });
 
   document.addEventListener('visibilitychange',()=>{
-    if(!document.hidden) repaintCached();
+    if(!document.hidden) scheduleFinitePasses();
   });
 
   window.addEventListener('nexa:active-state-changed',()=>{
-    lastLive=null;
-    lastState=0;
-    takeoverGeneration++;
-    fetchAndTakeover();
+    lastGood={title:'',meta:'',count:''};
+    scheduleFinitePasses();
   });
 
   window.addEventListener('nexa:home-ready',()=>{
-    repaintCached();
+    scheduleFinitePasses();
   });
 }
 

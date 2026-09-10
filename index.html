@@ -1836,7 +1836,7 @@ html.nexa-home-boot body > header.topbar,
 html.nexa-home-boot body > main.shell,
 html.nexa-home-boot body > #nexa-home-menu-toggle,
 html.nexa-home-boot body > #nexa-home-menu{
-  visibility:hidden!important;
+  visibility:visible!important;
 }
 </style>
 <style id="nexa-v52-auth-boot">
@@ -1988,13 +1988,20 @@ function client(){
 }
 
 function activeState(){
+  let raw=window.NEXA_ACTIVE_STATE||null;
+
+  if(!raw){
+    try{
+      raw=window.localStorage?.getItem('nexa_active_state_v49')||null;
+    }catch(err){
+      console.warn('[NEXA] Home Live Event state storage unavailable',err);
+    }
+  }
+
   const n=Number(
-    String(
-      window.NEXA_ACTIVE_STATE||
-      localStorage.getItem('nexa_active_state_v49')||
-      1518
-    ).replace(/\D/g,'')
+    String(raw||1518).replace(/\D/g,'')
   );
+
   return Number.isFinite(n)&&n>0?n:1518;
 }
 
@@ -2109,10 +2116,41 @@ async function renderLiveDetails(){
     'svs'
   ).toLowerCase();
 
-  applyTheme(type);
+   applyTheme(type);
+
+  const title=$('#home-event-title');
+  const meta=$('#home-event-meta');
+  const count=$('#home-event-countdown');
+
+  const liveOpponent=
+    p.opponent_state||
+    live.opponent_state||
+    '—';
+
+  if(title){
+    title.textContent=`SvS vs State ${liveOpponent}`;
+  }
+
+  if(meta){
+    const prepLabel=
+      p.prep_start
+        ?fmtDate(p.prep_start)
+        :'—';
+
+    const battleLabel=
+      p.battle_date
+        ?fmtDate(p.battle_date)
+        :'—';
+
+    meta.textContent=
+      `State ${st} • Prep ${prepLabel} • Battle ${battleLabel}`;
+  }
+
+  if(count){
+    count.textContent='LIVE';
+  }
 
   let host=$('#home-live-event-details');
-
   if(!host){
     host=document.createElement('div');
     host.id='home-live-event-details';

@@ -547,13 +547,51 @@ function transferEmpty(st){
   host.innerHTML=`<article class="event"><div class="event-row"><div><h3>Transfer Center</h3><div class="muted">Transfer cycles and recruiting information will appear here when active.</div></div></article>`;
 }
 async function syncStateHome(){
-  const st=activeState();
-  if(!st)return;
+  const trace=(step,detail='')=>{
+    const title=$('#home-event-title');
+    const meta=$('#home-event-meta');
+    const count=$('#home-event-countdown');
 
-  updateStateLabels(st);
+    if(title)title.textContent=`V49 TRACE • ${step}`;
+    if(meta)meta.textContent=detail||'Running Home sync…';
+    if(count)count.textContent='TEST';
+
+    console.log('[NEXA V49 TRACE]',step,detail);
+  };
+
+  trace('START','syncStateHome started');
+
+  let st=0;
+
+  try{
+    st=activeState();
+    trace('STATE',`Active State ${st}`);
+  }catch(err){
+    trace('STATE ERROR',err?.message||String(err));
+    return;
+  }
+
+  if(!st){
+    trace('NO STATE','activeState returned 0');
+    return;
+  }
+
+  try{
+    updateStateLabels(st);
+    trace('LABELS',`State labels updated for ${st}`);
+  }catch(err){
+    trace('LABEL ERROR',err?.message||String(err));
+    return;
+  }
 
   const c=sb();
-  if(!c)return;
+
+  if(!c){
+    trace('NO CLIENT','Supabase client unavailable');
+    return;
+  }
+
+  trace('CLIENT','Supabase client ready');
 
   /*
     LIVE EVENT IS PRIMARY.
@@ -562,9 +600,15 @@ async function syncStateHome(){
   try{
     let hub=null;
 
-    try{
+        try{
+      trace('HUB REQUEST',`Checking State Hub ${st}`);
       hub=await hubStatus(st);
+      trace(
+        'HUB RESPONSE',
+        hub ? `Status: ${hub.status}` : 'No hub row returned'
+      );
     }catch(err){
+      trace('HUB ERROR',err?.message||String(err));
       console.warn('[NEXA V49] hub status read failed',err?.message||err);
     }
 
@@ -580,6 +624,8 @@ async function syncStateHome(){
       return;
     }
 
+        trace('LIVE REQUEST',`Requesting live SvS for State ${st}`);
+
     const {data:live,error:liveError}=await c
       .from('svs_events')
       .select('*')
@@ -590,7 +636,17 @@ async function syncStateHome(){
       .limit(1)
       .maybeSingle();
 
-    if(liveError)throw liveError;
+       if(liveError){
+      trace('LIVE ERROR',liveError.message||String(liveError));
+      throw liveError;
+    }
+
+    trace(
+      'LIVE RESPONSE',
+      live
+        ? `${live.title||'Live event found'} • Opponent ${live.opponent_state||'—'}`
+        : 'No live row returned'
+    );
 
     if(live){
       const title=$('#home-event-title');

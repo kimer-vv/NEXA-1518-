@@ -1,13 +1,15 @@
-/* NEXA V49.33 — CLEAN LIVE EVENT SURFACE
+/* NEXA V49.34 — LIVE EVENT SIGNAL CARD
    COMPLETE REPLACEMENT FILE
    File: nexa-v49-live-owner-v49-31.js
 
    Architecture:
-   - nexa-v49-state-hub.js remains the ONLY data owner.
+   - nexa-v49-state-hub.js is the ONLY data owner / Supabase reader.
    - This file performs ZERO Supabase queries.
-   - It calls V49's exposed sync owner, reads only the result V49 painted,
-     then renders one brand-new Home Live Event surface.
-   - The legacy #home-svs-section is no longer used as the visible card.
+   - V49 publishes the live row through window.NEXA_CURRENT_LIVE_EVENT
+     and the nexa:live-event-ready event.
+   - This renderer creates one new Live Event card INSIDE the Home signal stack,
+     immediately before NEXA Pulse — the exact slot where Live Event belongs.
+   - Legacy Live Event surfaces are hidden, not used as the visible owner.
 
    No MutationObserver.
    No polling.
@@ -17,265 +19,277 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4933_CLEAN_LIVE_SURFACE__) return;
-window.__NEXA_V4933_CLEAN_LIVE_SURFACE__=true;
+if(window.__NEXA_V4934_LIVE_SIGNAL_CARD__) return;
+window.__NEXA_V4934_LIVE_SIGNAL_CARD__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
 
-const NEW_ID='nexa-live-event-v4933';
+const CARD_ID='nexa-v4934-live-event';
+let lastLive=null;
 let generation=0;
-let lastSnapshot=null;
+
+const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({
+  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+}[m]));
 
 function clean(v){
   return String(v??'').replace(/\s+/g,' ').trim();
 }
 
-function isUsefulTitle(v){
-  const t=clean(v);
-  return !!t &&
-    !/^No Live Event$/i.test(t) &&
-    !/^V49 TRACE\b/i.test(t) &&
-    !/^State Hub Setup Incomplete$/i.test(t);
+function fmtDate(v){
+  if(!v) return '';
+  const d=new Date(`${v}T00:00:00Z`);
+  if(Number.isNaN(d.getTime())) return clean(v);
+  return new Intl.DateTimeFormat(undefined,{
+    month:'short',
+    day:'numeric',
+    timeZone:'UTC'
+  }).format(d);
 }
 
-function parseOpponent(title){
-  const m=clean(title).match(/\b(?:vs\.?|versus)\s*(?:State\s*)?(\d+)\b/i);
-  return m?.[1]||'';
+function payloadOf(live){
+  return live?.live_event_payload && typeof live.live_event_payload==='object'
+    ? live.live_event_payload
+    : {};
 }
 
-function readV49Snapshot(){
-  const legacy=$('#home-svs-section');
-  const title=
-    clean($('#home-event-title',legacy)?.textContent) ||
-    clean($('#home-event-title')?.textContent);
-
-  if(!isUsefulTitle(title)) return null;
-
-  const meta=
-    clean($('#home-event-meta',legacy)?.textContent) ||
-    clean($('#home-event-meta')?.textContent);
-
-  const count=
-    clean($('#home-event-countdown',legacy)?.textContent) ||
-    clean($('#home-event-countdown')?.textContent) ||
-    'LIVE';
-
-  let state='';
-  const stateMatch=meta.match(/\bState\s+(\d+)\b/i);
-  if(stateMatch) state=stateMatch[1];
-
-  const snapshot={
-    title,
-    meta,
-    count,
-    stateNumber:state,
-    opponentState:parseOpponent(title)
-  };
-
-  lastSnapshot=snapshot;
-
-  window.NEXA_CURRENT_LIVE_EVENT={
-    title:snapshot.title,
-    description:snapshot.meta,
-    opponent_state:snapshot.opponentState||null,
-    state_number:snapshot.stateNumber||null,
-    source:'v49-dom-bridge'
-  };
-
-  try{
-    window.dispatchEvent(new CustomEvent('nexa:live-event-ready',{
-      detail:{
-        live:window.NEXA_CURRENT_LIVE_EVENT,
-        stateNumber:snapshot.stateNumber||null
-      }
-    }));
-  }catch(_){}
-
-  return snapshot;
+function signalsHost(){
+  return $('#nexa-v31-signals');
 }
 
-function homeMain(){
-  return $('main.shell') || $('#home') || $('main');
+function pulseAnchor(){
+  return $('#nexa-v302-pulse');
 }
 
-function ensureNewSurface(){
-  let card=$('#'+NEW_ID);
+function ensureCard(){
+  let card=$('#'+CARD_ID);
   if(card) return card;
 
-  const main=homeMain();
-  if(!main) return null;
-
   card=document.createElement('section');
-  card.id=NEW_ID;
-  card.className='nexa-v4933-live-card';
+  card.id=CARD_ID;
+  card.className='nexa-v4934-live-card';
   card.setAttribute('aria-live','polite');
-  card.innerHTML=`
-    <div class="nexa-v4933-kicker">
-      <span class="nexa-v4933-dot" aria-hidden="true"></span>
-      LIVE EVENT
-    </div>
 
-    <div class="nexa-v4933-main">
-      <div class="nexa-v4933-copy">
-        <h2 class="nexa-v4933-title">Loading Live Event…</h2>
-        <p class="nexa-v4933-meta">Syncing current State event.</p>
-      </div>
-      <div class="nexa-v4933-status">LIVE</div>
-    </div>
+  const host=signalsHost();
+  const pulse=pulseAnchor();
 
-    <div class="nexa-v4933-facts" hidden>
-      <div class="nexa-v4933-fact nexa-v4933-state-wrap">
-        <span>STATE</span>
-        <strong class="nexa-v4933-state">—</strong>
-      </div>
-      <div class="nexa-v4933-fact nexa-v4933-opponent-wrap">
-        <span>OPPONENT</span>
-        <strong class="nexa-v4933-opponent">—</strong>
-      </div>
-    </div>
-  `;
-
-  const profile=$('#nexa-profile-launcher-section',main);
-  const signals=$('#nexa-v31-signals',main);
-
-  if(profile?.parentElement===main){
-    profile.insertAdjacentElement('afterend',card);
-  }else if(signals?.parentElement===main){
-    signals.insertAdjacentElement('beforebegin',card);
+  if(host){
+    if(pulse && pulse.parentElement===host){
+      host.insertBefore(card,pulse);
+    }else{
+      host.appendChild(card);
+    }
   }else{
-    main.prepend(card);
+    const main=$('main.shell') || $('#home') || $('main');
+    if(!main) return null;
+    if(pulse?.parentElement){
+      pulse.insertAdjacentElement('beforebegin',card);
+    }else{
+      main.appendChild(card);
+    }
+  }
+
+  return card;
+}
+
+function reanchor(){
+  const card=ensureCard();
+  if(!card) return null;
+
+  const host=signalsHost();
+  const pulse=pulseAnchor();
+
+  if(host && pulse && pulse.parentElement===host){
+    if(card.parentElement!==host || card.nextElementSibling!==pulse){
+      host.insertBefore(card,pulse);
+    }
   }
 
   return card;
 }
 
 function installCSS(){
-  if($('#nexa-v4933-live-css')) return;
+  if($('#nexa-v4934-live-css')) return;
 
-  const style=document.createElement('style');
-  style.id='nexa-v4933-live-css';
-  style.textContent=`
-    #${NEW_ID}{
+  const s=document.createElement('style');
+  s.id='nexa-v4934-live-css';
+  s.textContent=`
+    #${CARD_ID}{
       display:none;
-      box-sizing:border-box;
-      width:100%;
-      margin:10px 0 12px;
-      padding:17px 18px 16px;
-      border:1px solid rgba(255,82,109,.32);
-      border-radius:20px;
+      width:100%!important;
+      max-width:100%!important;
+      box-sizing:border-box!important;
+      margin:0!important;
+      padding:16px!important;
+      border-radius:20px!important;
+      border:1px solid rgba(255,78,115,.46)!important;
       background:
-        radial-gradient(circle at 0% 0%,rgba(255,82,109,.13),transparent 35%),
-        radial-gradient(circle at 100% 100%,rgba(48,118,255,.10),transparent 36%),
-        linear-gradient(145deg,rgba(11,18,40,.96),rgba(6,10,25,.96));
+        radial-gradient(circle at 0% 0%,rgba(255,70,111,.13),transparent 34%),
+        radial-gradient(circle at 100% 100%,rgba(69,112,255,.10),transparent 38%),
+        linear-gradient(145deg,rgba(12,17,40,.97),rgba(6,9,25,.97))!important;
       box-shadow:
         0 0 0 1px rgba(255,255,255,.025) inset,
-        0 12px 30px rgba(0,0,0,.20),
-        0 0 26px rgba(255,82,109,.07);
-      color:#fff;
-      position:relative;
-      z-index:25;
-      overflow:hidden;
-      visibility:visible;
-      opacity:1;
+        0 0 24px rgba(255,72,110,.08)!important;
+      color:#fff!important;
+      position:relative!important;
+      visibility:visible!important;
+      opacity:1!important;
+      overflow:hidden!important;
     }
 
-    #${NEW_ID}.is-live{display:block!important}
+    #${CARD_ID}.is-live{display:block!important}
 
-    #${NEW_ID} .nexa-v4933-kicker{
+    #${CARD_ID} .v4934-kicker{
       display:flex;
       align-items:center;
       gap:7px;
-      margin-bottom:10px;
-      font-size:.68rem;
-      line-height:1;
+      color:#ff92aa;
+      font-size:.67rem;
       font-weight:950;
       letter-spacing:.13em;
-      color:#ff8da0;
+      margin-bottom:10px;
     }
 
-    #${NEW_ID} .nexa-v4933-dot{
-      width:7px;
-      height:7px;
-      border-radius:50%;
-      background:#ff526d;
-      box-shadow:0 0 11px rgba(255,82,109,.85);
+    #${CARD_ID} .v4934-dot{
+      width:7px;height:7px;border-radius:50%;
+      background:#ff5272;
+      box-shadow:0 0 10px rgba(255,82,114,.9);
       flex:0 0 auto;
     }
 
-    #${NEW_ID} .nexa-v4933-main{
+    #${CARD_ID} .v4934-head{
       display:flex;
-      align-items:flex-start;
       justify-content:space-between;
-      gap:14px;
+      align-items:flex-start;
+      gap:12px;
     }
 
-    #${NEW_ID} .nexa-v4933-copy{
-      min-width:0;
-      flex:1;
-    }
-
-    #${NEW_ID} .nexa-v4933-title{
+    #${CARD_ID} .v4934-title{
       margin:0;
-      font-size:clamp(1.22rem,5.8vw,1.6rem);
+      color:#fff;
+      font-size:1.42rem;
       line-height:1.12;
       letter-spacing:-.025em;
-      color:#fff;
     }
 
-    #${NEW_ID} .nexa-v4933-meta{
-      margin:7px 0 0;
-      color:#aebbd6;
-      font-size:.78rem;
-      line-height:1.42;
-    }
-
-    #${NEW_ID} .nexa-v4933-status{
+    #${CARD_ID} .v4934-live{
       flex:0 0 auto;
-      border:1px solid rgba(255,98,123,.42);
+      padding:6px 10px;
       border-radius:999px;
-      padding:6px 9px;
-      background:rgba(104,13,38,.40);
-      color:#ff9caf;
+      border:1px solid rgba(255,93,124,.45);
+      background:rgba(95,13,35,.45);
+      color:#ff9db0;
       font-size:.62rem;
-      line-height:1;
       font-weight:950;
       letter-spacing:.08em;
     }
 
-    #${NEW_ID} .nexa-v4933-facts{
+    #${CARD_ID} .v4934-sub{
+      margin:7px 0 0;
+      color:#aebad3;
+      font-size:.77rem;
+      line-height:1.4;
+    }
+
+    #${CARD_ID} .v4934-alliance-grid{
       display:grid;
       grid-template-columns:repeat(2,minmax(0,1fr));
       gap:8px;
       margin-top:13px;
       padding-top:12px;
-      border-top:1px solid rgba(255,255,255,.075);
+      border-top:1px solid rgba(255,255,255,.08);
     }
 
-    #${NEW_ID} .nexa-v4933-facts[hidden]{display:none!important}
-
-    #${NEW_ID} .nexa-v4933-fact{
-      display:grid;
-      gap:3px;
+    #${CARD_ID} .v4934-mini{
       min-width:0;
+      padding:9px 10px;
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:13px;
+      background:rgba(255,255,255,.025);
     }
 
-    #${NEW_ID} .nexa-v4933-fact span{
-      color:#7584a8;
-      font-size:.57rem;
+    #${CARD_ID} .v4934-mini span{
+      display:block;
+      margin-bottom:4px;
+      color:#7887aa;
+      font-size:.55rem;
       font-weight:900;
-      letter-spacing:.10em;
+      letter-spacing:.1em;
     }
 
-    #${NEW_ID} .nexa-v4933-fact strong{
-      color:#eef4ff;
-      font-size:.82rem;
+    #${CARD_ID} .v4934-mini strong{
+      display:block;
+      color:#f3f6ff;
+      font-size:.80rem;
       overflow:hidden;
       text-overflow:ellipsis;
       white-space:nowrap;
     }
 
-    /* Legacy Live Event is data staging only. It is never the visible Home card. */
+    #${CARD_ID} .v4934-schedule{
+      display:grid;
+      gap:7px;
+      margin-top:13px;
+    }
+
+    #${CARD_ID} .v4934-schedule-title{
+      color:#8998ba;
+      font-size:.58rem;
+      font-weight:950;
+      letter-spacing:.11em;
+      margin-bottom:1px;
+    }
+
+    #${CARD_ID} .v4934-row{
+      display:grid;
+      grid-template-columns:72px minmax(0,1fr);
+      gap:9px;
+      align-items:start;
+      padding:9px 10px;
+      border-radius:13px;
+      border:1px solid rgba(255,255,255,.07);
+      background:rgba(255,255,255,.025);
+    }
+
+    #${CARD_ID} .v4934-day{
+      color:#ff9caf;
+      font-size:.71rem;
+      font-weight:950;
+    }
+
+    #${CARD_ID} .v4934-date{
+      display:block;
+      margin-top:2px;
+      color:#697895;
+      font-size:.58rem;
+      font-weight:800;
+    }
+
+    #${CARD_ID} .v4934-focus{
+      color:#edf2ff;
+      font-size:.75rem;
+      font-weight:900;
+      line-height:1.32;
+    }
+
+    #${CARD_ID} .v4934-ministry{
+      margin-top:2px;
+      color:#9eacc8;
+      font-size:.67rem;
+      line-height:1.35;
+    }
+
+    #${CARD_ID} .v4934-time{
+      margin-top:3px;
+      color:#ffbe86;
+      font-size:.64rem;
+      font-weight:850;
+      line-height:1.35;
+    }
+
+    /* The old staging surface stays available for V49 internally,
+       but is never allowed to become a visible Home card. */
     #home-svs-section{
       display:none!important;
       visibility:hidden!important;
@@ -283,171 +297,191 @@ function installCSS(){
       pointer-events:none!important;
     }
 
-    [data-nexa-retired-live-surface="v49-33"]{
+    [data-nexa-retired-live="v49-34"]{
       display:none!important;
       visibility:hidden!important;
       opacity:0!important;
       pointer-events:none!important;
     }
   `;
-
-  document.head.appendChild(style);
+  document.head.appendChild(s);
 }
 
-function retireLegacyVisibleCards(){
-  const keep=$('#'+NEW_ID);
+function retireOldVisibleLiveCards(){
+  const keep=$('#'+CARD_ID);
+  const host=signalsHost();
+  if(!host) return;
 
-  $$('section,article,div').forEach(el=>{
-    if(!el || el===keep || keep?.contains(el) || el.contains(keep)) return;
-    if(el===document.body || el===document.documentElement) return;
-    if(el.matches?.('main,main.shell,#home')) return;
-    if(el.id==='home-svs-section' || $('#home-svs-section')?.contains(el)) return;
+  Array.from(host.children).forEach(el=>{
+    if(!el || el===keep || el.id==='nexa-v302-pulse' || el.id==='nexa-v31-alliance') return;
 
-    const raw=clean(el.textContent);
-    if(!/\bNo Live Event\b/i.test(raw)) return;
+    if(el.id==='home-svs-section'){
+      el.dataset.nexaRetiredLive='v49-34';
+      return;
+    }
 
-    const looksLikeLegacy=
-      /\bLIVE EVENT\b/i.test(raw) ||
-      /\bUpcoming state events\b/i.test(raw) ||
-      /\bleadership publishes\b/i.test(raw) ||
-      /\bactive or upcoming event\b/i.test(raw);
+    const t=clean(el.textContent);
+    const isOldLive=
+      /\bLIVE EVENT\b/i.test(t) &&
+      (
+        /\bNo Live Event\b/i.test(t) ||
+        /\bUpcoming state events\b/i.test(t)
+      );
 
-    if(!looksLikeLegacy) return;
-
-    const card=el.closest?.(
-      'section,.section,article,[data-nexa-tech="live"],[class*="event-card"],[class*="signal"]'
-    ) || el;
-
-    if(
-      !card ||
-      card===keep ||
-      keep?.contains(card) ||
-      card.contains(keep) ||
-      card===document.body ||
-      card===document.documentElement ||
-      card.matches?.('main,main.shell,#home')
-    ) return;
-
-    card.dataset.nexaRetiredLiveSurface='v49-33';
-    card.setAttribute('aria-hidden','true');
+    if(isOldLive){
+      el.dataset.nexaRetiredLive='v49-34';
+      el.setAttribute('aria-hidden','true');
+    }
   });
 }
 
-function render(snapshot){
-  if(!snapshot) return false;
+function render(live){
+  if(!live) return false;
 
-  const card=ensureNewSurface();
+  lastLive=live;
+  window.NEXA_CURRENT_LIVE_EVENT=live;
+
+  const p=payloadOf(live);
+  const schedule=Array.isArray(p.schedule)?p.schedule:[];
+  const card=reanchor();
   if(!card) return false;
 
-  const title=$('.nexa-v4933-title',card);
-  const meta=$('.nexa-v4933-meta',card);
-  const status=$('.nexa-v4933-status',card);
-  const facts=$('.nexa-v4933-facts',card);
-  const state=$('.nexa-v4933-state',card);
-  const opponent=$('.nexa-v4933-opponent',card);
-  const stateWrap=$('.nexa-v4933-state-wrap',card);
-  const opponentWrap=$('.nexa-v4933-opponent-wrap',card);
+  const state=p.state_number ?? live.state_number ?? '—';
+  const opponent=p.opponent_state ?? live.opponent_state ?? '—';
+  const star=p.star_alliance?.tag || '—';
+  const presidency=p.presidency_alliance?.tag || '—';
+  const prep=p.prep_start || live.prep_monday || '';
+  const battle=p.battle_date || '';
 
-  if(title) title.textContent=snapshot.title;
-  if(meta) meta.textContent=snapshot.meta||'Live State event';
-  if(status) status.textContent=snapshot.count||'LIVE';
+  const scheduleHtml=schedule.map(row=>{
+    const day=esc(row?.day||'');
+    const date=esc(fmtDate(row?.date||''));
+    const focus=esc(row?.focus||'');
+    const ministry=esc(row?.ministry||'');
+    const time=esc(row?.time_utc||'');
+    const secondary=esc(row?.secondary||'');
 
-  let hasFact=false;
+    return `
+      <div class="v4934-row">
+        <div>
+          <div class="v4934-day">${day}</div>
+          ${date?`<span class="v4934-date">${date}</span>`:''}
+        </div>
+        <div>
+          <div class="v4934-focus">${focus}</div>
+          ${ministry?`<div class="v4934-ministry">${ministry}</div>`:''}
+          ${(time||secondary)?`<div class="v4934-time">${[time,secondary].filter(Boolean).join(' • ')}</div>`:''}
+        </div>
+      </div>
+    `;
+  }).join('');
 
-  if(snapshot.stateNumber){
-    if(state) state.textContent=snapshot.stateNumber;
-    if(stateWrap) stateWrap.hidden=false;
-    hasFact=true;
-  }else if(stateWrap){
-    stateWrap.hidden=true;
-  }
+  card.innerHTML=`
+    <div class="v4934-kicker">
+      <span class="v4934-dot" aria-hidden="true"></span>
+      LIVE EVENT
+    </div>
 
-  if(snapshot.opponentState){
-    if(opponent) opponent.textContent=`State ${snapshot.opponentState}`;
-    if(opponentWrap) opponentWrap.hidden=false;
-    hasFact=true;
-  }else if(opponentWrap){
-    opponentWrap.hidden=true;
-  }
+    <div class="v4934-head">
+      <div>
+        <h2 class="v4934-title">${esc(live.title||`SvS vs ${opponent}`)}</h2>
+        <div class="v4934-sub">
+          State ${esc(state)}
+          ${prep?` • Prep ${esc(prep)}`:''}
+          ${battle?` • Battle ${esc(battle)}`:''}
+        </div>
+      </div>
+      <div class="v4934-live">LIVE</div>
+    </div>
 
-  if(facts) facts.hidden=!hasFact;
+    <div class="v4934-alliance-grid">
+      <div class="v4934-mini">
+        <span>GOING FOR THE STAR</span>
+        <strong>${esc(star)}</strong>
+      </div>
+      <div class="v4934-mini">
+        <span>UP FOR PRESIDENCY</span>
+        <strong>${esc(presidency)}</strong>
+      </div>
+    </div>
+
+    ${scheduleHtml?`
+      <div class="v4934-schedule">
+        <div class="v4934-schedule-title">SVS SCHEDULE</div>
+        ${scheduleHtml}
+      </div>
+    `:''}
+  `;
 
   card.classList.add('is-live');
   card.removeAttribute('hidden');
   card.setAttribute('aria-hidden','false');
 
-  retireLegacyVisibleCards();
+  retireOldVisibleLiveCards();
   return true;
 }
 
-function hideNewSurface(){
-  const card=$('#'+NEW_ID);
-  if(!card) return;
-  card.classList.remove('is-live');
-  card.setAttribute('aria-hidden','true');
-}
-
-async function syncOnce(){
-  const owner=window.NEXA_SYNC_STATE_HOME;
-
-  if(typeof owner!=='function'){
-    return false;
+function consumePublished(){
+  const live=window.NEXA_CURRENT_LIVE_EVENT;
+  if(live && typeof live==='object'){
+    return render(live);
   }
-
-  try{
-    await owner();
-  }catch(err){
-    console.warn('[NEXA V49.33] V49 sync failed',err?.message||err);
-    return false;
-  }
-
-  const snapshot=readV49Snapshot();
-
-  if(snapshot){
-    render(snapshot);
-    return true;
-  }
-
-  if(lastSnapshot && isUsefulTitle(lastSnapshot.title)){
-    render(lastSnapshot);
-    return true;
-  }
-
-  hideNewSurface();
+  if(lastLive) return render(lastLive);
   return false;
 }
 
-function scheduleFiniteSync(){
+async function askV49(){
+  if(typeof window.NEXA_SYNC_STATE_HOME!=='function') return false;
+
+  try{
+    await window.NEXA_SYNC_STATE_HOME();
+  }catch(err){
+    console.warn('[NEXA V49.34] V49 sync failed',err?.message||err);
+  }
+
+  return consumePublished();
+}
+
+function scheduleFinitePasses(){
   const mine=++generation;
 
-  [0,150,400,850,1500,2600,4200].forEach(ms=>{
+  [0,150,400,850,1500,2600,4200].forEach((ms,index)=>{
     setTimeout(async()=>{
       if(mine!==generation) return;
-      await syncOnce();
+      if(index<=2){
+        await askV49();
+      }else{
+        reanchor();
+        consumePublished();
+        retireOldVisibleLiveCards();
+      }
     },ms);
   });
 }
 
 function boot(){
   installCSS();
-  ensureNewSurface();
-  retireLegacyVisibleCards();
-  scheduleFiniteSync();
+  ensureCard();
+  retireOldVisibleLiveCards();
+  consumePublished();
+  scheduleFinitePasses();
 
-  window.addEventListener('load',scheduleFiniteSync,{once:true});
-  window.addEventListener('pageshow',scheduleFiniteSync);
+  window.addEventListener('nexa:live-event-ready',e=>{
+    const live=e?.detail?.live;
+    if(live && typeof live==='object') render(live);
+  });
+
+  window.addEventListener('nexa:home-ready',scheduleFinitePasses);
+  window.addEventListener('pageshow',scheduleFinitePasses);
 
   document.addEventListener('visibilitychange',()=>{
-    if(!document.hidden) scheduleFiniteSync();
+    if(!document.hidden) scheduleFinitePasses();
   });
 
   window.addEventListener('nexa:active-state-changed',()=>{
-    lastSnapshot=null;
-    hideNewSurface();
-    scheduleFiniteSync();
+    lastLive=null;
+    scheduleFinitePasses();
   });
-
-  window.addEventListener('nexa:home-ready',scheduleFiniteSync);
 }
 
 if(document.readyState==='loading'){

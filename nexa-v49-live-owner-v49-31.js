@@ -1,19 +1,15 @@
-/* NEXA V49.36 — LIVE EVENT HOME FAMILY CARD
+/* NEXA V49.37 — LIVE EVENT GLOW + LEGACY RETIRE
    COMPLETE REPLACEMENT FILE
    File: nexa-v49-live-owner-v49-31.js
 
-   Goal:
-   - Active Live Event must occupy the SAME Home slot and visual family as the inactive card.
-   - Exact position: immediately before NEXA Pulse.
-   - No extra LIVE pill.
-   - No redundant State/Prep/Battle summary line at the top.
-   - Full published schedule with dates.
-   - Legacy "No Live Event" surface is retired completely.
-
-   Architecture:
-   - nexa-v49-state-hub.js remains the ONLY Supabase/data owner.
-   - This file performs ZERO Supabase queries.
-   - It consumes window.NEXA_CURRENT_LIVE_EVENT and nexa:live-event-ready.
+   Changes from V49.36:
+   - Adds a bright horizontal glow line across the top.
+   - Adds a stronger glowing left-side signal line.
+   - Keeps the active Live Event in the Home card family.
+   - Aggressively retires the stale "No Live Event" card by content,
+     even when it is injected later by legacy Home renderers.
+   - Keeps exact position immediately before NEXA Pulse.
+   - No duplicate Supabase query.
 
    No MutationObserver.
    No polling.
@@ -23,13 +19,13 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4936_LIVE_HOME_FAMILY__) return;
-window.__NEXA_V4936_LIVE_HOME_FAMILY__=true;
+if(window.__NEXA_V4937_LIVE_GLOW__) return;
+window.__NEXA_V4937_LIVE_GLOW__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
 
-const CARD_ID='nexa-v4936-live-event';
+const CARD_ID='nexa-v4937-live-event';
 let lastLive=null;
 let generation=0;
 
@@ -69,12 +65,11 @@ function ensureCard(){
 
   card=document.createElement('section');
   card.id=CARD_ID;
-  card.className='section nexa-v477-tech-card nexa-v4936-live-card';
+  card.className='section nexa-v477-tech-card nexa-v4937-live-card';
   card.dataset.nexaTech='live';
   card.setAttribute('aria-live','polite');
 
   const p=pulse();
-
   if(p?.parentNode){
     p.parentNode.insertBefore(card,p);
     return card;
@@ -106,10 +101,10 @@ function forceExactSlot(){
 }
 
 function installCSS(){
-  if($('#nexa-v4936-live-css')) return;
+  if($('#nexa-v4937-live-css')) return;
 
   const s=document.createElement('style');
-  s.id='nexa-v4936-live-css';
+  s.id='nexa-v4937-live-css';
   s.textContent=`
     #${CARD_ID}{
       --tech:#ff4fc8;
@@ -128,11 +123,69 @@ function installCSS(){
       pointer-events:auto!important;
       position:relative!important;
       overflow:hidden!important;
+      border:1px solid rgba(255,79,200,.58)!important;
+      background:
+        radial-gradient(circle at 8% 0%,rgba(255,79,200,.10),transparent 34%),
+        radial-gradient(circle at 92% 82%,rgba(86,84,255,.07),transparent 38%),
+        linear-gradient(145deg,rgba(10,17,42,.96),rgba(3,8,24,.98))!important;
+      box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,.018),
+        inset 0 1px 0 rgba(255,79,200,.18),
+        inset 0 0 28px rgba(255,79,200,.035),
+        0 0 16px rgba(255,79,200,.13),
+        0 0 32px rgba(255,79,200,.07)!important;
     }
 
     #${CARD_ID}.is-live{display:block!important}
 
-    #${CARD_ID} .v4936-kicker{
+    #${CARD_ID}::before{
+      content:"";
+      position:absolute;
+      top:-1px;
+      left:22px;
+      right:22px;
+      height:2px;
+      border-radius:999px;
+      background:linear-gradient(
+        90deg,
+        rgba(255,79,200,0),
+        rgba(255,79,200,.65) 18%,
+        rgba(255,118,225,1) 50%,
+        rgba(255,79,200,.65) 82%,
+        rgba(255,79,200,0)
+      );
+      box-shadow:
+        0 0 6px rgba(255,104,222,.95),
+        0 0 14px rgba(255,79,200,.78),
+        0 0 26px rgba(255,79,200,.34);
+      pointer-events:none;
+      z-index:4;
+    }
+
+    #${CARD_ID}::after{
+      content:"";
+      position:absolute;
+      left:-1px;
+      top:18px;
+      width:3px;
+      height:44px;
+      border-radius:999px;
+      background:linear-gradient(
+        180deg,
+        rgba(255,79,200,0),
+        rgba(255,122,226,1) 24%,
+        rgba(255,79,200,1) 56%,
+        rgba(255,79,200,0)
+      );
+      box-shadow:
+        0 0 6px rgba(255,121,226,1),
+        0 0 14px rgba(255,79,200,.92),
+        0 0 26px rgba(255,79,200,.48);
+      pointer-events:none;
+      z-index:5;
+    }
+
+    #${CARD_ID} .v4937-kicker{
       margin:0 0 7px;
       color:#df9cff;
       font-size:.64rem;
@@ -141,7 +194,7 @@ function installCSS(){
       line-height:1.1;
     }
 
-    #${CARD_ID} .v4936-title{
+    #${CARD_ID} .v4937-title{
       margin:0;
       color:#fff;
       font-size:1.15rem;
@@ -149,14 +202,14 @@ function installCSS(){
       letter-spacing:-.018em;
     }
 
-    #${CARD_ID} .v4936-alliance-grid{
+    #${CARD_ID} .v4937-alliance-grid{
       display:grid;
       grid-template-columns:repeat(2,minmax(0,1fr));
       gap:7px;
       margin-top:10px;
     }
 
-    #${CARD_ID} .v4936-mini{
+    #${CARD_ID} .v4937-mini{
       min-width:0;
       padding:8px 9px;
       border:1px solid rgba(255,255,255,.08);
@@ -164,7 +217,7 @@ function installCSS(){
       background:rgba(255,255,255,.022);
     }
 
-    #${CARD_ID} .v4936-mini span{
+    #${CARD_ID} .v4937-mini span{
       display:block;
       margin-bottom:3px;
       color:#8290ad;
@@ -174,7 +227,7 @@ function installCSS(){
       line-height:1.2;
     }
 
-    #${CARD_ID} .v4936-mini strong{
+    #${CARD_ID} .v4937-mini strong{
       display:block;
       color:#f4f7ff;
       font-size:.75rem;
@@ -183,13 +236,13 @@ function installCSS(){
       white-space:nowrap;
     }
 
-    #${CARD_ID} .v4936-schedule{
+    #${CARD_ID} .v4937-schedule{
       display:grid;
       gap:6px;
       margin-top:10px;
     }
 
-    #${CARD_ID} .v4936-schedule-title{
+    #${CARD_ID} .v4937-schedule-title{
       color:#8998b7;
       font-size:.54rem;
       font-weight:950;
@@ -197,7 +250,7 @@ function installCSS(){
       margin-bottom:1px;
     }
 
-    #${CARD_ID} .v4936-row{
+    #${CARD_ID} .v4937-row{
       display:grid;
       grid-template-columns:100px minmax(0,1fr);
       gap:9px;
@@ -208,14 +261,14 @@ function installCSS(){
       background:rgba(255,255,255,.022);
     }
 
-    #${CARD_ID} .v4936-day{
+    #${CARD_ID} .v4937-day{
       color:#ff9caf;
       font-size:.68rem;
       font-weight:950;
       line-height:1.2;
     }
 
-    #${CARD_ID} .v4936-date{
+    #${CARD_ID} .v4937-date{
       display:block;
       margin-top:2px;
       color:#77839f;
@@ -224,21 +277,21 @@ function installCSS(){
       line-height:1.25;
     }
 
-    #${CARD_ID} .v4936-focus{
+    #${CARD_ID} .v4937-focus{
       color:#eef2ff;
       font-size:.72rem;
       font-weight:900;
       line-height:1.28;
     }
 
-    #${CARD_ID} .v4936-ministry{
+    #${CARD_ID} .v4937-ministry{
       margin-top:2px;
       color:#9aa8c3;
       font-size:.64rem;
       line-height:1.3;
     }
 
-    #${CARD_ID} .v4936-time{
+    #${CARD_ID} .v4937-time{
       margin-top:3px;
       color:#f4b45f;
       font-size:.62rem;
@@ -247,50 +300,100 @@ function installCSS(){
     }
 
     #home-svs-section,
-    [data-nexa-retired-live="v49-36"]{
+    [data-nexa-retired-live="v49-37"]{
       display:none!important;
       visibility:hidden!important;
       opacity:0!important;
       pointer-events:none!important;
+      max-height:0!important;
+      min-height:0!important;
+      height:0!important;
+      margin:0!important;
+      padding:0!important;
+      border:0!important;
+      overflow:hidden!important;
     }
   `;
   document.head.appendChild(s);
+}
+
+function isLegacyNoLiveText(raw){
+  const t=clean(raw);
+  return /\bLIVE EVENT\b/i.test(t)
+    && /\bNo Live Event\b/i.test(t)
+    && /\bUpcoming state events\b/i.test(t);
+}
+
+function smallestLegacyNode(root){
+  const all=$$('*',root).filter(el=>isLegacyNoLiveText(el.textContent));
+  if(!all.length) return null;
+
+  all.sort((a,b)=>{
+    const ac=a.querySelectorAll('*').length;
+    const bc=b.querySelectorAll('*').length;
+    return ac-bc;
+  });
+
+  return all[0]||null;
 }
 
 function retireLegacyLiveCards(){
   const keep=$('#'+CARD_ID);
   const home=$('#home') || $('main.shell') || document.body;
 
-  $$('section,article,div',home).forEach(el=>{
-    if(!el || el===keep || keep?.contains(el) || el.contains(keep)) return;
-    if(el===home || el===document.body || el===document.documentElement) return;
-    if(el.id==='nexa-v302-pulse') return;
+  $('#home-svs-section')?.setAttribute('data-nexa-retired-live','v49-37');
 
-    if(el.id==='home-svs-section'){
-      el.dataset.nexaRetiredLive='v49-36';
-      return;
+  let candidate=smallestLegacyNode(home);
+
+  if(candidate && candidate!==keep && !keep?.contains(candidate) && !candidate.contains(keep)){
+    let card=candidate;
+
+    for(let i=0;i<4 && card?.parentElement;i++){
+      const parent=card.parentElement;
+      if(
+        parent===home ||
+        parent===document.body ||
+        parent===document.documentElement ||
+        parent.id==='nexa-v302-pulse' ||
+        parent===keep ||
+        keep?.contains(parent) ||
+        parent.contains(keep)
+      ) break;
+
+      if(isLegacyNoLiveText(parent.textContent)){
+        card=parent;
+      }else{
+        break;
+      }
     }
 
-    const raw=clean(el.textContent);
-    if(!/\bLIVE EVENT\b/i.test(raw)) return;
-    if(!(/\bNo Live Event\b/i.test(raw) || /\bUpcoming state events\b/i.test(raw))) return;
-
-    const card=el.closest?.(
-      'section,.section,article,[class*="event-card"],[class*="signal"]'
-    ) || el;
-
     if(
-      !card ||
-      card===keep ||
-      keep?.contains(card) ||
-      card.contains(keep) ||
-      card===home ||
-      card===document.body ||
-      card===document.documentElement
-    ) return;
+      card &&
+      card!==home &&
+      card!==document.body &&
+      card!==document.documentElement &&
+      card!==keep &&
+      !keep?.contains(card) &&
+      !card.contains(keep)
+    ){
+      card.dataset.nexaRetiredLive='v49-37';
+      card.setAttribute('aria-hidden','true');
+    }
+  }
 
-    card.dataset.nexaRetiredLive='v49-36';
-    card.setAttribute('aria-hidden','true');
+  $$('[data-nexa-retired-live="v49-37"]',home).forEach(el=>{
+    if(el===keep || keep?.contains(el) || el.contains(keep)) return;
+    el.style.setProperty('display','none','important');
+    el.style.setProperty('visibility','hidden','important');
+    el.style.setProperty('opacity','0','important');
+    el.style.setProperty('pointer-events','none','important');
+    el.style.setProperty('max-height','0','important');
+    el.style.setProperty('min-height','0','important');
+    el.style.setProperty('height','0','important');
+    el.style.setProperty('margin','0','important');
+    el.style.setProperty('padding','0','important');
+    el.style.setProperty('border','0','important');
+    el.style.setProperty('overflow','hidden','important');
   });
 }
 
@@ -317,38 +420,38 @@ function render(live){
     const secondary=esc(row?.secondary||'');
 
     return `
-      <div class="v4936-row">
+      <div class="v4937-row">
         <div>
-          <div class="v4936-day">${day}</div>
-          ${date?`<span class="v4936-date">${date}</span>`:''}
+          <div class="v4937-day">${day}</div>
+          ${date?`<span class="v4937-date">${date}</span>`:''}
         </div>
         <div>
-          <div class="v4936-focus">${focus}</div>
-          ${ministry?`<div class="v4936-ministry">${ministry}</div>`:''}
-          ${(time||secondary)?`<div class="v4936-time">${[time,secondary].filter(Boolean).join(' • ')}</div>`:''}
+          <div class="v4937-focus">${focus}</div>
+          ${ministry?`<div class="v4937-ministry">${ministry}</div>`:''}
+          ${(time||secondary)?`<div class="v4937-time">${[time,secondary].filter(Boolean).join(' • ')}</div>`:''}
         </div>
       </div>
     `;
   }).join('');
 
   card.innerHTML=`
-    <div class="v4936-kicker">LIVE EVENT</div>
-    <h2 class="v4936-title">${esc(live.title||'SvS')}</h2>
+    <div class="v4937-kicker">LIVE EVENT</div>
+    <h2 class="v4937-title">${esc(live.title||'SvS')}</h2>
 
-    <div class="v4936-alliance-grid">
-      <div class="v4936-mini">
+    <div class="v4937-alliance-grid">
+      <div class="v4937-mini">
         <span>GOING FOR THE STAR</span>
         <strong>${esc(star)}</strong>
       </div>
-      <div class="v4936-mini">
+      <div class="v4937-mini">
         <span>UP FOR PRESIDENCY</span>
         <strong>${esc(presidency)}</strong>
       </div>
     </div>
 
     ${rows?`
-      <div class="v4936-schedule">
-        <div class="v4936-schedule-title">SVS SCHEDULE</div>
+      <div class="v4937-schedule">
+        <div class="v4937-schedule-title">SVS SCHEDULE</div>
         ${rows}
       </div>
     `:''}
@@ -360,6 +463,7 @@ function render(live){
 
   retireLegacyLiveCards();
   forceExactSlot();
+
   return true;
 }
 
@@ -372,19 +476,23 @@ function consume(){
 
 async function askV49(){
   if(typeof window.NEXA_SYNC_STATE_HOME!=='function') return false;
+
   try{
     await window.NEXA_SYNC_STATE_HOME();
   }catch(err){
-    console.warn('[NEXA V49.36] V49 sync failed',err?.message||err);
+    console.warn('[NEXA V49.37] V49 sync failed',err?.message||err);
   }
+
   return consume();
 }
 
 function scheduleFinitePasses(){
   const mine=++generation;
-  [0,150,400,850,1500,2600,4200,7000,10000].forEach((ms,index)=>{
+
+  [0,150,400,850,1500,2600,4200,7000,10000,15000,20000].forEach((ms,index)=>{
     setTimeout(async()=>{
       if(mine!==generation) return;
+
       if(index<=2){
         await askV49();
       }else{

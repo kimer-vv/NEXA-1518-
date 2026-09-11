@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • Clear Working Data</title>
-<!-- NEXA BATTLE WORKING DATA V1.3 • Full SvS working reset + selective modules -->
+<!-- NEXA BATTLE WORKING DATA V1.4 • Full SvS reset + local Castle cache purge -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -144,6 +144,7 @@ async function boot(){
 
 $('#clear').onclick=async()=>{
   const modules=$$('.mod input:checked').map(x=>x.value);
+  const strategyId=$('#strategy').value;
 
   if(!modules.length){
     $('#status').textContent='Select at least one module or Full SvS Working Reset.';
@@ -157,7 +158,7 @@ $('#clear').onclick=async()=>{
 
   const {data,error}=await sb.rpc('nexa_clear_svs_working_data',{
     p_state:activeState(),
-    p_strategy_id:$('#strategy').value,
+    p_strategy_id:strategyId,
     p_modules:modules
   });
 
@@ -165,6 +166,13 @@ $('#clear').onclick=async()=>{
     $('#status').textContent=error.message;
     $('#clear').disabled=false;
     return;
+  }
+
+  // Castle Seating also keeps a same-origin local safety copy.
+  // Purge it whenever Castle Seating or Full Reset is selected so stale cities
+  // cannot resurrect after the cloud row was deleted.
+  if(modules.includes('all_working') || modules.includes('castle_seating')){
+    try{ localStorage.removeItem(`nexa:castle-seating:${strategyId}`); }catch(_){}
   }
 
   $$('.mod input').forEach(x=>{

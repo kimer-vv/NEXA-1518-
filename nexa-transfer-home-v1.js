@@ -1,4 +1,4 @@
-/* NEXA TRANSFER HOME V1.8 — HOME FAMILY PARITY / NO STAFF CARD
+/* NEXA TRANSFER HOME V1.9 — EXACT HOME FAMILY / STABLE PAINT
    COMPLETE REPLACEMENT for: nexa-transfer-home-v1.js
 
    Goal:
@@ -23,14 +23,15 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_TRANSFER_HOME_V18_HOME_FAMILY_PARITY__) return;
-window.__NEXA_TRANSFER_HOME_V18_HOME_FAMILY_PARITY__=true;
+if(window.__NEXA_TRANSFER_HOME_V19_EXACT_HOME_FAMILY__) return;
+window.__NEXA_TRANSFER_HOME_V19_EXACT_HOME_FAMILY__=true;
 
 const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
 
 let client=null;
 let generation=0;
+let lastPaintKey='';
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -83,10 +84,10 @@ async function copy(text,button){
 }
 
 function installCSS(){
-  $('#nexa-transfer-home-v17-css')?.remove();
+  if($('#nexa-transfer-home-v19-css')) return;
 
   const s=document.createElement('style');
-  s.id='nexa-transfer-home-v17-css';
+  s.id='nexa-transfer-home-v19-css';
   s.textContent=`
     #nexa-v49-transfer-card{
       --tech:#ff9148;
@@ -98,7 +99,7 @@ function installCSS(){
 
       width:100%!important;
       max-width:100%!important;
-      min-height:112px!important;
+      min-height:128px!important;
       height:auto!important;
 
       margin:0!important;
@@ -167,9 +168,9 @@ function installCSS(){
       margin:0 0 6px!important;
       padding:0!important;
       color:#ffab72!important;
-      font-size:.64rem!important;
+      font-size:10px!important;
       font-weight:950!important;
-      letter-spacing:.16em!important;
+      letter-spacing:.18em!important;
       line-height:1.1!important;
       text-transform:uppercase!important;
     }
@@ -200,8 +201,8 @@ function installCSS(){
       color:#fff!important;
       font-size:18px!important;
       line-height:1.15!important;
-      font-weight:950!important;
-      letter-spacing:-.018em!important;
+      font-weight:900!important;
+      letter-spacing:-.01em!important;
     }
 
     #nexa-v49-transfer-card .nexa-transfer-v17-copy{
@@ -209,7 +210,7 @@ function installCSS(){
       color:#9aa8c3!important;
       font-size:13px!important;
       line-height:1.35!important;
-      font-weight:700!important;
+      font-weight:400!important;
     }
 
     #nexa-v49-transfer-card .nexa-transfer-v17-status{
@@ -371,16 +372,26 @@ async function render(){
     }catch(_){}
   }
 
-  if(row){
-    host.innerHTML=openHTML(row);
+  const paintKey=row
+    ? `open:${row.event_id||''}:${row.title||row.form_title||''}:${row.status||''}:${row.applications_open===true}:${row.public_access_enabled===true}`
+    : 'empty';
 
+  if(paintKey!==lastPaintKey){
+    if(row){
+      host.innerHTML=openHTML(row);
+    }else{
+      host.innerHTML=emptyHTML();
+    }
+    lastPaintKey=paintKey;
+  }
+
+  if(row){
     const copyBtn=$('[data-nexa-transfer-copy]',host);
-    if(copyBtn){
+    if(copyBtn && !copyBtn.dataset.nexaBound){
       const link=publicLink(row);
+      copyBtn.dataset.nexaBound='1';
       copyBtn.onclick=e=>copy(link,e.currentTarget);
     }
-  }else{
-    host.innerHTML=emptyHTML();
   }
 
   removeWorkspaceCard();

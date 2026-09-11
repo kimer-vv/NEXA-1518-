@@ -1,4 +1,4 @@
-/* NEXA V49.37 — LIVE EVENT GLOW + LEGACY RETIRE
+/* NEXA V49.38 — LIVE EVENT FAMILY TOP ACCENT
    COMPLETE REPLACEMENT FILE
    File: nexa-v49-live-owner-v49-31.js
 
@@ -19,8 +19,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4937_LIVE_GLOW__) return;
-window.__NEXA_V4937_LIVE_GLOW__=true;
+if(window.__NEXA_V4938_LIVE_TOP_ACCENT__) return;
+window.__NEXA_V4938_LIVE_TOP_ACCENT__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -142,24 +142,18 @@ function installCSS(){
       content:"";
       position:absolute;
       top:-1px;
-      left:22px;
-      right:22px;
+      left:34px;
+      width:48px;
       height:2px;
       border-radius:999px;
-      background:linear-gradient(
-        90deg,
-        rgba(255,79,200,0),
-        rgba(255,79,200,.65) 18%,
-        rgba(255,118,225,1) 50%,
-        rgba(255,79,200,.65) 82%,
-        rgba(255,79,200,0)
-      );
+      background:#ff79dc;
       box-shadow:
-        0 0 6px rgba(255,104,222,.95),
-        0 0 14px rgba(255,79,200,.78),
-        0 0 26px rgba(255,79,200,.34);
+        0 0 5px rgba(255,145,228,1),
+        0 0 11px rgba(255,79,200,.98),
+        0 0 20px rgba(255,79,200,.72),
+        0 0 34px rgba(255,79,200,.34);
       pointer-events:none;
-      z-index:4;
+      z-index:6;
     }
 
     #${CARD_ID}::after{

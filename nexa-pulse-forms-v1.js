@@ -1,4 +1,4 @@
-/* NEXA PULSE FORMS V3.0 — ALLIANCE-ANCHORED HOME OWNER
+/* NEXA PULSE FORMS V3.2 — ROBUST HOME ORDER COORDINATOR
    COMPLETE REPLACEMENT for: nexa-pulse-forms-v1.js
 
    Purpose:
@@ -18,8 +18,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_PULSE_FORMS_V30_ALLIANCE_ANCHORED_OWNER__) return;
-window.__NEXA_PULSE_FORMS_V30_ALLIANCE_ANCHORED_OWNER__=true;
+if(window.__NEXA_PULSE_FORMS_V32_ROBUST_HOME_ORDER__) return;
+window.__NEXA_PULSE_FORMS_V32_ROBUST_HOME_ORDER__=true;
 
 const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
@@ -104,10 +104,10 @@ function subFor(key,settings){
 }
 
 function installCSS(){
-  if($('#nexa-pulse-v30-css')) return;
+  if($('#nexa-pulse-v31-css')) return;
 
   const s=document.createElement('style');
-  s.id='nexa-pulse-v30-css';
+  s.id='nexa-pulse-v31-css';
   s.textContent=`
     #${CARD_ID}{
       --tech:#35dfff;
@@ -296,7 +296,7 @@ function installCSS(){
       background:linear-gradient(135deg,rgba(73,45,146,.82),rgba(42,72,133,.80),rgba(20,104,114,.72))!important;
     }
 
-    [data-nexa-retired-pulse="v30"]{
+    [data-nexa-retired-pulse="v31"]{
       display:none!important;
       visibility:hidden!important;
       opacity:0!important;
@@ -375,7 +375,7 @@ function retireExtraPulseCards(keep){
     if(!el || el===keep) return;
     if(!pulseTextMatch(el)) return;
     if(/ALLIANCE SIGNAL|TRANSFERS|LIVE EVENT/i.test(clean(el.textContent))) return;
-    el.dataset.nexaRetiredPulse='v30';
+    el.dataset.nexaRetiredPulse='v31';
     el.setAttribute('aria-hidden','true');
   });
 }
@@ -396,7 +396,7 @@ function applyOwnedShell(card){
   card.id=CARD_ID;
   card.classList.add('section','nexa-v31-strip');
   card.dataset.nexaTech='pulse';
-  card.dataset.nexaPulseOwner='v3.0';
+  card.dataset.nexaPulseOwner='v3.2';
   card.setAttribute('aria-live','polite');
   card.removeAttribute('hidden');
   card.setAttribute('aria-hidden','false');
@@ -409,6 +409,89 @@ function applyOwnedShell(card){
   `;
 
   return card;
+}
+
+function isVisibleCard(el){
+  if(!el) return false;
+  if(el.hidden) return false;
+  if(el.getAttribute('aria-hidden')==='true') return false;
+  const style=window.getComputedStyle?.(el);
+  if(style){
+    if(style.display==='none' || style.visibility==='hidden') return false;
+    if(Number(style.opacity||1)===0) return false;
+  }
+  return true;
+}
+
+function findLiveCard(parent){
+  const owned=$('#nexa-v4937-live-event');
+  if(owned && isVisibleCard(owned)) return owned;
+
+  const legacy=$('#home-svs-section');
+  if(legacy && isVisibleCard(legacy)) return legacy;
+
+  const siblings=Array.from(parent?.children||[]);
+  return siblings.find(el=>{
+    const t=clean(el.textContent);
+    if(!isVisibleCard(el)) return false;
+    if(!/LIVE EVENT/i.test(t)) return false;
+    if(/NEXA PULSE|ALLIANCE SIGNAL|TRANSFERS/i.test(t)) return false;
+    return true;
+  }) || null;
+}
+
+function findTransferCard(parent){
+  const owned=$('#nexa-v49-transfer-card');
+  if(owned && isVisibleCard(owned)) return owned;
+
+  const siblings=Array.from(parent?.children||[]);
+  return siblings.find(el=>{
+    const t=clean(el.textContent);
+    if(!isVisibleCard(el)) return false;
+    if(!/TRANSFERS/i.test(t)) return false;
+    if(/LIVE EVENT|NEXA PULSE|ALLIANCE SIGNAL/i.test(t)) return false;
+    return true;
+  }) || null;
+}
+
+function normalizeHomeOrder(){
+  const alliance=allianceAnchor();
+  const parent=alliance?.parentNode;
+  if(!alliance || !parent) return false;
+
+  const pulse=$('#nexa-v302-pulse');
+  const live=findLiveCard(parent);
+  const transfer=findTransferCard(parent);
+
+  /*
+    ONE canonical visual order:
+      Live Event → NEXA Pulse → Alliance Signal → Transfers
+
+    Other files can keep owning their own data/content.
+    This function only normalizes placement.
+  */
+
+  if(pulse){
+    if(pulse.parentNode!==parent || pulse.nextElementSibling!==alliance){
+      parent.insertBefore(pulse,alliance);
+    }
+  }
+
+  const liveAfterPulse=findLiveCard(parent);
+  if(liveAfterPulse && pulse){
+    if(liveAfterPulse.parentNode!==parent || liveAfterPulse.nextElementSibling!==pulse){
+      parent.insertBefore(liveAfterPulse,pulse);
+    }
+  }
+
+  const transferAfterAlliance=findTransferCard(parent);
+  if(transferAfterAlliance){
+    if(transferAfterAlliance.parentNode!==parent || alliance.nextElementSibling!==transferAfterAlliance){
+      alliance.insertAdjacentElement('afterend',transferAfterAlliance);
+    }
+  }
+
+  return true;
 }
 
 function ensureCard(){
@@ -437,7 +520,7 @@ function ensureCard(){
   if(!shellIsIntact(card)){
     card=applyOwnedShell(card);
   }else{
-    card.dataset.nexaPulseOwner='v3.0';
+    card.dataset.nexaPulseOwner='v3.2';
     card.setAttribute('aria-hidden','false');
     card.removeAttribute('hidden');
   }
@@ -449,6 +532,7 @@ function ensureCard(){
 
   removeStrayOwnedCards(card);
   retireExtraPulseCards(card);
+  normalizeHomeOrder();
   return card;
 }
 
@@ -456,13 +540,7 @@ function forceSlot(){
   const card=ensureCard();
   if(!card) return null;
 
-  const alliance=allianceAnchor();
-  const parent=alliance?.parentNode;
-
-  if(alliance && parent && (card.parentNode!==parent || card.nextElementSibling!==alliance)){
-    parent.insertBefore(card,alliance);
-  }
-
+  normalizeHomeOrder();
   removeStrayOwnedCards(card);
   retireExtraPulseCards(card);
   return card;
@@ -555,7 +633,7 @@ async function render(){
       loadBattlePlans()
     ]);
   }catch(err){
-    console.warn('[NEXA Pulse V3.0] data load failed',err);
+    console.warn('[NEXA Pulse V3.2] data load failed',err);
     return false;
   }
 
@@ -614,6 +692,7 @@ async function render(){
 
   forceSlot();
   retireExtraPulseCards(card);
+  normalizeHomeOrder();
   return true;
 }
 

@@ -1,4 +1,4 @@
-/* NEXA PULSE FORMS V2.8 — STABLE LEGACY ID / REHYDRATE AFTER LATE REWRITES
+/* NEXA PULSE FORMS V2.9 — FIX MISSING LEGACY RETIRE CALL
    COMPLETE REPLACEMENT for: nexa-pulse-forms-v1.js
 
    Purpose:
@@ -18,8 +18,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_PULSE_FORMS_V28_STABLE_LEGACY_ID__) return;
-window.__NEXA_PULSE_FORMS_V28_STABLE_LEGACY_ID__=true;
+if(window.__NEXA_PULSE_FORMS_V29_FIX_MISSING_RETIRE_CALL__) return;
+window.__NEXA_PULSE_FORMS_V29_FIX_MISSING_RETIRE_CALL__=true;
 
 const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
@@ -104,10 +104,10 @@ function subFor(key,settings){
 }
 
 function installCSS(){
-  if($('#nexa-pulse-v28-css')) return;
+  if($('#nexa-pulse-v29-css')) return;
 
   const s=document.createElement('style');
-  s.id='nexa-pulse-v28-css';
+  s.id='nexa-pulse-v29-css';
   s.textContent=`
     #${CARD_ID}{
       --tech:#35dfff;
@@ -296,7 +296,7 @@ function installCSS(){
       background:linear-gradient(135deg,rgba(73,45,146,.82),rgba(42,72,133,.80),rgba(20,104,114,.72))!important;
     }
 
-    [data-nexa-retired-pulse="v28"]{
+    [data-nexa-retired-pulse="v29"]{
       display:none!important;
       visibility:hidden!important;
       opacity:0!important;
@@ -390,7 +390,7 @@ function retireExtraPulseCards(keep){
     if(!pulseTextMatch(el)) return;
     if(/ALLIANCE SIGNAL|TRANSFERS|LIVE EVENT/i.test(clean(el.textContent))) return;
 
-    el.dataset.nexaRetiredPulse='v28';
+    el.dataset.nexaRetiredPulse='v29';
     el.setAttribute('aria-hidden','true');
   });
 }
@@ -412,7 +412,7 @@ function applyOwnedShell(card){
   card.id=CARD_ID;
   card.classList.add('section','nexa-v31-strip');
   card.dataset.nexaTech='pulse';
-  card.dataset.nexaPulseOwner='v2.8';
+  card.dataset.nexaPulseOwner='v2.9';
   card.setAttribute('aria-live','polite');
   card.removeAttribute('hidden');
   card.setAttribute('aria-hidden','false');
@@ -455,7 +455,7 @@ function ensureCard(){
   if(!shellIsIntact(card)){
     card=applyOwnedShell(card);
   }else{
-    card.dataset.nexaPulseOwner='v2.8';
+    card.dataset.nexaPulseOwner='v2.9';
     card.setAttribute('aria-hidden','false');
     card.removeAttribute('hidden');
   }
@@ -562,7 +562,7 @@ async function render(){
   let card=forceSlot();
   if(!card) return false;
 
-  retireLegacyPulse();
+  retireExtraPulseCards(card);
 
   let forms=[];
   let plans=[];
@@ -573,7 +573,7 @@ async function render(){
       loadBattlePlans()
     ]);
   }catch(err){
-    console.warn('[NEXA Pulse V2.8] data load failed',err);
+    console.warn('[NEXA Pulse V2.9] data load failed',err);
     return false;
   }
 
@@ -631,7 +631,7 @@ async function render(){
   card.classList.toggle('has-active-content',hasActiveContent);
 
   forceSlot();
-  retireLegacyPulse();
+  retireExtraPulseCards(card);
   return true;
 }
 

@@ -1,4 +1,4 @@
-/* NEXA TRANSFER HOME V1.7 — SINGLE TRANSFERS CARD
+/* NEXA TRANSFER HOME V1.8 — HOME FAMILY PARITY / NO STAFF CARD
    COMPLETE REPLACEMENT for: nexa-transfer-home-v1.js
 
    Goal:
@@ -23,8 +23,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_TRANSFER_HOME_V17_SINGLE_CARD__) return;
-window.__NEXA_TRANSFER_HOME_V17_SINGLE_CARD__=true;
+if(window.__NEXA_TRANSFER_HOME_V18_HOME_FAMILY_PARITY__) return;
+window.__NEXA_TRANSFER_HOME_V18_HOME_FAMILY_PARITY__=true;
 
 const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
@@ -98,11 +98,11 @@ function installCSS(){
 
       width:100%!important;
       max-width:100%!important;
-      min-height:64px!important;
+      min-height:112px!important;
       height:auto!important;
 
       margin:0!important;
-      padding:12px 16px!important;
+      padding:12px 16px 16px!important;
       box-sizing:border-box!important;
 
       border-radius:20px!important;
@@ -174,9 +174,14 @@ function installCSS(){
       text-transform:uppercase!important;
     }
 
-    /* State Hub creates this legacy title; V1.7 owns the content below instead. */
+    /* State Hub may paint this first. Keep its typography identical to the final
+       V1.8 title so Safari never shows a large/small white-text jump. */
     #nexa-v49-transfer-card > h3{
       display:none!important;
+      margin:0 0 5px!important;
+      font-size:18px!important;
+      line-height:1.15!important;
+      font-weight:950!important;
     }
 
     #nexa-v49-transfer-card #nexa-v49-transfer-events{
@@ -193,7 +198,7 @@ function installCSS(){
     #nexa-v49-transfer-card .nexa-transfer-v17-title{
       margin:0!important;
       color:#fff!important;
-      font-size:1.05rem!important;
+      font-size:18px!important;
       line-height:1.15!important;
       font-weight:950!important;
       letter-spacing:-.018em!important;
@@ -202,7 +207,7 @@ function installCSS(){
     #nexa-v49-transfer-card .nexa-transfer-v17-copy{
       margin-top:4px!important;
       color:#9aa8c3!important;
-      font-size:.68rem!important;
+      font-size:13px!important;
       line-height:1.35!important;
       font-weight:700!important;
     }
@@ -382,6 +387,11 @@ async function render(){
   retireLegacy();
   return true;
 }
+
+/* Install the stable skin immediately when the deferred script executes.
+   The data/card can arrive later; the visual rules are already present. */
+installCSS();
+removeWorkspaceCard();
 
 function finitePasses(){
   const mine=++generation;

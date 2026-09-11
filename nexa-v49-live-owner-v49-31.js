@@ -1,4 +1,4 @@
-/* NEXA V49.42 — LIVE EVENT EXACT HOME FAMILY
+/* NEXA V49.43 — LIVE EVENT V32 FAMILY MATCH
    COMPLETE REPLACEMENT FILE
    File: nexa-v49-live-owner-v49-31.js
 
@@ -19,8 +19,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4942_LIVE_EXACT_HOME_FAMILY__) return;
-window.__NEXA_V4942_LIVE_EXACT_HOME_FAMILY__=true;
+if(window.__NEXA_V4943_LIVE_V32_FAMILY_MATCH__) return;
+window.__NEXA_V4943_LIVE_V32_FAMILY_MATCH__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -65,7 +65,7 @@ function ensureCard(){
 
   card=document.createElement('section');
   card.id=CARD_ID;
-  card.className='section nexa-v477-tech-card nexa-v4937-live-card';
+  card.className='section nexa-v477-tech-card nexa-v31-strip nexa-v4937-live-card';
   card.dataset.nexaTech='live';
   card.setAttribute('aria-live','polite');
 
@@ -142,8 +142,8 @@ function installCSS(){
       content:"";
       position:absolute;
       top:-1px;
-      left:18px;
-      width:48px;
+      left:16px;
+      width:42px;
       height:2px;
       border-radius:999px;
       background:#ff79dc;
@@ -162,7 +162,7 @@ function installCSS(){
       left:-1px;
       top:18px;
       width:3px;
-      height:40px;
+      height:36px;
       border-radius:999px;
       background:linear-gradient(
         180deg,
@@ -189,13 +189,10 @@ function installCSS(){
     }
 
     #${CARD_ID} .v4937-title{
-      margin:0;
-      color:#fff;
-      font-size:18px!important;
-      line-height:1.15!important;
-      font-weight:900!important;
-      letter-spacing:-.01em!important;
-      font-family:inherit!important;
+      margin:0!important;
+      color:#fff!important;
+      font:inherit!important;
+      letter-spacing:inherit!important;
     }
 
     #${CARD_ID}.is-empty{
@@ -208,20 +205,12 @@ function installCSS(){
     }
 
     #${CARD_ID}.is-empty .v4937-title{
-      font-size:18px!important;
-      line-height:1.15!important;
-      font-weight:900!important;
-      letter-spacing:-.01em!important;
       margin-bottom:5px!important;
     }
 
     #${CARD_ID} .v4939-empty-copy{
       color:#9aa8c3!important;
-      font-size:13px!important;
-      line-height:1.35!important;
-      font-weight:400!important;
-      letter-spacing:0!important;
-      font-family:inherit!important;
+      margin:0!important;
     }
 
     #${CARD_ID} .v4937-alliance-grid{
@@ -429,7 +418,7 @@ function renderEmpty(){
   card.innerHTML=`
     <div class="v4937-kicker">LIVE EVENT</div>
     <h2 class="v4937-title">No Live Event</h2>
-    <div class="v4939-empty-copy">Upcoming state events, schedules and forms will appear here when leadership publishes them.</div>
+    <p class="v4939-empty-copy">Upcoming state events, schedules and forms will appear here when leadership publishes them.</p>
   `;
 
   card.classList.remove('is-live');

@@ -1,4 +1,4 @@
-/* NEXA TRANSFER HOME V1.10 — V32 FAMILY MATCH / BLENDED CONTENT
+/* NEXA TRANSFER HOME V1.11 — PULSE ALLIANCE EXACT VISUAL / STABLE
    COMPLETE REPLACEMENT for: nexa-transfer-home-v1.js
 
    Goal:
@@ -23,8 +23,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_TRANSFER_HOME_V110_V32_FAMILY_MATCH__) return;
-window.__NEXA_TRANSFER_HOME_V110_V32_FAMILY_MATCH__=true;
+if(window.__NEXA_TRANSFER_HOME_V111_PULSE_ALLIANCE_VISUAL__) return;
+window.__NEXA_TRANSFER_HOME_V111_PULSE_ALLIANCE_VISUAL__=true;
 
 const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
@@ -84,10 +84,10 @@ async function copy(text,button){
 }
 
 function installCSS(){
-  if($('#nexa-transfer-home-v110-css')) return;
+  if($('#nexa-transfer-home-v111-css')) return;
 
   const s=document.createElement('style');
-  s.id='nexa-transfer-home-v110-css';
+  s.id='nexa-transfer-home-v111-css';
   s.textContent=`
     #nexa-v49-transfer-card{
       --tech:#ff9148;
@@ -99,7 +99,7 @@ function installCSS(){
 
       width:100%!important;
       max-width:100%!important;
-      min-height:112px!important;
+      min-height:64px!important;
       height:auto!important;
 
       margin:0!important;
@@ -125,41 +125,18 @@ function installCSS(){
       pointer-events:auto!important;
     }
 
-    #nexa-v49-transfer-card::before{
-      content:"";
-      position:absolute!important;
-      top:-1px!important;
-      left:16px!important;
-      width:42px!important;
-      height:2px!important;
-      border-radius:999px!important;
-      background:#ffab72!important;
-      box-shadow:
-        0 0 5px rgba(255,190,145,1),
-        0 0 11px rgba(var(--tech-rgb),.98),
-        0 0 20px rgba(var(--tech-rgb),.72)!important;
-      pointer-events:none!important;
-      z-index:6!important;
-    }
+    #nexa-v49-transfer-card::before{display:none!important}
 
     #nexa-v49-transfer-card::after{
-      content:"";
+      content:""!important;
       position:absolute!important;
       left:-1px!important;
       top:18px!important;
       width:3px!important;
-      height:36px!important;
+      height:40px!important;
       border-radius:999px!important;
-      background:linear-gradient(
-        180deg,
-        rgba(var(--tech-rgb),0),
-        rgba(255,171,114,1) 24%,
-        rgba(var(--tech-rgb),1) 56%,
-        rgba(var(--tech-rgb),0)
-      )!important;
-      box-shadow:
-        0 0 6px rgba(255,171,114,1),
-        0 0 14px rgba(var(--tech-rgb),.92)!important;
+      background:#ff9d5c!important;
+      box-shadow:0 0 7px rgba(255,157,92,.90),0 0 13px rgba(255,145,72,.52)!important;
       pointer-events:none!important;
       z-index:5!important;
     }
@@ -213,21 +190,44 @@ function installCSS(){
     #nexa-v49-transfer-card .nexa-transfer-v17-title{
       margin:0 0 5px!important;
       color:#fff!important;
+      font-size:18px!important;
+      line-height:1.15!important;
+      font-weight:900!important;
+      letter-spacing:-.01em!important;
+      font-family:inherit!important;
+      background:transparent!important;
+      border:0!important;
+      box-shadow:none!important;
+      padding:0!important;
     }
 
     #nexa-v49-transfer-card .nexa-transfer-v17-copy{
       margin:0!important;
       color:#9aa8c3!important;
+      font-size:13px!important;
+      line-height:1.35!important;
+      font-weight:400!important;
+      letter-spacing:0!important;
+      font-family:inherit!important;
+      background:transparent!important;
+      border:0!important;
+      box-shadow:none!important;
+      padding:0!important;
     }
 
     #nexa-v49-transfer-card .nexa-transfer-v17-status{
       margin:4px 0 0!important;
       padding:0!important;
+      color:#9aa8c3!important;
+      font-size:13px!important;
+      line-height:1.35!important;
+      font-weight:400!important;
+      letter-spacing:0!important;
+      background:transparent!important;
       border:0!important;
       border-radius:0!important;
-      background:transparent!important;
       box-shadow:none!important;
-      color:#9aa8c3!important;
+      font-family:inherit!important;
     }
 
     #nexa-v49-transfer-card .nexa-transfer-v17-actions{

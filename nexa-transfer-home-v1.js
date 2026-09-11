@@ -1,4 +1,4 @@
-/* NEXA TRANSFER HOME V1.9 — EXACT HOME FAMILY / STABLE PAINT
+/* NEXA TRANSFER HOME V1.10 — V32 FAMILY MATCH / BLENDED CONTENT
    COMPLETE REPLACEMENT for: nexa-transfer-home-v1.js
 
    Goal:
@@ -23,8 +23,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_TRANSFER_HOME_V19_EXACT_HOME_FAMILY__) return;
-window.__NEXA_TRANSFER_HOME_V19_EXACT_HOME_FAMILY__=true;
+if(window.__NEXA_TRANSFER_HOME_V110_V32_FAMILY_MATCH__) return;
+window.__NEXA_TRANSFER_HOME_V110_V32_FAMILY_MATCH__=true;
 
 const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
@@ -84,10 +84,10 @@ async function copy(text,button){
 }
 
 function installCSS(){
-  if($('#nexa-transfer-home-v19-css')) return;
+  if($('#nexa-transfer-home-v110-css')) return;
 
   const s=document.createElement('style');
-  s.id='nexa-transfer-home-v19-css';
+  s.id='nexa-transfer-home-v110-css';
   s.textContent=`
     #nexa-v49-transfer-card{
       --tech:#ff9148;
@@ -99,11 +99,11 @@ function installCSS(){
 
       width:100%!important;
       max-width:100%!important;
-      min-height:128px!important;
+      min-height:112px!important;
       height:auto!important;
 
       margin:0!important;
-      padding:12px 16px 16px!important;
+      padding:12px 16px!important;
       box-sizing:border-box!important;
 
       border-radius:20px!important;
@@ -129,8 +129,8 @@ function installCSS(){
       content:"";
       position:absolute!important;
       top:-1px!important;
-      left:18px!important;
-      width:48px!important;
+      left:16px!important;
+      width:42px!important;
       height:2px!important;
       border-radius:999px!important;
       background:#ffab72!important;
@@ -148,7 +148,7 @@ function installCSS(){
       left:-1px!important;
       top:18px!important;
       width:3px!important;
-      height:40px!important;
+      height:36px!important;
       border-radius:999px!important;
       background:linear-gradient(
         180deg,
@@ -196,36 +196,38 @@ function installCSS(){
       box-shadow:none!important;
     }
 
-    #nexa-v49-transfer-card .nexa-transfer-v17-title{
+    #nexa-v49-transfer-card #nexa-v49-transfer-events > *,
+    #nexa-v49-transfer-card #nexa-v49-transfer-events .event,
+    #nexa-v49-transfer-card #nexa-v49-transfer-events .event-row,
+    #nexa-v49-transfer-card #nexa-v49-transfer-events article{
+      background:transparent!important;
+      background-image:none!important;
+      border:0!important;
+      box-shadow:none!important;
+      border-radius:0!important;
+      padding:0!important;
       margin:0!important;
+      min-height:0!important;
+    }
+
+    #nexa-v49-transfer-card .nexa-transfer-v17-title{
+      margin:0 0 5px!important;
       color:#fff!important;
-      font-size:18px!important;
-      line-height:1.15!important;
-      font-weight:900!important;
-      letter-spacing:-.01em!important;
     }
 
     #nexa-v49-transfer-card .nexa-transfer-v17-copy{
-      margin-top:4px!important;
+      margin:0!important;
       color:#9aa8c3!important;
-      font-size:13px!important;
-      line-height:1.35!important;
-      font-weight:400!important;
     }
 
     #nexa-v49-transfer-card .nexa-transfer-v17-status{
-      display:inline-flex!important;
-      align-items:center!important;
-      margin-top:7px!important;
-      padding:4px 7px!important;
-      border-radius:999px!important;
-      border:1px solid rgba(255,145,72,.24)!important;
-      background:rgba(255,145,72,.07)!important;
-      color:#ffc49c!important;
-      font-size:.58rem!important;
-      line-height:1!important;
-      font-weight:900!important;
-      letter-spacing:.05em!important;
+      margin:4px 0 0!important;
+      padding:0!important;
+      border:0!important;
+      border-radius:0!important;
+      background:transparent!important;
+      box-shadow:none!important;
+      color:#9aa8c3!important;
     }
 
     #nexa-v49-transfer-card .nexa-transfer-v17-actions{
@@ -318,8 +320,8 @@ function retireLegacy(){
 
 function emptyHTML(){
   return `
-    <div class="nexa-transfer-v17-title">No transfer form published</div>
-    <div class="nexa-transfer-v17-copy">Transfer applications will appear here when leadership publishes them.</div>
+    <h3 class="nexa-transfer-v17-title">No transfer form published</h3>
+    <p class="nexa-transfer-v17-copy">Transfer applications will appear here when leadership publishes them.</p>
   `;
 }
 
@@ -335,9 +337,9 @@ function openHTML(row){
     String(row?.status||'').toLowerCase()==='open';
 
   return `
-    <div class="nexa-transfer-v17-title">${esc(title)}</div>
-    <div class="nexa-transfer-v17-copy">Transfer application for State ${esc(activeState()||'—')}.</div>
-    ${open?`<div class="nexa-transfer-v17-status">OPEN • APPLICATIONS OPEN</div>`:''}
+    <h3 class="nexa-transfer-v17-title">${esc(title)}</h3>
+    <p class="nexa-transfer-v17-copy">Transfer application for State ${esc(activeState()||'—')}.</p>
+    ${open?`<p class="nexa-transfer-v17-status">OPEN • Applications Open</p>`:''}
     <div class="nexa-transfer-v17-actions">
       <a class="btn" href="${esc(publicLink(row))}">Open Form</a>
       <button class="btn secondary" type="button" data-nexa-transfer-copy>Copy Link</button>
@@ -352,7 +354,7 @@ async function render(){
   const card=$('#nexa-v49-transfer-card');
   if(!card)return false;
 
-  card.classList.add('nexa-v49-transfer-visible');
+  card.classList.add('nexa-v49-transfer-visible','nexa-v31-strip');
   card.classList.remove('hidden');
   card.setAttribute('aria-hidden','false');
 
@@ -376,7 +378,9 @@ async function render(){
     ? `open:${row.event_id||''}:${row.title||row.form_title||''}:${row.status||''}:${row.applications_open===true}:${row.public_access_enabled===true}`
     : 'empty';
 
-  if(paintKey!==lastPaintKey){
+  const ownsPaint=!!host.querySelector('.nexa-transfer-v17-title');
+
+  if(paintKey!==lastPaintKey || !ownsPaint){
     if(row){
       host.innerHTML=openHTML(row);
     }else{

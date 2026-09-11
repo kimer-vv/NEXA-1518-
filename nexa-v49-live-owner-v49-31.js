@@ -1,4 +1,4 @@
-/* NEXA V49.41 — HOME SIGNALS TRUE TAKEOVER
+/* NEXA V49.42 — HOME SIGNALS OWNER COMPATIBILITY FIX
    COMPLETE REPLACEMENT FILE
    File: nexa-v49-live-owner-v49-31.js
 
@@ -23,8 +23,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4941_HOME_SIGNALS_TRUE_TAKEOVER__) return;
-window.__NEXA_V4941_HOME_SIGNALS_TRUE_TAKEOVER__=true;
+if(window.__NEXA_V4942_HOME_SIGNALS_COMPAT_FIX__) return;
+window.__NEXA_V4942_HOME_SIGNALS_COMPAT_FIX__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -180,6 +180,34 @@ function installCSS(){
     }
 
     #${HOST_ID} .nexa-v4941-content{
+      min-width:0!important;
+      width:100%!important;
+    }
+
+    #${TRANSFER_ID} > .nexa-v49-transfer-kicker{
+      margin:0 0 6px!important;
+      color:#35ff95!important;
+      font-size:.64rem!important;
+      line-height:1.1!important;
+      font-weight:950!important;
+      letter-spacing:.16em!important;
+      text-transform:uppercase!important;
+    }
+
+    #${TRANSFER_ID} > h3{
+      margin:0!important;
+      color:#fff!important;
+      font-size:1.05rem!important;
+      line-height:1.16!important;
+      font-weight:950!important;
+      letter-spacing:-.012em!important;
+    }
+
+    #${TRANSFER_ID} > #nexa-v49-transfer-events{
+      margin-top:4px!important;
+      color:#9aa8c3!important;
+      font-size:.68rem!important;
+      line-height:1.38!important;
       min-width:0!important;
       width:100%!important;
     }
@@ -386,16 +414,19 @@ function takeover(){
     title:alliance.title,copy:alliance.copy
   });
 
-  const transfer=makeCard({
-    id:TRANSFER_ID,tech:'transfer',kicker:'TRANSFERS',
-    title:'Transfer Center',
-    copy:'Transfer cycles and recruiting information will appear here when active.'
-  });
-
-  const transferHost=document.createElement('div');
-  transferHost.id='nexa-v49-transfer-events';
-  transferHost.style.marginTop='4px';
-  $('.nexa-v4941-content',transfer).appendChild(transferHost);
+  const transfer=document.createElement('section');
+  transfer.id=TRANSFER_ID;
+  transfer.className='section nexa-v477-tech-card nexa-v4941-card';
+  transfer.dataset.nexaTech='transfer';
+  transfer.dataset.nexaUnifiedOwner='v49-41';
+  transfer.innerHTML=`
+    ${accents()}
+    <div class="nexa-v49-transfer-kicker">TRANSFERS</div>
+    <h3>Transfer Center</h3>
+    <div id="nexa-v49-transfer-events">
+      <div class="muted">Transfer cycles and recruiting information will appear here when active.</div>
+    </div>
+  `;
 
   h.append(live,pulse,allianceCard,transfer);
   h.dataset.nexaUnifiedOwner='v49-41';
@@ -407,6 +438,18 @@ function ours(id){
   const h=host();
   if(!h) return null;
   return $$(`#${id}`,h).find(el=>el?.dataset?.nexaUnifiedOwner==='v49-41')||null;
+}
+
+function forceLiveVisible(card){
+  if(!card) return;
+  card.style.setProperty('display','block','important');
+  card.style.setProperty('visibility','visible','important');
+  card.style.setProperty('opacity','1','important');
+  card.style.setProperty('pointer-events','auto','important');
+  card.style.removeProperty('max-height');
+  card.style.removeProperty('height');
+  card.removeAttribute('hidden');
+  card.setAttribute('aria-hidden','false');
 }
 
 function renderEmptyLive(){
@@ -421,6 +464,7 @@ function renderEmptyLive(){
       <div class="nexa-v4941-copy">Upcoming state events, schedules and forms will appear here when leadership publishes them.</div>
     </div>
   `;
+  forceLiveVisible(card);
   return true;
 }
 
@@ -463,6 +507,7 @@ function renderLive(live){
       ${rows?`<div class="v4941-schedule"><div class="v4941-schedule-title">SVS SCHEDULE</div>${rows}</div>`:''}
     </div>
   `;
+  forceLiveVisible(card);
 
   return true;
 }

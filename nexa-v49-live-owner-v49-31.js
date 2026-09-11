@@ -1,4 +1,4 @@
-/* NEXA V49.39 — LIVE EVENT ACTIVE + COMPACT EMPTY
+/* NEXA V49.40 — LIVE EVENT VISUAL PARITY + COMPACT EMPTY
    COMPLETE REPLACEMENT FILE
    File: nexa-v49-live-owner-v49-31.js
 
@@ -19,8 +19,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4939_LIVE_ACTIVE_EMPTY__) return;
-window.__NEXA_V4939_LIVE_ACTIVE_EMPTY__=true;
+if(window.__NEXA_V4940_LIVE_VISUAL_PARITY__) return;
+window.__NEXA_V4940_LIVE_VISUAL_PARITY__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -142,7 +142,7 @@ function installCSS(){
       content:"";
       position:absolute;
       top:-1px;
-      left:34px;
+      left:18px;
       width:48px;
       height:2px;
       border-radius:999px;
@@ -162,7 +162,7 @@ function installCSS(){
       left:-1px;
       top:18px;
       width:3px;
-      height:44px;
+      height:40px;
       border-radius:999px;
       background:linear-gradient(
         180deg,
@@ -180,8 +180,8 @@ function installCSS(){
     }
 
     #${CARD_ID} .v4937-kicker{
-      margin:0 0 7px;
-      color:#df9cff;
+      margin:0 0 6px;
+      color:#ff79dc;
       font-size:.64rem;
       font-weight:950;
       letter-spacing:.16em;
@@ -191,7 +191,7 @@ function installCSS(){
     #${CARD_ID} .v4937-title{
       margin:0;
       color:#fff;
-      font-size:1.15rem;
+      font-size:1.05rem;
       line-height:1.15;
       letter-spacing:-.018em;
     }
@@ -202,12 +202,12 @@ function installCSS(){
     }
 
     #${CARD_ID}.is-empty .v4937-kicker{
-      margin-bottom:5px!important;
+      margin-bottom:6px!important;
     }
 
     #${CARD_ID}.is-empty .v4937-title{
-      font-size:1rem!important;
-      margin-bottom:3px!important;
+      font-size:1.05rem!important;
+      margin-bottom:4px!important;
     }
 
     #${CARD_ID} .v4939-empty-copy{

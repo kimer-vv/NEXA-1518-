@@ -1,4 +1,4 @@
-/* NEXA V49.44 — LIVE EVENT PULSE ALLIANCE EXACT VISUAL
+/* NEXA V49.45 — LIVE EVENT OPTICAL MATCH
    COMPLETE REPLACEMENT FILE
    File: nexa-v49-live-owner-v49-31.js
 
@@ -19,8 +19,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4944_LIVE_PULSE_ALLIANCE_VISUAL__) return;
-window.__NEXA_V4944_LIVE_PULSE_ALLIANCE_VISUAL__=true;
+if(window.__NEXA_V4945_LIVE_OPTICAL_MATCH__) return;
+window.__NEXA_V4945_LIVE_OPTICAL_MATCH__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -123,13 +123,13 @@ function installCSS(){
       pointer-events:auto!important;
       position:relative!important;
       overflow:hidden!important;
-      border:1px solid rgba(255,79,200,.46)!important;
+      border:1px solid rgba(255,79,200,.34)!important;
       background:
         radial-gradient(circle at 8% 8%,rgba(255,79,200,.065),transparent 34%),
         linear-gradient(145deg,rgba(7,18,38,.97),rgba(4,10,27,.985))!important;
       box-shadow:
         inset 0 0 0 1px rgba(255,255,255,.012),
-        0 0 12px rgba(255,79,200,.055)!important;
+        0 0 9px rgba(255,79,200,.035)!important;
     }
 
     #${CARD_ID}.is-live,#${CARD_ID}.is-empty{display:block!important}
@@ -145,7 +145,7 @@ function installCSS(){
       height:40px;
       border-radius:999px;
       background:#ff62d1;
-      box-shadow:0 0 7px rgba(255,98,209,.92),0 0 13px rgba(255,79,200,.55);
+      box-shadow:0 0 5px rgba(255,98,209,.82),0 0 10px rgba(255,79,200,.38);
       pointer-events:none;
       z-index:5;
     }
@@ -153,7 +153,7 @@ function installCSS(){
     #${CARD_ID} .v4937-kicker{
       margin:0 0 6px;
       color:#ff79dc;
-      font-size:.64rem;
+      font-size:10px;
       font-weight:950;
       letter-spacing:.16em;
       line-height:1.1;
@@ -162,7 +162,7 @@ function installCSS(){
     #${CARD_ID} .v4937-title{
       margin:0 0 5px!important;
       color:#fff!important;
-      font-size:18px!important;
+      font-size:16px!important;
       line-height:1.15!important;
       font-weight:900!important;
       letter-spacing:-.01em!important;
@@ -185,7 +185,7 @@ function installCSS(){
     #${CARD_ID} .v4939-empty-copy{
       margin:0!important;
       color:#9aa8c3!important;
-      font-size:13px!important;
+      font-size:12px!important;
       line-height:1.35!important;
       font-weight:400!important;
       letter-spacing:0!important;
@@ -277,7 +277,7 @@ function installCSS(){
     #${CARD_ID} .v4937-ministry{
       margin-top:2px;
       color:#9aa8c3;
-      font-size:.64rem;
+      font-size:10px;
       line-height:1.3;
     }
 

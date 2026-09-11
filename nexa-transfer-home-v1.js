@@ -1,4 +1,4 @@
-/* NEXA TRANSFER HOME V1.12 — OPTICAL MATCH / FULL CONTENT HEIGHT
+/* NEXA TRANSFER HOME V1.13 — SINGLE VISIBLE OWNER / STATE HUB SINK
    COMPLETE REPLACEMENT for: nexa-transfer-home-v1.js
 
    Goal:
@@ -23,8 +23,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_TRANSFER_HOME_V112_OPTICAL_MATCH__) return;
-window.__NEXA_TRANSFER_HOME_V112_OPTICAL_MATCH__=true;
+if(window.__NEXA_TRANSFER_HOME_V113_SINGLE_VISIBLE_OWNER__) return;
+window.__NEXA_TRANSFER_HOME_V113_SINGLE_VISIBLE_OWNER__=true;
 
 const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
@@ -84,10 +84,10 @@ async function copy(text,button){
 }
 
 function installCSS(){
-  if($('#nexa-transfer-home-v112-css')) return;
+  if($('#nexa-transfer-home-v113-css')) return;
 
   const s=document.createElement('style');
-  s.id='nexa-transfer-home-v112-css';
+  s.id='nexa-transfer-home-v113-css';
   s.textContent=`
     #nexa-v49-transfer-card{
       --tech:#ff9148;
@@ -163,7 +163,25 @@ function installCSS(){
       font-weight:950!important;
     }
 
+    /* State Hub is allowed to keep writing here, but this host is never visible.
+       This ends the visual owner fight / flashing. */
     #nexa-v49-transfer-card #nexa-v49-transfer-events{
+      display:none!important;
+      visibility:hidden!important;
+      opacity:0!important;
+      pointer-events:none!important;
+      position:absolute!important;
+      width:1px!important;
+      height:1px!important;
+      min-height:0!important;
+      max-height:1px!important;
+      margin:0!important;
+      padding:0!important;
+      border:0!important;
+      overflow:hidden!important;
+    }
+
+    #nexa-v49-transfer-card #nexa-transfer-home-surface{
       position:relative!important;
       z-index:3!important;
       display:block!important;
@@ -177,10 +195,10 @@ function installCSS(){
       box-shadow:none!important;
     }
 
-    #nexa-v49-transfer-card #nexa-v49-transfer-events > *,
-    #nexa-v49-transfer-card #nexa-v49-transfer-events .event,
-    #nexa-v49-transfer-card #nexa-v49-transfer-events .event-row,
-    #nexa-v49-transfer-card #nexa-v49-transfer-events article{
+    #nexa-v49-transfer-card #nexa-transfer-home-surface > *,
+    #nexa-v49-transfer-card #nexa-transfer-home-surface .event,
+    #nexa-v49-transfer-card #nexa-transfer-home-surface .event-row,
+    #nexa-v49-transfer-card #nexa-transfer-home-surface article{
       background:transparent!important;
       background-image:none!important;
       border:0!important;
@@ -351,6 +369,26 @@ function openHTML(row){
   `;
 }
 
+function visibleSurface(card){
+  if(!card)return null;
+
+  let surface=$('#nexa-transfer-home-surface',card);
+  if(surface)return surface;
+
+  surface=document.createElement('div');
+  surface.id='nexa-transfer-home-surface';
+  surface.dataset.nexaTransferOwner='v1.13';
+
+  const sink=$('#nexa-v49-transfer-events',card);
+  if(sink?.parentNode){
+    sink.insertAdjacentElement('afterend',surface);
+  }else{
+    card.appendChild(surface);
+  }
+
+  return surface;
+}
+
 async function render(){
   installCSS();
   retireLegacy();
@@ -362,7 +400,10 @@ async function render(){
   card.classList.remove('hidden');
   card.setAttribute('aria-hidden','false');
 
-  const host=$('#nexa-v49-transfer-events',card);
+  const sink=$('#nexa-v49-transfer-events',card);
+  if(!sink)return false;
+
+  const host=visibleSurface(card);
   if(!host)return false;
 
   const c=sb();
@@ -378,6 +419,7 @@ async function render(){
     }catch(_){}
   }
 
+  /* Only this file writes the visible surface. State Hub writes its hidden sink. */
   const paintKey=row
     ? `open:${row.event_id||''}:${row.title||row.form_title||''}:${row.status||''}:${row.applications_open===true}:${row.public_access_enabled===true}`
     : 'empty';

@@ -1,4 +1,4 @@
-/* NEXA V49.42 — HOME SIGNALS OWNER COMPATIBILITY FIX
+/* NEXA V49.43 — HOME SIGNALS SELF-HEAL OWNER
    COMPLETE REPLACEMENT FILE
    File: nexa-v49-live-owner-v49-31.js
 
@@ -23,8 +23,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4942_HOME_SIGNALS_COMPAT_FIX__) return;
-window.__NEXA_V4942_HOME_SIGNALS_COMPAT_FIX__=true;
+if(window.__NEXA_V4943_HOME_SIGNALS_SELF_HEAL__) return;
+window.__NEXA_V4943_HOME_SIGNALS_SELF_HEAL__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -273,7 +273,7 @@ function installCSS(){
     #nexa-v4934-live-event,
     #nexa-v4933-live-event,
     #nexa-v4940-home-signals,
-    [data-nexa-home-retired="v49-41"]{
+    [data-nexa-home-retired="v49-43"]{
       display:none!important;
       visibility:hidden!important;
       opacity:0!important;
@@ -305,7 +305,7 @@ function makeCard({id,tech,kicker,title,copy}){
   el.id=id;
   el.className='section nexa-v477-tech-card nexa-v4941-card';
   el.dataset.nexaTech=tech;
-  el.dataset.nexaUnifiedOwner='v49-41';
+  el.dataset.nexaUnifiedOwner='v49-43';
   el.innerHTML=`
     ${accents()}
     <div class="nexa-v4941-content">
@@ -332,7 +332,7 @@ function capturePulseBoxes(){
 
 function readAlliance(){
   const old=$$(`#${ALLIANCE_ID}`)
-    .find(el=>el?.dataset?.nexaUnifiedOwner!=='v49-41');
+    .find(el=>el?.dataset?.nexaUnifiedOwner!=='v49-43');
 
   if(!old) return {
     title:'No alliance event published',
@@ -356,6 +356,8 @@ function readAlliance(){
 }
 
 function removeOldVisuals(h){
+  h.removeAttribute('data-nexa-unified-owner');
+
   const protectedIds=new Set([
     'nexa-pulse-published-forms',
     'nexa-pulse-battle-plans'
@@ -388,7 +390,19 @@ function takeover(){
 
   installCSS();
 
-  if(h.dataset.nexaUnifiedOwner==='v49-41') return true;
+  const ownLive=$(`#${LIVE_ID}`,h);
+  const ownPulse=$(`#${PULSE_ID}`,h);
+  const ownAlliance=$(`#${ALLIANCE_ID}`,h);
+  const ownTransfer=$(`#${TRANSFER_ID}`,h);
+
+  const complete=
+    h.dataset.nexaUnifiedOwner==='v49-43' &&
+    ownLive?.dataset?.nexaUnifiedOwner==='v49-43' &&
+    ownPulse?.dataset?.nexaUnifiedOwner==='v49-43' &&
+    ownAlliance?.dataset?.nexaUnifiedOwner==='v49-43' &&
+    ownTransfer?.dataset?.nexaUnifiedOwner==='v49-43';
+
+  if(complete) return true;
 
   const pulseBoxes=capturePulseBoxes();
   const alliance=readAlliance();
@@ -418,7 +432,7 @@ function takeover(){
   transfer.id=TRANSFER_ID;
   transfer.className='section nexa-v477-tech-card nexa-v4941-card';
   transfer.dataset.nexaTech='transfer';
-  transfer.dataset.nexaUnifiedOwner='v49-41';
+  transfer.dataset.nexaUnifiedOwner='v49-43';
   transfer.innerHTML=`
     ${accents()}
     <div class="nexa-v49-transfer-kicker">TRANSFERS</div>
@@ -429,15 +443,30 @@ function takeover(){
   `;
 
   h.append(live,pulse,allianceCard,transfer);
-  h.dataset.nexaUnifiedOwner='v49-41';
+  h.dataset.nexaUnifiedOwner='v49-43';
 
+  forceCardOrder();
   return true;
+}
+
+function forceCardOrder(){
+  const h=host();
+  if(!h) return;
+
+  const cards=[
+    $(`#${LIVE_ID}`,h),
+    $(`#${PULSE_ID}`,h),
+    $(`#${ALLIANCE_ID}`,h),
+    $(`#${TRANSFER_ID}`,h)
+  ].filter(Boolean);
+
+  cards.forEach(card=>h.appendChild(card));
 }
 
 function ours(id){
   const h=host();
   if(!h) return null;
-  return $$(`#${id}`,h).find(el=>el?.dataset?.nexaUnifiedOwner==='v49-41')||null;
+  return $$(`#${id}`,h).find(el=>el?.dataset?.nexaUnifiedOwner==='v49-43')||null;
 }
 
 function forceLiveVisible(card){
@@ -523,7 +552,7 @@ function cleanupDuplicates(){
 
   [PULSE_ID,ALLIANCE_ID,TRANSFER_ID].forEach(id=>{
     $$(`#${id}`).forEach(el=>{
-      if(h.contains(el) && el.dataset?.nexaUnifiedOwner==='v49-41') return;
+      if(h.contains(el) && el.dataset?.nexaUnifiedOwner==='v49-43') return;
       el.remove();
     });
   });
@@ -558,6 +587,7 @@ async function requestOwners(){
   syncLive();
   recoverPulseBoxes();
   cleanupDuplicates();
+  forceCardOrder();
 }
 
 function finitePasses(){
@@ -574,6 +604,7 @@ function finitePasses(){
         syncLive();
         recoverPulseBoxes();
         cleanupDuplicates();
+        forceCardOrder();
       }
     },ms);
   });
@@ -587,6 +618,7 @@ function boot(){
     if(takeover()){
       syncLive();
       cleanupDuplicates();
+      forceCardOrder();
       finitePasses();
       return true;
     }
@@ -603,6 +635,7 @@ function boot(){
     if(live&&typeof live==='object') renderLive(live);
     else renderEmptyLive();
     cleanupDuplicates();
+    forceCardOrder();
   });
 
   window.addEventListener('nexa:home-ready',finitePasses);

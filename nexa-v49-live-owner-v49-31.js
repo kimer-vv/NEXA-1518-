@@ -1,4 +1,4 @@
-/* NEXA V49.43 — LIVE EVENT V32 FAMILY MATCH
+/* NEXA V49.44 — LIVE EVENT PULSE ALLIANCE EXACT VISUAL
    COMPLETE REPLACEMENT FILE
    File: nexa-v49-live-owner-v49-31.js
 
@@ -19,8 +19,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4943_LIVE_V32_FAMILY_MATCH__) return;
-window.__NEXA_V4943_LIVE_V32_FAMILY_MATCH__=true;
+if(window.__NEXA_V4944_LIVE_PULSE_ALLIANCE_VISUAL__) return;
+window.__NEXA_V4944_LIVE_PULSE_ALLIANCE_VISUAL__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -123,38 +123,18 @@ function installCSS(){
       pointer-events:auto!important;
       position:relative!important;
       overflow:hidden!important;
-      border:1px solid rgba(255,79,200,.58)!important;
+      border:1px solid rgba(255,79,200,.46)!important;
       background:
-        radial-gradient(circle at 8% 0%,rgba(255,79,200,.10),transparent 34%),
-        radial-gradient(circle at 92% 82%,rgba(86,84,255,.07),transparent 38%),
-        linear-gradient(145deg,rgba(10,17,42,.96),rgba(3,8,24,.98))!important;
+        radial-gradient(circle at 8% 8%,rgba(255,79,200,.065),transparent 34%),
+        linear-gradient(145deg,rgba(7,18,38,.97),rgba(4,10,27,.985))!important;
       box-shadow:
-        inset 0 0 0 1px rgba(255,255,255,.018),
-        inset 0 1px 0 rgba(255,79,200,.18),
-        inset 0 0 28px rgba(255,79,200,.035),
-        0 0 16px rgba(255,79,200,.13),
-        0 0 32px rgba(255,79,200,.07)!important;
+        inset 0 0 0 1px rgba(255,255,255,.012),
+        0 0 12px rgba(255,79,200,.055)!important;
     }
 
     #${CARD_ID}.is-live,#${CARD_ID}.is-empty{display:block!important}
 
-    #${CARD_ID}::before{
-      content:"";
-      position:absolute;
-      top:-1px;
-      left:16px;
-      width:42px;
-      height:2px;
-      border-radius:999px;
-      background:#ff79dc;
-      box-shadow:
-        0 0 5px rgba(255,145,228,1),
-        0 0 11px rgba(255,79,200,.98),
-        0 0 20px rgba(255,79,200,.72),
-        0 0 34px rgba(255,79,200,.34);
-      pointer-events:none;
-      z-index:6;
-    }
+    #${CARD_ID}::before{display:none!important}
 
     #${CARD_ID}::after{
       content:"";
@@ -162,19 +142,10 @@ function installCSS(){
       left:-1px;
       top:18px;
       width:3px;
-      height:36px;
+      height:40px;
       border-radius:999px;
-      background:linear-gradient(
-        180deg,
-        rgba(255,79,200,0),
-        rgba(255,122,226,1) 24%,
-        rgba(255,79,200,1) 56%,
-        rgba(255,79,200,0)
-      );
-      box-shadow:
-        0 0 6px rgba(255,121,226,1),
-        0 0 14px rgba(255,79,200,.92),
-        0 0 26px rgba(255,79,200,.48);
+      background:#ff62d1;
+      box-shadow:0 0 7px rgba(255,98,209,.92),0 0 13px rgba(255,79,200,.55);
       pointer-events:none;
       z-index:5;
     }
@@ -189,10 +160,13 @@ function installCSS(){
     }
 
     #${CARD_ID} .v4937-title{
-      margin:0!important;
+      margin:0 0 5px!important;
       color:#fff!important;
-      font:inherit!important;
-      letter-spacing:inherit!important;
+      font-size:18px!important;
+      line-height:1.15!important;
+      font-weight:900!important;
+      letter-spacing:-.01em!important;
+      font-family:inherit!important;
     }
 
     #${CARD_ID}.is-empty{
@@ -209,8 +183,13 @@ function installCSS(){
     }
 
     #${CARD_ID} .v4939-empty-copy{
-      color:#9aa8c3!important;
       margin:0!important;
+      color:#9aa8c3!important;
+      font-size:13px!important;
+      line-height:1.35!important;
+      font-weight:400!important;
+      letter-spacing:0!important;
+      font-family:inherit!important;
     }
 
     #${CARD_ID} .v4937-alliance-grid{

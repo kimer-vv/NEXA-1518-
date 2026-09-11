@@ -1,4 +1,4 @@
-/* NEXA V49.41 — LIVE EVENT HOME FAMILY PARITY
+/* NEXA V49.42 — LIVE EVENT EXACT HOME FAMILY
    COMPLETE REPLACEMENT FILE
    File: nexa-v49-live-owner-v49-31.js
 
@@ -19,8 +19,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4941_LIVE_HOME_FAMILY_PARITY__) return;
-window.__NEXA_V4941_LIVE_HOME_FAMILY_PARITY__=true;
+if(window.__NEXA_V4942_LIVE_EXACT_HOME_FAMILY__) return;
+window.__NEXA_V4942_LIVE_EXACT_HOME_FAMILY__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -191,9 +191,11 @@ function installCSS(){
     #${CARD_ID} .v4937-title{
       margin:0;
       color:#fff;
-      font-size:18px;
-      line-height:1.15;
-      letter-spacing:-.018em;
+      font-size:18px!important;
+      line-height:1.15!important;
+      font-weight:900!important;
+      letter-spacing:-.01em!important;
+      font-family:inherit!important;
     }
 
     #${CARD_ID}.is-empty{
@@ -207,13 +209,19 @@ function installCSS(){
 
     #${CARD_ID}.is-empty .v4937-title{
       font-size:18px!important;
-      margin-bottom:4px!important;
+      line-height:1.15!important;
+      font-weight:900!important;
+      letter-spacing:-.01em!important;
+      margin-bottom:5px!important;
     }
 
     #${CARD_ID} .v4939-empty-copy{
-      color:#9aa8c3;
-      font-size:.68rem;
-      line-height:1.35;
+      color:#9aa8c3!important;
+      font-size:13px!important;
+      line-height:1.35!important;
+      font-weight:400!important;
+      letter-spacing:0!important;
+      font-family:inherit!important;
     }
 
     #${CARD_ID} .v4937-alliance-grid{

@@ -1,4 +1,4 @@
-/* NEXA PULSE FORMS V2.4 — FULL HOME CARD OWNER
+/* NEXA PULSE FORMS V2.5 — ACTIVE-CONTENT CLEANUP / SINGLE CARD
    COMPLETE REPLACEMENT for: nexa-pulse-forms-v1.js
 
    Purpose:
@@ -18,8 +18,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_PULSE_FORMS_V24_FULL_CARD_OWNER__) return;
-window.__NEXA_PULSE_FORMS_V24_FULL_CARD_OWNER__=true;
+if(window.__NEXA_PULSE_FORMS_V25_ACTIVE_CONTENT_CLEANUP__) return;
+window.__NEXA_PULSE_FORMS_V25_ACTIVE_CONTENT_CLEANUP__=true;
 
 const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
@@ -104,10 +104,10 @@ function subFor(key,settings){
 }
 
 function installCSS(){
-  if($('#nexa-pulse-v24-css')) return;
+  if($('#nexa-pulse-v25-css')) return;
 
   const s=document.createElement('style');
-  s.id='nexa-pulse-v24-css';
+  s.id='nexa-pulse-v25-css';
   s.textContent=`
     #${CARD_ID}{
       --tech:#35dfff;
@@ -176,6 +176,15 @@ function installCSS(){
       font-weight:400!important;
       letter-spacing:0!important;
       font-family:inherit!important;
+    }
+
+    /* Empty-state copy only: hide it whenever at least one active item exists. */
+    #${CARD_ID}.has-active-content .nexa-pulse-copy{
+      display:none!important;
+      visibility:hidden!important;
+      height:0!important;
+      margin:0!important;
+      overflow:hidden!important;
     }
 
     #${CARD_ID} .nexa-pulse-live-surface{
@@ -287,7 +296,24 @@ function installCSS(){
       background:linear-gradient(135deg,rgba(73,45,146,.82),rgba(42,72,133,.80),rgba(20,104,114,.72))!important;
     }
 
-    [data-nexa-retired-pulse="v24"]{
+    /* Known legacy Pulse owners are permanently retired once V2.5 owns Home. */
+    #nexa-v302-pulse,
+    #nexa-pulse-card,
+    [data-nexa-tech="pulse"]{
+      display:none!important;
+      visibility:hidden!important;
+      opacity:0!important;
+      pointer-events:none!important;
+      max-height:0!important;
+      min-height:0!important;
+      height:0!important;
+      margin:0!important;
+      padding:0!important;
+      border:0!important;
+      overflow:hidden!important;
+    }
+
+    [data-nexa-retired-pulse="v25"]{
       display:none!important;
       visibility:hidden!important;
       opacity:0!important;
@@ -324,7 +350,7 @@ function retireLegacyPulse(){
   $$('section,article,div',home).forEach(el=>{
     if(!isPulseCard(el)) return;
     if(el.contains($('#'+CARD_ID))) return;
-    el.dataset.nexaRetiredPulse='v24';
+    el.dataset.nexaRetiredPulse='v25';
     el.setAttribute('aria-hidden','true');
   });
 }
@@ -336,7 +362,7 @@ function ensureCard(){
   card=document.createElement('section');
   card.id=CARD_ID;
   card.className='section nexa-v31-strip';
-  card.dataset.nexaTech='pulse-owner';
+  card.dataset.nexaTech='pulse-owner-v25';
   card.setAttribute('aria-live','polite');
 
   card.innerHTML=`
@@ -469,7 +495,7 @@ async function render(){
       loadBattlePlans()
     ]);
   }catch(err){
-    console.warn('[NEXA Pulse V2.4] data load failed',err);
+    console.warn('[NEXA Pulse V2.5] data load failed',err);
     return false;
   }
 
@@ -506,10 +532,14 @@ async function render(){
     lastPaintKey=paintKey;
   }
 
+  const hasActiveContent=forms.length>0 || plans.length>0;
+
   surface.classList.toggle(
     'is-empty',
-    forms.length===0 && plans.length===0
+    !hasActiveContent
   );
+
+  card.classList.toggle('has-active-content',hasActiveContent);
 
   forceSlot();
   retireLegacyPulse();

@@ -1,4 +1,4 @@
-/* NEXA TRANSFER HOME V1.11 — PULSE ALLIANCE EXACT VISUAL / STABLE
+/* NEXA TRANSFER HOME V1.12 — OPTICAL MATCH / FULL CONTENT HEIGHT
    COMPLETE REPLACEMENT for: nexa-transfer-home-v1.js
 
    Goal:
@@ -23,8 +23,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_TRANSFER_HOME_V111_PULSE_ALLIANCE_VISUAL__) return;
-window.__NEXA_TRANSFER_HOME_V111_PULSE_ALLIANCE_VISUAL__=true;
+if(window.__NEXA_TRANSFER_HOME_V112_OPTICAL_MATCH__) return;
+window.__NEXA_TRANSFER_HOME_V112_OPTICAL_MATCH__=true;
 
 const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
@@ -84,10 +84,10 @@ async function copy(text,button){
 }
 
 function installCSS(){
-  if($('#nexa-transfer-home-v111-css')) return;
+  if($('#nexa-transfer-home-v112-css')) return;
 
   const s=document.createElement('style');
-  s.id='nexa-transfer-home-v111-css';
+  s.id='nexa-transfer-home-v112-css';
   s.textContent=`
     #nexa-v49-transfer-card{
       --tech:#ff9148;
@@ -95,19 +95,20 @@ function installCSS(){
 
       position:relative!important;
       isolation:isolate!important;
-      overflow:hidden!important;
+      overflow:visible!important;
 
       width:100%!important;
       max-width:100%!important;
-      min-height:64px!important;
+      min-height:116px!important;
       height:auto!important;
+      max-height:none!important;
 
       margin:0!important;
       padding:12px 16px!important;
       box-sizing:border-box!important;
 
       border-radius:20px!important;
-      border:1px solid rgba(var(--tech-rgb),.58)!important;
+      border:1px solid rgba(var(--tech-rgb),.34)!important;
 
       background:
         radial-gradient(circle at 8% 0%,rgba(var(--tech-rgb),.10),transparent 34%),
@@ -118,7 +119,7 @@ function installCSS(){
         inset 0 0 0 1px rgba(255,255,255,.018),
         inset 0 1px 0 rgba(var(--tech-rgb),.18),
         inset 0 0 28px rgba(var(--tech-rgb),.035),
-        0 0 16px rgba(var(--tech-rgb),.13)!important;
+        0 0 9px rgba(var(--tech-rgb),.035)!important;
 
       visibility:visible!important;
       opacity:1!important;
@@ -136,7 +137,7 @@ function installCSS(){
       height:40px!important;
       border-radius:999px!important;
       background:#ff9d5c!important;
-      box-shadow:0 0 7px rgba(255,157,92,.90),0 0 13px rgba(255,145,72,.52)!important;
+      box-shadow:0 0 5px rgba(255,157,92,.80),0 0 10px rgba(255,145,72,.36)!important;
       pointer-events:none!important;
       z-index:5!important;
     }
@@ -157,7 +158,7 @@ function installCSS(){
     #nexa-v49-transfer-card > h3{
       display:none!important;
       margin:0 0 5px!important;
-      font-size:18px!important;
+      font-size:16px!important;
       line-height:1.15!important;
       font-weight:950!important;
     }
@@ -165,7 +166,10 @@ function installCSS(){
     #nexa-v49-transfer-card #nexa-v49-transfer-events{
       position:relative!important;
       z-index:3!important;
+      display:block!important;
       width:100%!important;
+      height:auto!important;
+      min-height:0!important;
       margin:0!important;
       padding:0!important;
       background:transparent!important;
@@ -190,7 +194,7 @@ function installCSS(){
     #nexa-v49-transfer-card .nexa-transfer-v17-title{
       margin:0 0 5px!important;
       color:#fff!important;
-      font-size:18px!important;
+      font-size:16px!important;
       line-height:1.15!important;
       font-weight:900!important;
       letter-spacing:-.01em!important;
@@ -204,7 +208,7 @@ function installCSS(){
     #nexa-v49-transfer-card .nexa-transfer-v17-copy{
       margin:0!important;
       color:#9aa8c3!important;
-      font-size:13px!important;
+      font-size:12px!important;
       line-height:1.35!important;
       font-weight:400!important;
       letter-spacing:0!important;
@@ -219,7 +223,7 @@ function installCSS(){
       margin:4px 0 0!important;
       padding:0!important;
       color:#9aa8c3!important;
-      font-size:13px!important;
+      font-size:12px!important;
       line-height:1.35!important;
       font-weight:400!important;
       letter-spacing:0!important;

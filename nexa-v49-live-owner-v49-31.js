@@ -1,4 +1,4 @@
-/* NEXA V49.38 — LIVE EVENT FAMILY TOP ACCENT
+/* NEXA V49.39 — LIVE EVENT ACTIVE + COMPACT EMPTY
    COMPLETE REPLACEMENT FILE
    File: nexa-v49-live-owner-v49-31.js
 
@@ -19,8 +19,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4938_LIVE_TOP_ACCENT__) return;
-window.__NEXA_V4938_LIVE_TOP_ACCENT__=true;
+if(window.__NEXA_V4939_LIVE_ACTIVE_EMPTY__) return;
+window.__NEXA_V4939_LIVE_ACTIVE_EMPTY__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -136,7 +136,7 @@ function installCSS(){
         0 0 32px rgba(255,79,200,.07)!important;
     }
 
-    #${CARD_ID}.is-live{display:block!important}
+    #${CARD_ID}.is-live,#${CARD_ID}.is-empty{display:block!important}
 
     #${CARD_ID}::before{
       content:"";
@@ -194,6 +194,26 @@ function installCSS(){
       font-size:1.15rem;
       line-height:1.15;
       letter-spacing:-.018em;
+    }
+
+    #${CARD_ID}.is-empty{
+      min-height:0!important;
+      padding:12px 16px!important;
+    }
+
+    #${CARD_ID}.is-empty .v4937-kicker{
+      margin-bottom:5px!important;
+    }
+
+    #${CARD_ID}.is-empty .v4937-title{
+      font-size:1rem!important;
+      margin-bottom:3px!important;
+    }
+
+    #${CARD_ID} .v4939-empty-copy{
+      color:#9aa8c3;
+      font-size:.68rem;
+      line-height:1.35;
     }
 
     #${CARD_ID} .v4937-alliance-grid{
@@ -391,6 +411,29 @@ function retireLegacyLiveCards(){
   });
 }
 
+function renderEmpty(){
+  lastLive=null;
+  window.NEXA_CURRENT_LIVE_EVENT=null;
+
+  const card=forceExactSlot();
+  if(!card) return false;
+
+  card.innerHTML=`
+    <div class="v4937-kicker">LIVE EVENT</div>
+    <h2 class="v4937-title">No Live Event</h2>
+    <div class="v4939-empty-copy">Upcoming state events, schedules and forms will appear here when leadership publishes them.</div>
+  `;
+
+  card.classList.remove('is-live');
+  card.classList.add('is-empty');
+  card.removeAttribute('hidden');
+  card.setAttribute('aria-hidden','false');
+
+  retireLegacyLiveCards();
+  forceExactSlot();
+  return true;
+}
+
 function render(live){
   if(!live) return false;
 
@@ -451,6 +494,7 @@ function render(live){
     `:''}
   `;
 
+  card.classList.remove('is-empty');
   card.classList.add('is-live');
   card.removeAttribute('hidden');
   card.setAttribute('aria-hidden','false');
@@ -464,8 +508,7 @@ function render(live){
 function consume(){
   const live=window.NEXA_CURRENT_LIVE_EVENT;
   if(live && typeof live==='object') return render(live);
-  if(lastLive) return render(lastLive);
-  return false;
+  return renderEmpty();
 }
 
 async function askV49(){
@@ -508,6 +551,7 @@ function boot(){
   window.addEventListener('nexa:live-event-ready',e=>{
     const live=e?.detail?.live;
     if(live && typeof live==='object') render(live);
+    else renderEmpty();
   });
 
   window.addEventListener('nexa:home-ready',scheduleFinitePasses);

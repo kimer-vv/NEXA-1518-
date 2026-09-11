@@ -1,4 +1,4 @@
-/* NEXA PULSE FORMS V2.7 — WAIT FOR REAL HOME SLOT / NO FALLBACK CARD
+/* NEXA PULSE FORMS V2.8 — STABLE LEGACY ID / REHYDRATE AFTER LATE REWRITES
    COMPLETE REPLACEMENT for: nexa-pulse-forms-v1.js
 
    Purpose:
@@ -18,8 +18,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_PULSE_FORMS_V27_WAIT_FOR_REAL_HOME_SLOT__) return;
-window.__NEXA_PULSE_FORMS_V27_WAIT_FOR_REAL_HOME_SLOT__=true;
+if(window.__NEXA_PULSE_FORMS_V28_STABLE_LEGACY_ID__) return;
+window.__NEXA_PULSE_FORMS_V28_STABLE_LEGACY_ID__=true;
 
 const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
@@ -31,7 +31,7 @@ const sb=
 
 if(!sb) return;
 
-const CARD_ID='nexa-pulse-owner-v27';
+const CARD_ID='nexa-v302-pulse';
 let generation=0;
 let lastPaintKey='';
 
@@ -104,10 +104,10 @@ function subFor(key,settings){
 }
 
 function installCSS(){
-  if($('#nexa-pulse-v27-css')) return;
+  if($('#nexa-pulse-v28-css')) return;
 
   const s=document.createElement('style');
-  s.id='nexa-pulse-v27-css';
+  s.id='nexa-pulse-v28-css';
   s.textContent=`
     #${CARD_ID}{
       --tech:#35dfff;
@@ -296,7 +296,7 @@ function installCSS(){
       background:linear-gradient(135deg,rgba(73,45,146,.82),rgba(42,72,133,.80),rgba(20,104,114,.72))!important;
     }
 
-    [data-nexa-retired-pulse="v27"]{
+    [data-nexa-retired-pulse="v28"]{
       display:none!important;
       visibility:hidden!important;
       opacity:0!important;
@@ -328,7 +328,7 @@ function realLegacyPulse(){
   const wrap=realSignalWrap();
   if(!wrap) return null;
 
-  /* Exact known legacy host first. */
+  /* Keep the original stable ID because other Home owners depend on it. */
   const exact=
     $('#nexa-v302-pulse',wrap) ||
     $('#nexa-pulse-card',wrap) ||
@@ -336,7 +336,6 @@ function realLegacyPulse(){
 
   if(exact) return exact;
 
-  /* Text fallback, but ONLY inside the real signal wrapper. */
   const matches=$$('section,article,div',wrap).filter(el=>{
     if(!pulseTextMatch(el)) return false;
     if(/ALLIANCE SIGNAL|TRANSFERS|LIVE EVENT/i.test(clean(el.textContent))) return false;
@@ -355,7 +354,6 @@ function realLegacyPulse(){
 
   for(let i=0;i<3 && node?.parentElement;i++){
     const p=node.parentElement;
-
     if(p===wrap) break;
 
     if(
@@ -392,17 +390,29 @@ function retireExtraPulseCards(keep){
     if(!pulseTextMatch(el)) return;
     if(/ALLIANCE SIGNAL|TRANSFERS|LIVE EVENT/i.test(clean(el.textContent))) return;
 
-    el.dataset.nexaRetiredPulse='v27';
+    el.dataset.nexaRetiredPulse='v28';
     el.setAttribute('aria-hidden','true');
   });
+}
+
+function shellIsIntact(card){
+  return !!(
+    card &&
+    $('.nexa-pulse-kicker',card) &&
+    $('.nexa-pulse-title',card) &&
+    $('.nexa-pulse-copy',card) &&
+    $('.nexa-pulse-live-surface',card)
+  );
 }
 
 function applyOwnedShell(card){
   if(!card) return null;
 
+  /* Preserve #nexa-v302-pulse. Other Home code references this exact ID. */
   card.id=CARD_ID;
   card.classList.add('section','nexa-v31-strip');
-  card.dataset.nexaTech='pulse-owner-v27';
+  card.dataset.nexaTech='pulse';
+  card.dataset.nexaPulseOwner='v2.8';
   card.setAttribute('aria-live','polite');
   card.removeAttribute('hidden');
   card.setAttribute('aria-hidden','false');
@@ -421,33 +431,37 @@ function ensureCard(){
   const wrap=realSignalWrap();
 
   /*
-    Critical V2.7 rule:
-    NEVER create a fallback Pulse outside #nexa-v31-signals.
-    The screenshot proved the real Home Pulse is injected later.
+    Never create a Pulse outside the actual Home signal stack.
+    Wait for the legacy Home renderer to create its real card.
   */
   if(!wrap){
     removeStrayOwnedCards();
     return null;
   }
 
-  let card=$('#'+CARD_ID,wrap);
-  if(card){
-    removeStrayOwnedCards(card);
-    return card;
-  }
+  let card=$('#'+CARD_ID,wrap) || realLegacyPulse();
 
-  const legacy=realLegacyPulse();
-
-  if(!legacy){
-    /* Wait for the actual Home card to be injected. */
+  if(!card){
     removeStrayOwnedCards();
     return null;
   }
 
-  card=applyOwnedShell(legacy);
+  /*
+    Important V2.8 fix:
+    legacy Home may rewrite card.innerHTML AFTER we first took ownership.
+    If that happens the ID survives, but our live surface disappears.
+    Rehydrate the same card instead of creating a second one.
+  */
+  if(!shellIsIntact(card)){
+    card=applyOwnedShell(card);
+  }else{
+    card.dataset.nexaPulseOwner='v2.8';
+    card.setAttribute('aria-hidden','false');
+    card.removeAttribute('hidden');
+  }
+
   removeStrayOwnedCards(card);
   retireExtraPulseCards(card);
-
   return card;
 }
 
@@ -459,13 +473,16 @@ function forceSlot(){
 
   const alliance=$('#nexa-v31-alliance',wrap) || $('#nexa-v31-alliance');
 
-  if(alliance?.parentNode===wrap && card.parentNode===wrap && card.nextElementSibling!==alliance){
+  if(
+    alliance?.parentNode===wrap &&
+    card.parentNode===wrap &&
+    card.nextElementSibling!==alliance
+  ){
     wrap.insertBefore(card,alliance);
   }
 
   removeStrayOwnedCards(card);
   retireExtraPulseCards(card);
-
   return card;
 }
 
@@ -542,7 +559,7 @@ function battlePlanHTML(row){
 async function render(){
   installCSS();
 
-  const card=forceSlot();
+  let card=forceSlot();
   if(!card) return false;
 
   retireLegacyPulse();
@@ -556,11 +573,22 @@ async function render(){
       loadBattlePlans()
     ]);
   }catch(err){
-    console.warn('[NEXA Pulse V2.7] data load failed',err);
+    console.warn('[NEXA Pulse V2.8] data load failed',err);
     return false;
   }
 
-  const surface=$('.nexa-pulse-live-surface',card);
+  /*
+    The database request is async. A late Home renderer can rewrite Pulse
+    while that request is in flight, so reacquire/rehydrate before painting.
+  */
+  card=forceSlot();
+  if(!card) return false;
+
+  let surface=$('.nexa-pulse-live-surface',card);
+  if(!surface){
+    applyOwnedShell(card);
+    surface=$('.nexa-pulse-live-surface',card);
+  }
   if(!surface) return false;
 
   const paintKey=JSON.stringify({
@@ -610,7 +638,7 @@ async function render(){
 function finitePasses(){
   const mine=++generation;
 
-  [0,120,300,650,1100,1800,3000,5000,8000,12000,18000].forEach(ms=>{
+  [0,120,300,650,1100,1800,3000,5000,8000,12000,18000,25000].forEach(ms=>{
     setTimeout(()=>{
       if(mine!==generation) return;
       render().catch(()=>{});

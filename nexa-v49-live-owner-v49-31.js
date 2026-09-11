@@ -1,83 +1,69 @@
-/* NEXA V49.43 — HOME SIGNALS SELF-HEAL OWNER
+/* NEXA V49.44 — LIVE EVENT SINGLE OWNER
    COMPLETE REPLACEMENT FILE
    File: nexa-v49-live-owner-v49-31.js
 
-   Fixes V49.40:
-   - Uses the EXISTING #nexa-v31-signals as the one Home signal stack.
-   - Does not nest a second stack inside an old Live Event card.
-   - Removes old Pulse / Alliance / Transfer visual shells before creating new ones.
-   - Keeps the stable IDs required by existing data modules.
-   - One visual family for Live Event, NEXA Pulse, Alliance Signal, Transfers.
-   - Live Event stays compact when inactive and expands when active.
+   Purpose:
+   - Own ONLY the Home Live Event card.
+   - Do NOT recreate, remove, restyle, or reorder NEXA Pulse, Alliance Signal, or Transfers.
+   - Consume the authoritative V49 State Hub bridge:
+       window.NEXA_CURRENT_LIVE_EVENT
+       nexa:live-event-ready
+   - Never render a false "No Live Event" card before State Hub finishes.
+   - Keep the Live Event immediately before NEXA Pulse when Pulse exists.
 
-   Data owners remain unchanged:
-   - V49 State Hub: Live Event + Transfer state/data
-   - nexa-pulse-forms-v1.js: Pulse forms + Battle Plan
-   - nexa-transfer-home-v1.js: Transfer actions
-
-   No MutationObserver.
-   No indefinite polling.
-   No touchmove preventDefault.
-   No manual scrollLeft.
+   Safety:
+   - No MutationObserver.
+   - No setInterval / indefinite polling.
+   - No touchmove preventDefault.
+   - No manual scrollLeft.
 */
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4943_HOME_SIGNALS_SELF_HEAL__) return;
-window.__NEXA_V4943_HOME_SIGNALS_SELF_HEAL__=true;
+if(window.__NEXA_V4944_LIVE_EVENT_SINGLE_OWNER__) return;
+window.__NEXA_V4944_LIVE_EVENT_SINGLE_OWNER__ = true;
 
-const $=(s,r=document)=>r?.querySelector?.(s)||null;
-const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
+const HOST_ID = 'nexa-v31-signals';
+const LIVE_ID = 'nexa-v4944-live-event';
+const PULSE_ID = 'nexa-v302-pulse';
 
-const HOST_ID='nexa-v31-signals';
-const LIVE_ID='nexa-v4941-live-event';
-const PULSE_ID='nexa-v302-pulse';
-const ALLIANCE_ID='nexa-v31-alliance';
-const TRANSFER_ID='nexa-v49-transfer-card';
+const $ = (s,r=document)=>r?.querySelector?.(s)||null;
+const $$ = (s,r=document)=>r?.querySelectorAll ? Array.from(r.querySelectorAll(s)) : [];
 
-let generation=0;
-
-const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({
+const esc = v => String(v ?? '').replace(/[&<>"']/g,m=>({
   '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
 }[m]));
 
-function clean(v){
-  return String(v??'').replace(/\s+/g,' ').trim();
-}
+const clean = v => String(v ?? '').replace(/\s+/g,' ').trim();
 
 function payloadOf(live){
-  return live?.live_event_payload && typeof live.live_event_payload==='object'
+  return live?.live_event_payload && typeof live.live_event_payload === 'object'
     ? live.live_event_payload
     : {};
 }
 
 function fmtDate(v){
   if(!v) return '';
-  const d=new Date(`${v}T00:00:00Z`);
+  const raw = String(v).slice(0,10);
+  const d = new Date(`${raw}T00:00:00Z`);
   if(Number.isNaN(d.getTime())) return clean(v);
   return new Intl.DateTimeFormat(undefined,{
-    month:'short',day:'numeric',year:'numeric',timeZone:'UTC'
+    month:'short',
+    day:'numeric',
+    year:'numeric',
+    timeZone:'UTC'
   }).format(d);
 }
 
 function installCSS(){
-  $('#nexa-v4940-home-signals-css')?.remove();
-  if($('#nexa-v4941-home-signals-css')) return;
+  $('#nexa-v4944-live-event-css')?.remove();
 
-  const s=document.createElement('style');
-  s.id='nexa-v4941-home-signals-css';
-  s.textContent=`
-    #${HOST_ID}{
-      display:grid!important;
-      grid-template-columns:1fr!important;
-      gap:10px!important;
-      width:calc(100% - 32px)!important;
-      max-width:760px!important;
-      margin:12px auto 18px!important;
-      box-sizing:border-box!important;
-    }
-
-    #${HOST_ID} > .nexa-v4941-card{
+  const s = document.createElement('style');
+  s.id = 'nexa-v4944-live-event-css';
+  s.textContent = `
+    #${LIVE_ID}{
+      --nexa-rgb:255,79,200;
+      --nexa-accent:#ff4fc8;
       position:relative!important;
       isolation:isolate!important;
       overflow:hidden!important;
@@ -106,20 +92,15 @@ function installCSS(){
       pointer-events:auto!important;
     }
 
-    #${LIVE_ID}{--nexa-rgb:255,79,200;--nexa-accent:#ff4fc8}
-    #${PULSE_ID}{--nexa-rgb:57,223,255;--nexa-accent:#39dfff}
-    #${ALLIANCE_ID}{--nexa-rgb:167,108,255;--nexa-accent:#a76cff}
-    #${TRANSFER_ID}{--nexa-rgb:53,255,149;--nexa-accent:#35ff95}
-
-    #${HOST_ID} .nexa-v4941-top,
-    #${HOST_ID} .nexa-v4941-left{
+    #${LIVE_ID} .nexa-v4944-top,
+    #${LIVE_ID} .nexa-v4944-left{
       position:absolute!important;
       z-index:8!important;
       pointer-events:none!important;
       display:block!important;
     }
 
-    #${HOST_ID} .nexa-v4941-top{
+    #${LIVE_ID} .nexa-v4944-top{
       left:18px!important;
       top:-1px!important;
       width:48px!important;
@@ -136,7 +117,7 @@ function installCSS(){
         0 0 22px rgba(var(--nexa-rgb),.22)!important;
     }
 
-    #${HOST_ID} .nexa-v4941-left{
+    #${LIVE_ID} .nexa-v4944-left{
       left:-1px!important;
       top:18px!important;
       width:3px!important;
@@ -153,7 +134,7 @@ function installCSS(){
         0 0 13px rgba(var(--nexa-rgb),.58)!important;
     }
 
-    #${HOST_ID} .nexa-v4941-kicker{
+    #${LIVE_ID} .nexa-v4944-kicker{
       margin:0 0 6px!important;
       color:var(--nexa-accent)!important;
       font-size:.64rem!important;
@@ -163,7 +144,7 @@ function installCSS(){
       text-transform:uppercase!important;
     }
 
-    #${HOST_ID} .nexa-v4941-title{
+    #${LIVE_ID} .nexa-v4944-title{
       margin:0!important;
       color:#fff!important;
       font-size:1.05rem!important;
@@ -172,108 +153,120 @@ function installCSS(){
       letter-spacing:-.012em!important;
     }
 
-    #${HOST_ID} .nexa-v4941-copy{
-      margin-top:4px!important;
+    #${LIVE_ID} .nexa-v4944-meta{
+      margin-top:5px!important;
       color:#9aa8c3!important;
       font-size:.68rem!important;
       line-height:1.38!important;
     }
 
-    #${HOST_ID} .nexa-v4941-content{
-      min-width:0!important;
-      width:100%!important;
-    }
-
-    #${TRANSFER_ID} > .nexa-v49-transfer-kicker{
-      margin:0 0 6px!important;
-      color:#35ff95!important;
-      font-size:.64rem!important;
-      line-height:1.1!important;
-      font-weight:950!important;
-      letter-spacing:.16em!important;
-      text-transform:uppercase!important;
-    }
-
-    #${TRANSFER_ID} > h3{
-      margin:0!important;
-      color:#fff!important;
-      font-size:1.05rem!important;
-      line-height:1.16!important;
-      font-weight:950!important;
-      letter-spacing:-.012em!important;
-    }
-
-    #${TRANSFER_ID} > #nexa-v49-transfer-events{
-      margin-top:4px!important;
-      color:#9aa8c3!important;
-      font-size:.68rem!important;
-      line-height:1.38!important;
-      min-width:0!important;
-      width:100%!important;
-    }
-
-    #${PULSE_ID} #nexa-pulse-published-forms,
-    #${PULSE_ID} #nexa-pulse-battle-plans{
+    #${LIVE_ID} .nexa-v4944-alliance-grid{
+      display:grid!important;
+      grid-template-columns:repeat(2,minmax(0,1fr))!important;
+      gap:7px!important;
       margin-top:10px!important;
     }
 
-    #${LIVE_ID} .v4941-alliance-grid{
-      display:grid;
-      grid-template-columns:repeat(2,minmax(0,1fr));
-      gap:7px;
-      margin-top:10px;
+    #${LIVE_ID} .nexa-v4944-mini{
+      min-width:0!important;
+      padding:8px 9px!important;
+      border:1px solid rgba(255,255,255,.08)!important;
+      border-radius:12px!important;
+      background:rgba(255,255,255,.022)!important;
     }
 
-    #${LIVE_ID} .v4941-mini{
-      min-width:0;padding:8px 9px;
-      border:1px solid rgba(255,255,255,.08);
-      border-radius:12px;background:rgba(255,255,255,.022);
+    #${LIVE_ID} .nexa-v4944-mini span{
+      display:block!important;
+      margin-bottom:3px!important;
+      color:#8290ad!important;
+      font-size:.52rem!important;
+      font-weight:900!important;
+      letter-spacing:.10em!important;
+      line-height:1.2!important;
+      text-transform:uppercase!important;
     }
 
-    #${LIVE_ID} .v4941-mini span{
-      display:block;margin-bottom:3px;color:#8290ad;
-      font-size:.52rem;font-weight:900;letter-spacing:.10em;line-height:1.2;
+    #${LIVE_ID} .nexa-v4944-mini strong{
+      display:block!important;
+      color:#f4f7ff!important;
+      font-size:.75rem!important;
+      overflow:hidden!important;
+      text-overflow:ellipsis!important;
+      white-space:nowrap!important;
     }
 
-    #${LIVE_ID} .v4941-mini strong{
-      display:block;color:#f4f7ff;font-size:.75rem;
-      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    #${LIVE_ID} .nexa-v4944-schedule{
+      display:grid!important;
+      gap:6px!important;
+      margin-top:10px!important;
     }
 
-    #${LIVE_ID} .v4941-schedule{
-      display:grid;gap:6px;margin-top:10px;
+    #${LIVE_ID} .nexa-v4944-schedule-title{
+      color:#8998b7!important;
+      font-size:.54rem!important;
+      font-weight:950!important;
+      letter-spacing:.12em!important;
+      margin-bottom:1px!important;
+      text-transform:uppercase!important;
     }
 
-    #${LIVE_ID} .v4941-schedule-title{
-      color:#8998b7;font-size:.54rem;font-weight:950;
-      letter-spacing:.12em;margin-bottom:1px;
+    #${LIVE_ID} .nexa-v4944-row{
+      display:grid!important;
+      grid-template-columns:100px minmax(0,1fr)!important;
+      gap:9px!important;
+      align-items:start!important;
+      padding:8px 9px!important;
+      border-radius:12px!important;
+      border:1px solid rgba(255,255,255,.07)!important;
+      background:rgba(255,255,255,.022)!important;
     }
 
-    #${LIVE_ID} .v4941-row{
-      display:grid;grid-template-columns:100px minmax(0,1fr);
-      gap:9px;align-items:start;padding:8px 9px;border-radius:12px;
-      border:1px solid rgba(255,255,255,.07);
-      background:rgba(255,255,255,.022);
+    #${LIVE_ID} .nexa-v4944-day{
+      color:#ff9caf!important;
+      font-size:.68rem!important;
+      font-weight:950!important;
+      line-height:1.2!important;
     }
 
-    #${LIVE_ID} .v4941-day{color:#ff9caf;font-size:.68rem;font-weight:950;line-height:1.2}
-    #${LIVE_ID} .v4941-date{display:block;margin-top:2px;color:#77839f;font-size:.57rem;font-weight:850;line-height:1.25}
-    #${LIVE_ID} .v4941-focus{color:#eef2ff;font-size:.72rem;font-weight:900;line-height:1.28}
-    #${LIVE_ID} .v4941-ministry{margin-top:2px;color:#9aa8c3;font-size:.64rem;line-height:1.3}
-    #${LIVE_ID} .v4941-time{margin-top:3px;color:#f4b45f;font-size:.62rem;font-weight:850;line-height:1.32}
+    #${LIVE_ID} .nexa-v4944-date{
+      display:block!important;
+      margin-top:2px!important;
+      color:#77839f!important;
+      font-size:.57rem!important;
+      font-weight:850!important;
+      line-height:1.25!important;
+    }
 
-    /* Retired visual shells only. */
+    #${LIVE_ID} .nexa-v4944-focus{
+      color:#eef2ff!important;
+      font-size:.72rem!important;
+      font-weight:900!important;
+      line-height:1.28!important;
+    }
+
+    #${LIVE_ID} .nexa-v4944-ministry{
+      margin-top:2px!important;
+      color:#9aa8c3!important;
+      font-size:.64rem!important;
+      line-height:1.3!important;
+    }
+
+    #${LIVE_ID} .nexa-v4944-time{
+      margin-top:3px!important;
+      color:#f4b45f!important;
+      font-size:.62rem!important;
+      font-weight:850!important;
+      line-height:1.32!important;
+    }
+
+    /* Retire ONLY old Live Event visual shells. Do not touch Pulse / Alliance / Transfers. */
     #home-svs-section,
-    #home-transfers-section,
-    #nexa-v430-transfer-card,
-    #nexa-transfer-card,
-    .nexa-v453-transfer,
-    #nexa-v4937-live-event,
-    #nexa-v4935-live-event,
-    #nexa-v4934-live-event,
     #nexa-v4933-live-event,
+    #nexa-v4934-live-event,
+    #nexa-v4935-live-event,
+    #nexa-v4937-live-event,
     #nexa-v4940-home-signals,
-    [data-nexa-home-retired="v49-43"]{
+    #nexa-v4941-live-event{
       display:none!important;
       visibility:hidden!important;
       opacity:0!important;
@@ -288,373 +281,248 @@ function installCSS(){
     }
 
     @media(max-width:560px){
-      #${HOST_ID}{width:calc(100% - 32px)!important}
-      #${LIVE_ID} .v4941-row{grid-template-columns:90px minmax(0,1fr)}
+      #${LIVE_ID} .nexa-v4944-row{
+        grid-template-columns:90px minmax(0,1fr)!important;
+      }
     }
   `;
   document.head.appendChild(s);
-}
-
-function accents(){
-  return `<span class="nexa-v4941-top" aria-hidden="true"></span>
-          <span class="nexa-v4941-left" aria-hidden="true"></span>`;
-}
-
-function makeCard({id,tech,kicker,title,copy}){
-  const el=document.createElement('section');
-  el.id=id;
-  el.className='section nexa-v477-tech-card nexa-v4941-card';
-  el.dataset.nexaTech=tech;
-  el.dataset.nexaUnifiedOwner='v49-43';
-  el.innerHTML=`
-    ${accents()}
-    <div class="nexa-v4941-content">
-      <div class="nexa-v4941-kicker">${esc(kicker)}</div>
-      <h2 class="nexa-v4941-title">${esc(title)}</h2>
-      <div class="nexa-v4941-copy">${esc(copy)}</div>
-    </div>
-  `;
-  return el;
 }
 
 function host(){
   return $('#'+HOST_ID);
 }
 
-function capturePulseBoxes(){
-  const boxes=[];
-  ['nexa-pulse-published-forms','nexa-pulse-battle-plans'].forEach(id=>{
-    const node=$('#'+id);
-    if(node) boxes.push(node);
-  });
-  return boxes;
-}
-
-function readAlliance(){
-  const old=$$(`#${ALLIANCE_ID}`)
-    .find(el=>el?.dataset?.nexaUnifiedOwner!=='v49-43');
-
-  if(!old) return {
-    title:'No alliance event published',
-    copy:'Foundry, Canyon and alliance strategy updates will appear here.'
-  };
-
-  const heads=$$('h1,h2,h3,b,strong',old)
-    .map(x=>clean(x.textContent))
-    .filter(Boolean)
-    .filter(x=>!/ALLIANCE SIGNAL/i.test(x));
-
-  const body=$$('.muted,small,p',old)
-    .map(x=>clean(x.textContent))
-    .filter(Boolean)
-    .filter(x=>!/ALLIANCE SIGNAL/i.test(x));
-
-  return {
-    title:heads[0]||'No alliance event published',
-    copy:body[0]||'Foundry, Canyon and alliance strategy updates will appear here.'
-  };
-}
-
-function removeOldVisuals(h){
-  h.removeAttribute('data-nexa-unified-owner');
-
-  const protectedIds=new Set([
-    'nexa-pulse-published-forms',
-    'nexa-pulse-battle-plans'
-  ]);
-
-  Array.from(h.children).forEach(el=>{
-    if(protectedIds.has(el.id)) return;
-    el.remove();
-  });
-
+function retireOldLive(){
   [
-    '#home-svs-section',
-    '#home-transfers-section',
-    '#nexa-v430-transfer-card',
-    '#nexa-transfer-card',
-    '.nexa-v453-transfer',
-    '#nexa-v4937-live-event',
-    '#nexa-v4935-live-event',
-    '#nexa-v4934-live-event',
     '#nexa-v4933-live-event',
-    '#nexa-v4940-home-signals'
-  ].forEach(sel=>$$(sel).forEach(el=>{
-    if(!h.contains(el)) el.remove();
-  }));
+    '#nexa-v4934-live-event',
+    '#nexa-v4935-live-event',
+    '#nexa-v4937-live-event',
+    '#nexa-v4940-home-signals',
+    '#nexa-v4941-live-event'
+  ].forEach(sel=>{
+    $$(sel).forEach(el=>{
+      if(el.id !== LIVE_ID) el.remove();
+    });
+  });
 }
 
-function takeover(){
-  const h=host();
-  if(!h) return false;
-
-  installCSS();
-
-  const ownLive=$(`#${LIVE_ID}`,h);
-  const ownPulse=$(`#${PULSE_ID}`,h);
-  const ownAlliance=$(`#${ALLIANCE_ID}`,h);
-  const ownTransfer=$(`#${TRANSFER_ID}`,h);
-
-  const complete=
-    h.dataset.nexaUnifiedOwner==='v49-43' &&
-    ownLive?.dataset?.nexaUnifiedOwner==='v49-43' &&
-    ownPulse?.dataset?.nexaUnifiedOwner==='v49-43' &&
-    ownAlliance?.dataset?.nexaUnifiedOwner==='v49-43' &&
-    ownTransfer?.dataset?.nexaUnifiedOwner==='v49-43';
-
-  if(complete) return true;
-
-  const pulseBoxes=capturePulseBoxes();
-  const alliance=readAlliance();
-
-  removeOldVisuals(h);
-
-  const live=makeCard({
-    id:LIVE_ID,tech:'live',kicker:'LIVE EVENT',
-    title:'No Live Event',
-    copy:'Upcoming state events, schedules and forms will appear here when leadership publishes them.'
-  });
-
-  const pulse=makeCard({
-    id:PULSE_ID,tech:'pulse',kicker:'NEXA PULSE',
-    title:'Signals & response requests',
-    copy:'Forms, surveys and requests appear here when leadership publishes them.'
-  });
-
-  pulseBoxes.forEach(n=>pulse.appendChild(n));
-
-  const allianceCard=makeCard({
-    id:ALLIANCE_ID,tech:'alliance',kicker:'ALLIANCE SIGNAL',
-    title:alliance.title,copy:alliance.copy
-  });
-
-  const transfer=document.createElement('section');
-  transfer.id=TRANSFER_ID;
-  transfer.className='section nexa-v477-tech-card nexa-v4941-card';
-  transfer.dataset.nexaTech='transfer';
-  transfer.dataset.nexaUnifiedOwner='v49-43';
-  transfer.innerHTML=`
-    ${accents()}
-    <div class="nexa-v49-transfer-kicker">TRANSFERS</div>
-    <h3>Transfer Center</h3>
-    <div id="nexa-v49-transfer-events">
-      <div class="muted">Transfer cycles and recruiting information will appear here when active.</div>
-    </div>
-  `;
-
-  h.append(live,pulse,allianceCard,transfer);
-  h.dataset.nexaUnifiedOwner='v49-43';
-
-  forceCardOrder();
-  return true;
-}
-
-function forceCardOrder(){
-  const h=host();
-  if(!h) return;
-
-  const cards=[
-    $(`#${LIVE_ID}`,h),
-    $(`#${PULSE_ID}`,h),
-    $(`#${ALLIANCE_ID}`,h),
-    $(`#${TRANSFER_ID}`,h)
-  ].filter(Boolean);
-
-  cards.forEach(card=>h.appendChild(card));
-}
-
-function ours(id){
-  const h=host();
+function ensureCard(){
+  const h = host();
   if(!h) return null;
-  return $$(`#${id}`,h).find(el=>el?.dataset?.nexaUnifiedOwner==='v49-43')||null;
+
+  let card = $('#'+LIVE_ID);
+  if(!card){
+    card = document.createElement('section');
+    card.id = LIVE_ID;
+    card.className = 'section nexa-v4944-live-card';
+    card.dataset.nexaTech = 'live';
+    card.dataset.nexaLiveOwner = 'v49-44';
+  }
+
+  const pulse = $('#'+PULSE_ID);
+
+  if(pulse && pulse.parentNode === h){
+    if(card.parentNode !== h || card.nextElementSibling !== pulse){
+      h.insertBefore(card,pulse);
+    }
+  }else if(card.parentNode !== h){
+    h.prepend(card);
+  }
+
+  return card;
 }
 
-function forceLiveVisible(card){
-  if(!card) return;
-  card.style.setProperty('display','block','important');
-  card.style.setProperty('visibility','visible','important');
-  card.style.setProperty('opacity','1','important');
-  card.style.setProperty('pointer-events','auto','important');
-  card.style.removeProperty('max-height');
-  card.style.removeProperty('height');
-  card.removeAttribute('hidden');
-  card.setAttribute('aria-hidden','false');
-}
+function placeCard(){
+  const h = host();
+  const card = $('#'+LIVE_ID);
+  if(!h || !card) return false;
 
-function renderEmptyLive(){
-  const card=ours(LIVE_ID);
-  if(!card) return false;
-
-  card.innerHTML=`
-    ${accents()}
-    <div class="nexa-v4941-content">
-      <div class="nexa-v4941-kicker">LIVE EVENT</div>
-      <h2 class="nexa-v4941-title">No Live Event</h2>
-      <div class="nexa-v4941-copy">Upcoming state events, schedules and forms will appear here when leadership publishes them.</div>
-    </div>
-  `;
-  forceLiveVisible(card);
+  const pulse = $('#'+PULSE_ID);
+  if(pulse && pulse.parentNode === h){
+    if(card.parentNode !== h || card.nextElementSibling !== pulse){
+      h.insertBefore(card,pulse);
+    }
+  }else if(card.parentNode !== h){
+    h.prepend(card);
+  }
   return true;
 }
 
 function renderLive(live){
-  if(!live) return renderEmptyLive();
+  if(!live || typeof live !== 'object') return false;
 
-  const card=ours(LIVE_ID);
+  const card = ensureCard();
   if(!card) return false;
 
-  const p=payloadOf(live);
-  const schedule=Array.isArray(p.schedule)?p.schedule:[];
-  const star=p.star_alliance?.tag||'—';
-  const presidency=p.presidency_alliance?.tag||'—';
+  const p = payloadOf(live);
+  const schedule = Array.isArray(p.schedule) ? p.schedule : [];
 
-  const rows=schedule.map(row=>`
-    <div class="v4941-row">
-      <div>
-        <div class="v4941-day">${esc(row?.day||'')}</div>
-        ${row?.date?`<span class="v4941-date">${esc(fmtDate(row.date))}</span>`:''}
+  const state =
+    p.state ??
+    live.state_number ??
+    live.state ??
+    '';
+
+  const opponent =
+    p.opponent ??
+    p.opponent_state ??
+    live.opponent_state ??
+    '';
+
+  const prep =
+    p.prep_start ??
+    p.prep_monday ??
+    live.prep_monday ??
+    '';
+
+  const battle =
+    p.battle_date ??
+    '';
+
+  const star =
+    p.star_alliance?.tag ??
+    p.star_alliance?.name ??
+    '—';
+
+  const presidency =
+    p.presidency_alliance?.tag ??
+    p.presidency_alliance?.name ??
+    '—';
+
+  const metaParts = [];
+  if(state) metaParts.push(`State ${esc(state)}`);
+  if(opponent) metaParts.push(`vs ${esc(opponent)}`);
+  if(prep) metaParts.push(`Prep ${esc(fmtDate(prep))}`);
+  if(battle) metaParts.push(`Battle ${esc(fmtDate(battle))}`);
+
+  const rows = schedule.map(row=>{
+    const day = clean(row?.day || row?.label || '');
+    const date = clean(row?.date || '');
+    const focus = clean(row?.focus || row?.event || row?.task || '');
+    const ministry = clean(row?.ministry || row?.role || row?.owner || '');
+    const time = clean(row?.time || '');
+    const location = clean(row?.location || '');
+    const extra = [time,location].filter(Boolean).join(' • ');
+
+    return `
+      <div class="nexa-v4944-row">
+        <div>
+          <div class="nexa-v4944-day">${esc(day || 'Schedule')}</div>
+          ${date ? `<span class="nexa-v4944-date">${esc(fmtDate(date))}</span>` : ''}
+        </div>
+        <div>
+          ${focus ? `<div class="nexa-v4944-focus">${esc(focus)}</div>` : ''}
+          ${ministry ? `<div class="nexa-v4944-ministry">${esc(ministry)}</div>` : ''}
+          ${extra ? `<div class="nexa-v4944-time">${esc(extra)}</div>` : ''}
+        </div>
       </div>
-      <div>
-        <div class="v4941-focus">${esc(row?.focus||'')}</div>
-        ${row?.ministry?`<div class="v4941-ministry">${esc(row.ministry)}</div>`:''}
-        ${(row?.time_utc||row?.secondary)?`<div class="v4941-time">${[row?.time_utc,row?.secondary].filter(Boolean).map(esc).join(' • ')}</div>`:''}
+    `;
+  }).join('');
+
+  card.innerHTML = `
+    <span class="nexa-v4944-top" aria-hidden="true"></span>
+    <span class="nexa-v4944-left" aria-hidden="true"></span>
+
+    <div class="nexa-v4944-kicker">LIVE EVENT</div>
+    <h2 class="nexa-v4944-title">${esc(live.title || p.event_name || 'State of Power (SvS)')}</h2>
+
+    <div class="nexa-v4944-meta">${metaParts.join(' • ')}</div>
+
+    <div class="nexa-v4944-alliance-grid">
+      <div class="nexa-v4944-mini">
+        <span>Going for the Star</span>
+        <strong>${esc(star)}</strong>
+      </div>
+      <div class="nexa-v4944-mini">
+        <span>Up for Presidency</span>
+        <strong>${esc(presidency)}</strong>
       </div>
     </div>
-  `).join('');
 
-  card.innerHTML=`
-    ${accents()}
-    <div class="nexa-v4941-content">
-      <div class="nexa-v4941-kicker">LIVE EVENT</div>
-      <h2 class="nexa-v4941-title">${esc(live.title||'SvS')}</h2>
-
-      <div class="v4941-alliance-grid">
-        <div class="v4941-mini"><span>GOING FOR THE STAR</span><strong>${esc(star)}</strong></div>
-        <div class="v4941-mini"><span>UP FOR PRESIDENCY</span><strong>${esc(presidency)}</strong></div>
+    ${rows ? `
+      <div class="nexa-v4944-schedule">
+        <div class="nexa-v4944-schedule-title">Schedule</div>
+        ${rows}
       </div>
-
-      ${rows?`<div class="v4941-schedule"><div class="v4941-schedule-title">SVS SCHEDULE</div>${rows}</div>`:''}
-    </div>
+    ` : ''}
   `;
-  forceLiveVisible(card);
 
+  card.dataset.liveEventId = clean(live.id || '');
+  card.setAttribute('aria-hidden','false');
+  card.hidden = false;
+
+  placeCard();
   return true;
 }
 
-function syncLive(){
-  const live=window.NEXA_CURRENT_LIVE_EVENT;
-  return live&&typeof live==='object' ? renderLive(live) : renderEmptyLive();
+function consumeCurrent(){
+  const live = window.NEXA_CURRENT_LIVE_EVENT;
+  if(live && typeof live === 'object'){
+    return renderLive(live);
+  }
+  return false;
 }
 
-function cleanupDuplicates(){
-  const h=host();
-  if(!h) return;
-
-  [PULSE_ID,ALLIANCE_ID,TRANSFER_ID].forEach(id=>{
-    $$(`#${id}`).forEach(el=>{
-      if(h.contains(el) && el.dataset?.nexaUnifiedOwner==='v49-43') return;
-      el.remove();
-    });
-  });
-
-  $$(`#${LIVE_ID}`).forEach(el=>{
-    if(h.contains(el)) return;
-    el.remove();
-  });
-}
-
-function recoverPulseBoxes(){
-  const pulse=ours(PULSE_ID);
-  if(!pulse) return;
-
-  ['nexa-pulse-published-forms','nexa-pulse-battle-plans'].forEach(id=>{
-    $$(`#${id}`).forEach(node=>{
-      if(!pulse.contains(node)) pulse.appendChild(node);
-    });
-  });
-}
-
-async function requestOwners(){
+function askStateHub(){
+  if(typeof window.NEXA_SYNC_STATE_HOME !== 'function') return;
   try{
-    if(typeof window.NEXA_SYNC_STATE_HOME==='function'){
-      await window.NEXA_SYNC_STATE_HOME();
+    const result = window.NEXA_SYNC_STATE_HOME();
+    if(result && typeof result.catch === 'function'){
+      result.catch(()=>{});
     }
-  }catch(err){
-    console.warn('[NEXA V49.41] Home sync failed',err?.message||err);
+  }catch(_){}
+}
+
+function bootPass(){
+  retireOldLive();
+
+  if(consumeCurrent()){
+    placeCard();
+    return;
   }
 
-  takeover();
-  syncLive();
-  recoverPulseBoxes();
-  cleanupDuplicates();
-  forceCardOrder();
-}
-
-function finitePasses(){
-  const mine=++generation;
-
-  [0,120,300,650,1100,1800,3000,5000,8000,12000].forEach((ms,index)=>{
-    setTimeout(async()=>{
-      if(mine!==generation) return;
-
-      if(index<=3){
-        await requestOwners();
-      }else{
-        takeover();
-        syncLive();
-        recoverPulseBoxes();
-        cleanupDuplicates();
-        forceCardOrder();
-      }
-    },ms);
-  });
+  /*
+    IMPORTANT:
+    Do not create a "No Live Event" fallback here.
+    State Hub may still be resolving the authenticated state/live row.
+  */
 }
 
 function boot(){
   installCSS();
 
-  /* Wait only until the real Home signals host exists. */
-  const tryBoot=()=>{
-    if(takeover()){
-      syncLive();
-      cleanupDuplicates();
-      forceCardOrder();
-      finitePasses();
-      return true;
+  window.addEventListener('nexa:live-event-ready',e=>{
+    const live = e?.detail?.live;
+    if(live && typeof live === 'object'){
+      window.NEXA_CURRENT_LIVE_EVENT = live;
+      renderLive(live);
     }
-    return false;
-  };
+  });
 
-  if(!tryBoot()){
-    [100,250,500,900,1400,2200].forEach(ms=>setTimeout(tryBoot,ms));
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded',()=>{
+      bootPass();
+      askStateHub();
+    },{once:true});
+  }else{
+    bootPass();
+    askStateHub();
   }
 
-  window.addEventListener('nexa:live-event-ready',e=>{
-    takeover();
-    const live=e?.detail?.live;
-    if(live&&typeof live==='object') renderLive(live);
-    else renderEmptyLive();
-    cleanupDuplicates();
-    forceCardOrder();
-  });
-
-  window.addEventListener('nexa:home-ready',finitePasses);
-  window.addEventListener('pageshow',finitePasses);
-
-  document.addEventListener('visibilitychange',()=>{
-    if(!document.hidden) finitePasses();
-  });
-
-  window.addEventListener('nexa:active-state-changed',()=>{
-    renderEmptyLive();
-    finitePasses();
+  /*
+    Finite recovery passes only.
+    These cover Safari/defer/auth timing without polling forever.
+  */
+  [100,300,700,1500,3000,6000,10000].forEach(ms=>{
+    setTimeout(()=>{
+      bootPass();
+      if(ms===700 || ms===3000) askStateHub();
+    },ms);
   });
 }
 
-if(document.readyState==='loading'){
-  document.addEventListener('DOMContentLoaded',boot,{once:true});
-}else{
-  boot();
-}
+boot();
 
 })();

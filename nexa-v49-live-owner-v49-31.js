@@ -1,4 +1,4 @@
-/* NEXA V49.40 — LIVE EVENT VISUAL PARITY + COMPACT EMPTY
+/* NEXA V49.41 — LIVE EVENT HOME FAMILY PARITY
    COMPLETE REPLACEMENT FILE
    File: nexa-v49-live-owner-v49-31.js
 
@@ -19,8 +19,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4940_LIVE_VISUAL_PARITY__) return;
-window.__NEXA_V4940_LIVE_VISUAL_PARITY__=true;
+if(window.__NEXA_V4941_LIVE_HOME_FAMILY_PARITY__) return;
+window.__NEXA_V4941_LIVE_HOME_FAMILY_PARITY__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -191,7 +191,7 @@ function installCSS(){
     #${CARD_ID} .v4937-title{
       margin:0;
       color:#fff;
-      font-size:1.05rem;
+      font-size:18px;
       line-height:1.15;
       letter-spacing:-.018em;
     }
@@ -206,7 +206,7 @@ function installCSS(){
     }
 
     #${CARD_ID}.is-empty .v4937-title{
-      font-size:1.05rem!important;
+      font-size:18px!important;
       margin-bottom:4px!important;
     }
 
@@ -293,7 +293,7 @@ function installCSS(){
 
     #${CARD_ID} .v4937-focus{
       color:#eef2ff;
-      font-size:.72rem;
+      font-size:13px;
       font-weight:900;
       line-height:1.28;
     }

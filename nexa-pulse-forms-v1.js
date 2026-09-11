@@ -1,4 +1,4 @@
-/* NEXA PULSE FORMS V3.3 — STABLE HOME SIGNAL STACK
+/* NEXA PULSE FORMS V3.4 — HIDDEN LEGACY SINK / SINGLE VISIBLE OWNER
    COMPLETE REPLACEMENT for: nexa-pulse-forms-v1.js
 
    Purpose:
@@ -18,8 +18,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_PULSE_FORMS_V33_STABLE_HOME_SIGNAL_STACK__) return;
-window.__NEXA_PULSE_FORMS_V33_STABLE_HOME_SIGNAL_STACK__=true;
+if(window.__NEXA_PULSE_FORMS_V34_HIDDEN_LEGACY_SINK__) return;
+window.__NEXA_PULSE_FORMS_V34_HIDDEN_LEGACY_SINK__=true;
 
 const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
@@ -31,7 +31,8 @@ const sb=
 
 if(!sb) return;
 
-const CARD_ID='nexa-v302-pulse';
+const LEGACY_ID='nexa-v302-pulse';
+const CARD_ID='nexa-pulse-visible-owner-v34';
 let generation=0;
 let lastPaintKey='';
 
@@ -104,10 +105,10 @@ function subFor(key,settings){
 }
 
 function installCSS(){
-  if($('#nexa-pulse-v33-css')) return;
+  if($('#nexa-pulse-v34-css')) return;
 
   const s=document.createElement('style');
-  s.id='nexa-pulse-v33-css';
+  s.id='nexa-pulse-v34-css';
   s.textContent=`
     #${CARD_ID}{
       --tech:#35dfff;
@@ -296,9 +297,9 @@ function installCSS(){
       background:linear-gradient(135deg,rgba(73,45,146,.82),rgba(42,72,133,.80),rgba(20,104,114,.72))!important;
     }
 
-    /* Any late legacy Pulse duplicate is hidden immediately unless V3.3 marked it canonical. */
-    #nexa-v302-pulse:not(.nexa-pulse-canonical),
-    [data-nexa-tech="pulse"]:not(.nexa-pulse-canonical){
+    /* Legacy Pulse remains as a hidden sink for old Home owners / Live anchoring. */
+    #nexa-v302-pulse,
+    [data-nexa-pulse-sink="v34"]{
       display:none!important;
       visibility:hidden!important;
       opacity:0!important;
@@ -325,7 +326,7 @@ function installCSS(){
       box-shadow:none!important;
     }
 
-    [data-nexa-retired-pulse="v31"]{
+    [data-nexa-retired-pulse="v34"]{
       display:none!important;
       visibility:hidden!important;
       opacity:0!important;
@@ -360,83 +361,42 @@ function allianceAnchor(){
          null;
 }
 
-function pulseCandidates(){
-  const out=[];
-  const push=el=>{
-    if(!el || out.includes(el)) return;
-    out.push(el);
-  };
-
-  $$('[id="nexa-v302-pulse"]').forEach(push);
-  $$('[data-nexa-tech="pulse"]').forEach(push);
-
-  $$('section,article,div').forEach(el=>{
-    if(!pulseTextMatch(el)) return;
-    if(/ALLIANCE SIGNAL|TRANSFERS|LIVE EVENT/i.test(clean(el.textContent))) return;
-    push(el);
-  });
-
-  return out;
-}
-
-function chooseExistingPulse(){
-  const alliance=allianceAnchor();
-  const parent=alliance?.parentNode;
-  const candidates=pulseCandidates();
-
-  if(!candidates.length) return null;
-
-  const canonical=candidates.find(el=>el.classList?.contains('nexa-pulse-canonical'));
-  if(canonical) return canonical;
-
-  if(parent){
-    const sibling=candidates.find(el=>el.parentNode===parent);
-    if(sibling) return sibling;
+function ensureLegacySink(){
+  let sink=$('#'+LEGACY_ID);
+  if(sink){
+    sink.dataset.nexaPulseSink='v34';
+    sink.setAttribute('aria-hidden','true');
+    return sink;
   }
 
-  const exact=candidates.find(el=>el.id==='nexa-v302-pulse');
-  if(exact) return exact;
+  /* If an old Pulse card exists by text, convert it to the hidden sink. */
+  sink=$$('section,article,div').find(el=>{
+    if(!pulseTextMatch(el)) return false;
+    if(/ALLIANCE SIGNAL|TRANSFERS|LIVE EVENT/i.test(clean(el.textContent))) return false;
+    return true;
+  }) || null;
 
-  return candidates[0];
+  if(!sink){
+    sink=document.createElement('section');
+  }
+
+  sink.id=LEGACY_ID;
+  sink.dataset.nexaTech='pulse';
+  sink.dataset.nexaPulseSink='v34';
+  sink.setAttribute('aria-hidden','true');
+  return sink;
 }
 
-function removeExtraPulseCards(keep){
-  pulseCandidates().forEach(el=>{
-    if(el===keep || keep?.contains(el) || el.contains?.(keep)) return;
-    el.remove();
-  });
+function ensureVisibleCard(){
+  let card=$('#'+CARD_ID);
+  if(card) return card;
 
-  [
-    '#nexa-pulse-owner-v24',
-    '#nexa-pulse-owner-v25',
-    '#nexa-pulse-owner-v26',
-    '#nexa-pulse-owner-v27'
-  ].forEach(sel=>{
-    const el=$(sel);
-    if(el && el!==keep) el.remove();
-  });
-}
-
-function shellIsIntact(card){
-  return !!(
-    card &&
-    $('.nexa-pulse-kicker',card) &&
-    $('.nexa-pulse-title',card) &&
-    $('.nexa-pulse-copy',card) &&
-    $('.nexa-pulse-live-surface',card)
-  );
-}
-
-function applyOwnedShell(card){
-  if(!card) return null;
-
+  card=document.createElement('section');
   card.id=CARD_ID;
-  card.classList.add('section','nexa-v31-strip','nexa-pulse-canonical');
-  card.dataset.nexaTech='pulse';
-  card.dataset.nexaPulseOwner='v3.3';
+  card.className='section nexa-v31-strip';
+  card.dataset.nexaTech='pulse-visible';
+  card.dataset.nexaPulseOwner='v3.4';
   card.setAttribute('aria-live','polite');
-  card.removeAttribute('hidden');
-  card.setAttribute('aria-hidden','false');
 
   card.innerHTML=`
     <div class="nexa-pulse-kicker">NEXA PULSE</div>
@@ -446,6 +406,20 @@ function applyOwnedShell(card){
   `;
 
   return card;
+}
+
+function removeVisibleDuplicates(keep){
+  $$('[id="'+CARD_ID+'"], [data-nexa-pulse-owner="v3.4"]').forEach(el=>{
+    if(el!==keep) el.remove();
+  });
+
+  /* Old experimental visible owners are retired permanently. */
+  [
+    '#nexa-pulse-owner-v24',
+    '#nexa-pulse-owner-v25',
+    '#nexa-pulse-owner-v26',
+    '#nexa-pulse-owner-v27'
+  ].forEach(sel=>$(sel)?.remove());
 }
 
 function isVisibleCard(el){
@@ -489,87 +463,62 @@ function findTransferCard(){
   }) || null;
 }
 
-function ensureStableStack(pulse){
+function ensureStableStack(){
   const alliance=allianceAnchor();
-  if(!alliance || !pulse) return null;
+  if(!alliance) return null;
+
+  const live=findLiveCard();
+  const transfer=findTransferCard();
+  const sink=ensureLegacySink();
+  const visible=ensureVisibleCard();
 
   let stack=$('#nexa-home-signals-stable-stack');
 
   if(!stack){
     stack=document.createElement('div');
     stack.id='nexa-home-signals-stable-stack';
-    stack.dataset.nexaHomeOrderOwner='pulse-v3.3';
+    stack.dataset.nexaHomeOrderOwner='pulse-v3.4';
 
     const parent=alliance.parentNode;
     if(!parent) return null;
-
-    /*
-      Insert the stable stack exactly where the current signal family lives,
-      then move only the four Home signal cards into it.
-    */
     parent.insertBefore(stack,alliance);
   }
 
-  const live=findLiveCard();
-  const transfer=findTransferCard();
-
-  /* One parent, one permanent visual order. */
-  if(live && live.parentNode!==stack) stack.appendChild(live);
-  if(pulse.parentNode!==stack) stack.appendChild(pulse);
-  if(alliance.parentNode!==stack) stack.appendChild(alliance);
-  if(transfer && transfer.parentNode!==stack) stack.appendChild(transfer);
-
   /*
-    appendChild on an existing child is also a deterministic reorder.
-    Other owners can still update content, but their anchors now resolve
-    inside this same stack, so they cannot send cards elsewhere.
+    DOM order includes the hidden sink immediately after Live:
+      Live → [hidden legacy Pulse sink] → Visible Pulse → Alliance → Transfers
+
+    Because Live's own owner anchors itself before #nexa-v302-pulse,
+    it now naturally lands in the correct place without moving Visible Pulse.
   */
   if(live) stack.appendChild(live);
-  stack.appendChild(pulse);
+  stack.appendChild(sink);
+  stack.appendChild(visible);
   stack.appendChild(alliance);
   if(transfer) stack.appendChild(transfer);
 
+  removeVisibleDuplicates(visible);
   return stack;
 }
 
 function ensureCard(){
-  let card=chooseExistingPulse();
+  const alliance=allianceAnchor();
+  if(!alliance) return null;
 
-  /*
-    Critical V3.3 rule:
-    DO NOT create a second Pulse card.
-    Wait for the real legacy Home Pulse, then take it over in place.
-  */
-  if(!card) return null;
-
-  if(!shellIsIntact(card)){
-    card=applyOwnedShell(card);
-  }else{
-    card.id=CARD_ID;
-    card.classList.add('nexa-pulse-canonical');
-    card.dataset.nexaTech='pulse';
-    card.dataset.nexaPulseOwner='v3.3';
-    card.setAttribute('aria-hidden','false');
-    card.removeAttribute('hidden');
-  }
-
-  removeExtraPulseCards(card);
-  ensureStableStack(card);
+  const card=ensureVisibleCard();
+  ensureStableStack();
+  removeVisibleDuplicates(card);
   return card;
 }
 
 function normalizeHomeOrder(){
-  const card=ensureCard();
-  if(!card) return false;
-  return !!ensureStableStack(card);
+  return !!ensureStableStack();
 }
 
 function forceSlot(){
   const card=ensureCard();
   if(!card) return null;
-
-  ensureStableStack(card);
-  removeExtraPulseCards(card);
+  ensureStableStack();
   return card;
 }
 
@@ -660,7 +609,7 @@ async function render(){
       loadBattlePlans()
     ]);
   }catch(err){
-    console.warn('[NEXA Pulse V3.3] data load failed',err);
+    console.warn('[NEXA Pulse V3.4] data load failed',err);
     return false;
   }
 

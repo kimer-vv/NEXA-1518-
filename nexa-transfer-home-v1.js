@@ -1,18 +1,18 @@
-/* NEXA TRANSFER HOME V1.13 — SINGLE VISIBLE OWNER / STATE HUB SINK
+/* NEXA TRANSFER HOME V1.14 — CONTENT OWNER ONLY — 2026-09-11
    COMPLETE REPLACEMENT for: nexa-transfer-home-v1.js
 
-   Goal:
-   - ONE Home Transfers card only.
-   - NO "Transfer Staff" / "Transfer Workspace" Home card.
-   - When a transfer application is published/open, show it inside Transfers with:
-       Open Form
-       Copy Link
-   - When nothing is published/open, show a compact empty state.
-   - Match the Home signal card geometry used by NEXA Pulse / Alliance Signal / Live Event.
+   Data/shell ownership:
+   - NEXA V49 State Hub creates #nexa-v49-transfer-card.
+   - NEXA V49 State Hub may continue writing its hidden #nexa-v49-transfer-events sink.
 
-   Data ownership:
-   - NEXA V49 State Hub still creates #nexa-v49-transfer-card.
-   - This file owns only the member-facing Home content and visual normalization.
+   Visible ownership:
+   - This file alone writes #nexa-transfer-home-surface.
+
+   DOES NOT:
+   - position the Transfer card relative to Alliance/Pulse/Live.
+   - own Home order.
+
+   Home order is owned by nexa-home-compositor-v1.js.
 
    Safety:
    - No MutationObserver.
@@ -23,8 +23,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_TRANSFER_HOME_V113_SINGLE_VISIBLE_OWNER__) return;
-window.__NEXA_TRANSFER_HOME_V113_SINGLE_VISIBLE_OWNER__=true;
+if(window.__NEXA_TRANSFER_HOME_V114_CONTENT_ONLY__) return;
+window.__NEXA_TRANSFER_HOME_V114_CONTENT_ONLY__=true;
 
 const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
@@ -37,9 +37,11 @@ const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
 
 function sb(){
-  if(window.supabaseClient?.rpc)return window.supabaseClient;
-  if(window.sb?.rpc)return window.sb;
-  if(!client&&window.supabase?.createClient)client=window.supabase.createClient(SB_URL,SB_KEY);
+  if(window.supabaseClient?.rpc) return window.supabaseClient;
+  if(window.sb?.rpc) return window.sb;
+  if(!client&&window.supabase?.createClient){
+    client=window.supabase.createClient(SB_URL,SB_KEY);
+  }
   return client;
 }
 
@@ -52,11 +54,11 @@ function activeState(){
 }
 
 function normalize(data){
-  if(Array.isArray(data))return data;
-  if(Array.isArray(data?.get_transfer_center_cards))return data.get_transfer_center_cards;
-  if(Array.isArray(data?.cards))return data.cards;
-  if(data?.event_id)return[data];
-  return[];
+  if(Array.isArray(data)) return data;
+  if(Array.isArray(data?.get_transfer_center_cards)) return data.get_transfer_center_cards;
+  if(Array.isArray(data?.cards)) return data.cards;
+  if(data?.event_id) return [data];
+  return [];
 }
 
 function esc(v){
@@ -84,49 +86,44 @@ async function copy(text,button){
 }
 
 function installCSS(){
-  if($('#nexa-transfer-home-v113-css')) return;
+  if($('#nexa-transfer-home-v114-css')) return;
 
   const s=document.createElement('style');
-  s.id='nexa-transfer-home-v113-css';
+  s.id='nexa-transfer-home-v114-css';
   s.textContent=`
     #nexa-v49-transfer-card{
       --tech:#ff9148;
       --tech-rgb:255,145,72;
-
       position:relative!important;
       isolation:isolate!important;
       overflow:visible!important;
-
       width:100%!important;
       max-width:100%!important;
       min-height:116px!important;
       height:auto!important;
       max-height:none!important;
-
       margin:0!important;
       padding:12px 16px!important;
       box-sizing:border-box!important;
-
       border-radius:20px!important;
       border:1px solid rgba(var(--tech-rgb),.34)!important;
-
       background:
         radial-gradient(circle at 8% 0%,rgba(var(--tech-rgb),.10),transparent 34%),
         radial-gradient(circle at 92% 82%,rgba(86,84,255,.07),transparent 38%),
         linear-gradient(145deg,rgba(10,17,42,.96),rgba(3,8,24,.98))!important;
-
       box-shadow:
         inset 0 0 0 1px rgba(255,255,255,.018),
         inset 0 1px 0 rgba(var(--tech-rgb),.18),
         inset 0 0 28px rgba(var(--tech-rgb),.035),
         0 0 9px rgba(var(--tech-rgb),.035)!important;
-
       visibility:visible!important;
       opacity:1!important;
       pointer-events:auto!important;
     }
 
-    #nexa-v49-transfer-card::before{display:none!important}
+    #nexa-v49-transfer-card::before{
+      display:none!important;
+    }
 
     #nexa-v49-transfer-card::after{
       content:""!important;
@@ -153,18 +150,10 @@ function installCSS(){
       text-transform:uppercase!important;
     }
 
-    /* State Hub may paint this first. Keep its typography identical to the final
-       V1.8 title so Safari never shows a large/small white-text jump. */
     #nexa-v49-transfer-card > h3{
       display:none!important;
-      margin:0 0 5px!important;
-      font-size:16px!important;
-      line-height:1.15!important;
-      font-weight:950!important;
     }
 
-    /* State Hub is allowed to keep writing here, but this host is never visible.
-       This ends the visual owner fight / flashing. */
     #nexa-v49-transfer-card #nexa-v49-transfer-events{
       display:none!important;
       visibility:hidden!important;
@@ -195,71 +184,36 @@ function installCSS(){
       box-shadow:none!important;
     }
 
-    #nexa-v49-transfer-card #nexa-transfer-home-surface > *,
-    #nexa-v49-transfer-card #nexa-transfer-home-surface .event,
-    #nexa-v49-transfer-card #nexa-transfer-home-surface .event-row,
-    #nexa-v49-transfer-card #nexa-transfer-home-surface article{
-      background:transparent!important;
-      background-image:none!important;
-      border:0!important;
-      box-shadow:none!important;
-      border-radius:0!important;
-      padding:0!important;
-      margin:0!important;
-      min-height:0!important;
-    }
-
-    #nexa-v49-transfer-card .nexa-transfer-v17-title{
+    #nexa-v49-transfer-card .nexa-transfer-v18-title{
       margin:0 0 5px!important;
       color:#fff!important;
       font-size:16px!important;
       line-height:1.15!important;
       font-weight:900!important;
       letter-spacing:-.01em!important;
-      font-family:inherit!important;
-      background:transparent!important;
-      border:0!important;
-      box-shadow:none!important;
-      padding:0!important;
     }
 
-    #nexa-v49-transfer-card .nexa-transfer-v17-copy{
+    #nexa-v49-transfer-card .nexa-transfer-v18-copy,
+    #nexa-v49-transfer-card .nexa-transfer-v18-status{
       margin:0!important;
       color:#9aa8c3!important;
       font-size:12px!important;
       line-height:1.35!important;
       font-weight:400!important;
-      letter-spacing:0!important;
-      font-family:inherit!important;
-      background:transparent!important;
-      border:0!important;
-      box-shadow:none!important;
-      padding:0!important;
     }
 
-    #nexa-v49-transfer-card .nexa-transfer-v17-status{
-      margin:4px 0 0!important;
-      padding:0!important;
-      color:#9aa8c3!important;
-      font-size:12px!important;
-      line-height:1.35!important;
-      font-weight:400!important;
-      letter-spacing:0!important;
-      background:transparent!important;
-      border:0!important;
-      border-radius:0!important;
-      box-shadow:none!important;
-      font-family:inherit!important;
+    #nexa-v49-transfer-card .nexa-transfer-v18-status{
+      margin-top:4px!important;
     }
 
-    #nexa-v49-transfer-card .nexa-transfer-v17-actions{
+    #nexa-v49-transfer-card .nexa-transfer-v18-actions{
       display:flex!important;
       gap:7px!important;
       flex-wrap:wrap!important;
       margin-top:9px!important;
     }
 
-    #nexa-v49-transfer-card .nexa-transfer-v17-actions .btn{
+    #nexa-v49-transfer-card .nexa-transfer-v18-actions .btn{
       width:auto!important;
       min-height:34px!important;
       margin:0!important;
@@ -275,27 +229,13 @@ function installCSS(){
       text-decoration:none!important;
     }
 
-    #nexa-v49-transfer-card .nexa-transfer-v17-actions .btn.secondary{
+    #nexa-v49-transfer-card .nexa-transfer-v18-actions .btn.secondary{
       border-color:rgba(143,157,205,.25)!important;
       background:rgba(16,23,49,.78)!important;
       color:#bdc9e6!important;
     }
 
-    /* There is no Transfer Staff/Home Workspace card in V1.7. */
-    #nexa-transfer-workspace-card{
-      display:none!important;
-      visibility:hidden!important;
-      opacity:0!important;
-      pointer-events:none!important;
-      max-height:0!important;
-      height:0!important;
-      margin:0!important;
-      padding:0!important;
-      border:0!important;
-      overflow:hidden!important;
-    }
-
-    /* Retire older Transfer shells / orange strip duplicates. */
+    #nexa-transfer-workspace-card,
     #home-transfers-section,
     #nexa-v430-transfer-card,
     #nexa-transfer-card,
@@ -317,12 +257,8 @@ function installCSS(){
   document.head.appendChild(s);
 }
 
-function removeWorkspaceCard(){
-  $('#nexa-transfer-workspace-card')?.remove();
-}
-
 function retireLegacy(){
-  removeWorkspaceCard();
+  $('#nexa-transfer-workspace-card')?.remove();
 
   const current=$('#nexa-v49-transfer-card');
 
@@ -334,7 +270,7 @@ function retireLegacy(){
     '[data-nexa-transfer]'
   ].forEach(sel=>{
     $$(sel).forEach(el=>{
-      if(!el || el===current || el.closest?.('#nexa-v49-transfer-card'))return;
+      if(!el || el===current || el.closest?.('#nexa-v49-transfer-card')) return;
       el.remove();
     });
   });
@@ -342,8 +278,8 @@ function retireLegacy(){
 
 function emptyHTML(){
   return `
-    <h3 class="nexa-transfer-v17-title">No transfer form published</h3>
-    <p class="nexa-transfer-v17-copy">Transfer applications will appear here when leadership publishes them.</p>
+    <h3 class="nexa-transfer-v18-title">No transfer form published</h3>
+    <p class="nexa-transfer-v18-copy">Transfer applications will appear here when leadership publishes them.</p>
   `;
 }
 
@@ -359,10 +295,10 @@ function openHTML(row){
     String(row?.status||'').toLowerCase()==='open';
 
   return `
-    <h3 class="nexa-transfer-v17-title">${esc(title)}</h3>
-    <p class="nexa-transfer-v17-copy">Transfer application for State ${esc(activeState()||'—')}.</p>
-    ${open?`<p class="nexa-transfer-v17-status">OPEN • Applications Open</p>`:''}
-    <div class="nexa-transfer-v17-actions">
+    <h3 class="nexa-transfer-v18-title">${esc(title)}</h3>
+    <p class="nexa-transfer-v18-copy">Transfer application for State ${esc(activeState()||'—')}.</p>
+    ${open?`<p class="nexa-transfer-v18-status">OPEN • Applications Open</p>`:''}
+    <div class="nexa-transfer-v18-actions">
       <a class="btn" href="${esc(publicLink(row))}">Open Form</a>
       <button class="btn secondary" type="button" data-nexa-transfer-copy>Copy Link</button>
     </div>
@@ -370,14 +306,14 @@ function openHTML(row){
 }
 
 function visibleSurface(card){
-  if(!card)return null;
+  if(!card) return null;
 
   let surface=$('#nexa-transfer-home-surface',card);
-  if(surface)return surface;
+  if(surface) return surface;
 
   surface=document.createElement('div');
   surface.id='nexa-transfer-home-surface';
-  surface.dataset.nexaTransferOwner='v1.13';
+  surface.dataset.nexaTransferOwner='v1.14';
 
   const sink=$('#nexa-v49-transfer-events',card);
   if(sink?.parentNode){
@@ -389,22 +325,29 @@ function visibleSurface(card){
   return surface;
 }
 
+function announceReady(){
+  window.dispatchEvent(new CustomEvent('nexa:home-surface-ready',{
+    detail:{surface:'transfer',id:'nexa-v49-transfer-card'}
+  }));
+  try{window.NEXA_HOME_COMPOSE?.()}catch(_){}
+}
+
 async function render(){
   installCSS();
   retireLegacy();
 
   const card=$('#nexa-v49-transfer-card');
-  if(!card)return false;
+  if(!card) return false;
 
   card.classList.add('nexa-v49-transfer-visible','nexa-v31-strip');
   card.classList.remove('hidden');
   card.setAttribute('aria-hidden','false');
 
   const sink=$('#nexa-v49-transfer-events',card);
-  if(!sink)return false;
+  if(!sink) return false;
 
   const host=visibleSurface(card);
-  if(!host)return false;
+  if(!host) return false;
 
   const c=sb();
   const state=activeState();
@@ -419,19 +362,14 @@ async function render(){
     }catch(_){}
   }
 
-  /* Only this file writes the visible surface. State Hub writes its hidden sink. */
   const paintKey=row
     ? `open:${row.event_id||''}:${row.title||row.form_title||''}:${row.status||''}:${row.applications_open===true}:${row.public_access_enabled===true}`
     : 'empty';
 
-  const ownsPaint=!!host.querySelector('.nexa-transfer-v17-title');
+  const ownsPaint=!!host.querySelector('.nexa-transfer-v18-title');
 
   if(paintKey!==lastPaintKey || !ownsPaint){
-    if(row){
-      host.innerHTML=openHTML(row);
-    }else{
-      host.innerHTML=emptyHTML();
-    }
+    host.innerHTML=row ? openHTML(row) : emptyHTML();
     lastPaintKey=paintKey;
   }
 
@@ -444,26 +382,26 @@ async function render(){
     }
   }
 
-  removeWorkspaceCard();
   retireLegacy();
+  announceReady();
   return true;
 }
 
-/* Install the stable skin immediately when the deferred script executes.
-   The data/card can arrive later; the visual rules are already present. */
 installCSS();
-removeWorkspaceCard();
+retireLegacy();
 
 function finitePasses(){
   const mine=++generation;
 
-  [0,120,300,650,1100,1800,3000,5000,8000].forEach(ms=>{
+  [0,150,500,1200,3000,7000].forEach(ms=>{
     setTimeout(()=>{
-      if(mine!==generation)return;
+      if(mine!==generation) return;
       render().catch(()=>{});
     },ms);
   });
 }
+
+window.NEXA_REFRESH_TRANSFER_HOME=()=>render();
 
 window.addEventListener('nexa:home-ready',finitePasses);
 window.addEventListener('nexa:active-state-changed',finitePasses);
@@ -471,7 +409,7 @@ window.addEventListener('pageshow',finitePasses);
 window.addEventListener('load',finitePasses,{once:true});
 
 document.addEventListener('visibilitychange',()=>{
-  if(!document.hidden)finitePasses();
+  if(!document.hidden) finitePasses();
 });
 
 if(document.readyState==='loading'){

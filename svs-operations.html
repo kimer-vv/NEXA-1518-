@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V14.0 • MANUAL PDF-STYLE TEAM BOARD FROM PET SCHEDULE -->
+<!-- NEXA SVS OPERATIONS V14.1 • PET LOAD FIX + 10 TEST JOINERS PER TEAM -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -739,7 +739,7 @@ body.pet-preview-open{overflow:hidden!important}
   </section>
 
   <section class="panel" data-panel="strategy">
-    <div class="desc">Team Board uses the Alliances, Teams, Rally Lead schedule and Team colors already created in Pet Schedule. Build the roster manually; Joiners are ranked by NEXA when you open the player list.</div>
+    <div class="desc">Team Board uses the Alliances, Teams, Rally Lead schedule and Team colors already created in Pet Schedule. Build the roster manually; Joiners are ranked by NEXA when you open the player list. During QA, each active Team is padded to 10 TEST Joiners for layout testing; these test rows are display-only and are not saved to the player roster.</div>
     <div id="strategy-editor"></div>
   </section>
 
@@ -1746,7 +1746,14 @@ async function openStrategy(id){
  }
  await loadSvsSetup();
  await loadResponses();
- renderStrategy();renderPet();renderLayout();renderCastleSeating();renderBattlePlan();renderBattlePlanBuilder();renderSvsSetup();setSaveState('saved');
+ // Pet Schedule is the structural source for Team Board, so render it first.
+ renderPet();
+ try{renderStrategy()}catch(e){
+   console.error('[NEXA] Team Board render failed',e);
+   const host=$('#strategy-editor');
+   if(host)host.innerHTML=`<div class="card"><b>Team Board could not render.</b><div class="tiny muted" style="margin-top:6px">${esc(e?.message||String(e))}</div></div>`;
+ }
+ renderLayout();renderCastleSeating();renderBattlePlan();renderBattlePlanBuilder();renderSvsSetup();setSaveState('saved');
 
 }
 
@@ -2074,20 +2081,56 @@ function openTeamBoardJoinerPicker(tid){
    ov.remove();await openStrategy(strategy.id);say(`${p.in_game_name} added to ${teamLabel(tid)}.`);
  });
 }
+
+function teamBoardTestHeroIds(seed=0){
+ const pool=pickableHeroes();
+ if(!pool.length)return [null,null,null,null];
+ return [0,1,2,3].map(i=>pool[(seed+i)%pool.length]?.id||null);
+}
+function teamBoardRows(t){
+ const real=Joiners(t.id).map(x=>({...x,_tb_test:false}));
+ const need=Math.max(0,10-real.length);
+ const a=A(t.strategy_alliance_id);
+ const used=new Set(real.map(x=>String(x.player_name||'').toLowerCase()));
+ const fake=[];
+ for(let i=1;i<=need;i++){
+   let n=i;
+   let name=`Test Joiner ${String(n).padStart(2,'0')}`;
+   while(used.has(name.toLowerCase())){
+     n++;
+     name=`Test Joiner ${String(n).padStart(2,'0')}`;
+   }
+   used.add(name.toLowerCase());
+   const hs=teamBoardTestHeroIds((Number(t.sort_order||0)*10)+i);
+   fake.push({
+     id:`tb-test-${t.id}-${i}`,
+     team_id:t.id,
+     player_account_id:null,
+     player_name:name,
+     _tb_test:true,
+     _tb_tag:a?.alliance_tag||'TEST',
+     attack_a_hero_id:hs[0],
+     attack_b_hero_id:hs[1],
+     defense_a_hero_id:hs[2],
+     defense_b_hero_id:hs[3]
+   });
+ }
+ return [...real,...fake];
+}
 function renderTeamBoardMainPlayers(t){
- const rows=Joiners(t.id);
- return `<div class="tb14-player-wrap"><div class="tb14-player-head"><div>Alliance</div><div>Player</div><div>Garrison Heroes</div><div>MIA Rally Heroes</div><div></div></div>${rows.map(j=>`<div class="tb14-player"><div class="tag">[${esc(teamBoardPlayerAllianceTag(j))}]</div><div class="pname">${esc(j.player_name)}</div><div class="tb14-hero-names">${teamBoardHeroName(j.attack_a_hero_id)}${teamBoardHeroName(j.attack_b_hero_id)}</div><div class="tb14-hero-names">${teamBoardHeroName(j.defense_a_hero_id)}${teamBoardHeroName(j.defense_b_hero_id)}</div><div class="member-actions"><button class="member-edit" data-tb-edit-main="${j.id}" type="button">✎</button><button class="member-x" data-delete-joiner="${j.id}" type="button">×</button></div></div>`).join('')||'<div class="tb14-empty">No Players assigned.</div>'}</div>`;
+ const rows=teamBoardRows(t);
+ return `<div class="tb14-player-wrap"><div class="tb14-player-head"><div>Alliance</div><div>Player</div><div>Garrison Heroes</div><div>MIA Rally Heroes</div><div></div></div>${rows.map(j=>`<div class="tb14-player"><div class="tag">[${esc(j._tb_test?j._tb_tag:teamBoardPlayerAllianceTag(j))}]</div><div class="pname">${esc(j.player_name)}${j._tb_test?' <span class="tiny muted">TEST</span>':''}</div><div class="tb14-hero-names">${teamBoardHeroName(j.attack_a_hero_id)}${teamBoardHeroName(j.attack_b_hero_id)}</div><div class="tb14-hero-names">${teamBoardHeroName(j.defense_a_hero_id)}${teamBoardHeroName(j.defense_b_hero_id)}</div><div class="member-actions">${j._tb_test?'':`<button class="member-edit" data-tb-edit-main="${j.id}" type="button">✎</button><button class="member-x" data-delete-joiner="${j.id}" type="button">×</button>`}</div></div>`).join('')}</div>`;
 }
 function renderTeamBoardCounterPlayers(t){
- const rows=Joiners(t.id);
- return `<div><div class="tb14-counter-player-head"><div>Alliance</div><div>Player</div><div></div></div>${rows.map(j=>`<div class="tb14-counter-player"><div class="tag">[${esc(teamBoardPlayerAllianceTag(j))}]</div><div class="pname">${esc(j.player_name)}</div><button class="member-x" data-delete-joiner="${j.id}" type="button">×</button></div>`).join('')||'<div class="tb14-empty">No Players assigned.</div>'}</div>`;
+ const rows=teamBoardRows(t);
+ return `<div><div class="tb14-counter-player-head"><div>Alliance</div><div>Player</div><div></div></div>${rows.map(j=>`<div class="tb14-counter-player"><div class="tag">[${esc(j._tb_test?j._tb_tag:teamBoardPlayerAllianceTag(j))}]</div><div class="pname">${esc(j.player_name)}${j._tb_test?' <span class="tiny muted">TEST</span>':''}</div>${j._tb_test?'<span></span>':`<button class="member-x" data-delete-joiner="${j.id}" type="button">×</button>`}</div>`).join('')}</div>`;
 }
 function renderTeamBoardTeam(t,a,isMain){
  const heroes=isMain?[]:teamBoardCounterHeroes(a.id);
- return `<article class="tb14-team" style="--tc:${tc(t)}"><div class="tb14-team-head"><div><b>${esc(a.alliance_tag)} • ${esc(t.name)}</b><small>${isMain?'★ GARRISON TEAM':'COUNTER TEAM'}</small></div><small>${Joiners(t.id).length} PLAYER${Joiners(t.id).length===1?'':'S'}</small></div>
+ return `<article class="tb14-team" style="--tc:${tc(t)}"><div class="tb14-team-head"><div><b>${esc(a.alliance_tag)} • ${esc(t.name)}</b><small>${isMain?'★ GARRISON TEAM':'COUNTER TEAM'}</small></div><small>${teamBoardRows(t).length} PLAYER${teamBoardRows(t).length===1?'':'S'}</small></div>
    <div class="tb14-section"><div class="tb14-section-title"><h4>Troop Ratios</h4><button class="btn tb14-mini" data-tb-edit-ratio="${a.id}" type="button">Edit Ratios</button></div><div class="tb14-ratios ${isMain?'':'tb14-counter-ratios'}">${isMain?teamBoardRatioCard('★ Garrison',a.defense_ratio,'star')+teamBoardRatioCard('MIA Rally',a.attack_ratio):teamBoardRatioCard('★ MIA Rally',a.attack_ratio,'star')}</div></div>
    ${!isMain?`<div class="tb14-section"><div class="tb14-section-title"><h4>MIA Rally • Joiner Heroes · Use Any Of These</h4><button class="btn tb14-mini" data-tb-edit-heroes="${a.id}" type="button">Choose Heroes</button></div><div class="tb14-hero-pool">${heroes.length?heroes.map(h=>`<div class="tb14-hero-card">${h.image_url?`<img src="${esc(h.image_url)}" alt="">`:'<div></div>'}<b class="${rarityClass(h.rarity)}">${esc(h.name)}</b></div>`).join(''):'<div class="tb14-empty">No Joiner Heroes selected yet.</div>'}</div></div>`:''}
-   <div class="tb14-section"><div class="tb14-section-title"><h4>Players (${Joiners(t.id).length})</h4></div>${isMain?renderTeamBoardMainPlayers(t):renderTeamBoardCounterPlayers(t)}<div class="tb14-team-actions"><button class="btn violet" data-tb-add-player="${t.id}" type="button">+ Add Player</button></div></div>
+   <div class="tb14-section"><div class="tb14-section-title"><h4>Players (${teamBoardRows(t).length})</h4></div>${isMain?renderTeamBoardMainPlayers(t):renderTeamBoardCounterPlayers(t)}<div class="tb14-team-actions"><button class="btn violet" data-tb-add-player="${t.id}" type="button">+ Add Player</button></div></div>
  </article>`;
 }
 function renderTeamBoardAlliance(a){
@@ -4959,7 +5002,7 @@ async function exportNodes(nodes,names){
 
 let guidePage=0;
 function renderGuide(){$$('.guide-page').forEach((p,i)=>p.classList.toggle('active',i===guidePage));$('#guide-page-label').textContent=`${guidePage+1} / 5`;$('#guide-prev').disabled=guidePage===0;$('#guide-next').textContent=guidePage===4?'Done':'Next ›'}
-$('#open-guide').onclick=()=>{$('#guide-overlay').style.display='grid';$('#guide-overlay').setAttribute('aria-hidden','false');guidePage=0;renderGuide()}
+const legacyGuideBtn=$('#open-guide');if(legacyGuideBtn)legacyGuideBtn.onclick=()=>{$('#guide-overlay').style.display='grid';$('#guide-overlay').setAttribute('aria-hidden','false');guidePage=0;renderGuide()}
 $('#guide-close').onclick=()=>{$('#guide-overlay').style.display='none';$('#guide-overlay').setAttribute('aria-hidden','true')}
 $('#guide-prev').onclick=()=>{if(guidePage>0){guidePage--;renderGuide()}}
 $('#guide-next').onclick=()=>{if(guidePage<4){guidePage++;renderGuide()}else $('#guide-close').click()}

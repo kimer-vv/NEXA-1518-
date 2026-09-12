@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V13.0 • PDF-STYLE PET SCHEDULE + 16 FIXED TEAM COLORS -->
+<!-- NEXA SVS OPERATIONS V13.1 • PET SCHEDULE QA FIXES + MANUAL ALLIANCES + COMPACT PREVIEW -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -614,6 +614,38 @@ body.pet-preview-open{overflow:hidden!important}
  .pet-v13-hours{grid-auto-columns:136px}
  .pet-v13-alliance-head{align-items:flex-start}
 }
+.nexa-modal-saving{opacity:0!important;pointer-events:none!important}
+.pet-v13-preview-sheet{
+ width:640px!important;
+ min-width:640px!important;
+ max-width:640px!important;
+ padding:14px!important;
+ border-radius:16px!important;
+}
+.pet-v13-preview-sheet .pet-v13-groups{gap:10px!important;margin-top:8px!important}
+.pet-v13-preview-sheet .pet-v13-alliance{border-radius:14px!important}
+.pet-v13-preview-sheet .pet-v13-alliance-head{padding:9px 10px!important}
+.pet-v13-preview-sheet .pet-v13-alliance-title strong{font-size:18px!important;line-height:1.08!important}
+.pet-v13-preview-sheet .pet-v13-alliance-title small{font-size:11px!important}
+.pet-v13-preview-sheet .pet-v13-team-list{gap:7px!important;padding:8px!important}
+.pet-v13-preview-sheet .pet-v13-team{border-radius:11px!important}
+.pet-v13-preview-sheet .pet-v13-team-bar{padding:8px 9px!important}
+.pet-v13-preview-sheet .pet-v13-team-bar b{font-size:15px!important}
+.pet-v13-preview-sheet .pet-v13-hours{
+ grid-template-columns:repeat(5,minmax(0,1fr))!important;
+ grid-auto-flow:row!important;
+ grid-auto-columns:auto!important;
+ overflow:visible!important;
+ gap:5px!important;
+ padding:7px!important;
+}
+.pet-v13-preview-sheet .pet-v13-hour{min-height:78px!important;padding:7px!important;border-radius:9px!important}
+.pet-v13-preview-sheet .pet-v13-hour time{font-size:12px!important}
+.pet-v13-preview-sheet .pet-v13-player{font-size:15px!important;line-height:1.15!important}
+.pet-v13-preview-sheet .pet-v13-empty{font-size:12px!important}
+.pet-v13-preview-sheet .pet-v13-badge{font-size:9px!important;min-height:19px!important}
+.pet-v13-preview-sheet .layout-head .tiny{font-size:10px!important}
+.pet-v13-preview-sheet .layout-head h2{font-size:20px!important;margin-bottom:8px!important}
 
 </style>
 <script src="nexa-battle-strategy-engine.js?v=2.1"></script>
@@ -698,8 +730,8 @@ body.pet-preview-open{overflow:hidden!important}
         <div id="test-sandbox-controls" class="card glow-violet" style="display:none;margin:10px 0 0;padding:12px">
           <div class="section-head"><div><h3 style="margin:0">SvS Test Sandbox</h3><div class="tiny muted">Set the scenario size. NEXA decides how many Teams each Alliance can sustain.</div></div></div>
           <div class="grid2" style="margin-top:9px">
-            <label>Rally Leaders<select id="assist-test-rl-count"><option>3</option><option>4</option><option>5</option><option selected>6</option><option>8</option><option>10</option><option>12</option><option>15</option><option>18</option></select></label>
-            <label>Joiners<select id="assist-test-joiner-count"><option>12</option><option>18</option><option>24</option><option selected>36</option><option>48</option><option>60</option><option>80</option><option>100</option><option>120</option></select></label>
+            <label>Rally Leaders<select id="assist-test-rl-count"><option>3</option><option>4</option><option>5</option><option>6</option><option>8</option><option>10</option><option>12</option><option>15</option><option>18</option><option selected>20</option><option>24</option></select></label>
+            <label>Joiners<select id="assist-test-joiner-count"><option>12</option><option>18</option><option>24</option><option>36</option><option>48</option><option>60</option><option selected>80</option><option>100</option></select></label>
           </div>
         </div>
         <div class="row" style="margin-top:10px"><button id="run-assist" class="btn violet" type="button">✦ Generate NEXA Teams</button></div>
@@ -988,10 +1020,20 @@ function modal(title,body,onSave){
  $('[data-cancel]',ov).onclick=()=>ov.remove();
  const save=$('[data-save]',ov);let busy=false;
  save.onclick=async()=>{
-   if(busy)return;busy=true;save.disabled=true;setSaveState('saving');
-   try{const keep=await onSave(ov);if(keep!==false)ov.remove();setSaveState('saved')}
-   catch(e){say(e.message||String(e),true);setSaveState('saved')}
-   finally{if(document.body.contains(ov)){busy=false;save.disabled=false}}
+   if(busy)return;
+   busy=true;save.disabled=true;setSaveState('saving');
+   ov.classList.add('nexa-modal-saving');
+   try{
+     const keep=await onSave(ov);
+     if(keep!==false)ov.remove();
+     else if(document.body.contains(ov))ov.classList.remove('nexa-modal-saving');
+     setSaveState('saved');
+   }catch(e){
+     if(document.body.contains(ov))ov.classList.remove('nexa-modal-saving');
+     say(e.message||String(e),true);setSaveState('saved');
+   }finally{
+     if(document.body.contains(ov)){busy=false;save.disabled=false}
+   }
  };
  return ov;
 }
@@ -1021,8 +1063,17 @@ function nexaNotice(title,message,label='OK'){
 }
 
 function roleForPlayer(p){return stateRoles.find(r=>r.player_account_id===p.id)?.role||p.battle_role||''}
-const TEST_RLS=['Iron Gold','YQFelix','Peanut','Zima','Evster','Skadi','Jenny','Sushi','Jules','Raja','Drakco','Cutie','Archer','Nova','Storm','Valkyrie','Atlas','Koda'];
-const TEST_JOINERS=['Esco','Luke','Cap','Armyy','Kimer','Jett','Joycey','Lilith','KAGURA','Road Runner','Dark Demon','Firebird','MooseStache','Pinalemon','Raja J','Frosty','Mama Bear','Raid','Chloe','GrimFireman','Alainisi','Kiko','Olcay','Illuminaire','Corgi','Miranda','Chiefy','Sora','Frostbite','Mochi','Luna','Shadow','Blaze','Echo','Kai','Mira','Orion','Nori','Fox','Panda','Ivy','Wolf'];
+const TEST_RLS=[
+ 'Iron Gold','YQFelix','Peanut','Zima','Evster','Skadi','Jenny','Sushi','Jules','Raja','Drakco','Cutie',
+ 'Archer','Nova','Storm','Valkyrie','Atlas','Koda','Test RL 19','Test RL 20','Test RL 21','Test RL 22','Test RL 23','Test RL 24'
+];
+const TEST_JOINERS=[
+ 'Esco','Luke','Cap','Armyy','Kimer','Jett','Joycey','Lilith','KAGURA','Road Runner','Dark Demon','Firebird',
+ 'MooseStache','Pinalemon','Raja J','Frosty','Mama Bear','Raid','Chloe','GrimFireman','Alainisi','Kiko','Olcay',
+ 'Illuminaire','Corgi','Miranda','Chiefy','Sora','Frostbite','Mochi','Luna','Shadow','Blaze','Echo','Kai','Mira',
+ 'Orion','Nori','Fox','Panda','Ivy','Wolf',
+ ...Array.from({length:58},(_,i)=>`Test Joiner ${String(i+43).padStart(3,'0')}`)
+];
 function playerOptions(role,includeUnassigned=false){
  const rows=playerPool.filter(p=>((roleForPlayer(p)===role)||(includeUnassigned&&!roleForPlayer(p))));
  const tests=(role==='rally_lead'?TEST_RLS:TEST_JOINERS).map(n=>`<option value="test:${esc(n)}">TEST • ${esc(n)}</option>`).join('');
@@ -2050,20 +2101,21 @@ function existingPetAssignments(player,excludeIds=[]){
 }
 async function planRallyAssignmentChange(player,start,end,mode,targetTeamId,excludeIds=[]){
  const excluded=new Set((excludeIds||[]).map(String));
+ const sameTeamExisting=rally.filter(r=>String(r.team_id)===String(targetTeamId)&&!excluded.has(String(r.id))&&sameRallyPlayer(r,player));
  const targetConflicts=rally.filter(r=>String(r.team_id)===String(targetTeamId)&&!excluded.has(String(r.id))&&!sameRallyPlayer(r,player)&&overlaps(start,end,r.start_utc,r.end_utc));
  if(targetConflicts.length){
    const names=[...new Set(targetConflicts.map(x=>x.player_name).filter(Boolean))],who=names.length===1?names[0]:names.join(', ');
    const ok=await nexaConfirm('Slot already assigned',`${teamLabel(targetTeamId)} • ${start}–${end} UTC already has ${who} assigned. Replace ${names.length===1?who:'the current Rally Lead assignment'} with ${player.in_game_name}?`,{confirmLabel:'Yes, Replace',cancelLabel:'Cancel'});
    if(!ok)return null;
  }
- const targetIds=new Set(targetConflicts.map(x=>String(x.id)));
+ const targetIds=new Set([...targetConflicts,...sameTeamExisting].map(x=>String(x.id)));
  const physicalConflicts=rally.filter(r=>!excluded.has(String(r.id))&&!targetIds.has(String(r.id))&&sameRallyPlayer(r,player)&&overlaps(start,end,r.start_utc,r.end_utc));
  if(physicalConflicts.length){
    const c=physicalConflicts[0];
    const ok=await nexaConfirm('Rally Leader conflict',`${player.in_game_name} is already assigned to ${teamLabel(c.team_id)} at ${c.start_utc}–${c.end_utc} UTC. Move the conflicting assignment to ${teamLabel(targetTeamId)}?`,{confirmLabel:'Yes, Move',cancelLabel:'Cancel'});
    if(!ok)return null;
  }
- const removedIds=new Set([...targetConflicts,...physicalConflicts].map(x=>String(x.id)));
+ const removedIds=new Set([...sameTeamExisting,...targetConflicts,...physicalConflicts].map(x=>String(x.id)));
  const petExisting=(mode==='active'||mode==='reserve')
    ? rally.filter(r=>!excluded.has(String(r.id))&&!removedIds.has(String(r.id))&&sameRallyPlayer(r,player)&&(r.pets_active||r.pet_status==='reserve'))
    : [];
@@ -2073,13 +2125,13 @@ async function planRallyAssignmentChange(player,start,end,mode,targetTeamId,excl
    if(!ok)return null;
  }
  return {
-   targetConflicts,physicalConflicts,petExisting,
-   touched:[targetTeamId,...targetConflicts.map(x=>x.team_id),...physicalConflicts.map(x=>x.team_id),...petExisting.map(x=>x.team_id)]
+   sameTeamExisting,targetConflicts,physicalConflicts,petExisting,
+   touched:[targetTeamId,...sameTeamExisting.map(x=>x.team_id),...targetConflicts.map(x=>x.team_id),...physicalConflicts.map(x=>x.team_id),...petExisting.map(x=>x.team_id)]
  };
 }
 async function applyRallyAssignmentPlan(plan){
  if(!plan)return;
- const deleteIds=[...new Set([...(plan.targetConflicts||[]),...(plan.physicalConflicts||[])].map(x=>x.id).filter(Boolean))];
+ const deleteIds=[...new Set([...(plan.sameTeamExisting||[]),...(plan.targetConflicts||[]),...(plan.physicalConflicts||[])].map(x=>x.id).filter(Boolean))];
  if(deleteIds.length){const d=await sb.from('svs_strategy_rally_slots').delete().in('id',deleteIds);if(d.error)throw d.error}
  for(const x of plan.petExisting||[]){const u=await sb.from('svs_strategy_rally_slots').update({pets_active:false,pet_status:'none'}).eq('id',x.id);if(u.error)throw u.error}
 }
@@ -2211,11 +2263,25 @@ async function selectApprovedFormation(aid,type){
 async function deleteFormation(id){if(!await nexaConfirm('Delete Formation?','Delete this formation preset?',{confirmLabel:'Delete'}))return;const {error}=await sb.from('svs_rally_formations').delete().eq('id',id);if(error)return say(error.message,true);await openStrategy(strategy.id)}
 
 async function addAlliance(){
- if(!allAlliances.length)return say('No active alliances found.',true);
- modal('Add Alliance',`<label>Alliance<select id="m-alliance"><option value="">Select alliance…</option>${allAlliances.filter(x=>!alliances.some(a=>a.alliance_id===x.id)).map(x=>`<option value="${x.id}">${esc(x.tag)}${x.name?` • ${esc(x.name)}`:''}</option>`).join('')}</select></label>`,async ov=>{
-  const id=Number($('#m-alliance',ov).value);const a=allAlliances.find(x=>x.id===id);if(!a){say('Select an alliance.',true);return false}
-  const {error}=await sb.from('svs_strategy_alliances').insert({strategy_id:strategy.id,alliance_id:a.id,alliance_tag:a.tag,alliance_name:a.name,emblem_url:a.emblem_url,sort_order:alliances.length});if(error)throw error;await openStrategy(strategy.id);
+ const available=allAlliances.filter(x=>!alliances.some(a=>String(a.alliance_id)===String(x.id)));
+ const ov=modal('Add Alliance',`<label>Alliance<select id="m-alliance"><option value="">Select alliance…</option>${available.map(x=>`<option value="${x.id}">${esc(x.tag)}${x.name?` • ${esc(x.name)}`:''}</option>`).join('')}<option value="manual">+ Add manually…</option></select></label><div id="m-alliance-manual" style="display:none;margin-top:9px"><div class="grid2"><label>Alliance Tag<input id="m-alliance-tag" maxlength="12" placeholder="TAG"></label><label>Alliance Name<input id="m-alliance-name" placeholder="Event / temporary alliance"></label></div><div class="select-note" style="margin-top:7px">Manual alliances are saved only to this SvS strategy. They do not become an active State alliance.</div></div>`,async modalEl=>{
+   const raw=$('#m-alliance',modalEl).value;
+   if(raw==='manual'){
+     const tag=$('#m-alliance-tag',modalEl).value.trim().toUpperCase(),name=$('#m-alliance-name',modalEl).value.trim();
+     if(!tag){say('Enter an Alliance Tag.',true);return false}
+     if(alliances.some(a=>String(a.alliance_tag||'').toUpperCase()===tag)){say(`${tag} is already participating.`,true);return false}
+     const {error}=await sb.from('svs_strategy_alliances').insert({strategy_id:strategy.id,alliance_id:null,alliance_tag:tag,alliance_name:name||null,emblem_url:null,sort_order:alliances.length});
+     if(error)throw error;
+   }else{
+     const id=Number(raw),a=allAlliances.find(x=>String(x.id)===String(id));
+     if(!a){say('Select an alliance or choose Add manually.',true);return false}
+     const {error}=await sb.from('svs_strategy_alliances').insert({strategy_id:strategy.id,alliance_id:a.id,alliance_tag:a.tag,alliance_name:a.name,emblem_url:a.emblem_url,sort_order:alliances.length});
+     if(error)throw error;
+   }
+   await openStrategy(strategy.id);
  });
+ const sel=$('#m-alliance',ov),manual=$('#m-alliance-manual',ov);
+ sel.onchange=()=>manual.style.display=sel.value==='manual'?'block':'none';
 }
 async function addTeam(aid){
  const n=Teams(aid).length+1;
@@ -2436,8 +2502,15 @@ function renderPetWorkspace(){
          </div>
        </div>
        <label style="margin-top:10px">Main Garrison Alliance
-         <select id="pet-primary-alliance">${petAllianceOptions(strategy?.assist_config?.primary_alliance_id||strategy?.primary_alliance_id||'')}</select>
+         <select id="pet-primary-alliance">${petAllianceOptions(strategy?.assist_config?.primary_alliance_id||strategy?.primary_alliance_id||'')}<option value="manual">+ Add manually…</option></select>
        </label>
+       <div id="pet-primary-manual" style="display:none;margin-top:9px">
+         <div class="grid2">
+           <label>Alliance Tag<input id="pet-primary-tag" maxlength="12" placeholder="TAG"></label>
+           <label>Alliance Name<input id="pet-primary-name" placeholder="Event / temporary alliance"></label>
+         </div>
+         <div class="select-note" style="margin-top:7px">Use this for temporary server-event alliances that are not part of the active State alliance list.</div>
+       </div>
        <button id="pet-start-setup" class="btn violet" type="button" style="width:100%;margin-top:10px">Start Setup</button>
      </div>`:
      `<div class="pet-v13-groups">
@@ -2447,6 +2520,9 @@ function renderPetWorkspace(){
    }
  </div>`;
 
+ const primarySelect=$('#pet-primary-alliance');
+ const primaryManual=$('#pet-primary-manual');
+ if(primarySelect&&primaryManual)primarySelect.onchange=()=>primaryManual.style.display=primarySelect.value==='manual'?'block':'none';
  $('#pet-start-setup')?.addEventListener('click',startPetSetup);
  $('#pet-add-counter-alliance')?.addEventListener('click',addPetCounterAlliance);
  $$('[data-pet-add-team]',host).forEach(b=>b.onclick=()=>addTeam(b.dataset.petAddTeam));
@@ -2468,29 +2544,49 @@ async function ensureStrategyForPetSetup(primaryId){
  return strategy;
 }
 async function startPetSetup(){
- const primaryId=Number($('#pet-primary-alliance')?.value||0);
- if(!primaryId)return say('Select the Main Garrison Alliance.',true);
+ const raw=$('#pet-primary-alliance')?.value||'';
+ const manual=raw==='manual';
+ const primaryId=manual?null:Number(raw||0);
+ const manualTag=$('#pet-primary-tag')?.value.trim().toUpperCase()||'';
+ const manualName=$('#pet-primary-name')?.value.trim()||'';
+ if(!manual&&!primaryId)return say('Select the Main Garrison Alliance.',true);
+ if(manual&&!manualTag)return say('Enter the Main Garrison Alliance tag.',true);
 
  await ensureStrategyForPetSetup(primaryId);
  setSaveState('saving');
 
- const real=allAlliances.find(a=>String(a.id)===String(primaryId));
- if(!real)return say('Alliance not found.',true);
-
- let existing=alliances.find(a=>String(a.alliance_id)===String(primaryId));
- if(existing){
-   const u=await sb.from('svs_strategy_alliances').update({sort_order:0}).eq('id',existing.id);
-   if(u.error)return say(u.error.message,true);
- }else{
+ let displayTag='';
+ if(manual){
+   if(alliances.some(a=>String(a.alliance_tag||'').toUpperCase()===manualTag))return say(`${manualTag} is already participating.`,true);
    const ins=await sb.from('svs_strategy_alliances').insert({
      strategy_id:strategy.id,
-     alliance_id:real.id,
-     alliance_tag:real.tag,
-     alliance_name:real.name,
-     emblem_url:real.emblem_url,
+     alliance_id:null,
+     alliance_tag:manualTag,
+     alliance_name:manualName||null,
+     emblem_url:null,
      sort_order:0
    });
-   if(ins.error)return say(ins.error.message,true);
+   if(ins.error)throw ins.error;
+   displayTag=manualTag;
+ }else{
+   const real=allAlliances.find(a=>String(a.id)===String(primaryId));
+   if(!real)return say('Alliance not found.',true);
+   let existing=alliances.find(a=>String(a.alliance_id)===String(primaryId));
+   if(existing){
+     const u=await sb.from('svs_strategy_alliances').update({sort_order:0}).eq('id',existing.id);
+     if(u.error)throw u.error;
+   }else{
+     const ins=await sb.from('svs_strategy_alliances').insert({
+       strategy_id:strategy.id,
+       alliance_id:real.id,
+       alliance_tag:real.tag,
+       alliance_name:real.name,
+       emblem_url:real.emblem_url,
+       sort_order:0
+     });
+     if(ins.error)throw ins.error;
+   }
+   displayTag=real.tag;
  }
 
  const cfg={
@@ -2504,55 +2600,79 @@ async function startPetSetup(){
    build_flow:'pets_first',
    assist_config:cfg
  }).eq('id',strategy.id);
- if(up.error)return say(up.error.message,true);
+ if(up.error)throw up.error;
 
  await openStrategy(strategy.id);
- say('Main Garrison Alliance saved. Add Team 1 to begin.');
+ say(`${displayTag} saved as Main Garrison Alliance. Add Team 1 to begin.`);
 }
 function addPetCounterAlliance(){
  if(!strategy||!alliances.length)return say('Start the Main Garrison Alliance first.',true);
  const available=allAlliances.filter(a=>!alliances.some(x=>String(x.alliance_id)===String(a.id)));
- if(!available.length)return say('Every active Alliance is already participating.',true);
 
- modal(
+ const ov=modal(
    'Add Counter Alliance',
    `<label>Counter Alliance<select id="pet-counter-alliance">
       <option value="">Select alliance…</option>
       ${available.map(a=>`<option value="${a.id}">${esc(a.tag)}${a.name?` • ${esc(a.name)}`:''}</option>`).join('')}
-    </select></label>`,
-   async ov=>{
-     const id=Number($('#pet-counter-alliance',ov)?.value||0);
-     const real=allAlliances.find(a=>String(a.id)===String(id));
-     if(!real){say('Select a Counter Alliance.',true);return false}
+      <option value="manual">+ Add manually…</option>
+    </select></label>
+    <div id="pet-counter-manual" style="display:none;margin-top:9px">
+      <div class="grid2">
+        <label>Alliance Tag<input id="pet-counter-tag" maxlength="12" placeholder="TAG"></label>
+        <label>Alliance Name<input id="pet-counter-name" placeholder="Event / temporary alliance"></label>
+      </div>
+      <div class="select-note" style="margin-top:7px">Manual alliances stay inside this SvS strategy only.</div>
+    </div>`,
+   async modalEl=>{
+     const raw=$('#pet-counter-alliance',modalEl)?.value||'';
+     const manual=raw==='manual';
+     const id=manual?null:Number(raw||0);
+     const manualTag=$('#pet-counter-tag',modalEl)?.value.trim().toUpperCase()||'';
+     const manualName=$('#pet-counter-name',modalEl)?.value.trim()||'';
+     let tag='',name=null,emblem=null;
+
+     if(manual){
+       if(!manualTag){say('Enter an Alliance Tag.',true);return false}
+       if(alliances.some(a=>String(a.alliance_tag||'').toUpperCase()===manualTag)){say(`${manualTag} is already participating.`,true);return false}
+       tag=manualTag;name=manualName||null;
+     }else{
+       const real=allAlliances.find(a=>String(a.id)===String(id));
+       if(!real){say('Select a Counter Alliance or choose Add manually.',true);return false}
+       tag=real.tag;name=real.name;emblem=real.emblem_url;
+     }
 
      const sortOrder=alliances.length;
      const ins=await sb.from('svs_strategy_alliances').insert({
        strategy_id:strategy.id,
-       alliance_id:real.id,
-       alliance_tag:real.tag,
-       alliance_name:real.name,
-       emblem_url:real.emblem_url,
+       alliance_id:id,
+       alliance_tag:tag,
+       alliance_name:name,
+       emblem_url:emblem,
        sort_order:sortOrder
      });
      if(ins.error)throw ins.error;
 
      const oldCfg=strategy.assist_config||{};
-     const counters=[...(Array.isArray(oldCfg.counter_alliance_ids)?oldCfg.counter_alliance_ids:[]),id]
-       .filter((v,i,a)=>a.findIndex(x=>String(x)===String(v))===i);
+     const counters=manual
+       ? [...(Array.isArray(oldCfg.counter_alliance_ids)?oldCfg.counter_alliance_ids:[])]
+       : [...(Array.isArray(oldCfg.counter_alliance_ids)?oldCfg.counter_alliance_ids:[]),id]
+           .filter((v,i,a)=>a.findIndex(x=>String(x)===String(v))===i);
 
      const cfg={
        ...oldCfg,
-       active_alliance_count:1+counters.length,
-       primary_alliance_id:oldCfg.primary_alliance_id||strategy.primary_alliance_id||alliances[0]?.alliance_id||null,
+       active_alliance_count:alliances.length+1,
+       primary_alliance_id:oldCfg.primary_alliance_id??strategy.primary_alliance_id??null,
        counter_alliance_ids:counters
      };
      const up=await sb.from('svs_strategies').update({assist_config:cfg}).eq('id',strategy.id);
      if(up.error)throw up.error;
 
      await openStrategy(strategy.id);
-     say(`${real.tag} added as Counter Alliance.`);
+     say(`${tag} added as Counter Alliance.`);
    }
  );
+ const sel=$('#pet-counter-alliance',ov),manualBox=$('#pet-counter-manual',ov);
+ sel.onchange=()=>manualBox.style.display=sel.value==='manual'?'block':'none';
 }
 async function setPetPurpose(teamId,purpose){
  setSaveState('saving');
@@ -2626,8 +2746,10 @@ function openPetPreview(){
  if(!original)return say('Add schedule rows first.',true);
  const overlay=$('#pet-preview-overlay'),stage=$('#pet-preview-stage');
  stage.innerHTML='';
+ stage.style.height='';
  const clone=original.cloneNode(true);
  clone.removeAttribute('id');
+ clone.classList.add('pet-v13-preview-sheet');
  stage.appendChild(clone);
  overlay.classList.add('open');
  overlay.setAttribute('aria-hidden','false');
@@ -2635,23 +2757,26 @@ function openPetPreview(){
 
  const fit=()=>{
    clone.style.transform='none';
-   clone.style.width='';
-   const rect=clone.getBoundingClientRect();
-   const naturalW=clone.scrollWidth||rect.width||1;
-   const naturalH=clone.scrollHeight||rect.height||1;
+   clone.style.marginBottom='0';
+   clone.style.marginRight='0';
+   const naturalW=clone.scrollWidth||640;
+   const naturalH=clone.scrollHeight||1;
    const availableW=Math.max(1,stage.clientWidth-16);
-   const availableH=Math.max(1,stage.clientHeight-16);
-   const scale=Math.min(1,availableW/naturalW,availableH/naturalH);
+   const scale=Math.min(1,availableW/naturalW);
+   clone.style.transformOrigin='top left';
    clone.style.transform=`scale(${scale})`;
-   clone.style.width=`${100/scale}%`;
+   clone.style.marginBottom=`-${Math.max(0,naturalH*(1-scale))}px`;
+   clone.style.marginRight=`-${Math.max(0,naturalW*(1-scale))}px`;
+   const maxH=Math.max(180,Math.min(window.innerHeight*.68,naturalH*scale+18));
+   stage.style.height=`${Math.ceil(maxH)}px`;
  };
- requestAnimationFrame(fit);
+ requestAnimationFrame(()=>requestAnimationFrame(fit));
 }
 function closePetPreview(){
  const overlay=$('#pet-preview-overlay');
  overlay.classList.remove('open');
  overlay.setAttribute('aria-hidden','true');
- $('#pet-preview-stage').innerHTML='';
+ const stage=$('#pet-preview-stage');stage.innerHTML='';stage.style.height='';
  document.body.classList.remove('pet-preview-open');
 }
 $('#preview-pets').onclick=openPetPreview;

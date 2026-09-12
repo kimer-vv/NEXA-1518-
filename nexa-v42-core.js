@@ -173,14 +173,9 @@ function compactLive(){
  if(!inactive)copy?.remove();
 }
 function transferOwnedCard(){
- let owned=$('#nexa-v430-transfer-card');
- const legacy=$('#home-transfers-section');
- if(legacy){
-  legacy.style.setProperty('display','none','important');
-  legacy.setAttribute('aria-hidden','true');
- }
- if(!owned){
-  owned=document.createElement('section');owned.id='nexa-v430-transfer-card';
+ $('#nexa-v430-transfer-card')?.remove();
+ return null;
+}.createElement('section');owned.id='nexa-v430-transfer-card';
   if(legacy)legacy.after(owned);
   else $('#home-svs-section')?.after(owned);
  }
@@ -209,10 +204,9 @@ function compactTransfers(){
 }
 
 function ensureSignals(){
- const tr=$('#nexa-v430-transfer-card')||transferOwnedCard(),live=$('#home-svs-section');
- let pulse=$('#nexa-v425-pulse');if(!pulse){pulse=document.createElement('section');pulse.id='nexa-v425-pulse';pulse.innerHTML='<div class="kicker">NEXA PULSE</div><h3>Signals & response requests</h3><p>Forms, surveys and requests appear here when leadership publishes them.</p>'}
- let alliance=$('#nexa-v425-alliance');if(!alliance){alliance=document.createElement('section');alliance.id='nexa-v425-alliance';alliance.innerHTML='<div class="kicker">ALLIANCE SIGNAL</div><h3>No alliance event published</h3><p>Foundry, Canyon and alliance strategy updates will appear here.</p>'}
- if(tr){tr.after(pulse);pulse.after(alliance)}else if(live){live.after(pulse);pulse.after(alliance)}
+ $('#nexa-v425-pulse')?.remove();
+ $('#nexa-v425-alliance')?.remove();
+ $('#nexa-v430-transfer-card')?.remove();
 }
 function hideBuild(){
  $$('[id*="build" i],[class*="build" i],footer *').forEach(el=>{if(/^NEXA BUILD\b/i.test(txt(el)))el.style.display='none'});

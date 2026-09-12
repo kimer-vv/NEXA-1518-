@@ -1,11 +1,18 @@
-/* NEXA HOME COMPOSITOR V1.0 — SINGLE VISUAL ORDER OWNER — 2026-09-11
-   COMPLETE NEW FILE: nexa-home-compositor-v1.js
+/* NEXA HOME COMPOSITOR V1.1 — CANONICAL HOME SIGNAL HOST — 2026-09-12
+   COMPLETE REPLACEMENT for: nexa-home-compositor-v1.js
 
    Owns ONLY:
-   - Home signal stack DOM order.
+   - Home signal sibling order.
 
-   Final order:
-   Live Event -> hidden legacy Pulse sink -> NEXA Pulse -> Alliance Signal -> Transfers
+   Final visible order:
+   Live Event -> NEXA Pulse -> Alliance Signal -> Transfers
+
+   Important correction from V1.0:
+   - NEVER uses Alliance Signal's parent as the global Home host.
+   - Prefers the canonical #nexa-v31-signals host.
+   - Falls back only to known Home-level hosts.
+   - Retires stale legacy Live/Pulse/Transfer cards without wrapping the
+     current cards inside Alliance or another visual signal card.
 
    Does NOT own:
    - Supabase data
@@ -14,18 +21,19 @@
    - Home menu
    - My Profile
    - Alliances/emblems
+   - Alliance Signal data
 
    Safety:
    - No MutationObserver.
-   - No indefinite polling.
+   - No indefinite layout polling.
    - No touchmove preventDefault.
    - No manual scrollLeft.
 */
 (()=>{
 'use strict';
 
-if(window.__NEXA_HOME_COMPOSITOR_V1__) return;
-window.__NEXA_HOME_COMPOSITOR_V1__=true;
+if(window.__NEXA_HOME_COMPOSITOR_V11__) return;
+window.__NEXA_HOME_COMPOSITOR_V11__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -33,61 +41,88 @@ const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[
 const STACK_ID='nexa-home-signal-stack-v1';
 let generation=0;
 
-function visibleNode(id){
-  return document.getElementById(id)||null;
+function clean(v){
+  return String(v??'').replace(/\s+/g,' ').trim();
+}
+
+function currentLive(){
+  return $('#nexa-v4937-live-event');
+}
+
+function currentPulse(){
+  return $('#nexa-pulse-visible-owner-v34');
+}
+
+function currentTransfer(){
+  return $('#nexa-v49-transfer-card');
+}
+
+function exactAlliance(){
+  return $('#nexa-v31-alliance');
+}
+
+/*
+  Fallback Alliance discovery is deliberately restricted to leaf-like
+  section/article elements. We never accept a broad DIV wrapper because
+  that was the V1.0 nesting bug visible on iPhone.
+*/
+function fallbackAlliance(){
+  return $$('section,article').find(el=>{
+    if(el.id==='nexa-v4937-live-event' ||
+       el.id==='nexa-pulse-visible-owner-v34' ||
+       el.id==='nexa-v49-transfer-card') return false;
+
+    const t=clean(el.textContent);
+    if(!/\bALLIANCE SIGNAL\b/i.test(t)) return false;
+    if(/\bLIVE EVENT\b|\bNEXA PULSE\b|\bTRANSFERS\b/i.test(t)) return false;
+
+    const nestedOfficial=
+      el.querySelector?.('#nexa-v4937-live-event,#nexa-pulse-visible-owner-v34,#nexa-v49-transfer-card');
+
+    return !nestedOfficial;
+  }) || null;
 }
 
 function allianceCard(){
-  return $('#nexa-v31-alliance') ||
-    $$('section,article,div').find(el=>{
-      const t=String(el.textContent||'').replace(/\s+/g,' ').trim();
-      if(!/\bALLIANCE SIGNAL\b/i.test(t)) return false;
-      if(/\bLIVE EVENT\b|\bNEXA PULSE\b|\bTRANSFERS\b/i.test(t)) return false;
-      return true;
-    }) ||
-    null;
+  return exactAlliance() || fallbackAlliance();
 }
 
-function preferredParent(anchor){
-  if(anchor?.parentNode) return anchor.parentNode;
-  return $('#home') || $('main.shell') || $('main') || document.body;
+function homeRoot(){
+  return $('#home') ||
+         $('[data-page="home"]') ||
+         $('main.shell') ||
+         $('main') ||
+         document.body;
 }
 
-function ensureStack(anchor){
-  let stack=$('#'+STACK_ID);
-  if(stack) return stack;
+function canonicalHost(){
+  const explicit=$('#nexa-v31-signals');
+  if(explicit) return explicit;
 
-  stack=document.createElement('div');
-  stack.id=STACK_ID;
-  stack.dataset.nexaHomeOrderOwner='home-compositor-v1';
-  stack.setAttribute('aria-label','NEXA Home signals');
-
-  const parent=preferredParent(anchor);
-  if(anchor?.parentNode===parent){
-    parent.insertBefore(stack,anchor);
-  }else{
-    parent.appendChild(stack);
+  /*
+    Known legacy signal cards are safer host hints than Alliance's parent.
+    Their parent historically represents the Home signals region.
+  */
+  const legacyLive=$('#home-svs-section');
+  if(legacyLive?.parentNode && legacyLive.parentNode.nodeType===1){
+    return legacyLive.parentNode;
   }
-  return stack;
-}
 
-function normalizeOldStack(newStack){
-  const old=$('#nexa-home-signals-stable-stack');
-  if(!old || old===newStack) return;
+  const legacyTransfer=$('#home-transfers-section');
+  if(legacyTransfer?.parentNode && legacyTransfer.parentNode.nodeType===1){
+    return legacyTransfer.parentNode;
+  }
 
-  Array.from(old.children).forEach(child=>{
-    if(child && child!==newStack) newStack.appendChild(child);
-  });
-
-  if(!old.children.length) old.remove();
-  else old.style.display='none';
+  return homeRoot();
 }
 
 function installCSS(){
-  if($('#nexa-home-compositor-v1-css')) return;
+  if($('#nexa-home-compositor-v11-css')) return;
+
+  $('#nexa-home-compositor-v1-css')?.remove();
 
   const s=document.createElement('style');
-  s.id='nexa-home-compositor-v1-css';
+  s.id='nexa-home-compositor-v11-css';
   s.textContent=`
     #${STACK_ID}{
       display:flex!important;
@@ -99,8 +134,10 @@ function installCSS(){
       margin:0!important;
       padding:0!important;
       border:0!important;
+      border-radius:0!important;
       background:transparent!important;
       box-shadow:none!important;
+      overflow:visible!important;
     }
 
     #${STACK_ID} > #nexa-v4937-live-event,
@@ -114,15 +151,17 @@ function installCSS(){
       box-sizing:border-box!important;
     }
 
-    #${STACK_ID} > #nexa-v302-pulse{
+    #${STACK_ID} > #nexa-v302-pulse,
+    #home-svs-section,
+    #home-transfers-section,
+    [data-nexa-home-legacy-retired="v11"]{
       display:none!important;
       visibility:hidden!important;
       opacity:0!important;
       pointer-events:none!important;
-      width:0!important;
-      height:0!important;
-      min-height:0!important;
       max-height:0!important;
+      min-height:0!important;
+      height:0!important;
       margin:0!important;
       padding:0!important;
       border:0!important;
@@ -132,36 +171,162 @@ function installCSS(){
   document.head.appendChild(s);
 }
 
+function ensureStack(host,reference){
+  let stack=$('#'+STACK_ID);
+
+  /*
+    V1.0 may already have placed the stack inside the wrong visual wrapper.
+    Move the stack itself to the canonical host before moving any cards.
+  */
+  if(stack){
+    if(stack.parentNode!==host){
+      if(reference?.parentNode===host){
+        host.insertBefore(stack,reference);
+      }else{
+        host.appendChild(stack);
+      }
+    }
+    return stack;
+  }
+
+  stack=document.createElement('div');
+  stack.id=STACK_ID;
+  stack.dataset.nexaHomeOrderOwner='home-compositor-v1.1';
+  stack.setAttribute('aria-label','NEXA Home signals');
+
+  if(reference?.parentNode===host){
+    host.insertBefore(stack,reference);
+  }else{
+    host.appendChild(stack);
+  }
+
+  return stack;
+}
+
+function rescueOfficialCardsFromWrongWrappers(stack){
+  /*
+    If V1.0 caused the official cards to sit inside a visual Alliance wrapper,
+    appendChild below extracts them into the canonical sibling stack.
+    This function additionally strips V1.0 ownership styling from wrappers.
+  */
+  const oldStable=$('#nexa-home-signals-stable-stack');
+  if(oldStable && oldStable!==stack){
+    Array.from(oldStable.children).forEach(child=>{
+      if([
+        'nexa-v4937-live-event',
+        'nexa-v302-pulse',
+        'nexa-pulse-visible-owner-v34',
+        'nexa-v31-alliance',
+        'nexa-v49-transfer-card'
+      ].includes(child.id)){
+        stack.appendChild(child);
+      }
+    });
+
+    if(!oldStable.children.length) oldStable.remove();
+    else oldStable.style.display='none';
+  }
+}
+
+function retireKnownLegacy(){
+  const live=currentLive();
+  const pulse=currentPulse();
+  const transfer=currentTransfer();
+
+  $('#home-svs-section')?.setAttribute('data-nexa-home-legacy-retired','v11');
+  $('#home-transfers-section')?.setAttribute('data-nexa-home-legacy-retired','v11');
+
+  [
+    '#nexa-pulse-owner-v24',
+    '#nexa-pulse-owner-v25',
+    '#nexa-pulse-owner-v26',
+    '#nexa-pulse-owner-v27',
+    '#nexa-v430-transfer-card',
+    '#nexa-transfer-card',
+    '.nexa-v453-transfer'
+  ].forEach(sel=>{
+    $$(sel).forEach(el=>{
+      if(el===live || el===pulse || el===transfer) return;
+      el.setAttribute('data-nexa-home-legacy-retired','v11');
+      el.setAttribute('aria-hidden','true');
+    });
+  });
+
+  /*
+    Catch the two exact stale cards visible in the screenshots, but only
+    section/article candidates that are NOT ancestors/descendants of the
+    official current surfaces. This avoids hiding broad Home wrappers.
+  */
+  $$('section,article').forEach(el=>{
+    if(el===live || el===pulse || el===transfer) return;
+
+    if(live && (el.contains(live) || live.contains(el))) return;
+    if(pulse && (el.contains(pulse) || pulse.contains(el))) return;
+    if(transfer && (el.contains(transfer) || transfer.contains(el))) return;
+
+    const t=clean(el.textContent);
+
+    const staleNoLive=
+      /\bLIVE EVENT\b/i.test(t) &&
+      /\bNo Live Event\b/i.test(t) &&
+      /\bUpcoming state events\b/i.test(t);
+
+    const stalePulse=
+      /\bNEXA PULSE\b/i.test(t) &&
+      /\bSignals & response requests\b/i.test(t) &&
+      /\bForms, surveys and requests appear here\b/i.test(t);
+
+    if(staleNoLive || stalePulse){
+      el.setAttribute('data-nexa-home-legacy-retired','v11');
+      el.setAttribute('aria-hidden','true');
+    }
+  });
+}
+
 function compose(){
   installCSS();
+  retireKnownLegacy();
 
   const alliance=allianceCard();
   if(!alliance) return false;
 
-  const stack=ensureStack(alliance);
-  normalizeOldStack(stack);
-
-  const live=visibleNode('nexa-v4937-live-event');
-  const sink=visibleNode('nexa-v302-pulse');
-  const pulse=visibleNode('nexa-pulse-visible-owner-v34');
-  const transfer=visibleNode('nexa-v49-transfer-card');
+  const host=canonicalHost();
 
   /*
-    This is the ONLY place in the new Home architecture that re-parents
-    sibling Home signal cards.
+    Never allow the selected host to be one of the four signal cards or a
+    descendant of one. If that ever happens, fall all the way back to Home.
+  */
+  const official=[currentLive(),currentPulse(),alliance,currentTransfer()].filter(Boolean);
+  let safeHost=host;
+
+  if(official.some(card=>card===safeHost || card.contains?.(safeHost))){
+    safeHost=homeRoot();
+  }
+
+  const stack=ensureStack(safeHost,alliance);
+  rescueOfficialCardsFromWrongWrappers(stack);
+
+  const live=currentLive();
+  const sink=$('#nexa-v302-pulse');
+  const pulse=currentPulse();
+  const transfer=currentTransfer();
+
+  /*
+    Single structural owner. These nodes become siblings, in exact order.
+    The hidden sink remains only for compatibility and consumes no layout.
   */
   [live,sink,pulse,alliance,transfer].forEach(node=>{
-    if(node && node!==stack && node.parentNode!==stack){
-      stack.appendChild(node);
-    }else if(node && node!==stack){
-      /* appendChild is also used to normalize exact sibling order. */
+    if(node && node!==stack){
       stack.appendChild(node);
     }
   });
 
+  retireKnownLegacy();
+
   window.dispatchEvent(new CustomEvent('nexa:home-composed',{
     detail:{
-      owner:'home-compositor-v1',
+      owner:'home-compositor-v1.1',
+      hostId:safeHost.id||null,
       live:!!live,
       pulse:!!pulse,
       alliance:!!alliance,
@@ -175,7 +340,7 @@ function compose(){
 function finitePasses(){
   const mine=++generation;
 
-  [0,80,180,420,900,1800,3200,6000].forEach(ms=>{
+  [0,80,180,420,900,1800,3200,6000,10000].forEach(ms=>{
     setTimeout(()=>{
       if(mine!==generation) return;
       compose();
@@ -188,6 +353,7 @@ window.NEXA_HOME_COMPOSE=compose;
 window.addEventListener('nexa:home-surface-ready',compose);
 window.addEventListener('nexa:home-ready',finitePasses);
 window.addEventListener('nexa:active-state-changed',finitePasses);
+window.addEventListener('nexa:live-event-ready',compose);
 window.addEventListener('pageshow',finitePasses);
 
 document.addEventListener('visibilitychange',()=>{

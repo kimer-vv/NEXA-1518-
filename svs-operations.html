@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V14.12 • CASTLE PILLS ACCESS + TRANSPARENCY + OPPONENT PROTECTION -->
+<!-- NEXA SVS OPERATIONS V14.13 • AUTO TEAM ALLIANCES + PAINT FLOW FIX + TRANSPARENCY -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -1806,9 +1806,12 @@ async function openStrategy(id){
  const cloudCandidate=castleRow?{snapshot:castleRow.snapshot,updated_at:castleRow.updated_at}:null;
  const chosenCastle=castleSnapshotTime(localCastle)>castleSnapshotTime(cloudCandidate)?localCastle:cloudCandidate;
  castleSnapshot=castleNormalizeSnapshot(chosenCastle?.snapshot||null);
+ // Team Alliances are structural Castle Alliances: auto-register them as pills/colors.
+ const castleTeamAllianceSyncChanged=castleSyncStrategyAlliances();
  // Preserve the source timestamp so newest-copy comparison remains meaningful.
  if(chosenCastle?.updated_at&&!castleSnapshot.updated_at)castleSnapshot.updated_at=chosenCastle.updated_at;
  castleSelection.clear();castleUndo=[];castleRedo=[];
+ if(castleTeamAllianceSyncChanged){castleSaveLocal(id,castleSnapshot);setTimeout(()=>castleSaveNow({quiet:true}).catch(()=>{}),80)}
  // If this device had the newer copy, immediately push it back to Supabase.
  if(localCastle&&castleSnapshotTime(localCastle)>castleSnapshotTime(cloudCandidate)){
    castleSaveLocal(id,castleSnapshot);
@@ -3560,7 +3563,7 @@ let castlePendingStyle='straight',castlePendingOrientation='southwest',castlePre
 
 function castleDefaultSnapshot(){
  return {
-   version:'3.4',
+   version:'3.5',
    view_mode:'diamond',
    viewport:{...CASTLE_HOME},
    layout_mode:'preset',
@@ -3633,7 +3636,7 @@ function castleNormalizeSnapshot(raw){
  const layout_style=s.layout_style==='diagonal'?'diagonal':'straight';
  const layout_orientation=['northwest','northeast','southwest','southeast'].includes(s.layout_orientation)?s.layout_orientation:'southwest';
  const layout_set=Boolean(s.layout_set||opp.length);
- return {...d,...s,version:'3.4',view_mode:'diamond',viewport:v,layout_mode,layout_style,layout_orientation,layout_set,
+ return {...d,...s,version:'3.5',view_mode:'diamond',viewport:v,layout_mode,layout_style,layout_orientation,layout_set,
    opponent_cells:opp,custom_alliances,alliance_colors,cities};
 }
 function castleCloneSnapshot(){return JSON.parse(JSON.stringify(castleSnapshot||castleDefaultSnapshot()))}
@@ -3664,6 +3667,31 @@ function castlePresetReady(){
  return castleSnapshot?.layout_mode==='manual' || Boolean(castleSnapshot?.layout_set);
 }
 function castleAllianceById(id){return allAlliances.find(a=>String(a.id)===String(id))||null}
+function castleSyncStrategyAlliances(){
+ if(!castleSnapshot)return false;
+ castleSnapshot.alliance_colors=castleSnapshot.alliance_colors||{};
+ castleSnapshot.custom_alliances=Array.isArray(castleSnapshot.custom_alliances)?castleSnapshot.custom_alliances:[];
+ let changed=false;
+ for(const sa of (alliances||[])){
+   if(sa?.alliance_id!=null){
+     const key=String(sa.alliance_id);
+     if(!castleSnapshot.alliance_colors[key]){castleEnsureAllianceColor(key);changed=true}
+     continue;
+   }
+   const sid=`strategy-${sa.id}`;
+   let row=castleSnapshot.custom_alliances.find(x=>String(x.id)===sid);
+   if(!row){
+     row={id:sid,tag:String(sa.alliance_tag||sa.alliance_name||'Alliance'),color:''};
+     castleSnapshot.custom_alliances.push(row);changed=true;
+   }else if(String(row.tag||'')!==String(sa.alliance_tag||sa.alliance_name||'Alliance')){
+     row.tag=String(sa.alliance_tag||sa.alliance_name||'Alliance');changed=true;
+   }
+   const key=`custom:${sid}`;
+   const color=castleEnsureAllianceColor(key);
+   if(row.color!==color){row.color=color;changed=true}
+ }
+ return changed;
+}
 function castleCustomAllianceById(id){return (castleSnapshot?.custom_alliances||[]).find(a=>String(a.id)===String(id))||null}
 function castlePaletteColorForKey(key){
  const used=new Set(Object.values(castleSnapshot?.alliance_colors||{}).map(v=>String(v).toLowerCase()));
@@ -3894,13 +3922,28 @@ function castleUpdatePaintHud(){
 }
 function castleRenderCustomAlliances(){
  const box=$('#castle-custom-alliances');if(!box||!castleSnapshot)return;
+ castleSyncStrategyAlliances();
  const rows=[];
  const seen=new Set();
+ // Team Alliances always appear automatically in Castle Layout.
+ for(const sa of (alliances||[])){
+   let key='',tag=String(sa.alliance_tag||sa.alliance_name||'Alliance');
+   if(sa.alliance_id!=null){
+     key=String(sa.alliance_id);
+     const global=castleAllianceById(sa.alliance_id);
+     tag=String(sa.alliance_tag||global?.tag||global?.name||tag);
+   }else{
+     key=`custom:strategy-${sa.id}`;
+   }
+   if(!key||seen.has(key))continue;seen.add(key);
+   rows.push({key,tag,color:castleEnsureAllianceColor(key),teamAlliance:true});
+ }
+ // Keep optional Castle-only Alliances registered through Manage Alliances.
  for(const [id,color] of Object.entries(castleSnapshot.alliance_colors||{})){
-   if(String(id).startsWith('custom:'))continue;
-   const a=castleAllianceById(id);if(!a)continue;
-   const key=String(id);if(seen.has(key))continue;seen.add(key);
-   rows.push({key,tag:a.tag||a.name||'Alliance',color});
+   const key=String(id);
+   if(key.startsWith('custom:')||seen.has(key))continue;
+   const a=castleAllianceById(key);if(!a)continue;
+   seen.add(key);rows.push({key,tag:a.tag||a.name||'Alliance',color});
  }
  for(const a of (castleSnapshot.custom_alliances||[])){
    const key=`custom:${a.id}`;if(seen.has(key))continue;seen.add(key);
@@ -3910,18 +3953,30 @@ function castleRenderCustomAlliances(){
  box.innerHTML=rows.map(a=>`<button class="castle-custom-alliance-chip ${a.special?'whales':''} ${String(castlePaintAllianceId||'')===String(a.key)?'active':''}" data-castle-alliance-pill="${esc(a.key)}" type="button"><i style="background:${esc(a.color)}"></i><span>${esc(a.tag)}</span></button>`).join('');
  $$('[data-castle-alliance-pill]',box).forEach(b=>b.onclick=()=>castleHandleAlliancePill(b.dataset.castleAlliancePill));
 }
+async function castleEnsureLayoutReadyForEditing(allianceTag='Alliance'){
+ if(!castleSnapshot)return false;
+ if(castleSnapshot.layout_mode==='manual'||castleSnapshot.layout_set)return true;
+ const style=castlePendingStyle||castleSnapshot.layout_style||'straight';
+ const orientation=castlePendingOrientation||castleSnapshot.layout_orientation||'southwest';
+ const ok=await nexaConfirm(
+   'Set Castle Layout?',
+   `${allianceTag} is selected, but this Castle split is still only a preview. Set the current ${style==='diagonal'?'Diagonal':'Straight'} ${orientationLabel(orientation)} 80/80 layout now so you can edit Cities?`,
+   {confirmLabel:'Set Layout',cancelLabel:'Not Yet'}
+ );
+ if(!ok)return false;
+ await castleApplyPreset();
+ return castleSnapshot.layout_mode==='manual'||Boolean(castleSnapshot.layout_set);
+}
 async function castleHandleAlliancePill(key){
  const a=castleAllianceChoice(key);if(!a)return;
 
- // Alliance pills are always selectable. Set Layout only blocks map edits, not choosing the active Alliance.
+ // Alliance pills are always selectable and Team Alliances are already registered automatically.
  castlePaintAllianceId=key;
  castlePaintColor=a.color;
  castleSyncPaintControls();
 
  if(castleSelection.size){
-   if(castleSnapshot?.layout_mode==='preset'&&!castleSnapshot?.layout_set){
-     return say(`${a.tag} selected. Tap Set Layout before changing selected Cities.`,true);
-   }
+   if(!(await castleEnsureLayoutReadyForEditing(a.tag)))return;
    const keys=[...castleSelection];
    const effectiveOpponent=castleEffectiveOpponentSet();
    const opponentCount=keys.filter(k=>effectiveOpponent.has(String(k))).length;
@@ -3942,8 +3997,10 @@ async function castleHandleAlliancePill(key){
    say(`${n} Castle cit${n===1?'y':'ies'} changed to ${a.tag}.`);
    return;
  }
+ if(!(await castleEnsureLayoutReadyForEditing(a.tag)))return;
  castleSetTool('paint');
  castleSyncPaintControls();castleQueueSave();
+ say(`${a.tag} selected • Paint Cities is ready.`);
 }
 function castleApplyOwnerToSelection(a,keys){
  const keySet=new Set(keys.map(String));
@@ -4011,8 +4068,8 @@ function castlePaintCell(cell,mode){
  if(mode==='paint'){
    const a=castleAllianceChoice(castlePaintAllianceId);
    if(!a||a.kind==='opponent')return false;
-   if(castleSnapshot?.layout_mode==='preset'&&!castleSnapshot?.layout_set)return false;
-   if(opp)return false; // Opponent side is protected. Override only through Select + Alliance pill + confirmation.
+   if(castleSnapshot?.layout_mode==='preset'&&!castleSnapshot?.layout_set){say('Set the Castle Layout before painting Cities.',true);return false}
+   if(opp){say('Opponent State is protected. Use Select, then tap an Alliance pill to override it intentionally.',true);return false} // protected opponent side
    if(existing){
      if(castleSameOwner(existing,a))return false;
      return false; // Protect existing Alliance/Whales ownership from brush-over.
@@ -4198,7 +4255,7 @@ function castleRenderDrawer(){
  if(msg){
    if(keys.length>1)msg.textContent=`Bulk action: tap FSU, BBC, Whales, or another Alliance pill to change all ${keys.length} selected Cities at once.${oppCount?` ${oppCount} are on the Opponent State and NEXA will require confirmation before changing them.`:''}`;
    else if(!city)msg.textContent=oppCount?'This City belongs to the Opponent State. If you choose an Alliance pill, NEXA will ask for confirmation before changing it.':'Choose an Alliance pill first, then you can assign a Player.';
-   else msg.textContent='The City color/ownership stays unchanged while assigning a Player.';
+   else msg.textContent=castlePaintAllianceId?`White highlight = selected only. Tap the ${castleAllianceChoice(castlePaintAllianceId)?.tag||'active Alliance'} pill to apply its color, or Assign Player without changing ownership.`:'White highlight = selected only. Tap an Alliance pill to apply its color, or Assign Player without changing ownership.';
  }
  if(playerBox)playerBox.style.display=(single&&!!city)?'grid':'none';
  if(single&&city){
@@ -4228,10 +4285,13 @@ let castleControlsBound=false;
 function castleBindControls(){
  if(castleControlsBound)return;
  const svg=$('#castle-stage');if(!svg)return;castleControlsBound=true;
- $$('[data-castle-tool]').forEach(b=>b.onclick=()=>{
+ $$('[data-castle-tool]').forEach(b=>b.onclick=async()=>{
    const tool=b.dataset.castleTool;
-   if(tool==='paint'&&castleSnapshot?.layout_mode==='preset'&&!castleSnapshot?.layout_set)return say('Set the Castle Layout first before painting Cities.',true);
-   if(tool==='paint'&&!castleAllianceChoice(castlePaintAllianceId))return say('Choose an Alliance or Whales pill first.',true);
+   if(tool==='paint'){
+     const choice=castleAllianceChoice(castlePaintAllianceId);
+     if(!choice)return say('Choose an Alliance or Whales pill first.',true);
+     if(!(await castleEnsureLayoutReadyForEditing(choice.tag)))return;
+   }
    castleSetTool(tool);
  });
  $$('[data-castle-layout-mode]').forEach(b=>b.onclick=()=>castleSetLayoutMode(b.dataset.castleLayoutMode));

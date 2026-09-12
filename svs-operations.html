@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V14.3 • TEAM BOARD PREVIEW/DOWNLOAD + DIRECT ADD PLAYER + SCHEDULE COLORS -->
+<!-- NEXA SVS OPERATIONS V14.4 • ADD PLAYER FIX + CLEAN PLAYERS HEADER -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -761,7 +761,7 @@ body.pet-preview-open{overflow:hidden!important}
   </section>
 
   <section class="panel" data-panel="strategy">
-    <div class="desc">Team Board follows Pet Schedule automatically: same Alliances, Teams, Whale Schedule and Team colors. Players are built manually from the NEXA-ranked Joiner list or can be added manually.</div>
+    <div class="desc">Team Board follows Pet Schedule automatically: same Alliances, Teams, Whale Schedule and Team colors. Add Players directly from each Alliance using the ranked list or Add Manually.</div>
     <div class="card" style="margin-bottom:14px">
       <div class="section-head">
         <div><h2 style="margin:0">Team Board</h2><div class="tiny muted">Preview and download the clean alliance sheets directly from here.</div></div>
@@ -2092,7 +2092,7 @@ function teamBoardPlayerAllianceTag(j){
  const manual=teamBoardConfig().manual_player_tags?.[String(j.id)];
  if(manual)return manual;
  const p=playerPool.find(x=>String(x.id)===String(j.player_account_id)),a=p?.alliance_id?allAlliances.find(x=>String(x.id)===String(p.alliance_id)):null;
- const t=j.team_id?T(j.team_id):null,sa=t?A(t.strategy_alliance_id):null;
+ const t=j.team_id?teams.find(x=>String(x.id)===String(j.team_id)):null,sa=t?A(t.strategy_alliance_id):null;
  return a?.tag||sa?.alliance_tag||'—';
 }
 function teamBoardCounterHeroIds(aid){return (teamBoardConfig().counter_joiner_hero_ids?.[String(aid)]||[]).map(String).slice(0,8)}
@@ -2118,11 +2118,24 @@ function editMainPlayerHeroes(id){
  });bindVisualHeroPickers(ov);
 }
 
-function openTeamBoardAddPlayer(tid){
- const t=T(tid),a=t?A(t.strategy_alliance_id):null;if(!t||!a)return;
+function teamBoardDefaultTeamForAlliance(aid){
+ const ts=Teams(aid);
+ if(!ts.length)return null;
+ return [...ts].sort((x,y)=>{
+   const dx=Joiners(x.id).length,dy=Joiners(y.id).length;
+   return dx-dy || Number(x.sort_order||0)-Number(y.sort_order||0);
+ })[0];
+}
+function openTeamBoardAddPlayerForAlliance(aid){
+ const a=A(aid),t=a?teamBoardDefaultTeamForAlliance(aid):null;
+ if(!a||!t)return say('No Team exists for this Alliance.',true);
+
  const ov=document.createElement('div');ov.className='inline-picker-overlay';
  ov.innerHTML=`<div class="inline-picker-card">
-   <div class="inline-picker-head"><div><h3>Add Player • ${esc(a.alliance_tag)} ${esc(t.name)}</h3><div class="select-note">Choose from the ranked Joiner list or add a player manually.</div></div><button class="mini-x" data-inline-close type="button">×</button></div>
+   <div class="inline-picker-head">
+     <div><h3>Add Player • ${esc(a.alliance_tag)}</h3><div class="select-note">Choose from the ranked Joiner list or add a player manually. NEXA assigns the player to an active Team automatically.</div></div>
+     <button class="mini-x" data-inline-close type="button">×</button>
+   </div>
    <div class="nexa-export-picker-actions">
      <button class="btn violet" id="tb-add-ranked" type="button">Choose from Ranked List</button>
      <button class="btn" id="tb-add-manual" type="button">Add Manually</button>
@@ -2130,11 +2143,13 @@ function openTeamBoardAddPlayer(tid){
  </div>`;
  document.body.appendChild(ov);
  $('[data-inline-close]',ov).onclick=()=>ov.remove();
- $('#tb-add-ranked',ov).onclick=()=>{ov.remove();openTeamBoardJoinerPicker(tid)};
- $('#tb-add-manual',ov).onclick=()=>{ov.remove();openTeamBoardManualPlayer(tid)};
+ $('#tb-add-ranked',ov).onclick=()=>{ov.remove();openTeamBoardJoinerPickerForAlliance(aid)};
+ $('#tb-add-manual',ov).onclick=()=>{ov.remove();openTeamBoardManualPlayerForAlliance(aid)};
 }
-function openTeamBoardManualPlayer(tid){
- const t=T(tid),a=t?A(t.strategy_alliance_id):null;if(!t||!a)return;
+function openTeamBoardManualPlayerForAlliance(aid){
+ const a=A(aid),t=a?teamBoardDefaultTeamForAlliance(aid):null;
+ if(!a||!t)return say('No Team exists for this Alliance.',true);
+
  const main=teamBoardPrimaryAlliance(),isMain=main&&String(main.id)===String(a.id);
  const body=`<div class="grid2">
    <label>Player Name<input id="tb-manual-name" placeholder="Player name"></label>
@@ -2145,35 +2160,96 @@ function openTeamBoardManualPlayer(tid){
    ${heroPickerField('tb-man-gh2','Garrison Hero 2','','','')}
    ${heroPickerField('tb-man-mh1','MIA Rally Hero 1','','','')}
    ${heroPickerField('tb-man-mh2','MIA Rally Hero 2','','','')}
- </div><div class="select-note" style="margin-top:8px">All hero fields are optional. Choose “Leave empty” if you want Garrison or MIA Rally blank.</div>`:''}`;
- const ov=modal(`Add Player Manually • ${a.alliance_tag} ${t.name}`,body,async modalEl=>{
-   const name=$('#tb-manual-name',modalEl)?.value.trim()||'',tag=($('#tb-manual-tag',modalEl)?.value.trim()||a.alliance_tag||'').toUpperCase();
+ </div><div class="select-note" style="margin-top:8px">All hero fields are optional. Leave any hero empty if you do not want to assign one.</div>`:''}`;
+
+ const ov=modal(`Add Player Manually • ${a.alliance_tag}`,body,async modalEl=>{
+   const name=$('#tb-manual-name',modalEl)?.value.trim()||'';
+   const tag=($('#tb-manual-tag',modalEl)?.value.trim()||a.alliance_tag||'').toUpperCase();
    if(!name){say('Enter the Player Name.',true);return false}
+
+   const target=teamBoardDefaultTeamForAlliance(aid);
+   if(!target){say('No Team exists for this Alliance.',true);return false}
+
    const patch={
      attack_a_hero_id:isMain?($('#tb-man-gh1',modalEl)?.value||null):null,
      attack_b_hero_id:isMain?($('#tb-man-gh2',modalEl)?.value||null):null,
      defense_a_hero_id:isMain?($('#tb-man-mh1',modalEl)?.value||null):null,
      defense_b_hero_id:isMain?($('#tb-man-mh2',modalEl)?.value||null):null
    };
+
    const ins=await sb.from('svs_strategy_joiners').insert({
-     team_id:tid,player_account_id:null,player_name:name,sort_order:Joiners(tid).length,join_first:false,...patch
+     team_id:target.id,
+     player_account_id:null,
+     player_name:name,
+     sort_order:Joiners(target.id).length,
+     join_first:false,
+     ...patch
    }).select().single();
    if(ins.error)throw ins.error;
+
    await saveTeamBoardConfig(tb=>{tb.manual_player_tags[String(ins.data.id)]=tag;return tb});
-   await openStrategy(strategy.id);say(`${name} added to ${a.alliance_tag} ${t.name}.`);
+   await openStrategy(strategy.id);
+   say(`${name} added to ${a.alliance_tag}.`);
  });
  if(isMain)bindVisualHeroPickers(ov);
 }
-function openTeamBoardJoinerPicker(tid){
- const pool=joinerCandidatePool();if(!pool.length)return say('No ranked Joiners are available.',true);
- const assignedKeys=new Set(joiners.map(j=>String(j.player_account_id||'')).filter(Boolean)),ov=document.createElement('div');ov.className='inline-picker-overlay';
- ov.innerHTML=`<div class="inline-picker-card"><div class="inline-picker-head"><div><h3>Add Player</h3><div class="select-note">Ranked by NEXA Joiner score. Choose one player; Team assignment stays manual.</div></div><button class="mini-x" data-inline-close type="button">×</button></div><div class="candidate-list">${pool.map((p,i)=>`<button class="candidate-card" data-tb-pick-player="${esc(String(p.id))}" type="button" style="width:100%;text-align:left"><div class="candidate-main"><div><b>#${i+1} • ${esc(p.in_game_name)}</b><div class="tiny muted">${esc(playerAllianceLabel(p))}${assignedKeys.has(String(p.id))?' • Already assigned':''}</div></div><span class="candidate-tier">${joinerSbsScore(p).toFixed(1)}</span></div><div class="candidate-troops">${esc(troopSummary(p))}</div></button>`).join('')}</div></div>`;
- document.body.appendChild(ov);$('[data-inline-close]',ov).onclick=()=>ov.remove();
- $$('[data-tb-pick-player]',ov).forEach(b=>b.onclick=async()=>{const p=playerPool.find(x=>String(x.id)===String(b.dataset.tbPickPlayer));if(!p)return;const existing=joiners.find(j=>String(j.player_account_id)===String(p.id));
-   if(existing&&String(existing.team_id)===String(tid)){say(`${p.in_game_name} is already in this Team.`);return}
-   if(existing&&String(existing.team_id)!==String(tid)){if(!await nexaConfirm('Move Player?',`${p.in_game_name} is already assigned to ${teamLabel(existing.team_id)}. Move to ${teamLabel(tid)}?`,{confirmLabel:'Move'}))return;const {error}=await sb.from('svs_strategy_joiners').update({team_id:tid,sort_order:Joiners(tid).length}).eq('id',existing.id);if(error)return say(error.message,true)}
-   else{const {error}=await sb.from('svs_strategy_joiners').insert({team_id:tid,player_account_id:p.id,player_name:p.in_game_name,sort_order:Joiners(tid).length,join_first:false});if(error)return say(error.message,true)}
-   ov.remove();await openStrategy(strategy.id);say(`${p.in_game_name} added to ${teamLabel(tid)}.`);
+function openTeamBoardJoinerPickerForAlliance(aid){
+ const a=A(aid);if(!a)return;
+ const pool=joinerCandidatePool();
+ if(!pool.length)return say('No ranked Joiners are available. You can use Add Manually instead.',true);
+
+ const assignedKeys=new Set(joiners.map(j=>String(j.player_account_id||'')).filter(Boolean));
+ const ov=document.createElement('div');ov.className='inline-picker-overlay';
+ ov.innerHTML=`<div class="inline-picker-card">
+   <div class="inline-picker-head">
+     <div><h3>Add Player • ${esc(a.alliance_tag)}</h3><div class="select-note">Ranked by NEXA Joiner score. Tap a player to add them.</div></div>
+     <button class="mini-x" data-inline-close type="button">×</button>
+   </div>
+   <div class="candidate-list">${pool.map((p,i)=>`<button class="candidate-card" data-tb-pick-player="${esc(String(p.id))}" type="button" style="width:100%;text-align:left">
+     <div class="candidate-main"><div><b>#${i+1} • ${esc(p.in_game_name)}</b><div class="tiny muted">${esc(playerAllianceLabel(p))}${assignedKeys.has(String(p.id))?' • Already assigned':''}</div></div><span class="candidate-tier">${joinerSbsScore(p).toFixed(1)}</span></div>
+     <div class="candidate-troops">${esc(troopSummary(p))}</div>
+   </button>`).join('')}</div>
+ </div>`;
+ document.body.appendChild(ov);
+ $('[data-inline-close]',ov).onclick=()=>ov.remove();
+
+ $$('[data-tb-pick-player]',ov).forEach(b=>b.onclick=async()=>{
+   const p=playerPool.find(x=>String(x.id)===String(b.dataset.tbPickPlayer));
+   if(!p)return;
+
+   const target=teamBoardDefaultTeamForAlliance(aid);
+   if(!target)return say('No Team exists for this Alliance.',true);
+
+   const existing=joiners.find(j=>String(j.player_account_id)===String(p.id));
+   if(existing){
+     const existingTeam=teams.find(t=>String(t.id)===String(existing.team_id));
+     const existingAlliance=existingTeam?A(existingTeam.strategy_alliance_id):null;
+
+     if(existingAlliance&&String(existingAlliance.id)===String(aid)){
+       say(`${p.in_game_name} is already in ${a.alliance_tag}.`);
+       return;
+     }
+
+     if(!await nexaConfirm('Move Player?',`${p.in_game_name} is already assigned elsewhere. Move them to ${a.alliance_tag}?`,{confirmLabel:'Move'}))return;
+     const {error}=await sb.from('svs_strategy_joiners').update({
+       team_id:target.id,
+       sort_order:Joiners(target.id).length
+     }).eq('id',existing.id);
+     if(error)return say(error.message,true);
+   }else{
+     const {error}=await sb.from('svs_strategy_joiners').insert({
+       team_id:target.id,
+       player_account_id:p.id,
+       player_name:p.in_game_name,
+       sort_order:Joiners(target.id).length,
+       join_first:false
+     });
+     if(error)return say(error.message,true);
+   }
+
+   ov.remove();
+   await openStrategy(strategy.id);
+   say(`${p.in_game_name} added to ${a.alliance_tag}.`);
  });
 }
 
@@ -2228,17 +2304,9 @@ function renderTeamBoardCounterPlayers(a){
  const rows=teamBoardAllianceRows(a),cols=chunkRows(rows,10);
  return `<div class="tb14-player-columns-wrap"><div class="tb14-player-columns">${cols.map(col=>`<div class="tb14-player-column"><div class="tb14-player-col-head">Player</div>${col.map(j=>`<div class="tb14-player-col-row"><span class="tag">[${esc(j._tb_test?j._tb_tag:teamBoardPlayerAllianceTag(j))}]</span>${esc(j.player_name)}</div>`).join('')}</div>`).join('')||'<div class="tb14-empty">No Players assigned.</div>'}</div></div>`;
 }
-function openTeamBoardAllianceJoinerPicker(aid){
- const a=A(aid),ts=Teams(aid);if(!a||!ts.length)return say('No Teams exist for this Alliance.',true);
- if(ts.length===1)return openTeamBoardJoinerPicker(ts[0].id);
- modal(`Choose Team • ${a.alliance_tag}`,`<label>Team<select id="tb-target-team">${ts.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('')}</select></label>`,async ov=>{
-   const tid=$('#tb-target-team',ov)?.value;if(!tid)return false;
-   setTimeout(()=>openTeamBoardJoinerPicker(tid),0);
- });
-}
 function renderTeamBoardAlliance(a){
  const main=teamBoardPrimaryAlliance(),isMain=main&&String(main.id)===String(a.id),ts=Teams(a.id),rows=teamBoardAllianceRows(a),heroes=isMain?[]:teamBoardCounterHeroes(a.id);
- const teamLines=ts.map(t=>`<div class="tb14-teamline no-export" style="--tc:${tc(t)}"><div>${esc(a.alliance_tag)} - <span>${esc(t.name)}</span></div><button class="btn" data-tb-add-player-team="${t.id}" type="button">+ Add Player</button></div>`).join('');
+ const teamLines='';
  const ratios=isMain
    ? `${teamBoardRatioCard('★ Garrison',a.defense_ratio,'garrison-card')}${teamBoardRatioCard('MIA Rally',a.attack_ratio,'mia-card')}`
    : `${teamBoardRatioCard('★ MIA Rally',a.attack_ratio,'mia-card')}`;
@@ -2248,7 +2316,7 @@ function renderTeamBoardAlliance(a){
    <div class="tb14-section"><div class="tb14-section-title"><h4>Whale Group Schedule</h4></div><div class="tb14-schedule-list">${ts.map(t=>teamBoardScheduleTeam(t,a)).join('')||'<div class="tb14-empty">No Teams exist in Pet Schedule.</div>'}</div>${teamLines}</div>
    <div class="tb14-section"><div class="tb14-section-title"><h4>Troop Ratios</h4><button class="btn tb14-mini" data-tb-edit-ratio="${a.id}" type="button">Edit Ratios</button></div><div class="tb14-ratios ${isMain?'':'counter'}">${ratios}</div></div>
    ${!isMain?`<div class="tb14-section"><div class="tb14-section-title"><h4>MIA Rally • Joiner Heroes · Use Any Of These</h4><button class="btn tb14-mini" data-tb-edit-heroes="${a.id}" type="button">Choose Heroes</button></div><div class="tb14-hero-pool">${heroes.length?heroes.map(h=>`<div class="tb14-hero-card">${h.image_url?`<img src="${esc(h.image_url)}" alt="">`:'<div></div>'}<b class="${rarityClass(h.rarity)}">${esc(h.name)}</b></div>`).join(''):'<div class="tb14-empty">No Joiner Heroes selected yet.</div>'}</div></div>`:''}
-   <div class="tb14-section"><div class="tb14-section-title"><h4>Players (${rows.length})</h4></div>${isMain?renderTeamBoardMainPlayers(a):renderTeamBoardCounterPlayers(a)}</div>
+   <div class="tb14-section"><div class="tb14-section-title"><h4>Players (${rows.length})</h4><button class="btn tb14-mini" data-tb-add-alliance-player="${a.id}" type="button">+ Add Player</button></div>${isMain?renderTeamBoardMainPlayers(a):renderTeamBoardCounterPlayers(a)}</div>
  </section>`;
 }
 
@@ -2300,7 +2368,7 @@ function renderStrategy(){
  $$('[data-tb-edit-roles]',host).forEach(b=>b.onclick=()=>editTeamBoardRoles(b.dataset.tbEditRoles));
  $$('[data-tb-edit-ratio]',host).forEach(b=>b.onclick=()=>editTeamBoardRatios(b.dataset.tbEditRatio));
  $$('[data-tb-edit-heroes]',host).forEach(b=>b.onclick=()=>editTeamBoardCounterHeroes(b.dataset.tbEditHeroes));
- $$('[data-tb-add-player-team]',host).forEach(b=>b.onclick=()=>openTeamBoardAddPlayer(b.dataset.tbAddPlayerTeam));
+ $$('[data-tb-add-alliance-player]',host).forEach(b=>b.onclick=()=>openTeamBoardAddPlayerForAlliance(b.dataset.tbAddAlliancePlayer));
  $$('[data-tb-edit-main]',host).forEach(b=>b.onclick=()=>editMainPlayerHeroes(b.dataset.tbEditMain));
 }
 const tbPreviewBtn=$('#tb-preview');if(tbPreviewBtn)tbPreviewBtn.onclick=()=>openTeamBoardChoice('preview');

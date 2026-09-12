@@ -175,11 +175,6 @@ function compactLive(){
 function transferOwnedCard(){
  $('#nexa-v430-transfer-card')?.remove();
  return null;
-}.createElement('section');owned.id='nexa-v430-transfer-card';
-  if(legacy)legacy.after(owned);
-  else $('#home-svs-section')?.after(owned);
- }
- return owned;
 }
 function renderTransferOwned(rows=[]){
  const section=transferOwnedCard();if(!section)return;

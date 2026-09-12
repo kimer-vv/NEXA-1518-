@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V14.10 • OPPONENT PROTECTION + CLEAN OPPONENT SIDE -->
+<!-- NEXA SVS OPERATIONS V14.12 • CASTLE PILLS ACCESS + TRANSPARENCY + OPPONENT PROTECTION -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -454,14 +454,14 @@ body.pet-preview-open{overflow:hidden!important}
 .castle-color-field input{min-height:44px;padding:5px}
 .castle-color-ok{min-width:52px;height:44px}
 .castle-custom-main{grid-column:1;justify-self:start}
-.castle-custom-alliance-list{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
+.castle-custom-alliance-list{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;position:relative;z-index:8;pointer-events:auto}
 .castle-custom-alliance-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.13);border-radius:999px;background:rgba(255,255,255,.035);padding:5px 7px 5px 8px;font-size:10px;font-weight:950}
 .castle-custom-alliance-chip i{width:10px;height:10px;border-radius:3px;border:1px solid rgba(255,255,255,.5)}
 .castle-custom-alliance-chip button{border:0;background:transparent;color:#ff9cad;font-weight:950;padding:0 2px;font-size:13px;line-height:1}
 .castle-custom-alliance-note{grid-column:1/-1;font-size:9px;color:#8f9bbb;line-height:1.35}
 
 
-.castle-custom-alliance-chip{cursor:pointer;transition:.14s ease}
+.castle-custom-alliance-chip{cursor:pointer;transition:.14s ease;position:relative;z-index:8;pointer-events:auto;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .castle-custom-alliance-chip.active{border-color:rgba(72,221,255,.86);box-shadow:0 0 0 2px rgba(72,221,255,.13),0 0 18px rgba(72,221,255,.10);background:rgba(38,79,112,.30)}
 .castle-custom-alliance-chip.whales{border-color:rgba(78,222,156,.35)}
 .castle-custom-alliance-chip.whales.active{border-color:rgba(78,222,156,.88);box-shadow:0 0 0 2px rgba(78,222,156,.14),0 0 18px rgba(78,222,156,.10)}
@@ -3560,7 +3560,7 @@ let castlePendingStyle='straight',castlePendingOrientation='southwest',castlePre
 
 function castleDefaultSnapshot(){
  return {
-   version:'3.3',
+   version:'3.4',
    view_mode:'diamond',
    viewport:{...CASTLE_HOME},
    layout_mode:'preset',
@@ -3633,7 +3633,7 @@ function castleNormalizeSnapshot(raw){
  const layout_style=s.layout_style==='diagonal'?'diagonal':'straight';
  const layout_orientation=['northwest','northeast','southwest','southeast'].includes(s.layout_orientation)?s.layout_orientation:'southwest';
  const layout_set=Boolean(s.layout_set||opp.length);
- return {...d,...s,version:'3.3',view_mode:'diamond',viewport:v,layout_mode,layout_style,layout_orientation,layout_set,
+ return {...d,...s,version:'3.4',view_mode:'diamond',viewport:v,layout_mode,layout_style,layout_orientation,layout_set,
    opponent_cells:opp,custom_alliances,alliance_colors,cities};
 }
 function castleCloneSnapshot(){return JSON.parse(JSON.stringify(castleSnapshot||castleDefaultSnapshot()))}
@@ -3912,10 +3912,16 @@ function castleRenderCustomAlliances(){
 }
 async function castleHandleAlliancePill(key){
  const a=castleAllianceChoice(key);if(!a)return;
- if(castleSnapshot?.layout_mode==='preset'&&!castleSnapshot?.layout_set){
-   return say('Set the Castle Layout first before assigning Cities.',true);
- }
+
+ // Alliance pills are always selectable. Set Layout only blocks map edits, not choosing the active Alliance.
+ castlePaintAllianceId=key;
+ castlePaintColor=a.color;
+ castleSyncPaintControls();
+
  if(castleSelection.size){
+   if(castleSnapshot?.layout_mode==='preset'&&!castleSnapshot?.layout_set){
+     return say(`${a.tag} selected. Tap Set Layout before changing selected Cities.`,true);
+   }
    const keys=[...castleSelection];
    const effectiveOpponent=castleEffectiveOpponentSet();
    const opponentCount=keys.filter(k=>effectiveOpponent.has(String(k))).length;
@@ -3931,13 +3937,11 @@ async function castleHandleAlliancePill(key){
    );
    if(!ok)return;
    castleApplyOwnerToSelection(a,keys);
-   castlePaintAllianceId=key;castlePaintColor=a.color;
    castleSelection.clear();
    castleRefresh();castleQueueSave();
    say(`${n} Castle cit${n===1?'y':'ies'} changed to ${a.tag}.`);
    return;
  }
- castlePaintAllianceId=key;castlePaintColor=a.color;
  castleSetTool('paint');
  castleSyncPaintControls();castleQueueSave();
 }
@@ -3982,7 +3986,7 @@ function castleAddCustomAlliance(){
      const color=castleEnsureAllianceColor(String(choice));
      castlePaintAllianceId=String(choice);castlePaintColor=color;
    }
-   castleSetTool('paint');castleRefresh();castleQueueSave();say('Alliance registered with its fixed Castle color.');
+   castleSetTool('paint');castleRefresh();castleQueueSave();say('Alliance registered and selected. Set Layout before painting if the preset is still only a preview.');
  });
  const sel=$('#castle-manage-alliance',ov),manual=$('#castle-manage-manual-wrap',ov);
  sel.onchange=()=>{manual.style.display=sel.value==='__manual__'?'block':'none'};
@@ -4073,12 +4077,12 @@ function castleRenderSvg(){
    const x=c.x*CASTLE_CELL,y=c.y*CASTLE_CELL,cx=x+CASTLE_CITY_SIZE/2,cy=y+CASTLE_CITY_SIZE/2;
    const selected=castleSelection.has(castleCellKey(c.x,c.y)),tag=c.alliance_tag||castleAllianceById(c.alliance_id)?.tag||'';
    const name=c.player_name||'',secs=castleSecondsForAnchor(c.x,c.y),key=castleCityAllianceKey(c),fill=c.color||castleAllianceColor(key),tt=castleTextTransform(cx,cy);
-   const tc=castleReadableTextColor(fill),stroke=tc==='#090b10'?'rgba(255,255,255,.28)':'rgba(0,0,0,.50)';
+   const tc=castleReadableTextColor(fill),stroke=tc==='#090b10'?'rgba(255,255,255,.34)':'rgba(0,0,0,.62)';
    let text='';
-   if(name)text=`<text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="9.1" font-weight="900" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:.7px">${esc(name.slice(0,15))}</text><text x="${cx}" y="${cy+9}" text-anchor="middle" font-size="7.7" font-weight="850" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:.55px">${secs}s</text>`;
-   else if(tag)text=`<text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="8.8" font-weight="950" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:.7px">[${esc(tag.slice(0,8))}]</text><text x="${cx}" y="${cy+9}" text-anchor="middle" font-size="7.7" font-weight="850" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:.55px">${secs}s</text>`;
-   else text=`<text x="${cx}" y="${cy+3}" text-anchor="middle" font-size="8.1" font-weight="850" fill="${tc}" transform="${tt}">${secs}s</text>`;
-   return `<g data-castle-city="${esc(c.id)}"><rect x="${x+2}" y="${y+2}" width="${CASTLE_CITY_SIZE-4}" height="${CASTLE_CITY_SIZE-4}" rx="5" fill="${esc(fill)}" fill-opacity=".94" stroke="${selected?'#ffffff':'rgba(255,255,255,.48)'}" stroke-width="${selected?3:1.2}"/>${text}</g>`;
+   if(name)text=`<text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="9.1" font-weight="900" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:.78px">${esc(name.slice(0,15))}</text><text x="${cx}" y="${cy+9}" text-anchor="middle" font-size="7.7" font-weight="850" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:.60px">${secs}s</text>`;
+   else if(tag)text=`<text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="8.8" font-weight="950" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:.78px">[${esc(tag.slice(0,8))}]</text><text x="${cx}" y="${cy+9}" text-anchor="middle" font-size="7.7" font-weight="850" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:.60px">${secs}s</text>`;
+   else text=`<text x="${cx}" y="${cy+3}" text-anchor="middle" font-size="8.1" font-weight="850" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:.55px">${secs}s</text>`;
+   return `<g data-castle-city="${esc(c.id)}"><rect x="${x+2}" y="${y+2}" width="${CASTLE_CITY_SIZE-4}" height="${CASTLE_CITY_SIZE-4}" rx="5" fill="${esc(fill)}" fill-opacity=".84" stroke="${selected?'#ffffff':'rgba(255,255,255,.60)'}" stroke-width="${selected?3:1.28}"/>${text}</g>`;
  }).join('');
  const outer=CASTLE_OUTER_HALF_CELLS*CASTLE_CELL,inner=CASTLE_INNER_HALF_CELLS*CASTLE_CELL;
  svg.innerHTML=`

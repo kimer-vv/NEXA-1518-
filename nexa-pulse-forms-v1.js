@@ -1,49 +1,43 @@
-/* NEXA PULSE FORMS V3.5 — CONTENT OWNER ONLY — 2026-09-11
+/* NEXA PULSE FORMS V3.6 — ROBUST CONTENT OWNER — 2026-09-12
    COMPLETE REPLACEMENT for: nexa-pulse-forms-v1.js
 
    Owns ONLY:
    - #nexa-pulse-visible-owner-v34
-   - Pulse form/battle-plan content
+   - Pulse published-form / battle-plan content
    - hidden legacy sink #nexa-v302-pulse
 
-   DOES NOT:
-   - move Live Event
-   - move Alliance Signal
-   - move Transfers
-   - own Home order
+   Home order belongs to nexa-home-compositor-v1.js.
 
-   Home order is owned by nexa-home-compositor-v1.js.
-
-   Safety:
+   V3.6:
+   - Creates the visible Pulse card immediately, even before Supabase is ready.
+   - Resolves Supabase lazily instead of permanently returning during script boot.
+   - Mounts only into #nexa-home-signal-slot when available.
+   - Never moves Live, Alliance Signal or Transfers.
    - No MutationObserver.
-   - No layout polling.
    - No touchmove preventDefault.
    - No manual scrollLeft.
 */
 (()=>{
 'use strict';
 
-if(window.__NEXA_PULSE_FORMS_V35_CONTENT_ONLY__) return;
-window.__NEXA_PULSE_FORMS_V35_CONTENT_ONLY__=true;
+if(window.__NEXA_PULSE_FORMS_V36__) return;
+window.__NEXA_PULSE_FORMS_V36__=true;
 
 const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
 
-const sb=
-  window.supabaseClient?.from ? window.supabaseClient :
-  window.sb?.from ? window.sb :
-  window.supabase?.createClient?.(SB_URL,SB_KEY);
-
-if(!sb) return;
-
 const LEGACY_ID='nexa-v302-pulse';
 const CARD_ID='nexa-pulse-visible-owner-v34';
 
-let generation=0;
-let lastPaintKey='';
-
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
+const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({
+  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+}[m]));
+
+let localSb=null;
+let generation=0;
+let lastPaintKey='';
 
 const META={
   svs:{title:'Battle Sign-Up',url:'battle-form.html?public=1',sub:''},
@@ -56,10 +50,13 @@ const META={
   }
 };
 
-function esc(v){
-  return String(v??'').replace(/[&<>"']/g,m=>({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-  }[m]));
+function sb(){
+  if(window.supabaseClient?.from) return window.supabaseClient;
+  if(window.sb?.from) return window.sb;
+  if(!localSb && window.supabase?.createClient){
+    localSb=window.supabase.createClient(SB_URL,SB_KEY);
+  }
+  return localSb;
 }
 
 function deadline(settings){
@@ -68,19 +65,12 @@ function deadline(settings){
   }
 
   const ms=new Date(settings.deadline_at).getTime()-Date.now();
-
-  if(!Number.isFinite(ms)){
-    return {label:'OPEN',detail:'Open',tone:'green'};
-  }
-
-  if(ms<=0){
-    return {label:'CLOSED',detail:'Deadline passed',tone:'red'};
-  }
+  if(!Number.isFinite(ms)) return {label:'OPEN',detail:'Open',tone:'green'};
+  if(ms<=0) return {label:'CLOSED',detail:'Deadline passed',tone:'red'};
 
   const days=Math.floor(ms/86400000);
   const hours=Math.floor(ms/3600000)%24;
   const mins=Math.floor(ms/60000)%60;
-
   const detail=days>0
     ? `Deadline · ${days}D ${hours}H`
     : `Deadline · ${hours}H ${mins}M`;
@@ -105,22 +95,23 @@ function urlFor(key,settings){
 }
 
 function subFor(key,settings){
-  return settings?.pulse_subtitle ||
-         META[key]?.sub ||
-         '';
+  return settings?.pulse_subtitle || META[key]?.sub || '';
 }
 
 function installCSS(){
-  if($('#nexa-pulse-v35-css')) return;
+  if($('#nexa-pulse-v36-css')) return;
+
+  $('#nexa-pulse-v35-css')?.remove();
 
   const s=document.createElement('style');
-  s.id='nexa-pulse-v35-css';
+  s.id='nexa-pulse-v36-css';
   s.textContent=`
     #${CARD_ID}{
       --tech:#35dfff;
       --tech-rgb:53,223,255;
       width:100%!important;
       max-width:100%!important;
+      min-width:0!important;
       min-height:64px!important;
       height:auto!important;
       margin:0!important;
@@ -131,9 +122,7 @@ function installCSS(){
       background:
         radial-gradient(circle at 8% 8%,rgba(var(--tech-rgb),.065),transparent 34%),
         linear-gradient(145deg,rgba(7,18,38,.97),rgba(4,10,27,.985))!important;
-      box-shadow:
-        inset 0 0 0 1px rgba(255,255,255,.012),
-        0 0 9px rgba(var(--tech-rgb),.035)!important;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.012),0 0 9px rgba(var(--tech-rgb),.035)!important;
       position:relative!important;
       overflow:hidden!important;
       visibility:visible!important;
@@ -152,7 +141,6 @@ function installCSS(){
       background:#53e8ff;
       box-shadow:0 0 5px rgba(83,232,255,.82),0 0 10px rgba(53,223,255,.38);
       pointer-events:none;
-      z-index:5;
     }
 
     #${CARD_ID} .nexa-pulse-kicker{
@@ -171,8 +159,6 @@ function installCSS(){
       font-size:16px!important;
       line-height:1.15!important;
       font-weight:900!important;
-      letter-spacing:-.01em!important;
-      font-family:inherit!important;
     }
 
     #${CARD_ID} .nexa-pulse-copy{
@@ -180,12 +166,9 @@ function installCSS(){
       color:#9aa8c3!important;
       font-size:12px!important;
       line-height:1.35!important;
-      font-weight:400!important;
     }
 
-    #${CARD_ID}.has-active-content .nexa-pulse-copy{
-      display:none!important;
-    }
+    #${CARD_ID}.has-active-content .nexa-pulse-copy{display:none!important}
 
     #${CARD_ID} .nexa-pulse-live-surface{
       display:grid!important;
@@ -193,10 +176,6 @@ function installCSS(){
       width:100%!important;
       min-width:0!important;
       margin-top:10px!important;
-      padding:0!important;
-      background:transparent!important;
-      border:0!important;
-      box-shadow:none!important;
     }
 
     #${CARD_ID} .nexa-pulse-live-surface.is-empty{
@@ -213,7 +192,6 @@ function installCSS(){
       border:1px solid rgba(57,223,255,.18)!important;
       border-radius:14px!important;
       background:rgba(4,18,36,.46)!important;
-      box-shadow:none!important;
     }
 
     #${CARD_ID} .nexa-pulse-bp-card{
@@ -229,24 +207,9 @@ function installCSS(){
       min-width:0!important;
     }
 
-    #${CARD_ID} .nexa-pulse-form-copy{
-      display:grid!important;
-      gap:3px!important;
-      min-width:0!important;
-    }
-
-    #${CARD_ID} .nexa-pulse-form-copy b{
-      color:#f5fbff!important;
-      font-size:12px!important;
-      line-height:1.25!important;
-    }
-
-    #${CARD_ID} .nexa-pulse-form-copy small{
-      color:#9faccb!important;
-      font-size:9px!important;
-      line-height:1.35!important;
-      font-weight:800!important;
-    }
+    #${CARD_ID} .nexa-pulse-form-copy{display:grid!important;gap:3px!important;min-width:0!important}
+    #${CARD_ID} .nexa-pulse-form-copy b{color:#f5fbff!important;font-size:12px!important;line-height:1.25!important}
+    #${CARD_ID} .nexa-pulse-form-copy small{color:#9faccb!important;font-size:9px!important;line-height:1.35!important;font-weight:800!important}
 
     #${CARD_ID} .nexa-pulse-status{
       flex:0 0 auto!important;
@@ -258,17 +221,16 @@ function installCSS(){
       letter-spacing:.08em!important;
     }
 
-    #${CARD_ID} .nexa-pulse-status.green{color:#8affcb!important;border-color:rgba(84,240,181,.38)!important;background:rgba(22,92,72,.17)!important}
-    #${CARD_ID} .nexa-pulse-status.yellow{color:#ffe28a!important;border-color:rgba(255,215,94,.40)!important;background:rgba(111,82,10,.15)!important}
-    #${CARD_ID} .nexa-pulse-status.red{color:#ff9aad!important;border-color:rgba(255,90,120,.43)!important;background:rgba(109,24,45,.16)!important}
-    #${CARD_ID} .nexa-pulse-status.purple{color:#d5c5ff!important;border-color:rgba(170,126,255,.40)!important;background:rgba(76,49,133,.18)!important}
+    #${CARD_ID} .nexa-pulse-status.green{color:#8affcb!important;border-color:rgba(84,240,181,.38)!important}
+    #${CARD_ID} .nexa-pulse-status.yellow{color:#ffe28a!important;border-color:rgba(255,215,94,.40)!important}
+    #${CARD_ID} .nexa-pulse-status.red{color:#ff9aad!important;border-color:rgba(255,90,120,.43)!important}
+    #${CARD_ID} .nexa-pulse-status.purple{color:#d5c5ff!important;border-color:rgba(170,126,255,.40)!important}
 
     #${CARD_ID} .nexa-pulse-deadline-line{
       font-size:10px!important;
       line-height:1.3!important;
       font-weight:900!important;
     }
-
     #${CARD_ID} .nexa-pulse-deadline-line.green{color:#8affcb!important}
     #${CARD_ID} .nexa-pulse-deadline-line.yellow{color:#ffe28a!important}
     #${CARD_ID} .nexa-pulse-deadline-line.red{color:#ff9aad!important}
@@ -290,88 +252,61 @@ function installCSS(){
       font-weight:950!important;
     }
 
-    #${CARD_ID} .nexa-pulse-bp-action{
-      border-color:rgba(156,116,255,.48)!important;
-      background:linear-gradient(135deg,rgba(73,45,146,.82),rgba(42,72,133,.80),rgba(20,104,114,.72))!important;
-    }
-
-    #${LEGACY_ID},
-    [data-nexa-pulse-sink="v35"]{
+    #${LEGACY_ID}{
       display:none!important;
       visibility:hidden!important;
       opacity:0!important;
       pointer-events:none!important;
-      max-height:0!important;
-      min-height:0!important;
+      width:0!important;
       height:0!important;
       margin:0!important;
       padding:0!important;
-      border:0!important;
-      overflow:hidden!important;
-    }
-
-    [data-nexa-retired-pulse="v35"]{
-      display:none!important;
-      visibility:hidden!important;
-      opacity:0!important;
-      pointer-events:none!important;
-      max-height:0!important;
-      min-height:0!important;
-      height:0!important;
-      margin:0!important;
-      padding:0!important;
-      border:0!important;
       overflow:hidden!important;
     }
   `;
   document.head.appendChild(s);
 }
 
-function ensureLegacySink(){
+function ensureSink(){
   let sink=$('#'+LEGACY_ID);
   if(!sink){
     sink=document.createElement('section');
     sink.id=LEGACY_ID;
+    sink.dataset.nexaPulseSink='v36';
   }
-
-  sink.dataset.nexaTech='pulse';
-  sink.dataset.nexaPulseSink='v35';
   sink.setAttribute('aria-hidden','true');
   return sink;
 }
 
-function ensureVisibleCard(){
+function ensureCard(){
+  installCSS();
+
   let card=$('#'+CARD_ID);
-  if(card) return card;
+  if(!card){
+    card=document.createElement('section');
+    card.id=CARD_ID;
+    card.className='section nexa-v31-strip';
+    card.dataset.nexaTech='pulse-visible';
+    card.dataset.nexaPulseOwner='v3.6';
+    card.setAttribute('aria-live','polite');
+    card.innerHTML=`
+      <div class="nexa-pulse-kicker">NEXA PULSE</div>
+      <h3 class="nexa-pulse-title">Signals &amp; response requests</h3>
+      <p class="nexa-pulse-copy">When leadership publishes a response request, it will appear here.</p>
+      <div class="nexa-pulse-live-surface is-empty"></div>
+    `;
+  }
 
-  card=document.createElement('section');
-  card.id=CARD_ID;
-  card.className='section nexa-v31-strip';
-  card.dataset.nexaTech='pulse-visible';
-  card.dataset.nexaPulseOwner='v3.5';
-  card.setAttribute('aria-live','polite');
-
-  card.innerHTML=`
-    <div class="nexa-pulse-kicker">NEXA PULSE</div>
-    <h3 class="nexa-pulse-title">Signals &amp; response requests</h3>
-    <p class="nexa-pulse-copy">When leadership publishes a response request, it will appear here.</p>
-    <div class="nexa-pulse-live-surface is-empty"></div>
-  `;
-
-  return card;
-}
-
-function removeDuplicates(keep){
-  $$('[id="'+CARD_ID+'"], [data-nexa-pulse-owner]').forEach(el=>{
-    if(el!==keep && el.id!==LEGACY_ID) el.remove();
+  $$(`[id="${CARD_ID}"]`).forEach(el=>{
+    if(el!==card) el.remove();
   });
 
-  [
-    '#nexa-pulse-owner-v24',
-    '#nexa-pulse-owner-v25',
-    '#nexa-pulse-owner-v26',
-    '#nexa-pulse-owner-v27'
-  ].forEach(sel=>$(sel)?.remove());
+  const target=$('#nexa-home-signal-slot');
+  if(target && card.parentNode!==target) target.appendChild(card);
+
+  ensureSink();
+
+  return card;
 }
 
 function announceReady(){
@@ -381,17 +316,11 @@ function announceReady(){
   try{window.NEXA_HOME_COMPOSE?.()}catch(_){}
 }
 
-function ensureOwnedNodes(){
-  installCSS();
-  ensureLegacySink();
-  const card=ensureVisibleCard();
-  removeDuplicates(card);
-  announceReady();
-  return card;
-}
-
 async function loadPublishedForms(){
-  const {data,error}=await sb
+  const c=sb();
+  if(!c) return [];
+
+  const {data,error}=await c
     .from('event_form_templates')
     .select('event_type_key,settings');
 
@@ -404,7 +333,10 @@ async function loadPublishedForms(){
 }
 
 async function loadBattlePlans(){
-  const {data,error}=await sb
+  const c=sb();
+  if(!c) return [];
+
+  const {data,error}=await c
     .from('svs_battle_plans')
     .select('id,title,state_number,status,is_listed,published_at,published_document')
     .eq('status','published')
@@ -420,18 +352,17 @@ function formHTML(row){
   const key=row.event_type_key;
   const st=row.settings||{};
   const d=deadline(st);
-
   const title=titleFor(key,st);
   const sub=subFor(key,st);
   const url=urlFor(key,st);
-  const action=d.label==='CLOSED' ? 'View Form' : 'Start Form';
+  const action=d.label==='CLOSED'?'View Form':'Start Form';
 
   return `
     <div class="nexa-pulse-form-card" data-form-key="${esc(key)}">
       <div class="nexa-pulse-form-head">
         <div class="nexa-pulse-form-copy">
           <b>${esc(title)}</b>
-          ${sub ? `<small>${esc(sub)}</small>` : ''}
+          ${sub?`<small>${esc(sub)}</small>`:''}
         </div>
         <span class="nexa-pulse-status ${esc(d.tone)}">${esc(d.label)}</span>
       </div>
@@ -443,7 +374,7 @@ function formHTML(row){
 
 function battlePlanHTML(row){
   const p=row.published_document||{};
-  const date=p.event_date ? `Event • ${p.event_date}` : 'SvS battle document';
+  const date=p.event_date?`Event • ${p.event_date}`:'SvS battle document';
 
   return `
     <div class="nexa-pulse-bp-card">
@@ -455,14 +386,14 @@ function battlePlanHTML(row){
         <span class="nexa-pulse-status purple">PUBLISHED</span>
       </div>
       <div class="nexa-pulse-deadline-line" style="color:#cfc3ff">${esc(date)}</div>
-      <a class="nexa-pulse-form-action nexa-pulse-bp-action" href="battle-plan.html?id=${encodeURIComponent(row.id)}">View Battle Plan</a>
+      <a class="nexa-pulse-form-action" href="battle-plan.html?id=${encodeURIComponent(row.id)}">View Battle Plan</a>
     </div>
   `;
 }
 
 async function render(){
-  let card=ensureOwnedNodes();
-  if(!card) return false;
+  const card=ensureCard();
+  announceReady();
 
   let forms=[];
   let plans=[];
@@ -473,14 +404,10 @@ async function render(){
       loadBattlePlans()
     ]);
   }catch(err){
-    console.warn('[NEXA Pulse V3.5] data load failed',err);
-    announceReady();
-    return false;
+    console.warn('[NEXA Pulse V3.6] data load failed',err?.message||err);
   }
 
-  card=ensureOwnedNodes();
   let surface=$('.nexa-pulse-live-surface',card);
-
   if(!surface){
     card.innerHTML=`
       <div class="nexa-pulse-kicker">NEXA PULSE</div>
@@ -497,35 +424,23 @@ async function render(){
     forms:forms.map(x=>[
       x.event_type_key,
       x.settings?.published_to_nexa,
-      x.settings?.public_access_removed,
       x.settings?.deadline_at,
       x.settings?.form_title,
-      x.settings?.public_url,
-      x.settings?.form_url
+      x.settings?.public_url
     ]),
-    plans:plans.map(x=>[
-      x.id,
-      x.title,
-      x.published_at
-    ])
+    plans:plans.map(x=>[x.id,x.title,x.published_at])
   });
 
-  const ownsPaint=
-    surface.dataset.nexaPulsePainted==='1' &&
-    surface.querySelector('.nexa-pulse-form-card,.nexa-pulse-bp-card');
-
-  if(paintKey!==lastPaintKey || !ownsPaint){
+  if(paintKey!==lastPaintKey){
     surface.innerHTML=
       forms.map(formHTML).join('')+
       plans.map(battlePlanHTML).join('');
-
-    surface.dataset.nexaPulsePainted='1';
     lastPaintKey=paintKey;
   }
 
-  const hasActiveContent=forms.length>0 || plans.length>0;
-  surface.classList.toggle('is-empty',!hasActiveContent);
-  card.classList.toggle('has-active-content',hasActiveContent);
+  const active=forms.length>0 || plans.length>0;
+  surface.classList.toggle('is-empty',!active);
+  card.classList.toggle('has-active-content',active);
 
   announceReady();
   return true;
@@ -533,7 +448,6 @@ async function render(){
 
 function finitePasses(){
   const mine=++generation;
-
   [0,150,500,1200,3000,7000].forEach(ms=>{
     setTimeout(()=>{
       if(mine!==generation) return;
@@ -558,7 +472,7 @@ if(document.readyState==='loading'){
   finitePasses();
 }
 
-/* Data freshness only. This does not move sibling Home cards. */
+/* Data freshness only; does not own Home order. */
 setInterval(()=>render().catch(()=>{}),60000);
 
 })();

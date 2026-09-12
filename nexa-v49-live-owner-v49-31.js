@@ -1,32 +1,36 @@
-/* NEXA V49.45 — LIVE EVENT OPTICAL MATCH
-   COMPLETE REPLACEMENT FILE
-   File: nexa-v49-live-owner-v49-31.js
+/* NEXA LIVE OWNER V49.46 — CONTENT OWNER ONLY — 2026-09-11
+   COMPLETE REPLACEMENT for: nexa-v49-live-owner-v49-31.js
 
-   Changes from V49.36:
-   - Adds a bright horizontal glow line across the top.
-   - Adds a stronger glowing left-side signal line.
-   - Keeps the active Live Event in the Home card family.
-   - Aggressively retires the stale "No Live Event" card by content,
-     even when it is injected later by legacy Home renderers.
-   - Keeps exact position immediately before NEXA Pulse.
-   - No duplicate Supabase query.
+   Owns ONLY:
+   - #nexa-v4937-live-event
+   - Live Event visible content
+   - retirement of stale legacy Live card
 
-   No MutationObserver.
-   No polling.
-   No touchmove preventDefault.
-   No manual scrollLeft.
+   DOES NOT:
+   - anchor itself to Pulse
+   - move Pulse
+   - move Alliance
+   - move Transfers
+   - own Home order
+
+   Home order is owned by nexa-home-compositor-v1.js.
+
+   Safety:
+   - No MutationObserver.
+   - No polling.
+   - No touchmove preventDefault.
+   - No manual scrollLeft.
 */
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4945_LIVE_OPTICAL_MATCH__) return;
-window.__NEXA_V4945_LIVE_OPTICAL_MATCH__=true;
+if(window.__NEXA_V4946_LIVE_CONTENT_ONLY__) return;
+window.__NEXA_V4946_LIVE_CONTENT_ONLY__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
 
 const CARD_ID='nexa-v4937-live-event';
-let lastLive=null;
 let generation=0;
 
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({
@@ -53,51 +57,6 @@ function fmtDate(v){
     year:'numeric',
     timeZone:'UTC'
   }).format(d);
-}
-
-function pulse(){
-  return $('#nexa-v302-pulse');
-}
-
-function ensureCard(){
-  let card=$('#'+CARD_ID);
-  if(card) return card;
-
-  card=document.createElement('section');
-  card.id=CARD_ID;
-  card.className='section nexa-v477-tech-card nexa-v31-strip nexa-v4937-live-card';
-  card.dataset.nexaTech='live';
-  card.setAttribute('aria-live','polite');
-
-  const p=pulse();
-  if(p?.parentNode){
-    p.parentNode.insertBefore(card,p);
-    return card;
-  }
-
-  const old=$('#home-svs-section');
-  if(old?.parentNode){
-    old.parentNode.insertBefore(card,old);
-    return card;
-  }
-
-  const main=$('main.shell') || $('#home') || $('main');
-  if(main) main.appendChild(card);
-
-  return card;
-}
-
-function forceExactSlot(){
-  const card=ensureCard();
-  const p=pulse();
-
-  if(card && p?.parentNode){
-    if(card.parentNode!==p.parentNode || card.nextElementSibling!==p){
-      p.parentNode.insertBefore(card,p);
-    }
-  }
-
-  return card;
 }
 
 function installCSS(){
@@ -132,9 +91,14 @@ function installCSS(){
         0 0 9px rgba(255,79,200,.035)!important;
     }
 
-    #${CARD_ID}.is-live,#${CARD_ID}.is-empty{display:block!important}
+    #${CARD_ID}.is-live,
+    #${CARD_ID}.is-empty{
+      display:block!important;
+    }
 
-    #${CARD_ID}::before{display:none!important}
+    #${CARD_ID}::before{
+      display:none!important;
+    }
 
     #${CARD_ID}::after{
       content:"";
@@ -174,22 +138,12 @@ function installCSS(){
       padding:12px 16px!important;
     }
 
-    #${CARD_ID}.is-empty .v4937-kicker{
-      margin-bottom:6px!important;
-    }
-
-    #${CARD_ID}.is-empty .v4937-title{
-      margin-bottom:5px!important;
-    }
-
     #${CARD_ID} .v4939-empty-copy{
       margin:0!important;
       color:#9aa8c3!important;
       font-size:12px!important;
       line-height:1.35!important;
       font-weight:400!important;
-      letter-spacing:0!important;
-      font-family:inherit!important;
     }
 
     #${CARD_ID} .v4937-alliance-grid{
@@ -290,7 +244,7 @@ function installCSS(){
     }
 
     #home-svs-section,
-    [data-nexa-retired-live="v49-37"]{
+    [data-nexa-retired-live="v49-46"]{
       display:none!important;
       visibility:hidden!important;
       opacity:0!important;
@@ -307,6 +261,30 @@ function installCSS(){
   document.head.appendChild(s);
 }
 
+function ensureCard(){
+  let card=$('#'+CARD_ID);
+  if(card) return card;
+
+  card=document.createElement('section');
+  card.id=CARD_ID;
+  card.className='section nexa-v477-tech-card nexa-v31-strip nexa-v4937-live-card';
+  card.dataset.nexaTech='live';
+  card.dataset.nexaLiveOwner='v49.46';
+  card.setAttribute('aria-live','polite');
+
+  const home=$('#home') || $('main.shell') || $('main');
+  if(home) home.appendChild(card);
+
+  return card;
+}
+
+function announceReady(){
+  window.dispatchEvent(new CustomEvent('nexa:home-surface-ready',{
+    detail:{surface:'live',id:CARD_ID}
+  }));
+  try{window.NEXA_HOME_COMPOSE?.()}catch(_){}
+}
+
 function isLegacyNoLiveText(raw){
   const t=clean(raw);
   return /\bLIVE EVENT\b/i.test(t)
@@ -314,84 +292,25 @@ function isLegacyNoLiveText(raw){
     && /\bUpcoming state events\b/i.test(t);
 }
 
-function smallestLegacyNode(root){
-  const all=$$('*',root).filter(el=>isLegacyNoLiveText(el.textContent));
-  if(!all.length) return null;
-
-  all.sort((a,b)=>{
-    const ac=a.querySelectorAll('*').length;
-    const bc=b.querySelectorAll('*').length;
-    return ac-bc;
-  });
-
-  return all[0]||null;
-}
-
 function retireLegacyLiveCards(){
   const keep=$('#'+CARD_ID);
   const home=$('#home') || $('main.shell') || document.body;
 
-  $('#home-svs-section')?.setAttribute('data-nexa-retired-live','v49-37');
+  $('#home-svs-section')?.setAttribute('data-nexa-retired-live','v49-46');
 
-  let candidate=smallestLegacyNode(home);
-
-  if(candidate && candidate!==keep && !keep?.contains(candidate) && !candidate.contains(keep)){
-    let card=candidate;
-
-    for(let i=0;i<4 && card?.parentElement;i++){
-      const parent=card.parentElement;
-      if(
-        parent===home ||
-        parent===document.body ||
-        parent===document.documentElement ||
-        parent.id==='nexa-v302-pulse' ||
-        parent===keep ||
-        keep?.contains(parent) ||
-        parent.contains(keep)
-      ) break;
-
-      if(isLegacyNoLiveText(parent.textContent)){
-        card=parent;
-      }else{
-        break;
-      }
-    }
-
-    if(
-      card &&
-      card!==home &&
-      card!==document.body &&
-      card!==document.documentElement &&
-      card!==keep &&
-      !keep?.contains(card) &&
-      !card.contains(keep)
-    ){
-      card.dataset.nexaRetiredLive='v49-37';
-      card.setAttribute('aria-hidden','true');
-    }
-  }
-
-  $$('[data-nexa-retired-live="v49-37"]',home).forEach(el=>{
+  $$('section,article,div',home).forEach(el=>{
     if(el===keep || keep?.contains(el) || el.contains(keep)) return;
-    el.style.setProperty('display','none','important');
-    el.style.setProperty('visibility','hidden','important');
-    el.style.setProperty('opacity','0','important');
-    el.style.setProperty('pointer-events','none','important');
-    el.style.setProperty('max-height','0','important');
-    el.style.setProperty('min-height','0','important');
-    el.style.setProperty('height','0','important');
-    el.style.setProperty('margin','0','important');
-    el.style.setProperty('padding','0','important');
-    el.style.setProperty('border','0','important');
-    el.style.setProperty('overflow','hidden','important');
+    if(!isLegacyNoLiveText(el.textContent)) return;
+
+    el.dataset.nexaRetiredLive='v49-46';
+    el.setAttribute('aria-hidden','true');
   });
 }
 
 function renderEmpty(){
-  lastLive=null;
   window.NEXA_CURRENT_LIVE_EVENT=null;
 
-  const card=forceExactSlot();
+  const card=ensureCard();
   if(!card) return false;
 
   card.innerHTML=`
@@ -406,19 +325,18 @@ function renderEmpty(){
   card.setAttribute('aria-hidden','false');
 
   retireLegacyLiveCards();
-  forceExactSlot();
+  announceReady();
   return true;
 }
 
 function render(live){
-  if(!live) return false;
+  if(!live) return renderEmpty();
 
-  lastLive=live;
   window.NEXA_CURRENT_LIVE_EVENT=live;
 
   const p=payloadOf(live);
   const schedule=Array.isArray(p.schedule)?p.schedule:[];
-  const card=forceExactSlot();
+  const card=ensureCard();
   if(!card) return false;
 
   const star=p.star_alliance?.tag || '—';
@@ -476,8 +394,7 @@ function render(live){
   card.setAttribute('aria-hidden','false');
 
   retireLegacyLiveCards();
-  forceExactSlot();
-
+  announceReady();
   return true;
 }
 
@@ -487,32 +404,25 @@ function consume(){
   return renderEmpty();
 }
 
-async function askV49(){
-  if(typeof window.NEXA_SYNC_STATE_HOME!=='function') return false;
-
-  try{
-    await window.NEXA_SYNC_STATE_HOME();
-  }catch(err){
-    console.warn('[NEXA V49.37] V49 sync failed',err?.message||err);
+async function syncThenConsume(){
+  if(typeof window.NEXA_SYNC_STATE_HOME==='function'){
+    try{
+      await window.NEXA_SYNC_STATE_HOME();
+    }catch(err){
+      console.warn('[NEXA Live V49.46] State Home sync failed',err?.message||err);
+    }
   }
-
   return consume();
 }
 
-function scheduleFinitePasses(){
+function finitePasses({resync=false}={}){
   const mine=++generation;
 
-  [0,150,400,850,1500,2600,4200,7000,10000,15000,20000].forEach((ms,index)=>{
+  [0,250,800,2000].forEach((ms,index)=>{
     setTimeout(async()=>{
       if(mine!==generation) return;
-
-      if(index<=2){
-        await askV49();
-      }else{
-        consume();
-        retireLegacyLiveCards();
-        forceExactSlot();
-      }
+      if(resync && index===0) await syncThenConsume();
+      else consume();
     },ms);
   });
 }
@@ -522,7 +432,6 @@ function boot(){
   ensureCard();
   retireLegacyLiveCards();
   consume();
-  scheduleFinitePasses();
 
   window.addEventListener('nexa:live-event-ready',e=>{
     const live=e?.detail?.live;
@@ -530,16 +439,16 @@ function boot(){
     else renderEmpty();
   });
 
-  window.addEventListener('nexa:home-ready',scheduleFinitePasses);
-  window.addEventListener('pageshow',scheduleFinitePasses);
+  window.addEventListener('nexa:home-ready',()=>finitePasses({resync:false}));
+  window.addEventListener('pageshow',()=>finitePasses({resync:true}));
 
   document.addEventListener('visibilitychange',()=>{
-    if(!document.hidden) scheduleFinitePasses();
+    if(!document.hidden) finitePasses({resync:true});
   });
 
   window.addEventListener('nexa:active-state-changed',()=>{
-    lastLive=null;
-    scheduleFinitePasses();
+    window.NEXA_CURRENT_LIVE_EVENT=null;
+    finitePasses({resync:true});
   });
 }
 

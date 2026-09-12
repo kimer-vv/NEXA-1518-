@@ -1,23 +1,27 @@
-/* NEXA HOME COMPOSITOR V1.3 — STATIC HOME SLOT OWNER — 2026-09-12
+/* NEXA HOME COMPOSITOR V1.4 — SINGLE STRUCTURAL OWNER — 2026-09-12
    COMPLETE REPLACEMENT for: nexa-home-compositor-v1.js
 
-   Owns ONLY:
-   - Home signal sibling order inside the static #nexa-home-signal-slot.
+   Sole structural owner for Home signals.
 
    Final visible order:
    Live Event -> NEXA Pulse -> Alliance Signal -> Transfers
 
-   V1.3 correction:
-   - Does NOT discover or create its own structural host.
-   - Does NOT depend on Alliance Signal existing before composition.
-   - Uses one static slot declared directly in index.html before the Home footer.
-   - Moves every available current signal surface into that slot.
-   - Re-runs on the existing Home/surface lifecycle events and finite startup passes.
-   - No MutationObserver and no indefinite layout polling.
+   V1.4 ownership consolidation:
+   - Permanently removes the retired static #home-svs-section and #home-transfers-section.
+   - State Hub remains a DATA provider only from the compositor's point of view.
+   - Exposes NEXA_HOME_VISUALS_REFRESH = compose so existing State Hub refresh calls
+     hand structural control back to this compositor instead of becoming a competing owner.
+   - Reclaims Transfer if State Hub temporarily inserts it beside Alliance.
+   - Reclaims Live/Pulse/Alliance/Transfer into one canonical static slot.
+   - Does not depend on Alliance existing before positioning the other cards.
+   - No MutationObserver.
+   - No indefinite polling.
+   - No touchmove preventDefault.
+   - No manual scrollLeft.
 
    Does NOT own:
    - Supabase data
-   - card innerHTML
+   - card innerHTML/content
    - Administration
    - Home menu
    - My Profile
@@ -27,8 +31,8 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_HOME_COMPOSITOR_V13__) return;
-window.__NEXA_HOME_COMPOSITOR_V13__=true;
+if(window.__NEXA_HOME_COMPOSITOR_V14__) return;
+window.__NEXA_HOME_COMPOSITOR_V14__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
@@ -61,10 +65,12 @@ function allianceCard(){
   if(exact) return exact;
 
   return $$('section,article,div').find(el=>{
-    if(el.id==='nexa-v4937-live-event' ||
-       el.id==='nexa-pulse-visible-owner-v34' ||
-       el.id==='nexa-v49-transfer-card' ||
-       el.id===SLOT_ID) return false;
+    if(
+      el.id==='nexa-v4937-live-event' ||
+      el.id==='nexa-pulse-visible-owner-v34' ||
+      el.id==='nexa-v49-transfer-card' ||
+      el.id===SLOT_ID
+    ) return false;
 
     const t=clean(el.textContent);
     if(!/\bALLIANCE SIGNAL\b/i.test(t)) return false;
@@ -78,14 +84,17 @@ function allianceCard(){
 }
 
 function installCSS(){
-  if($('#nexa-home-compositor-v13-css')) return;
+  if($('#nexa-home-compositor-v14-css')) return;
 
-  $('#nexa-home-compositor-v1-css')?.remove();
-  $('#nexa-home-compositor-v11-css')?.remove();
-  $('#nexa-home-compositor-v12-css')?.remove();
+  [
+    '#nexa-home-compositor-v1-css',
+    '#nexa-home-compositor-v11-css',
+    '#nexa-home-compositor-v12-css',
+    '#nexa-home-compositor-v13-css'
+  ].forEach(sel=>$(sel)?.remove());
 
   const s=document.createElement('style');
-  s.id='nexa-home-compositor-v13-css';
+  s.id='nexa-home-compositor-v14-css';
   s.textContent=`
     #${SLOT_ID}{
       display:flex!important;
@@ -115,9 +124,7 @@ function installCSS(){
     }
 
     #${SLOT_ID} > #nexa-v302-pulse,
-    #home-svs-section,
-    #home-transfers-section,
-    [data-nexa-home-legacy-retired="v13"]{
+    [data-nexa-home-legacy-retired="v14"]{
       display:none!important;
       visibility:hidden!important;
       opacity:0!important;
@@ -140,13 +147,22 @@ function installCSS(){
   document.head.appendChild(s);
 }
 
+function removeRetiredStaticSurfaces(){
+  /*
+    These two old index.html sections are no longer allowed to exist in runtime.
+    Removing them is intentional: State Hub can still publish Home data/events,
+    but it has no retired DOM surface left to move or resurrect.
+  */
+  $$('#home-svs-section').forEach(el=>el.remove());
+  $$('#home-transfers-section').forEach(el=>el.remove());
+}
+
 function retireKnownLegacy(){
+  removeRetiredStaticSurfaces();
+
   const live=liveCard();
   const pulse=pulseCard();
   const transfer=transferCard();
-
-  $('#home-svs-section')?.setAttribute('data-nexa-home-legacy-retired','v13');
-  $('#home-transfers-section')?.setAttribute('data-nexa-home-legacy-retired','v13');
 
   [
     '#nexa-pulse-owner-v24',
@@ -159,7 +175,7 @@ function retireKnownLegacy(){
   ].forEach(sel=>{
     $$(sel).forEach(el=>{
       if(el===live || el===pulse || el===transfer) return;
-      el.setAttribute('data-nexa-home-legacy-retired','v13');
+      el.setAttribute('data-nexa-home-legacy-retired','v14');
       el.setAttribute('aria-hidden','true');
     });
   });
@@ -183,7 +199,7 @@ function retireKnownLegacy(){
       /\bForms, surveys and requests appear here\b/i.test(t);
 
     if(staleNoLive || stalePulse){
-      el.setAttribute('data-nexa-home-legacy-retired','v13');
+      el.setAttribute('data-nexa-home-legacy-retired','v14');
       el.setAttribute('aria-hidden','true');
     }
   });
@@ -216,6 +232,7 @@ function rescueFromOldStacks(target){
 
 function compose(){
   installCSS();
+  removeRetiredStaticSurfaces();
 
   const target=slot();
   if(!target) return false;
@@ -230,8 +247,9 @@ function compose(){
   const transfer=transferCard();
 
   /*
-    Compose whatever exists right now.
-    Alliance is NOT required for Live/Pulse/Transfer to be positioned.
+    Structural ownership is absolute here.
+    Any temporary sibling placement performed by a data/content module is
+    normalized back into this canonical order on every compositor pass.
   */
   [live,sink,pulse,alliance,transfer].forEach(node=>{
     if(node && node!==target){
@@ -243,7 +261,7 @@ function compose(){
 
   window.dispatchEvent(new CustomEvent('nexa:home-composed',{
     detail:{
-      owner:'home-compositor-v1.3',
+      owner:'home-compositor-v1.4',
       slot:SLOT_ID,
       live:!!live,
       pulse:!!pulse,
@@ -258,6 +276,10 @@ function compose(){
 function finitePasses(){
   const mine=++generation;
 
+  /*
+    Finite startup reconciliation only.
+    Covers async auth/state/content hydration without permanent polling.
+  */
   [0,80,180,420,900,1800,3200,6000,10000,15000,25000].forEach(ms=>{
     setTimeout(()=>{
       if(mine!==generation) return;
@@ -266,7 +288,13 @@ function finitePasses(){
   });
 }
 
+/*
+  Official structural API.
+  Existing State Hub calls NEXA_HOME_VISUALS_REFRESH after its own data/content work.
+  From V1.4 onward that call explicitly returns structural ownership here.
+*/
 window.NEXA_HOME_COMPOSE=compose;
+window.NEXA_HOME_VISUALS_REFRESH=compose;
 
 window.addEventListener('nexa:home-surface-ready',compose);
 window.addEventListener('nexa:home-ready',finitePasses);

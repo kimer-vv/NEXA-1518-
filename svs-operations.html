@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V14.6 • CASTLE COLOR + CASTLE LAYOUT PRESETS -->
+<!-- NEXA SVS OPERATIONS V14.7 • CASTLE INTERACTION FIX + LIVE SPLIT PREVIEW -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -415,8 +415,8 @@ body.pet-preview-open{overflow:hidden!important}
 
 
 /* V11.7.0 — Castle Layout workspace */
-.castle-shell{margin-left:18px}
-.castle-card{border:1px solid rgba(155,120,255,.30);border-radius:20px;background:radial-gradient(circle at 50% 0%,rgba(88,63,190,.12),transparent 32%),rgba(7,12,29,.92);padding:13px;overflow:hidden}
+.castle-shell{margin-left:18px;margin-right:0}
+.castle-card{width:100%;border:1px solid rgba(155,120,255,.30);border-radius:20px;background:radial-gradient(circle at 50% 0%,rgba(88,63,190,.12),transparent 32%),rgba(7,12,29,.92);padding:13px;overflow:hidden}
 .castle-topline{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
 .castle-toolbar,.castle-subtoolbar{display:flex;gap:7px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .castle-toolbar::-webkit-scrollbar,.castle-subtoolbar::-webkit-scrollbar{display:none}
@@ -865,7 +865,7 @@ body.pet-preview-open{overflow:hidden!important}
         <div class="castle-alliance-controls">
           <button id="castle-add-custom-alliance" class="castle-tool castle-custom-main" type="button">Manage Alliances</button>
           <div id="castle-custom-alliances" class="castle-custom-alliance-list"></div>
-          <div class="castle-custom-alliance-note">NEXA automatically assigns one of 16 fixed Castle colors. Once an Alliance receives a color, that Castle color stays saved.</div>
+          <div class="castle-custom-alliance-note">Choose an Alliance below, then use Select or Paint Cities on any Open city. NEXA applies that Alliance’s fixed Castle color automatically.</div>
         </div>
 
         <div class="castle-paint-setup">
@@ -3532,7 +3532,7 @@ const CASTLE_ALLIANCE_PALETTE=[
 ];
 const CASTLE_OPPONENT_COLOR='#a64b50';
 const CASTLE_OPEN_COLOR='#2a313d';
-let castlePendingStyle='straight',castlePendingOrientation='southwest';
+let castlePendingStyle='straight',castlePendingOrientation='southwest',castlePreviewOpponentCells=null;
 
 function castleDefaultSnapshot(){
  return {
@@ -3775,10 +3775,19 @@ function castleSetTool(tool){
 function castleSetLayoutMode(mode){
  if(!castleSnapshot)return;
  castleSnapshot.layout_mode=mode==='manual'?'manual':'preset';
+ castlePreviewOpponentCells=null;
  $$('[data-castle-layout-mode]').forEach(b=>b.classList.toggle('active',b.dataset.castleLayoutMode===castleSnapshot.layout_mode));
  $('#castle-layout-config')?.classList.toggle('hidden',castleSnapshot.layout_mode==='manual');
  $('#castle-manual-note')?.classList.toggle('show',castleSnapshot.layout_mode==='manual');
  castleSelection.clear();castleSyncPaintControls();castleQueueSave();
+}
+function castlePreviewPreset(){
+ if(!castleSnapshot||castleSnapshot.layout_mode==='manual')return;
+ const own=castlePresetOwnKeys(castlePendingStyle||'straight',castlePendingOrientation||'southwest');
+ const all=castleAllCitySlots();
+ castlePreviewOpponentCells=all.filter(p=>!own.has(p.key)).map(p=>p.key);
+ castleRenderSvg();
+ castleRenderLayoutControls();
 }
 function castlePresetOwnKeys(style,orientation){
  const slots=castleAllCitySlots();
@@ -3819,6 +3828,7 @@ async function castleApplyPreset(){
  castleSnapshot.layout_set=true;
  castleSnapshot.opponent_cells=opponent;
  castleSnapshot.cities=(castleSnapshot.cities||[]).filter(c=>own.has(castleCellKey(c.x,c.y)));
+ castlePreviewOpponentCells=null;
  castleSelection.clear();
  castleRefresh();castleQueueSave();
  say(`${style==='diagonal'?'Diagonal':'Straight'} ${orientationLabel(orientation)} layout set • 80 / 80.`);
@@ -3833,6 +3843,7 @@ async function castleResetMap(){
  castleSnapshot.cities=[];
  castleSnapshot.opponent_cells=[];
  castleSnapshot.layout_set=false;
+ castlePreviewOpponentCells=null;
  castleSelection.clear();
  castleSetTool('pan');
  castleRefresh();castleQueueSave();say('Castle Layout reset.');
@@ -3871,7 +3882,7 @@ function castleAddCustomAlliance(){
      const color=castleEnsureAllianceColor(String(choice));
      castlePaintAllianceId=String(choice);castlePaintColor=color;
    }
-   castleSelection.clear();castleRefresh();castleQueueSave();say('Alliance registered with its fixed Castle color.');
+   castleSelection.clear();castleSetTool('select');castleRefresh();castleQueueSave();say('Alliance registered with its fixed Castle color.');
  });
  const sel=$('#castle-manage-alliance',ov),manual=$('#castle-manage-manual-wrap',ov);
  sel.onchange=()=>{manual.style.display=sel.value==='__manual__'?'block':'none'};
@@ -3927,7 +3938,29 @@ function castlePaintCell(cell,mode){
    return false;
  }
  if(mode==='select'){
-   if(!existing)return false;castleSelection.add(key);return true;
+   if(opp)return false;
+   const a=castleAllianceChoice(castlePaintAllianceId);
+   if(a&&a.kind!=='opponent'){
+     const color=castleEnsureAllianceColor(a.kind==='custom'?`custom:${a.id}`:String(a.id));
+     if(existing){
+       existing.alliance_id=a.kind==='global'?Number(a.id):null;
+       existing.custom_alliance_id=a.kind==='custom'?String(a.id):null;
+       existing.alliance_tag=a.tag||'';
+       existing.color=color;
+     }else{
+       castleSnapshot.cities.push({
+         id:`city-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,x:anchor.x,y:anchor.y,player_name:'',
+         alliance_id:a.kind==='global'?Number(a.id):null,
+         custom_alliance_id:a.kind==='custom'?String(a.id):null,
+         alliance_tag:a.tag||'',color,label:'',notes:''
+       });
+     }
+     castleSelection.add(key);
+     return true;
+   }
+   if(!existing)return false;
+   castleSelection.add(key);
+   return true;
  }
  return false;
 }
@@ -3950,7 +3983,7 @@ function castleReadableTextColor(hex){
 }
 function castleRenderSvg(){
  const svg=$('#castle-stage');if(!svg||!castleSnapshot)return;
- const slots=castleAllCitySlots(),opp=castleOpponentSet();
+ const slots=castleAllCitySlots(),opp=castlePreviewOpponentCells?new Set(castlePreviewOpponentCells):castleOpponentSet();
  const baseMarkup=slots.map(p=>{
    const x=p.x*CASTLE_CELL,y=p.y*CASTLE_CELL,cx=x+CASTLE_CITY_SIZE/2,cy=y+CASTLE_CITY_SIZE/2,secs=castleSecondsForAnchor(p.x,p.y),isOpp=opp.has(p.key);
    const fill=isOpp?CASTLE_OPPONENT_COLOR:CASTLE_OPEN_COLOR,stroke=isOpp?'rgba(255,145,155,.50)':'rgba(177,193,218,.25)';
@@ -4021,9 +4054,9 @@ function castleRenderLayoutControls(){
  if(status){
    if(castleSnapshot.layout_mode==='manual')status.innerHTML='';
    else if(castleSnapshot.layout_set)status.innerHTML=`Current: <b>${castleSnapshot.layout_style==='diagonal'?'Diagonal Split':'Straight Split'} • ${orientationLabel(castleSnapshot.layout_orientation)}</b>`;
-   else status.innerHTML='Choose a Style + Orientation, then tap <b>Set Layout</b>.';
+   else status.innerHTML='Choose a Style + Orientation to preview the split. Tap <b>Set Layout</b> to save it.';
  }
- const total=castleAllCitySlots().length,opp=castleOpponentSet().size,own=total-opp;
+ const total=castleAllCitySlots().length,opp=castlePreviewOpponentCells?castlePreviewOpponentCells.length:castleOpponentSet().size,own=total-opp;
  const counts=$('#castle-layout-counts');
  if(counts)counts.innerHTML=`<span class="castle-layout-count">City Slots <strong>${total}</strong></span><span class="castle-layout-count">Your State <strong>${own}</strong></span><span class="castle-layout-count">Opponent <strong>${opp}</strong></span>`;
 }
@@ -4064,6 +4097,7 @@ function renderCastleSeating(){
  castleSnapshot.view_mode='diamond';
  castlePendingStyle=castleSnapshot.layout_style||'straight';
  castlePendingOrientation=castleSnapshot.layout_orientation||'southwest';
+ castlePreviewOpponentCells=null;
  castleRefresh();castleBindControls();castleBindExportStudio();
 }
 let castleControlsBound=false;
@@ -4072,8 +4106,8 @@ function castleBindControls(){
  const svg=$('#castle-stage');if(!svg)return;castleControlsBound=true;
  $$('[data-castle-tool]').forEach(b=>b.onclick=()=>castleSetTool(b.dataset.castleTool));
  $$('[data-castle-layout-mode]').forEach(b=>b.onclick=()=>castleSetLayoutMode(b.dataset.castleLayoutMode));
- $$('[data-castle-layout-style]').forEach(b=>b.onclick=()=>{castlePendingStyle=b.dataset.castleLayoutStyle;castleRenderLayoutControls()});
- $$('[data-castle-layout-orientation]').forEach(b=>b.onclick=()=>{castlePendingOrientation=b.dataset.castleLayoutOrientation;castleRenderLayoutControls()});
+ $$('[data-castle-layout-style]').forEach(b=>b.onclick=()=>{castlePendingStyle=b.dataset.castleLayoutStyle;castlePreviewPreset()});
+ $$('[data-castle-layout-orientation]').forEach(b=>b.onclick=()=>{castlePendingOrientation=b.dataset.castleLayoutOrientation;castlePreviewPreset()});
  $('#castle-set-layout').onclick=castleApplyPreset;
  $('#castle-reset').onclick=castleResetMap;
  $('#castle-zoom-in').onclick=()=>castleZoom(.82);
@@ -4083,7 +4117,9 @@ function castleBindControls(){
    castlePaintAllianceId=e.target.value||null;
    const a=castleAllianceChoice(castlePaintAllianceId);
    castlePaintColor=a?.color||'#48ddff';
-   castleSelection.clear();castleSyncPaintControls();castleQueueSave();
+   castleSelection.clear();
+   if(a&&a.kind!=='opponent')castleSetTool('select');
+   castleSyncPaintControls();castleQueueSave();
  };
  $('#castle-apply-selected').onclick=castleApplySelected;
  $('#castle-delete-selected').onclick=castleDeleteSelected;
@@ -4111,11 +4147,11 @@ function castlePointerDown(e){
  }
  if(castleTool==='pan'){castleGesture={type:'pan',startX:e.clientX,startY:e.clientY,view:{...castleSnapshot.viewport}};return}
  const base=castlePointToBaseCell(e),anchor=castlePointToAnchor(e);castlePushUndo();castleGesture={type:castleTool,changed:false,visited:new Set()};
- if(castleTool==='select')castleSelection.clear();castleBrushEvent({base,anchor});
+ castleBrushEvent({base,anchor});
 }
 function castleBrushEvent(cell){
  if(!castleGesture||!['paint','select','erase'].includes(castleGesture.type))return;
- const key=castleGesture.type==='paint'?castleCellKey(cell.anchor.x,cell.anchor.y):castleCellKey(cell.base.x,cell.base.y);
+ const key=(castleGesture.type==='paint'||castleGesture.type==='select')?castleCellKey(cell.anchor.x,cell.anchor.y):castleCellKey(cell.base.x,cell.base.y);
  if(castleGesture.visited.has(key))return;castleGesture.visited.add(key);
  if(castlePaintCell(cell,castleGesture.type)){castleGesture.changed=true;castleRefresh()}
 }

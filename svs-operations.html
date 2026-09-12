@@ -4118,7 +4118,9 @@ function castleReadableTextColor(hex){
 function castleRenderSvg(){
  const svg=$('#castle-stage');if(!svg||!castleSnapshot)return;
  const slots=castleAllCitySlots(),opp=castlePreviewOpponentCells?new Set(castlePreviewOpponentCells):castleOpponentSet();
+ const occupied=new Set((castleSnapshot.cities||[]).map(c=>castleCellKey(c.x,c.y)));
  const baseMarkup=slots.map(p=>{
+   if(occupied.has(p.key))return '';
    const x=p.x*CASTLE_CELL,y=p.y*CASTLE_CELL,cx=x+CASTLE_CITY_SIZE/2,cy=y+CASTLE_CITY_SIZE/2,secs=castleSecondsForAnchor(p.x,p.y),isOpp=opp.has(p.key);
    const selected=castleSelection.has(p.key),fill=isOpp?CASTLE_OPPONENT_COLOR:CASTLE_OPEN_COLOR,stroke=selected?'#ffffff':(isOpp?'rgba(255,145,155,.50)':'rgba(177,193,218,.25)');
    const hideOpponentSeconds=Boolean(
@@ -4127,19 +4129,19 @@ function castleRenderSvg(){
      castleSnapshot?.layout_set &&
      !castlePreviewOpponentCells
    );
-   const secondsMarkup=hideOpponentSeconds?'':`<text x="${cx}" y="${cy+3}" text-anchor="middle" font-size="8.1" font-weight="800" fill="${isOpp?'#ffe0e3':'#c2cad7'}" transform="${castleTextTransform(cx,cy)}">${secs}s</text>`;
-   return `<g><rect x="${x+2}" y="${y+2}" width="${CASTLE_CITY_SIZE-4}" height="${CASTLE_CITY_SIZE-4}" rx="5" fill="${fill}" fill-opacity="${isOpp?.82:.52}" stroke="${stroke}" stroke-width="${selected?3:1.1}"/>${secondsMarkup}</g>`;
+   const secondsMarkup=hideOpponentSeconds?'':`<text x="${cx}" y="${cy+3}" text-anchor="middle" font-size="8.1" font-weight="800" fill="${isOpp?'#ffe0e3':'#cfd8ea'}" transform="${castleTextTransform(cx,cy)}" style="paint-order:stroke;stroke:rgba(0,0,0,.56);stroke-width:.50px">${secs}s</text>`;
+   return `<g><rect x="${x+2}" y="${y+2}" width="${CASTLE_CITY_SIZE-4}" height="${CASTLE_CITY_SIZE-4}" rx="5" fill="${fill}" fill-opacity="${isOpp?.88:.78}" stroke="${stroke}" stroke-width="${selected?3:1.1}"/>${secondsMarkup}</g>`;
  }).join('');
  const cityMarkup=(castleSnapshot.cities||[]).map(c=>{
    const x=c.x*CASTLE_CELL,y=c.y*CASTLE_CELL,cx=x+CASTLE_CITY_SIZE/2,cy=y+CASTLE_CITY_SIZE/2;
    const selected=castleSelection.has(castleCellKey(c.x,c.y)),tag=c.alliance_tag||castleAllianceById(c.alliance_id)?.tag||'';
    const name=c.player_name||'',secs=castleSecondsForAnchor(c.x,c.y),key=castleCityAllianceKey(c),fill=c.color||castleAllianceColor(key),tt=castleTextTransform(cx,cy);
-   const tc=castleReadableTextColor(fill),stroke=tc==='#090b10'?'rgba(255,255,255,.34)':'rgba(0,0,0,.62)';
+   const tc='#ffffff',stroke='rgba(0,0,0,.72)';
    let text='';
-   if(name)text=`<text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="9.8" font-weight="950" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:1.02px">${esc(name.slice(0,15))}</text><text x="${cx}" y="${cy+9}" text-anchor="middle" font-size="8.2" font-weight="900" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:.74px">${secs}s</text>`;
-   else if(tag)text=`<text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="9.4" font-weight="950" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:1.00px">[${esc(tag.slice(0,8))}]</text><text x="${cx}" y="${cy+9}" text-anchor="middle" font-size="8.2" font-weight="900" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:.74px">${secs}s</text>`;
-   else text=`<text x="${cx}" y="${cy+3}" text-anchor="middle" font-size="8.5" font-weight="900" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:.68px">${secs}s</text>`;
-   return `<g data-castle-city="${esc(c.id)}"><rect x="${x+2}" y="${y+2}" width="${CASTLE_CITY_SIZE-4}" height="${CASTLE_CITY_SIZE-4}" rx="5" fill="${esc(fill)}" fill-opacity=".66" stroke="${selected?'#ffffff':'rgba(255,255,255,.56)'}" stroke-width="${selected?3:1.24}"/>${text}</g>`;
+   if(name)text=`<text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="9.1" font-weight="900" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:.92px">${esc(name.slice(0,15))}</text><text x="${cx}" y="${cy+9}" text-anchor="middle" font-size="7.8" font-weight="900" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:.72px">${secs}s</text>`;
+   else if(tag)text=`<text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="8.8" font-weight="950" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:.92px">[${esc(tag.slice(0,8))}]</text><text x="${cx}" y="${cy+9}" text-anchor="middle" font-size="7.8" font-weight="900" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:.72px">${secs}s</text>`;
+   else text=`<text x="${cx}" y="${cy+3}" text-anchor="middle" font-size="8.1" font-weight="850" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:.62px">${secs}s</text>`;
+   return `<g data-castle-city="${esc(c.id)}"><rect x="${x+2}" y="${y+2}" width="${CASTLE_CITY_SIZE-4}" height="${CASTLE_CITY_SIZE-4}" rx="5" fill="${esc(fill)}" fill-opacity=".70" stroke="${selected?'#ffffff':'rgba(255,255,255,.66)'}" stroke-width="${selected?3:1.30}"/>${text}</g>`;
  }).join('');
  const outer=CASTLE_OUTER_HALF_CELLS*CASTLE_CELL,inner=CASTLE_INNER_HALF_CELLS*CASTLE_CELL;
  svg.innerHTML=`
@@ -4526,7 +4528,7 @@ function castleExportSvgWithLegend(frame,width,height){
    const safeX=Math.max(frame.x,Math.min(frame.x+frame.w-boxW,x)),safeY=Math.max(frame.y,Math.min(frame.y+frame.h-boxH,y));
    const bg=document.createElementNS(NS,'rect');
    bg.setAttribute('x',safeX);bg.setAttribute('y',safeY);bg.setAttribute('width',boxW);bg.setAttribute('height',boxH);
-   bg.setAttribute('rx',String(metrics.fontWorld*.9));bg.setAttribute('fill','#030816');bg.setAttribute('fill-opacity','.92');
+   bg.setAttribute('rx',String(metrics.fontWorld*.9));bg.setAttribute('fill','#030816');bg.setAttribute('fill-opacity','.84');
    bg.setAttribute('stroke','#48ddff');bg.setAttribute('stroke-opacity','.32');bg.setAttribute('stroke-width',String(metrics.fontWorld*.08));g.appendChild(bg);
    const usableH=Math.max(0,boxH-metrics.padYWorld*2),rowH=rows.length?usableH/rows.length:usableH;
    rows.forEach((r,i)=>{

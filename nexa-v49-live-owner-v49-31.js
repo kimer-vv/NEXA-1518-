@@ -1,19 +1,18 @@
-/* NEXA LIVE OWNER V49.46 — CONTENT OWNER ONLY — 2026-09-11
+/* NEXA LIVE OWNER V49.47 — STRICT SINGLETON / CANONICAL SLOT — 2026-09-12
    COMPLETE REPLACEMENT for: nexa-v49-live-owner-v49-31.js
 
    Owns ONLY:
-   - #nexa-v4937-live-event
+   - one and only one #nexa-v4937-live-event
    - Live Event visible content
-   - retirement of stale legacy Live card
+   - retirement of stale legacy Live surfaces
 
-   DOES NOT:
-   - anchor itself to Pulse
-   - move Pulse
-   - move Alliance
-   - move Transfers
-   - own Home order
-
-   Home order is owned by nexa-home-compositor-v1.js.
+   Fixes:
+   - Removes duplicate Live cards with the same ID.
+   - Prefers an already-rendered .is-live card when duplicate nodes exist.
+   - Creates the Live card directly inside #nexa-home-signal-slot when available.
+   - Never appends a new Live card to the bottom of #home.
+   - Does not render a temporary "No Live Event" during initial boot before sync.
+   - Home order remains owned by nexa-home-compositor-v1.js.
 
    Safety:
    - No MutationObserver.
@@ -24,14 +23,15 @@
 (()=>{
 'use strict';
 
-if(window.__NEXA_V4946_LIVE_CONTENT_ONLY__) return;
-window.__NEXA_V4946_LIVE_CONTENT_ONLY__=true;
+if(window.__NEXA_V4947_LIVE_SINGLETON__) return;
+window.__NEXA_V4947_LIVE_SINGLETON__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
 
 const CARD_ID='nexa-v4937-live-event';
 let generation=0;
+let bootResolved=false;
 
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({
   '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
@@ -57,6 +57,51 @@ function fmtDate(v){
     year:'numeric',
     timeZone:'UTC'
   }).format(d);
+}
+
+function allLiveCards(){
+  return $$(`[id="${CARD_ID}"]`);
+}
+
+function canonicalSlot(){
+  return $('#nexa-home-signal-slot');
+}
+
+function chooseCanonical(cards){
+  if(!cards.length) return null;
+
+  const inSlot=cards.find(card=>card.parentNode===canonicalSlot() && card.classList.contains('is-live'));
+  if(inSlot) return inSlot;
+
+  const renderedLive=cards.find(card=>card.classList.contains('is-live'));
+  if(renderedLive) return renderedLive;
+
+  const inCanonicalSlot=cards.find(card=>card.parentNode===canonicalSlot());
+  if(inCanonicalSlot) return inCanonicalSlot;
+
+  const owned=cards.find(card=>card.dataset?.nexaLiveOwner);
+  if(owned) return owned;
+
+  return cards[0];
+}
+
+function dedupeLiveCards(){
+  const cards=allLiveCards();
+  if(!cards.length) return null;
+
+  const keep=chooseCanonical(cards);
+
+  cards.forEach(card=>{
+    if(card===keep) return;
+    try{card.remove()}catch(_){}
+  });
+
+  if(keep){
+    keep.id=CARD_ID;
+    keep.dataset.nexaLiveOwner='v49.47';
+  }
+
+  return keep;
 }
 
 function installCSS(){
@@ -94,6 +139,10 @@ function installCSS(){
     #${CARD_ID}.is-live,
     #${CARD_ID}.is-empty{
       display:block!important;
+    }
+
+    #${CARD_ID}.is-pending{
+      display:none!important;
     }
 
     #${CARD_ID}::before{
@@ -244,7 +293,7 @@ function installCSS(){
     }
 
     #home-svs-section,
-    [data-nexa-retired-live="v49-46"]{
+    [data-nexa-retired-live="v49-47"]{
       display:none!important;
       visibility:hidden!important;
       opacity:0!important;
@@ -261,28 +310,75 @@ function installCSS(){
   document.head.appendChild(s);
 }
 
+function insertIntoCanonicalPlace(card){
+  if(!card) return false;
+
+  const slot=canonicalSlot();
+  if(slot){
+    if(card.parentNode!==slot){
+      slot.insertBefore(card,slot.firstChild);
+    }
+    return true;
+  }
+
+  const pulse=$('#nexa-pulse-visible-owner-v34');
+  if(pulse?.parentNode){
+    pulse.parentNode.insertBefore(card,pulse);
+    return true;
+  }
+
+  const alliance=$('#nexa-v31-alliance');
+  if(alliance?.parentNode){
+    alliance.parentNode.insertBefore(card,alliance);
+    return true;
+  }
+
+  const legacy=$('#home-svs-section');
+  if(legacy?.parentNode){
+    legacy.parentNode.insertBefore(card,legacy);
+    return true;
+  }
+
+  const footer=$('.footer');
+  if(footer?.parentNode){
+    footer.parentNode.insertBefore(card,footer);
+    return true;
+  }
+
+  return false;
+}
+
 function ensureCard(){
-  let card=$('#'+CARD_ID);
-  if(card) return card;
+  installCSS();
 
-  card=document.createElement('section');
-  card.id=CARD_ID;
-  card.className='section nexa-v477-tech-card nexa-v31-strip nexa-v4937-live-card';
-  card.dataset.nexaTech='live';
-  card.dataset.nexaLiveOwner='v49.46';
-  card.setAttribute('aria-live','polite');
+  let card=dedupeLiveCards();
 
-  const home=$('#home') || $('main.shell') || $('main');
-  if(home) home.appendChild(card);
+  if(!card){
+    card=document.createElement('section');
+    card.id=CARD_ID;
+    card.className='section nexa-v477-tech-card nexa-v31-strip nexa-v4937-live-card is-pending';
+    card.dataset.nexaTech='live';
+    card.dataset.nexaLiveOwner='v49.47';
+    card.setAttribute('aria-live','polite');
+  }
+
+  card.dataset.nexaLiveOwner='v49.47';
+  insertIntoCanonicalPlace(card);
+  dedupeLiveCards();
 
   return card;
 }
 
 function announceReady(){
+  dedupeLiveCards();
+
   window.dispatchEvent(new CustomEvent('nexa:home-surface-ready',{
     detail:{surface:'live',id:CARD_ID}
   }));
+
   try{window.NEXA_HOME_COMPOSE?.()}catch(_){}
+
+  dedupeLiveCards();
 }
 
 function isLegacyNoLiveText(raw){
@@ -293,21 +389,38 @@ function isLegacyNoLiveText(raw){
 }
 
 function retireLegacyLiveCards(){
-  const keep=$('#'+CARD_ID);
+  const keep=dedupeLiveCards();
   const home=$('#home') || $('main.shell') || document.body;
 
-  $('#home-svs-section')?.setAttribute('data-nexa-retired-live','v49-46');
+  $('#home-svs-section')?.setAttribute('data-nexa-retired-live','v49-47');
 
   $$('section,article,div',home).forEach(el=>{
     if(el===keep || keep?.contains(el) || el.contains(keep)) return;
     if(!isLegacyNoLiveText(el.textContent)) return;
 
-    el.dataset.nexaRetiredLive='v49-46';
+    el.dataset.nexaRetiredLive='v49-47';
     el.setAttribute('aria-hidden','true');
   });
+
+  dedupeLiveCards();
+}
+
+function renderPending(){
+  const card=ensureCard();
+  if(!card) return false;
+
+  card.classList.remove('is-live','is-empty');
+  card.classList.add('is-pending');
+  card.innerHTML='';
+  card.setAttribute('aria-hidden','true');
+
+  retireLegacyLiveCards();
+  announceReady();
+  return true;
 }
 
 function renderEmpty(){
+  bootResolved=true;
   window.NEXA_CURRENT_LIVE_EVENT=null;
 
   const card=ensureCard();
@@ -319,7 +432,7 @@ function renderEmpty(){
     <p class="v4939-empty-copy">Upcoming state events, schedules and forms will appear here when leadership publishes them.</p>
   `;
 
-  card.classList.remove('is-live');
+  card.classList.remove('is-live','is-pending');
   card.classList.add('is-empty');
   card.removeAttribute('hidden');
   card.setAttribute('aria-hidden','false');
@@ -332,6 +445,7 @@ function renderEmpty(){
 function render(live){
   if(!live) return renderEmpty();
 
+  bootResolved=true;
   window.NEXA_CURRENT_LIVE_EVENT=live;
 
   const p=payloadOf(live);
@@ -388,7 +502,7 @@ function render(live){
     `:''}
   `;
 
-  card.classList.remove('is-empty');
+  card.classList.remove('is-empty','is-pending');
   card.classList.add('is-live');
   card.removeAttribute('hidden');
   card.setAttribute('aria-hidden','false');
@@ -398,10 +512,20 @@ function render(live){
   return true;
 }
 
-function consume(){
+function consume({allowEmpty=false}={}){
+  dedupeLiveCards();
+
   const live=window.NEXA_CURRENT_LIVE_EVENT;
-  if(live && typeof live==='object') return render(live);
-  return renderEmpty();
+
+  if(live && typeof live==='object'){
+    return render(live);
+  }
+
+  if(allowEmpty || bootResolved){
+    return renderEmpty();
+  }
+
+  return renderPending();
 }
 
 async function syncThenConsume(){
@@ -409,10 +533,11 @@ async function syncThenConsume(){
     try{
       await window.NEXA_SYNC_STATE_HOME();
     }catch(err){
-      console.warn('[NEXA Live V49.46] State Home sync failed',err?.message||err);
+      console.warn('[NEXA Live V49.47] State Home sync failed',err?.message||err);
     }
   }
-  return consume();
+
+  return consume({allowEmpty:true});
 }
 
 function finitePasses({resync=false}={}){
@@ -421,35 +546,62 @@ function finitePasses({resync=false}={}){
   [0,250,800,2000].forEach((ms,index)=>{
     setTimeout(async()=>{
       if(mine!==generation) return;
-      if(resync && index===0) await syncThenConsume();
-      else consume();
+
+      dedupeLiveCards();
+
+      if(resync && index===0){
+        await syncThenConsume();
+      }else{
+        consume({allowEmpty:bootResolved});
+      }
+
+      dedupeLiveCards();
     },ms);
   });
 }
 
-function boot(){
+async function boot(){
   installCSS();
   ensureCard();
   retireLegacyLiveCards();
-  consume();
+
+  /*
+    Do not paint "No Live Event" before the State Hub has had a chance
+    to resolve the real current event.
+  */
+  renderPending();
 
   window.addEventListener('nexa:live-event-ready',e=>{
     const live=e?.detail?.live;
     if(live && typeof live==='object') render(live);
     else renderEmpty();
+    dedupeLiveCards();
   });
 
-  window.addEventListener('nexa:home-ready',()=>finitePasses({resync:false}));
-  window.addEventListener('pageshow',()=>finitePasses({resync:true}));
+  window.addEventListener('nexa:home-ready',()=>{
+    finitePasses({resync:true});
+  });
+
+  window.addEventListener('pageshow',()=>{
+    finitePasses({resync:true});
+  });
 
   document.addEventListener('visibilitychange',()=>{
     if(!document.hidden) finitePasses({resync:true});
   });
 
   window.addEventListener('nexa:active-state-changed',()=>{
+    bootResolved=false;
     window.NEXA_CURRENT_LIVE_EVENT=null;
+    renderPending();
     finitePasses({resync:true});
   });
+
+  /*
+    Initial authoritative sync.
+  */
+  await syncThenConsume();
+  dedupeLiveCards();
 }
 
 if(document.readyState==='loading'){

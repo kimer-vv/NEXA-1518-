@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V13.1 • PET SCHEDULE QA FIXES + MANUAL ALLIANCES + COMPACT PREVIEW -->
+<!-- NEXA SVS OPERATIONS V13.2 • MULTI-RALLY PET SCHEDULE + NO RESERVE + FAST TEAM ACTIONS -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -598,6 +598,10 @@ body.pet-preview-open{overflow:hidden!important}
 .pet-v13-hour time{font-size:10px;font-weight:1000;letter-spacing:.08em;color:var(--pet-color)}
 .pet-v13-player{font-size:12px;font-weight:950;line-height:1.25;word-break:break-word}
 .pet-v13-empty{font-size:11px;color:#7f8aa7}
+.pet-v13-entry{display:grid;gap:3px;padding-top:5px;margin-top:3px;border-top:1px solid rgba(255,255,255,.07)}
+.pet-v13-entry:first-of-type{border-top:0;margin-top:0;padding-top:0}
+.pet-v13-entry .pet-v13-player{font-size:12px;font-weight:950;line-height:1.2}
+.pet-v13-summary{grid-template-columns:repeat(3,minmax(0,1fr))}
 .pet-v13-badge{display:inline-flex;align-items:center;min-height:21px;padding:0 6px;border-radius:999px;font-size:8px;font-weight:1000;letter-spacing:.06em;width:max-content}
 .pet-v13-badge.active{background:color-mix(in srgb,var(--pet-color) 34%,transparent);border:1px solid color-mix(in srgb,var(--pet-color) 62%,transparent);color:#fff}
 .pet-v13-badge.reserve{border:1px solid rgba(255,255,255,.18);color:#d8dcef;background:rgba(255,255,255,.045)}
@@ -610,8 +614,11 @@ body.pet-preview-open{overflow:hidden!important}
 #pet-sheet.pet-v13-export{width:1400px;min-width:1400px;background:radial-gradient(circle at 10% 0%,rgba(72,221,255,.08),transparent 28%),radial-gradient(circle at 90% 10%,rgba(155,120,255,.09),transparent 30%),#050816;padding:22px;border-radius:20px}
 #pet-sheet.pet-v13-export .pet-v13-hours{overflow:visible;grid-template-columns:repeat(5,minmax(0,1fr));grid-auto-flow:row}
 @media(max-width:560px){
- .pet-v13-summary{grid-template-columns:1fr 1fr}
- .pet-v13-hours{grid-auto-columns:136px}
+ .pet-v13-summary{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .pet-v13-stat{padding:8px 6px;text-align:center}
+ .pet-v13-stat b{font-size:18px}
+ .pet-v13-stat small{font-size:9px}
+ .pet-v13-hours{grid-auto-columns:150px}
  .pet-v13-alliance-head{align-items:flex-start}
 }
 .nexa-modal-saving{opacity:0!important;pointer-events:none!important}
@@ -754,12 +761,11 @@ body.pet-preview-open{overflow:hidden!important}
   </section>
 
   <section class="panel" data-panel="pets">
-    <div class="desc">Build the Main Garrison Alliance first, then add Counter Alliances and Teams. Each Team keeps one fixed NEXA color across the schedule.</div>
+    <div class="desc">Build the Main Garrison Alliance first, then add Counter Alliances and Teams. Multiple Rally Leads may share the same Team and time.</div>
     <div class="card">
       <div class="section-head">
         <div>
           <h2>Whale Group & Pet Schedule</h2>
-          <div class="tiny muted">PET = active pet window • ◇ Reserve = backup pet • Neutral = Rally Lead without PET.</div>
         </div>
         <div class="row">
           <button id="send-pets-plan" class="btn violet" type="button">Send to Battle Plan</button>
@@ -901,7 +907,7 @@ body.pet-preview-open{overflow:hidden!important}
     <div class="guide-page active" data-guide="0"><h4>Workspace & Mobile View</h4><p>Team Board is your editable Team Builder. On mobile, Team cards move sideways so they stay readable. Swipe left/right to inspect every Team. Desktop can show much more at once. Use Team Layout for the complete final sheet.</p></div>
     <div class="guide-page" data-guide="1"><h4>NEXA Assist & Manual Mode</h4><p>Live Auto Generate uses Battle Roles + Responses + Profile/Inventory automatically. Only Test Sandbox asks for Rally Leader and Joiner counts. NEXA decides how many sustainable Teams the roster can actually fill. Manual Build leaves every assignment to you and NEXA reviews it when you press Done.</p></div>
     <div class="guide-page" data-guide="2"><h4>Rally Leaders, Joiners & Heroes</h4><p>Rally Leaders come from one finite global pool. They may rotate between Alliances only when time blocks do not overlap. PETS use one continuous 2-hour window on whole-hour boundaries. Joiners remain fixed unless you move them; duplicate assignments trigger a warning. Every Rally Leader and Joiner can be removed individually.</p></div>
-    <div class="guide-page" data-guide="3"><h4>Pet Schedule & Formations</h4><p>PETS are organized by Main Garrison Alliance and Counter Alliances. Each Alliance may contain as many Teams as needed. Every Team keeps one fixed NEXA color so the schedule is easy to scan. Reserve PET is manual only. NEXA preserves the evidence-backed Top 4 Joiner stack and uses vetted emergency backups when available; Top 4 value is based on how the four joiner effects complement and stack together, not on isolated skill ranking.</p></div>
+    <div class="guide-page" data-guide="3"><h4>Pet Schedule & Formations</h4><p>PETS are organized by Main Garrison Alliance and Counter Alliances. Each Alliance may contain as many Teams as needed. Every Team keeps one fixed NEXA color so the schedule is easy to scan. NEXA preserves the evidence-backed Top 4 Joiner stack and uses vetted emergency backups when available; Top 4 value is based on how the four joiner effects complement and stack together, not on isolated skill ranking.</p></div>
     <div class="guide-page" data-guide="4"><h4>Team Layout, Preview & Download</h4><p>Team Layout is the final-sheet preview. Rally Lead Attack/Defense formations keep hero portraits and ratios at the top. Joiner rows intentionally show names only so the text can be larger and cleaner. Preview and Download use the same layout.</p></div>
     <div class="guide-count"><span id="guide-page-label">1 / 5</span></div>
     <div class="nexa-modal-actions"><button id="guide-prev" class="btn" type="button">‹ Previous</button><button id="guide-next" class="btn violet" type="button">Next ›</button></div>
@@ -2044,7 +2050,7 @@ function consolidatedRallyCards(rs){
      }
    }
    const seg=merged.map(x=>`${esc(x.start_utc||'—')}–${esc(x.end_utc||'—')}`).join(' • ');
-   return `<div class="rally ${pet?'pet glow-violet':reserve?'glow-violet':''}"><span><b>${esc(first.player_name)}${reserve?' ◇':''}</b><br><small>${seg}${reserve?' • Reserve PET':''}</small></span><span class="member-actions"><button class="member-edit" data-edit-rally-player="${esc(String(first.player_account_id||first.player_name))}" type="button">✎</button><button class="member-x" data-delete-rally-player="${esc(String(first.player_account_id||first.player_name))}" type="button">×</button></span></div>`
+   return `<div class="rally ${pet?'pet glow-violet':reserve?'glow-violet':''}"><span><b>${esc(first.player_name)}${reserve?' ◇':''}</b><br><small>${seg}${reserve?' • ':''}</small></span><span class="member-actions"><button class="member-edit" data-edit-rally-player="${esc(String(first.player_account_id||first.player_name))}" type="button">✎</button><button class="member-x" data-delete-rally-player="${esc(String(first.player_account_id||first.player_name))}" type="button">×</button></span></div>`
  }).join('')
 }
 
@@ -2062,9 +2068,7 @@ function bindStrategy(){
 
 
 function petModeLabel(row){
- if(row?.pet_status==='reserve')return 'Reserve PET';
- if(row?.pets_active)return 'PET Active';
- return 'No PET';
+ return row?.pets_active?'PET Active':'No PET';
 }
 function sameRallyPlayer(row,player){
  if(!row||!player)return false;
@@ -2097,51 +2101,75 @@ async function confirmAvailability(player,start,end){
 }
 function existingPetAssignments(player,excludeIds=[]){
  const excluded=new Set((excludeIds||[]).map(String));
- return rally.filter(r=>!excluded.has(String(r.id))&&sameRallyPlayer(r,player)&&(r.pets_active||r.pet_status==='reserve'));
+ return rally.filter(r=>!excluded.has(String(r.id))&&sameRallyPlayer(r,player)&&!!r.pets_active);
 }
 async function planRallyAssignmentChange(player,start,end,mode,targetTeamId,excludeIds=[]){
  const excluded=new Set((excludeIds||[]).map(String));
- const sameTeamExisting=rally.filter(r=>String(r.team_id)===String(targetTeamId)&&!excluded.has(String(r.id))&&sameRallyPlayer(r,player));
- const targetConflicts=rally.filter(r=>String(r.team_id)===String(targetTeamId)&&!excluded.has(String(r.id))&&!sameRallyPlayer(r,player)&&overlaps(start,end,r.start_utc,r.end_utc));
- if(targetConflicts.length){
-   const names=[...new Set(targetConflicts.map(x=>x.player_name).filter(Boolean))],who=names.length===1?names[0]:names.join(', ');
-   const ok=await nexaConfirm('Slot already assigned',`${teamLabel(targetTeamId)} • ${start}–${end} UTC already has ${who} assigned. Replace ${names.length===1?who:'the current Rally Lead assignment'} with ${player.in_game_name}?`,{confirmLabel:'Yes, Replace',cancelLabel:'Cancel'});
-   if(!ok)return null;
- }
- const targetIds=new Set([...targetConflicts,...sameTeamExisting].map(x=>String(x.id)));
- const physicalConflicts=rally.filter(r=>!excluded.has(String(r.id))&&!targetIds.has(String(r.id))&&sameRallyPlayer(r,player)&&overlaps(start,end,r.start_utc,r.end_utc));
- if(physicalConflicts.length){
-   const c=physicalConflicts[0];
-   const ok=await nexaConfirm('Rally Leader conflict',`${player.in_game_name} is already assigned to ${teamLabel(c.team_id)} at ${c.start_utc}–${c.end_utc} UTC. Move the conflicting assignment to ${teamLabel(targetTeamId)}?`,{confirmLabel:'Yes, Move',cancelLabel:'Cancel'});
-   if(!ok)return null;
- }
- const removedIds=new Set([...sameTeamExisting,...targetConflicts,...physicalConflicts].map(x=>String(x.id)));
- const petExisting=(mode==='active'||mode==='reserve')
-   ? rally.filter(r=>!excluded.has(String(r.id))&&!removedIds.has(String(r.id))&&sameRallyPlayer(r,player)&&(r.pets_active||r.pet_status==='reserve'))
+
+ const sameTeamExisting=rally.filter(r=>
+   String(r.team_id)===String(targetTeamId) &&
+   !excluded.has(String(r.id)) &&
+   sameRallyPlayer(r,player)
+ );
+ const sameTeamIds=new Set(sameTeamExisting.map(x=>String(x.id)));
+
+ const petExisting=mode==='active'
+   ? rally.filter(r=>
+       !excluded.has(String(r.id)) &&
+       !sameTeamIds.has(String(r.id)) &&
+       sameRallyPlayer(r,player) &&
+       !!r.pets_active &&
+       overlaps(start,end,r.start_utc,r.end_utc)
+     )
    : [];
+
  if(petExisting.length){
-   const details=petExisting.map(x=>`${petModeLabel(x)} • ${teamLabel(x.team_id)} • ${x.start_utc}–${x.end_utc}`).join(' | ');
-   const ok=await nexaConfirm('Move PET assignment?',`${player.in_game_name} already has ${details}. Move the PET assignment to ${teamLabel(targetTeamId)} • ${start}–${end} UTC?`,{confirmLabel:'Yes, Move',cancelLabel:'Cancel'});
+   const details=petExisting
+     .map(x=>`${teamLabel(x.team_id)} • ${x.start_utc}–${x.end_utc}`)
+     .join(' | ');
+   const ok=await nexaConfirm(
+     'PET already active',
+     `${player.in_game_name} already has PET active at ${details}. Use PET on ${teamLabel(targetTeamId)} • ${start}–${end} UTC instead? The other Rally assignment will stay, but PET will be turned OFF there.`,
+     {confirmLabel:'Move PET Here',cancelLabel:'Cancel'}
+   );
    if(!ok)return null;
  }
+
  return {
-   sameTeamExisting,targetConflicts,physicalConflicts,petExisting,
-   touched:[targetTeamId,...sameTeamExisting.map(x=>x.team_id),...targetConflicts.map(x=>x.team_id),...physicalConflicts.map(x=>x.team_id),...petExisting.map(x=>x.team_id)]
+   sameTeamExisting,
+   petExisting,
+   touched:[
+     targetTeamId,
+     ...sameTeamExisting.map(x=>x.team_id),
+     ...petExisting.map(x=>x.team_id)
+   ]
  };
 }
 async function applyRallyAssignmentPlan(plan){
  if(!plan)return;
- const deleteIds=[...new Set([...(plan.sameTeamExisting||[]),...(plan.targetConflicts||[]),...(plan.physicalConflicts||[])].map(x=>x.id).filter(Boolean))];
- if(deleteIds.length){const d=await sb.from('svs_strategy_rally_slots').delete().in('id',deleteIds);if(d.error)throw d.error}
- for(const x of plan.petExisting||[]){const u=await sb.from('svs_strategy_rally_slots').update({pets_active:false,pet_status:'none'}).eq('id',x.id);if(u.error)throw u.error}
+
+ const deleteIds=[...new Set(
+   (plan.sameTeamExisting||[]).map(x=>x.id).filter(Boolean)
+ )];
+ if(deleteIds.length){
+   const d=await sb.from('svs_strategy_rally_slots').delete().in('id',deleteIds);
+   if(d.error)throw d.error;
+ }
+
+ for(const x of plan.petExisting||[]){
+   const u=await sb.from('svs_strategy_rally_slots')
+     .update({pets_active:false,pet_status:'none'})
+     .eq('id',x.id);
+   if(u.error)throw u.error;
+ }
 }
 function petOverlapConflict(player,start,end,mode,excludeIds=[]){
- if(mode!=='active'&&mode!=='reserve')return null;
+ if(mode!=='active')return null;
  const excluded=new Set((excludeIds||[]).map(String));
  return rally.find(r=>{
    if(excluded.has(String(r.id)))return false;
    if(!sameRallyPlayer(r,player))return false;
-   if(!(r.pets_active||r.pet_status==='reserve'))return false;
+   if(!r.pets_active)return false;
    return overlaps(start,end,r.start_utc,r.end_utc);
  })||null;
 }
@@ -2179,14 +2207,14 @@ async function syncPetAssignmentsForTeams(teamIds){
      const payload=source.map((x,i)=>({
        row_id:row.id,player_account_id:x.player_account_id||null,player_name:x.player_name,
        start_utc:x.start_utc,end_utc:x.end_utc,pets_active:!!x.pets_active,
-       pet_status:x.pet_status==='reserve'?'reserve':x.pets_active?'active':'none',sort_order:Number(x.sort_order??i)
+       pet_status:x.pets_active?'active':'none',sort_order:Number(x.sort_order??i)
      }));
      const ins=await sb.from('svs_pet_schedule_assignments').insert(payload);if(ins.error)throw ins.error;
    }
  }
 }
 async function showPetConflict(player,conflict,start,end,mode){
- const requested=mode==='reserve'?'Reserve PET':'PET Active';
+ const requested=mode==='reserve'?'':'PET Active';
  await nexaNotice('PET time conflict',`${player.in_game_name} already has ${petModeLabel(conflict)} on ${teamLabel(conflict.team_id)} from ${conflict.start_utc}–${conflict.end_utc} UTC. ${requested} ${start}–${end} overlaps that PET window. Choose a non-overlapping time.`);
 }
 
@@ -2196,7 +2224,7 @@ async function editRallyPlayer(teamId,key){
  const first=rows[0],player=selectedPlayer(first.player_account_id)||{id:first.player_account_id||null,in_game_name:first.player_name};
  const team=teamForAssignment(teamId),alliance=team&&A(team.strategy_alliance_id);
  const start=rows[0].start_utc||'12:00',end=rows[rows.length-1].end_utc||'14:00',mode=rows.some(x=>x.pet_status==='reserve')?'reserve':rows.some(x=>x.pets_active)?'active':'none';
- const ov=modal(`Edit Rally Leader • ${first.player_name}`,`<div class="grid2"><label>Alliance<select id="m-edit-rally-alliance">${alliances.map(a=>`<option value="${a.id}" ${String(a.id)===String(alliance?.id)?'selected':''}>${esc(a.alliance_tag)}</option>`).join('')}</select></label><label>Team<select id="m-edit-rally-team">${alliance?inlineTeamOptions(alliance.id,teamId):''}</select></label><label>Start<select id="m-edit-rally-start">${timeOptions(start)}</select></label><label>End<select id="m-edit-rally-end">${timeOptions(end)}</select></label></div><label style="margin-top:9px">PETS<select id="m-edit-rally-pets"><option value="none" ${mode==='none'?'selected':''}>No PET</option><option value="active" ${mode==='active'?'selected':''}>PET Active</option><option value="reserve" ${mode==='reserve'?'selected':''}>◇ Reserve PET</option></select></label><div class="select-note" style="margin-top:8px">Edit the assignment directly. PET Active and Reserve PET keep Start/End fully flexible.</div>`,async modalEl=>{
+ const ov=modal(`Edit Rally Leader • ${first.player_name}`,`<div class="grid2"><label>Alliance<select id="m-edit-rally-alliance">${alliances.map(a=>`<option value="${a.id}" ${String(a.id)===String(alliance?.id)?'selected':''}>${esc(a.alliance_tag)}</option>`).join('')}</select></label><label>Team<select id="m-edit-rally-team">${alliance?inlineTeamOptions(alliance.id,teamId):''}</select></label><label>Start<select id="m-edit-rally-start">${timeOptions(start)}</select></label><label>End<select id="m-edit-rally-end">${timeOptions(end)}</select></label></div><label style="margin-top:9px">PETS<select id="m-edit-rally-pets"><option value="none" ${mode==='none'?'selected':''}>No PET</option><option value="active" ${mode==='active'?'selected':''}>PET Active</option><option value="reserve" ${mode==='reserve'?'selected':''}></option></select></label><div class="select-note" style="margin-top:8px">Edit the assignment directly. PET Active and  keep Start/End fully flexible.</div>`,async modalEl=>{
    const aid=$('#m-edit-rally-alliance',modalEl).value,tid=$('#m-edit-rally-team',modalEl).value,st=$('#m-edit-rally-start',modalEl).value,en=$('#m-edit-rally-end',modalEl).value,petMode=$('#m-edit-rally-pets',modalEl).value||'none';
    if(!tid){say('Select a Team.',true);return false}
    if(minutesOf(en)<=minutesOf(st)){say('End time must be after Start.',true);return false}
@@ -2204,8 +2232,8 @@ async function editRallyPlayer(teamId,key){
    const selfIds=rows.map(x=>x.id),plan=await planRallyAssignmentChange(player,st,en,petMode,tid,selfIds);if(!plan)return false;
    const touched=[teamId,tid,...plan.touched];await applyRallyAssignmentPlan(plan);
    const del=await sb.from('svs_strategy_rally_slots').delete().in('id',rows.map(x=>x.id));if(del.error)throw del.error;
-   const pets=petMode==='active',reserve=petMode==='reserve';
-   const ins=await sb.from('svs_strategy_rally_slots').insert({team_id:tid,player_account_id:player.id||null,player_name:player.in_game_name,start_utc:st,end_utc:en,pets_active:pets,pet_status:pets?'active':reserve?'reserve':'none',sort_order:0});if(ins.error)throw ins.error;
+   const pets=petMode==='active';
+   const ins=await sb.from('svs_strategy_rally_slots').insert({team_id:tid,player_account_id:player.id||null,player_name:player.in_game_name,start_utc:st,end_utc:en,pets_active:pets,pet_status:pets?'active':'none',sort_order:0});if(ins.error)throw ins.error;
    await syncPetAssignmentsForTeams(touched);
    await openStrategy(strategy.id);return true;
  });
@@ -2221,9 +2249,51 @@ async function deleteRally(id){const x=rally.find(r=>r.id===id);if(!x)return;if(
 async function deleteJoiner(id){const x=joiners.find(r=>r.id===id);if(!x)return;if(!await nexaConfirm('Remove Joiner?',`Remove ${x.player_name} from this Team?`,{confirmLabel:'Remove'}))return;const {error}=await sb.from('svs_strategy_joiners').delete().eq('id',id);if(error)return say(error.message,true);await openStrategy(strategy.id)}
 
 async function deleteTeam(tid){
- const t=teams.find(x=>x.id===tid);if(!t)return;if(!await nexaConfirm('Delete Team?',`Delete ${t.name}?`,{confirmLabel:'Delete'}))return;
- const rows=petRows.filter(r=>r.source_team_id===tid);if(rows.length){await sb.from('svs_pet_schedule_assignments').delete().in('row_id',rows.map(r=>r.id));await sb.from('svs_pet_schedule_rows').delete().in('id',rows.map(r=>r.id))}
- await sb.from('svs_strategy_joiners').delete().eq('team_id',tid);await sb.from('svs_strategy_rally_slots').delete().eq('team_id',tid);const {error}=await sb.from('svs_strategy_teams').delete().eq('id',tid);if(error)return say(error.message,true);await openStrategy(strategy.id);say(`${t.name} deleted.`);
+ const t=teams.find(x=>String(x.id)===String(tid));if(!t)return;
+ if(!await nexaConfirm('Delete Team?',`Delete ${t.name}?`,{confirmLabel:'Delete'}))return;
+
+ const backup={
+   teams:[...teams],
+   rally:[...rally],
+   joiners:[...joiners],
+   petRows:[...petRows],
+   petAssignments:[...petAssignments]
+ };
+
+ const rows=petRows.filter(r=>String(r.source_team_id)===String(tid));
+ const rowIds=new Set(rows.map(r=>String(r.id)));
+
+ teams=teams.filter(x=>String(x.id)!==String(tid));
+ rally=rally.filter(x=>String(x.team_id)!==String(tid));
+ joiners=joiners.filter(x=>String(x.team_id)!==String(tid));
+ petRows=petRows.filter(r=>String(r.source_team_id)!==String(tid));
+ petAssignments=petAssignments.filter(a=>!rowIds.has(String(a.row_id)));
+ renderStrategy();renderPet();renderLayout();
+
+ try{
+   const first=[];
+   if(rows.length)first.push(sb.from('svs_pet_schedule_assignments').delete().in('row_id',rows.map(r=>r.id)));
+   first.push(sb.from('svs_strategy_joiners').delete().eq('team_id',tid));
+   first.push(sb.from('svs_strategy_rally_slots').delete().eq('team_id',tid));
+   const firstResults=await Promise.all(first);
+   const firstError=firstResults.find(x=>x?.error)?.error;
+   if(firstError)throw firstError;
+
+   if(rows.length){
+     const pr=await sb.from('svs_pet_schedule_rows').delete().in('id',rows.map(r=>r.id));
+     if(pr.error)throw pr.error;
+   }
+
+   const del=await sb.from('svs_strategy_teams').delete().eq('id',tid);
+   if(del.error)throw del.error;
+   say(`${t.name} deleted.`);
+ }catch(e){
+   teams=backup.teams;rally=backup.rally;joiners=backup.joiners;
+   petRows=backup.petRows;petAssignments=backup.petAssignments;
+   renderStrategy();renderPet();renderLayout();
+   try{await openStrategy(strategy.id)}catch(_){}
+   say(e?.message||String(e),true);
+ }
 }
 
 function formationsFor(aid,type){return formations.filter(f=>f.strategy_alliance_id===aid&&f.formation_type===type).sort((a,b)=>a.sort_order-b.sort_order)}
@@ -2284,19 +2354,49 @@ async function addAlliance(){
  sel.onchange=()=>manual.style.display=sel.value==='manual'?'block':'none';
 }
 async function addTeam(aid){
- const n=Teams(aid).length+1;
- modal('Add Team',`<label>Team<select id="m-team-name">${[1,2,3,4,5,6].filter(x=>!Teams(aid).some(t=>t.name===`Team ${x}`)).map(x=>`<option>Team ${x}</option>`).join('')}<option value="custom">Custom Team</option></select></label><label id="custom-team-wrap" style="display:none;margin-top:8px">Custom Name<input id="m-team-custom"></label>`,async ov=>{
-   let name=$('#m-team-name',ov).value;if(name==='custom')name=$('#m-team-custom',ov).value.trim();if(!name){say('Choose a Team name.',true);return false}
-   const {data:created,error}=await sb.from('svs_strategy_teams').insert({strategy_alliance_id:aid,name,sort_order:Teams(aid).length,color_key:nextTeamPaletteKey()}).select().single();if(error)throw error;await openStrategy(strategy.id);await ensurePetRowForTeam(created.id);await openStrategy(strategy.id);
+ const used=Teams(aid);
+ const options=Array.from({length:12},(_,i)=>i+1)
+   .filter(x=>!used.some(t=>t.name===`Team ${x}`))
+   .map(x=>`<option>Team ${x}</option>`).join('');
+
+ modal('Add Team',`<label>Team<select id="m-team-name">${options}<option value="custom">Custom Team</option></select></label><label id="custom-team-wrap" style="display:none;margin-top:8px">Custom Name<input id="m-team-custom"></label>`,async ov=>{
+   let name=$('#m-team-name',ov).value;
+   if(name==='custom')name=$('#m-team-custom',ov).value.trim();
+   if(!name){say('Choose a Team name.',true);return false}
+
+   const {data:created,error}=await sb.from('svs_strategy_teams').insert({
+     strategy_alliance_id:aid,
+     name,
+     sort_order:Teams(aid).length,
+     color_key:nextTeamPaletteKey()
+   }).select().single();
+   if(error)throw error;
+
+   teams.push(created);
+   teams.sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+   renderStrategy();renderPet();renderLayout();
+
+   try{
+     await ensurePetRowForTeam(created.id);
+     renderPet();
+   }catch(e){
+     console.warn('[NEXA] Pet row creation after Team add failed',e);
+     say(`${name} was added, but its Pet Schedule row needs a refresh.`,true);
+   }
+   say(`${name} added.`);
  });
- setTimeout(()=>{const ov=$$('.nexa-modal').at(-1),sel=$('#m-team-name',ov);sel.onchange=()=>$('#custom-team-wrap',ov).style.display=sel.value==='custom'?'grid':'none'},0);
+
+ setTimeout(()=>{
+   const ov=$$('.nexa-modal').at(-1),sel=$('#m-team-name',ov);
+   if(sel)sel.onchange=()=>$('#custom-team-wrap',ov).style.display=sel.value==='custom'?'grid':'none';
+ },0);
 }
 
 function openInlineRallyPicker(originTid){
  const pool=rallyCandidatePool();if(!pool.length)return say('No Rally Leaders are available.',true);
  const originTeam=teamForAssignment(originTid),originAlliance=originTeam&&A(originTeam.strategy_alliance_id);
  const ov=document.createElement('div');ov.className='inline-picker-overlay';
- ov.innerHTML=`<div class="inline-picker-card"><div class="inline-picker-head"><div><h3>Add Rally Leader</h3><div class="select-note">Tap a Rally Leader. Alliance, Team, time and PET status open directly below that card.</div></div><button class="mini-x" data-inline-close type="button">×</button></div><div class="candidate-list">${pool.map((p,i)=>{const val=p._pickValue||p.id;return `<div class="candidate-card" data-inline-rally="${esc(String(val))}">${rallyCandidateCard(p).replace(/^<label class="candidate-card"><input[^>]+>/,'').replace(/<\/label>$/,'')}<div class="candidate-inline-editor" data-inline-editor><div class="inline-assignment-grid"><label>Alliance<select data-inline-alliance>${alliances.map(a=>`<option value="${a.id}" ${String(a.id)===String(originAlliance?.id)?'selected':''}>${esc(a.alliance_tag)}</option>`).join('')}</select></label><label>Team<select data-inline-team>${originAlliance?inlineTeamOptions(originAlliance.id,originTid):''}</select></label><label>Start<select data-inline-start>${timeOptions('12:00')}</select></label><label>End<select data-inline-end>${timeOptions('14:00')}</select></label></div><label style="margin-top:9px">PETS<select data-inline-pets><option value="none">No PET</option><option value="active">PET Active</option><option value="reserve">◇ Reserve PET</option></select></label><div class="select-note" style="margin-top:8px">Manual time is flexible. PET Active and Reserve PET do not force a two-hour block.</div><div class="inline-actions"><button class="btn" data-inline-cancel type="button">Cancel</button><button class="btn violet" data-inline-save type="button">Save</button></div></div></div>`}).join('')}</div></div>`;
+ ov.innerHTML=`<div class="inline-picker-card"><div class="inline-picker-head"><div><h3>Add Rally Leader</h3><div class="select-note">Tap a Rally Leader. Alliance, Team, time and PET status open directly below that card.</div></div><button class="mini-x" data-inline-close type="button">×</button></div><div class="candidate-list">${pool.map((p,i)=>{const val=p._pickValue||p.id;return `<div class="candidate-card" data-inline-rally="${esc(String(val))}">${rallyCandidateCard(p).replace(/^<label class="candidate-card"><input[^>]+>/,'').replace(/<\/label>$/,'')}<div class="candidate-inline-editor" data-inline-editor><div class="inline-assignment-grid"><label>Alliance<select data-inline-alliance>${alliances.map(a=>`<option value="${a.id}" ${String(a.id)===String(originAlliance?.id)?'selected':''}>${esc(a.alliance_tag)}</option>`).join('')}</select></label><label>Team<select data-inline-team>${originAlliance?inlineTeamOptions(originAlliance.id,originTid):''}</select></label><label>Start<select data-inline-start>${timeOptions('12:00')}</select></label><label>End<select data-inline-end>${timeOptions('14:00')}</select></label></div><label style="margin-top:9px">PETS<select data-inline-pets><option value="none">No PET</option><option value="active">PET Active</option></select></label><div class="select-note" style="margin-top:8px">Manual time is flexible. PET can be active for any valid Start/End window.</div><div class="inline-actions"><button class="btn" data-inline-cancel type="button">Cancel</button><button class="btn violet" data-inline-save type="button">Save</button></div></div></div>`}).join('')}</div></div>`;
  document.body.appendChild(ov);$('[data-inline-close]',ov).onclick=()=>ov.remove();
  $$('[data-inline-rally]',ov).forEach(card=>card.onclick=e=>{
    if(e.target.closest('button,select,input'))return;
@@ -2315,8 +2415,8 @@ function openInlineRallyPicker(originTid){
        if(!await confirmAvailability(p,s,en)){btn.disabled=false;return}
        const plan=await planRallyAssignmentChange(p,s,en,mode,tid,[]);if(!plan){btn.disabled=false;return}
        const touched=[tid,...plan.touched];await applyRallyAssignmentPlan(plan);
-       const pets=mode==='active',reserve=mode==='reserve';
-       const ins=await sb.from('svs_strategy_rally_slots').insert({team_id:tid,player_account_id:p.id||null,player_name:p.in_game_name,start_utc:s,end_utc:en,pets_active:pets,pet_status:pets?'active':reserve?'reserve':'none',sort_order:Rally(tid).length});
+       const pets=mode==='active';
+       const ins=await sb.from('svs_strategy_rally_slots').insert({team_id:tid,player_account_id:p.id||null,player_name:p.in_game_name,start_utc:s,end_utc:en,pets_active:pets,pet_status:pets?'active':'none',sort_order:Rally(tid).length});
        if(ins.error)throw ins.error;
        await syncPetAssignmentsForTeams(touched);
        ov.remove();await openStrategy(strategy.id);say('Rally Leader added.');
@@ -2326,14 +2426,14 @@ function openInlineRallyPicker(originTid){
 }
 
 function openRallyEditor(tid,p){
- const ov=modal(`Add Rally Leader • ${p.in_game_name}`,`<div class="candidate-selected">${rallyCandidateCard(p).replace(/<input[^>]+>/,'')}</div><div class="grid2" style="margin-top:9px"><label>Start<select id="m-rally-start">${timeOptions('12:00')}</select></label><label>End<select id="m-rally-end">${timeOptions('14:00')}</select></label></div><label style="margin-top:9px">PETS<select id="m-rally-pets"><option value="none">No PET</option><option value="active">PET Active</option><option value="reserve">◇ Reserve PET</option></select></label><div class="select-note" style="margin-top:8px">Manual scheduling is flexible. Choose any Start and End you need. Reserve PET is manual only.</div><div class="select-note" style="margin-top:6px">Rally Leaders are ranked with the full SVS Rally Lead composite.</div>`,async ov=>{
+ const ov=modal(`Add Rally Leader • ${p.in_game_name}`,`<div class="candidate-selected">${rallyCandidateCard(p).replace(/<input[^>]+>/,'')}</div><div class="grid2" style="margin-top:9px"><label>Start<select id="m-rally-start">${timeOptions('12:00')}</select></label><label>End<select id="m-rally-end">${timeOptions('14:00')}</select></label></div><label style="margin-top:9px">PETS<select id="m-rally-pets"><option value="none">No PET</option><option value="active">PET Active</option></select></label><div class="select-note" style="margin-top:8px">Manual scheduling is flexible. Choose any Start and End you need.</div><div class="select-note" style="margin-top:6px">Rally Leaders are ranked with the full SVS Rally Lead composite.</div>`,async ov=>{
   const s=$('#m-rally-start',ov).value,e=$('#m-rally-end',ov).value,petMode=$('#m-rally-pets',ov).value||'none';
-  const pets=petMode==='active',reserve=petMode==='reserve';
+  const pets=petMode==='active';
   if(minutesOf(e)<=minutesOf(s)){say('End time must be after Start.',true);return false}
   if(!await confirmAvailability(p,s,e))return false;
   const plan=await planRallyAssignmentChange(p,s,e,petMode,tid,[]);if(!plan)return false;
   const touched=[tid,...plan.touched];await applyRallyAssignmentPlan(plan);
-  const {error}=await sb.from('svs_strategy_rally_slots').insert({team_id:tid,player_account_id:p.id||null,player_name:p.in_game_name,start_utc:s,end_utc:e,pets_active:pets,pet_status:pets?'active':reserve?'reserve':'none',sort_order:Rally(tid).length});if(error)throw error;await syncPetAssignmentsForTeams(touched);await openStrategy(strategy.id)
+  const {error}=await sb.from('svs_strategy_rally_slots').insert({team_id:tid,player_account_id:p.id||null,player_name:p.in_game_name,start_utc:s,end_utc:e,pets_active:pets,pet_status:pets?'active':'none',sort_order:Rally(tid).length});if(error)throw error;await syncPetAssignmentsForTeams(touched);await openStrategy(strategy.id)
  });
 }
 async function addRally(tid,preselectedId=''){
@@ -2439,16 +2539,30 @@ function petRowForTeam(tid){
  return petRows.find(r=>String(r.source_team_id)===String(tid))||null;
 }
 function petScheduleBadge(a){
- if(!a)return '';
- if(a.pets_active)return '<span class="pet-v13-badge active">PET</span>';
- if(a.pet_status==='reserve')return '<span class="pet-v13-badge reserve">◇ RESERVE</span>';
- return '';
+ if(!a||!a.pets_active)return '';
+ return '<span class="pet-v13-badge active">PET</span>';
+}
+function scheduleDisplayAssignments(rowId,label){
+ const ms=minutesOf(label);
+ return petAssignments
+   .filter(x=>String(x.row_id)===String(rowId))
+   .filter(x=>minutesOf(x.start_utc)<=ms&&minutesOf(x.end_utc)>ms)
+   .sort((a,b)=>{
+     if(!!a.pets_active!==!!b.pets_active)return a.pets_active?-1:1;
+     const byStart=minutesOf(a.start_utc)-minutesOf(b.start_utc);
+     if(byStart)return byStart;
+     return Number(a.sort_order||0)-Number(b.sort_order||0);
+   });
 }
 function petHourCards(t){
  const row=petRowForTeam(t.id),times=['12:00','13:00','14:00','15:00','16:00'];
  return `<div class="pet-v13-hours" style="--pet-color:${tc(t)}">${times.map(tm=>{
-   const a=row?scheduleDisplayAssignment(row.id,tm):null;
-   return `<div class="pet-v13-hour"><time>${tm}</time>${a?`<div class="pet-v13-player">${esc(a.player_name||'Rally Lead')}</div>${petScheduleBadge(a)}`:'<div class="pet-v13-empty">Unassigned</div>'}</div>`;
+   const list=row?scheduleDisplayAssignments(row.id,tm):[];
+   return `<div class="pet-v13-hour"><time>${tm}</time>${
+     list.length
+       ? list.map(a=>`<div class="pet-v13-entry"><div class="pet-v13-player">${esc(a.player_name||'Rally Lead')}</div>${petScheduleBadge(a)}</div>`).join('')
+       : '<div class="pet-v13-empty">Unassigned</div>'
+   }</div>`;
  }).join('')}</div>`;
 }
 function petTeamCard(t,a,editable=true){
@@ -2480,11 +2594,22 @@ function petAllianceCard(a,editable=true){
 function renderPetWorkspace(){
  const host=$('#pet-workspace');if(!host)return;
  const {rl,jo,manual}=currentRosterPools(),m=recommendedTeamMetrics(jo,rl);
+ const poolKey=p=>p?.id?`id:${p.id}`:`name:${String(p?.in_game_name||p||'').trim().toLowerCase()}`;
+ const totalKeys=new Set([
+   ...rl.map(poolKey),
+   ...manual.map(n=>poolKey({in_game_name:n})),
+   ...rally.map(r=>r.player_account_id?`id:${r.player_account_id}`:`name:${String(r.player_name||'').trim().toLowerCase()}`)
+ ].filter(Boolean));
+ const scheduledKeys=new Set(
+   rally.map(r=>r.player_account_id?`id:${r.player_account_id}`:`name:${String(r.player_name||'').trim().toLowerCase()}`).filter(Boolean)
+ );
+ const totalCount=totalKeys.size,scheduledCount=scheduledKeys.size,notScheduled=Math.max(0,totalCount-scheduledCount);
  const hasSetup=!!(strategy&&alliances.length);
  host.innerHTML=`<div class="pet-v13-shell">
    <div class="pet-v13-summary">
-     <div class="pet-v13-stat"><b>${rl.length+manual.length}</b><small>Rally Leads Available${manual.length?` • ${manual.length} manual`:''}</small></div>
-     <div class="pet-v13-stat"><b>${m.teamCount||'—'}</b><small>Recommended Teams</small></div>
+     <div class="pet-v13-stat"><b>${totalCount}</b><small>Total Rally Leads</small></div>
+     <div class="pet-v13-stat"><b>${scheduledCount}</b><small>Scheduled</small></div>
+     <div class="pet-v13-stat"><b>${notScheduled}</b><small>Not Scheduled</small></div>
    </div>
 
    <div class="pet-v13-recommend">
@@ -2686,21 +2811,16 @@ async function setPetPurpose(teamId,purpose){
 function openManualRallyLead(){
  if(!strategy||!teams.length)return say('Create at least one Team first.',true);
  const opts=alliances.flatMap(a=>Teams(a.id).map(t=>`<option value="${t.id}">${esc(a.alliance_tag)} • ${esc(t.name)}</option>`)).join('');
- modal('Manual Rally Leader',`<label>Name<input id="manual-rl-name" placeholder="Rally Leader name"></label><label style="margin-top:9px">Team<select id="manual-rl-team">${opts}</select></label><div class="grid2" style="margin-top:9px"><label>Start<select id="manual-rl-start">${timeOptions('12:00')}</select></label><label>End<select id="manual-rl-end">${timeOptions('14:00')}</select></label></div><label style="margin-top:9px">PETS<select id="manual-rl-pets"><option value="none">No PET</option><option value="active">PET Active</option><option value="reserve">◇ Reserve PET</option></select></label><div class="select-note" style="margin-top:8px">Manual Rally Leads stay saved with this SvS workspace. Availability cannot be checked because there is no Battle Sign-Up response for this name.</div>`,async ov=>{
+ modal('Manual Rally Leader',`<label>Name<input id="manual-rl-name" placeholder="Rally Leader name"></label><label style="margin-top:9px">Team<select id="manual-rl-team">${opts}</select></label><div class="grid2" style="margin-top:9px"><label>Start<select id="manual-rl-start">${timeOptions('12:00')}</select></label><label>End<select id="manual-rl-end">${timeOptions('14:00')}</select></label></div><label style="margin-top:9px">PETS<select id="manual-rl-pets"><option value="none">No PET</option><option value="active">PET Active</option></select></label><div class="select-note" style="margin-top:8px">Manual Rally Leads stay saved with this SvS workspace. Availability cannot be checked because there is no Battle Sign-Up response for this name.</div>`,async ov=>{
    const name=$('#manual-rl-name',ov).value.trim(),tid=$('#manual-rl-team',ov).value,st=$('#manual-rl-start',ov).value,en=$('#manual-rl-end',ov).value,mode=$('#manual-rl-pets',ov).value||'none';if(!name||!tid){say('Enter a name and Team.',true);return false}if(minutesOf(en)<=minutesOf(st)){say('End time must be after Start.',true);return false}
    const p={id:null,in_game_name:name,_manual:true},plan=await planRallyAssignmentChange(p,st,en,mode,tid,[]);if(!plan)return false;const touched=[tid,...plan.touched];await applyRallyAssignmentPlan(plan);
-   const pets=mode==='active',reserve=mode==='reserve';const ins=await sb.from('svs_strategy_rally_slots').insert({team_id:tid,player_account_id:null,player_name:name,start_utc:st,end_utc:en,pets_active:pets,pet_status:pets?'active':reserve?'reserve':'none',sort_order:Rally(tid).length});if(ins.error)throw ins.error;await syncPetAssignmentsForTeams(touched);await openStrategy(strategy.id);return true;
+   const pets=mode==='active';const ins=await sb.from('svs_strategy_rally_slots').insert({team_id:tid,player_account_id:null,player_name:name,start_utc:st,end_utc:en,pets_active:pets,pet_status:pets?'active':'none',sort_order:Rally(tid).length});if(ins.error)throw ins.error;await syncPetAssignmentsForTeams(touched);await openStrategy(strategy.id);return true;
  });
 }
 $('#manual-rally-lead').onclick=openManualRallyLead;
 /* V13.0: Hide Assignment removed. Grouped Team cards always show assignment context. */
 $('#send-pets-plan').onclick=sendPetScheduleToBattlePlan;
 /* V13.0: Sync Rows from Teams removed. addTeam() creates its Pet row automatically. */
-function scheduleDisplayAssignment(rowId,label){
- const ms=minutesOf(label),list=petAssignments.filter(x=>x.row_id===rowId).sort((a,b)=>minutesOf(a.start_utc)-minutesOf(b.start_utc));
- if(label==='17:00')return list.find(x=>minutesOf(x.end_utc)===ms)||null;
- return list.find(x=>minutesOf(x.start_utc)<=ms&&minutesOf(x.end_utc)>ms)||null;
-}
 function renderPet(){
  const h=$('#pet-editor');
  renderPetWorkspace();
@@ -2713,7 +2833,7 @@ function renderPet(){
  renderPetExport();
 }
 async function addPet(id){
- const ov=modal('Add Pet Schedule Time',`<label>Rally Leader<select id="m-pet-player">${playerOptions('rally_lead',true)}</select></label><div class="grid2" style="margin-top:9px"><label>Start<select id="m-pet-start">${timeOptions('12:00')}</select></label><label>End<select id="m-pet-end">${timeOptions('14:00')}</select></label></div><label style="margin-top:9px">PETS<select id="m-pet-on"><option value="none">No PET</option><option value="active">PET Active</option><option value="reserve">◇ Reserve PET</option></select></label><div class="select-note" style="margin-top:8px">Manual PET windows can be 1 hour, 2 hours, or any other Start/End period you choose. Reserve PET is manual only.</div>`,async ov=>{
+ const ov=modal('Add Pet Schedule Time',`<label>Rally Leader<select id="m-pet-player">${playerOptions('rally_lead',true)}</select></label><div class="grid2" style="margin-top:9px"><label>Start<select id="m-pet-start">${timeOptions('12:00')}</select></label><label>End<select id="m-pet-end">${timeOptions('14:00')}</select></label></div><label style="margin-top:9px">PETS<select id="m-pet-on"><option value="none">No PET</option><option value="active">PET Active</option></select></label><div class="select-note" style="margin-top:8px">Manual PET windows can use any valid Start/End period.</div>`,async ov=>{
    const p=selectedPlayer($('#m-pet-player',ov).value);if(!p){say('Select a Rally Leader.',true);return false}
    const s=$('#m-pet-start',ov).value,e=$('#m-pet-end',ov).value,petMode=$('#m-pet-on',ov).value||'none';
    if(minutesOf(e)<=minutesOf(s)){say('End time must be after Start.',true);return false}
@@ -2721,8 +2841,8 @@ async function addPet(id){
    if(!await confirmAvailability(p,s,e))return false;
    const plan=await planRallyAssignmentChange(p,s,e,petMode,row.source_team_id,[]);if(!plan)return false;
    const touched=[row.source_team_id,...plan.touched];await applyRallyAssignmentPlan(plan);
-   const pets=petMode==='active',reserve=petMode==='reserve';
-   const ins=await sb.from('svs_strategy_rally_slots').insert({team_id:row.source_team_id,player_account_id:p.id||null,player_name:p.in_game_name,start_utc:s,end_utc:e,pets_active:pets,pet_status:pets?'active':reserve?'reserve':'none',sort_order:Rally(row.source_team_id).length});if(ins.error)throw ins.error;
+   const pets=petMode==='active';
+   const ins=await sb.from('svs_strategy_rally_slots').insert({team_id:row.source_team_id,player_account_id:p.id||null,player_name:p.in_game_name,start_utc:s,end_utc:e,pets_active:pets,pet_status:pets?'active':'none',sort_order:Rally(row.source_team_id).length});if(ins.error)throw ins.error;
    await syncPetAssignmentsForTeams(touched);await openStrategy(strategy.id);
  });
 }
@@ -2807,7 +2927,7 @@ function layoutRallyCards(tid){
    const same=last&&String(last.player_account_id||last.player_name)===String(x.player_account_id||x.player_name)&&last.end_utc===x.start_utc&&!!last.pets_active===!!x.pets_active;
    if(same)last.end_utc=x.end_utc;else merged.push({...x})
  }
- return merged.map(x=>`<div class="rally ${x.pets_active?'pet':''}"><div><b>${esc(x.player_name)}${x.pet_status==='reserve'?' ◇':''}</b><div class="tiny">${esc(x.start_utc)}–${esc(x.end_utc)}${x.pet_status==='reserve'?' • Reserve PET':''}</div></div><div>${x.pets_active?'🐾':x.pet_status==='reserve'?'◇':''}</div></div>`).join('')
+ return merged.map(x=>`<div class="rally ${x.pets_active?'pet':''}"><div><b>${esc(x.player_name)}</b><div class="tiny">${esc(x.start_utc)}–${esc(x.end_utc)}</div></div><div>${x.pets_active?'🐾':''}</div></div>`).join('')
 }
 function renderLayout(){
  const h=$('#layout-export');if(!strategy){h.innerHTML='<span class="muted">Open a strategy first.</span>';return}
@@ -4263,7 +4383,7 @@ function applyTeamStrength(pack){
 }
 function petQualityDecision(team,ai,ti,requested){
  const purpose=ai===0&&ti===0?'Garrison':ai===0&&ti===1?'Handoff':'Counter';
- // Reserve PET is MANUAL ONLY. Auto Generate never creates Reserve PET.
+ //  is MANUAL ONLY. Auto Generate never creates .
  if(!requested||purpose==='Handoff')return {active:false,status:'none'};
  return {active:true,status:'active'};
 }
@@ -4431,7 +4551,7 @@ async function runAssist(){
    `<b>Structure:</b> ${saRows.map((a,i)=>`${a.alliance_tag}: ${teamRowsByAlliance[i]?.length||0} Team${(teamRowsByAlliance[i]?.length||0)===1?'':'s'}`).join(' • ')}.`,
    `<b>Coverage:</b> ${plan?.coverage?.every(x=>x.complete)?'all generated Teams are covered 12:00–17:00. Garrison receives priority PET coverage when roster depth allows; Handoff receives none; Counter PET windows move dynamically wherever coverage is most useful.':'NEXA detected a coverage limitation; review the schedule before publishing.'}`,
    `<b>Rally Leads:</b> ${rlPool.length} available • ${activeRL.length} used • ${floatingRL.length} floating${floatingRL.length?'':''}.`,
-   `<b>PET Distribution:</b> Main T1 keeps continuous priority coverage. Handoff is excluded. Counter PET windows are routed by SVS troop/team strength, staggered across the strongest Teams for opening, middle relief and closing. Reserve PET is manual only; Auto Generate never creates Reserve PET.`,
+   `<b>PET Distribution:</b> Main T1 keeps continuous priority coverage. Handoff is excluded. Counter PET windows are routed by SVS troop/team strength, staggered across the strongest Teams for opening, middle relief and closing. `,
    `<b>Capacity:</b> active Teams are limited by Rally Capacity + Joiner Deployment Capacity. Extra rally-capable players may remain floating or be used as Joiners.`,
    `<b>Top 4 Joiner Stack:</b> optimized after Rally Lead formations. NEXA treats the first four seats as a synergy/stack package: each seat must complement the other three and the selected Rally Lead formation. A follows Main formation; B follows Alt formation when present, otherwise B is the best owned compatible backup from the same vetted stack.`
  ]);

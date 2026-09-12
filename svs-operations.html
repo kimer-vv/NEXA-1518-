@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V14.2 • PDF-STYLE ALLIANCE TEAM BOARD + EDITABLE MAIN HEROES -->
+<!-- NEXA SVS OPERATIONS V14.3 • TEAM BOARD PREVIEW/DOWNLOAD + DIRECT ADD PLAYER + SCHEDULE COLORS -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -590,8 +590,9 @@ body.pet-preview-open{overflow:hidden!important}
 .tb14-schedule-name{padding:8px 10px;font-size:13px;font-weight:950;box-shadow:inset 4px 0 0 var(--tc);color:var(--tc)}
 .tb14-schedule-hours{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;padding:7px}
 .tb14-schedule-hour{min-height:58px;border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:6px;background:rgba(0,0,0,.16)}
-.tb14-schedule-hour time{display:block;color:#94a1c3;font-size:9px;font-weight:950}.tb14-schedule-hour span{display:block;margin-top:4px;font-size:10px;font-weight:850}.tb14-schedule-hour .pet{color:#dfc9ff}
-.tb14-teamline{margin:4px 0 0;font-size:12px;font-weight:950;color:#dfe7fb}.tb14-teamline span{color:var(--tc)}
+.tb14-schedule-hour time{display:block;color:#fff;font-size:9px;font-weight:950}.tb14-schedule-hour span{display:block;margin-top:4px;font-size:12px;font-weight:1000;color:var(--tc)}.tb14-schedule-hour .pet{color:var(--tc)}
+.tb14-teamline{margin:4px 0 0;font-size:12px;font-weight:950;color:#dfe7fb;display:flex;align-items:center;justify-content:space-between;gap:8px}.tb14-teamline span{color:var(--tc)}
+.tb14-teamline .btn{min-height:30px!important;padding:5px 8px!important;font-size:9px!important;flex:0 0 auto}
 .tb14-ratios{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.tb14-ratios.counter{grid-template-columns:minmax(0,230px)}
 .tb14-ratio{min-width:0;border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:9px 10px;background:rgba(255,255,255,.025)}
 .tb14-ratio.garrison-card{border-color:rgba(103,223,177,.34);background:rgba(103,223,177,.055)}
@@ -648,12 +649,12 @@ body.pet-preview-open{overflow:hidden!important}
 .pet-v13-mini-btn{min-height:34px!important;padding:6px 9px!important;border-radius:10px!important;font-size:10px!important}
 .pet-v13-hours{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(126px,1fr);gap:7px;overflow-x:auto;padding:9px;-webkit-overflow-scrolling:touch}
 .pet-v13-hour{min-height:82px;border:1px solid color-mix(in srgb,var(--pet-color) 34%,transparent);border-radius:12px;background:color-mix(in srgb,var(--pet-color) 9%,rgba(4,8,19,.94));padding:8px;display:grid;align-content:start;gap:5px}
-.pet-v13-hour time{font-size:10px;font-weight:1000;letter-spacing:.08em;color:var(--pet-color)}
-.pet-v13-player{font-size:12px;font-weight:950;line-height:1.25;word-break:break-word}
+.pet-v13-hour time{font-size:10px;font-weight:1000;letter-spacing:.08em;color:#fff}
+.pet-v13-player{font-size:13px;font-weight:1000;line-height:1.25;word-break:break-word;color:var(--pet-color)}
 .pet-v13-empty{font-size:11px;color:#7f8aa7}
 .pet-v13-entry{display:grid;gap:3px;padding-top:5px;margin-top:3px;border-top:1px solid rgba(255,255,255,.07)}
 .pet-v13-entry:first-of-type{border-top:0;margin-top:0;padding-top:0}
-.pet-v13-entry .pet-v13-player{font-size:12px;font-weight:950;line-height:1.2}
+.pet-v13-entry .pet-v13-player{font-size:13px;font-weight:1000;line-height:1.2;color:var(--pet-color)}
 .pet-v13-summary{grid-template-columns:repeat(3,minmax(0,1fr))}
 .pet-v13-badge{display:inline-flex;align-items:center;min-height:21px;padding:0 6px;border-radius:999px;font-size:8px;font-weight:1000;letter-spacing:.06em;width:max-content}
 .pet-v13-badge.active{background:color-mix(in srgb,var(--pet-color) 34%,transparent);border:1px solid color-mix(in srgb,var(--pet-color) 62%,transparent);color:#fff}
@@ -725,7 +726,6 @@ body.pet-preview-open{overflow:hidden!important}
     <button data-tab="formations" data-nexa-formations="1">Formations</button>
     <button data-tab="pets">Pet Schedule</button>
     <button data-tab="strategy">Team Board</button>
-    <button data-tab="layout">Team Layout</button>
     <button data-tab="seating">Castle Seating</button>
     <button data-tab="plan">Battle Plan</button>
   </nav>
@@ -761,8 +761,19 @@ body.pet-preview-open{overflow:hidden!important}
   </section>
 
   <section class="panel" data-panel="strategy">
-    <div class="desc">Team Board follows Pet Schedule automatically: same Alliances, Teams, Whale Schedule and Team colors. Players are built manually from the NEXA-ranked Joiner list. During QA, each active Team is padded to 10 test players; their Main Garrison hero selections can be edited without adding them to the real roster.</div>
+    <div class="desc">Team Board follows Pet Schedule automatically: same Alliances, Teams, Whale Schedule and Team colors. Players are built manually from the NEXA-ranked Joiner list or can be added manually.</div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="section-head">
+        <div><h2 style="margin:0">Team Board</h2><div class="tiny muted">Preview and download the clean alliance sheets directly from here.</div></div>
+        <div class="row">
+          <button id="tb-preview" class="btn violet" type="button">Preview</button>
+          <button id="tb-download" class="btn" type="button">Download</button>
+          <button id="tb-send-plan" class="btn violet" type="button">Send to Battle Plan</button>
+        </div>
+      </div>
+    </div>
     <div id="strategy-editor"></div>
+    <div id="layout-export" style="display:none"></div>
   </section>
 
   <section class="panel" data-panel="pets">
@@ -784,14 +795,6 @@ body.pet-preview-open{overflow:hidden!important}
         <button id="preview-pets" class="btn violet" type="button">Preview Schedule</button>
       </div>
       <div id="pet-export" class="pet-preview-inline"></div>
-    </div>
-  </section>
-
-  <section class="panel" data-panel="layout">
-    <div class="desc">The clean published Team showcase. Rally Leaders stay at the top; Joiners appear only in the roster below.</div>
-    <div class="card">
-      <div class="section-head"><div><h2>Team Layout</h2><div class="tiny muted">Player • Attack A/B • Defense A/B.</div></div><div class="row"><button id="preview-layout" class="btn violet">Preview Layout</button><button id="publish-layout" class="btn violet">Send / Update</button><button id="download-layout" class="btn">Download</button></div></div>
-      <div id="layout-export" class="layout-scroll" style="margin-top:12px"></div>
     </div>
   </section>
 
@@ -1462,7 +1465,7 @@ async function ensureTeamPaletteKeys(){
 function defenseOn(t){return t.defense_enabled??A(t.strategy_alliance_id)?.defense_enabled!==false}
 
 $$('.nav button').forEach(b=>b.onclick=()=>{if(b.dataset.link){location.href=b.dataset.link;return}showTab(b.dataset.tab)});
-function showTab(name){$$('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));$$('.panel').forEach(p=>p.classList.toggle('active',p.dataset.panel===name));if(name==='setup')renderSvsSetup();if(name==='formations')renderFormationCenter();if(name==='pets')renderPet();if(name==='layout')renderLayout();if(name==='seating')renderCastleSeating();if(name==='plan')renderBattlePlanBuilder()}
+function showTab(name){$$('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));$$('.panel').forEach(p=>p.classList.toggle('active',p.dataset.panel===name));if(name==='setup')renderSvsSetup();if(name==='formations')renderFormationCenter();if(name==='pets')renderPet();if(name==='seating')renderCastleSeating();if(name==='plan')renderBattlePlanBuilder()}
 
 
 function formationRuleMeta(r){return r?.research_metadata&&typeof r.research_metadata==='object'?r.research_metadata:{}}
@@ -2023,7 +2026,8 @@ function teamBoardConfig(){
  return {
    roles:tb.roles&&typeof tb.roles==='object'?tb.roles:{},
    counter_joiner_hero_ids:tb.counter_joiner_hero_ids&&typeof tb.counter_joiner_hero_ids==='object'?tb.counter_joiner_hero_ids:{},
-   test_player_heroes:tb.test_player_heroes&&typeof tb.test_player_heroes==='object'?tb.test_player_heroes:{}
+   test_player_heroes:tb.test_player_heroes&&typeof tb.test_player_heroes==='object'?tb.test_player_heroes:{},
+   manual_player_tags:tb.manual_player_tags&&typeof tb.manual_player_tags==='object'?tb.manual_player_tags:{}
  };
 }
 async function saveTeamBoardConfig(mutator){
@@ -2031,7 +2035,8 @@ async function saveTeamBoardConfig(mutator){
    ...tb,
    roles:{...tb.roles},
    counter_joiner_hero_ids:{...tb.counter_joiner_hero_ids},
-   test_player_heroes:{...tb.test_player_heroes}
+   test_player_heroes:{...tb.test_player_heroes},
+   manual_player_tags:{...tb.manual_player_tags}
  })||tb;
  cfg.team_board=next;
  const {data,error}=await sb.from('svs_strategies').update({assist_config:cfg}).eq('id',strategy.id).select().single();
@@ -2083,7 +2088,13 @@ function teamBoardScheduleTeam(t,a){
  return `<div class="tb14-schedule-team" style="--tc:${tc(t)}"><div class="tb14-schedule-name">${esc(a.alliance_tag)} - ${esc(t.name)}</div><div class="tb14-schedule-hours">${times.map(tm=>{const list=row?scheduleDisplayAssignments(row.id,tm):[];return `<div class="tb14-schedule-hour"><time>${tm}</time>${list.length?list.map(x=>`<span class="${x.pets_active?'pet':''}">${esc(x.player_name)}${x.pets_active?' • PET':''}</span>`).join(''):'<span class="muted">—</span>'}</div>`}).join('')}</div></div>`;
 }
 function teamBoardHeroName(id){const h=H(id);return `<span class="${rarityClass(h?.rarity)}">${esc(h?.name||'—')}</span>`}
-function teamBoardPlayerAllianceTag(j){const p=playerPool.find(x=>String(x.id)===String(j.player_account_id)),a=p?.alliance_id?allAlliances.find(x=>String(x.id)===String(p.alliance_id)):null;return a?.tag||'—'}
+function teamBoardPlayerAllianceTag(j){
+ const manual=teamBoardConfig().manual_player_tags?.[String(j.id)];
+ if(manual)return manual;
+ const p=playerPool.find(x=>String(x.id)===String(j.player_account_id)),a=p?.alliance_id?allAlliances.find(x=>String(x.id)===String(p.alliance_id)):null;
+ const t=j.team_id?T(j.team_id):null,sa=t?A(t.strategy_alliance_id):null;
+ return a?.tag||sa?.alliance_tag||'—';
+}
 function teamBoardCounterHeroIds(aid){return (teamBoardConfig().counter_joiner_hero_ids?.[String(aid)]||[]).map(String).slice(0,8)}
 function teamBoardCounterHeroes(aid){return teamBoardCounterHeroIds(aid).map(id=>H(id)).filter(Boolean)}
 function editTeamBoardCounterHeroes(aid){
@@ -2105,6 +2116,53 @@ function editMainPlayerHeroes(id){
    }
    renderStrategy();say(`${row.player_name} heroes saved.`);
  });bindVisualHeroPickers(ov);
+}
+
+function openTeamBoardAddPlayer(tid){
+ const t=T(tid),a=t?A(t.strategy_alliance_id):null;if(!t||!a)return;
+ const ov=document.createElement('div');ov.className='inline-picker-overlay';
+ ov.innerHTML=`<div class="inline-picker-card">
+   <div class="inline-picker-head"><div><h3>Add Player • ${esc(a.alliance_tag)} ${esc(t.name)}</h3><div class="select-note">Choose from the ranked Joiner list or add a player manually.</div></div><button class="mini-x" data-inline-close type="button">×</button></div>
+   <div class="nexa-export-picker-actions">
+     <button class="btn violet" id="tb-add-ranked" type="button">Choose from Ranked List</button>
+     <button class="btn" id="tb-add-manual" type="button">Add Manually</button>
+   </div>
+ </div>`;
+ document.body.appendChild(ov);
+ $('[data-inline-close]',ov).onclick=()=>ov.remove();
+ $('#tb-add-ranked',ov).onclick=()=>{ov.remove();openTeamBoardJoinerPicker(tid)};
+ $('#tb-add-manual',ov).onclick=()=>{ov.remove();openTeamBoardManualPlayer(tid)};
+}
+function openTeamBoardManualPlayer(tid){
+ const t=T(tid),a=t?A(t.strategy_alliance_id):null;if(!t||!a)return;
+ const main=teamBoardPrimaryAlliance(),isMain=main&&String(main.id)===String(a.id);
+ const body=`<div class="grid2">
+   <label>Player Name<input id="tb-manual-name" placeholder="Player name"></label>
+   <label>Alliance Tag<input id="tb-manual-tag" maxlength="12" placeholder="TAG"></label>
+ </div>
+ ${isMain?`<div class="visual-hero-grid" style="margin-top:10px">
+   ${heroPickerField('tb-man-gh1','Garrison Hero 1','','','')}
+   ${heroPickerField('tb-man-gh2','Garrison Hero 2','','','')}
+   ${heroPickerField('tb-man-mh1','MIA Rally Hero 1','','','')}
+   ${heroPickerField('tb-man-mh2','MIA Rally Hero 2','','','')}
+ </div><div class="select-note" style="margin-top:8px">All hero fields are optional. Choose “Leave empty” if you want Garrison or MIA Rally blank.</div>`:''}`;
+ const ov=modal(`Add Player Manually • ${a.alliance_tag} ${t.name}`,body,async modalEl=>{
+   const name=$('#tb-manual-name',modalEl)?.value.trim()||'',tag=($('#tb-manual-tag',modalEl)?.value.trim()||a.alliance_tag||'').toUpperCase();
+   if(!name){say('Enter the Player Name.',true);return false}
+   const patch={
+     attack_a_hero_id:isMain?($('#tb-man-gh1',modalEl)?.value||null):null,
+     attack_b_hero_id:isMain?($('#tb-man-gh2',modalEl)?.value||null):null,
+     defense_a_hero_id:isMain?($('#tb-man-mh1',modalEl)?.value||null):null,
+     defense_b_hero_id:isMain?($('#tb-man-mh2',modalEl)?.value||null):null
+   };
+   const ins=await sb.from('svs_strategy_joiners').insert({
+     team_id:tid,player_account_id:null,player_name:name,sort_order:Joiners(tid).length,join_first:false,...patch
+   }).select().single();
+   if(ins.error)throw ins.error;
+   await saveTeamBoardConfig(tb=>{tb.manual_player_tags[String(ins.data.id)]=tag;return tb});
+   await openStrategy(strategy.id);say(`${name} added to ${a.alliance_tag} ${t.name}.`);
+ });
+ if(isMain)bindVisualHeroPickers(ov);
 }
 function openTeamBoardJoinerPicker(tid){
  const pool=joinerCandidatePool();if(!pool.length)return say('No ranked Joiners are available.',true);
@@ -2135,10 +2193,10 @@ function teamBoardRows(t){
    const id=`tb-test-${t.id}-${i}`,hs=teamBoardTestHeroIds(n),override=saved[id]||{};
    fake.push({
      id,team_id:t.id,player_account_id:null,player_name:name,_tb_test:true,_tb_tag:a?.alliance_tag||'TEST',
-     attack_a_hero_id:override.attack_a_hero_id??hs[0],
-     attack_b_hero_id:override.attack_b_hero_id??hs[1],
-     defense_a_hero_id:override.defense_a_hero_id??hs[2],
-     defense_b_hero_id:override.defense_b_hero_id??hs[3]
+     attack_a_hero_id:Object.prototype.hasOwnProperty.call(override,'attack_a_hero_id')?override.attack_a_hero_id:hs[0],
+     attack_b_hero_id:Object.prototype.hasOwnProperty.call(override,'attack_b_hero_id')?override.attack_b_hero_id:hs[1],
+     defense_a_hero_id:Object.prototype.hasOwnProperty.call(override,'defense_a_hero_id')?override.defense_a_hero_id:hs[2],
+     defense_b_hero_id:Object.prototype.hasOwnProperty.call(override,'defense_b_hero_id')?override.defense_b_hero_id:hs[3]
    });
  }
  return [...real,...fake];
@@ -2180,7 +2238,7 @@ function openTeamBoardAllianceJoinerPicker(aid){
 }
 function renderTeamBoardAlliance(a){
  const main=teamBoardPrimaryAlliance(),isMain=main&&String(main.id)===String(a.id),ts=Teams(a.id),rows=teamBoardAllianceRows(a),heroes=isMain?[]:teamBoardCounterHeroes(a.id);
- const teamLines=ts.map(t=>`<div class="tb14-teamline" style="--tc:${tc(t)}">${esc(a.alliance_tag)} - <span>${esc(t.name)}</span></div>`).join('');
+ const teamLines=ts.map(t=>`<div class="tb14-teamline no-export" style="--tc:${tc(t)}"><div>${esc(a.alliance_tag)} - <span>${esc(t.name)}</span></div><button class="btn" data-tb-add-player-team="${t.id}" type="button">+ Add Player</button></div>`).join('');
  const ratios=isMain
    ? `${teamBoardRatioCard('★ Garrison',a.defense_ratio,'garrison-card')}${teamBoardRatioCard('MIA Rally',a.attack_ratio,'mia-card')}`
    : `${teamBoardRatioCard('★ MIA Rally',a.attack_ratio,'mia-card')}`;
@@ -2190,8 +2248,49 @@ function renderTeamBoardAlliance(a){
    <div class="tb14-section"><div class="tb14-section-title"><h4>Whale Group Schedule</h4></div><div class="tb14-schedule-list">${ts.map(t=>teamBoardScheduleTeam(t,a)).join('')||'<div class="tb14-empty">No Teams exist in Pet Schedule.</div>'}</div>${teamLines}</div>
    <div class="tb14-section"><div class="tb14-section-title"><h4>Troop Ratios</h4><button class="btn tb14-mini" data-tb-edit-ratio="${a.id}" type="button">Edit Ratios</button></div><div class="tb14-ratios ${isMain?'':'counter'}">${ratios}</div></div>
    ${!isMain?`<div class="tb14-section"><div class="tb14-section-title"><h4>MIA Rally • Joiner Heroes · Use Any Of These</h4><button class="btn tb14-mini" data-tb-edit-heroes="${a.id}" type="button">Choose Heroes</button></div><div class="tb14-hero-pool">${heroes.length?heroes.map(h=>`<div class="tb14-hero-card">${h.image_url?`<img src="${esc(h.image_url)}" alt="">`:'<div></div>'}<b class="${rarityClass(h.rarity)}">${esc(h.name)}</b></div>`).join(''):'<div class="tb14-empty">No Joiner Heroes selected yet.</div>'}</div></div>`:''}
-   <div class="tb14-section"><div class="tb14-section-title"><h4>Players (${rows.length})</h4><button class="btn tb14-mini" data-tb-add-alliance-player="${a.id}" type="button">+ Add Player</button></div>${isMain?renderTeamBoardMainPlayers(a):renderTeamBoardCounterPlayers(a)}</div>
+   <div class="tb14-section"><div class="tb14-section-title"><h4>Players (${rows.length})</h4></div>${isMain?renderTeamBoardMainPlayers(a):renderTeamBoardCounterPlayers(a)}</div>
  </section>`;
+}
+
+function teamBoardAllianceNodes(){
+ const host=$('#strategy-editor');
+ return host?$$('.tb14-alliance',host):[];
+}
+function openTeamBoardChoice(mode){
+ const nodes=teamBoardAllianceNodes();
+ if(!nodes.length)return say('No Team Board alliances are ready yet.',true);
+ const verb=mode==='preview'?'Preview':'Download',title=`${verb} Team Board`;
+ const ov=document.createElement('div');ov.className='nexa-export-picker';
+ ov.innerHTML=`<div class="nexa-export-picker-card"><h3>${title}</h3><div class="tiny muted" style="margin-bottom:10px">Choose one Alliance or all Alliances.</div><div class="nexa-export-picker-actions">
+   <button class="btn violet" data-tb-export-choice="all" type="button">${verb} All Alliances</button>
+   ${nodes.map((node,i)=>{const a=alliances.find(x=>String(x.id)===String(node.dataset.tbAlliance));return `<button class="btn violet" data-tb-export-choice="${i}" type="button">${verb} ${esc(a?.alliance_tag||`Alliance ${i+1}`)}</button>`}).join('')}
+   <button class="btn" data-tb-export-close type="button">Close</button>
+ </div></div>`;
+ document.body.appendChild(ov);
+ $$('[data-tb-export-choice]',ov).forEach(b=>b.onclick=async()=>{
+   const selected=b.dataset.tbExportChoice==='all'?nodes:[nodes[Number(b.dataset.tbExportChoice)]].filter(Boolean);
+   ov.remove();
+   if(mode==='preview')return showTeamBoardPreview(selected);
+   const names=selected.map((node,i)=>{const a=alliances.find(x=>String(x.id)===String(node.dataset.tbAlliance));return `NEXA-SvS-${String(a?.alliance_tag||`Alliance-${i+1}`).replace(/[^a-z0-9_-]+/gi,'-')}-Team-Board.png`});
+   await exportNodes(selected,names);
+ });
+ $('[data-tb-export-close]',ov).onclick=()=>ov.remove();
+}
+function showTeamBoardPreview(nodes){
+ const selected=(nodes||[]).filter(Boolean);if(!selected.length)return say('Nothing to preview yet.',true);
+ const ov=$('#layout-preview-overlay'),stage=$('#layout-preview-stage');stage.innerHTML='';
+ const stack=document.createElement('div');stack.style.width='760px';stack.style.display='grid';stack.style.gap='18px';
+ for(const node of selected){const clone=node.cloneNode(true);clone.querySelectorAll('.no-export,button').forEach(x=>x.remove());stack.appendChild(clone)}
+ stage.appendChild(stack);ov.classList.add('open');ov.setAttribute('aria-hidden','false');
+ const fit=()=>{stack.style.transform='none';stack.style.transformOrigin='top left';const naturalW=760,naturalH=stack.scrollHeight||1,aw=Math.max(1,stage.clientWidth-8),scale=Math.min(1,aw/naturalW);stack.style.transform=`scale(${scale})`;stage.style.height=`${Math.ceil(naturalH*scale)+8}px`};
+ requestAnimationFrame(()=>requestAnimationFrame(fit));
+}
+async function sendTeamBoardToBattlePlan(){
+ if(!strategy)return say('Open a Team Board first.',true);
+ const list=[...alliances].sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+ if(!list.length)return say('No Alliances are ready.',true);
+ for(const a of list){await sendAllianceLayoutToBattlePlan(a.id)}
+ say('Team Board sent to Battle Plan.');
 }
 function renderStrategy(){
  const host=$('#strategy-editor');if(!host)return;
@@ -2201,9 +2300,13 @@ function renderStrategy(){
  $$('[data-tb-edit-roles]',host).forEach(b=>b.onclick=()=>editTeamBoardRoles(b.dataset.tbEditRoles));
  $$('[data-tb-edit-ratio]',host).forEach(b=>b.onclick=()=>editTeamBoardRatios(b.dataset.tbEditRatio));
  $$('[data-tb-edit-heroes]',host).forEach(b=>b.onclick=()=>editTeamBoardCounterHeroes(b.dataset.tbEditHeroes));
- $$('[data-tb-add-alliance-player]',host).forEach(b=>b.onclick=()=>openTeamBoardAllianceJoinerPicker(b.dataset.tbAddAlliancePlayer));
+ $$('[data-tb-add-player-team]',host).forEach(b=>b.onclick=()=>openTeamBoardAddPlayer(b.dataset.tbAddPlayerTeam));
  $$('[data-tb-edit-main]',host).forEach(b=>b.onclick=()=>editMainPlayerHeroes(b.dataset.tbEditMain));
 }
+const tbPreviewBtn=$('#tb-preview');if(tbPreviewBtn)tbPreviewBtn.onclick=()=>openTeamBoardChoice('preview');
+const tbDownloadBtn=$('#tb-download');if(tbDownloadBtn)tbDownloadBtn.onclick=()=>openTeamBoardChoice('download');
+const tbSendBtn=$('#tb-send-plan');if(tbSendBtn)tbSendBtn.onclick=()=>sendTeamBoardToBattlePlan();
+
 function consolidatedRallyCards(rs){
  const groups={};for(const x of rs){const k=String(x.player_account_id||x.player_name);(groups[k]??=[]).push(x)}
  return Object.values(groups).map(list=>{
@@ -4588,7 +4691,8 @@ async function sendPetScheduleToBattlePlan(){
 async function sendAllianceLayoutToBattlePlan(allianceId){
  if(!strategy)return say('Open a Team workspace first.',true);
  const a=alliances.find(x=>String(x.id)===String(allianceId));if(!a)return say('Alliance layout not found.',true);
- const sheet=$(`[data-layout-alliance="${CSS.escape(String(allianceId))}"]`);if(!sheet)return say('Alliance layout is not ready yet.',true);
+ const sheet=$(`[data-tb-alliance="${CSS.escape(String(allianceId))}"]`)||$(`[data-layout-alliance="${CSS.escape(String(allianceId))}"]`);
+ if(!sheet)return say('Alliance Team Board is not ready yet.',true);
  setSaveState('saving');say(`Rendering ${a.alliance_tag||a.alliance_name||'Alliance'} Team Layout…`);
  let imageDataUrl;
  try{imageDataUrl=await battlePlanImageDataUrl(sheet,'alliance')}catch(e){setSaveState('saved');return say(e.message||'Could not render Team Layout.',true)}
@@ -4602,7 +4706,7 @@ async function sendAllianceLayoutToBattlePlan(allianceId){
    }
  }
  const existing=battlePlanItems.find(x=>x.item_type==='alliance_layout'&&String(x.snapshot?.alliance_id)===String(a.id));
- const snap={section:'Alliance Specific Plan',source:'team_layout',alliance_id:a.id,alliance_tag:a.alliance_tag||a.alliance_name||'Alliance',image_data_url:imageDataUrl,sent_at:new Date().toISOString()};
+ const snap={section:'Alliance Specific Plan',source:'team_board',alliance_id:a.id,alliance_tag:a.alliance_tag||a.alliance_name||'Alliance',image_data_url:imageDataUrl,sent_at:new Date().toISOString()};
  const payload={strategy_id:strategy.id,team_id:null,item_type:'alliance_layout',sort_order:800+Number(a.sort_order||0),snapshot:snap,updated_at:new Date().toISOString()};
  let r;
  if(existing)r=await sb.from('svs_battle_plan_items').update(payload).eq('id',existing.id).select().single();
@@ -4970,7 +5074,7 @@ async function publishLayout(){
  say(`Team Layout synced • Version ${v}`);
  return v;
 }
-$('#publish-layout').onclick=async()=>{const v=await publishLayout();if(v)renderLayout()};
+const publishLayoutBtn=$('#publish-layout');if(publishLayoutBtn)publishLayoutBtn.onclick=async()=>{const v=await publishLayout();if(v)renderLayout()};
 function layoutSheets(){
  const root=$('#layout-export');
  return root?$$('.alliance-sheet',root):[];
@@ -4994,12 +5098,12 @@ function openLayoutChoice(mode){
  });
  $('[data-layout-close]',ov).onclick=()=>ov.remove();
 }
-$('#download-layout').onclick=()=>openLayoutChoice('download');
+const downloadLayoutBtn=$('#download-layout');if(downloadLayoutBtn)downloadLayoutBtn.onclick=()=>openLayoutChoice('download');
 async function canvasBlob(node){
  if(!node)throw new Error('Nothing to export.');
  const stage=document.createElement('div');stage.className='nexa-export-stage';
  const clone=node.cloneNode(true);
- clone.querySelectorAll('.no-export,[data-download-alliance]').forEach(x=>x.remove());
+ clone.querySelectorAll('.no-export,[data-download-alliance],button').forEach(x=>x.remove());
  // PET preview is intentionally responsive on-screen. For export, expand the exact same sheet
  // so html2canvas captures every time column instead of only the iPhone viewport.
  if(clone.id==='pet-sheet'){
@@ -5017,7 +5121,7 @@ async function canvasBlob(node){
    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
    const w=Math.ceil(Math.max(clone.scrollWidth,clone.getBoundingClientRect().width));
    const h=Math.ceil(Math.max(clone.scrollHeight,clone.getBoundingClientRect().height));
-   const exportScale=clone.classList.contains('alliance-sheet')?3:2.25;
+   const exportScale=(clone.classList.contains('alliance-sheet')||clone.classList.contains('tb14-alliance'))?3:2.25;
    const c=await html2canvas(clone,{
      backgroundColor:'#050916',scale:exportScale,useCORS:true,allowTaint:false,imageTimeout:15000,logging:false,
      width:w,height:h,windowWidth:w,windowHeight:h,scrollX:0,scrollY:0
@@ -5070,7 +5174,7 @@ function showLayoutPreview(sheets){
  stack.style.width='1400px';
  for(const sheet of selected){
    const clone=sheet.cloneNode(true);
-   clone.querySelectorAll('.no-export,[data-download-alliance]').forEach(x=>x.remove());
+   clone.querySelectorAll('.no-export,[data-download-alliance],button').forEach(x=>x.remove());
    stack.appendChild(clone);
  }
  stage.appendChild(stack);
@@ -5087,7 +5191,7 @@ function showLayoutPreview(sheets){
  };
  requestAnimationFrame(()=>requestAnimationFrame(fit));
 }
-$('#preview-layout').onclick=()=>openLayoutChoice('preview');
+const previewLayoutBtn=$('#preview-layout');if(previewLayoutBtn)previewLayoutBtn.onclick=()=>openLayoutChoice('preview');
 $('#close-layout-preview').onclick=()=>{$('#layout-preview-overlay').classList.remove('open');$('#layout-preview-overlay').setAttribute('aria-hidden','true');$('#layout-preview-stage').innerHTML=''}
 
 

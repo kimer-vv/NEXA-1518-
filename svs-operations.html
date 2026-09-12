@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V14.7 • CASTLE INTERACTION FIX + LIVE SPLIT PREVIEW -->
+<!-- NEXA SVS OPERATIONS V14.8 • DIAGONAL MASK + ALLIANCE PILLS + SAFE OWNERSHIP + PLAYER ASSIGN -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -415,7 +415,7 @@ body.pet-preview-open{overflow:hidden!important}
 
 
 /* V11.7.0 — Castle Layout workspace */
-.castle-shell{margin-left:18px;margin-right:0}
+.castle-shell{margin-left:18px;margin-right:0;width:calc(100% - 18px)}
 .castle-card{width:100%;border:1px solid rgba(155,120,255,.30);border-radius:20px;background:radial-gradient(circle at 50% 0%,rgba(88,63,190,.12),transparent 32%),rgba(7,12,29,.92);padding:13px;overflow:hidden}
 .castle-topline{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
 .castle-toolbar,.castle-subtoolbar{display:flex;gap:7px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
@@ -460,6 +460,16 @@ body.pet-preview-open{overflow:hidden!important}
 .castle-custom-alliance-chip button{border:0;background:transparent;color:#ff9cad;font-weight:950;padding:0 2px;font-size:13px;line-height:1}
 .castle-custom-alliance-note{grid-column:1/-1;font-size:9px;color:#8f9bbb;line-height:1.35}
 
+
+.castle-custom-alliance-chip{cursor:pointer;transition:.14s ease}
+.castle-custom-alliance-chip.active{border-color:rgba(72,221,255,.86);box-shadow:0 0 0 2px rgba(72,221,255,.13),0 0 18px rgba(72,221,255,.10);background:rgba(38,79,112,.30)}
+.castle-custom-alliance-chip.whales{border-color:rgba(78,222,156,.35)}
+.castle-custom-alliance-chip.whales.active{border-color:rgba(78,222,156,.88);box-shadow:0 0 0 2px rgba(78,222,156,.14),0 0 18px rgba(78,222,156,.10)}
+.castle-selection-message{margin-top:8px;color:#98a7c7;font-size:10px;line-height:1.45}
+.castle-player-assign{display:grid;gap:8px;margin-top:10px}
+.castle-player-row{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:8px}
+.castle-player-manual{display:none}.castle-player-manual.show{display:grid}
+@media(max-width:560px){.castle-player-row{grid-template-columns:1fr}}
 .castle-paint-setup{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end;margin:10px 0;padding:10px;border:1px solid rgba(72,221,255,.13);border-radius:14px;background:rgba(4,15,31,.46)}
 .castle-paint-color{display:flex;align-items:center;gap:7px;min-height:44px;padding:0 10px;border:1px solid rgba(255,255,255,.09);border-radius:12px;color:#9eabc8;font-size:10px;font-weight:900}
 .bp-summary-card{display:grid;gap:11px;padding:14px;border:1px solid rgba(118,104,255,.28);border-radius:17px;background:linear-gradient(145deg,rgba(10,22,45,.78),rgba(25,15,55,.68))}
@@ -865,12 +875,7 @@ body.pet-preview-open{overflow:hidden!important}
         <div class="castle-alliance-controls">
           <button id="castle-add-custom-alliance" class="castle-tool castle-custom-main" type="button">Manage Alliances</button>
           <div id="castle-custom-alliances" class="castle-custom-alliance-list"></div>
-          <div class="castle-custom-alliance-note">Choose an Alliance below, then use Select or Paint Cities on any Open city. NEXA applies that Alliance’s fixed Castle color automatically.</div>
-        </div>
-
-        <div class="castle-paint-setup">
-          <label>Paint Cities<select id="castle-paint-alliance"></select></label>
-          <div class="castle-paint-color"><span>Fixed Color</span><i id="castle-paint-color-chip" class="castle-active-swatch"></i></div>
+          <div class="castle-custom-alliance-note">Tap an Alliance pill to make it active, then use Paint Cities on Open cities. Use Select for bulk changes. Existing Alliance colors are protected from accidental brush-over.</div>
         </div>
 
         <div class="castle-stage-wrap">
@@ -888,15 +893,32 @@ body.pet-preview-open{overflow:hidden!important}
         </div>
 
         <div id="castle-selection-drawer" class="castle-selection-drawer">
-          <div class="section-head"><div><b id="castle-selection-title">1 City Selected</b><div class="tiny muted">Assign an Alliance only, or add a specific Player name.</div></div></div>
-          <div class="castle-selection-grid">
-            <label>Player / Identification<input id="castle-player-name" placeholder="Player name — optional"></label>
-            <label>Alliance<select id="castle-alliance"></select></label>
+          <div class="section-head"><div><b id="castle-selection-title">1 City Selected</b><div id="castle-selection-subtitle" class="tiny muted">Selection only. Ownership stays unchanged until you tap an Alliance pill.</div></div></div>
+          <div id="castle-player-assign" class="castle-player-assign">
+            <div class="castle-player-row">
+              <label>Assign Player
+                <select id="castle-player-source">
+                  <option value="">Choose…</option>
+                  <option value="rally_lead">Rally Lead</option>
+                  <option value="joiner">Joiner</option>
+                  <option value="manual">Add Manually</option>
+                </select>
+              </label>
+              <label id="castle-player-existing-wrap">Player
+                <select id="castle-player-existing"></select>
+              </label>
+            </div>
+            <label id="castle-player-manual-wrap" class="castle-player-manual">Player Name
+              <input id="castle-player-manual" placeholder="Player name">
+            </label>
+            <div class="castle-selection-actions">
+              <button id="castle-assign-player" class="btn violet" type="button">Assign Player</button>
+              <button id="castle-clear-player" class="btn" type="button">Clear Player</button>
+            </div>
           </div>
-          <div id="castle-bulk-name-note" class="tiny muted" style="margin-top:8px;display:none">For multiple selected Cities: enter a name to apply it to all. Leave blank to keep their current names.</div>
+          <div id="castle-selection-message" class="castle-selection-message"></div>
           <div class="castle-selection-actions">
-            <button id="castle-apply-selected" class="btn violet" type="button">Apply</button>
-            <button id="castle-delete-selected" class="btn castle-danger" type="button">Clear Selected</button>
+            <button id="castle-clear-selection" class="btn" type="button">Clear Selection</button>
           </div>
         </div>
 
@@ -3531,12 +3553,14 @@ const CASTLE_ALLIANCE_PALETTE=[
  '#9bdb4d','#c99bff','#4fd1c5','#f6c177'
 ];
 const CASTLE_OPPONENT_COLOR='#a64b50';
+const CASTLE_WHALES_COLOR='#35c98a';
+const CASTLE_WHALES_KEY='__whales__';
 const CASTLE_OPEN_COLOR='#2a313d';
 let castlePendingStyle='straight',castlePendingOrientation='southwest',castlePreviewOpponentCells=null;
 
 function castleDefaultSnapshot(){
  return {
-   version:'3.0',
+   version:'3.1',
    view_mode:'diamond',
    viewport:{...CASTLE_HOME},
    layout_mode:'preset',
@@ -3585,8 +3609,11 @@ function castleNormalizeSnapshot(raw){
    cities.push({
      id:String(c.id||`city-${Date.now()}-${i}`),x,y,
      player_name:String(c.player_name||''),
+     player_source:String(c.player_source||''),
+     player_account_id:c.player_account_id==null?null:String(c.player_account_id),
      alliance_id:c.alliance_id==null?null:Number(c.alliance_id),
      custom_alliance_id:c.custom_alliance_id==null?null:String(c.custom_alliance_id),
+     special_key:String(c.special_key||''),
      alliance_tag:String(c.alliance_tag||''),
      color:String(c.color||''),
      label:String(c.label||''),
@@ -3606,7 +3633,7 @@ function castleNormalizeSnapshot(raw){
  const layout_style=s.layout_style==='diagonal'?'diagonal':'straight';
  const layout_orientation=['northwest','northeast','southwest','southeast'].includes(s.layout_orientation)?s.layout_orientation:'southwest';
  const layout_set=Boolean(s.layout_set||opp.length);
- return {...d,...s,version:'3.0',view_mode:'diamond',viewport:v,layout_mode,layout_style,layout_orientation,layout_set,
+ return {...d,...s,version:'3.1',view_mode:'diamond',viewport:v,layout_mode,layout_style,layout_orientation,layout_set,
    opponent_cells:opp,custom_alliances,alliance_colors,cities};
 }
 function castleCloneSnapshot(){return JSON.parse(JSON.stringify(castleSnapshot||castleDefaultSnapshot()))}
@@ -3652,6 +3679,7 @@ function castleEnsureAllianceColor(key){
 }
 function castleAllianceChoice(value){
  const v=String(value??'');
+ if(v===CASTLE_WHALES_KEY)return {kind:'special',id:'whales',tag:'Whales',color:CASTLE_WHALES_COLOR};
  if(v==='__opponent__')return {kind:'opponent',id:'__opponent__',tag:'Opponent State',color:CASTLE_OPPONENT_COLOR};
  if(v.startsWith('custom:')){
    const a=castleCustomAllianceById(v.slice(7));
@@ -3661,11 +3689,13 @@ function castleAllianceChoice(value){
  return a?{kind:'global',id:a.id,tag:a.tag||a.name||'',color:castleEnsureAllianceColor(v),raw:a}:null;
 }
 function castleCityAllianceKey(c){
+ if(c?.special_key==='whales')return CASTLE_WHALES_KEY;
  if(c?.custom_alliance_id)return `custom:${c.custom_alliance_id}`;
  return c?.alliance_id==null?'':String(c.alliance_id);
 }
 function castleAllianceColor(id){
  const v=String(id??'');
+ if(v===CASTLE_WHALES_KEY)return CASTLE_WHALES_COLOR;
  if(!v)return '#48ddff';
  return castleEnsureAllianceColor(v);
 }
@@ -3800,12 +3830,13 @@ function castlePresetOwnKeys(style,orientation){
    }).map(p=>p.key);
    return new Set(own);
  }
+ // Reference-style staircase diagonal. One base 80-City mask, rotated by orientation.
  const score=p=>{
    const x=p.x+1,y=p.y+1;
-   if(orientation==='northwest')return -x-(.56*y);
-   if(orientation==='northeast')return -y+(.56*x);
-   if(orientation==='southeast')return x+(.56*y);
-   return y-(.56*x); // southwest
+   if(orientation==='northwest')return -x-y;
+   if(orientation==='northeast')return x-y;
+   if(orientation==='southeast')return x+y;
+   return -x+y; // southwest
  };
  const ordered=[...slots].sort((a,b)=>score(b)-score(a)||a.y-b.y||a.x-b.x);
  return new Set(ordered.slice(0,80).map(p=>p.key));
@@ -3849,18 +3880,66 @@ async function castleResetMap(){
  castleRefresh();castleQueueSave();say('Castle Layout reset.');
 }
 function castleUpdatePaintHud(){
- const a=castleAllianceChoice(castlePaintAllianceId),name=a?.tag||'Unassigned';
+ const a=castleAllianceChoice(castlePaintAllianceId),name=a?.tag||'Choose Alliance';
  const text=$('#castle-active-paint'),sw=$('#castle-active-swatch');
  if(text)text.textContent=name;if(sw)sw.style.background=a?.color||castlePaintColor||'#48ddff';
 }
 function castleRenderCustomAlliances(){
  const box=$('#castle-custom-alliances');if(!box||!castleSnapshot)return;
- const savedGlobals=Object.entries(castleSnapshot.alliance_colors||{}).filter(([id])=>!String(id).startsWith('custom:')).map(([id,color])=>{
-   const a=castleAllianceById(id);return a?{tag:a.tag||a.name||'Alliance',color}:null;
- }).filter(Boolean);
- const manual=(castleSnapshot.custom_alliances||[]).map(a=>({tag:a.tag,color:castleEnsureAllianceColor(`custom:${a.id}`)}));
- const rows=[...savedGlobals,...manual];
- box.innerHTML=rows.map(a=>`<span class="castle-custom-alliance-chip"><i style="background:${esc(a.color)}"></i><span>${esc(a.tag)}</span></span>`).join('');
+ const rows=[];
+ const seen=new Set();
+ for(const [id,color] of Object.entries(castleSnapshot.alliance_colors||{})){
+   if(String(id).startsWith('custom:'))continue;
+   const a=castleAllianceById(id);if(!a)continue;
+   const key=String(id);if(seen.has(key))continue;seen.add(key);
+   rows.push({key,tag:a.tag||a.name||'Alliance',color});
+ }
+ for(const a of (castleSnapshot.custom_alliances||[])){
+   const key=`custom:${a.id}`;if(seen.has(key))continue;seen.add(key);
+   rows.push({key,tag:a.tag,color:castleEnsureAllianceColor(key)});
+ }
+ rows.push({key:CASTLE_WHALES_KEY,tag:'Whales',color:CASTLE_WHALES_COLOR,special:true});
+ box.innerHTML=rows.map(a=>`<button class="castle-custom-alliance-chip ${a.special?'whales':''} ${String(castlePaintAllianceId||'')===String(a.key)?'active':''}" data-castle-alliance-pill="${esc(a.key)}" type="button"><i style="background:${esc(a.color)}"></i><span>${esc(a.tag)}</span></button>`).join('');
+ $$('[data-castle-alliance-pill]',box).forEach(b=>b.onclick=()=>castleHandleAlliancePill(b.dataset.castleAlliancePill));
+}
+async function castleHandleAlliancePill(key){
+ const a=castleAllianceChoice(key);if(!a)return;
+ if(castleSelection.size){
+   const keys=[...castleSelection];
+   const opponentCount=keys.filter(k=>castleOpponentSet().has(k)).length;
+   const n=keys.length;
+   let body=`Change ${n} selected Cit${n===1?'y':'ies'} to ${a.tag}?`;
+   if(opponentCount)body+=` ${opponentCount} selected Cit${opponentCount===1?'y belongs':'ies belong'} to the Opponent State and will be taken from that side.`;
+   const ok=await nexaConfirm(`Change to ${a.tag}?`,body,{confirmLabel:'Yes, Change',cancelLabel:'Cancel'});
+   if(!ok)return;
+   castleApplyOwnerToSelection(a,keys);
+   castlePaintAllianceId=key;castlePaintColor=a.color;
+   castleSelection.clear();
+   castleRefresh();castleQueueSave();
+   say(`${n} Castle cit${n===1?'y':'ies'} changed to ${a.tag}.`);
+   return;
+ }
+ castlePaintAllianceId=key;castlePaintColor=a.color;
+ castleSetTool('paint');
+ castleSyncPaintControls();castleQueueSave();
+}
+function castleApplyOwnerToSelection(a,keys){
+ const keySet=new Set(keys);
+ castleSnapshot.opponent_cells=(castleSnapshot.opponent_cells||[]).filter(k=>!keySet.has(String(k)));
+ for(const key of keys){
+   const [x,y]=String(key).split(',').map(Number);
+   if(!castleValidAnchor(x,y))continue;
+   let c=castleCityAtAnchor(x,y);
+   if(!c){
+     c={id:`city-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,x,y,player_name:'',player_source:'',player_account_id:null,alliance_id:null,custom_alliance_id:null,special_key:'',alliance_tag:'',color:'',label:'',notes:''};
+     castleSnapshot.cities.push(c);
+   }
+   c.alliance_id=a.kind==='global'?Number(a.id):null;
+   c.custom_alliance_id=a.kind==='custom'?String(a.id):null;
+   c.special_key=a.kind==='special'?'whales':'';
+   c.alliance_tag=a.kind==='special'?'':(a.tag||'');
+   c.color=a.color;
+ }
 }
 function castleAddCustomAlliance(){
  if(!castleSnapshot)return;
@@ -3882,23 +3961,23 @@ function castleAddCustomAlliance(){
      const color=castleEnsureAllianceColor(String(choice));
      castlePaintAllianceId=String(choice);castlePaintColor=color;
    }
-   castleSelection.clear();castleSetTool('select');castleRefresh();castleQueueSave();say('Alliance registered with its fixed Castle color.');
+   castleSetTool('paint');castleRefresh();castleQueueSave();say('Alliance registered with its fixed Castle color.');
  });
  const sel=$('#castle-manage-alliance',ov),manual=$('#castle-manage-manual-wrap',ov);
  sel.onchange=()=>{manual.style.display=sel.value==='__manual__'?'block':'none'};
 }
 function castleSyncPaintControls(){
  castleRenderCustomAlliances();
- const sel=$('#castle-paint-alliance'),chip=$('#castle-paint-color-chip');
- if(sel){
-   const current=String(castlePaintAllianceId||'');
-   sel.innerHTML=castleAllianceOptions(current,castleSnapshot?.layout_mode==='manual');
-   if(current&&[...sel.options].some(o=>o.value===current))sel.value=current;
- }
  const choice=castleAllianceChoice(castlePaintAllianceId);
  if(choice)castlePaintColor=choice.color;
- if(chip)chip.style.background=choice?.color||castlePaintColor||'#48ddff';
  castleUpdatePaintHud();
+}
+function castleSameOwner(c,a){
+ if(!c||!a)return false;
+ if(a.kind==='special')return c.special_key==='whales';
+ if(a.kind==='custom')return String(c.custom_alliance_id||'')===String(a.id);
+ if(a.kind==='global')return String(c.alliance_id||'')===String(a.id);
+ return false;
 }
 function castlePaintCell(cell,mode){
  const baseCell=cell.base||cell,anchor=cell.anchor||{x:castleSnapAnchor(baseCell.x),y:castleSnapAnchor(baseCell.y)};
@@ -3906,24 +3985,16 @@ function castlePaintCell(cell,mode){
  const key=castleCellKey(anchor.x,anchor.y),opp=castleIsOpponent(anchor.x,anchor.y),existing=castleCityAtAnchor(anchor.x,anchor.y);
  if(mode==='paint'){
    const a=castleAllianceChoice(castlePaintAllianceId);
-   if(!a)return false;
-   if(a.kind==='opponent'){
-     if(castleSnapshot.layout_mode!=='manual')return false;
-     if(!castleSnapshot.opponent_cells.includes(key))castleSnapshot.opponent_cells.push(key);
-     if(existing)castleSnapshot.cities=castleSnapshot.cities.filter(c=>c.id!==existing.id);
-     castleSelection.delete(key);castleSnapshot.layout_set=true;return true;
-   }
-   if(opp)return false;
-   const color=castleEnsureAllianceColor(a.kind==='custom'?`custom:${a.id}`:String(a.id));
+   if(!a||a.kind==='opponent')return false;
+   if(opp)return false; // Opponent side can only be overridden intentionally through Select + Alliance pill.
    if(existing){
-     existing.alliance_id=a.kind==='global'?Number(a.id):null;
-     existing.custom_alliance_id=a.kind==='custom'?String(a.id):null;
-     existing.alliance_tag=a.tag||'';existing.color=color;return true;
+     if(castleSameOwner(existing,a))return false;
+     return false; // Protect existing Alliance/Whales ownership from brush-over.
    }
    castleSnapshot.cities.push({
-     id:`city-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,x:anchor.x,y:anchor.y,player_name:'',
-     alliance_id:a.kind==='global'?Number(a.id):null,custom_alliance_id:a.kind==='custom'?String(a.id):null,
-     alliance_tag:a.tag||'',color,label:'',notes:''
+     id:`city-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,x:anchor.x,y:anchor.y,player_name:'',player_source:'',player_account_id:null,
+     alliance_id:a.kind==='global'?Number(a.id):null,custom_alliance_id:a.kind==='custom'?String(a.id):null,special_key:a.kind==='special'?'whales':'',
+     alliance_tag:a.kind==='special'?'':(a.tag||''),color:a.color,label:'',notes:''
    });
    return true;
  }
@@ -3938,29 +4009,9 @@ function castlePaintCell(cell,mode){
    return false;
  }
  if(mode==='select'){
-   if(opp)return false;
-   const a=castleAllianceChoice(castlePaintAllianceId);
-   if(a&&a.kind!=='opponent'){
-     const color=castleEnsureAllianceColor(a.kind==='custom'?`custom:${a.id}`:String(a.id));
-     if(existing){
-       existing.alliance_id=a.kind==='global'?Number(a.id):null;
-       existing.custom_alliance_id=a.kind==='custom'?String(a.id):null;
-       existing.alliance_tag=a.tag||'';
-       existing.color=color;
-     }else{
-       castleSnapshot.cities.push({
-         id:`city-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,x:anchor.x,y:anchor.y,player_name:'',
-         alliance_id:a.kind==='global'?Number(a.id):null,
-         custom_alliance_id:a.kind==='custom'?String(a.id):null,
-         alliance_tag:a.tag||'',color,label:'',notes:''
-       });
-     }
-     castleSelection.add(key);
-     return true;
-   }
-   if(!existing)return false;
-   castleSelection.add(key);
-   return true;
+   const action=castleGesture?.selectAction||(castleSelection.has(key)?'remove':'add');
+   if(action==='remove'){const had=castleSelection.delete(key);return had}
+   castleSelection.add(key);return true;
  }
  return false;
 }
@@ -3986,8 +4037,8 @@ function castleRenderSvg(){
  const slots=castleAllCitySlots(),opp=castlePreviewOpponentCells?new Set(castlePreviewOpponentCells):castleOpponentSet();
  const baseMarkup=slots.map(p=>{
    const x=p.x*CASTLE_CELL,y=p.y*CASTLE_CELL,cx=x+CASTLE_CITY_SIZE/2,cy=y+CASTLE_CITY_SIZE/2,secs=castleSecondsForAnchor(p.x,p.y),isOpp=opp.has(p.key);
-   const fill=isOpp?CASTLE_OPPONENT_COLOR:CASTLE_OPEN_COLOR,stroke=isOpp?'rgba(255,145,155,.50)':'rgba(177,193,218,.25)';
-   return `<g><rect x="${x+2}" y="${y+2}" width="${CASTLE_CITY_SIZE-4}" height="${CASTLE_CITY_SIZE-4}" rx="5" fill="${fill}" fill-opacity="${isOpp?.88:.78}" stroke="${stroke}" stroke-width="1.1"/><text x="${cx}" y="${cy+3}" text-anchor="middle" font-size="8.1" font-weight="800" fill="${isOpp?'#ffe0e3':'#c2cad7'}" transform="${castleTextTransform(cx,cy)}">${secs}s</text></g>`;
+   const selected=castleSelection.has(p.key),fill=isOpp?CASTLE_OPPONENT_COLOR:CASTLE_OPEN_COLOR,stroke=selected?'#ffffff':(isOpp?'rgba(255,145,155,.50)':'rgba(177,193,218,.25)');
+   return `<g><rect x="${x+2}" y="${y+2}" width="${CASTLE_CITY_SIZE-4}" height="${CASTLE_CITY_SIZE-4}" rx="5" fill="${fill}" fill-opacity="${isOpp?.88:.78}" stroke="${stroke}" stroke-width="${selected?3:1.1}"/><text x="${cx}" y="${cy+3}" text-anchor="middle" font-size="8.1" font-weight="800" fill="${isOpp?'#ffe0e3':'#c2cad7'}" transform="${castleTextTransform(cx,cy)}">${secs}s</text></g>`;
  }).join('');
  const cityMarkup=(castleSnapshot.cities||[]).map(c=>{
    const x=c.x*CASTLE_CELL,y=c.y*CASTLE_CELL,cx=x+CASTLE_CITY_SIZE/2,cy=y+CASTLE_CITY_SIZE/2;
@@ -4066,7 +4117,7 @@ function castleRenderSummary(){
  box.innerHTML=`<div class="castle-stat"><b>${own}</b><small>Your State Cities</small></div><div class="castle-stat"><b>${opp}</b><small>Opponent State</small></div><div class="castle-stat"><b>${assigned}</b><small>Assigned</small></div><div class="castle-stat"><b>${open}</b><small>Open</small></div>`;
  const counts={};
  for(const c of castleSnapshot.cities||[]){
-   const tag=c.alliance_tag||castleAllianceById(c.alliance_id)?.tag||'Unassigned',key=tag;
+   const tag=c.special_key==='whales'?'Whales':(c.alliance_tag||castleAllianceById(c.alliance_id)?.tag||'Unassigned'),key=tag;
    if(!counts[key])counts[key]={n:0,color:c.color||castleAllianceColor(castleCityAllianceKey(c))};
    counts[key].n++;
  }
@@ -4074,19 +4125,59 @@ function castleRenderSummary(){
  const sc=$('#castle-selected-count');if(sc)sc.textContent=String(castleSelection.size);
  castleRenderLegend();castleRenderLayoutControls();
 }
+function castleRosterRows(kind){
+ const out=[],seen=new Set();
+ const push=(id,name,source)=>{
+   const nm=String(name||'').trim();if(!nm)return;
+   const k=id?`id:${id}`:`name:${nm.toLowerCase()}`;
+   if(seen.has(k))return;seen.add(k);out.push({id:id?String(id):'',name:nm,source});
+ };
+ if(kind==='rally_lead'){
+   for(const p of playerPool.filter(p=>roleForPlayer(p)==='rally_lead'))push(p.id,p.in_game_name,'rally_lead');
+   for(const r of rally)push(r.player_account_id,r.player_name,'rally_lead');
+ }else if(kind==='joiner'){
+   for(const p of playerPool.filter(p=>roleForPlayer(p)==='joiner'))push(p.id,p.in_game_name,'joiner');
+   for(const j of joiners)push(j.player_account_id,j.player_name,'joiner');
+ }
+ return out.sort((a,b)=>a.name.localeCompare(b.name));
+}
+function castleRenderPlayerSource(){
+ const source=$('#castle-player-source')?.value||'',sel=$('#castle-player-existing'),wrap=$('#castle-player-existing-wrap'),manual=$('#castle-player-manual-wrap');
+ if(!sel||!wrap||!manual)return;
+ manual.classList.toggle('show',source==='manual');
+ wrap.style.display=(source==='rally_lead'||source==='joiner')?'grid':'none';
+ if(source==='rally_lead'||source==='joiner'){
+   const rows=castleRosterRows(source);
+   sel.innerHTML=`<option value="">Choose player…</option>${rows.map(r=>`<option value="${esc(r.id||`manual:${r.name}`)}" data-player-name="${esc(r.name)}">${esc(r.name)}</option>`).join('')}`;
+ }
+}
 function castleRenderDrawer(){
  const d=$('#castle-selection-drawer');if(!d||!castleSnapshot)return;
- const selected=castleSnapshot.cities.filter(c=>castleSelection.has(castleCellKey(c.x,c.y)));
- d.classList.toggle('open',selected.length>0);if(!selected.length)return;
- $('#castle-selection-title').textContent=`${selected.length} Cit${selected.length===1?'y':'ies'} Selected`;
- const first=selected[0],same=k=>selected.every(c=>String(c[k]??'')===String(first[k]??''));
- const nameInput=$('#castle-player-name'),bulkNote=$('#castle-bulk-name-note');
- nameInput.value=same('player_name')?String(first.player_name||''):'';
- nameInput.placeholder=selected.length>1?'Name to apply to all selected Cities (blank = keep current)':'Player name — optional';
- if(bulkNote)bulkNote.style.display=selected.length>1?'block':'none';
- const allianceKeys=selected.map(c=>castleCityAllianceKey(c)),sameAlliance=allianceKeys.every(k=>k===allianceKeys[0]);
- $('#castle-alliance').innerHTML=castleAllianceOptions(sameAlliance?allianceKeys[0]:'',false);
- if(!sameAlliance)$('#castle-alliance').insertAdjacentHTML('afterbegin','<option value="__keep__" selected>Keep current alliances</option>');
+ const keys=[...castleSelection];
+ d.classList.toggle('open',keys.length>0);if(!keys.length)return;
+ $('#castle-selection-title').textContent=`${keys.length} Cit${keys.length===1?'y':'ies'} Selected`;
+ const assigned=keys.map(k=>{const [x,y]=k.split(',').map(Number);return castleCityAtAnchor(x,y)}).filter(Boolean);
+ const oppCount=keys.filter(k=>castleOpponentSet().has(k)).length;
+ const single=keys.length===1,city=single?assigned[0]||null:null;
+ const owner=city?(city.special_key==='whales'?'Whales':(city.alliance_tag||castleAllianceById(city.alliance_id)?.tag||'')):'';
+ const subtitle=$('#castle-selection-subtitle'),msg=$('#castle-selection-message'),playerBox=$('#castle-player-assign');
+ if(subtitle)subtitle.textContent=single?(owner?`${owner} • tap another City to add/remove it from the selection.`:'Open / Opponent City selected.'):'Tap any selected City again to deselect it, or drag across selected Cities to remove them.';
+ if(msg){
+   if(keys.length>1)msg.textContent=`Bulk action: tap FSU, BBC, Whales, or another Alliance pill to change all ${keys.length} selected Cities at once.${oppCount?` ${oppCount} are on the Opponent State and will require confirmation.`:''}`;
+   else if(!city)msg.textContent=oppCount?'This City belongs to the Opponent State. Select an Alliance pill if you intentionally want to use it.':'Choose an Alliance pill first, then you can assign a Player.';
+   else msg.textContent='The City color/ownership stays unchanged while assigning a Player.';
+ }
+ if(playerBox)playerBox.style.display=(single&&!!city)?'grid':'none';
+ if(single&&city){
+   $('#castle-player-source').value=city.player_source||'';
+   $('#castle-player-manual').value=city.player_source==='manual'?String(city.player_name||''):'';
+   castleRenderPlayerSource();
+   if(city.player_source==='rally_lead'||city.player_source==='joiner'){
+     const sel=$('#castle-player-existing');
+     const target=city.player_account_id?String(city.player_account_id):`manual:${city.player_name}`;
+     if([...sel.options].some(o=>o.value===target))sel.value=target;
+   }
+ }
 }
 function castleRefresh(){
  castleRenderSvg();castleRenderSummary();castleRenderDrawer();castleSyncPaintControls();
@@ -4104,7 +4195,7 @@ let castleControlsBound=false;
 function castleBindControls(){
  if(castleControlsBound)return;
  const svg=$('#castle-stage');if(!svg)return;castleControlsBound=true;
- $$('[data-castle-tool]').forEach(b=>b.onclick=()=>castleSetTool(b.dataset.castleTool));
+ $$('[data-castle-tool]').forEach(b=>b.onclick=()=>{const tool=b.dataset.castleTool;if(tool==='paint'&&!castleAllianceChoice(castlePaintAllianceId))return say('Choose an Alliance or Whales pill first.',true);castleSetTool(tool)});
  $$('[data-castle-layout-mode]').forEach(b=>b.onclick=()=>castleSetLayoutMode(b.dataset.castleLayoutMode));
  $$('[data-castle-layout-style]').forEach(b=>b.onclick=()=>{castlePendingStyle=b.dataset.castleLayoutStyle;castlePreviewPreset()});
  $$('[data-castle-layout-orientation]').forEach(b=>b.onclick=()=>{castlePendingOrientation=b.dataset.castleLayoutOrientation;castlePreviewPreset()});
@@ -4113,16 +4204,10 @@ function castleBindControls(){
  $('#castle-zoom-in').onclick=()=>castleZoom(.82);
  $('#castle-zoom-out').onclick=()=>castleZoom(1.22);
  $('#castle-add-custom-alliance').onclick=castleAddCustomAlliance;
- $('#castle-paint-alliance').onchange=e=>{
-   castlePaintAllianceId=e.target.value||null;
-   const a=castleAllianceChoice(castlePaintAllianceId);
-   castlePaintColor=a?.color||'#48ddff';
-   castleSelection.clear();
-   if(a&&a.kind!=='opponent')castleSetTool('select');
-   castleSyncPaintControls();castleQueueSave();
- };
- $('#castle-apply-selected').onclick=castleApplySelected;
- $('#castle-delete-selected').onclick=castleDeleteSelected;
+ $('#castle-player-source').onchange=castleRenderPlayerSource;
+ $('#castle-assign-player').onclick=castleAssignPlayerToSelected;
+ $('#castle-clear-player').onclick=castleClearPlayerFromSelected;
+ $('#castle-clear-selection').onclick=()=>{castleSelection.clear();castleRefresh()};
  $('#castle-export').onclick=castleExport;
  svg.addEventListener('wheel',e=>{if(!castleSnapshot)return;e.preventDefault();castleZoom(e.deltaY>0?1.12:.89,e.clientX,e.clientY)},{passive:false});
  svg.addEventListener('pointerdown',castlePointerDown);svg.addEventListener('pointermove',castlePointerMove);svg.addEventListener('pointerup',castlePointerUp);svg.addEventListener('pointercancel',castlePointerUp);
@@ -4147,6 +4232,7 @@ function castlePointerDown(e){
  }
  if(castleTool==='pan'){castleGesture={type:'pan',startX:e.clientX,startY:e.clientY,view:{...castleSnapshot.viewport}};return}
  const base=castlePointToBaseCell(e),anchor=castlePointToAnchor(e);castlePushUndo();castleGesture={type:castleTool,changed:false,visited:new Set()};
+ if(castleTool==='select')castleGesture.selectAction=castleSelection.has(castleCellKey(anchor.x,anchor.y))?'remove':'add';
  castleBrushEvent({base,anchor});
 }
 function castleBrushEvent(cell){
@@ -4177,27 +4263,31 @@ function castlePointerUp(e){
    const remain=[...castlePointerState.values()][0];castleGesture={type:'pan',startX:remain.x,startY:remain.y,view:{...castleSnapshot.viewport}};
  }
 }
-async function castleApplySelected(){
- if(!strategy||!castleSnapshot||!castleSelection.size)return;
- const selected=castleSnapshot.cities.filter(c=>castleSelection.has(castleCellKey(c.x,c.y)));if(!selected.length)return;
- const allianceKey=$('#castle-alliance').value||'',a=allianceKey&&allianceKey!=='__keep__'?castleAllianceChoice(allianceKey):null;
- const identification=$('#castle-player-name').value.trim();
- for(const c of selected){
-   if(a&&a.kind!=='opponent'){
-     const key=a.kind==='custom'?`custom:${a.id}`:String(a.id);
-     c.alliance_id=a.kind==='global'?Number(a.id):null;c.custom_alliance_id=a.kind==='custom'?String(a.id):null;
-     c.alliance_tag=a.tag||'';c.color=castleEnsureAllianceColor(key);
-   }
-   if(selected.length===1)c.player_name=identification;
-   else if(identification)c.player_name=identification;
+async function castleAssignPlayerToSelected(){
+ if(!castleSnapshot||castleSelection.size!==1)return;
+ const key=[...castleSelection][0],[x,y]=key.split(',').map(Number),city=castleCityAtAnchor(x,y);
+ if(!city)return say('Assign an Alliance/Whales color to this City first.',true);
+ const source=$('#castle-player-source')?.value||'';
+ if(!source)return say('Choose Rally Lead, Joiner, or Add Manually.',true);
+ let name='',accountId=null;
+ if(source==='manual'){
+   name=$('#castle-player-manual')?.value.trim()||'';
+   if(!name)return say('Enter the Player Name.',true);
+ }else{
+   const sel=$('#castle-player-existing'),opt=sel?.selectedOptions?.[0];
+   if(!sel?.value)return say('Choose a Player.',true);
+   name=opt?.dataset?.playerName||opt?.textContent?.trim()||'';
+   accountId=String(sel.value).startsWith('manual:')?null:String(sel.value);
  }
- castleRefresh();castleQueueSave();say(`${selected.length} Castle cit${selected.length===1?'y':'ies'} updated.`);
+ city.player_name=name;city.player_source=source;city.player_account_id=accountId;
+ castleRefresh();castleQueueSave();say(`${name} assigned to this Castle City.`);
 }
-async function castleDeleteSelected(){
- if(!castleSnapshot||!castleSelection.size)return;
- const n=castleSelection.size;
- if(!await nexaConfirm('Clear selected Cities?',`Clear ${n} selected cit${n===1?'y':'ies'}? The City slots stay on the map and return to Open.`,{confirmLabel:'Clear',cancelLabel:'Cancel'}))return;
- castleSnapshot.cities=castleSnapshot.cities.filter(c=>!castleSelection.has(castleCellKey(c.x,c.y)));castleSelection.clear();castleRefresh();castleQueueSave();say(`${n} Castle cit${n===1?'y':'ies'} cleared.`);
+async function castleClearPlayerFromSelected(){
+ if(!castleSnapshot||castleSelection.size!==1)return;
+ const key=[...castleSelection][0],[x,y]=key.split(',').map(Number),city=castleCityAtAnchor(x,y);
+ if(!city)return;
+ city.player_name='';city.player_source='';city.player_account_id=null;
+ castleRefresh();castleQueueSave();say('Player cleared. City ownership kept.');
 }
 function castleExportLegendRows(){
  const rows=new Map();

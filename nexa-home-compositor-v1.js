@@ -1,20 +1,19 @@
-/* NEXA HOME COMPOSITOR V1.2 — ROOT-LEVEL SIGNAL STACK — 2026-09-12
+/* NEXA HOME COMPOSITOR V1.3 — STATIC HOME SLOT OWNER — 2026-09-12
    COMPLETE REPLACEMENT for: nexa-home-compositor-v1.js
 
    Owns ONLY:
-   - Home signal sibling order.
+   - Home signal sibling order inside the static #nexa-home-signal-slot.
 
    Final visible order:
    Live Event -> NEXA Pulse -> Alliance Signal -> Transfers
 
-   V1.2 correction:
-   - #nexa-v31-signals is treated as a LEGACY REFERENCE, not as the new host.
-   - The new canonical stack is created at the SAME HOME LEVEL as
-     #nexa-v31-signals, immediately before it.
-   - Current Live/Pulse/Alliance/Transfer cards are moved into that one
-     root-level stack.
-   - This prevents Live Event from being appended below the footer and avoids
-     nesting the signal cards inside an Alliance visual wrapper.
+   V1.3 correction:
+   - Does NOT discover or create its own structural host.
+   - Does NOT depend on Alliance Signal existing before composition.
+   - Uses one static slot declared directly in index.html before the Home footer.
+   - Moves every available current signal surface into that slot.
+   - Re-runs on the existing Home/surface lifecycle events and finite startup passes.
+   - No MutationObserver and no indefinite layout polling.
 
    Does NOT own:
    - Supabase data
@@ -24,27 +23,25 @@
    - My Profile
    - Alliances/emblems
    - Alliance Signal data
-
-   Safety:
-   - No MutationObserver.
-   - No indefinite polling.
-   - No touchmove preventDefault.
-   - No manual scrollLeft.
 */
 (()=>{
 'use strict';
 
-if(window.__NEXA_HOME_COMPOSITOR_V12__) return;
-window.__NEXA_HOME_COMPOSITOR_V12__=true;
+if(window.__NEXA_HOME_COMPOSITOR_V13__) return;
+window.__NEXA_HOME_COMPOSITOR_V13__=true;
 
 const $=(s,r=document)=>r?.querySelector?.(s)||null;
 const $$=(s,r=document)=>r?.querySelectorAll?Array.from(r.querySelectorAll(s)):[];
 
-const STACK_ID='nexa-home-signal-stack-v12';
+const SLOT_ID='nexa-home-signal-slot';
 let generation=0;
 
 function clean(v){
   return String(v??'').replace(/\s+/g,' ').trim();
+}
+
+function slot(){
+  return $('#'+SLOT_ID);
 }
 
 function liveCard(){
@@ -63,81 +60,41 @@ function allianceCard(){
   const exact=$('#nexa-v31-alliance');
   if(exact) return exact;
 
-  return $$('section,article').find(el=>{
+  return $$('section,article,div').find(el=>{
     if(el.id==='nexa-v4937-live-event' ||
        el.id==='nexa-pulse-visible-owner-v34' ||
-       el.id==='nexa-v49-transfer-card') return false;
+       el.id==='nexa-v49-transfer-card' ||
+       el.id===SLOT_ID) return false;
 
     const t=clean(el.textContent);
     if(!/\bALLIANCE SIGNAL\b/i.test(t)) return false;
     if(/\bLIVE EVENT\b|\bNEXA PULSE\b|\bTRANSFERS\b/i.test(t)) return false;
 
-    return !el.querySelector?.(
+    const containsOfficial=el.querySelector?.(
       '#nexa-v4937-live-event,#nexa-pulse-visible-owner-v34,#nexa-v49-transfer-card'
     );
+    return !containsOfficial;
   }) || null;
 }
 
-function homeRoot(){
-  return $('#home') ||
-         $('[data-page="home"]') ||
-         $('main.shell') ||
-         $('main') ||
-         document.body;
-}
-
-function legacySignals(){
-  return $('#nexa-v31-signals');
-}
-
-function structuralHost(){
-  const legacy=legacySignals();
-
-  /*
-    This is intentionally the PARENT of the known Home signals wrapper,
-    never the parent of Alliance Signal itself.
-  */
-  if(legacy?.parentNode?.nodeType===1){
-    return {
-      host:legacy.parentNode,
-      reference:legacy
-    };
-  }
-
-  /*
-    If the legacy wrapper is absent, use a known Home-level footer as the
-    insertion reference so the canonical stack stays above the footer.
-  */
-  const root=homeRoot();
-  const footer=
-    $('.footer',root) ||
-    $('footer',root) ||
-    $('.home-footer',root) ||
-    null;
-
-  return {
-    host:root,
-    reference:footer
-  };
-}
-
 function installCSS(){
-  if($('#nexa-home-compositor-v12-css')) return;
+  if($('#nexa-home-compositor-v13-css')) return;
 
   $('#nexa-home-compositor-v1-css')?.remove();
   $('#nexa-home-compositor-v11-css')?.remove();
+  $('#nexa-home-compositor-v12-css')?.remove();
 
   const s=document.createElement('style');
-  s.id='nexa-home-compositor-v12-css';
+  s.id='nexa-home-compositor-v13-css';
   s.textContent=`
-    #${STACK_ID}{
+    #${SLOT_ID}{
       display:flex!important;
       flex-direction:column!important;
       gap:10px!important;
       width:100%!important;
       max-width:100%!important;
       min-width:0!important;
-      margin:0!important;
+      margin:12px 0 18px!important;
       padding:0!important;
       border:0!important;
       border-radius:0!important;
@@ -146,10 +103,10 @@ function installCSS(){
       overflow:visible!important;
     }
 
-    #${STACK_ID} > #nexa-v4937-live-event,
-    #${STACK_ID} > #nexa-pulse-visible-owner-v34,
-    #${STACK_ID} > #nexa-v31-alliance,
-    #${STACK_ID} > #nexa-v49-transfer-card{
+    #${SLOT_ID} > #nexa-v4937-live-event,
+    #${SLOT_ID} > #nexa-pulse-visible-owner-v34,
+    #${SLOT_ID} > #nexa-v31-alliance,
+    #${SLOT_ID} > #nexa-v49-transfer-card{
       width:100%!important;
       max-width:100%!important;
       min-width:0!important;
@@ -157,10 +114,10 @@ function installCSS(){
       box-sizing:border-box!important;
     }
 
-    #${STACK_ID} > #nexa-v302-pulse,
+    #${SLOT_ID} > #nexa-v302-pulse,
     #home-svs-section,
     #home-transfers-section,
-    [data-nexa-home-legacy-retired="v12"]{
+    [data-nexa-home-legacy-retired="v13"]{
       display:none!important;
       visibility:hidden!important;
       opacity:0!important;
@@ -174,45 +131,13 @@ function installCSS(){
       overflow:hidden!important;
     }
 
-    #nexa-v31-signals[data-nexa-v12-empty-shell="1"]{
+    #nexa-home-signal-stack-v1,
+    #nexa-home-signal-stack-v12,
+    #nexa-home-signals-stable-stack{
       display:none!important;
-      visibility:hidden!important;
-      opacity:0!important;
-      pointer-events:none!important;
-      max-height:0!important;
-      min-height:0!important;
-      height:0!important;
-      margin:0!important;
-      padding:0!important;
-      border:0!important;
-      overflow:hidden!important;
     }
   `;
   document.head.appendChild(s);
-}
-
-function ensureStack(){
-  const {host,reference}=structuralHost();
-  let stack=$('#'+STACK_ID);
-
-  if(!stack){
-    stack=document.createElement('div');
-    stack.id=STACK_ID;
-    stack.dataset.nexaHomeOrderOwner='home-compositor-v1.2';
-    stack.setAttribute('aria-label','NEXA Home signals');
-  }
-
-  if(stack.parentNode!==host){
-    if(reference?.parentNode===host){
-      host.insertBefore(stack,reference);
-    }else{
-      host.appendChild(stack);
-    }
-  }else if(reference?.parentNode===host && stack.nextElementSibling!==reference){
-    host.insertBefore(stack,reference);
-  }
-
-  return stack;
 }
 
 function retireKnownLegacy(){
@@ -220,8 +145,8 @@ function retireKnownLegacy(){
   const pulse=pulseCard();
   const transfer=transferCard();
 
-  $('#home-svs-section')?.setAttribute('data-nexa-home-legacy-retired','v12');
-  $('#home-transfers-section')?.setAttribute('data-nexa-home-legacy-retired','v12');
+  $('#home-svs-section')?.setAttribute('data-nexa-home-legacy-retired','v13');
+  $('#home-transfers-section')?.setAttribute('data-nexa-home-legacy-retired','v13');
 
   [
     '#nexa-pulse-owner-v24',
@@ -234,14 +159,13 @@ function retireKnownLegacy(){
   ].forEach(sel=>{
     $$(sel).forEach(el=>{
       if(el===live || el===pulse || el===transfer) return;
-      el.setAttribute('data-nexa-home-legacy-retired','v12');
+      el.setAttribute('data-nexa-home-legacy-retired','v13');
       el.setAttribute('aria-hidden','true');
     });
   });
 
   $$('section,article').forEach(el=>{
     if(el===live || el===pulse || el===transfer) return;
-
     if(live && (el.contains(live) || live.contains(el))) return;
     if(pulse && (el.contains(pulse) || pulse.contains(el))) return;
     if(transfer && (el.contains(transfer) || transfer.contains(el))) return;
@@ -259,16 +183,20 @@ function retireKnownLegacy(){
       /\bForms, surveys and requests appear here\b/i.test(t);
 
     if(staleNoLive || stalePulse){
-      el.setAttribute('data-nexa-home-legacy-retired','v12');
+      el.setAttribute('data-nexa-home-legacy-retired','v13');
       el.setAttribute('aria-hidden','true');
     }
   });
 }
 
-function cleanOldCompositorShells(newStack){
-  ['#nexa-home-signal-stack-v1','#nexa-home-signals-stable-stack'].forEach(sel=>{
+function rescueFromOldStacks(target){
+  [
+    '#nexa-home-signal-stack-v1',
+    '#nexa-home-signal-stack-v12',
+    '#nexa-home-signals-stable-stack'
+  ].forEach(sel=>{
     const old=$(sel);
-    if(!old || old===newStack) return;
+    if(!old || old===target) return;
 
     Array.from(old.children).forEach(child=>{
       if([
@@ -278,65 +206,45 @@ function cleanOldCompositorShells(newStack){
         'nexa-v31-alliance',
         'nexa-v49-transfer-card'
       ].includes(child.id)){
-        newStack.appendChild(child);
+        target.appendChild(child);
       }
     });
 
-    if(!old.children.length){
-      old.remove();
-    }else{
-      old.style.display='none';
-    }
+    if(!old.children.length) old.remove();
   });
-}
-
-function markLegacyShellIfEmpty(){
-  const legacy=legacySignals();
-  if(!legacy) return;
-
-  const officialInside=legacy.querySelector(
-    '#nexa-v4937-live-event,#nexa-pulse-visible-owner-v34,#nexa-v31-alliance,#nexa-v49-transfer-card'
-  );
-
-  if(!officialInside){
-    legacy.dataset.nexaV12EmptyShell='1';
-    legacy.setAttribute('aria-hidden','true');
-  }else{
-    delete legacy.dataset.nexaV12EmptyShell;
-  }
 }
 
 function compose(){
   installCSS();
+
+  const target=slot();
+  if(!target) return false;
+
+  rescueFromOldStacks(target);
   retireKnownLegacy();
-
-  const alliance=allianceCard();
-  if(!alliance) return false;
-
-  const stack=ensureStack();
-  cleanOldCompositorShells(stack);
 
   const live=liveCard();
   const sink=$('#nexa-v302-pulse');
   const pulse=pulseCard();
+  const alliance=allianceCard();
   const transfer=transferCard();
 
   /*
-    This is the only routine that sets sibling order.
-    Appending an existing node moves it; it does not duplicate it.
+    Compose whatever exists right now.
+    Alliance is NOT required for Live/Pulse/Transfer to be positioned.
   */
   [live,sink,pulse,alliance,transfer].forEach(node=>{
-    if(node && node!==stack){
-      stack.appendChild(node);
+    if(node && node!==target){
+      target.appendChild(node);
     }
   });
 
   retireKnownLegacy();
-  markLegacyShellIfEmpty();
 
   window.dispatchEvent(new CustomEvent('nexa:home-composed',{
     detail:{
-      owner:'home-compositor-v1.2',
+      owner:'home-compositor-v1.3',
+      slot:SLOT_ID,
       live:!!live,
       pulse:!!pulse,
       alliance:!!alliance,
@@ -350,7 +258,7 @@ function compose(){
 function finitePasses(){
   const mine=++generation;
 
-  [0,80,180,420,900,1800,3200,6000,10000,15000].forEach(ms=>{
+  [0,80,180,420,900,1800,3200,6000,10000,15000,25000].forEach(ms=>{
     setTimeout(()=>{
       if(mine!==generation) return;
       compose();

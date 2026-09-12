@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V13.3 • RALLY LEAD SCHEDULE CONFLICT GUARD -->
+<!-- NEXA SVS OPERATIONS V13.4 • ALLIANCE CHANGE / REMOVE CONTROLS -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -2588,7 +2588,11 @@ function petAllianceCard(a,editable=true){
        <strong>${esc(a.alliance_tag)} · ${petAllianceRoleLabel(a)}</strong>
        <small>${ts.length} Team${ts.length===1?'':'s'} configured</small>
      </div>
-     ${editable?`<button class="btn pet-v13-mini-btn" data-pet-add-team="${a.id}" type="button">+ Add Team</button>`:''}
+     ${editable?`<div class="pet-v13-team-actions">
+       <button class="btn pet-v13-mini-btn" data-pet-change-alliance="${a.id}" type="button">Change</button>
+       <button class="btn pet-v13-mini-btn" data-pet-remove-alliance="${a.id}" type="button">Remove</button>
+       <button class="btn pet-v13-mini-btn" data-pet-add-team="${a.id}" type="button">+ Add Team</button>
+     </div>`:''}
    </div>
    <div class="pet-v13-team-list">${ts.map(t=>petTeamCard(t,a,editable)).join('')||'<div class="pet-v13-empty-setup">No Teams yet. Add Team 1 to begin.</div>'}</div>
  </section>`;
@@ -2606,7 +2610,9 @@ function renderPetWorkspace(){
    rally.map(r=>r.player_account_id?`id:${r.player_account_id}`:`name:${String(r.player_name||'').trim().toLowerCase()}`).filter(Boolean)
  );
  const totalCount=totalKeys.size,scheduledCount=scheduledKeys.size,notScheduled=Math.max(0,totalCount-scheduledCount);
- const hasSetup=!!(strategy&&alliances.length);
+ const primaryId=strategy?.assist_config?.primary_alliance_id??strategy?.primary_alliance_id??null;
+ const hasPrimary=!!petSortedAlliances().find(a=>String(a.alliance_id)===String(primaryId)||(!primaryId&&Number(a.sort_order||0)===0));
+ const hasSetup=!!(strategy&&alliances.length&&hasPrimary);
  host.innerHTML=`<div class="pet-v13-shell">
    <div class="pet-v13-summary">
      <div class="pet-v13-stat"><b>${totalCount}</b><small>Total Rally Leads</small></div>
@@ -2624,8 +2630,8 @@ function renderPetWorkspace(){
      <div class="pet-v13-setup">
        <div class="section-head">
          <div>
-           <h3 style="margin:0">Start Pet Setup</h3>
-           <div class="tiny muted">Begin with the Main Garrison Alliance. Counter Alliances can be added after.</div>
+           <h3 style="margin:0">${alliances.length?'Choose New Main Garrison Alliance':'Start Pet Setup'}</h3>
+           <div class="tiny muted">${alliances.length?'Your Counter Alliances are still saved. Select the new Main Garrison Alliance.':'Begin with the Main Garrison Alliance. Counter Alliances can be added after.'}</div>
          </div>
        </div>
        <label style="margin-top:10px">Main Garrison Alliance
@@ -2638,8 +2644,9 @@ function renderPetWorkspace(){
          </div>
          <div class="select-note" style="margin-top:7px">Use this for temporary server-event alliances that are not part of the active State alliance list.</div>
        </div>
-       <button id="pet-start-setup" class="btn violet" type="button" style="width:100%;margin-top:10px">Start Setup</button>
-     </div>`:
+       <button id="pet-start-setup" class="btn violet" type="button" style="width:100%;margin-top:10px">${alliances.length?'Save New Main Alliance':'Start Setup'}</button>
+     </div>
+     ${alliances.length?`<div class="pet-v13-groups">${petSortedAlliances().map(a=>petAllianceCard(a,true)).join('')}</div>`:''}`:
      `<div class="pet-v13-groups">
        ${petSortedAlliances().map(a=>petAllianceCard(a,true)).join('')}
        <button id="pet-add-counter-alliance" class="btn pet-v13-add-alliance" type="button">+ Add Counter Alliance</button>
@@ -2653,9 +2660,168 @@ function renderPetWorkspace(){
  $('#pet-start-setup')?.addEventListener('click',startPetSetup);
  $('#pet-add-counter-alliance')?.addEventListener('click',addPetCounterAlliance);
  $$('[data-pet-add-team]',host).forEach(b=>b.onclick=()=>addTeam(b.dataset.petAddTeam));
+ $$('[data-pet-change-alliance]',host).forEach(b=>b.onclick=()=>changePetAlliance(b.dataset.petChangeAlliance));
+ $$('[data-pet-remove-alliance]',host).forEach(b=>b.onclick=()=>removePetAlliance(b.dataset.petRemoveAlliance));
  $$('[data-pet-add-rally]',host).forEach(b=>b.onclick=()=>addRally(b.dataset.petAddRally));
  $$('[data-pet-delete-team]',host).forEach(b=>b.onclick=()=>deleteTeam(b.dataset.petDeleteTeam));
 }
+
+function petAllianceChoiceBody(current){
+ const available=allAlliances.filter(x=>
+   String(x.id)===String(current?.alliance_id) ||
+   !alliances.some(a=>String(a.alliance_id)===String(x.id))
+ );
+ return `<label>Alliance
+   <select id="pet-edit-alliance">
+     <option value="">Select alliance…</option>
+     ${available.map(x=>`<option value="${x.id}" ${String(x.id)===String(current?.alliance_id)?'selected':''}>${esc(x.tag)}${x.name?` • ${esc(x.name)}`:''}</option>`).join('')}
+     <option value="manual" ${current?.alliance_id==null?'selected':''}>+ Add manually…</option>
+   </select>
+ </label>
+ <div id="pet-edit-manual" style="display:${current?.alliance_id==null?'block':'none'};margin-top:9px">
+   <div class="grid2">
+     <label>Alliance Tag<input id="pet-edit-tag" maxlength="12" value="${esc(current?.alliance_id==null?current?.alliance_tag||'':'')}" placeholder="TAG"></label>
+     <label>Alliance Name<input id="pet-edit-name" value="${esc(current?.alliance_id==null?current?.alliance_name||'':'')}" placeholder="Event / temporary alliance"></label>
+   </div>
+   <div class="select-note" style="margin-top:7px">Manual alliances stay inside this SvS strategy only.</div>
+ </div>`;
+}
+
+async function changePetAlliance(strategyAllianceId){
+ const a=alliances.find(x=>String(x.id)===String(strategyAllianceId));
+ if(!a)return;
+
+ const ov=modal(`Change ${a.alliance_tag}`,petAllianceChoiceBody(a),async modalEl=>{
+   const raw=$('#pet-edit-alliance',modalEl)?.value||'';
+   const manual=raw==='manual';
+   let allianceId=null,tag='',name=null,emblem=null;
+
+   if(manual){
+     tag=$('#pet-edit-tag',modalEl)?.value.trim().toUpperCase()||'';
+     name=$('#pet-edit-name',modalEl)?.value.trim()||null;
+     if(!tag){say('Enter an Alliance Tag.',true);return false}
+     if(alliances.some(x=>String(x.id)!==String(a.id)&&String(x.alliance_tag||'').toUpperCase()===tag)){
+       say(`${tag} is already participating.`,true);return false;
+     }
+   }else{
+     allianceId=Number(raw||0);
+     const real=allAlliances.find(x=>String(x.id)===String(allianceId));
+     if(!real){say('Select an alliance or choose Add manually.',true);return false}
+     if(alliances.some(x=>String(x.id)!==String(a.id)&&String(x.alliance_id)===String(allianceId))){
+       say(`${real.tag} is already participating.`,true);return false;
+     }
+     tag=real.tag;name=real.name;emblem=real.emblem_url;
+   }
+
+   const up=await sb.from('svs_strategy_alliances').update({
+     alliance_id:allianceId,
+     alliance_tag:tag,
+     alliance_name:name,
+     emblem_url:emblem
+   }).eq('id',a.id);
+   if(up.error)throw up.error;
+
+   const primaryId=strategy?.assist_config?.primary_alliance_id??strategy?.primary_alliance_id??null;
+   const isPrimary=String(a.alliance_id)===String(primaryId)||Number(a.sort_order||0)===0;
+
+   if(isPrimary){
+     const cfg={...(strategy.assist_config||{}),primary_alliance_id:allianceId};
+     const su=await sb.from('svs_strategies').update({
+       primary_alliance_id:allianceId,
+       assist_config:cfg
+     }).eq('id',strategy.id);
+     if(su.error)throw su.error;
+   }else{
+     const oldCfg=strategy.assist_config||{};
+     const counters=(oldCfg.counter_alliance_ids||[])
+       .filter(id=>String(id)!==String(a.alliance_id))
+       .concat(allianceId==null?[]:[allianceId]);
+     const cfg={...oldCfg,counter_alliance_ids:[...new Set(counters.map(String))].map(v=>Number(v))};
+     const su=await sb.from('svs_strategies').update({assist_config:cfg}).eq('id',strategy.id);
+     if(su.error)throw su.error;
+   }
+
+   await openStrategy(strategy.id);
+   say(`${tag} saved.`);
+ });
+
+ const sel=$('#pet-edit-alliance',ov),box=$('#pet-edit-manual',ov);
+ if(sel&&box)sel.onchange=()=>box.style.display=sel.value==='manual'?'block':'none';
+}
+
+async function removePetAlliance(strategyAllianceId){
+ const a=alliances.find(x=>String(x.id)===String(strategyAllianceId));
+ if(!a)return;
+
+ const ts=Teams(a.id);
+ const rlCount=ts.reduce((n,t)=>n+Rally(t.id).length,0);
+ const jCount=ts.reduce((n,t)=>n+Joiners(t.id).length,0);
+ const isPrimary=Number(a.sort_order||0)===0 ||
+   String(a.alliance_id)===String(strategy?.assist_config?.primary_alliance_id??strategy?.primary_alliance_id??'');
+
+ const warning=isPrimary
+   ? `Remove ${a.alliance_tag} as Main Garrison Alliance? This will also delete its ${ts.length} Team${ts.length===1?'':'s'}, ${rlCount} Rally Lead assignment${rlCount===1?'':'s'} and ${jCount} Joiner assignment${jCount===1?'':'s'}. You will need to choose a new Main Garrison Alliance.`
+   : `Remove ${a.alliance_tag} from Counter Alliances? This will also delete its ${ts.length} Team${ts.length===1?'':'s'}, ${rlCount} Rally Lead assignment${rlCount===1?'':'s'} and ${jCount} Joiner assignment${jCount===1?'':'s'}.`;
+
+ if(!await nexaConfirm('Remove Alliance?',warning,{confirmLabel:'Remove'}))return;
+
+ const teamIds=ts.map(t=>t.id);
+ const rows=petRows.filter(r=>String(r.strategy_alliance_id)===String(a.id)||teamIds.some(id=>String(id)===String(r.source_team_id)));
+ const rowIds=rows.map(r=>r.id);
+
+ // Optimistic UI
+ const backup={alliances:[...alliances],teams:[...teams],rally:[...rally],joiners:[...joiners],petRows:[...petRows],petAssignments:[...petAssignments]};
+ alliances=alliances.filter(x=>String(x.id)!==String(a.id));
+ teams=teams.filter(t=>!teamIds.some(id=>String(id)===String(t.id)));
+ rally=rally.filter(r=>!teamIds.some(id=>String(id)===String(r.team_id)));
+ joiners=joiners.filter(j=>!teamIds.some(id=>String(id)===String(j.team_id)));
+ petRows=petRows.filter(r=>!rows.some(x=>String(x.id)===String(r.id)));
+ petAssignments=petAssignments.filter(pa=>!rowIds.some(id=>String(id)===String(pa.row_id)));
+ renderStrategy();renderPet();renderLayout();
+
+ try{
+   if(rowIds.length){
+     const x=await sb.from('svs_pet_schedule_assignments').delete().in('row_id',rowIds);if(x.error)throw x.error;
+   }
+   if(teamIds.length){
+     const a1=await sb.from('svs_strategy_joiners').delete().in('team_id',teamIds);if(a1.error)throw a1.error;
+     const a2=await sb.from('svs_strategy_rally_slots').delete().in('team_id',teamIds);if(a2.error)throw a2.error;
+   }
+   if(rowIds.length){
+     const a3=await sb.from('svs_pet_schedule_rows').delete().in('id',rowIds);if(a3.error)throw a3.error;
+   }
+   const f=await sb.from('svs_rally_formations').delete().eq('strategy_alliance_id',a.id);if(f.error)throw f.error;
+   if(teamIds.length){
+     const tdel=await sb.from('svs_strategy_teams').delete().in('id',teamIds);if(tdel.error)throw tdel.error;
+   }
+   const adel=await sb.from('svs_strategy_alliances').delete().eq('id',a.id);if(adel.error)throw adel.error;
+
+   const oldCfg=strategy.assist_config||{};
+   if(isPrimary){
+     const cfg={...oldCfg,primary_alliance_id:null,active_alliance_count:Math.max(0,alliances.length)};
+     const su=await sb.from('svs_strategies').update({
+       primary_alliance_id:null,
+       assist_config:cfg
+     }).eq('id',strategy.id);
+     if(su.error)throw su.error;
+   }else{
+     const counters=(oldCfg.counter_alliance_ids||[]).filter(id=>String(id)!==String(a.alliance_id));
+     const cfg={...oldCfg,counter_alliance_ids:counters,active_alliance_count:Math.max(0,alliances.length)};
+     const su=await sb.from('svs_strategies').update({assist_config:cfg}).eq('id',strategy.id);
+     if(su.error)throw su.error;
+   }
+
+   await openStrategy(strategy.id);
+   say(`${a.alliance_tag} removed.`);
+ }catch(e){
+   alliances=backup.alliances;teams=backup.teams;rally=backup.rally;joiners=backup.joiners;
+   petRows=backup.petRows;petAssignments=backup.petAssignments;
+   renderStrategy();renderPet();renderLayout();
+   try{await openStrategy(strategy.id)}catch(_){}
+   say(e?.message||String(e),true);
+ }
+}
+
 async function ensureStrategyForPetSetup(primaryId){
  if(strategy)return strategy;
  setSaveState('saving');
@@ -2681,6 +2847,17 @@ async function startPetSetup(){
 
  await ensureStrategyForPetSetup(primaryId);
  setSaveState('saving');
+
+ // If Counter Alliances already exist because the previous Main was removed,
+ // shift them down so the newly selected Main owns sort_order 0.
+ if(alliances.length && !alliances.some(a=>Number(a.sort_order||0)===0 && (String(a.alliance_id)===String(strategy?.primary_alliance_id)||String(a.alliance_id)===String(strategy?.assist_config?.primary_alliance_id)))){
+   for(const a of petSortedAlliances()){
+     const nu=Number(a.sort_order||0)+1;
+     const u=await sb.from('svs_strategy_alliances').update({sort_order:nu}).eq('id',a.id);
+     if(u.error)throw u.error;
+     a.sort_order=nu;
+   }
+ }
 
  let displayTag='';
  if(manual){

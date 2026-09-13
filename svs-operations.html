@@ -5084,34 +5084,98 @@ function bpPdfSanitizeCss(root){
    try{if(cs.webkitBackdropFilter&&cs.webkitBackdropFilter!=='none')el.style.webkitBackdropFilter='none'}catch(_){}
  }
 }
+async function battlePlanPdfCanvasForNode(node,articleWidth){
+ const shell=document.createElement('article');
+ shell.className='bp-document';
+ shell.style.width=`${articleWidth}px`;
+ shell.style.maxWidth='none';
+ shell.style.margin='0';
+ shell.appendChild(node.cloneNode(true));
+ const stage=document.createElement('div');
+ stage.className='bp-pdf-stage';
+ stage.style.position='fixed';
+ stage.style.left='-20000px';
+ stage.style.top='0';
+ stage.style.width=`${articleWidth}px`;
+ stage.style.pointerEvents='none';
+ stage.appendChild(shell);
+ document.body.appendChild(stage);
+ try{
+   const imgs=[...shell.querySelectorAll('img')];
+   await Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(r=>{img.onload=img.onerror=()=>r()})));
+   if(document.fonts?.ready)await document.fonts.ready;
+   bpFitNativeText(shell);
+   bpPdfSanitizeCss(shell);
+   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+   const rect=shell.getBoundingClientRect(),w=Math.ceil(Math.max(shell.scrollWidth,rect.width)),h=Math.ceil(Math.max(shell.scrollHeight,rect.height));
+   return await html2canvas(shell,{backgroundColor:'#02030b',scale:1.35,useCORS:true,allowTaint:false,imageTimeout:15000,logging:false,width:w,height:h,windowWidth:w,windowHeight:h,scrollX:0,scrollY:0});
+ }finally{stage.remove()}
+}
+function battlePlanPdfSliceCanvas(source,sy,sh){
+ const out=document.createElement('canvas');out.width=source.width;out.height=sh;
+ const ctx=out.getContext('2d');ctx.fillStyle='#02030b';ctx.fillRect(0,0,out.width,out.height);
+ ctx.drawImage(source,0,sy,source.width,sh,0,0,source.width,sh);
+ return out;
+}
 async function battlePlanDownloadPdf(){
  if(!battlePlanRecord)return say('Create the Battle Plan first.',true);
  if(!window.html2canvas||!window.jspdf?.jsPDF)return say('PDF tools are still loading. Try again in a moment.',true);
  setSaveState('saving');say('Building PDF…');
- const stage=document.createElement('div');stage.className='bp-pdf-stage';stage.innerHTML=battlePlanDocumentHtml();document.body.appendChild(stage);
+ const sourceStage=document.createElement('div');sourceStage.className='bp-pdf-stage';sourceStage.style.position='fixed';sourceStage.style.left='-20000px';sourceStage.style.top='0';sourceStage.style.pointerEvents='none';sourceStage.innerHTML=battlePlanDocumentHtml();document.body.appendChild(sourceStage);
  try{
-   const article=stage.querySelector('.bp-document');if(!article)throw new Error('Battle Plan document could not be rendered.');
-   const imgs=[...article.querySelectorAll('img')];
-   await Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(r=>{img.onload=img.onerror=()=>r()})));
-   if(document.fonts?.ready)await document.fonts.ready;
-   bpFitNativeText(article);
-   bpPdfSanitizeCss(article);
-   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-   const rect=article.getBoundingClientRect(),w=Math.ceil(Math.max(article.scrollWidth,rect.width)),h=Math.ceil(Math.max(article.scrollHeight,rect.height));
-   const canvas=await html2canvas(article,{backgroundColor:'#02030b',scale:1.35,useCORS:true,allowTaint:false,imageTimeout:15000,logging:false,width:w,height:h,windowWidth:w,windowHeight:h,scrollX:0,scrollY:0});
+   const article=sourceStage.querySelector('.bp-document');if(!article)throw new Error('Battle Plan document could not be rendered.');
+   const rect=article.getBoundingClientRect(),articleWidth=Math.ceil(Math.max(article.scrollWidth,rect.width,680));
+   const parts=[...article.children];
    const {jsPDF}=window.jspdf,pdf=new jsPDF({orientation:'portrait',unit:'pt',format:'a4',compress:true});
-   const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight(),sliceH=Math.max(1,Math.floor(canvas.width*ph/pw));
-   let y=0,page=0;
-   while(y<canvas.height){
-     const sh=Math.min(sliceH,canvas.height-y),slice=document.createElement('canvas');slice.width=canvas.width;slice.height=sh;
-     const ctx=slice.getContext('2d');ctx.fillStyle='#02030b';ctx.fillRect(0,0,slice.width,slice.height);ctx.drawImage(canvas,0,y,canvas.width,sh,0,0,canvas.width,sh);
-     if(page>0)pdf.addPage();
-     const dh=pw*(sh/canvas.width);pdf.addImage(slice.toDataURL('image/jpeg',.92),'JPEG',0,0,pw,dh,undefined,'FAST');
-     y+=sh;page++;
+   const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
+   const margin=24,usableW=pw-margin*2,usableH=ph-margin*2;
+   let pageHasContent=false,cursorY=margin;
+   const addPage=()=>{if(pageHasContent)pdf.addPage();pageHasContent=false;cursorY=margin};
+   const addCanvasWhole=(canvas,{forcePage=false,dedicated=false}={})=>{
+     const isFirstBlank=!pageHasContent;
+     let dw=usableW,dh=dw*(canvas.height/canvas.width);
+     if(forcePage&&pageHasContent)addPage();
+     if(dedicated){
+       if(pageHasContent)addPage();
+       const scale=Math.min(usableW/canvas.width,usableH/canvas.height);
+       dw=canvas.width*scale;dh=canvas.height*scale;
+       const x=(pw-dw)/2,y=(ph-dh)/2;
+       pdf.addImage(canvas.toDataURL('image/jpeg',.93),'JPEG',x,y,dw,dh,undefined,'FAST');
+       pageHasContent=true;cursorY=ph-margin;
+       return;
+     }
+     if(dh<=usableH){
+       if(pageHasContent&&cursorY+dh>ph-margin)addPage();
+       pdf.addImage(canvas.toDataURL('image/jpeg',.93),'JPEG',margin,cursorY,dw,dh,undefined,'FAST');
+       cursorY+=dh;pageHasContent=true;return;
+     }
+     if(pageHasContent)addPage();
+     const slicePx=Math.max(1,Math.floor(canvas.width*usableH/usableW));
+     let sy=0;
+     while(sy<canvas.height){
+       const sh=Math.min(slicePx,canvas.height-sy),slice=battlePlanPdfSliceCanvas(canvas,sy,sh);
+       const sliceH=usableW*(sh/canvas.width);
+       if(pageHasContent)addPage();
+       pdf.addImage(slice.toDataURL('image/jpeg',.93),'JPEG',margin,margin,usableW,sliceH,undefined,'FAST');
+       pageHasContent=true;cursorY=margin+sliceH;sy+=sh;
+     }
+   };
+   for(const part of parts){
+     const isCastle=!!part.querySelector?.('.bp-castle-shot')||String(part.querySelector?.('h3')?.textContent||'').trim()==='Castle Layout';
+     const canvas=await battlePlanPdfCanvasForNode(part,articleWidth);
+     if(isCastle){
+       addCanvasWhole(canvas,{dedicated:true});
+       // Keep Castle Layout on its own page and start the following content fresh.
+       pdf.addPage();pageHasContent=false;cursorY=margin;
+     }else{
+       addCanvasWhole(canvas);
+     }
    }
+   // Remove an unused trailing page if Castle was the final section.
+   if(!pageHasContent&&pdf.getNumberOfPages()>1)pdf.deletePage(pdf.getNumberOfPages());
    pdf.save(battlePlanPdfFilename());say('Battle Plan PDF downloaded.');
  }catch(e){console.error('[NEXA] Battle Plan PDF export failed',e);say(e?.message||'Could not create the PDF.',true)}
- finally{stage.remove();setSaveState('saved')}
+ finally{sourceStage.remove();setSaveState('saved')}
 }
 
 function battlePlanSummaryHtml(){

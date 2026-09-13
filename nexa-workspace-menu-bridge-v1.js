@@ -1,23 +1,23 @@
-/* NEXA WORKSPACE MENU BRIDGE V1.2
-   - Main menu label: Workspace (replaces Transfers)
-   - Workspace opens Transfer / Ministry choices directly
-   - Transfer Workspace itself opens Transfer directly (no extra chooser)
+/* NEXA WORKSPACE MENU BRIDGE V1.3
+   - Renames the native top-level "Transfers" menu entry to "Workspace".
+   - Workspace opens Transfer / Ministry directly.
+   - Does NOT intercept the inner "Transfer Workspace" button.
+   - Scans menu entries whether hidden or visible, so the label is ready before opening.
    - No MutationObserver, polling, touchmove preventDefault or manual scrollLeft.
 */
 (()=>{'use strict';
-if(window.__NEXA_WORKSPACE_MENU_BRIDGE_V12__)return;
-window.__NEXA_WORKSPACE_MENU_BRIDGE_V12__=true;
+if(window.__NEXA_WORKSPACE_MENU_BRIDGE_V13__)return;
+window.__NEXA_WORKSPACE_MENU_BRIDGE_V13__=true;
 
 const LABEL_TRANSFERS='Transfers';
 const LABEL_WORKSPACE='Workspace';
 
-function textOf(el){return String(el?.textContent||'').replace(/\s+/g,' ').trim()}
-function visible(el){
-  if(!el)return false;
-  const s=getComputedStyle(el);
-  return s.display!=='none'&&s.visibility!=='hidden'&&el.getClientRects().length>0;
+function textOf(el){
+  return String(el?.textContent||'').replace(/\s+/g,' ').trim();
 }
-function action(el){return el?.closest?.('button,a,[role="button"]')||null}
+function actionable(el){
+  return el?.closest?.('button,a,[role="button"]')||null;
+}
 
 function ensureStyle(){
   if(document.getElementById('nexa-workspace-picker-style'))return;
@@ -25,8 +25,9 @@ function ensureStyle(){
   s.id='nexa-workspace-picker-style';
   s.textContent=`
     .nexa-workspace-picker{
-      position:fixed;inset:0;z-index:2147483647;display:grid;place-items:center;
-      padding:16px;background:rgba(0,2,13,.84);
+      position:fixed;inset:0;z-index:2147483647;
+      display:grid;place-items:center;padding:16px;
+      background:rgba(0,2,13,.84);
       backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)
     }
     .nexa-workspace-picker-card{
@@ -60,63 +61,96 @@ function ensureStyle(){
   document.head.appendChild(s);
 }
 
-function closePicker(){document.getElementById('nexa-workspace-picker')?.remove()}
+function closePicker(){
+  document.getElementById('nexa-workspace-picker')?.remove();
+}
 
 function openPicker(){
   ensureStyle();
   closePicker();
+
   const root=document.createElement('div');
   root.id='nexa-workspace-picker';
   root.className='nexa-workspace-picker';
   root.innerHTML=`<div class="nexa-workspace-picker-card">
     <div class="nexa-workspace-picker-head">
-      <div><small>NEXA Â· STATE OPERATIONS</small><h3>Workspace</h3></div>
+      <div>
+        <small>NEXA Â· STATE OPERATIONS</small>
+        <h3>Workspace</h3>
+      </div>
       <button class="nexa-workspace-picker-close" type="button" aria-label="Close">X</button>
     </div>
+
     <button class="nexa-workspace-choice" data-go="transfer" type="button">
       Transfer Workspace
       <small>Transfer cycles, applicants, integrations and access</small>
     </button>
+
     <button class="nexa-workspace-choice" data-go="ministry" type="button">
       Ministry Workspace
       <small>Requests, appointment scheduling and access</small>
     </button>
   </div>`;
+
   root.querySelector('.nexa-workspace-picker-close').onclick=closePicker;
   root.addEventListener('click',e=>{if(e.target===root)closePicker()});
-  root.querySelector('[data-go="transfer"]').onclick=()=>location.href='transfer-workspace.html';
-  root.querySelector('[data-go="ministry"]').onclick=()=>location.href='ministry-workspace.html';
+  root.querySelector('[data-go="transfer"]').onclick=()=>{location.href='transfer-workspace.html'};
+  root.querySelector('[data-go="ministry"]').onclick=()=>{location.href='ministry-workspace.html'};
   document.body.appendChild(root);
 }
 
-function installWorkspaceLabel(){
-  const all=[...document.querySelectorAll('button,a,[role="button"]')];
-  const transfers=all.find(el=>visible(el)&&textOf(el)===LABEL_TRANSFERS);
-  if(!transfers)return;
-  transfers.textContent=LABEL_WORKSPACE;
-  transfers.dataset.nexaWorkspaceBridge='workspace';
-  transfers.removeAttribute('href');
+function installWorkspaceEntry(){
+  const nodes=[...document.querySelectorAll('button,a,[role="button"]')];
+  for(const el of nodes){
+    if(textOf(el)!==LABEL_TRANSFERS)continue;
+
+    // Only convert the native top-level Transfers entry.
+    // Never touch "Transfer Workspace".
+    el.textContent=LABEL_WORKSPACE;
+    el.dataset.nexaWorkspaceBridge='workspace';
+    el.removeAttribute('href');
+  }
+}
+
+function refreshAfterMenuAction(){
+  // Menu rendering is owned by the state hub. Scan after its click handler paints.
+  requestAnimationFrame(()=>requestAnimationFrame(installWorkspaceEntry));
 }
 
 document.addEventListener('click',e=>{
-  const hit=action(e.target);
+  const hit=actionable(e.target);
   if(!hit)return;
+
   const label=textOf(hit);
 
-  // Only the TOP-LEVEL Transfers/Workspace entry is intercepted.
-  // "Transfer Workspace" inside any native subview is NOT intercepted anymore.
-  if(label===LABEL_TRANSFERS||label===LABEL_WORKSPACE||hit.dataset.nexaWorkspaceBridge==='workspace'){
+  if(label===LABEL_WORKSPACE || hit.dataset.nexaWorkspaceBridge==='workspace'){
     e.preventDefault();
     e.stopImmediatePropagation();
     openPicker();
     return;
   }
 
-  // Menus are painted on demand, so inspect once after other menu clicks.
-  requestAnimationFrame(installWorkspaceLabel);
+  // If an old cached "Transfers" entry gets clicked before relabeling,
+  // treat it as Workspace immediately instead of opening the old Transfers subview.
+  if(label===LABEL_TRANSFERS){
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    hit.textContent=LABEL_WORKSPACE;
+    hit.dataset.nexaWorkspaceBridge='workspace';
+    hit.removeAttribute('href');
+    openPicker();
+    return;
+  }
+
+  refreshAfterMenuAction();
 },true);
 
 document.addEventListener('DOMContentLoaded',()=>{
-  requestAnimationFrame(installWorkspaceLabel);
+  installWorkspaceEntry();
+  refreshAfterMenuAction();
+});
+
+window.addEventListener('pageshow',()=>{
+  installWorkspaceEntry();
 });
 })();

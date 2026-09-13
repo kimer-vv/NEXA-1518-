@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V14.37 • CASTLE REFERENCE SIZE • SQUARE FULL MAP -->
+<!-- NEXA SVS OPERATIONS V14.39 • CASTLE LABELS LARGER • BETTER TAG/NAME READABILITY -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -4181,12 +4181,13 @@ function castleRenderSvg(){
    const selected=castleSelection.has(castleCellKey(c.x,c.y)),tag=c.alliance_tag||castleAllianceById(c.alliance_id)?.tag||'';
    const name=c.player_name||'',key=castleCityAllianceKey(c),fill=c.color||castleAllianceColor(key),tt=castleTextTransform(cx,cy);
    const tc='#ffffff',stroke='rgba(0,0,0,.96)',secs=`${castleSecondsForAnchor(c.x,c.y)}s`;
-   const label=name?esc(name.slice(0,13)):(tag?`[${esc(tag.slice(0,8))}]`:'');
-   const labelSize=name?9.8:9.5;
-   const secondsSize=7.8;
+   const rawLabel=name?name.slice(0,13):(tag?`[${tag.slice(0,8)}]`:''),label=esc(rawLabel);
+   const baseLabelSize=name?11.0:10.7;
+   const labelSize=!rawLabel?0:(rawLabel.length>=12?baseLabelSize-.7:rawLabel.length>=10?baseLabelSize-.35:baseLabelSize);
+   const secondsSize=8.15;
    const text=label
-     ? `<g><text x="${cx}" y="${cy-3}" text-anchor="middle" font-size="${labelSize}" font-weight="950" letter-spacing=".01em" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:1.2px">${label}</text><text x="${cx}" y="${cy+9}" text-anchor="middle" font-size="${secondsSize}" font-weight="900" letter-spacing=".02em" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:.92px">${secs}</text></g>`
-     : `<text x="${cx}" y="${cy+4}" text-anchor="middle" font-size="8.7" font-weight="900" letter-spacing=".02em" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:.92px">${secs}</text>`;
+     ? `<g><text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="${labelSize}" font-weight="950" letter-spacing=".005em" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:1.24px">${label}</text><text x="${cx}" y="${cy+9.6}" text-anchor="middle" font-size="${secondsSize}" font-weight="900" letter-spacing=".015em" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:.94px">${secs}</text></g>`
+     : `<text x="${cx}" y="${cy+4}" text-anchor="middle" font-size="8.95" font-weight="900" letter-spacing=".02em" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:.94px">${secs}</text>`;
    return `<g data-castle-city="${esc(c.id)}"><rect x="${x+2}" y="${y+2}" width="${CASTLE_CITY_SIZE-4}" height="${CASTLE_CITY_SIZE-4}" rx="5" fill="${esc(fill)}" fill-opacity=".62" stroke="${selected?'#ffffff':'rgba(255,255,255,.74)'}" stroke-width="${selected?3:1.42}"/>${text}</g>`;
  }).join('');
  const outer=CASTLE_OUTER_HALF_CELLS*CASTLE_CELL,inner=CASTLE_INNER_HALF_CELLS*CASTLE_CELL;
@@ -5081,11 +5082,32 @@ async function bpPdfCastleCanvas(){
      const clone=live.cloneNode(true);
      clone.removeAttribute('class');
      clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
-     clone.setAttribute('viewBox',`${CASTLE_HOME.x} ${CASTLE_HOME.y} ${CASTLE_HOME.w} ${CASTLE_HOME.h}`);
      clone.setAttribute('width','2400');
      clone.setAttribute('height','2400');
      clone.setAttribute('preserveAspectRatio','xMidYMid meet');
      clone.querySelectorAll('[data-castle-city] rect').forEach(r=>{r.setAttribute('stroke','rgba(255,255,255,.42)');r.setAttribute('stroke-width','1.3')});
+     const rot=live.querySelector('g[transform="rotate(45)"]');
+     let x=CASTLE_HOME.x,y=CASTLE_HOME.y,w=CASTLE_HOME.w,h=CASTLE_HOME.h;
+     if(rot&&typeof rot.getBBox==='function'){
+       const box=rot.getBBox?.();
+       if(box&&Number.isFinite(box.width)&&box.width>0&&Number.isFinite(box.height)&&box.height>0){
+         const padX=Math.max(18,box.width*.02),padY=Math.max(18,box.height*.02);
+         x=Math.floor(box.x-padX);
+         y=Math.floor(box.y-padY);
+         w=Math.ceil(box.width+padX*2);
+         h=Math.ceil(box.height+padY*2);
+       }
+     }
+     clone.setAttribute('viewBox',`${x} ${y} ${w} ${h}`);
+     const bg=document.createElementNS('http://www.w3.org/2000/svg','rect');
+     bg.setAttribute('x',String(x));
+     bg.setAttribute('y',String(y));
+     bg.setAttribute('width',String(w));
+     bg.setAttribute('height',String(h));
+     bg.setAttribute('fill','#080b12');
+     const defs=clone.querySelector('defs');
+     if(defs&&defs.parentNode) defs.parentNode.insertBefore(bg,defs.nextSibling);
+     else clone.insertBefore(bg,clone.firstChild);
      raw=new XMLSerializer().serializeToString(clone);
    }catch(_){raw=''}
  }

@@ -1,4 +1,4 @@
-// NEXA DISCORD BOT V1.8.1 — FULL INVITE ROSTER / ONE-LINE COMPACT ROWS
+// NEXA DISCORD BOT V1.8.3 — COPYABLE GAME IDS / SEPARATE CATEGORY POSTS
 import {
   rawBody,verifyDiscord,subcommand,db,getConfigByGuild,
   getCurrentEvent,currentApps,selectedApps,recruitingAlliances,inviteCounts,inviteReport,
@@ -206,7 +206,7 @@ function compactApplicantLine(a,{groupMode=false}={}){
   const furnace=String(a.furnace_level||'—').toUpperCase();
   const n=Number(a.current_power||0),power=!n?'—':n>=1e9?`${Math.round(n/1e7)/100}B`:n>=1e6?`${Math.round(n/1e6)}M`:fmtPower(n);
   const alliance=a.assigned_alliance_tag||a._group_destination||'—';
-  return `${groupMode?routeDot(a):''}${name} · ${id} · ${furnace} · ${power} · ${alliance} · ${inviteIcon(a)}`;
+  return `${groupMode?routeDot(a):''}${name} · \`${id}\` · ${furnace} · ${power} · ${alliance} · ${inviteIcon(a)}`;
 }
 function categoryEmbeds(cfg,rows,{title,color,groupMode=false}){
   if(!rows.length)return[];
@@ -478,10 +478,34 @@ export default async function handler(req,res){
     if(body.data.name==='invite'){
       const event=await getCurrentEvent(cfg.workspace_id);if(!event)return res.status(200).json(responseEmbed(errorEmbed(cfg,'No Active Transfer Cycle','No active Transfer cycle was found.')));
       if(name==='list'){
-        const rawApps=await currentApps(cfg.workspace_id,event.id),apps=await hydrateGroupMeta(cfg.workspace_id,rawApps),embeds=compactListEmbeds(cfg,apps,'all'),target=channelFor(cfg,'invites');
+        const rawApps=await currentApps(cfg.workspace_id,event.id),apps=await hydrateGroupMeta(cfg.workspace_id,rawApps),target=channelFor(cfg,'invites');
         if(!target)return res.status(200).json(responseEmbed(errorEmbed(cfg,'Invite Channel Not Configured','Assign an Invite Operations channel first in NEXA Workspace.')));
-        await sendChannel(target,{embeds:embeds.slice(0,10),components:workspaceOnlyComponents(cfg),allowed_mentions:{parse:[]}});
-        return res.status(200).json(responseEmbed(successEmbed(cfg,'Invite List Posted',`The color-coded invite roster was posted to <#${target}>.`)));
+        const active=apps.filter(a=>a.application_cycle!=='next');
+        const sections=[
+          ['inbox','New Applicants',active.filter(a=>!a.group_id&&a.application_bucket==='inbox')],
+          ['ordinary','Ordinary',active.filter(a=>!a.group_id&&a.application_bucket==='ordinary')],
+          ['special','Special',active.filter(a=>!a.group_id&&a.application_bucket==='special')],
+          ['group','Group Transfer',active.filter(a=>a.group_id)]
+        ];
+        let posted=0;
+        for(const [placement,label,rows] of sections){
+          if(!rows.length)continue;
+          const embeds=compactListEmbeds(cfg,apps,placement);
+          for(const e of embeds){
+            await sendChannel(target,{embeds:[e],components:workspaceOnlyComponents(cfg),allowed_mentions:{parse:[]}});
+            posted++;
+          }
+        }
+        const counts=Object.fromEntries(sections.map(([,label,rows])=>[label,rows.length]));
+        return res.status(200).json(responseEmbed(successEmbed(cfg,'Invite List Posted',
+          `Posted **${posted}** roster section${posted===1?'':'s'} to <#${target}>.`,
+          [
+            field('🔵 New',String(counts['New Applicants']||0),true),
+            field('🟢 Ordinary',String(counts.Ordinary||0),true),
+            field('🟡 Special',String(counts.Special||0),true),
+            field('🔴 Group',String(counts['Group Transfer']||0),true)
+          ]
+        )));
       }
       const a=await applicantByGameId(cfg,event,String(options.game_id||'').trim());if(!a)return res.status(200).json(responseEmbed(errorEmbed(cfg,'Applicant Not Found',`No current applicant was found with Game ID \`${options.game_id}\`.`)));
       if(!['ordinary','special'].includes(a.application_bucket)||a.application_cycle==='next')return res.status(200).json(responseEmbed(errorEmbed(cfg,'Invite Not Available',`**${a.in_game_name||a.player_id}** is not currently in Ordinary or Special for this cycle.`)));

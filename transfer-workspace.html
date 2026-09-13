@@ -1,6 +1,6 @@
 <!doctype html>
 <!-- TARGET GITHUB FILE: transfer-workspace.html -->
-<!-- NEXA TRANSFER WORKSPACE V5.6 — WORKSPACE PUBLIC FORM LINK / CYCLE-INDEPENDENT INTAKE -->
+<!-- NEXA TRANSFER WORKSPACE V5.7 — SIMPLIFIED TRANSFER CYCLE WINDOW / CORRECT INVITE CAPACITY -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -114,21 +114,18 @@ button,input,select,textarea{font:inherit}.hidden{display:none!important}.shell{
       <article class="card full">
         <div id="cycleSummary" class="cycleSummary"></div>
         <div id="cycleEditor" class="cycleEditor hidden">
-          <div class="sectionTitle"><h3 style="margin:0" id="cycleEditorTitle">Open Transfer Cycle</h3></div>
-          <p class="muted">Cycle dates are saved for Transfer History only. Public applications and Discord notification timing are controlled separately.</p>
+          <div class="sectionTitle"><h3 style="margin:0" id="cycleEditorTitle">Start Transfer Cycle</h3></div>
+          <p class="muted">The Start Date identifies this Transfer Window for History. NEXA calculates the expected 7-day window automatically. The cycle remains active until staff ends it manually.</p>
           <div class="formGrid">
             <label class="field">Destination State <button class="info" type="button" data-guide="gState">i</button><input id="cycleState" inputmode="numeric"></label>
             <label class="field">State Classification <button class="info" type="button" data-guide="gClass">i</button><select id="classification"><option value="not_leading">Ordinary</option><option value="leading">Leading</option><option value="leading_with_specials">Leading — Special Invite Available</option></select></label>
           </div>
           <div id="gState" class="guide"><strong>Destination State</strong><ul><li>The state applicants are applying to join.</li><li>This should normally match the Workspace state.</li></ul></div>
-          <div id="gClass" class="guide"><strong>State Classification</strong><ul><li><strong>Ordinary</strong> uses 35 Ordinary invitations.</li><li><strong>Leading</strong> uses 20 Ordinary invitations.</li><li><strong>Leading — Special Invite Available</strong> keeps the Leading capacity and allows Special Invite planning.</li></ul></div>
+          <div id="gClass" class="guide"><strong>State Classification</strong><ul><li><strong>Ordinary</strong> uses 35 Ordinary invitations.</li><li><strong>Leading</strong> uses 20 Ordinary invitations.</li><li><strong>Leading — Special Invite Available</strong> uses 30 Ordinary invitations <strong>(20 + 10)</strong> plus <strong>1 Special Invite</strong>.</li></ul></div>
 
           <div class="sectionTitle" style="margin-top:15px"><h3 style="margin:0">Capacity / Invitations</h3><button class="info" type="button" data-guide="gCapacity">i</button></div>
-          <div id="gCapacity" class="guide"><strong>Capacity / Invitations</strong><ul><li>Ordinary capacity is calculated automatically from Classification.</li><li><strong>Ordinary Power Cap is required.</strong> Cards use it for the blue/gold visual status.</li><li>Special Invites are configured separately.</li></ul></div>
-          <div class="formGrid">
-            <label class="field">Ordinary Power Cap<input id="powerCap" inputmode="numeric" placeholder="Example: 200000000" required><span class="powerHint" id="powerCapPreview">Required • enter the full power number</span></label>
-            <label class="field">Special Invites Available<select id="specialInvites"><option>0</option><option>1</option><option>2</option><option>3</option></select></label>
-          </div>
+          <div id="gCapacity" class="guide"><strong>Capacity / Invitations</strong><ul><li>Invite capacity is calculated automatically from Classification.</li><li><strong>Ordinary Power Cap is required.</strong> Cards use it for the blue/gold visual status.</li><li>Leading + Special automatically means <strong>30 Ordinary (20 + 10)</strong> and <strong>1 Special Invite</strong>.</li></ul></div>
+          <label class="field">Ordinary Power Cap<input id="powerCap" inputmode="numeric" placeholder="Example: 200000000" required><span class="powerHint" id="powerCapPreview">Required • enter the full power number</span></label>
           <div class="stats" style="margin-top:12px">
             <div class="stat"><small>ORDINARY CAPACITY</small><b id="ordinaryCapacity">—</b></div>
             <div class="stat"><small>SPECIAL AVAILABLE</small><b id="specialAvailable">—</b></div>
@@ -136,10 +133,10 @@ button,input,select,textarea{font:inherit}.hidden{display:none!important}.shell{
             <div class="stat"><small>INVITES SENT</small><b id="sentCount">—</b></div>
           </div>
 
-          <label class="field">Cycle History End — UTC <button class="info" type="button" data-guide="gDeadline">i</button>
-            <div class="formGrid"><input id="deadlineDate" type="date"><select id="deadlineTime"></select></div>
+          <label class="field">Start Date — UTC Reset <button class="info" type="button" data-guide="gCycleStart">i</button>
+            <input id="cycleStartDate" type="date">
           </label>
-          <div id="gDeadline" class="guide"><strong>Transfer History Date</strong><ul><li>Time is always UTC in 24-hour format.</li><li>Select from 30-minute slots from 00:00 through 23:30.</li><li>This date is recorded in Transfer History only.</li><li>It does not open or close the public form and does not schedule Discord alerts.</li></ul></div>
+          <div id="gCycleStart" class="guide"><strong>Transfer Window</strong><ul><li>The selected date starts the Transfer Window at <strong>00:00 UTC</strong>.</li><li>NEXA calculates the expected end exactly <strong>7 days later</strong>.</li><li>Reaching that date does <strong>not</strong> end or clear the cycle automatically.</li><li><strong>End Transfer Cycle</strong> remains a manual staff action.</li></ul></div>
 
           <div class="sectionTitle" style="margin-top:18px"><h3 style="margin:0">Alliance Allocation</h3><button class="info" type="button" data-guide="gAllocation">i</button></div>
           <div id="gAllocation" class="guide"><strong>Alliance Allocation</strong><ul><li>Select which active Recruiting Alliances participate in this cycle.</li><li><strong>Free Pool</strong> leaves Ordinary counts open.</li><li><strong>Balanced</strong> distributes the Ordinary capacity evenly.</li><li><strong>Manual</strong> lets staff enter counts directly.</li><li>Over-allocation shows a warning but does not block Save Cycle.</li></ul></div>
@@ -283,7 +280,6 @@ document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>$(b.dataset.c
 document.querySelectorAll('[data-auth]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-auth]').forEach(x=>x.classList.toggle('active',x===b));$('loginPane').classList.toggle('hidden',b.dataset.auth!=='login');$('registerPane').classList.toggle('hidden',b.dataset.auth!=='register')});
 $('forgotUser').onclick=()=>$('forgotUserModal').classList.add('open');$('forgotPass').onclick=()=>$('recoveryModal').classList.add('open');$('appHelp').onclick=()=>$('appHelpModal').classList.add('open');
 
-$('deadlineTime').innerHTML=timeOptions.map(t=>`<option value="${t}">${t}</option>`).join('');
 function powerPreview(){const d=$('powerCap').value.replace(/\D/g,'');$('powerCap').value=d;const n=Number(d);$('powerCapPreview').textContent=n?`${n.toLocaleString()} • ${fmt(n)}`:'Required • enter the full power number'}
 $('powerCap').oninput=powerPreview;
 
@@ -306,41 +302,45 @@ async function loadWorkspace(){
  showWorkspace();renderAll();
 }
 function classificationLabel(v){return v==='not_leading'?'Ordinary':v==='leading_with_specials'?'Leading + Special Invite':'Leading'}
-function cycleExpired(){return false}
+function ordinaryCapacityFor(v){return v==='not_leading'?35:v==='leading_with_specials'?30:20}
+function specialInvitesFor(v){return v==='leading_with_specials'?1:0}
+function cycleExpired(){return !!(event?.ends_at&&Date.now()>=new Date(event.ends_at).getTime())}
 function fillCycleEditor(fromEvent=true){
  $('cycleState').value=fromEvent?(event?.destination_state||workspace.state_number):workspace.state_number;
  $('classification').value=fromEvent?(event?.leadership_status||'not_leading'):'not_leading';
- $('powerCap').value=fromEvent?(event?.power_cap||''):'';
- $('specialInvites').value=String(fromEvent?(event?.special_invites_available||0):0);powerPreview();
- $('ordinaryCapacity').textContent=fromEvent?(event?.ordinary_capacity??($('classification').value==='not_leading'?35:20)):35;
- $('specialAvailable').textContent=fromEvent?(event?.special_invites_available??0):0;
- if(fromEvent&&event?.ends_at){const d=new Date(event.ends_at);$('deadlineDate').value=d.toISOString().slice(0,10);const t=d.toISOString().slice(11,16);$('deadlineTime').value=timeOptions.includes(t)?t:'00:00'}else{$('deadlineDate').value='';$('deadlineTime').value='00:00'}
+ $('powerCap').value=fromEvent?(event?.power_cap||''):'';powerPreview();
+ const cls=$('classification').value;
+ $('ordinaryCapacity').textContent=fromEvent?(event?.ordinary_capacity??ordinaryCapacityFor(cls)):ordinaryCapacityFor(cls);
+ $('specialAvailable').textContent=fromEvent?(event?.special_invites_available??specialInvitesFor(cls)):specialInvitesFor(cls);
+ $('cycleStartDate').value=fromEvent&&event?.starts_at?new Date(event.starts_at).toISOString().slice(0,10):'';
  $('allocationMode').value=fromEvent?(event?.allocation_mode||'free'):'free';renderAllocation();
 }
 function renderCycleState(){
  const expired=cycleExpired(),hasEvent=!!event;
  $('cycleEditor').classList.toggle('hidden',!cycleEditing);
  $('cycleSummary').classList.toggle('hidden',cycleEditing);
- if(cycleEditing){$('cycleEditorTitle').textContent=cycleMode==='new'?'Open Next Transfer Cycle':'Edit Transfer Cycle';return}
- const deadline=event?.ends_at?`${new Date(event.ends_at).toISOString().slice(0,10)} • ${new Date(event.ends_at).toISOString().slice(11,16)} UTC`:'—';
+ if(cycleEditing){$('cycleEditorTitle').textContent=cycleMode==='new'?'Start Transfer Cycle':'Edit Transfer Cycle';return}
+ const startDate=event?.starts_at?new Date(event.starts_at).toISOString().slice(0,10):'—';
+ const expectedEnd=event?.ends_at?new Date(event.ends_at).toISOString().slice(0,10):'—';
  const recruitingTags=recruiting.filter(r=>r.is_recruiting).map(r=>allProfiles.find(p=>String(p.alliance_id)===String(r.alliance_id))?.tag).filter(Boolean);
- const status=!hasEvent?'NO ACTIVE CYCLE':'ACTIVE';
- const button=!hasEvent?'Open Cycle':'Edit Cycle';
- $('cycleSummary').innerHTML=`<div class="cycleSummaryHead"><div><span class="cycleStatusChip ${expired?'closed':''}">${status}</span><h3 style="margin:8px 0 4px">${expired?'Transfer Cycle Closed':hasEvent?'Active Transfer Cycle':'Transfer Cycle'}</h3><div class="muted">${hasEvent?'Dates are for Transfer History only. Public Access and Discord timing are separate.':'No cycle is currently configured. The public form can still remain open.'}</div></div>${canManage()?`<div class="actions" style="margin:0">
+ const status=!hasEvent?'NO ACTIVE CYCLE':expired?'WINDOW COMPLETE':'ACTIVE';
+ const button=!hasEvent?'Start Cycle':'Edit Cycle';
+ $('cycleSummary').innerHTML=`<div class="cycleSummaryHead"><div><span class="cycleStatusChip ${expired?'closed':''}">${status}</span><h3 style="margin:8px 0 4px">${hasEvent?(expired?'Transfer Window Complete':'Active Transfer Cycle'):'Transfer Cycle'}</h3><div class="muted">${hasEvent?(expired?'The 7-day Transfer Window has completed. End the cycle manually when staff is ready.':'Window dates are for cycle tracking and History only. Public Access remains separate.'):'No cycle is currently configured. The public form can still remain open.'}</div></div>${canManage()?`<div class="actions" style="margin:0">
   <button class="btn mini" id="cycleOpenBtn">${button}</button>
 ${hasEvent?`<button class="btn danger mini" id="cycleEndBtn">End Transfer Cycle</button>`:''} 
 </div>`:''}</div>
  ${hasEvent?`<div class="cycleSummaryGrid">
    <div class="cycleSummaryItem"><small>CLASSIFICATION</small><b>${esc(classificationLabel(event.leadership_status))}</b></div>
    <div class="cycleSummaryItem"><small>ORDINARY POWER CAP</small><b>${event.power_cap?`${Number(event.power_cap).toLocaleString()} • ${fmt(event.power_cap)}`:'—'}</b></div>
-   <div class="cycleSummaryItem"><small>HISTORY END</small><b>${esc(deadline)}</b></div>
-   <div class="cycleSummaryItem"><small>ORDINARY / SPECIAL</small><b>${event.ordinary_capacity??'—'} / ${event.special_invites_available??0}</b></div>
+   <div class="cycleSummaryItem"><small>TRANSFER WINDOW</small><b>${esc(startDate)} → ${esc(expectedEnd)}</b></div>
+   <div class="cycleSummaryItem"><small>ORDINARY INVITES</small><b>${event.leadership_status==='leading_with_specials'?`${event.ordinary_capacity??30} (20 + 10)`:event.ordinary_capacity??'—'}</b></div>
+   <div class="cycleSummaryItem"><small>SPECIAL INVITE</small><b>${event.special_invites_available??0}</b></div>
    <div class="cycleSummaryItem"><small>APPLICATIONS</small><b>${apps.length}</b></div>
    <div class="cycleSummaryItem"><small>INVITES SENT</small><b>${apps.filter(a=>a.invite_status==='sent').length}</b></div>
    <div class="cycleSummaryItem" style="grid-column:1/-1"><small>RECRUITING ALLIANCES</small><b>${esc(recruitingTags.join(' • ')||'—')}</b></div>
  </div>`:''}`;
 $('cycleOpenBtn')?.addEventListener('click',()=>{
-  cycleMode=expired||!hasEvent?'new':'edit';
+  cycleMode=!hasEvent?'new':'edit';
   cycleEditing=true;
   fillCycleEditor(cycleMode==='edit');
   renderCycleState();
@@ -388,24 +388,25 @@ $('workspaceTitle').textContent=`State ${event?.destination_state||intake?.desti
 }
 document.querySelectorAll('[data-public]').forEach(b=>b.onclick=async()=>{if(!canManage()||!intake)return;const p=b.dataset.public==='yes';const r=await SB.rpc('transfer_workspace_set_visibility',{p_workspace_id:workspaceId,p_token:token,p_public:p,p_listed:p?!!intake.listed_in_transfer_center:false});if(r.data?.ok)await loadWorkspace()});
 $('copyFormLink').onclick=e=>copyText(publicForm(),e.currentTarget);
-$('classification').onchange=()=>{$('ordinaryCapacity').textContent=$('classification').value==='not_leading'?35:20;renderAllocation()};
+$('classification').onchange=()=>{const cls=$('classification').value;$('ordinaryCapacity').textContent=ordinaryCapacityFor(cls);$('specialAvailable').textContent=specialInvitesFor(cls);renderAllocation()};
 $('allocationMode').onchange=renderAllocation;
 $('cancelCycleEdit').onclick=()=>{cycleEditing=false;fillCycleEditor(true);renderCycleState();$('cycleStatus').textContent=''};
 
 function renderAllocation(){
- const useSaved=!(cycleEditing&&cycleMode==='new'),map=new Map((useSaved?recruiting:[]).map(x=>[String(x.alliance_id),x])),mode=$('allocationMode').value,cap=$('classification').value==='not_leading'?35:20;
+ const useSaved=!(cycleEditing&&cycleMode==='new'),map=new Map((useSaved?recruiting:[]).map(x=>[String(x.alliance_id),x])),mode=$('allocationMode').value,cap=ordinaryCapacityFor($('classification').value);
  $('allocationRows').innerHTML=alliances.length?alliances.map(a=>{const r=map.get(String(a.id));return `<div class="allocationRow" data-alliance="${a.id}"><div class="allocationTop"><input type="checkbox" data-recruit ${r?.is_recruiting?'checked':''}><div><b>${esc(a.tag)}${a.name?' • '+esc(a.name):''}</b><div class="note">Recruiting this cycle</div></div><label class="field" style="margin:0">Ordinary Invites<input class="compactInput" type="number" min="0" data-allocation value="${mode==='free'?0:Number(r?.invite_allocation||0)}" ${mode==='free'?'disabled':''}></label></div></div>`}).join(''):'<div class="empty">No active Recruiting Alliances. Add one in Integrations.</div>';
  document.querySelectorAll('[data-recruit]').forEach(x=>x.onchange=()=>{if(mode==='balanced')balanceAllocation();updateAllocationWarning()});document.querySelectorAll('[data-allocation]').forEach(x=>x.oninput=updateAllocationWarning);
  if(mode==='balanced')balanceAllocation();if(mode==='free')document.querySelectorAll('[data-allocation]').forEach(x=>x.value=0);updateAllocationWarning();
 }
-function balanceAllocation(){const rows=[...document.querySelectorAll('.allocationRow')].filter(r=>r.querySelector('[data-recruit]').checked),cap=$('classification').value==='not_leading'?35:20;if(!rows.length)return;const base=Math.floor(cap/rows.length),extra=cap%rows.length;rows.forEach((r,i)=>r.querySelector('[data-allocation]').value=base+(i<extra?1:0))}
-function updateAllocationWarning(){const cap=$('classification').value==='not_leading'?35:20,total=[...document.querySelectorAll('.allocationRow')].filter(r=>r.querySelector('[data-recruit]').checked).reduce((n,r)=>n+Number(r.querySelector('[data-allocation]').value||0),0);$('allocationWarning').textContent=total>cap?`Warning: ${total} Ordinary invitations planned for a ${cap}-invite capacity. Saving is still allowed.`:`${total} / ${cap} Ordinary invitations planned.`}
+function balanceAllocation(){const rows=[...document.querySelectorAll('.allocationRow')].filter(r=>r.querySelector('[data-recruit]').checked),cap=ordinaryCapacityFor($('classification').value);if(!rows.length)return;const base=Math.floor(cap/rows.length),extra=cap%rows.length;rows.forEach((r,i)=>r.querySelector('[data-allocation]').value=base+(i<extra?1:0))}
+function updateAllocationWarning(){const cap=ordinaryCapacityFor($('classification').value),total=[...document.querySelectorAll('.allocationRow')].filter(r=>r.querySelector('[data-recruit]').checked).reduce((n,r)=>n+Number(r.querySelector('[data-allocation]').value||0),0);$('allocationWarning').textContent=total>cap?`Warning: ${total} Ordinary invitations planned for a ${cap}-invite capacity. Saving is still allowed.`:`${total} / ${cap} Ordinary invitations planned.`}
 $('saveCycle').onclick=async()=>{
  if(!canManage())return $('cycleStatus').textContent='Access Management required.';
  const cap=$('powerCap').value.replace(/\D/g,'');if(!cap||Number(cap)<=0)return $('cycleStatus').textContent='Ordinary Power Cap is required.';
- const date=$('deadlineDate').value,time=$('deadlineTime').value;if(!date||!time)return $('cycleStatus').textContent='Application Deadline date and UTC time are required.';
+ const startDate=$('cycleStartDate').value;if(!startDate)return $('cycleStatus').textContent='Start Date is required.';
  const mode=$('allocationMode').value,rows=[...document.querySelectorAll('.allocationRow')].map((row,i)=>({alliance_id:Number(row.dataset.alliance),is_recruiting:row.querySelector('[data-recruit]').checked,invite_allocation:mode==='free'?0:Number(row.querySelector('[data-allocation]').value||0),sort_order:i}));
- const payload={destination_state:$('cycleState').value,leadership_status:$('classification').value,power_cap:cap,special_invites_available:$('specialInvites').value,invite_deadline:`${date}T${time}:00Z`,allocation_mode:mode,allocation_default:null};
+ const cls=$('classification').value;
+ const payload={destination_state:$('cycleState').value,leadership_status:cls,power_cap:cap,special_invites_available:specialInvitesFor(cls),cycle_record_start:`${startDate}T00:00:00Z`,allocation_mode:mode,allocation_default:null};
  $('cycleStatus').textContent='Saving…';const c=await SB.rpc('transfer_workspace_save_cycle',{p_workspace_id:workspaceId,p_token:token,p_payload:payload});if(c.error||c.data?.ok!==true)return $('cycleStatus').textContent=c.error?.message||'Unable to save cycle.';
  const rr=await SB.rpc('transfer_workspace_save_recruiting',{p_workspace_id:workspaceId,p_token:token,p_rows:rows});if(rr.error||rr.data?.ok!==true)return $('cycleStatus').textContent=rr.error?.message||'Cycle saved, but recruiting allocation could not be saved.';
  cycleEditing=false;cycleMode='edit';await loadWorkspace();renderCycleState();

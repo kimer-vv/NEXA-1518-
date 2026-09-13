@@ -1,0 +1,311 @@
+<!doctype html>
+<!-- NEXA MINISTRY WORKSPACE V1.0 — SMART APPOINTMENT BOARD / SHARED STAFF LOGIN -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>NEXA • Ministry Workspace</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+<style>
+:root{
+ --bg:#050713;--panel:rgba(13,18,39,.82);--panel2:rgba(19,25,52,.72);
+ --line:rgba(158,178,255,.18);--text:#f5f7ff;--muted:#9da9c8;
+ --cyan:#65e8ff;--violet:#9b7cff;--good:#79edbf;--warn:#ffd27a;--bad:#ff91b5;
+ --gray:#171c30;--gray2:#20263d;
+}
+*{box-sizing:border-box}html,body{margin:0;background:radial-gradient(circle at 20% 0,#17143a 0,#080b1b 28%,#050713 58%);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body{min-height:100vh}.hidden{display:none!important}
+button,input,select{font:inherit}.shell{width:min(1220px,100%);margin:auto;padding:16px 14px 80px}
+.top{position:sticky;top:0;z-index:30;display:flex;gap:10px;align-items:center;justify-content:space-between;padding:12px 0 14px;background:linear-gradient(#050713 65%,transparent)}
+.brand small,.kicker{font-size:10px;letter-spacing:.16em;font-weight:950;color:#94a8dc}.brand b{font-size:20px}.top-actions{display:flex;gap:8px;align-items:center}
+.select,.input{border:1px solid var(--line);background:#0b1024;color:#fff;border-radius:13px;padding:10px 12px;min-height:42px}
+.workspace-select{max-width:245px}.btn{border:1px solid rgba(111,134,255,.38);background:linear-gradient(135deg,rgba(90,66,210,.55),rgba(22,123,165,.36));color:#fff;border-radius:13px;min-height:42px;padding:9px 14px;font-weight:850;cursor:pointer}.btn.secondary{background:#11162a}.btn.danger{border-color:rgba(255,100,140,.4);background:rgba(120,25,60,.22)}.btn:disabled{opacity:.45}
+.hero{padding:20px 4px 10px}.hero h1{margin:6px 0;font-size:clamp(2rem,7vw,3.4rem)}.hero p{margin:0;color:var(--muted)}.pills{display:flex;gap:8px;overflow:auto;padding:10px 0 14px}.pill{white-space:nowrap;border:1px solid var(--line);background:#0d1227;color:#aeb9d7;padding:10px 15px;border-radius:999px;font-weight:850}.pill.active{color:#fff;border-color:rgba(124,109,255,.7);background:linear-gradient(135deg,rgba(114,78,255,.46),rgba(34,171,209,.28))}
+.panel{border:1px solid var(--line);background:var(--panel);border-radius:22px;padding:16px;box-shadow:0 20px 55px rgba(0,0,0,.2)}.section-head{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;margin-bottom:14px}.section-head h2,.section-head h3{margin:0}.muted{color:var(--muted)}.status{min-height:20px;margin:8px 0;font-weight:750}.ok{color:var(--good)}.err{color:var(--bad)}
+.day-tabs{display:flex;gap:8px;overflow:auto;margin:4px 0 14px}.day-tab{border:1px solid var(--line);background:#10162c;color:#afbad6;border-radius:12px;padding:9px 13px;font-weight:850;white-space:nowrap}.day-tab.active{background:rgba(116,89,255,.35);color:#fff;border-color:#8d7cff}
+.request-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.request-card{border:1px solid var(--line);background:linear-gradient(145deg,rgba(21,28,58,.88),rgba(10,15,31,.94));border-radius:16px;padding:12px;min-width:0}.request-card h4{margin:0 0 6px;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mini{font-size:11px;color:var(--muted);line-height:1.45}.points{font-size:18px;font-weight:950;margin:8px 0;color:#dbe6ff}.card-actions{display:flex;gap:7px}.card-actions .btn{min-height:36px;padding:6px 10px;font-size:12px;flex:1}
+.app-toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.free-strip{display:flex;gap:6px;overflow:auto;padding:4px 0 12px}.free-chip{background:#11172b;border:1px solid var(--line);border-radius:999px;padding:6px 9px;color:#c2cce7;font-size:11px;white-space:nowrap}
+.board{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);gap:12px;height:min(68vh,720px)}.column{border:1px solid var(--line);border-radius:18px;background:rgba(6,10,24,.7);overflow:hidden;display:grid;grid-template-rows:auto 1fr;min-width:0}.column-head{padding:11px 12px;border-bottom:1px solid var(--line);background:rgba(20,27,56,.88);font-size:12px;font-weight:900;letter-spacing:.05em}.scroll{overflow-y:auto;overscroll-behavior:contain;padding:8px}
+.slot{min-height:55px;border:1px solid rgba(255,255,255,.08);border-radius:13px;margin-bottom:7px;background:var(--gray);display:grid;grid-template-columns:62px 1fr;align-items:center;gap:8px;padding:8px;transition:.16s}.slot.compatible{color:#fff}.slot.preferred{outline:2px solid rgba(255,255,255,.9);box-shadow:0 0 0 3px rgba(255,255,255,.12)}.slot.occupied{color:#fff}.slot.drag-over{transform:scale(.99);outline:2px solid #fff}.slot-time{font-size:12px;font-weight:950}.slot-body{min-width:0}.slot-name{font-weight:900;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.slot-sub{font-size:10px;opacity:.82;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.slot-open{color:#75809d;font-size:11px;font-weight:800}
+.player-card{position:relative;border:1px solid var(--line);background:linear-gradient(145deg,#161d39,#0c1126);border-radius:14px;padding:10px 34px 10px 10px;margin-bottom:8px;cursor:pointer}.player-card.selected{outline:2px solid var(--cyan);box-shadow:0 0 0 3px rgba(101,232,255,.11)}.player-card b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.player-card .pmeta{font-size:10px;color:var(--muted);margin-top:4px;line-height:1.45}.drag-handle{position:absolute;right:7px;top:50%;transform:translateY(-50%);width:24px;height:34px;border:0;background:transparent;color:#a9b3d4;font-size:18px;touch-action:none;cursor:grab}.drag-ghost{position:fixed;z-index:1000;pointer-events:none;width:180px;opacity:.92;transform:translate(-50%,-50%);border:1px solid #9eeeff;border-radius:13px;background:#121a35;padding:10px;box-shadow:0 16px 40px rgba(0,0,0,.45)}
+.history-list,.access-grid{display:grid;gap:9px}.log,.access-card{border:1px solid var(--line);background:#0d1328;border-radius:14px;padding:12px}.log b{font-size:12px}.log small,.access-card small{color:var(--muted)}.access-card{display:flex;gap:10px;justify-content:space-between;align-items:center}.access-actions{display:flex;gap:6px}.access-actions .btn{min-height:34px;padding:6px 9px;font-size:11px}
+.modal{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.72);display:grid;place-items:center;padding:16px}.modal-card{width:min(520px,100%);max-height:82vh;overflow:auto;border:1px solid rgba(160,175,255,.3);border-radius:22px;background:#0c1124;padding:18px;box-shadow:0 30px 90px rgba(0,0,0,.55)}.modal-card h3{margin-top:0}.compare{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.compare>div{border:1px solid var(--line);border-radius:14px;padding:10px;background:#11172d}.compare strong{display:block;font-size:18px;margin-top:6px}.modal-actions{display:flex;gap:8px;flex-wrap:wrap}.modal-actions .btn{flex:1}
+.login-wrap{min-height:100vh;display:grid;place-items:center;padding:20px}.login-card{width:min(430px,100%);border:1px solid var(--line);border-radius:26px;background:rgba(10,14,31,.94);padding:22px}.login-card h1{margin:4px 0 8px}.login-card label{display:grid;gap:6px;margin:12px 0;font-weight:800}.remember{display:flex!important;grid-template-columns:auto 1fr!important;align-items:center;gap:8px!important}.remember input{width:20px;height:20px}
+@media(max-width:700px){.shell{padding-left:10px;padding-right:10px}.top{align-items:flex-start}.top-actions{align-items:stretch;flex-direction:column}.workspace-select{max-width:190px}.board{grid-template-columns:1.03fr .97fr;gap:7px;height:66vh}.slot{grid-template-columns:52px 1fr;padding:7px;min-height:53px}.slot-time{font-size:11px}.player-card{padding-left:8px}.panel{padding:11px}.request-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.request-card{padding:9px}.request-card h4{font-size:13px}.points{font-size:15px}.mini{font-size:10px}}
+@media(max-width:380px){.request-grid{grid-template-columns:1fr}.brand b{font-size:17px}.workspace-select{max-width:160px}}
+</style>
+</head>
+<body>
+<div id="loginScreen" class="login-wrap">
+  <div class="login-card">
+    <div class="kicker">NEXA STAFF</div>
+    <h1>Workspace Login</h1>
+    <p class="muted">Use the same staff login for Transfer and Ministry.</p>
+    <label>Game ID or Username<input id="loginId" class="input" autocomplete="username"></label>
+    <label>Password<input id="loginPass" class="input" type="password" autocomplete="current-password"></label>
+    <label class="remember"><input id="remember" type="checkbox" checked><span>Remember me</span></label>
+    <button id="loginBtn" class="btn" style="width:100%">Sign In</button>
+    <div id="loginMsg" class="status"></div>
+  </div>
+</div>
+
+<main id="app" class="shell hidden">
+  <div class="top">
+    <div class="brand"><small>NEXA • STATE OPERATIONS</small><br><b>Ministry Workspace</b></div>
+    <div class="top-actions">
+      <select id="workspaceSwitch" class="select workspace-select"></select>
+      <button id="logoutBtn" class="btn secondary">Log Out</button>
+    </div>
+  </div>
+  <header class="hero">
+    <div class="kicker" id="eventKicker">MINISTRY • UTC</div>
+    <h1>Appointments</h1>
+    <p id="eventMeta">Loading linked SvS event…</p>
+  </header>
+  <nav class="pills">
+    <button class="pill active" data-view="requests">Requests</button>
+    <button class="pill" data-view="appointments">Appointments</button>
+    <button class="pill" data-view="history">History</button>
+    <button class="pill" data-view="access">Access</button>
+  </nav>
+  <div id="globalMsg" class="status"></div>
+
+  <section id="view-requests" class="panel">
+    <div class="section-head"><div><h2>Responses</h2><div class="muted">Compact request cards. Open View for the full response.</div></div></div>
+    <div class="day-tabs" id="requestTabs"></div>
+    <div id="requestGrid" class="request-grid"></div>
+  </section>
+
+  <section id="view-appointments" class="panel hidden">
+    <div class="section-head"><div><h2>Appointment Board</h2><div class="muted">All times are UTC. Time Slots and Available Players scroll independently.</div></div></div>
+    <div class="day-tabs" id="appointmentTabs"></div>
+    <div class="app-toolbar">
+      <button id="pdfDay" class="btn secondary">Download This Day PDF</button>
+      <button id="pdfAll" class="btn secondary">Download All PDF</button>
+    </div>
+    <div class="muted" style="font-size:11px;margin-bottom:4px"><b>Free Spots</b></div>
+    <div id="freeStrip" class="free-strip"></div>
+    <div class="board">
+      <section class="column"><div class="column-head">TIME SLOTS • UTC</div><div id="slotList" class="scroll"></div></section>
+      <section class="column"><div class="column-head">AVAILABLE PLAYER BANK • HIGHEST EST. POINTS FIRST</div><div id="playerBank" class="scroll"></div></section>
+    </div>
+  </section>
+
+  <section id="view-history" class="panel hidden">
+    <div class="section-head"><div><h2>History</h2><div class="muted">Placement, move, replace, swap and removal logs.</div></div></div>
+    <div id="historyList" class="history-list"></div>
+  </section>
+
+  <section id="view-access" class="panel hidden">
+    <div class="section-head"><div><h2>Access</h2><div class="muted">Shared NEXA staff identity. Ministry permissions remain module-specific.</div></div></div>
+    <div id="accessAdmin">
+      <div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;margin-bottom:12px">
+        <input id="accessGameId" class="input" inputmode="numeric" placeholder="Game ID">
+        <select id="accessLevel" class="select"><option value="regular">Regular Access</option><option value="admin">Administrative Access</option></select>
+        <button id="addAccessBtn" class="btn">Add</button>
+      </div>
+    </div>
+    <div id="accessList" class="access-grid"></div>
+  </section>
+</main>
+
+<div id="detailModal" class="modal hidden"><div class="modal-card"><h3 id="detailTitle">Request</h3><div id="detailBody"></div><div class="modal-actions"><button class="btn secondary" data-close="detailModal">Close</button></div></div></div>
+<div id="conflictModal" class="modal hidden"><div class="modal-card"><h3 id="conflictTitle">Time Slot Occupied</h3><p id="conflictText" class="muted"></p><div id="compareBox" class="compare"></div><div class="modal-actions"><button id="replaceBtn" class="btn">Switch / Replace</button><button id="swapBtn" class="btn hidden">Swap Times</button><button class="btn secondary" data-close="conflictModal">Cancel</button></div></div></div>
+
+<script>
+(()=>{'use strict';
+const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
+const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
+const sb=window.supabase.createClient(SB_URL,SB_KEY),$=id=>document.getElementById(id);
+let token=localStorage.getItem('nexa_transfer_staff_token')||sessionStorage.getItem('nexa_transfer_staff_token')||'';
+let workspaceId=new URLSearchParams(location.search).get('workspace')||'';
+let snap=null,modules=[],activeView='requests',requestDay='construction',appointmentDay='construction',selectedRequest=null,dragState=null,pendingConflict=null;
+const DAYS=[['construction','Construction'],['research','Research'],['training','Training']];
+const times=Array.from({length:48},(_,i)=>`${String(Math.floor(i/2)).padStart(2,'0')}:${i%2?'30':'00'}`);
+const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const hm=v=>String(v||'').slice(0,5);
+const fmt=n=>n==null||n===''?'—':Number(n).toLocaleString();
+const rpc=async(fn,args)=>{const {data,error}=await sb.rpc(fn,args);if(error)throw error;return data};
+function saveToken(raw,remember=true){localStorage.removeItem('nexa_transfer_staff_token');sessionStorage.removeItem('nexa_transfer_staff_token');(remember?localStorage:sessionStorage).setItem('nexa_transfer_staff_token',raw);token=raw}
+function setMsg(t,ok=false){$('globalMsg').textContent=t||'';$('globalMsg').className='status '+(t?(ok?'ok':'err'):'')}
+function slotColor(i){
+ const anchors=[220,245,270,305,335,8,28,48,105,145,175,195];
+ const x=i/(47)*(anchors.length-1),a=Math.floor(x),b=Math.min(anchors.length-1,a+1),p=x-a;
+ let h=anchors[a]+(anchors[b]-anchors[a])*p;if(anchors[a]>300&&anchors[b]<40)h=anchors[a]+((anchors[b]+360)-anchors[a])*p;if(h>=360)h-=360;
+ const l=42+((i%4)*5);return `hsl(${h.toFixed(0)} 66% ${l}%)`;
+}
+function isInWindow(req,t){
+ const s=hm(req.preferred_window_start),e=hm(req.preferred_window_end);if(!s||!e)return false;
+ return t>=s&&t<=e;
+}
+function currentAppt(requestId){return (snap?.appointments||[]).find(a=>a.request_id===requestId)}
+function occupied(day,t){return (snap?.appointments||[]).find(a=>a.day_type===day&&hm(a.slot_time)===t)}
+function requestById(id){return (snap?.requests||[]).find(r=>r.id===id)}
+function dayRequests(day){return (snap?.requests||[]).filter(r=>r.day_type===day)}
+function setTabs(id,active,setter){
+ $(id).innerHTML=DAYS.map(([k,n])=>`<button class="day-tab ${active===k?'active':''}" data-day="${k}">${n}</button>`).join('');
+ $(id).querySelectorAll('[data-day]').forEach(b=>b.onclick=()=>setter(b.dataset.day));
+}
+function showView(v){
+ activeView=v;document.querySelectorAll('.pill').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
+ ['requests','appointments','history','access'].forEach(x=>$('view-'+x).classList.toggle('hidden',x!==v));
+ if(v==='access')loadAccess();
+}
+function modulesRender(){
+ const mine=modules.filter(m=>m.module==='ministry'||m.module==='transfer');
+ $('workspaceSwitch').innerHTML=mine.map(m=>`<option value="${esc(m.url)}" ${m.module==='ministry'&&m.workspace_id===workspaceId?'selected':''}>${m.module==='transfer'?'Transfer':'Ministry'} • ${m.access_level==='admin'?'Admin':'Regular'}</option>`).join('');
+ $('workspaceSwitch').onchange=()=>{const u=$('workspaceSwitch').value;if(u)location.href=u};
+}
+async function login(){
+ $('loginMsg').textContent='Signing in…';
+ try{
+   const d=await rpc('transfer_staff_login',{p_identifier:$('loginId').value.trim(),p_password:$('loginPass').value,p_remember:$('remember').checked});
+   if(!d?.ok)throw new Error(d?.error||'Unable to sign in');
+   saveToken(d.token,$('remember').checked);modules=d.modules||[];
+   const ministry=modules.find(m=>m.module==='ministry'&&(!workspaceId||m.workspace_id===workspaceId))||modules.find(m=>m.module==='ministry');
+   if(!ministry)throw new Error('No Ministry Workspace access.');
+   workspaceId=ministry.workspace_id;history.replaceState(null,'',`ministry-workspace.html?workspace=${workspaceId}`);await start();
+ }catch(e){$('loginMsg').textContent=e.message||String(e)}
+}
+async function start(){
+ if(!token){$('loginScreen').classList.remove('hidden');$('app').classList.add('hidden');return}
+ try{
+   const s=await rpc('transfer_staff_session',{p_token:token});if(!s?.ok)throw new Error('session_expired');
+   modules=s.modules||[];let ministry=modules.find(m=>m.module==='ministry'&&m.workspace_id===workspaceId)||modules.find(m=>m.module==='ministry');
+   if(!ministry)throw new Error('No Ministry Workspace access.');
+   workspaceId=ministry.workspace_id;modulesRender();
+   snap=await rpc('ministry_workspace_snapshot_v2',{p_workspace_id:workspaceId,p_token:token});if(!snap?.ok)throw new Error(snap?.error||'Unable to open workspace');
+   $('loginScreen').classList.add('hidden');$('app').classList.remove('hidden');
+   $('eventMeta').textContent=snap.event?.id?`Linked to SvS vs ${snap.event.opponent_state||'—'} • Prep Monday ${snap.event.prep_monday} • UTC`:'No active SvS event linked.';
+   $('eventKicker').textContent=`STATE ${snap.workspace?.state_number||1518} • MINISTRY • UTC`;
+   renderAll();
+ }catch(e){if(String(e.message).includes('session')){token='';localStorage.removeItem('nexa_transfer_staff_token');sessionStorage.removeItem('nexa_transfer_staff_token')} $('loginScreen').classList.remove('hidden');$('app').classList.add('hidden');$('loginMsg').textContent=e.message||String(e)}
+}
+function renderAll(){renderRequests();renderAppointments();renderHistory()}
+function renderRequests(){
+ setTabs('requestTabs',requestDay,d=>{requestDay=d;renderRequests()});
+ const rows=dayRequests(requestDay).sort((a,b)=>(Number(b.estimated_points)||-1)-(Number(a.estimated_points)||-1));
+ $('requestGrid').innerHTML=rows.length?rows.map(r=>`<article class="request-card">
+   <h4>${esc(r.in_game_name)}${r.is_test?' <span class="muted">TEST</span>':''}</h4>
+   <div class="mini">${esc(r.alliance_tag||'—')} • ID ${esc(r.game_id||'—')}</div>
+   <div class="points">${r.estimated_points==null?'Est. —':'Est. '+fmt(r.estimated_points)}</div>
+   <div class="mini">Window: <b>${hm(r.preferred_window_start)||'—'}–${hm(r.preferred_window_end)||'—'} UTC</b><br>Preferred: <b>${hm(r.preferred_time)||'—'} UTC</b></div>
+   <div class="card-actions" style="margin-top:9px"><button class="btn secondary" data-view-request="${r.id}">View</button></div>
+ </article>`).join(''):'<div class="muted">No requests for this day.</div>';
+ $('requestGrid').querySelectorAll('[data-view-request]').forEach(b=>b.onclick=()=>openRequest(b.dataset.viewRequest));
+}
+function openRequest(id){
+ const r=requestById(id);if(!r)return;
+ $('detailTitle').textContent=`${r.in_game_name} • ${r.day_type}`;
+ const data=r.response_data||{};
+ $('detailBody').innerHTML=`<p><b>Game ID:</b> <code>${esc(r.game_id||'—')}</code><br><b>Alliance:</b> ${esc(r.alliance_tag||'—')}<br><b>Preferred Window:</b> ${hm(r.preferred_window_start)||'—'}–${hm(r.preferred_window_end)||'—'} UTC<br><b>Preferred Time:</b> ${hm(r.preferred_time)||'—'} UTC<br><b>Estimated Points:</b> ${r.estimated_points==null?'—':fmt(r.estimated_points)}</p><hr style="border-color:var(--line)">${Object.entries(data).map(([k,v])=>`<p><b>${esc(k.replaceAll('_',' '))}</b><br>${esc(v)}</p>`).join('')||'<p class="muted">No additional response data.</p>'}`;
+ $('detailModal').classList.remove('hidden');
+}
+function renderAppointments(){
+ setTabs('appointmentTabs',appointmentDay,d=>{appointmentDay=d;selectedRequest=null;renderAppointments()});
+ const rows=dayRequests(appointmentDay).sort((a,b)=>(Number(b.estimated_points)||-1)-(Number(a.estimated_points)||-1));
+ const free=times.filter(t=>!occupied(appointmentDay,t));$('freeStrip').innerHTML=free.map(t=>`<span class="free-chip">${t}</span>`).join('');
+ $('slotList').innerHTML=times.map((t,i)=>slotHtml(t,i)).join('');
+ const bank=rows.filter(r=>!currentAppt(r.id));$('playerBank').innerHTML=bank.length?bank.map((r,i)=>playerHtml(r,i)).join(''):'<div class="muted" style="padding:10px">Everyone for this day is currently scheduled.</div>';
+ wireBoard();
+}
+function slotHtml(t,i){
+ const a=occupied(appointmentDay,t),r=a?requestById(a.request_id):null;
+ const compatible=selectedRequest&&isInWindow(selectedRequest,t),preferred=selectedRequest&&hm(selectedRequest.preferred_time)===t;
+ const style=a||compatible?`style="background:${slotColor(i)}"`:'';
+ return `<div class="slot ${a?'occupied':''} ${compatible?'compatible':''} ${preferred?'preferred':''}" data-slot="${t}" ${style}>
+   <div class="slot-time">${preferred?'★ ':''}${t}</div>
+   <div class="slot-body">${r?`<div class="slot-name">${esc(r.in_game_name)}</div><div class="slot-sub">${esc(r.alliance_tag||'—')} • ${r.estimated_points==null?'Est. —':fmt(r.estimated_points)}</div>`:`<div class="slot-open">Open</div>`}</div>
+ </div>`;
+}
+function playerHtml(r,i){
+ return `<article class="player-card ${selectedRequest?.id===r.id?'selected':''}" data-player="${r.id}">
+   <b>#${i+1} ${esc(r.in_game_name)}</b>
+   <div class="pmeta">${esc(r.alliance_tag||'—')} • ${r.estimated_points==null?'Est. —':'Est. '+fmt(r.estimated_points)}<br>${hm(r.preferred_window_start)||'—'}–${hm(r.preferred_window_end)||'—'} • Pref ${hm(r.preferred_time)||'—'}</div>
+   <button class="drag-handle" data-drag="${r.id}" aria-label="Drag player">⠿</button>
+ </article>`;
+}
+function selectPlayer(id){selectedRequest=requestById(id);renderAppointments()}
+function wireBoard(){
+ $('playerBank').querySelectorAll('[data-player]').forEach(c=>c.onclick=e=>{if(e.target.closest('[data-drag]'))return;selectPlayer(c.dataset.player)});
+ $('slotList').querySelectorAll('[data-slot]').forEach(s=>{
+   s.onclick=()=>{if(selectedRequest)attemptPlace(selectedRequest,s.dataset.slot)};
+   s.ondragover=e=>{e.preventDefault();s.classList.add('drag-over')};s.ondragleave=()=>s.classList.remove('drag-over');
+   s.ondrop=e=>{e.preventDefault();s.classList.remove('drag-over');const id=e.dataTransfer?.getData('text/plain');if(id)attemptPlace(requestById(id),s.dataset.slot)};
+ });
+ $('playerBank').querySelectorAll('[data-player]').forEach(c=>{c.draggable=true;c.ondragstart=e=>{e.dataTransfer.setData('text/plain',c.dataset.player);selectedRequest=requestById(c.dataset.player);renderAppointments()}});
+ $('playerBank').querySelectorAll('[data-drag]').forEach(h=>h.onpointerdown=startPointerDrag);
+}
+function startPointerDrag(e){
+ e.preventDefault();const req=requestById(e.currentTarget.dataset.drag);if(!req)return;selectedRequest=req;renderAppointments();
+ const ghost=document.createElement('div');ghost.className='drag-ghost';ghost.innerHTML=`<b>${esc(req.in_game_name)}</b><div style="font-size:11px;color:#aeb9d7">${req.estimated_points==null?'Est. —':'Est. '+fmt(req.estimated_points)}</div>`;document.body.appendChild(ghost);
+ const move=ev=>{ghost.style.left=ev.clientX+'px';ghost.style.top=ev.clientY+'px';document.querySelectorAll('.slot.drag-over').forEach(x=>x.classList.remove('drag-over'));const el=document.elementFromPoint(ev.clientX,ev.clientY)?.closest?.('[data-slot]');if(el)el.classList.add('drag-over')};
+ const up=ev=>{document.removeEventListener('pointermove',move);document.removeEventListener('pointerup',up);const el=document.elementFromPoint(ev.clientX,ev.clientY)?.closest?.('[data-slot]');ghost.remove();document.querySelectorAll('.slot.drag-over').forEach(x=>x.classList.remove('drag-over'));if(el)attemptPlace(req,el.dataset.slot)};
+ document.addEventListener('pointermove',move);document.addEventListener('pointerup',up,{once:true});move(e);
+}
+async function attemptPlace(req,t){
+ if(!req)return;if(!isInWindow(req,t)){if(!confirm(`${t} UTC is outside ${req.in_game_name}'s preferred window (${hm(req.preferred_window_start)}–${hm(req.preferred_window_end)} UTC). Place anyway?`))return}
+ try{
+   const d=await rpc('ministry_place_request_v2',{p_workspace_id:workspaceId,p_token:token,p_request_id:req.id,p_slot_time:t,p_mode:'place'});
+   if(d?.conflict){openConflict(req,t,d);return}
+   if(!d?.ok)throw new Error(d?.error||'Unable to place player');selectedRequest=null;await refresh('Appointment saved.');
+ }catch(e){setMsg(e.message||String(e))}
+}
+function openConflict(req,t,d){
+ pendingConflict={req,t,data:d};const cur=d.target||{},mine=d.incoming||{};
+ $('conflictTitle').textContent=`${t} UTC is already occupied`;
+ $('conflictText').textContent=`Compare the estimated contribution before changing this slot. The warning is shown regardless of which account has more points.`;
+ const p=n=>n==null?'—':fmt(n);
+ const diff=(Number(req.estimated_points)||0)-(Number(cur.estimated_points)||0),benefit=diff>0?'Incoming account estimates higher.':diff<0?'Current account estimates higher.':'Estimated points are equal / unavailable.';
+ $('compareBox').innerHTML=`<div><span class="muted">CURRENT</span><b>${esc(cur.name||'Current Player')}</b><strong>${p(cur.estimated_points)}</strong></div><div><span class="muted">INCOMING</span><b>${esc(req.in_game_name)}</b><strong>${p(req.estimated_points)}</strong></div><div style="grid-column:1/-1"><b>${esc(benefit)}</b><small class="muted">Difference: ${diff>=0?'+':''}${fmt(diff)} estimated points</small></div>`;
+ $('swapBtn').classList.toggle('hidden',!currentAppt(req.id));$('conflictModal').classList.remove('hidden');
+}
+async function resolveConflict(mode){
+ if(!pendingConflict)return;const {req,t}=pendingConflict;
+ try{const d=await rpc('ministry_place_request_v2',{p_workspace_id:workspaceId,p_token:token,p_request_id:req.id,p_slot_time:t,p_mode:mode});if(!d?.ok)throw new Error(d?.error||'Unable to update slot');$('conflictModal').classList.add('hidden');pendingConflict=null;selectedRequest=null;await refresh(mode==='swap'?'Players swapped.':'Player switched; previous player returned to the bank.')}catch(e){setMsg(e.message||String(e))}
+}
+async function refresh(msg=''){
+ snap=await rpc('ministry_workspace_snapshot_v2',{p_workspace_id:workspaceId,p_token:token});renderAll();if(msg)setMsg(msg,true)
+}
+function renderHistory(){
+ const logs=snap?.logs||[];$('historyList').innerHTML=logs.length?logs.map(l=>`<div class="log"><b>${esc((l.action_type||'change').toUpperCase())} ${l.day_type?'• '+esc(l.day_type):''}</b><br><small>${esc(l.changed_by_name||'Staff')} • ${new Date(l.changed_at).toLocaleString()}</small></div>`).join(''):'<div class="muted">No changes yet.</div>';
+}
+async function loadAccess(){
+ try{
+   const d=await rpc('ministry_staff_access_list_v2',{p_workspace_id:workspaceId,p_token:token});if(!d?.ok)throw new Error(d?.error||'Unable to load access');
+   $('accessAdmin').classList.toggle('hidden',!d.can_manage);
+   $('accessList').innerHTML=(d.members||[]).map(a=>`<div class="access-card"><div><b>${esc(a.game_name||a.game_id)}</b><br><small>ID ${esc(a.game_id)} • ${a.is_owner?'Owner / Admin':a.access_level==='admin'?'Administrative Access':'Regular Access'}${a.registered?'':' • Pending Registration'}</small></div>${d.can_manage&&!a.is_owner?`<div class="access-actions"><button class="btn secondary" data-level="${a.game_id}" data-next="${a.access_level==='admin'?'regular':'admin'}">${a.access_level==='admin'?'Make Regular':'Make Admin'}</button><button class="btn danger" data-remove="${a.game_id}">Remove</button></div>`:''}</div>`).join('');
+   $('accessList').querySelectorAll('[data-level]').forEach(b=>b.onclick=async()=>{await rpc('ministry_staff_set_level_v2',{p_workspace_id:workspaceId,p_token:token,p_game_id:b.dataset.level,p_access_level:b.dataset.next});loadAccess()});
+   $('accessList').querySelectorAll('[data-remove]').forEach(b=>b.onclick=async()=>{if(confirm('Remove Ministry access for this Game ID?')){await rpc('ministry_staff_remove_access_v2',{p_workspace_id:workspaceId,p_token:token,p_game_id:b.dataset.remove});loadAccess()}});
+ }catch(e){setMsg(e.message||String(e))}
+}
+async function addAccess(){
+ try{const d=await rpc('ministry_staff_add_access_v2',{p_workspace_id:workspaceId,p_token:token,p_game_id:$('accessGameId').value.trim(),p_access_level:$('accessLevel').value});if(!d?.ok)throw new Error(d?.error||'Unable to add access');$('accessGameId').value='';await loadAccess();setMsg(d.existing_account?'Access added. Existing NEXA staff login will work here.':'Access added. This Game ID can register a staff login.',true)}catch(e){setMsg(e.message||String(e))}
+}
+function pdfRows(day){
+ return times.map(t=>{const a=occupied(day,t),r=a?requestById(a.request_id):null;return {t,r}});
+}
+function drawPdfDay(doc,day,startY=18,titlePrefix=''){
+ const label=DAYS.find(x=>x[0]===day)?.[1]||day,rows=pdfRows(day),free=rows.filter(x=>!x.r).map(x=>x.t);
+ doc.setFontSize(16);doc.text(`${titlePrefix}${label} Ministry Schedule`,14,startY);doc.setFontSize(9);doc.text(`UTC • ${snap.event?.prep_monday||''} • Free Spots: ${free.join(', ')||'None'}`,14,startY+7,{maxWidth:270});
+ let y=startY+14;doc.setFontSize(8);
+ for(const x of rows){
+   if(y>190){doc.addPage('a4','landscape');y=16}
+   const line=x.r?`${x.t} | ${x.r.in_game_name} | ${x.r.alliance_tag||'—'} | ${x.r.game_id||'—'}`:`${x.t} | OPEN`;
+   doc.text(line,14,y);y+=4.3;
+ }return y;
+}
+function downloadPdf(all=false){
+ if(!window.jspdf){alert('PDF library is still loading. Try again.');return}const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+ if(all){DAYS.forEach(([d],i)=>{if(i)doc.addPage('a4','landscape');drawPdfDay(doc,d,16,'')});doc.save('NEXA-Ministry-Schedule-All.pdf')}else{drawPdfDay(doc,appointmentDay);doc.save(`NEXA-Ministry-${appointmentDay}-Schedule.pdf`)}
+}
+document.querySelectorAll('.pill').forEach(b=>b.onclick=()=>showView(b.dataset.view));
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>$(b.dataset.close).classList.add('hidden'));
+$('loginBtn').onclick=login;$('logoutBtn').onclick=async()=>{try{await rpc('transfer_staff_logout',{p_token:token})}catch{}localStorage.removeItem('nexa_transfer_staff_token');sessionStorage.removeItem('nexa_transfer_staff_token');token='';location.reload()};
+$('replaceBtn').onclick=()=>resolveConflict('replace');$('swapBtn').onclick=()=>resolveConflict('swap');$('addAccessBtn').onclick=addAccess;$('pdfDay').onclick=()=>downloadPdf(false);$('pdfAll').onclick=()=>downloadPdf(true);
+start();
+})();
+</script>
+</body>
+</html>

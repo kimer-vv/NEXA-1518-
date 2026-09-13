@@ -1569,8 +1569,8 @@ async function buildOwnedHomeMenuRoot(){
   ownedMenuButton(wrap,'Administration',openOwnedAdministrationMenu,{submenu:true});
 ownedMenuButton(wrap,'Forms Center',openOwnedFormsCenterMenu,{submenu:true});
 ownedMenuButton(wrap,'Battle Operations',openOwnedBattleOperationsMenu,{submenu:true});
-  ownedMenuButton(wrap,'Team Builder',openOwnedTeamMenu,{submenu:true});
-  if(await canSeeTransferHome())ownedMenuButton(wrap,'Transfers',openOwnedTransferMenu,{submenu:true});
+    ownedMenuButton(wrap,'Team Builder',openOwnedTeamMenu,{submenu:true});
+  ownedMenuButton(wrap,'Workspace',openOwnedWorkspaceMenu,{submenu:true});
   ownedMenuSep(wrap);
   ownedMenuButton(wrap,'Logout',async()=>{closeOwnedMenu();try{await sb()?.auth?.signOut()}catch(_){}location.reload()});
 }

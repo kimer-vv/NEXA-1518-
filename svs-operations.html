@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V14.33 • PDF STRUCTURAL FIX • FULL CASTLE • REAL HERO IMAGES • SPACING -->
+<!-- NEXA SVS OPERATIONS V14.35 • PDF CASTLE + JOINERS FIX • SMART CROP • CLEAN HEADINGS -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -5078,7 +5078,7 @@ async function bpPdfCastleCanvas(){
  const raw=String(item.snapshot.export_svg||'').trim();if(!raw)return null;
  let vbW=916,vbH=1490;
  try{const doc=new DOMParser().parseFromString(raw,'image/svg+xml'),svg=doc.querySelector('svg'),vb=String(svg?.getAttribute('viewBox')||'').trim().split(/\s+/).map(Number);if(vb.length===4&&vb[2]>0&&vb[3]>0){vbW=vb[2];vbH=vb[3]}}catch(_){ }
- const targetH=2200,targetW=Math.max(900,Math.round(targetH*(vbW/Math.max(1,vbH))));
+ const targetH=2600,targetW=Math.max(1100,Math.round(targetH*(vbW/Math.max(1,vbH))));
  const blob=new Blob([raw],{type:'image/svg+xml;charset=utf-8'}),url=URL.createObjectURL(blob);
  try{
    const img=await new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=reject;i.src=url});
@@ -5086,17 +5086,21 @@ async function bpPdfCastleCanvas(){
    let minX=targetW,minY=targetH,maxX=0,maxY=0,found=false;
    try{
      const data=ctx.getImageData(0,0,targetW,targetH).data;
+     const sample=(sx,sy)=>{const ii=(sy*targetW+sx)*4;return [data[ii],data[ii+1],data[ii+2]]};
+     const corners=[sample(8,8),sample(targetW-9,8),sample(8,targetH-9),sample(targetW-9,targetH-9)];
+     const bg=corners.reduce((a,c)=>[a[0]+c[0],a[1]+c[1],a[2]+c[2]],[0,0,0]).map(v=>v/4);
+     const isBg=(r,g,b)=>Math.abs(r-bg[0])<18&&Math.abs(g-bg[1])<18&&Math.abs(b-bg[2])<18;
      for(let y=0;y<targetH;y++){
        for(let x=0;x<targetW;x++){
          const i=(y*targetW+x)*4,r=data[i],g=data[i+1],b=data[i+2],a=data[i+3];
-         if(a>12 && !(r<16 && g<18 && b<26)){
+         if(a>12 && !isBg(r,g,b) && (r+g+b>70 || Math.abs(r-g)>10 || Math.abs(g-b)>10 || Math.abs(r-b)>10)){
            if(x<minX)minX=x;if(y<minY)minY=y;if(x>maxX)maxX=x;if(y>maxY)maxY=y;found=true;
          }
        }
      }
    }catch(_){ }
    if(!found)return base;
-   const pad=110,cw=Math.max(1,maxX-minX+1),ch=Math.max(1,maxY-minY+1);
+   const pad=58,cw=Math.max(1,maxX-minX+1),ch=Math.max(1,maxY-minY+1);
    const out=document.createElement('canvas');out.width=cw+pad*2;out.height=ch+pad*2;const octx=out.getContext('2d');octx.fillStyle='#080b12';octx.fillRect(0,0,out.width,out.height);octx.drawImage(base,minX,minY,cw,ch,pad,pad,cw,ch);return out;
  }finally{URL.revokeObjectURL(url)}
 }
@@ -5166,10 +5170,13 @@ async function battlePlanDownloadPdf(){
    const drawPetSchedule=(rows)=>{
      let y=sectionTitle('Whale Group & Pet Schedule',M+4);
      for(const a of rows||[]){
-       y=ensure(y,198);font(22,'bold',C.ink);const tag=String(a.alliance_tag||'Alliance');pdf.text(tag,M,y);
-       font(10.8,'bold',C.muted);pdf.text(String(a.role||'').toUpperCase(),M,y+24);stroke(C.line);pdf.setLineWidth(.8);pdf.line(M,y+34,pw-M,y+34);y+=62;
+       y=ensure(y,210);const tag=String(a.alliance_tag||'Alliance'),role=String(a.role||'').toUpperCase();
+       font(24,'bold',C.ink);pdf.text(tag,M,y);
+       const roleX=M+pdf.getTextWidth(tag)+10;
+       font(10.8,'bold',C.muted);pdf.text(role,roleX,y-1,{maxWidth:Math.max(90,pw-M-roleX)});
+       stroke(C.line);pdf.setLineWidth(.8);pdf.line(M,y+14,pw-M,y+14);y+=42;
        for(const team of a.teams||[])y=scheduleTeam(team,y);
-       y+=30;
+       y+=22;
      }
    };
    const drawRoles=async(roles,y)=>{
@@ -5197,12 +5204,24 @@ async function battlePlanDownloadPdf(){
      return y;
    };
    const drawJoinerHeroes=async(heroes,y)=>{
-     y=ensure(y+10,200);y+=10;y=subTitle('Joiner Heroes · Use Any Of These',y);const cols=3,gap=16,w=(contentW-gap*2)/3,rowH=72;const imgs=await Promise.all((heroes||[]).map(h=>loadImageData(h.image)));
-     (heroes||[]).forEach((h,i)=>{const x=M+(i%cols)*(w+gap),yy=y+Math.floor(i/cols)*rowH,ic=imgs[i],hc=bpPdfHeroColor(h.rarity);if(ic){try{pdf.addImage(ic,'PNG',x,yy-23,46,46,undefined,'FAST')}catch(_){fill('#eef2f7');stroke(hc);pdf.circle(x+23,yy,23,'FD')}}else{fill('#eef2f7');stroke(hc);pdf.setLineWidth(1.4);pdf.circle(x+23,yy,23,'FD');font(13,'bold',hc);pdf.text(String(h.name||'H').slice(0,1).toUpperCase(),x+18.5,yy+5)}font(12.3,'bold',hc);pdf.text(String(h.name||'Hero'),x+56,yy+5,{maxWidth:w-58})});return y+Math.ceil((heroes||[]).length/cols)*rowH+16;
+     y=ensure(y+14,172);y+=14;y=subTitle('Joiner Heroes · Use Any Of These',y);y+=8;
+     const cols=(heroes||[]).length>6?4:3,gap=14,w=(contentW-gap*(cols-1))/cols,rowH=62,icon=40;
+     const imgs=await Promise.all((heroes||[]).map(h=>loadImageData(h.image)));
+     (heroes||[]).forEach((h,i)=>{
+       const x=M+(i%cols)*(w+gap),yy=y+Math.floor(i/cols)*rowH,ic=imgs[i],hc=bpPdfHeroColor(h.rarity);
+       if(ic){try{pdf.addImage(ic,'PNG',x,yy-18,icon,icon,undefined,'FAST')}catch(_){fill('#eef2f7');stroke(hc);pdf.circle(x+icon/2,yy+2,icon/2,'FD')}}
+       else{fill('#eef2f7');stroke(hc);pdf.setLineWidth(1.4);pdf.circle(x+icon/2,yy+2,icon/2,'FD');font(12,'bold',hc);pdf.text(String(h.name||'H').slice(0,1).toUpperCase(),x+14,yy+7)}
+       font(12.6,'bold',hc);pdf.text(String(h.name||'Hero'),x+icon+8,yy+6,{maxWidth:w-(icon+12)});
+     });
+     return y+Math.ceil((heroes||[]).length/cols)*rowH+12;
    };
    const drawAlliance=async(data)=>{
-     newPage();let y=M+8;font(26,'bold',C.ink);const tag=String(data.alliance_tag||'Alliance');pdf.text(tag,M,y);font(10.8,'bold',C.muted);pdf.text(String(data.role||'').toUpperCase(),M,y+24);stroke(C.line);pdf.setLineWidth(.8);pdf.line(M,y+34,pw-M,y+34);y+=66;
-     y=await drawRoles(data.roles||{},y);y+=10;y=subTitle('Whale Group Schedule',y);for(const team of data.teams||[])y=scheduleTeam(team,y);y+=4;y=ensure(y,105);y=subTitle('Troop Ratios',y);let rx=M;if(Array.isArray(data.ratios?.garrison))rx+=ratioCard('Garrison',data.ratios.garrison,rx,y,'garrison')+14;if(Array.isArray(data.ratios?.mia))ratioCard('MIA Rally',data.ratios.mia,rx,y,'mia');y+=94;if(!data.is_main&&data.joiner_heroes?.length)y=await drawJoinerHeroes(data.joiner_heroes,y);y=data.is_main?drawMainPlayers(data.players||[],y):drawCounterPlayers(data.players||[],y);
+     newPage();let y=M+8;const tag=String(data.alliance_tag||'Alliance'),role=String(data.role||'').toUpperCase();
+     font(28,'bold',C.ink);pdf.text(tag,M,y);
+     const roleX=M+pdf.getTextWidth(tag)+10;
+     font(10.8,'bold',C.muted);pdf.text(role,roleX,y-2,{maxWidth:Math.max(90,pw-M-roleX)});
+     stroke(C.line);pdf.setLineWidth(.8);pdf.line(M,y+14,pw-M,y+14);y+=48;
+     y=await drawRoles(data.roles||{},y);y+=8;y=subTitle('Whale Group Schedule',y);for(const team of data.teams||[])y=scheduleTeam(team,y);y+=4;y=ensure(y,105);y=subTitle('Troop Ratios',y);let rx=M;if(Array.isArray(data.ratios?.garrison))rx+=ratioCard('Garrison',data.ratios.garrison,rx,y,'garrison')+14;if(Array.isArray(data.ratios?.mia))ratioCard('MIA Rally',data.ratios.mia,rx,y,'mia');y+=94;if(!data.is_main&&data.joiner_heroes?.length)y=await drawJoinerHeroes(data.joiner_heroes,y);y=data.is_main?drawMainPlayers(data.players||[],y):drawCounterPlayers(data.players||[],y);
    };
 
    const d=battlePlanDoc();
@@ -5217,7 +5236,7 @@ async function battlePlanDownloadPdf(){
      y=ensure(y+8,90);y=sectionTitle('SvS Rules',y+8);for(const ln0 of bpPdfPlainLines(d.svs_rules)){const ln=String(ln0),clean=bpPdfStripLead(ln);let mark='•',mc=C.muted;if(ln.startsWith('❌')){mark='×';mc='#dc2626'}else if(ln.startsWith('✅')){mark='✓';mc='#16a34a'}else if(ln.startsWith('📍')){mark='•';mc='#dc2626'}else if(ln.startsWith('📢')){mark='•';mc=C.cyan}y=ensure(y,22);font(13.2,'bold',mc);pdf.text(mark,M+4,y);font(11.4,'bold',C.ink);y=text(clean,M+24,y,contentW-28,{leading:15})+7}
    }
 
-   const castle=await bpPdfCastleCanvas();if(castle){newPage();font(24,'bold',C.ink);pdf.text('Castle Layout',M,M+10);const top=M+28,panelX=M-14,panelW=contentW+28,panelH=ph-top-M+10;fill('#080b12');pdf.roundedRect(panelX,top,panelW,panelH,10,10,'F');const pad=4,maxW=panelW-pad*2,maxH=panelH-pad*2;const scale=Math.min(maxW/castle.width,maxH/castle.height);const dw=castle.width*scale,dh=castle.height*scale;pdf.addImage(castle.toDataURL('image/png'),'PNG',panelX+(panelW-dw)/2,top+(panelH-dh)/2,dw,dh,undefined,'MEDIUM')}
+   const castle=await bpPdfCastleCanvas();if(castle){newPage();font(24,'bold',C.ink);pdf.text('Castle Layout',M,M+10);const top=M+28,panelX=M-14,panelW=contentW+28,panelH=ph-top-M+10;fill('#080b12');pdf.roundedRect(panelX,top,panelW,panelH,10,10,'F');const pad=2,maxW=panelW-pad*2,maxH=panelH-pad*2;const scale=Math.min(maxW/castle.width,maxH/castle.height)*1.035;const dw=Math.min(maxW,castle.width*scale),dh=Math.min(maxH,castle.height*scale);pdf.addImage(castle.toDataURL('image/png'),'PNG',panelX+(panelW-dw)/2,top+(panelH-dh)/2,dw,dh,undefined,'MEDIUM')}
 
    const pet=battlePlanPetItem()?.snapshot?.data;if(Array.isArray(pet)&&pet.length){newPage();drawPetSchedule(pet)}
    const groups=battlePlanAllianceGroups();for(const g of groups){for(const item of g.items||[]){const data=item?.snapshot?.data;if(data)await drawAlliance(data)}}

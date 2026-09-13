@@ -1,0 +1,32 @@
+<!doctype html>
+<!-- NEXA STAFF WORKSPACES V1.0 — SHARED LOGIN / MODULE SELECTOR -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NEXA • Staff Workspaces</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 20% 0,#20174a,#090d20 34%,#050713 70%);color:#fff;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}.shell{width:min(820px,100%);margin:auto;padding:32px 16px 70px}.k{font-size:10px;letter-spacing:.17em;color:#9fb0dd;font-weight:950}.hero h1{font-size:clamp(2.2rem,8vw,4rem);margin:7px 0}.muted{color:#aab4d0}.card{border:1px solid rgba(150,170,255,.18);background:rgba(12,17,37,.84);border-radius:22px;padding:17px}.login{width:min(430px,100%);margin:12vh auto 0}.login label{display:grid;gap:6px;margin:12px 0;font-weight:800}.input{width:100%;min-height:45px;border:1px solid rgba(150,170,255,.2);border-radius:13px;background:#0b1024;color:#fff;padding:10px 12px}.btn{width:100%;min-height:44px;border:1px solid rgba(111,134,255,.4);border-radius:13px;background:linear-gradient(135deg,rgba(91,65,219,.65),rgba(22,129,168,.45));color:#fff;font-weight:900}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:20px}.module{cursor:pointer;text-decoration:none;color:#fff}.module h2{margin:4px 0 6px}.badge{display:inline-flex;padding:5px 8px;border-radius:999px;background:rgba(122,96,255,.24);border:1px solid rgba(143,122,255,.33);font-size:11px;font-weight:850}.top{display:flex;justify-content:space-between;align-items:center;gap:10px}.logout{width:auto;padding:8px 12px;background:#10162c}@media(max-width:560px){.grid{grid-template-columns:1fr}}
+.hidden{display:none!important}.status{min-height:20px;margin-top:9px;color:#ff9fbd}
+</style></head><body>
+<main class="shell">
+<section id="login" class="card login">
+<div class="k">NEXA STAFF</div><h1>Workspace Login</h1><p class="muted">One login for every staff workspace you are authorized to use.</p>
+<label>Game ID or Username<input id="id" class="input"></label>
+<label>Password<input id="pw" class="input" type="password"></label>
+<label style="display:flex;grid-template-columns:auto 1fr;align-items:center"><input id="remember" type="checkbox" checked> Remember me</label>
+<button id="go" class="btn">Sign In</button><div id="msg" class="status"></div>
+</section>
+<section id="app" class="hidden">
+<div class="top"><div class="hero"><div class="k">NEXA STAFF</div><h1>Choose Workspace</h1><p id="who" class="muted"></p></div><button id="out" class="btn logout">Log Out</button></div>
+<div id="grid" class="grid"></div>
+</section>
+</main>
+<script>
+(()=>{'use strict';const sb=window.supabase.createClient('https://dfxcxboxrkfmrnsgpyin.supabase.co','sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-'),$=x=>document.getElementById(x);let token=localStorage.getItem('nexa_transfer_staff_token')||sessionStorage.getItem('nexa_transfer_staff_token')||'';
+const rpc=async(fn,args)=>{const {data,error}=await sb.rpc(fn,args);if(error)throw error;return data};
+function save(t,remember){localStorage.removeItem('nexa_transfer_staff_token');sessionStorage.removeItem('nexa_transfer_staff_token');(remember?localStorage:sessionStorage).setItem('nexa_transfer_staff_token',t);token=t}
+function render(s){$('login').classList.add('hidden');$('app').classList.remove('hidden');$('who').textContent=`Signed in as ${s.game_name||s.username||s.game_id||'Staff'}`;const mods=s.modules||[];$('grid').innerHTML=mods.length?mods.map(m=>`<a class="card module" href="${m.url}"><div class="k">${m.module==='transfer'?'TRANSFER':'MINISTRY'}</div><h2>${m.module==='transfer'?'Transfer Workspace':'Ministry Workspace'}</h2><p class="muted">State ${m.state_number||'—'} • ${m.access_level==='admin'?'Administrative Access':'Regular Access'}</p><span class="badge">Open Workspace</span></a>`).join(''):'<div class="card muted">No active staff workspaces.</div>'}
+async function start(){if(!token)return;try{const s=await rpc('transfer_staff_session',{p_token:token});if(s?.ok)render(s)}catch{}}
+$('go').onclick=async()=>{try{$('msg').textContent='Signing in…';const d=await rpc('transfer_staff_login',{p_identifier:$('id').value.trim(),p_password:$('pw').value,p_remember:$('remember').checked});if(!d?.ok)throw new Error(d?.error||'Unable to sign in');save(d.token,$('remember').checked);render(d)}catch(e){$('msg').textContent=e.message||String(e)}};
+$('out').onclick=async()=>{try{await rpc('transfer_staff_logout',{p_token:token})}catch{}localStorage.removeItem('nexa_transfer_staff_token');sessionStorage.removeItem('nexa_transfer_staff_token');location.reload()};start();
+})();
+</script></body></html>

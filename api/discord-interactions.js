@@ -1,4 +1,4 @@
-// NEXA DISCORD BOT V1.8 — COMPACT COLOR LISTS / SIMPLE OPERATIONS / GROUP ASSIGN
+// NEXA DISCORD BOT V1.8.1 — FULL INVITE ROSTER / ONE-LINE COMPACT ROWS
 import {
   rawBody,verifyDiscord,subcommand,db,getConfigByGuild,
   getCurrentEvent,currentApps,selectedApps,recruitingAlliances,inviteCounts,inviteReport,
@@ -203,9 +203,10 @@ function routeDot(a){
 }
 function compactApplicantLine(a,{groupMode=false}={}){
   const name=a.in_game_name||'Applicant',id=a.player_id||'—';
-  const furnace=String(a.furnace_level||'—').toUpperCase(),power=fmtPower(a.current_power);
+  const furnace=String(a.furnace_level||'—').toUpperCase();
+  const n=Number(a.current_power||0),power=!n?'—':n>=1e9?`${Math.round(n/1e7)/100}B`:n>=1e6?`${Math.round(n/1e6)}M`:fmtPower(n);
   const alliance=a.assigned_alliance_tag||a._group_destination||'—';
-  return `${groupMode?routeDot(a):'•'} **${name}** · \`${id}\` · **${furnace}** · ${power} · **${alliance}** · ${inviteIcon(a)}`;
+  return `${groupMode?routeDot(a):''}${name} · ${id} · ${furnace} · ${power} · ${alliance} · ${inviteIcon(a)}`;
 }
 function categoryEmbeds(cfg,rows,{title,color,groupMode=false}){
   if(!rows.length)return[];
@@ -213,7 +214,7 @@ function categoryEmbeds(cfg,rows,{title,color,groupMode=false}){
     title:`${title} · ${rows.length}${rows.length>15?` · ${i+1}/${Math.ceil(rows.length/15)}`:''}`,
     description:part.map(a=>compactApplicantLine(a,{groupMode})).join('\n'),
     color,
-    footer:groupMode?'🟢 Ordinary · 🟡 Special · ✅ Sent · ⬜ Pending':'✅ Invite Sent · ⬜ Invite Pending'
+    footer:groupMode?'🟢 Ordinary · 🟡 Special · ✅ Sent · ⬜ Pending':'✅ Sent · ⬜ Pending'
   }));
 }
 function compactListEmbeds(cfg,apps,placement='all'){
@@ -477,7 +478,7 @@ export default async function handler(req,res){
     if(body.data.name==='invite'){
       const event=await getCurrentEvent(cfg.workspace_id);if(!event)return res.status(200).json(responseEmbed(errorEmbed(cfg,'No Active Transfer Cycle','No active Transfer cycle was found.')));
       if(name==='list'){
-        const rawApps=await selectedApps(cfg.workspace_id,event.id),apps=await hydrateGroupMeta(cfg.workspace_id,rawApps),embeds=compactListEmbeds(cfg,apps,'all'),target=channelFor(cfg,'invites');
+        const rawApps=await currentApps(cfg.workspace_id,event.id),apps=await hydrateGroupMeta(cfg.workspace_id,rawApps),embeds=compactListEmbeds(cfg,apps,'all'),target=channelFor(cfg,'invites');
         if(!target)return res.status(200).json(responseEmbed(errorEmbed(cfg,'Invite Channel Not Configured','Assign an Invite Operations channel first in NEXA Workspace.')));
         await sendChannel(target,{embeds:embeds.slice(0,10),components:workspaceOnlyComponents(cfg),allowed_mentions:{parse:[]}});
         return res.status(200).json(responseEmbed(successEmbed(cfg,'Invite List Posted',`The color-coded invite roster was posted to <#${target}>.`)));

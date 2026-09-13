@@ -928,7 +928,7 @@ body.pet-preview-open{overflow:hidden!important}
         <div class="castle-actions-bottom">
           <button id="castle-export" class="btn violet" type="button">Preview / Crop Export</button>
         </div>
-        <div class="castle-note">The Castle grid has exactly 160 City slots outside the fixed Castle/Turret interior. Preset layouts never remove City slots. After Set Layout, Opponent State stays solid red without seconds; Your State keeps all march times.</div>
+        <div class="castle-note">The Castle grid has exactly 160 City slots outside the fixed Castle/Turret interior. Preset layouts never remove City slots. After Set Layout, Opponent State stays solid red without seconds; assigned City tiles render with one clean white label for better readability.</div>
       </div>
     </div>
   </section>
@@ -4122,26 +4122,27 @@ function castleRenderSvg(){
  const baseMarkup=slots.map(p=>{
    if(occupied.has(p.key))return '';
    const x=p.x*CASTLE_CELL,y=p.y*CASTLE_CELL,cx=x+CASTLE_CITY_SIZE/2,cy=y+CASTLE_CITY_SIZE/2,secs=castleSecondsForAnchor(p.x,p.y),isOpp=opp.has(p.key);
-   const selected=castleSelection.has(p.key),fill=isOpp?CASTLE_OPPONENT_COLOR:CASTLE_OPEN_COLOR,stroke=selected?'#ffffff':(isOpp?'rgba(255,145,155,.50)':'rgba(177,193,218,.25)');
+   const selected=castleSelection.has(p.key),fill=isOpp?CASTLE_OPPONENT_COLOR:CASTLE_OPEN_COLOR,stroke=selected?'#ffffff':(isOpp?'rgba(255,145,155,.50)':'rgba(177,193,218,.28)');
    const hideOpponentSeconds=Boolean(
      isOpp &&
      castleSnapshot?.layout_mode==='preset' &&
      castleSnapshot?.layout_set &&
      !castlePreviewOpponentCells
    );
-   const secondsMarkup=hideOpponentSeconds?'':`<text x="${cx}" y="${cy+3}" text-anchor="middle" font-size="8.1" font-weight="800" fill="${isOpp?'#ffe0e3':'#cfd8ea'}" transform="${castleTextTransform(cx,cy)}" style="paint-order:stroke;stroke:rgba(0,0,0,.56);stroke-width:.50px">${secs}s</text>`;
-   return `<g><rect x="${x+2}" y="${y+2}" width="${CASTLE_CITY_SIZE-4}" height="${CASTLE_CITY_SIZE-4}" rx="5" fill="${fill}" fill-opacity="${isOpp?.88:.78}" stroke="${stroke}" stroke-width="${selected?3:1.1}"/>${secondsMarkup}</g>`;
+   const secondsMarkup=hideOpponentSeconds?'':`<text x="${cx}" y="${cy+4}" text-anchor="middle" font-size="8.7" font-weight="900" letter-spacing=".02em" fill="#ffffff" transform="${castleTextTransform(cx,cy)}" style="paint-order:stroke;stroke:rgba(0,0,0,.80);stroke-width:.82px">${secs}s</text>`;
+   return `<g><rect x="${x+2}" y="${y+2}" width="${CASTLE_CITY_SIZE-4}" height="${CASTLE_CITY_SIZE-4}" rx="5" fill="${fill}" fill-opacity="${isOpp?.88:.76}" stroke="${stroke}" stroke-width="${selected?3:1.12}"/>${secondsMarkup}</g>`;
  }).join('');
  const cityMarkup=(castleSnapshot.cities||[]).map(c=>{
    const x=c.x*CASTLE_CELL,y=c.y*CASTLE_CELL,cx=x+CASTLE_CITY_SIZE/2,cy=y+CASTLE_CITY_SIZE/2;
    const selected=castleSelection.has(castleCellKey(c.x,c.y)),tag=c.alliance_tag||castleAllianceById(c.alliance_id)?.tag||'';
-   const name=c.player_name||'',secs=castleSecondsForAnchor(c.x,c.y),key=castleCityAllianceKey(c),fill=c.color||castleAllianceColor(key),tt=castleTextTransform(cx,cy);
-   const tc='#ffffff',stroke='rgba(0,0,0,.72)';
-   let text='';
-   if(name)text=`<text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="9.1" font-weight="900" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:.92px">${esc(name.slice(0,15))}</text><text x="${cx}" y="${cy+9}" text-anchor="middle" font-size="7.8" font-weight="900" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:.72px">${secs}s</text>`;
-   else if(tag)text=`<text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="8.8" font-weight="950" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:.92px">[${esc(tag.slice(0,8))}]</text><text x="${cx}" y="${cy+9}" text-anchor="middle" font-size="7.8" font-weight="900" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:.72px">${secs}s</text>`;
-   else text=`<text x="${cx}" y="${cy+3}" text-anchor="middle" font-size="8.1" font-weight="850" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:.62px">${secs}s</text>`;
-   return `<g data-castle-city="${esc(c.id)}"><rect x="${x+2}" y="${y+2}" width="${CASTLE_CITY_SIZE-4}" height="${CASTLE_CITY_SIZE-4}" rx="5" fill="${esc(fill)}" fill-opacity=".70" stroke="${selected?'#ffffff':'rgba(255,255,255,.66)'}" stroke-width="${selected?3:1.30}"/>${text}</g>`;
+   const name=c.player_name||'',key=castleCityAllianceKey(c),fill=c.color||castleAllianceColor(key),tt=castleTextTransform(cx,cy);
+   const tc='#ffffff',stroke='rgba(0,0,0,.90)';
+   const label=name?esc(name.slice(0,15)):(tag?`[${esc(tag.slice(0,8))}]`:'');
+   const labelSize=name?10.7:10.2;
+   const text=label
+     ? `<text x="${cx}" y="${cy+3}" text-anchor="middle" font-size="${labelSize}" font-weight="950" letter-spacing=".01em" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:1.18px">${label}</text>`
+     : `<text x="${cx}" y="${cy+4}" text-anchor="middle" font-size="8.7" font-weight="900" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:.82px">${castleSecondsForAnchor(c.x,c.y)}s</text>`;
+   return `<g data-castle-city="${esc(c.id)}"><rect x="${x+2}" y="${y+2}" width="${CASTLE_CITY_SIZE-4}" height="${CASTLE_CITY_SIZE-4}" rx="5" fill="${esc(fill)}" fill-opacity=".62" stroke="${selected?'#ffffff':'rgba(255,255,255,.74)'}" stroke-width="${selected?3:1.42}"/>${text}</g>`;
  }).join('');
  const outer=CASTLE_OUTER_HALF_CELLS*CASTLE_CELL,inner=CASTLE_INNER_HALF_CELLS*CASTLE_CELL;
  svg.innerHTML=`

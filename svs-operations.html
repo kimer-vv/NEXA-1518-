@@ -928,7 +928,7 @@ body.pet-preview-open{overflow:hidden!important}
         <div class="castle-actions-bottom">
           <button id="castle-export" class="btn violet" type="button">Preview / Crop Export</button>
         </div>
-        <div class="castle-note">The Castle grid has exactly 160 City slots outside the fixed Castle/Turret interior. Preset layouts never remove City slots. After Set Layout, Opponent State stays solid red without seconds; assigned City tiles render with one clean white label for better readability.</div>
+        <div class="castle-note">The Castle grid has exactly 160 City slots outside the fixed Castle/Turret interior. Preset layouts never remove City slots. After Set Layout, Opponent State stays solid red without seconds; assigned City tiles render the player name or Alliance tag with the seconds directly underneath for better readability.</div>
       </div>
     </div>
   </section>
@@ -4136,12 +4136,13 @@ function castleRenderSvg(){
    const x=c.x*CASTLE_CELL,y=c.y*CASTLE_CELL,cx=x+CASTLE_CITY_SIZE/2,cy=y+CASTLE_CITY_SIZE/2;
    const selected=castleSelection.has(castleCellKey(c.x,c.y)),tag=c.alliance_tag||castleAllianceById(c.alliance_id)?.tag||'';
    const name=c.player_name||'',key=castleCityAllianceKey(c),fill=c.color||castleAllianceColor(key),tt=castleTextTransform(cx,cy);
-   const tc='#ffffff',stroke='rgba(0,0,0,.90)';
-   const label=name?esc(name.slice(0,15)):(tag?`[${esc(tag.slice(0,8))}]`:'');
-   const labelSize=name?10.7:10.2;
+   const tc='#ffffff',stroke='rgba(0,0,0,.96)',secs=`${castleSecondsForAnchor(c.x,c.y)}s`;
+   const label=name?esc(name.slice(0,13)):(tag?`[${esc(tag.slice(0,8))}]`:'');
+   const labelSize=name?9.8:9.5;
+   const secondsSize=7.8;
    const text=label
-     ? `<text x="${cx}" y="${cy+3}" text-anchor="middle" font-size="${labelSize}" font-weight="950" letter-spacing=".01em" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:1.18px">${label}</text>`
-     : `<text x="${cx}" y="${cy+4}" text-anchor="middle" font-size="8.7" font-weight="900" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:.82px">${castleSecondsForAnchor(c.x,c.y)}s</text>`;
+     ? `<g><text x="${cx}" y="${cy-3}" text-anchor="middle" font-size="${labelSize}" font-weight="950" letter-spacing=".01em" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:1.2px">${label}</text><text x="${cx}" y="${cy+9}" text-anchor="middle" font-size="${secondsSize}" font-weight="900" letter-spacing=".02em" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:.92px">${secs}</text></g>`
+     : `<text x="${cx}" y="${cy+4}" text-anchor="middle" font-size="8.7" font-weight="900" letter-spacing=".02em" fill="${tc}" transform="${tt}" style="paint-order:stroke;stroke:${stroke};stroke-width:.92px">${secs}</text>`;
    return `<g data-castle-city="${esc(c.id)}"><rect x="${x+2}" y="${y+2}" width="${CASTLE_CITY_SIZE-4}" height="${CASTLE_CITY_SIZE-4}" rx="5" fill="${esc(fill)}" fill-opacity=".62" stroke="${selected?'#ffffff':'rgba(255,255,255,.74)'}" stroke-width="${selected?3:1.42}"/>${text}</g>`;
  }).join('');
  const outer=CASTLE_OUTER_HALF_CELLS*CASTLE_CELL,inner=CASTLE_INNER_HALF_CELLS*CASTLE_CELL;
@@ -5609,3 +5610,4 @@ $('#close-layout-preview').onclick=()=>{$('#layout-preview-overlay').classList.r
 </script>
 </body>
 </html> 
+

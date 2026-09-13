@@ -1544,6 +1544,14 @@ function openOwnedLegacyTransferMenu(){ownedMenuSubview('LEGACY TRANSFER MANAGEM
   ['History',()=>ownedMenuGo('transfer-admin.html?tab=history')]
 ])}
 
+async function openOwnedWorkspaceMenu(){
+  const items=[
+    ['Transfer Workspace',()=>ownedMenuGo('transfer-workspace.html')],
+    ['Ministry Workspace',()=>ownedMenuGo('ministry-workspace.html')]
+  ];
+  ownedMenuSubview('WORKSPACE',items);
+}
+
 async function openOwnedTransferMenu(){
   const items=[
     ['Transfer Center',()=>ownedMenuGo('transfer-center.html')]

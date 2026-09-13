@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V14.26 • PET NAME FIT • NO BADGE OVERLAP -->
+<!-- NEXA SVS OPERATIONS V14.30 • NATIVE WHITE PDF • CASTLE ONE PAGE -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -5054,128 +5054,113 @@ function battlePlanPdfFilename(){
  const raw=['NEXA-SvS-Battle-Plan',opp?`vs-${opp}`:'',date].filter(Boolean).join('-');
  return raw.replace(/[^a-zA-Z0-9._-]+/g,'-').replace(/-+/g,'-')+'.pdf';
 }
-function bpPdfSafeColor(value){
- const v=String(value||'').trim();
- if(!v)return v;
- if(!/(?:^|[,(\s])(color|lab|lch|oklab|oklch)\(/i.test(v))return v;
- try{
-   const c=document.createElement('canvas');c.width=c.height=1;
-   const x=c.getContext('2d',{willReadFrequently:true});
-   x.clearRect(0,0,1,1);x.fillStyle='#000';x.fillStyle=v;x.fillRect(0,0,1,1);
-   const d=x.getImageData(0,0,1,1).data;
-   return `rgba(${d[0]},${d[1]},${d[2]},${Math.round((d[3]/255)*1000)/1000})`;
- }catch(_){return '#ffffff'}
+function bpPdfRgb(hex,fallback='#111827'){
+ let h=String(hex||fallback).trim();if(!/^#[0-9a-f]{6}$/i.test(h))h=fallback;
+ return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
 }
-function bpPdfSanitizeCss(root){
- const nodes=[root,...root.querySelectorAll('*')];
- const colorProps=['color','backgroundColor','borderTopColor','borderRightColor','borderBottomColor','borderLeftColor','outlineColor','textDecorationColor','caretColor','fill','stroke'];
- for(const el of nodes){
-   const cs=getComputedStyle(el);
-   for(const p of colorProps){
-     const v=cs[p];
-     if(v&&/(?:^|[,(\s])(color|lab|lch|oklab|oklch)\(/i.test(v)){try{el.style[p]=bpPdfSafeColor(v)}catch(_){}}
-   }
-   const bg=cs.backgroundImage||'';
-   if(/(?:color|lab|lch|oklab|oklch)\(/i.test(bg))el.style.backgroundImage='none';
-   const bs=cs.boxShadow||'';if(/(?:color|lab|lch|oklab|oklch)\(/i.test(bs))el.style.boxShadow='none';
-   const ts=cs.textShadow||'';if(/(?:color|lab|lch|oklab|oklch)\(/i.test(ts))el.style.textShadow='none';
-   if(cs.filter&&cs.filter!=='none')el.style.filter='none';
-   if(cs.backdropFilter&&cs.backdropFilter!=='none')el.style.backdropFilter='none';
-   try{if(cs.webkitBackdropFilter&&cs.webkitBackdropFilter!=='none')el.style.webkitBackdropFilter='none'}catch(_){}
- }
+function bpPdfTint(hex,amount=.92){
+ const [r,g,b]=bpPdfRgb(hex);return [Math.round(r+(255-r)*amount),Math.round(g+(255-g)*amount),Math.round(b+(255-b)*amount)];
 }
-async function battlePlanPdfCanvasForNode(node,articleWidth){
- const shell=document.createElement('article');
- shell.className='bp-document';
- shell.style.width=`${articleWidth}px`;
- shell.style.maxWidth='none';
- shell.style.margin='0';
- shell.appendChild(node.cloneNode(true));
- const stage=document.createElement('div');
- stage.className='bp-pdf-stage';
- stage.style.position='fixed';
- stage.style.left='-20000px';
- stage.style.top='0';
- stage.style.width=`${articleWidth}px`;
- stage.style.pointerEvents='none';
- stage.appendChild(shell);
- document.body.appendChild(stage);
+function bpPdfHeroColor(rarity){
+ const r=String(rarity||'').toLowerCase();
+ if(/legendary|mythic|gold/.test(r))return '#c98a00';
+ if(/epic|purple/.test(r))return '#7b3fc6';
+ if(/rare|blue/.test(r))return '#2478b5';
+ return '#334155';
+}
+function bpPdfPlainLines(v){return String(v||'').replace(/\r/g,'').split('\n').map(x=>x.trim()).filter(Boolean)}
+function bpPdfStripLead(line){return String(line||'').replace(/^(?:📢|❌|✅|📍|⭐|★|•|[-–—])\s*/u,'').trim()}
+async function bpPdfCastleCanvas(){
+ const item=battlePlanCastleItems().find(x=>x.snapshot?.export_svg);if(!item)return null;
+ const stage=document.createElement('div');stage.style.cssText='position:fixed;left:-20000px;top:0;width:1100px;background:#fff;padding:18px;pointer-events:none;';
+ const wrap=document.createElement('div');wrap.style.cssText='width:1064px;background:#fff;display:grid;place-items:center;';wrap.innerHTML=item.snapshot.export_svg;stage.appendChild(wrap);document.body.appendChild(stage);
  try{
-   const imgs=[...shell.querySelectorAll('img')];
-   await Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(r=>{img.onload=img.onerror=()=>r()})));
-   if(document.fonts?.ready)await document.fonts.ready;
-   bpFitNativeText(shell);
-   bpPdfSanitizeCss(shell);
    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-   const rect=shell.getBoundingClientRect(),w=Math.ceil(Math.max(shell.scrollWidth,rect.width)),h=Math.ceil(Math.max(shell.scrollHeight,rect.height));
-   return await html2canvas(shell,{backgroundColor:'#02030b',scale:1.35,useCORS:true,allowTaint:false,imageTimeout:15000,logging:false,width:w,height:h,windowWidth:w,windowHeight:h,scrollX:0,scrollY:0});
+   const svg=wrap.querySelector('svg');if(svg){svg.style.maxWidth='100%';svg.style.height='auto'}
+   const rect=wrap.getBoundingClientRect();
+   return await html2canvas(wrap,{backgroundColor:'#ffffff',scale:1.6,useCORS:true,allowTaint:false,imageTimeout:15000,logging:false,width:Math.ceil(rect.width),height:Math.ceil(rect.height),windowWidth:Math.ceil(rect.width),windowHeight:Math.ceil(rect.height),scrollX:0,scrollY:0});
  }finally{stage.remove()}
-}
-function battlePlanPdfSliceCanvas(source,sy,sh){
- const out=document.createElement('canvas');out.width=source.width;out.height=sh;
- const ctx=out.getContext('2d');ctx.fillStyle='#02030b';ctx.fillRect(0,0,out.width,out.height);
- ctx.drawImage(source,0,sy,source.width,sh,0,0,source.width,sh);
- return out;
 }
 async function battlePlanDownloadPdf(){
  if(!battlePlanRecord)return say('Create the Battle Plan first.',true);
- if(!window.html2canvas||!window.jspdf?.jsPDF)return say('PDF tools are still loading. Try again in a moment.',true);
- setSaveState('saving');say('Building PDF…');
- const sourceStage=document.createElement('div');sourceStage.className='bp-pdf-stage';sourceStage.style.position='fixed';sourceStage.style.left='-20000px';sourceStage.style.top='0';sourceStage.style.pointerEvents='none';sourceStage.innerHTML=battlePlanDocumentHtml();document.body.appendChild(sourceStage);
+ if(!window.jspdf?.jsPDF)return say('PDF tools are still loading. Try again in a moment.',true);
+ setSaveState('saving');say('Building clean PDF…');
  try{
-   const article=sourceStage.querySelector('.bp-document');if(!article)throw new Error('Battle Plan document could not be rendered.');
-   const rect=article.getBoundingClientRect(),articleWidth=Math.ceil(Math.max(article.scrollWidth,rect.width,680));
-   const parts=[...article.children];
-   const {jsPDF}=window.jspdf,pdf=new jsPDF({orientation:'portrait',unit:'pt',format:'a4',compress:true});
+   const {jsPDF}=window.jspdf;
+   const pdf=new jsPDF({orientation:'landscape',unit:'pt',format:'a4',compress:true});
    const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
-   const margin=24,usableW=pw-margin*2,usableH=ph-margin*2;
-   let pageHasContent=false,cursorY=margin;
-   const addPage=()=>{if(pageHasContent)pdf.addPage();pageHasContent=false;cursorY=margin};
-   const addCanvasWhole=(canvas,{forcePage=false,dedicated=false}={})=>{
-     const isFirstBlank=!pageHasContent;
-     let dw=usableW,dh=dw*(canvas.height/canvas.width);
-     if(forcePage&&pageHasContent)addPage();
-     if(dedicated){
-       if(pageHasContent)addPage();
-       const scale=Math.min(usableW/canvas.width,usableH/canvas.height);
-       dw=canvas.width*scale;dh=canvas.height*scale;
-       const x=(pw-dw)/2,y=(ph-dh)/2;
-       pdf.addImage(canvas.toDataURL('image/jpeg',.93),'JPEG',x,y,dw,dh,undefined,'FAST');
-       pageHasContent=true;cursorY=ph-margin;
-       return;
-     }
-     if(dh<=usableH){
-       if(pageHasContent&&cursorY+dh>ph-margin)addPage();
-       pdf.addImage(canvas.toDataURL('image/jpeg',.93),'JPEG',margin,cursorY,dw,dh,undefined,'FAST');
-       cursorY+=dh;pageHasContent=true;return;
-     }
-     if(pageHasContent)addPage();
-     const slicePx=Math.max(1,Math.floor(canvas.width*usableH/usableW));
-     let sy=0;
-     while(sy<canvas.height){
-       const sh=Math.min(slicePx,canvas.height-sy),slice=battlePlanPdfSliceCanvas(canvas,sy,sh);
-       const sliceH=usableW*(sh/canvas.width);
-       if(pageHasContent)addPage();
-       pdf.addImage(slice.toDataURL('image/jpeg',.93),'JPEG',margin,margin,usableW,sliceH,undefined,'FAST');
-       pageHasContent=true;cursorY=margin+sliceH;sy+=sh;
-     }
+   const M=34,contentW=pw-M*2;
+   const C={ink:'#111827',muted:'#64748b',line:'#dbe3ee',cyan:'#0f7490',soft:'#f8fafc',violet:'#9b78ff',gold:'#ffc75b',red:'#ff7289',green:'#168a5b'};
+   const color=(hex)=>pdf.setTextColor(...bpPdfRgb(hex));
+   const stroke=(hex)=>pdf.setDrawColor(...bpPdfRgb(hex));
+   const fill=(hex)=>pdf.setFillColor(...bpPdfRgb(hex));
+   const pageWhite=()=>{fill('#ffffff');pdf.rect(0,0,pw,ph,'F')};
+   let page=1;pageWhite();
+   const newPage=()=>{pdf.addPage();page++;pageWhite()};
+   const font=(size=10,style='normal',hex=C.ink)=>{pdf.setFont('helvetica',style);pdf.setFontSize(size);color(hex)};
+   const text=(t,x,y,w,opts={})=>{const lines=pdf.splitTextToSize(String(t??''),w||contentW);pdf.text(lines,x,y,opts);return y+lines.length*(opts.leading||12)};
+   const sectionTitle=(t,y)=>{font(17,'bold',C.ink);pdf.text(String(t),M,y);stroke(C.line);pdf.setLineWidth(.8);pdf.line(M,y+8,pw-M,y+8);return y+28};
+   const subTitle=(t,y)=>{font(10,'bold',C.muted);pdf.text(String(t).toUpperCase(),M,y);return y+16};
+   const pill=(label,x,y)=>{font(8,'bold',C.ink);const tw=pdf.getTextWidth(label)+18;fill('#f1f5f9');stroke('#cbd5e1');pdf.roundedRect(x,y-10,tw,18,9,9,'FD');pdf.text(label,x+9,y+2);return x+tw+7};
+   const fitText=(t,maxW,start=8,min=5.5,style='bold')=>{let s=start;pdf.setFont('helvetica',style);pdf.setFontSize(s);while(pdf.getTextWidth(String(t))>maxW&&s>min){s-=.25;pdf.setFontSize(s)}return s};
+   const scheduleTeam=(team,y)=>{
+     font(11,'bold',C.ink);pdf.text(String(team.name||'Team'),M,y);y+=9;
+     const gap=7,cardW=(contentW-gap*4)/5,cardH=48;
+     (team.hours||[]).slice(0,5).forEach((h,i)=>{
+       const x=M+i*(cardW+gap),tc=team.color||C.violet,tint=bpPdfTint(tc,.92);pdf.setFillColor(...tint);pdf.setDrawColor(...bpPdfRgb(tc));pdf.setLineWidth(1.1);pdf.roundedRect(x,y,cardW,cardH,6,6,'FD');
+       font(7.2,'bold',C.muted);pdf.text(String(h.time||''),x+7,y+10);
+       let ly=y+21;
+       const assigns=(h.assignments||[]).slice(0,3);
+       if(!assigns.length){font(7,'normal',C.muted);pdf.text('—',x+7,ly)}
+       assigns.forEach(a=>{
+         const name=String(a.name||'Rally Lead');const badgeW=a.pet?21:0;const maxName=cardW-14-(a.pet?badgeW+4:0);const fs=fitText(name,maxName,7.5,5.3,'bold');font(fs,'bold',tc);pdf.text(name,x+7,ly);
+         if(a.pet){const nx=x+7+Math.min(pdf.getTextWidth(name)+4,maxName+2);pdf.setFillColor(...bpPdfRgb(tc));pdf.roundedRect(nx,ly-6,20,9,4,4,'F');font(5.3,'bold','#ffffff');pdf.text('PET',nx+4.2,ly+.2)}
+         ly+=9;
+       });
+     });
+     return y+cardH+18;
    };
-   for(const part of parts){
-     const isCastle=!!part.querySelector?.('.bp-castle-shot')||String(part.querySelector?.('h3')?.textContent||'').trim()==='Castle Layout';
-     const canvas=await battlePlanPdfCanvasForNode(part,articleWidth);
-     if(isCastle){
-       addCanvasWhole(canvas,{dedicated:true});
-       // Keep Castle Layout on its own page and start the following content fresh.
-       pdf.addPage();pageHasContent=false;cursorY=margin;
-     }else{
-       addCanvasWhole(canvas);
-     }
-   }
-   // Remove an unused trailing page if Castle was the final section.
-   if(!pageHasContent&&pdf.getNumberOfPages()>1)pdf.deletePage(pdf.getNumberOfPages());
-   pdf.save(battlePlanPdfFilename());say('Battle Plan PDF downloaded.');
- }catch(e){console.error('[NEXA] Battle Plan PDF export failed',e);say(e?.message||'Could not create the PDF.',true)}
- finally{sourceStage.remove();setSaveState('saved')}
+   const drawPetSchedule=(rows)=>{
+     let y=sectionTitle('Whale Group & Pet Schedule',M+2);
+     for(const a of rows||[]){font(15,'bold',C.cyan);pdf.text(String(a.alliance_tag||'Alliance'),M,y);font(9,'bold',C.muted);pdf.text(String(a.role||'').toUpperCase(),M+pdf.getTextWidth(String(a.alliance_tag||'Alliance'))+10,y);y+=18;for(const team of a.teams||[])y=scheduleTeam(team,y);y+=3}
+   };
+   const drawRoles=(roles,y)=>{
+     y=subTitle('Roles',y);const items=[['Garrison Chief',roles?.garrison_chief],['Rally Managers',roles?.rally_managers],['Incoming Traffic',roles?.incoming_traffic],['Kicking Crew',roles?.kicking_crew]];const gap=12,w=(contentW-gap)/2,rowH=35;
+     items.forEach((it,i)=>{const x=M+(i%2)*(w+gap),yy=y+Math.floor(i/2)*rowH;font(7.5,'bold',C.muted);pdf.text(it[0],x,yy);font(10,'bold',C.ink);pdf.text(String(it[1]||'—'),x,yy+13);stroke(C.line);pdf.line(x,yy+19,x+w,yy+19)});return y+rowH*2+4;
+   };
+   const ratioCard=(label,r,x,y)=>{if(!Array.isArray(r))return 0;const w=128,h=50;fill('#f8fafc');stroke('#d8e0ea');pdf.roundedRect(x,y,w,h,7,7,'FD');font(7,'bold',C.muted);pdf.text(label,x+9,y+12);font(17,'bold',C.ink);pdf.text(r.join(' / '),x+9,y+31);font(6.4,'normal',C.muted);pdf.text('Infantry / Lancer / Marksman',x+9,y+42);return w};
+   const heroText=(arr)=>!arr?.length?'—':arr.map(h=>h.name).join(' + ');
+   const heroDominant=(arr)=>arr?.length?bpPdfHeroColor(arr[0]?.rarity):C.muted;
+   const drawMainPlayers=(players,y)=>{
+     y=subTitle(`Players (${players.length})`,y);const widths=[contentW*.34,contentW*.33,contentW*.33],headH=22,rowH=23;fill('#f1f5f9');pdf.rect(M,y,contentW,headH,'F');font(8,'bold',C.muted);pdf.text('PLAYER',M+8,y+14);pdf.text('GARRISON',M+widths[0]+8,y+14);pdf.text('MIA RALLY',M+widths[0]+widths[1]+8,y+14);y+=headH;
+     players.forEach((p,i)=>{if(y+rowH>ph-M){newPage();y=M;fill('#f1f5f9');pdf.rect(M,y,contentW,headH,'F');font(8,'bold',C.muted);pdf.text('PLAYER',M+8,y+14);pdf.text('GARRISON',M+widths[0]+8,y+14);pdf.text('MIA RALLY',M+widths[0]+widths[1]+8,y+14);y+=headH}stroke(C.line);pdf.line(M,y+rowH,pw-M,y+rowH);font(8.5,'bold',C.ink);pdf.text(`[${p.tag||'—'}] ${p.name||''}`,M+8,y+15);font(8.2,'bold',heroDominant(p.garrison));pdf.text(heroText(p.garrison),M+widths[0]+8,y+15);font(8.2,'bold',heroDominant(p.mia));pdf.text(heroText(p.mia),M+widths[0]+widths[1]+8,y+15);y+=rowH});return y+4;
+   };
+   const drawCounterPlayers=(players,y)=>{
+     y=subTitle(`Players (${players.length})`,y);const gap=10,colW=(contentW-gap*2)/3,per=Math.ceil(players.length/3),lineH=17;
+     for(let c=0;c<3;c++){const x=M+c*(colW+gap),slice=players.slice(c*per,(c+1)*per);fill('#f8fafc');stroke('#dbe3ee');pdf.roundedRect(x,y,colW,18+slice.length*lineH,6,6,'FD');font(7.5,'bold',C.muted);pdf.text('Player',x+8,y+12);slice.forEach((p,i)=>{font(8.5,'bold',C.ink);pdf.text(`[${p.tag||'—'}] ${p.name||''}`,x+8,y+29+i*lineH)})}
+     return y+18+per*lineH+6;
+   };
+   const drawJoinerHeroes=(heroes,y)=>{
+     y=subTitle('Joiner Heroes · Use Any Of These',y);const cols=4,gap=12,w=(contentW-gap*3)/4,rowH=19;(heroes||[]).forEach((h,i)=>{const x=M+(i%cols)*(w+gap),yy=y+Math.floor(i/cols)*rowH;fill(bpPdfHeroColor(h.rarity));pdf.circle(x+4,yy-3,3,'F');font(8.5,'bold',bpPdfHeroColor(h.rarity));pdf.text(String(h.name||'Hero'),x+12,yy)});return y+Math.ceil((heroes||[]).length/cols)*rowH+5;
+   };
+   const drawAlliance=(data)=>{
+     newPage();let y=M+8;font(22,'bold',C.cyan);pdf.text(String(data.alliance_tag||'Alliance'),M,y);font(10,'bold',C.muted);pdf.text(String(data.role||'').toUpperCase(),M+pdf.getTextWidth(String(data.alliance_tag||'Alliance'))+12,y);y+=30;y=drawRoles(data.roles||{},y);y=subTitle('Whale Group Schedule',y);for(const team of data.teams||[])y=scheduleTeam(team,y);y=subTitle('Troop Ratios',y);let rx=M;if(Array.isArray(data.ratios?.garrison))rx+=ratioCard('★ Garrison',data.ratios.garrison,rx,y)+10;if(Array.isArray(data.ratios?.mia))ratioCard(data.is_main?'MIA Rally':'★ MIA Rally',data.ratios.mia,rx,y);y+=62;if(!data.is_main&&data.joiner_heroes?.length)y=drawJoinerHeroes(data.joiner_heroes,y);y=data.is_main?drawMainPlayers(data.players||[],y):drawCounterPlayers(data.players||[],y);
+   };
+
+   const d=battlePlanDoc();
+   font(9,'bold',C.muted);pdf.text('NEXA • SVS BATTLE PLAN',M,M+5);font(25,'bold',C.ink);pdf.text(String(battlePlanRecord?.title||'SvS Battle Plan'),M,M+34);
+   let px=M,py=M+58;const meta=[d.opponent_state?`Opponent State • ${d.opponent_state}`:'',d.event_date?`Battle Date • ${d.event_date}`:'',d.alliance_first_star?`Star Alliance • ${d.alliance_first_star}`:'',d.alliance_presidency?`Presidency • ${d.alliance_presidency}`:''].filter(Boolean);meta.forEach(m=>{px=pill(m,px,py)});
+   let y=py+35;
+   if(String(d.secondary_squads_notes||'').trim()){y=sectionTitle('INFORMATION',y);font(12,'bold',C.ink);pdf.text('General Info for Joiners:',M,y);y+=18;for(const ln of bpPdfPlainLines(d.secondary_squads_notes)){font(9.5,'normal',C.ink);pdf.text('•',M+4,y);y=text(bpPdfStripLead(ln),M+16,y,contentW-18,{leading:11})+3}}
+   if(String(d.svs_rules||'').trim()){y=sectionTitle('SvS Rules',y+6);for(const ln0 of bpPdfPlainLines(d.svs_rules)){const ln=String(ln0),clean=bpPdfStripLead(ln);let mark='•',mc=C.muted;if(ln.startsWith('❌')){mark='×';mc='#dc2626'}else if(ln.startsWith('✅')){mark='✓';mc='#16a34a'}else if(ln.startsWith('📍')){mark='•';mc='#dc2626'}else if(ln.startsWith('📢')){mark='•';mc=C.cyan}font(11,'bold',mc);pdf.text(mark,M+3,y);font(9.5,ln.startsWith('📢')?'bold':'normal',C.ink);y=text(clean,M+18,y,contentW-20,{leading:11})+2}}
+
+   const castle=await bpPdfCastleCanvas();if(castle){newPage();font(20,'bold',C.ink);pdf.text('Castle Layout',M,M+8);const top=M+24,maxW=contentW,maxH=ph-top-M;const scale=Math.min(maxW/castle.width,maxH/castle.height);const dw=castle.width*scale,dh=castle.height*scale;pdf.addImage(castle.toDataURL('image/png'),'PNG',(pw-dw)/2,top+(maxH-dh)/2,dw,dh,undefined,'FAST')}
+
+   const pet=battlePlanPetItem()?.snapshot?.data;if(Array.isArray(pet)&&pet.length){newPage();drawPetSchedule(pet)}
+   const groups=battlePlanAllianceGroups();for(const g of groups){for(const item of g.items||[]){const data=item?.snapshot?.data;if(data)drawAlliance(data)}}
+   pdf.save(battlePlanPdfFilename());say('Clean Battle Plan PDF downloaded.');
+ }catch(e){console.error('[NEXA] Native Battle Plan PDF export failed',e);say(e?.message||'Could not create the PDF.',true)}
+ finally{setSaveState('saved')}
 }
 
 function battlePlanSummaryHtml(){

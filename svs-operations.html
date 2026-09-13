@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V14.35 • PDF CASTLE + JOINERS FIX • SMART CROP • CLEAN HEADINGS -->
+<!-- NEXA SVS OPERATIONS V14.36 • CASTLE LAYOUT LIKE REFERENCE • DIRECT SVG RENDER -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -5076,32 +5076,23 @@ function bpPdfStripLead(line){return String(line||'').replace(/^(?:📢|❌|✅|
 async function bpPdfCastleCanvas(){
  const item=battlePlanCastleItems().find(x=>x.snapshot?.export_svg);if(!item)return null;
  const raw=String(item.snapshot.export_svg||'').trim();if(!raw)return null;
- let vbW=916,vbH=1490;
- try{const doc=new DOMParser().parseFromString(raw,'image/svg+xml'),svg=doc.querySelector('svg'),vb=String(svg?.getAttribute('viewBox')||'').trim().split(/\s+/).map(Number);if(vb.length===4&&vb[2]>0&&vb[3]>0){vbW=vb[2];vbH=vb[3]}}catch(_){ }
- const targetH=2600,targetW=Math.max(1100,Math.round(targetH*(vbW/Math.max(1,vbH))));
+ let vbW=1600,vbH=1200;
+ try{
+   const doc=new DOMParser().parseFromString(raw,'image/svg+xml');
+   const svg=doc.querySelector('svg');
+   const vb=String(svg?.getAttribute('viewBox')||'').trim().split(/\s+/).map(Number);
+   if(vb.length===4&&vb[2]>0&&vb[3]>0){vbW=vb[2];vbH=vb[3]}
+   const sw=Number(svg?.getAttribute('width')||0),sh=Number(svg?.getAttribute('height')||0);
+   if(sw>0&&sh>0){vbW=sw;vbH=sh}
+ }catch(_){ }
+ const targetW=2600,targetH=Math.max(1400,Math.round(targetW*(vbH/Math.max(1,vbW))));
  const blob=new Blob([raw],{type:'image/svg+xml;charset=utf-8'}),url=URL.createObjectURL(blob);
  try{
    const img=await new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=reject;i.src=url});
-   const base=document.createElement('canvas');base.width=targetW;base.height=targetH;const ctx=base.getContext('2d',{willReadFrequently:true});ctx.fillStyle='#080b12';ctx.fillRect(0,0,targetW,targetH);ctx.drawImage(img,0,0,targetW,targetH);
-   let minX=targetW,minY=targetH,maxX=0,maxY=0,found=false;
-   try{
-     const data=ctx.getImageData(0,0,targetW,targetH).data;
-     const sample=(sx,sy)=>{const ii=(sy*targetW+sx)*4;return [data[ii],data[ii+1],data[ii+2]]};
-     const corners=[sample(8,8),sample(targetW-9,8),sample(8,targetH-9),sample(targetW-9,targetH-9)];
-     const bg=corners.reduce((a,c)=>[a[0]+c[0],a[1]+c[1],a[2]+c[2]],[0,0,0]).map(v=>v/4);
-     const isBg=(r,g,b)=>Math.abs(r-bg[0])<18&&Math.abs(g-bg[1])<18&&Math.abs(b-bg[2])<18;
-     for(let y=0;y<targetH;y++){
-       for(let x=0;x<targetW;x++){
-         const i=(y*targetW+x)*4,r=data[i],g=data[i+1],b=data[i+2],a=data[i+3];
-         if(a>12 && !isBg(r,g,b) && (r+g+b>70 || Math.abs(r-g)>10 || Math.abs(g-b)>10 || Math.abs(r-b)>10)){
-           if(x<minX)minX=x;if(y<minY)minY=y;if(x>maxX)maxX=x;if(y>maxY)maxY=y;found=true;
-         }
-       }
-     }
-   }catch(_){ }
-   if(!found)return base;
-   const pad=58,cw=Math.max(1,maxX-minX+1),ch=Math.max(1,maxY-minY+1);
-   const out=document.createElement('canvas');out.width=cw+pad*2;out.height=ch+pad*2;const octx=out.getContext('2d');octx.fillStyle='#080b12';octx.fillRect(0,0,out.width,out.height);octx.drawImage(base,minX,minY,cw,ch,pad,pad,cw,ch);return out;
+   const out=document.createElement('canvas');out.width=targetW;out.height=targetH;
+   const ctx=out.getContext('2d');ctx.fillStyle='#080b12';ctx.fillRect(0,0,targetW,targetH);
+   ctx.drawImage(img,0,0,targetW,targetH);
+   return out;
  }finally{URL.revokeObjectURL(url)}
 }
 
@@ -5236,7 +5227,7 @@ async function battlePlanDownloadPdf(){
      y=ensure(y+8,90);y=sectionTitle('SvS Rules',y+8);for(const ln0 of bpPdfPlainLines(d.svs_rules)){const ln=String(ln0),clean=bpPdfStripLead(ln);let mark='•',mc=C.muted;if(ln.startsWith('❌')){mark='×';mc='#dc2626'}else if(ln.startsWith('✅')){mark='✓';mc='#16a34a'}else if(ln.startsWith('📍')){mark='•';mc='#dc2626'}else if(ln.startsWith('📢')){mark='•';mc=C.cyan}y=ensure(y,22);font(13.2,'bold',mc);pdf.text(mark,M+4,y);font(11.4,'bold',C.ink);y=text(clean,M+24,y,contentW-28,{leading:15})+7}
    }
 
-   const castle=await bpPdfCastleCanvas();if(castle){newPage();font(24,'bold',C.ink);pdf.text('Castle Layout',M,M+10);const top=M+28,panelX=M-14,panelW=contentW+28,panelH=ph-top-M+10;fill('#080b12');pdf.roundedRect(panelX,top,panelW,panelH,10,10,'F');const pad=2,maxW=panelW-pad*2,maxH=panelH-pad*2;const scale=Math.min(maxW/castle.width,maxH/castle.height)*1.035;const dw=Math.min(maxW,castle.width*scale),dh=Math.min(maxH,castle.height*scale);pdf.addImage(castle.toDataURL('image/png'),'PNG',panelX+(panelW-dw)/2,top+(panelH-dh)/2,dw,dh,undefined,'MEDIUM')}
+   const castle=await bpPdfCastleCanvas();if(castle){newPage();font(24,'bold',C.ink);pdf.text('Castle Layout',M,M+10);const top=M+28,panelX=M-14,panelW=contentW+28,panelH=ph-top-M+10;fill('#080b12');pdf.roundedRect(panelX,top,panelW,panelH,10,10,'F');const pad=8,maxW=panelW-pad*2,maxH=panelH-pad*2;const scale=Math.min(maxW/castle.width,maxH/castle.height);const dw=castle.width*scale,dh=castle.height*scale;pdf.addImage(castle.toDataURL('image/png'),'PNG',panelX+(panelW-dw)/2,top+(panelH-dh)/2,dw,dh,undefined,'MEDIUM')}
 
    const pet=battlePlanPetItem()?.snapshot?.data;if(Array.isArray(pet)&&pet.length){newPage();drawPetSchedule(pet)}
    const groups=battlePlanAllianceGroups();for(const g of groups){for(const item of g.items||[]){const data=item?.snapshot?.data;if(data)await drawAlliance(data)}}

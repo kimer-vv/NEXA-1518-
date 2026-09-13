@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V14.30 • NATIVE WHITE PDF • CASTLE ONE PAGE -->
+<!-- NEXA SVS OPERATIONS V14.31 • NATIVE PDF READABILITY • HERO PORTRAITS • CASTLE FULL PAGE -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -5087,10 +5087,10 @@ async function battlePlanDownloadPdf(){
  setSaveState('saving');say('Building clean PDF…');
  try{
    const {jsPDF}=window.jspdf;
-   const pdf=new jsPDF({orientation:'landscape',unit:'pt',format:'a4',compress:true});
+   const pdf=new jsPDF({orientation:'portrait',unit:'pt',format:'a4',compress:true});
    const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
-   const M=34,contentW=pw-M*2;
-   const C={ink:'#111827',muted:'#64748b',line:'#dbe3ee',cyan:'#0f7490',soft:'#f8fafc',violet:'#9b78ff',gold:'#ffc75b',red:'#ff7289',green:'#168a5b'};
+   const M=38,contentW=pw-M*2;
+   const C={ink:'#0f172a',muted:'#475569',line:'#d7dee8',cyan:'#0f7490',soft:'#f8fafc',violet:'#7c5ce0',gold:'#c98700',red:'#d84a5f',green:'#168a5b',greenSoft:'#e7f6ef',blue:'#2563a8',blueSoft:'#e8f1fb'};
    const color=(hex)=>pdf.setTextColor(...bpPdfRgb(hex));
    const stroke=(hex)=>pdf.setDrawColor(...bpPdfRgb(hex));
    const fill=(hex)=>pdf.setFillColor(...bpPdfRgb(hex));
@@ -5098,66 +5098,86 @@ async function battlePlanDownloadPdf(){
    let page=1;pageWhite();
    const newPage=()=>{pdf.addPage();page++;pageWhite()};
    const font=(size=10,style='normal',hex=C.ink)=>{pdf.setFont('helvetica',style);pdf.setFontSize(size);color(hex)};
-   const text=(t,x,y,w,opts={})=>{const lines=pdf.splitTextToSize(String(t??''),w||contentW);pdf.text(lines,x,y,opts);return y+lines.length*(opts.leading||12)};
-   const sectionTitle=(t,y)=>{font(17,'bold',C.ink);pdf.text(String(t),M,y);stroke(C.line);pdf.setLineWidth(.8);pdf.line(M,y+8,pw-M,y+8);return y+28};
-   const subTitle=(t,y)=>{font(10,'bold',C.muted);pdf.text(String(t).toUpperCase(),M,y);return y+16};
-   const pill=(label,x,y)=>{font(8,'bold',C.ink);const tw=pdf.getTextWidth(label)+18;fill('#f1f5f9');stroke('#cbd5e1');pdf.roundedRect(x,y-10,tw,18,9,9,'FD');pdf.text(label,x+9,y+2);return x+tw+7};
-   const fitText=(t,maxW,start=8,min=5.5,style='bold')=>{let s=start;pdf.setFont('helvetica',style);pdf.setFontSize(s);while(pdf.getTextWidth(String(t))>maxW&&s>min){s-=.25;pdf.setFontSize(s)}return s};
+   const text=(t,x,y,w,opts={})=>{const lines=pdf.splitTextToSize(String(t??''),w||contentW);pdf.text(lines,x,y,opts);return y+lines.length*(opts.leading||14)};
+   const sectionTitle=(t,y)=>{font(18,'bold',C.ink);pdf.text(String(t),M,y);stroke(C.line);pdf.setLineWidth(.85);pdf.line(M,y+10,pw-M,y+10);return y+34};
+   const subTitle=(t,y)=>{font(10.5,'bold',C.muted);pdf.text(String(t).toUpperCase(),M,y);return y+19};
+   const ensure=(y,need=60)=>{if(y+need>ph-M){newPage();return M+4}return y};
+   const pill=(label,x,y)=>{font(8.4,'bold',C.ink);const tw=pdf.getTextWidth(label)+20;fill('#f1f5f9');stroke('#cbd5e1');pdf.roundedRect(x,y-11,tw,20,10,10,'FD');pdf.text(label,x+10,y+2);return x+tw+7};
+   const fitText=(t,maxW,start=10,min=6.2,style='bold')=>{let sz=start;pdf.setFont('helvetica',style);pdf.setFontSize(sz);while(pdf.getTextWidth(String(t))>maxW&&sz>min){sz-=.25;pdf.setFontSize(sz)}return sz};
+   const imageCache=new Map();
+   const loadImageData=async(url)=>{
+     if(!url)return null;if(imageCache.has(url))return imageCache.get(url);
+     const promise=new Promise(resolve=>{const img=new Image();img.crossOrigin='anonymous';img.referrerPolicy='no-referrer';img.onload=()=>{try{const c=document.createElement('canvas');const size=96;c.width=size;c.height=size;const ctx=c.getContext('2d');ctx.clearRect(0,0,size,size);ctx.save();ctx.beginPath();ctx.arc(size/2,size/2,size/2,0,Math.PI*2);ctx.clip();ctx.drawImage(img,0,0,size,size);ctx.restore();resolve(c.toDataURL('image/png'))}catch(_){resolve(null)}};img.onerror=()=>resolve(null);img.src=url});
+     imageCache.set(url,promise);return promise;
+   };
    const scheduleTeam=(team,y)=>{
-     font(11,'bold',C.ink);pdf.text(String(team.name||'Team'),M,y);y+=9;
-     const gap=7,cardW=(contentW-gap*4)/5,cardH=48;
+     y=ensure(y,92);font(13.5,'bold',team.color||C.ink);pdf.text(String(team.name||'Team'),M,y);y+=12;
+     const gap=5,cardW=(contentW-gap*4)/5,cardH=66;
      (team.hours||[]).slice(0,5).forEach((h,i)=>{
-       const x=M+i*(cardW+gap),tc=team.color||C.violet,tint=bpPdfTint(tc,.92);pdf.setFillColor(...tint);pdf.setDrawColor(...bpPdfRgb(tc));pdf.setLineWidth(1.1);pdf.roundedRect(x,y,cardW,cardH,6,6,'FD');
-       font(7.2,'bold',C.muted);pdf.text(String(h.time||''),x+7,y+10);
-       let ly=y+21;
-       const assigns=(h.assignments||[]).slice(0,3);
-       if(!assigns.length){font(7,'normal',C.muted);pdf.text('—',x+7,ly)}
+       const x=M+i*(cardW+gap),tc=team.color||C.violet,tint=bpPdfTint(tc,.90);pdf.setFillColor(...tint);pdf.setDrawColor(...bpPdfRgb(tc));pdf.setLineWidth(1.05);pdf.roundedRect(x,y,cardW,cardH,6,6,'FD');
+       font(8.4,'bold',C.muted);pdf.text(String(h.time||''),x+6,y+11);
+       let ly=y+25;const assigns=(h.assignments||[]).slice(0,4);
+       if(!assigns.length){font(9,'bold',C.muted);pdf.text('—',x+6,ly)}
        assigns.forEach(a=>{
-         const name=String(a.name||'Rally Lead');const badgeW=a.pet?21:0;const maxName=cardW-14-(a.pet?badgeW+4:0);const fs=fitText(name,maxName,7.5,5.3,'bold');font(fs,'bold',tc);pdf.text(name,x+7,ly);
-         if(a.pet){const nx=x+7+Math.min(pdf.getTextWidth(name)+4,maxName+2);pdf.setFillColor(...bpPdfRgb(tc));pdf.roundedRect(nx,ly-6,20,9,4,4,'F');font(5.3,'bold','#ffffff');pdf.text('PET',nx+4.2,ly+.2)}
-         ly+=9;
+         const name=String(a.name||'Rally Lead');const badgeW=a.pet?20:0;const maxName=cardW-12-(a.pet?badgeW+3:0);const fs=fitText(name,maxName,9.4,6.4,'bold');font(fs,'bold',tc);pdf.text(name,x+6,ly);
+         if(a.pet){const nameW=Math.min(pdf.getTextWidth(name),maxName);const nx=x+6+nameW+3;pdf.setFillColor(...bpPdfRgb(tc));pdf.roundedRect(nx,ly-7,18,9,4,4,'F');font(4.9,'bold','#ffffff');pdf.text('PET',nx+3.6,ly-.3)}
+         ly+=10.5;
        });
      });
-     return y+cardH+18;
+     return y+cardH+22;
    };
    const drawPetSchedule=(rows)=>{
-     let y=sectionTitle('Whale Group & Pet Schedule',M+2);
-     for(const a of rows||[]){font(15,'bold',C.cyan);pdf.text(String(a.alliance_tag||'Alliance'),M,y);font(9,'bold',C.muted);pdf.text(String(a.role||'').toUpperCase(),M+pdf.getTextWidth(String(a.alliance_tag||'Alliance'))+10,y);y+=18;for(const team of a.teams||[])y=scheduleTeam(team,y);y+=3}
+     let y=sectionTitle('Whale Group & Pet Schedule',M+4);
+     for(const a of rows||[]){y=ensure(y,125);font(17,'bold',C.ink);const tag=String(a.alliance_tag||'Alliance');pdf.text(tag,M,y);font(9.8,'bold',C.muted);pdf.text(String(a.role||'').toUpperCase(),M+pdf.getTextWidth(tag)+10,y);y+=24;for(const team of a.teams||[])y=scheduleTeam(team,y);y+=6}
    };
    const drawRoles=(roles,y)=>{
-     y=subTitle('Roles',y);const items=[['Garrison Chief',roles?.garrison_chief],['Rally Managers',roles?.rally_managers],['Incoming Traffic',roles?.incoming_traffic],['Kicking Crew',roles?.kicking_crew]];const gap=12,w=(contentW-gap)/2,rowH=35;
-     items.forEach((it,i)=>{const x=M+(i%2)*(w+gap),yy=y+Math.floor(i/2)*rowH;font(7.5,'bold',C.muted);pdf.text(it[0],x,yy);font(10,'bold',C.ink);pdf.text(String(it[1]||'—'),x,yy+13);stroke(C.line);pdf.line(x,yy+19,x+w,yy+19)});return y+rowH*2+4;
+     y=subTitle('Roles',y);const items=[['🛡 Garrison Chief',roles?.garrison_chief],['🔍 Rally Managers',roles?.rally_managers],['🚨 Incoming Traffic',roles?.incoming_traffic],['🧹 Kicking Crew',roles?.kicking_crew]];const gap=16,w=(contentW-gap)/2,rowH=42;
+     items.forEach((it,i)=>{const x=M+(i%2)*(w+gap),yy=y+Math.floor(i/2)*rowH;font(8.6,'bold',C.muted);pdf.text(it[0],x,yy);font(11.2,'bold',C.ink);pdf.text(String(it[1]||'—'),x,yy+16,{maxWidth:w});stroke(C.line);pdf.line(x,yy+24,x+w,yy+24)});return y+rowH*2+8;
    };
-   const ratioCard=(label,r,x,y)=>{if(!Array.isArray(r))return 0;const w=128,h=50;fill('#f8fafc');stroke('#d8e0ea');pdf.roundedRect(x,y,w,h,7,7,'FD');font(7,'bold',C.muted);pdf.text(label,x+9,y+12);font(17,'bold',C.ink);pdf.text(r.join(' / '),x+9,y+31);font(6.4,'normal',C.muted);pdf.text('Infantry / Lancer / Marksman',x+9,y+42);return w};
+   const ratioCard=(label,r,x,y,kind='mia')=>{
+     if(!Array.isArray(r))return 0;const w=152,h=61;const isGar=kind==='garrison';const border=isGar?C.green:C.blue;const bg=isGar?C.greenSoft:C.blueSoft;
+     fill(bg);stroke(border);pdf.setLineWidth(1.1);pdf.roundedRect(x,y,w,h,8,8,'FD');font(8.2,'bold',border);pdf.text(label.toUpperCase(),x+10,y+14);font(20,'bold',isGar?'#0f6f49':'#1d4f91');pdf.text(r.join(' / '),x+10,y+38);font(7.2,'bold',C.muted);pdf.text('Infantry / Lancer / Marksman',x+10,y+52);return w;
+   };
    const heroText=(arr)=>!arr?.length?'—':arr.map(h=>h.name).join(' + ');
    const heroDominant=(arr)=>arr?.length?bpPdfHeroColor(arr[0]?.rarity):C.muted;
    const drawMainPlayers=(players,y)=>{
-     y=subTitle(`Players (${players.length})`,y);const widths=[contentW*.34,contentW*.33,contentW*.33],headH=22,rowH=23;fill('#f1f5f9');pdf.rect(M,y,contentW,headH,'F');font(8,'bold',C.muted);pdf.text('PLAYER',M+8,y+14);pdf.text('GARRISON',M+widths[0]+8,y+14);pdf.text('MIA RALLY',M+widths[0]+widths[1]+8,y+14);y+=headH;
-     players.forEach((p,i)=>{if(y+rowH>ph-M){newPage();y=M;fill('#f1f5f9');pdf.rect(M,y,contentW,headH,'F');font(8,'bold',C.muted);pdf.text('PLAYER',M+8,y+14);pdf.text('GARRISON',M+widths[0]+8,y+14);pdf.text('MIA RALLY',M+widths[0]+widths[1]+8,y+14);y+=headH}stroke(C.line);pdf.line(M,y+rowH,pw-M,y+rowH);font(8.5,'bold',C.ink);pdf.text(`[${p.tag||'—'}] ${p.name||''}`,M+8,y+15);font(8.2,'bold',heroDominant(p.garrison));pdf.text(heroText(p.garrison),M+widths[0]+8,y+15);font(8.2,'bold',heroDominant(p.mia));pdf.text(heroText(p.mia),M+widths[0]+widths[1]+8,y+15);y+=rowH});return y+4;
+     y=ensure(y,90);y=subTitle(`Players (${players.length})`,y);const widths=[contentW*.34,contentW*.33,contentW*.33],headH=24,rowH=30;
+     const drawHead=()=>{fill('#eef2f7');pdf.rect(M,y,contentW,headH,'F');font(8.8,'bold',C.muted);pdf.text('PLAYER',M+8,y+15);font(8.8,'bold',C.green);pdf.text('GARRISON',M+widths[0]+8,y+15);font(8.8,'bold',C.blue);pdf.text('MIA RALLY',M+widths[0]+widths[1]+8,y+15);y+=headH};
+     drawHead();
+     players.forEach((p,i)=>{if(y+rowH>ph-M){newPage();y=M;drawHead()}if(i%2===0){fill('#fbfcfe');pdf.rect(M,y,contentW,rowH,'F')}stroke(C.line);pdf.line(M,y+rowH,pw-M,y+rowH);font(9.8,'bold',C.ink);const player=`[${p.tag||'—'}] ${p.name||''}`;pdf.text(player,M+8,y+19,{maxWidth:widths[0]-14});font(9.3,'bold',heroDominant(p.garrison));pdf.text(heroText(p.garrison),M+widths[0]+8,y+19,{maxWidth:widths[1]-14});font(9.3,'bold',heroDominant(p.mia));pdf.text(heroText(p.mia),M+widths[0]+widths[1]+8,y+19,{maxWidth:widths[2]-14});y+=rowH});return y+7;
    };
    const drawCounterPlayers=(players,y)=>{
-     y=subTitle(`Players (${players.length})`,y);const gap=10,colW=(contentW-gap*2)/3,per=Math.ceil(players.length/3),lineH=17;
-     for(let c=0;c<3;c++){const x=M+c*(colW+gap),slice=players.slice(c*per,(c+1)*per);fill('#f8fafc');stroke('#dbe3ee');pdf.roundedRect(x,y,colW,18+slice.length*lineH,6,6,'FD');font(7.5,'bold',C.muted);pdf.text('Player',x+8,y+12);slice.forEach((p,i)=>{font(8.5,'bold',C.ink);pdf.text(`[${p.tag||'—'}] ${p.name||''}`,x+8,y+29+i*lineH)})}
-     return y+18+per*lineH+6;
+     y=ensure(y,80);y=subTitle(`Players (${players.length})`,y);const gap=9,colW=(contentW-gap*2)/3,lineH=20;let index=0;
+     while(index<players.length){const available=ph-M-y-26;const rows=Math.max(4,Math.floor(available/lineH));const batch=players.slice(index,index+rows*3);const per=Math.ceil(batch.length/3);const boxH=22+per*lineH;
+       for(let c=0;c<3;c++){const x=M+c*(colW+gap),slice=batch.slice(c*per,(c+1)*per);fill('#f8fafc');stroke('#dbe3ee');pdf.roundedRect(x,y,colW,boxH,6,6,'FD');fill('#eef2f7');pdf.roundedRect(x,y,colW,20,6,6,'F');font(8.1,'bold',C.muted);pdf.text('PLAYER',x+8,y+13);slice.forEach((p,i)=>{font(9.5,'bold',C.ink);pdf.text(`[${p.tag||'—'}] ${p.name||''}`,x+8,y+35+i*lineH,{maxWidth:colW-16})})}
+       index+=batch.length;y+=boxH+8;if(index<players.length){newPage();y=M+4;y=subTitle(`Players (${players.length}) · Continued`,y)}
+     }
+     return y;
    };
-   const drawJoinerHeroes=(heroes,y)=>{
-     y=subTitle('Joiner Heroes · Use Any Of These',y);const cols=4,gap=12,w=(contentW-gap*3)/4,rowH=19;(heroes||[]).forEach((h,i)=>{const x=M+(i%cols)*(w+gap),yy=y+Math.floor(i/cols)*rowH;fill(bpPdfHeroColor(h.rarity));pdf.circle(x+4,yy-3,3,'F');font(8.5,'bold',bpPdfHeroColor(h.rarity));pdf.text(String(h.name||'Hero'),x+12,yy)});return y+Math.ceil((heroes||[]).length/cols)*rowH+5;
+   const drawJoinerHeroes=async(heroes,y)=>{
+     y=ensure(y,120);y=subTitle('Joiner Heroes · Use Any Of These',y);const cols=4,gap=8,w=(contentW-gap*3)/4,rowH=45;const imgs=await Promise.all((heroes||[]).map(h=>loadImageData(h.image)));
+     (heroes||[]).forEach((h,i)=>{const x=M+(i%cols)*(w+gap),yy=y+Math.floor(i/cols)*rowH,ic=imgs[i],hc=bpPdfHeroColor(h.rarity);if(ic){try{pdf.addImage(ic,'PNG',x,yy-14,28,28,undefined,'FAST')}catch(_){fill(hc);pdf.circle(x+14,yy,14,'F')}}else{fill(hc);pdf.circle(x+14,yy,14,'F')}font(9.6,'bold',hc);pdf.text(String(h.name||'Hero'),x+34,yy+4,{maxWidth:w-36})});return y+Math.ceil((heroes||[]).length/cols)*rowH+8;
    };
-   const drawAlliance=(data)=>{
-     newPage();let y=M+8;font(22,'bold',C.cyan);pdf.text(String(data.alliance_tag||'Alliance'),M,y);font(10,'bold',C.muted);pdf.text(String(data.role||'').toUpperCase(),M+pdf.getTextWidth(String(data.alliance_tag||'Alliance'))+12,y);y+=30;y=drawRoles(data.roles||{},y);y=subTitle('Whale Group Schedule',y);for(const team of data.teams||[])y=scheduleTeam(team,y);y=subTitle('Troop Ratios',y);let rx=M;if(Array.isArray(data.ratios?.garrison))rx+=ratioCard('★ Garrison',data.ratios.garrison,rx,y)+10;if(Array.isArray(data.ratios?.mia))ratioCard(data.is_main?'MIA Rally':'★ MIA Rally',data.ratios.mia,rx,y);y+=62;if(!data.is_main&&data.joiner_heroes?.length)y=drawJoinerHeroes(data.joiner_heroes,y);y=data.is_main?drawMainPlayers(data.players||[],y):drawCounterPlayers(data.players||[],y);
+   const drawAlliance=async(data)=>{
+     newPage();let y=M+6;font(22,'bold',C.ink);const tag=String(data.alliance_tag||'Alliance');pdf.text(tag,M,y);font(9.8,'bold',C.muted);pdf.text(String(data.role||'').toUpperCase(),M+pdf.getTextWidth(tag)+10,y);y+=32;y=drawRoles(data.roles||{},y);y=subTitle('Whale Group Schedule',y);for(const team of data.teams||[])y=scheduleTeam(team,y);y=ensure(y,88);y=subTitle('Troop Ratios',y);let rx=M;if(Array.isArray(data.ratios?.garrison))rx+=ratioCard('★ Garrison',data.ratios.garrison,rx,y,'garrison')+12;if(Array.isArray(data.ratios?.mia))ratioCard(data.is_main?'MIA Rally':'★ MIA Rally',data.ratios.mia,rx,y,'mia');y+=75;if(!data.is_main&&data.joiner_heroes?.length)y=await drawJoinerHeroes(data.joiner_heroes,y);y=data.is_main?drawMainPlayers(data.players||[],y):drawCounterPlayers(data.players||[],y);
    };
 
    const d=battlePlanDoc();
-   font(9,'bold',C.muted);pdf.text('NEXA • SVS BATTLE PLAN',M,M+5);font(25,'bold',C.ink);pdf.text(String(battlePlanRecord?.title||'SvS Battle Plan'),M,M+34);
-   let px=M,py=M+58;const meta=[d.opponent_state?`Opponent State • ${d.opponent_state}`:'',d.event_date?`Battle Date • ${d.event_date}`:'',d.alliance_first_star?`Star Alliance • ${d.alliance_first_star}`:'',d.alliance_presidency?`Presidency • ${d.alliance_presidency}`:''].filter(Boolean);meta.forEach(m=>{px=pill(m,px,py)});
-   let y=py+35;
-   if(String(d.secondary_squads_notes||'').trim()){y=sectionTitle('INFORMATION',y);font(12,'bold',C.ink);pdf.text('General Info for Joiners:',M,y);y+=18;for(const ln of bpPdfPlainLines(d.secondary_squads_notes)){font(9.5,'normal',C.ink);pdf.text('•',M+4,y);y=text(bpPdfStripLead(ln),M+16,y,contentW-18,{leading:11})+3}}
-   if(String(d.svs_rules||'').trim()){y=sectionTitle('SvS Rules',y+6);for(const ln0 of bpPdfPlainLines(d.svs_rules)){const ln=String(ln0),clean=bpPdfStripLead(ln);let mark='•',mc=C.muted;if(ln.startsWith('❌')){mark='×';mc='#dc2626'}else if(ln.startsWith('✅')){mark='✓';mc='#16a34a'}else if(ln.startsWith('📍')){mark='•';mc='#dc2626'}else if(ln.startsWith('📢')){mark='•';mc=C.cyan}font(11,'bold',mc);pdf.text(mark,M+3,y);font(9.5,ln.startsWith('📢')?'bold':'normal',C.ink);y=text(clean,M+18,y,contentW-20,{leading:11})+2}}
+   font(9.5,'bold',C.muted);pdf.text('NEXA • SVS BATTLE PLAN',M,M+4);font(27,'bold',C.ink);pdf.text(String(battlePlanRecord?.title||'SvS Battle Plan'),M,M+37);
+   let px=M,py=M+64;const meta=[d.opponent_state?`Opponent State • ${d.opponent_state}`:'',d.event_date?`Battle Date • ${d.event_date}`:'',d.alliance_first_star?`Star Alliance • ${d.alliance_first_star}`:'',d.alliance_presidency?`Presidency • ${d.alliance_presidency}`:''].filter(Boolean);meta.forEach(m=>{if(px+pdf.getTextWidth(m)+45>pw-M){px=M;py+=26}px=pill(m,px,py)});
+   let y=py+42;
+   if(String(d.secondary_squads_notes||'').trim()){
+     y=sectionTitle('INFORMATION',y);font(13.5,'bold',C.ink);pdf.text('General Info for Joiners:',M,y);y+=22;
+     for(const ln of bpPdfPlainLines(d.secondary_squads_notes)){y=ensure(y,34);fill('#f8fafc');pdf.roundedRect(M,y-13,contentW,30,5,5,'F');font(10.8,'bold',C.ink);pdf.text('•',M+10,y+2);y=text(bpPdfStripLead(ln),M+24,y+2,contentW-34,{leading:14})+8}
+   }
+   if(String(d.svs_rules||'').trim()){
+     y=ensure(y+8,90);y=sectionTitle('SvS Rules',y+8);for(const ln0 of bpPdfPlainLines(d.svs_rules)){const ln=String(ln0),clean=bpPdfStripLead(ln);let mark='•',mc=C.muted;if(ln.startsWith('❌')){mark='×';mc='#dc2626'}else if(ln.startsWith('✅')){mark='✓';mc='#16a34a'}else if(ln.startsWith('📍')){mark='•';mc='#dc2626'}else if(ln.startsWith('📢')){mark='•';mc=C.cyan}y=ensure(y,22);font(12.5,'bold',mc);pdf.text(mark,M+4,y);font(10.8,ln.startsWith('📢')?'bold':'normal',C.ink);y=text(clean,M+22,y,contentW-26,{leading:14})+4}
+   }
 
-   const castle=await bpPdfCastleCanvas();if(castle){newPage();font(20,'bold',C.ink);pdf.text('Castle Layout',M,M+8);const top=M+24,maxW=contentW,maxH=ph-top-M;const scale=Math.min(maxW/castle.width,maxH/castle.height);const dw=castle.width*scale,dh=castle.height*scale;pdf.addImage(castle.toDataURL('image/png'),'PNG',(pw-dw)/2,top+(maxH-dh)/2,dw,dh,undefined,'FAST')}
+   const castle=await bpPdfCastleCanvas();if(castle){newPage();font(23,'bold',C.ink);pdf.text('Castle Layout',M,M+10);const top=M+34,maxW=contentW,maxH=ph-top-M;const scale=Math.min(maxW/castle.width,maxH/castle.height);const dw=castle.width*scale,dh=castle.height*scale;pdf.addImage(castle.toDataURL('image/png'),'PNG',(pw-dw)/2,top,dw,dh,undefined,'FAST')}
 
    const pet=battlePlanPetItem()?.snapshot?.data;if(Array.isArray(pet)&&pet.length){newPage();drawPetSchedule(pet)}
-   const groups=battlePlanAllianceGroups();for(const g of groups){for(const item of g.items||[]){const data=item?.snapshot?.data;if(data)drawAlliance(data)}}
+   const groups=battlePlanAllianceGroups();for(const g of groups){for(const item of g.items||[]){const data=item?.snapshot?.data;if(data)await drawAlliance(data)}}
    pdf.save(battlePlanPdfFilename());say('Clean Battle Plan PDF downloaded.');
  }catch(e){console.error('[NEXA] Native Battle Plan PDF export failed',e);say(e?.message||'Could not create the PDF.',true)}
  finally{setSaveState('saved')}

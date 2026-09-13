@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- NEXA MINISTRY WORKSPACE V1.3 — TIGHT PDF TABLE / LARGE TYPE -->
+<!-- NEXA MINISTRY WORKSPACE V1.4 — SCHEDULE BOX / TIGHT PDF TABLE -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -328,17 +328,31 @@ function drawAppointmentTable(doc,items,x,y,w,maxRows){
  const colPlayer=Math.max(74,Math.min(96,w-18-36));
  const colGame=Math.max(36,w-colTime-colPlayer);
  const headerH=8,rowH=6.2;
- doc.setFillColor(238,242,250);doc.roundedRect(x,y,w,headerH,2,2,'F');
+ const visibleItems=items.slice(0,maxRows);
+ const boxH=headerH+(visibleItems.length*rowH);
+
+ doc.setFillColor(255,255,255);
+ doc.setDrawColor(206,215,232);
+ doc.setLineWidth(.7);
+ doc.roundedRect(x,y,w,boxH,3,3,'FD');
+
+ doc.setFillColor(238,242,250);
+ doc.roundedRect(x,y,w,headerH,3,3,'F');
+ doc.rect(x,y+headerH-3,w,3,'F');
+
  doc.setFont('helvetica','bold');doc.setFontSize(10.8);
+ doc.setTextColor(55,66,91);
  doc.text('TIME',x+3,y+5.4);
  doc.text('PLAYER',x+3+colTime,y+5.4);
  doc.text('GAME ID',x+3+colTime+colPlayer,y+5.4);
+
  let yy=y+headerH;
  doc.setFontSize(10.8);
- items.slice(0,maxRows).forEach((item,idx)=>{
+ visibleItems.forEach((item,idx)=>{
    const r=item.r;
-   if(idx%2===0){doc.setFillColor(249,250,253);doc.rect(x,yy,w,rowH,'F')}
-   doc.setDrawColor(225,230,240);doc.line(x,yy+rowH,x+w,yy+rowH);
+   if(idx%2===0){doc.setFillColor(249,250,253);doc.rect(x+.5,yy,w-1,rowH,'F')}
+   doc.setDrawColor(225,230,240);doc.setLineWidth(.35);doc.line(x+.8,yy+rowH,x+w-.8,yy+rowH);
+   doc.setTextColor(45,57,82);
    doc.setFont('helvetica','bold');doc.text(item.t,x+3,yy+4.4);
    const player=`[${String(r?.alliance_tag||'—').slice(0,8)}] ${String(r?.in_game_name||'—')}`;
    doc.setFont('helvetica','normal');

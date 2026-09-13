@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- NEXA MINISTRY WORKSPACE V1.1 — CLEAN PILLS / TRANSFER-STYLE ACCESS / LARGE ONE-PAGE PDF -->
+<!-- NEXA MINISTRY WORKSPACE V1.2 — COMPACT PDF PLAYER IDENTITY COLUMNS -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -324,11 +324,16 @@ function ministryDayDate(day){
  return d.toISOString().slice(0,10);
 }
 function drawAppointmentTable(doc,items,x,y,w,maxRows){
- const col=[22,28,Math.max(48,w-22-28-42),42];
+ const compact=w<170;
+ const colTime=compact?20:26;
+ const colPlayer=compact?Math.max(66,w-20-40):Math.min(112,w-26-52);
+ const colGame=Math.max(40,w-colTime-colPlayer);
  const headerH=8,rowH=6.2;
  doc.setFillColor(238,242,250);doc.roundedRect(x,y,w,headerH,2,2,'F');
  doc.setFont('helvetica','bold');doc.setFontSize(10.5);
- ['TIME','ALLIANCE','PLAYER','GAME ID'].forEach((h,i)=>doc.text(h,x+3+col.slice(0,i).reduce((a,b)=>a+b,0),y+5.4));
+ doc.text('TIME',x+3,y+5.4);
+ doc.text('PLAYER',x+3+colTime,y+5.4);
+ doc.text('GAME ID',x+3+colTime+colPlayer,y+5.4);
  let yy=y+headerH;
  doc.setFontSize(10.5);
  items.slice(0,maxRows).forEach((item,idx)=>{
@@ -336,9 +341,11 @@ function drawAppointmentTable(doc,items,x,y,w,maxRows){
    if(idx%2===0){doc.setFillColor(249,250,253);doc.rect(x,yy,w,rowH,'F')}
    doc.setDrawColor(225,230,240);doc.line(x,yy+rowH,x+w,yy+rowH);
    doc.setFont('helvetica','bold');doc.text(item.t,x+3,yy+4.4);
-   doc.setFont('helvetica','normal');doc.text(String(r?.alliance_tag||'—').slice(0,12),x+3+col[0],yy+4.4);
-   doc.text(String(r?.in_game_name||'—').slice(0,24),x+3+col[0]+col[1],yy+4.4);
-   doc.setFont('helvetica','bold');doc.text(String(r?.game_id||'—'),x+3+col[0]+col[1]+col[2],yy+4.4);
+   const player=`[${String(r?.alliance_tag||'—').slice(0,8)}] ${String(r?.in_game_name||'—')}`;
+   doc.setFont('helvetica','normal');
+   const playerFit=doc.splitTextToSize(player,colPlayer-5)[0]||player;
+   doc.text(playerFit,x+3+colTime,yy+4.4);
+   doc.setFont('helvetica','bold');doc.text(String(r?.game_id||'—'),x+3+colTime+colPlayer,yy+4.4);
    yy+=rowH;
  });
  return yy;
@@ -369,9 +376,10 @@ function drawPdfDay(doc,day){
 
  const maxPerColumn=24;
  if(scheduled.length<=maxPerColumn){
-   drawAppointmentTable(doc,scheduled,margin,tableY,contentW,maxPerColumn);
+   const compactW=Math.min(208,contentW);
+   drawAppointmentTable(doc,scheduled,margin,tableY,compactW,maxPerColumn);
  }else{
-   const gap=8,w=(contentW-gap)/2;
+   const gap=7,w=(contentW-gap)/2;
    drawAppointmentTable(doc,scheduled.slice(0,maxPerColumn),margin,tableY,w,maxPerColumn);
    drawAppointmentTable(doc,scheduled.slice(maxPerColumn),margin+w+gap,tableY,w,maxPerColumn);
  }

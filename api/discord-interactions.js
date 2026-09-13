@@ -1,4 +1,4 @@
-// NEXA DISCORD BOT V1.7.1 — GROUPS GUIDE / GROUP-AWARE APPLICANTS / INVITES
+// NEXA DISCORD BOT V1.8 — COMPACT COLOR LISTS / SIMPLE OPERATIONS / GROUP ASSIGN
 import {
   rawBody,verifyDiscord,subcommand,db,getConfigByGuild,
   getCurrentEvent,currentApps,selectedApps,recruitingAlliances,inviteCounts,inviteReport,
@@ -8,74 +8,43 @@ import {
 } from '../lib/discord-common.js';
 
 const commands=[
- {name:'help',description:'See all NEXA Transfer Bot commands and what they do'},
- {name:'overview',description:'Post a short permanent introduction for a Transfer channel',options:[
-  {type:3,name:'area',description:'Which channel overview do you want to post?',required:true,choices:[
-   {name:'Invite Operations',value:'invites'},
-   {name:'Applicant Operations',value:'applicants'},
-   {name:'New Applications',value:'new_applications'},
-   {name:'Transfer Announcements',value:'announcements'}
-  ]}
- ]},
- {name:'transfer',description:'Transfer event setup and quick status',options:[
-  {type:1,name:'start',description:'Schedule Transfer start using the Game/Server reset date'},
-  {type:1,name:'end',description:'Cancel a scheduled start or end the active Transfer timeline'},
-  {type:1,name:'status',description:'Show the current Transfer cycle status'},
-  {type:1,name:'reminders',description:'Turn Transfer reminders on or off',options:[
-   {type:3,name:'setting',description:'Reminder status',required:true,choices:[{name:'On',value:'on'},{name:'Off',value:'off'}]}
-  ]},
-  {type:1,name:'channels',description:'Assign a Discord channel to one message category',options:[
-   {type:3,name:'category',description:'What should be sent or managed in this channel?',required:true,choices:[
-    {name:'New Applications',value:'applications'},
-    {name:'Applicant Operations',value:'applicants'},
-    {name:'Transfer Announcements',value:'reminders'},
-    {name:'Invite Operations',value:'invites'}
-   ]},
-   {type:7,name:'channel',description:'Choose the Discord channel',required:true}
-  ]}
- ]},
- {name:'applicants',description:'View Transfer applicant lists',options:[
-  {type:1,name:'unassigned',description:'Show applicants still waiting for placement'},
-  {type:1,name:'list',description:'View applicants by placement',options:[
-   {type:3,name:'placement',description:'Which applicant list?',required:true,choices:[
-    {name:'Unassigned',value:'inbox'},
+ {name:'help',description:'See the simplified NEXA Transfer Bot commands'},
+ {name:'applicants',description:'View the current Transfer list',options:[
+  {type:1,name:'list',description:'Show a compact color-coded applicant list',options:[
+   {type:3,name:'placement',description:'Which list do you want?',required:true,choices:[
+    {name:'All',value:'all'},
+    {name:'New Applicants',value:'inbox'},
     {name:'Ordinary',value:'ordinary'},
     {name:'Special',value:'special'},
-    {name:'Not Selected',value:'not_selected'},
-    {name:'Next Transfer Cycle',value:'next_cycle'},
-    {name:'Groups',value:'groups'},
-    {name:'All',value:'all'}
+    {name:'Group Transfer',value:'group'}
    ]}
   ]}
  ]},
- {name:'applicant',description:'View or update one Transfer applicant',options:[
-  {type:1,name:'view',description:'Show a quick applicant summary',options:[
+ {name:'applicant',description:'View or move one Transfer applicant',options:[
+  {type:1,name:'view',description:'Show one applicant by Game ID',options:[
    {type:3,name:'game_id',description:'Whiteout Survival Game ID',required:true}
   ]},
-  {type:1,name:'move',description:'Move an applicant to a placement',options:[
+  {type:1,name:'move',description:'Move an applicant to Ordinary, Special, or a Group',options:[
    {type:3,name:'game_id',description:'Whiteout Survival Game ID',required:true},
-   {type:3,name:'placement',description:'New placement',required:true,choices:[
+   {type:3,name:'placement',description:'Where should this applicant go?',required:true,choices:[
     {name:'Ordinary',value:'ordinary'},
     {name:'Special',value:'special'},
-    {name:'Not Selected',value:'not_selected'},
-    {name:'Next Transfer Cycle',value:'next_cycle'}
+    {name:'Group Transfer',value:'group'}
    ]},
-   {type:3,name:'alliance',description:'Optional active Recruiting Alliance',required:false,autocomplete:true}
+   {type:3,name:'alliance',description:'Recruiting Alliance for Ordinary / Special',required:false,autocomplete:true},
+   {type:3,name:'group',description:'Approved Group for Group Transfer',required:false,autocomplete:true}
   ]}
  ]},
  {name:'invite',description:'Manage Transfer invitation status',options:[
-  {type:1,name:'sent',description:'Mark an approved applicant Invite Sent',options:[
+  {type:1,name:'sent',description:'Mark an applicant Invite Sent',options:[
    {type:3,name:'game_id',description:'Whiteout Survival Game ID',required:true}
   ]},
-  {type:1,name:'pending',description:'Mark an invite pending because of the Power Cap',options:[
-   {type:3,name:'game_id',description:'Whiteout Survival Game ID',required:true},
-   {type:3,name:'reason',description:'Why it is still pending',required:true,choices:[
-    {name:'Over Power Cap',value:'over_power'}
-   ]}
+  {type:1,name:'pending',description:'Mark an applicant Invite Pending',options:[
+   {type:3,name:'game_id',description:'Whiteout Survival Game ID',required:true}
   ]},
-  {type:1,name:'list',description:'Post the current Ordinary and Special invite report'}
- ] }
-];
+  {type:1,name:'list',description:'Post the current color-coded invite list'}
+ ]}
+]
 
 export const config={api:{bodyParser:false}};
 
@@ -86,6 +55,10 @@ const COLORS={
   success:0x57F287,
   info:0x3498DB,
   applicant:0x9B59B6,
+  ordinary:0x2E9B6F,
+  special:0xD2A52B,
+  group:0xB7435F,
+  newApplicant:0x3498DB,
   muted:0x95A5A6
 };
 const nowIso=()=>new Date().toISOString();
@@ -104,6 +77,10 @@ function responseEmbed(e,{ephemeral=true,components=[]}={}){
   return {type:4,data:{embeds:[e],components,allowed_mentions:{parse:[]},...(ephemeral?{flags:64}:{})}};
 }
 function updateEmbed(e,components=[]){return{type:7,data:{embeds:[e],components,allowed_mentions:{parse:[]}}}}
+function responseEmbeds(embeds,{ephemeral=false,components=[]}={}){
+  const list=(embeds||[]).filter(Boolean).slice(0,10);
+  return {type:4,data:{embeds:list.length?list:[{description:'No applicants found.',color:COLORS.muted}],components,allowed_mentions:{parse:[]},...(ephemeral?{flags:64}:{})}};
+}
 function errorEmbed(cfg,title,description){return embed(cfg,{title:`⚠️ ${title}`,description,color:COLORS.warning,footer:'NEXA Transfer Bot'})}
 function successEmbed(cfg,title,description,fields=[]){return embed(cfg,{title:`✅ ${title}`,description,color:COLORS.success,fields})}
 function findFocused(options=[]){for(const o of options){if(o.focused)return o;if(o.options){const x=findFocused(o.options);if(x)return x}}return null}
@@ -192,11 +169,16 @@ async function hydrateGroupMeta(workspaceId,apps){
   const ids=[...new Set(rows.map(a=>String(a?.group_id||'').trim()).filter(Boolean))];
   if(!ids.length)return rows;
   try{
-    const groups=await db.select('transfer_workspace_groups',`workspace_id=eq.${encodeURIComponent(workspaceId)}&select=id,group_name,main_contact_ign`);
+    const groups=await db.select('transfer_workspace_groups',`workspace_id=eq.${encodeURIComponent(workspaceId)}&select=id,group_name,main_contact_ign,plan,destination_alliance_tag,new_alliance_tag,status`);
     const map=new Map((groups||[]).map(g=>[String(g.id),g]));
     return rows.map(a=>{
       const g=map.get(String(a.group_id||''));
-      return g?{...a,_group_name:g.group_name||a.group_name||null,_group_leader:g.main_contact_ign||a.group_leader||null}:a;
+      return g?{...a,
+        _group_name:g.group_name||a.group_name||null,
+        _group_leader:g.main_contact_ign||a.group_leader||null,
+        _group_plan:g.plan||null,
+        _group_destination:(g.plan==='start_own'?g.new_alliance_tag:g.destination_alliance_tag)||a.assigned_alliance_tag||null
+      }:a;
     });
   }catch{
     return rows;
@@ -210,35 +192,46 @@ function inviteFields(counts,pendingOps){
   fields.push(field('📋 Pending Operations',String(pendingOps),true));
   return fields;
 }
-function listEmbed(cfg,apps,title){
-  const max=10,shown=apps.slice(0,max);
-  const description=shown.length?shown.map(miniApplicant).join('\n\n'):'No applicants found.';
-  return embed(cfg,{title,description:description+(apps.length>max?`\n\n…and **${apps.length-max} more**.`:''),color:COLORS.applicant});
+function chunkRows(rows,size=15){
+  const out=[];for(let i=0;i<rows.length;i+=size)out.push(rows.slice(i,i+size));return out;
 }
-function overviewLine(a,{showAlliance=false}={}){
-  const name=a.in_game_name||'Applicant',id=a.player_id||'—',group=groupLine(a);
-  return `• **${name}** · \`${id}\`${showAlliance?` · 🛡️ **${a.assigned_alliance_tag||'Not assigned'}**`:''}${group?`\n${group}`:''}`;
+function inviteIcon(a){return a.invite_status==='sent'?'✅':'⬜'}
+function routeDot(a){
+  if(a.application_bucket==='special')return'🟡';
+  if(a.application_bucket==='ordinary')return'🟢';
+  return'⚪';
 }
-function overviewValue(rows,{showAlliance=false}={}){
-  if(!rows.length)return 'None';
-  const max=12,shown=rows.slice(0,max),tail=rows.length>max?`\n…and **${rows.length-max} more**.`:'';
-  return shown.map(a=>overviewLine(a,{showAlliance})).join('\n')+tail;
+function compactApplicantLine(a,{groupMode=false}={}){
+  const name=a.in_game_name||'Applicant',id=a.player_id||'—';
+  const furnace=String(a.furnace_level||'—').toUpperCase(),power=fmtPower(a.current_power);
+  const alliance=a.assigned_alliance_tag||a._group_destination||'—';
+  return `${groupMode?routeDot(a):'•'} **${name}** · \`${id}\` · **${furnace}** · ${power} · **${alliance}** · ${inviteIcon(a)}`;
 }
-function applicantsOverviewEmbed(cfg,apps){
-  const unassigned=apps.filter(a=>a.application_bucket==='inbox'&&a.application_cycle!=='next');
-  const ordinary=apps.filter(a=>a.application_bucket==='ordinary'&&a.application_cycle!=='next');
-  const special=apps.filter(a=>a.application_bucket==='special'&&a.application_cycle!=='next');
-  const total=unassigned.length+ordinary.length+special.length;
-  return embed(cfg,{
-    title:`👥 Current Applicants Overview · ${total}`,
-    description:'Applicants currently awaiting placement or assigned for this Transfer cycle.',
-    color:COLORS.applicant,
-    fields:[
-      field(`📥 Unassigned · ${unassigned.length}`,overviewValue(unassigned),false),
-      field(`🎟️ Ordinary · ${ordinary.length}`,overviewValue(ordinary,{showAlliance:true}),false),
-      field(`⭐ Special · ${special.length}`,overviewValue(special,{showAlliance:true}),false)
-    ]
-  });
+function categoryEmbeds(cfg,rows,{title,color,groupMode=false}){
+  if(!rows.length)return[];
+  return chunkRows(rows,15).map((part,i)=>embed(cfg,{
+    title:`${title} · ${rows.length}${rows.length>15?` · ${i+1}/${Math.ceil(rows.length/15)}`:''}`,
+    description:part.map(a=>compactApplicantLine(a,{groupMode})).join('\n'),
+    color,
+    footer:groupMode?'🟢 Ordinary · 🟡 Special · ✅ Sent · ⬜ Pending':'✅ Invite Sent · ⬜ Invite Pending'
+  }));
+}
+function compactListEmbeds(cfg,apps,placement='all'){
+  const active=(apps||[]).filter(a=>a.application_cycle!=='next');
+  const groups=active.filter(a=>a.group_id);
+  const ordinary=active.filter(a=>!a.group_id&&a.application_bucket==='ordinary');
+  const special=active.filter(a=>!a.group_id&&a.application_bucket==='special');
+  const inbox=active.filter(a=>!a.group_id&&a.application_bucket==='inbox');
+  if(placement==='ordinary')return categoryEmbeds(cfg,ordinary,{title:'🟢 Ordinary',color:COLORS.ordinary});
+  if(placement==='special')return categoryEmbeds(cfg,special,{title:'🟡 Special',color:COLORS.special});
+  if(placement==='group'||placement==='groups')return categoryEmbeds(cfg,groups,{title:'🔴 Group Transfer',color:COLORS.group,groupMode:true});
+  if(placement==='inbox')return categoryEmbeds(cfg,inbox,{title:'🔵 New Applicants',color:COLORS.newApplicant});
+  return [
+    ...categoryEmbeds(cfg,inbox,{title:'🔵 New Applicants',color:COLORS.newApplicant}),
+    ...categoryEmbeds(cfg,ordinary,{title:'🟢 Ordinary',color:COLORS.ordinary}),
+    ...categoryEmbeds(cfg,special,{title:'🟡 Special',color:COLORS.special}),
+    ...categoryEmbeds(cfg,groups,{title:'🔴 Group Transfer',color:COLORS.group,groupMode:true})
+  ];
 }
 function channelOverviewEmbed(cfg,area){
   const shared='\n\nNeed help with commands? Use `/help` to see all available commands and what each one does.';
@@ -390,15 +383,33 @@ export default async function handler(req,res){
 
     if(body.type===5){if(body.data?.custom_id==='start_date_modal')return res.status(200).json(startConfirmResponse(cfg,modalValue(body,'server_date')));return res.status(200).json(responseEmbed(errorEmbed(cfg,'Form Unavailable','That form is no longer available.')))}
     if(body.type===4){
-      const focused=findFocused(body.data?.options||[]);if(focused?.name!=='alliance')return res.status(200).json({type:8,data:{choices:[]}});
-      const q=String(focused.value||'').toLowerCase(),rows=await recruitingAlliances(cfg.workspace_id),choices=(rows||[]).filter(x=>!q||String(x.tag||'').toLowerCase().includes(q)||String(x.name||'').toLowerCase().includes(q)).slice(0,25).map(x=>({name:safe(`${x.tag}${x.name?' · '+x.name:''}`),value:String(x.tag)}));return res.status(200).json({type:8,data:{choices}});
+      const focused=findFocused(body.data?.options||[]),q=String(focused?.value||'').toLowerCase();
+      if(focused?.name==='alliance'){
+        const rows=await recruitingAlliances(cfg.workspace_id),choices=(rows||[]).filter(x=>!q||String(x.tag||'').toLowerCase().includes(q)||String(x.name||'').toLowerCase().includes(q)).slice(0,25).map(x=>({name:safe(`${x.tag}${x.name?' · '+x.name:''}`),value:String(x.tag)}));
+        return res.status(200).json({type:8,data:{choices}});
+      }
+      if(focused?.name==='group'){
+        const rows=await db.select('transfer_workspace_groups',`workspace_id=eq.${encodeURIComponent(cfg.workspace_id)}&archived_at=is.null&status=eq.approved&select=id,group_name,plan,destination_alliance_tag,new_alliance_tag&order=group_name.asc`);
+        const choices=(rows||[]).filter(g=>!q||String(g.group_name||'').toLowerCase().includes(q)||String(g.destination_alliance_tag||'').toLowerCase().includes(q)||String(g.new_alliance_tag||'').toLowerCase().includes(q)).slice(0,25).map(g=>{
+          const dest=g.plan==='start_own'?g.new_alliance_tag:g.destination_alliance_tag;
+          return {name:safe(`${g.group_name||'Current Alliance'}${dest?' → '+dest:''}`),value:String(g.id)};
+        });
+        return res.status(200).json({type:8,data:{choices}});
+      }
+      return res.status(200).json({type:8,data:{choices:[]}});
     }
     if(body.type!==2)return res.status(200).json(responseEmbed(errorEmbed(cfg,'Unsupported Interaction','NEXA could not process that interaction.')));
     const {name,options}=subcommand(body.data);
 
     if(body.data.name==='overview'){const area=String(topOption(body,'area')||'invites');return res.status(200).json(responseEmbed(channelOverviewEmbed(cfg,area),{ephemeral:false}))}
     if(body.data.name==='help'){
-      const e=embed(cfg,{title:'🌌 NEXA Transfer Bot — Help',description:'Quick Discord tools for Transfer operations. `/overview` posts a permanent channel introduction.',color:COLORS.info,fields:[field('📌 Channel Overview','`/overview` — post a short introduction for Invites, Applicants, New Applications, or Announcements.',false),field('🌌 Transfer','`/transfer start` · schedule the Transfer timeline\n`/transfer end` · cancel/end it\n`/transfer status` · current cycle status\n`/transfer reminders` · reminders on/off\n`/transfer channels` · assign the four Discord routes',false),field('👤 Applicants','`/applicants unassigned` · current unassigned list\n`/applicants list` → Groups · view applicants organized by Transfer Group\n`/applicants list` → Ordinary / Special / Not Selected / Next Transfer Cycle / All · view by placement\nGroups are parallel to placement: changing a member to Ordinary or Special does not remove them from their Transfer Group.\n`/applicant view` · one applicant\n`/applicant move` · move one applicant',false),field('📨 Invites','`/invite list` · post the current invite report\n`/invite sent` · mark an invite sent\n`/invite pending` · mark Over Power Cap',false)]});return res.status(200).json(responseEmbed(e,{components:workspaceOnlyComponents(cfg,'Full Details')}));
+      const e=embed(cfg,{title:'🌌 NEXA Transfer Bot — Simple Operations',description:'Fast Discord tools for the jobs you need most. Full Transfer setup stays in NEXA Workspace.',color:COLORS.info,fields:[
+        field('📋 Lists','`/applicants list` → All / New Applicants / Ordinary / Special / Group Transfer',false),
+        field('👤 Applicant','`/applicant view` · quick details\n`/applicant move` · Ordinary / Special / Group Transfer',false),
+        field('📨 Invites','`/invite sent` · mark sent\n`/invite pending` · mark pending\n`/invite list` · post the color-coded roster',false),
+        field('🎨 Colors','🟢 Ordinary · 🟡 Special · 🔴 Group Transfer\nInside Group Transfer: 🟢 Ordinary route · 🟡 Special route',false)
+      ],footer:'Complex setup, cycles, alliances, groups, and PDFs stay in NEXA Workspace.'});
+      return res.status(200).json(responseEmbed(e,{components:workspaceOnlyComponents(cfg,'Open Transfer Workspace')}));
     }
 
     if(body.data.name==='transfer'){
@@ -421,15 +432,9 @@ export default async function handler(req,res){
     if(body.data.name==='applicants'){
       const event=await getCurrentEvent(cfg.workspace_id);if(!event)return res.status(200).json(responseEmbed(errorEmbed(cfg,'No Active Transfer Cycle','No active Transfer cycle was found.')));
       const rawApps=await currentApps(cfg.workspace_id,event.id),apps=await hydrateGroupMeta(cfg.workspace_id,rawApps);
-      if(name==='unassigned'){const rows=apps.filter(a=>a.application_bucket==='inbox'&&a.application_cycle!=='next');return res.status(200).json(responseEmbed(listEmbed(cfg,rows,`📥 Unassigned Applicants · ${rows.length}`),{ephemeral:false,components:workspaceOnlyComponents(cfg)}))}
       if(name==='list'){
-        const placement=String(options.placement||'all');if(placement==='all')return res.status(200).json(responseEmbed(applicantsOverviewEmbed(cfg,apps),{ephemeral:false,components:workspaceOnlyComponents(cfg)}));
-        let rows=apps,title='👥 Applicants';
-        if(placement==='inbox'){rows=apps.filter(a=>a.application_bucket==='inbox'&&a.application_cycle!=='next');title='📥 Unassigned Applicants'}
-        else if(placement==='next_cycle'){rows=apps.filter(a=>a.application_bucket==='next_cycle'||a.application_cycle==='next');title='⏭️ Next Transfer Cycle'}
-        else if(placement==='groups'){rows=apps.filter(a=>a.group_id).sort((a,b)=>String(a._group_name||a.group_name||'').localeCompare(String(b._group_name||b.group_name||''))||String(a.in_game_name||'').localeCompare(String(b.in_game_name||'')));title='👥 Group Applicants'}
-        else{rows=apps.filter(a=>a.application_bucket===placement&&a.application_cycle!=='next');title=`📂 ${placement==='not_selected'?'Not Selected':placement[0].toUpperCase()+placement.slice(1)}`}
-        return res.status(200).json(responseEmbed(listEmbed(cfg,rows,`${title} · ${rows.length}`),{ephemeral:false,components:workspaceOnlyComponents(cfg)}));
+        const placement=String(options.placement||'all'),embeds=compactListEmbeds(cfg,apps,placement);
+        return res.status(200).json(responseEmbeds(embeds,{ephemeral:false,components:workspaceOnlyComponents(cfg)}));
       }
     }
 
@@ -441,21 +446,46 @@ export default async function handler(req,res){
         const g=groupLine(a),e=embed(cfg,{title:`👤 ${a.in_game_name||'Applicant'}`,description:`Game ID: \`${a.player_id||'—'}\``,color:COLORS.applicant,fields:[field('🏰 From',`State ${a.current_state||'—'}${a.current_alliance?` · ${a.current_alliance}`:''}`,false),field('🔥 Furnace',a.furnace_level||'—',true),field('⚡ Power',fmtPower(a.current_power),true),field('🪖 T12',hasT12(a)?'Yes':'No',true),field('📈 Account Progress',progressionLabel(a.account_progression),true),field('📂 Placement',placementLabel(a),true),field('🛡️ Assigned Alliance',a.assigned_alliance_tag||'Unassigned',true),...(g?[field('👥 Group',g,false)]:[]),field('📨 Invite',a.invite_status==='sent'?'Sent':a.invite_pending_reason==='over_power'?'Pending · Over Power Cap':'Not Sent Yet',false)]});return res.status(200).json(responseEmbed(e,{ephemeral:false,components:workspaceOnlyComponents(cfg)}));
       }
       if(name==='move'){
-        const placement=String(options.placement),allianceRaw=options.alliance?String(options.alliance):null;let alliance=null;
-        if(['ordinary','special'].includes(placement)&&allianceRaw){const valid=await validateAlliance(cfg,allianceRaw);if(!valid)return res.status(200).json(responseEmbed(errorEmbed(cfg,'Alliance Not Available',`**${allianceRaw}** is not an active Recruiting Alliance for this Workspace.`)));alliance=String(valid.tag)}
-        await db.update('transfer_applications',`id=eq.${a.id}`,{application_bucket:placement,application_cycle:placement==='next_cycle'?'next':'current',assigned_alliance_tag:['ordinary','special'].includes(placement)?alliance:null,updated_at:nowIso()});const placementText=placement==='next_cycle'?'Next Transfer Cycle':placement==='not_selected'?'Not Selected':placement[0].toUpperCase()+placement.slice(1),e=successEmbed(cfg,'Applicant Updated',`**${a.in_game_name||a.player_id}** moved successfully.`,[field('📂 Placement',placementText,true),...(['ordinary','special'].includes(placement)?[field('🛡️ Alliance',alliance||'Unassigned',true)]:[])]);return res.status(200).json(responseEmbed(e));
+        const placement=String(options.placement||''),allianceRaw=options.alliance?String(options.alliance):'',groupRaw=options.group?String(options.group):'';
+        if(placement==='group'){
+          if(!groupRaw)return res.status(200).json(responseEmbed(errorEmbed(cfg,'Choose a Group','Select an approved Group Transfer destination.')));
+          const rows=await db.select('transfer_workspace_groups',`id=eq.${encodeURIComponent(groupRaw)}&workspace_id=eq.${encodeURIComponent(cfg.workspace_id)}&archived_at=is.null&status=eq.approved&select=id,group_name,plan,destination_alliance_tag,new_alliance_tag&limit=1`);
+          const g=rows?.[0];if(!g)return res.status(200).json(responseEmbed(errorEmbed(cfg,'Group Not Available','That Group is not active or approved.')));
+          const dest=g.plan==='start_own'?g.new_alliance_tag:g.destination_alliance_tag;
+          await db.update('transfer_applications',`id=eq.${a.id}`,{group_id:g.id,group_name:g.group_name,transferring_with_group:true,assigned_alliance_tag:dest||a.assigned_alliance_tag||null,updated_at:nowIso()});
+          const e=successEmbed(cfg,'Group Assigned',`**${a.in_game_name||a.player_id}** is now in Group Transfer.`,[
+            field('Current Alliance',g.group_name||'—',true),field('Destination',dest||'Not decided',true),
+            field('Route',a.application_bucket==='special'?'🟡 Special':a.application_bucket==='ordinary'?'🟢 Ordinary':'⚪ Not classified',true)
+          ]);
+          return res.status(200).json(responseEmbed(e));
+        }
+        if(!['ordinary','special'].includes(placement))return res.status(200).json(responseEmbed(errorEmbed(cfg,'Placement Not Available','Choose Ordinary, Special, or Group Transfer.')));
+        let alliance=a._group_destination||a.assigned_alliance_tag||null;
+        if(!a.group_id&&allianceRaw){
+          const valid=await validateAlliance(cfg,allianceRaw);if(!valid)return res.status(200).json(responseEmbed(errorEmbed(cfg,'Alliance Not Available',`**${allianceRaw}** is not an active Recruiting Alliance for this Workspace.`)));
+          alliance=String(valid.tag);
+        }
+        if(!alliance)return res.status(200).json(responseEmbed(errorEmbed(cfg,'Alliance Required','Choose an active Recruiting Alliance before moving this applicant to Ordinary or Special.')));
+        await db.update('transfer_applications',`id=eq.${a.id}`,{application_bucket:placement,application_cycle:'current',assigned_alliance_tag:alliance,updated_at:nowIso()});
+        const e=successEmbed(cfg,'Applicant Updated',`**${a.in_game_name||a.player_id}** moved successfully.`,[
+          field('Route',placement==='special'?'🟡 Special':'🟢 Ordinary',true),field('Alliance',alliance,true),...(a.group_id?[field('Group Transfer','🔴 Yes',true)]:[])
+        ]);
+        return res.status(200).json(responseEmbed(e));
       }
     }
 
     if(body.data.name==='invite'){
       const event=await getCurrentEvent(cfg.workspace_id);if(!event)return res.status(200).json(responseEmbed(errorEmbed(cfg,'No Active Transfer Cycle','No active Transfer cycle was found.')));
       if(name==='list'){
-        const rawApps=await selectedApps(cfg.workspace_id,event.id),apps=await hydrateGroupMeta(cfg.workspace_id,rawApps),content=inviteReport(apps),e=embed(cfg,{title:'📨 Invite Operations',description:content||'No invite operations found.',color:COLORS.invite,footer:'Only current Ordinary and Special applicants are included.'}),target=channelFor(cfg,'invites');if(!target)return res.status(200).json(responseEmbed(errorEmbed(cfg,'Invite Channel Not Configured','Assign an Invite Operations channel first.')));await sendChannel(target,{embeds:[e],components:workspaceOnlyComponents(cfg),allowed_mentions:{parse:[]}});return res.status(200).json(responseEmbed(successEmbed(cfg,'Invite List Posted',`Invite operations were posted to <#${target}>.`)));
+        const rawApps=await selectedApps(cfg.workspace_id,event.id),apps=await hydrateGroupMeta(cfg.workspace_id,rawApps),embeds=compactListEmbeds(cfg,apps,'all'),target=channelFor(cfg,'invites');
+        if(!target)return res.status(200).json(responseEmbed(errorEmbed(cfg,'Invite Channel Not Configured','Assign an Invite Operations channel first in NEXA Workspace.')));
+        await sendChannel(target,{embeds:embeds.slice(0,10),components:workspaceOnlyComponents(cfg),allowed_mentions:{parse:[]}});
+        return res.status(200).json(responseEmbed(successEmbed(cfg,'Invite List Posted',`The color-coded invite roster was posted to <#${target}>.`)));
       }
       const a=await applicantByGameId(cfg,event,String(options.game_id||'').trim());if(!a)return res.status(200).json(responseEmbed(errorEmbed(cfg,'Applicant Not Found',`No current applicant was found with Game ID \`${options.game_id}\`.`)));
       if(!['ordinary','special'].includes(a.application_bucket)||a.application_cycle==='next')return res.status(200).json(responseEmbed(errorEmbed(cfg,'Invite Not Available',`**${a.in_game_name||a.player_id}** is not currently in Ordinary or Special for this cycle.`)));
       if(name==='sent'){await db.update('transfer_applications',`id=eq.${a.id}`,{invite_status:'sent',invite_pending_reason:null,invite_sent_at:nowIso(),updated_at:nowIso()});return res.status(200).json(responseEmbed(successEmbed(cfg,'Invite Marked Sent',`Invite marked as sent to **${a.in_game_name||a.player_id}**.`)))}
-      if(name==='pending'){await db.update('transfer_applications',`id=eq.${a.id}`,{invite_status:'not_sent',invite_pending_reason:'over_power',invite_sent_at:null,updated_at:nowIso()});return res.status(200).json(responseEmbed(embed(cfg,{title:'⏳ Invite Pending',description:`**${a.in_game_name||a.player_id}** remains pending.`,color:COLORS.warning,fields:[field('Reason','Over Power Cap',false)]})))}
+      if(name==='pending'){await db.update('transfer_applications',`id=eq.${a.id}`,{invite_status:'not_sent',invite_pending_reason:null,invite_sent_at:null,updated_at:nowIso()});return res.status(200).json(responseEmbed(embed(cfg,{title:'⬜ Invite Pending',description:`**${a.in_game_name||a.player_id}** is marked Pending.`,color:COLORS.warning})))}
     }
 
     return res.status(200).json(responseEmbed(errorEmbed(cfg,'Command Not Recognized','NEXA did not recognize that command.')));

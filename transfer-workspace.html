@@ -1,6 +1,6 @@
 <!doctype html>
 <!-- TARGET GITHUB FILE: transfer-workspace.html -->
-<!-- NEXA TRANSFER WORKSPACE V5.20 — LARGE BOARDING MANIFEST PDF / 13 PER PAGE / ATOMIC BATCH -->
+<!-- NEXA TRANSFER WORKSPACE V5.21 — UNICODE PDF NAMES / BOLD GAME ID / LARGE MANIFEST -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -722,6 +722,38 @@ function drawManifestTableHeader(pdf,x,y,widths){
  });
  pdf.setDrawColor(219,225,234);pdf.line(x,y+27,cx,y+27);
 }
+
+const pdfUnicodeNameCache=new Map();
+function pdfUnicodeNameAsset(text,color,maxWidthPt){
+ const key=`${text}|${color.join(',')}|${maxWidthPt}`;
+ if(pdfUnicodeNameCache.has(key))return pdfUnicodeNameCache.get(key);
+ const scale=4,maxPx=Math.max(120,Math.round(maxWidthPt*scale)),hPx=58;
+ const canvas=document.createElement('canvas');canvas.width=maxPx;canvas.height=hPx;
+ const ctx=canvas.getContext('2d',{alpha:true});
+ let fontPx=42;
+ const fontStack=`system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans","Arial Unicode MS",Arial,sans-serif`;
+ ctx.textBaseline='alphabetic';
+ ctx.textAlign='left';
+ ctx.fillStyle=`rgb(${color[0]},${color[1]},${color[2]})`;
+ while(fontPx>27){
+  ctx.font=`700 ${fontPx}px ${fontStack}`;
+  if(ctx.measureText(String(text||'Applicant')).width<=maxPx-8)break;
+  fontPx-=2;
+ }
+ ctx.font=`700 ${fontPx}px ${fontStack}`;
+ ctx.clearRect(0,0,maxPx,hPx);
+ ctx.fillStyle=`rgb(${color[0]},${color[1]},${color[2]})`;
+ ctx.textBaseline='alphabetic';
+ const baseline=Math.round(hPx*.78);
+ ctx.fillText(String(text||'Applicant'),4,baseline,maxPx-8);
+ const measured=Math.min(maxPx-8,Math.ceil(ctx.measureText(String(text||'Applicant')).width+8));
+ const crop=document.createElement('canvas');crop.width=Math.max(8,measured);crop.height=hPx;
+ crop.getContext('2d').drawImage(canvas,0,0,measured,hPx,0,0,measured,hPx);
+ const asset={data:crop.toDataURL('image/png'),w:Math.min(maxWidthPt,measured/scale),h:11.6};
+ pdfUnicodeNameCache.set(key,asset);
+ return asset;
+}
+
 function drawManifestRow(pdf,a,x,y,widths,rowH){
  const kind=pdfApplicantKind(a),rowColor=pdfRgb(kind),nameColor=pdfApplicantNameColor(a),sent=a.invite_status==='sent';
  const vals=[
@@ -737,10 +769,15 @@ function drawManifestRow(pdf,a,x,y,widths,rowH){
  let cx=x;
  vals.forEach((val,i)=>{
   const color=i===0?nameColor:rowColor;
-  pdf.setFont('helvetica',i===0||i===2?'bold':'normal');
-  pdf.setTextColor(...color);
-  pdfFit(pdf,val,widths[i]-12,i===0?10.2:9.1,6.8);
-  pdf.text(val,cx+7,y+20,{maxWidth:widths[i]-12});
+  if(i===0){
+   const asset=pdfUnicodeNameAsset(val,color,widths[i]-14);
+   pdf.addImage(asset.data,'PNG',cx+7,y+8.1,asset.w,asset.h,undefined,'FAST');
+  }else{
+   pdf.setFont('helvetica',i===1||i===2?'bold':'normal');
+   pdf.setTextColor(...color);
+   pdfFit(pdf,val,widths[i]-12,9.1,6.8);
+   pdf.text(val,cx+7,y+20,{maxWidth:widths[i]-12});
+  }
   cx+=widths[i];
  });
  drawInviteBox(pdf,cx+8,y+7,sent,15);

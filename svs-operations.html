@@ -5054,6 +5054,36 @@ function battlePlanPdfFilename(){
  const raw=['NEXA-SvS-Battle-Plan',opp?`vs-${opp}`:'',date].filter(Boolean).join('-');
  return raw.replace(/[^a-zA-Z0-9._-]+/g,'-').replace(/-+/g,'-')+'.pdf';
 }
+function bpPdfSafeColor(value){
+ const v=String(value||'').trim();
+ if(!v)return v;
+ if(!/(?:^|[,(\s])(color|lab|lch|oklab|oklch)\(/i.test(v))return v;
+ try{
+   const c=document.createElement('canvas');c.width=c.height=1;
+   const x=c.getContext('2d',{willReadFrequently:true});
+   x.clearRect(0,0,1,1);x.fillStyle='#000';x.fillStyle=v;x.fillRect(0,0,1,1);
+   const d=x.getImageData(0,0,1,1).data;
+   return `rgba(${d[0]},${d[1]},${d[2]},${Math.round((d[3]/255)*1000)/1000})`;
+ }catch(_){return '#ffffff'}
+}
+function bpPdfSanitizeCss(root){
+ const nodes=[root,...root.querySelectorAll('*')];
+ const colorProps=['color','backgroundColor','borderTopColor','borderRightColor','borderBottomColor','borderLeftColor','outlineColor','textDecorationColor','caretColor','fill','stroke'];
+ for(const el of nodes){
+   const cs=getComputedStyle(el);
+   for(const p of colorProps){
+     const v=cs[p];
+     if(v&&/(?:^|[,(\s])(color|lab|lch|oklab|oklch)\(/i.test(v)){try{el.style[p]=bpPdfSafeColor(v)}catch(_){}}
+   }
+   const bg=cs.backgroundImage||'';
+   if(/(?:color|lab|lch|oklab|oklch)\(/i.test(bg))el.style.backgroundImage='none';
+   const bs=cs.boxShadow||'';if(/(?:color|lab|lch|oklab|oklch)\(/i.test(bs))el.style.boxShadow='none';
+   const ts=cs.textShadow||'';if(/(?:color|lab|lch|oklab|oklch)\(/i.test(ts))el.style.textShadow='none';
+   if(cs.filter&&cs.filter!=='none')el.style.filter='none';
+   if(cs.backdropFilter&&cs.backdropFilter!=='none')el.style.backdropFilter='none';
+   try{if(cs.webkitBackdropFilter&&cs.webkitBackdropFilter!=='none')el.style.webkitBackdropFilter='none'}catch(_){}
+ }
+}
 async function battlePlanDownloadPdf(){
  if(!battlePlanRecord)return say('Create the Battle Plan first.',true);
  if(!window.html2canvas||!window.jspdf?.jsPDF)return say('PDF tools are still loading. Try again in a moment.',true);
@@ -5065,6 +5095,7 @@ async function battlePlanDownloadPdf(){
    await Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(r=>{img.onload=img.onerror=()=>r()})));
    if(document.fonts?.ready)await document.fonts.ready;
    bpFitNativeText(article);
+   bpPdfSanitizeCss(article);
    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
    const rect=article.getBoundingClientRect(),w=Math.ceil(Math.max(article.scrollWidth,rect.width)),h=Math.ceil(Math.max(article.scrollHeight,rect.height));
    const canvas=await html2canvas(article,{backgroundColor:'#02030b',scale:1.35,useCORS:true,allowTaint:false,imageTimeout:15000,logging:false,width:w,height:h,windowWidth:w,windowHeight:h,scrollX:0,scrollY:0});

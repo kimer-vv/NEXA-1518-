@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V14.40 • CASTLE DIAMOND BIGGER • PDF MAP FILL + SIMPLIFIED LEGEND -->
+<!-- NEXA SVS OPERATIONS V14.41 • CASTLE TITLE OVERLAY • DIAMOND BIGGER • PDF MAP FILL + SIMPLIFIED LEGEND -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -5264,7 +5264,7 @@ async function battlePlanDownloadPdf(){
      y=ensure(y+8,90);y=sectionTitle('SvS Rules',y+8);for(const ln0 of bpPdfPlainLines(d.svs_rules)){const ln=String(ln0),clean=bpPdfStripLead(ln);let mark='•',mc=C.muted;if(ln.startsWith('❌')){mark='×';mc='#dc2626'}else if(ln.startsWith('✅')){mark='✓';mc='#16a34a'}else if(ln.startsWith('📍')){mark='•';mc='#dc2626'}else if(ln.startsWith('📢')){mark='•';mc=C.cyan}y=ensure(y,22);font(13.2,'bold',mc);pdf.text(mark,M+4,y);font(11.4,'bold',C.ink);y=text(clean,M+24,y,contentW-28,{leading:15})+7}
    }
 
-   const castle=await bpPdfCastleCanvas();if(castle){newPage();const panelX=M-16,panelY=M-10,panelW=contentW+32,panelH=panelW*1.045;fill('#080b12');pdf.roundedRect(panelX,panelY,panelW,panelH,8,8,'F');font(13.5,'bold','#f8fafc');pdf.text('SVS September 2026 — Castle Layout',panelX+12,panelY+18);const legend=[['Castle','#f2c21b'],['Turrets','#a66b2c'],['Opponent','#ff6b70']];let lx=panelX+12,ly=panelY+35;legend.forEach(([name,col])=>{fill(col);pdf.rect(lx,ly-7,7,7,'F');font(6.8,'bold','#94a3b8');pdf.text(name,lx+10,ly-1);lx+=pdf.getTextWidth(name)+28});const mapTop=panelY+44,mapPad=0,mapW=panelW-mapPad*2,mapH=panelH-48;const baseScale=Math.min(mapW/castle.width,mapH/castle.height);const scale=baseScale*1.14;const dw=castle.width*scale,dh=castle.height*scale;pdf.addImage(castle.toDataURL('image/png'),'PNG',panelX+(panelW-dw)/2,mapTop+(mapH-dh)/2,dw,dh,undefined,'MEDIUM')}
+   const castle=await bpPdfCastleCanvas();if(castle){newPage();const panelX=M-16,panelY=M-10,panelW=contentW+32,panelH=panelW*1.045;fill('#080b12');pdf.roundedRect(panelX,panelY,panelW,panelH,8,8,'F');const legend=[['Castle','#f2c21b'],['Turrets','#a66b2c'],['Opponent','#ff6b70']];const mapTop=panelY+44,mapPad=0,mapW=panelW-mapPad*2,mapH=panelH-48;const baseScale=Math.min(mapW/castle.width,mapH/castle.height);const scale=baseScale*1.14;const dw=castle.width*scale,dh=castle.height*scale;pdf.addImage(castle.toDataURL('image/png'),'PNG',panelX+(panelW-dw)/2,mapTop+(mapH-dh)/2,dw,dh,undefined,'MEDIUM');const title='Castle Layout';font(11.3,'bold','#f8fafc');const titleW=pdf.getTextWidth(title)+22;fill('#050911');stroke('#dbe3ee');pdf.setLineWidth(.8);pdf.roundedRect(panelX+12,panelY+12,titleW,18,9,9,'FD');font(11.3,'bold','#f8fafc');pdf.text(title,panelX+23,panelY+24);let lx=panelX+12,ly=panelY+42;legend.forEach(([name,col])=>{fill(col);pdf.rect(lx,ly-7,7,7,'F');font(6.8,'bold','#cbd5e1');pdf.text(name,lx+10,ly-1);lx+=pdf.getTextWidth(name)+28})}
 
    const pet=battlePlanPetItem()?.snapshot?.data;if(Array.isArray(pet)&&pet.length){newPage();drawPetSchedule(pet)}
    const groups=battlePlanAllianceGroups();for(const g of groups){for(const item of g.items||[]){const data=item?.snapshot?.data;if(data)await drawAlliance(data)}}

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V14.31 • NATIVE PDF READABILITY • HERO PORTRAITS • CASTLE FULL PAGE -->
+<!-- NEXA SVS OPERATIONS V14.32 • PDF VISIBILITY • CASTLE PANEL • EMOJI ROLES • HERO PORTRAIT PROXY -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -5061,6 +5061,9 @@ function bpPdfRgb(hex,fallback='#111827'){
 function bpPdfTint(hex,amount=.92){
  const [r,g,b]=bpPdfRgb(hex);return [Math.round(r+(255-r)*amount),Math.round(g+(255-g)*amount),Math.round(b+(255-b)*amount)];
 }
+function bpPdfShade(hex,amount=.68){
+ const [r,g,b]=bpPdfRgb(hex);return '#'+[r,g,b].map(v=>Math.max(0,Math.min(255,Math.round(v*amount))).toString(16).padStart(2,'0')).join('');
+}
 function bpPdfHeroColor(rarity){
  const r=String(rarity||'').toLowerCase();
  if(/legendary|mythic|gold/.test(r))return '#c98a00';
@@ -5072,15 +5075,16 @@ function bpPdfPlainLines(v){return String(v||'').replace(/\r/g,'').split('\n').m
 function bpPdfStripLead(line){return String(line||'').replace(/^(?:📢|❌|✅|📍|⭐|★|•|[-–—])\s*/u,'').trim()}
 async function bpPdfCastleCanvas(){
  const item=battlePlanCastleItems().find(x=>x.snapshot?.export_svg);if(!item)return null;
- const stage=document.createElement('div');stage.style.cssText='position:fixed;left:-20000px;top:0;width:1100px;background:#fff;padding:18px;pointer-events:none;';
- const wrap=document.createElement('div');wrap.style.cssText='width:1064px;background:#fff;display:grid;place-items:center;';wrap.innerHTML=item.snapshot.export_svg;stage.appendChild(wrap);document.body.appendChild(stage);
+ const stage=document.createElement('div');stage.style.cssText='position:fixed;left:-20000px;top:0;width:1320px;background:#080b12;padding:0;pointer-events:none;';
+ const wrap=document.createElement('div');wrap.style.cssText='width:1320px;height:900px;background:#080b12;display:grid;place-items:center;overflow:hidden;';wrap.innerHTML=item.snapshot.export_svg;stage.appendChild(wrap);document.body.appendChild(stage);
  try{
    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-   const svg=wrap.querySelector('svg');if(svg){svg.style.maxWidth='100%';svg.style.height='auto'}
+   const svg=wrap.querySelector('svg');if(svg){svg.style.width='1220px';svg.style.maxWidth='92.5%';svg.style.maxHeight='820px';svg.style.height='auto';svg.style.display='block'}
    const rect=wrap.getBoundingClientRect();
-   return await html2canvas(wrap,{backgroundColor:'#ffffff',scale:1.6,useCORS:true,allowTaint:false,imageTimeout:15000,logging:false,width:Math.ceil(rect.width),height:Math.ceil(rect.height),windowWidth:Math.ceil(rect.width),windowHeight:Math.ceil(rect.height),scrollX:0,scrollY:0});
+   return await html2canvas(wrap,{backgroundColor:'#080b12',scale:1.45,useCORS:true,allowTaint:false,imageTimeout:15000,logging:false,width:Math.ceil(rect.width),height:Math.ceil(rect.height),windowWidth:Math.ceil(rect.width),windowHeight:Math.ceil(rect.height),scrollX:0,scrollY:0});
  }finally{stage.remove()}
 }
+
 async function battlePlanDownloadPdf(){
  if(!battlePlanRecord)return say('Create the Battle Plan first.',true);
  if(!window.jspdf?.jsPDF)return say('PDF tools are still loading. Try again in a moment.',true);
@@ -5107,36 +5111,39 @@ async function battlePlanDownloadPdf(){
    const imageCache=new Map();
    const loadImageData=async(url)=>{
      if(!url)return null;if(imageCache.has(url))return imageCache.get(url);
-     const promise=new Promise(resolve=>{const img=new Image();img.crossOrigin='anonymous';img.referrerPolicy='no-referrer';img.onload=()=>{try{const c=document.createElement('canvas');const size=96;c.width=size;c.height=size;const ctx=c.getContext('2d');ctx.clearRect(0,0,size,size);ctx.save();ctx.beginPath();ctx.arc(size/2,size/2,size/2,0,Math.PI*2);ctx.clip();ctx.drawImage(img,0,0,size,size);ctx.restore();resolve(c.toDataURL('image/png'))}catch(_){resolve(null)}};img.onerror=()=>resolve(null);img.src=url});
+     const attempt=(src)=>new Promise(resolve=>{const img=new Image();img.crossOrigin='anonymous';img.referrerPolicy='no-referrer';img.onload=()=>{try{const c=document.createElement('canvas');const size=128;c.width=size;c.height=size;const ctx=c.getContext('2d');ctx.clearRect(0,0,size,size);ctx.save();ctx.beginPath();ctx.arc(size/2,size/2,size/2,0,Math.PI*2);ctx.clip();ctx.drawImage(img,0,0,size,size);ctx.restore();resolve(c.toDataURL('image/png'))}catch(_){resolve(null)}};img.onerror=()=>resolve(null);img.src=src});
+     const promise=(async()=>{let data=await attempt(url);if(data)return data;try{const proxy='https://images.weserv.nl/?url='+encodeURIComponent(url)+'&w=160&h=160&fit=cover';data=await attempt(proxy);if(data)return data}catch(_){}return null})();
      imageCache.set(url,promise);return promise;
    };
+   const emojiCache=new Map();
+   const emojiData=(emoji)=>{if(emojiCache.has(emoji))return emojiCache.get(emoji);try{const c=document.createElement('canvas');c.width=96;c.height=96;const ctx=c.getContext('2d');ctx.clearRect(0,0,96,96);ctx.font='64px Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(emoji,48,51);const data=c.toDataURL('image/png');emojiCache.set(emoji,data);return data}catch(_){emojiCache.set(emoji,null);return null}};
    const scheduleTeam=(team,y)=>{
-     y=ensure(y,92);font(13.5,'bold',team.color||C.ink);pdf.text(String(team.name||'Team'),M,y);y+=12;
-     const gap=5,cardW=(contentW-gap*4)/5,cardH=66;
+     y=ensure(y,114);const tc=team.color||C.violet,ink=bpPdfShade(tc,.64);font(15.5,'bold',ink);pdf.text(String(team.name||'Team'),M,y);y+=16;
+     const gap=6,cardW=(contentW-gap*4)/5,cardH=82;
      (team.hours||[]).slice(0,5).forEach((h,i)=>{
-       const x=M+i*(cardW+gap),tc=team.color||C.violet,tint=bpPdfTint(tc,.90);pdf.setFillColor(...tint);pdf.setDrawColor(...bpPdfRgb(tc));pdf.setLineWidth(1.05);pdf.roundedRect(x,y,cardW,cardH,6,6,'FD');
-       font(8.4,'bold',C.muted);pdf.text(String(h.time||''),x+6,y+11);
-       let ly=y+25;const assigns=(h.assignments||[]).slice(0,4);
-       if(!assigns.length){font(9,'bold',C.muted);pdf.text('—',x+6,ly)}
+       const x=M+i*(cardW+gap),tint=bpPdfTint(tc,.84);pdf.setFillColor(...tint);pdf.setDrawColor(...bpPdfRgb(ink));pdf.setLineWidth(1.45);pdf.roundedRect(x,y,cardW,cardH,7,7,'FD');
+       font(9.1,'bold',C.muted);pdf.text(String(h.time||''),x+7,y+13);
+       let ly=y+31;const assigns=(h.assignments||[]).slice(0,4);
+       if(!assigns.length){font(10.2,'bold',C.muted);pdf.text('—',x+7,ly)}
        assigns.forEach(a=>{
-         const name=String(a.name||'Rally Lead');const badgeW=a.pet?20:0;const maxName=cardW-12-(a.pet?badgeW+3:0);const fs=fitText(name,maxName,9.4,6.4,'bold');font(fs,'bold',tc);pdf.text(name,x+6,ly);
-         if(a.pet){const nameW=Math.min(pdf.getTextWidth(name),maxName);const nx=x+6+nameW+3;pdf.setFillColor(...bpPdfRgb(tc));pdf.roundedRect(nx,ly-7,18,9,4,4,'F');font(4.9,'bold','#ffffff');pdf.text('PET',nx+3.6,ly-.3)}
-         ly+=10.5;
+         const name=String(a.name||'Rally Lead');const badgeW=a.pet?23:0;const maxName=cardW-14-(a.pet?badgeW+4:0);const fs=fitText(name,maxName,11.3,7.5,'bold');font(fs,'bold',ink);pdf.text(name,x+7,ly);
+         if(a.pet){const nameW=Math.min(pdf.getTextWidth(name),maxName);const nx=x+7+nameW+4;pdf.setFillColor(...bpPdfRgb(ink));pdf.roundedRect(nx,ly-8,21,10,4,4,'F');font(5.4,'bold','#ffffff');pdf.text('PET',nx+4.2,ly-.5)}
+         ly+=13.5;
        });
      });
-     return y+cardH+22;
+     return y+cardH+28;
    };
    const drawPetSchedule=(rows)=>{
      let y=sectionTitle('Whale Group & Pet Schedule',M+4);
-     for(const a of rows||[]){y=ensure(y,125);font(17,'bold',C.ink);const tag=String(a.alliance_tag||'Alliance');pdf.text(tag,M,y);font(9.8,'bold',C.muted);pdf.text(String(a.role||'').toUpperCase(),M+pdf.getTextWidth(tag)+10,y);y+=24;for(const team of a.teams||[])y=scheduleTeam(team,y);y+=6}
+     for(const a of rows||[]){y=ensure(y,160);font(19,'bold',C.ink);const tag=String(a.alliance_tag||'Alliance');pdf.text(tag,M,y);font(10.8,'bold',C.muted);pdf.text(String(a.role||'').toUpperCase(),M+pdf.getTextWidth(tag)+12,y);y+=31;for(const team of a.teams||[])y=scheduleTeam(team,y);y+=18}
    };
-   const drawRoles=(roles,y)=>{
-     y=subTitle('Roles',y);const items=[['🛡 Garrison Chief',roles?.garrison_chief],['🔍 Rally Managers',roles?.rally_managers],['🚨 Incoming Traffic',roles?.incoming_traffic],['🧹 Kicking Crew',roles?.kicking_crew]];const gap=16,w=(contentW-gap)/2,rowH=42;
-     items.forEach((it,i)=>{const x=M+(i%2)*(w+gap),yy=y+Math.floor(i/2)*rowH;font(8.6,'bold',C.muted);pdf.text(it[0],x,yy);font(11.2,'bold',C.ink);pdf.text(String(it[1]||'—'),x,yy+16,{maxWidth:w});stroke(C.line);pdf.line(x,yy+24,x+w,yy+24)});return y+rowH*2+8;
+   const drawRoles=async(roles,y)=>{
+     y=subTitle('Roles',y);const items=[['🛡️','Garrison Chief',roles?.garrison_chief],['🔍','Rally Managers',roles?.rally_managers],['🚨','Incoming Traffic',roles?.incoming_traffic],['🧹','Kicking Crew',roles?.kicking_crew]];const gap=18,w=(contentW-gap)/2,rowH=48;
+     items.forEach((it,i)=>{const x=M+(i%2)*(w+gap),yy=y+Math.floor(i/2)*rowH,ico=emojiData(it[0]);if(ico){try{pdf.addImage(ico,'PNG',x,yy-10,15,15,undefined,'FAST')}catch(_){}}font(9.1,'bold',C.muted);pdf.text(it[1],x+20,yy+1);font(12.2,'bold',C.ink);pdf.text(String(it[2]||'—'),x,yy+20,{maxWidth:w});stroke(C.line);pdf.line(x,yy+29,x+w,yy+29)});return y+rowH*2+10;
    };
    const ratioCard=(label,r,x,y,kind='mia')=>{
-     if(!Array.isArray(r))return 0;const w=152,h=61;const isGar=kind==='garrison';const border=isGar?C.green:C.blue;const bg=isGar?C.greenSoft:C.blueSoft;
-     fill(bg);stroke(border);pdf.setLineWidth(1.1);pdf.roundedRect(x,y,w,h,8,8,'FD');font(8.2,'bold',border);pdf.text(label.toUpperCase(),x+10,y+14);font(20,'bold',isGar?'#0f6f49':'#1d4f91');pdf.text(r.join(' / '),x+10,y+38);font(7.2,'bold',C.muted);pdf.text('Infantry / Lancer / Marksman',x+10,y+52);return w;
+     if(!Array.isArray(r))return 0;const w=164,h=68;const isGar=kind==='garrison';const border=isGar?'#0f8f5f':'#2367b1';const bg=isGar?'#d9f3e7':'#dceafa';
+     fill(bg);stroke(border);pdf.setLineWidth(1.35);pdf.roundedRect(x,y,w,h,8,8,'FD');font(8.8,'bold',border);pdf.text(label.toUpperCase(),x+11,y+16);font(22,'bold',isGar?'#086a46':'#174b88');pdf.text(r.join(' / '),x+11,y+43);font(7.8,'bold',C.muted);pdf.text('Infantry / Lancer / Marksman',x+11,y+58);return w;
    };
    const heroText=(arr)=>!arr?.length?'—':arr.map(h=>h.name).join(' + ');
    const heroDominant=(arr)=>arr?.length?bpPdfHeroColor(arr[0]?.rarity):C.muted;
@@ -5155,11 +5162,11 @@ async function battlePlanDownloadPdf(){
      return y;
    };
    const drawJoinerHeroes=async(heroes,y)=>{
-     y=ensure(y,120);y=subTitle('Joiner Heroes · Use Any Of These',y);const cols=4,gap=8,w=(contentW-gap*3)/4,rowH=45;const imgs=await Promise.all((heroes||[]).map(h=>loadImageData(h.image)));
-     (heroes||[]).forEach((h,i)=>{const x=M+(i%cols)*(w+gap),yy=y+Math.floor(i/cols)*rowH,ic=imgs[i],hc=bpPdfHeroColor(h.rarity);if(ic){try{pdf.addImage(ic,'PNG',x,yy-14,28,28,undefined,'FAST')}catch(_){fill(hc);pdf.circle(x+14,yy,14,'F')}}else{fill(hc);pdf.circle(x+14,yy,14,'F')}font(9.6,'bold',hc);pdf.text(String(h.name||'Hero'),x+34,yy+4,{maxWidth:w-36})});return y+Math.ceil((heroes||[]).length/cols)*rowH+8;
+     y=ensure(y,150);y=subTitle('Joiner Heroes · Use Any Of These',y);const cols=3,gap=14,w=(contentW-gap*2)/3,rowH=58;const imgs=await Promise.all((heroes||[]).map(h=>loadImageData(h.image)));
+     (heroes||[]).forEach((h,i)=>{const x=M+(i%cols)*(w+gap),yy=y+Math.floor(i/cols)*rowH,ic=imgs[i],hc=bpPdfHeroColor(h.rarity);if(ic){try{pdf.addImage(ic,'PNG',x,yy-19,38,38,undefined,'FAST')}catch(_){fill(hc);pdf.circle(x+19,yy,19,'F')}}else{fill('#eef2f7');stroke(hc);pdf.setLineWidth(1.2);pdf.circle(x+19,yy,19,'FD');font(12,'bold',hc);pdf.text(String(h.name||'H').slice(0,1).toUpperCase(),x+15,yy+4)}font(11.2,'bold',hc);pdf.text(String(h.name||'Hero'),x+47,yy+5,{maxWidth:w-49})});return y+Math.ceil((heroes||[]).length/cols)*rowH+10;
    };
    const drawAlliance=async(data)=>{
-     newPage();let y=M+6;font(22,'bold',C.ink);const tag=String(data.alliance_tag||'Alliance');pdf.text(tag,M,y);font(9.8,'bold',C.muted);pdf.text(String(data.role||'').toUpperCase(),M+pdf.getTextWidth(tag)+10,y);y+=32;y=drawRoles(data.roles||{},y);y=subTitle('Whale Group Schedule',y);for(const team of data.teams||[])y=scheduleTeam(team,y);y=ensure(y,88);y=subTitle('Troop Ratios',y);let rx=M;if(Array.isArray(data.ratios?.garrison))rx+=ratioCard('★ Garrison',data.ratios.garrison,rx,y,'garrison')+12;if(Array.isArray(data.ratios?.mia))ratioCard(data.is_main?'MIA Rally':'★ MIA Rally',data.ratios.mia,rx,y,'mia');y+=75;if(!data.is_main&&data.joiner_heroes?.length)y=await drawJoinerHeroes(data.joiner_heroes,y);y=data.is_main?drawMainPlayers(data.players||[],y):drawCounterPlayers(data.players||[],y);
+     newPage();let y=M+8;font(24,'bold',C.ink);const tag=String(data.alliance_tag||'Alliance');pdf.text(tag,M,y);font(10.5,'bold',C.muted);pdf.text(String(data.role||'').toUpperCase(),M+pdf.getTextWidth(tag)+12,y);y+=36;y=await drawRoles(data.roles||{},y);y=subTitle('Whale Group Schedule',y);for(const team of data.teams||[])y=scheduleTeam(team,y);y=ensure(y,96);y=subTitle('Troop Ratios',y);let rx=M;if(Array.isArray(data.ratios?.garrison))rx+=ratioCard('★ Garrison',data.ratios.garrison,rx,y,'garrison')+14;if(Array.isArray(data.ratios?.mia))ratioCard(data.is_main?'MIA Rally':'★ MIA Rally',data.ratios.mia,rx,y,'mia');y+=82;if(!data.is_main&&data.joiner_heroes?.length)y=await drawJoinerHeroes(data.joiner_heroes,y);y=data.is_main?drawMainPlayers(data.players||[],y):drawCounterPlayers(data.players||[],y);
    };
 
    const d=battlePlanDoc();
@@ -5167,14 +5174,14 @@ async function battlePlanDownloadPdf(){
    let px=M,py=M+64;const meta=[d.opponent_state?`Opponent State • ${d.opponent_state}`:'',d.event_date?`Battle Date • ${d.event_date}`:'',d.alliance_first_star?`Star Alliance • ${d.alliance_first_star}`:'',d.alliance_presidency?`Presidency • ${d.alliance_presidency}`:''].filter(Boolean);meta.forEach(m=>{if(px+pdf.getTextWidth(m)+45>pw-M){px=M;py+=26}px=pill(m,px,py)});
    let y=py+42;
    if(String(d.secondary_squads_notes||'').trim()){
-     y=sectionTitle('INFORMATION',y);font(13.5,'bold',C.ink);pdf.text('General Info for Joiners:',M,y);y+=22;
-     for(const ln of bpPdfPlainLines(d.secondary_squads_notes)){y=ensure(y,34);fill('#f8fafc');pdf.roundedRect(M,y-13,contentW,30,5,5,'F');font(10.8,'bold',C.ink);pdf.text('•',M+10,y+2);y=text(bpPdfStripLead(ln),M+24,y+2,contentW-34,{leading:14})+8}
+     y=sectionTitle('INFORMATION',y);font(14.5,'bold',C.ink);pdf.text('General Info for Joiners:',M,y);y+=26;
+     for(const ln of bpPdfPlainLines(d.secondary_squads_notes)){const clean=bpPdfStripLead(ln);font(11.5,'bold',C.ink);const lines=pdf.splitTextToSize(clean,contentW-40);const boxH=Math.max(38,18+lines.length*15);y=ensure(y,boxH+10);fill('#f5f7fb');stroke('#dbe3ee');pdf.setLineWidth(.7);pdf.roundedRect(M,y-14,contentW,boxH,7,7,'FD');font(12.5,'bold',C.violet);pdf.text('•',M+12,y+3);font(11.5,'bold',C.ink);pdf.text(lines,M+28,y+3);y+=boxH+9}
    }
    if(String(d.svs_rules||'').trim()){
-     y=ensure(y+8,90);y=sectionTitle('SvS Rules',y+8);for(const ln0 of bpPdfPlainLines(d.svs_rules)){const ln=String(ln0),clean=bpPdfStripLead(ln);let mark='•',mc=C.muted;if(ln.startsWith('❌')){mark='×';mc='#dc2626'}else if(ln.startsWith('✅')){mark='✓';mc='#16a34a'}else if(ln.startsWith('📍')){mark='•';mc='#dc2626'}else if(ln.startsWith('📢')){mark='•';mc=C.cyan}y=ensure(y,22);font(12.5,'bold',mc);pdf.text(mark,M+4,y);font(10.8,ln.startsWith('📢')?'bold':'normal',C.ink);y=text(clean,M+22,y,contentW-26,{leading:14})+4}
+     y=ensure(y+8,90);y=sectionTitle('SvS Rules',y+8);for(const ln0 of bpPdfPlainLines(d.svs_rules)){const ln=String(ln0),clean=bpPdfStripLead(ln);let mark='•',mc=C.muted;if(ln.startsWith('❌')){mark='×';mc='#dc2626'}else if(ln.startsWith('✅')){mark='✓';mc='#16a34a'}else if(ln.startsWith('📍')){mark='•';mc='#dc2626'}else if(ln.startsWith('📢')){mark='•';mc=C.cyan}y=ensure(y,22);font(13.2,'bold',mc);pdf.text(mark,M+4,y);font(11.4,'bold',C.ink);y=text(clean,M+24,y,contentW-28,{leading:15})+7}
    }
 
-   const castle=await bpPdfCastleCanvas();if(castle){newPage();font(23,'bold',C.ink);pdf.text('Castle Layout',M,M+10);const top=M+34,maxW=contentW,maxH=ph-top-M;const scale=Math.min(maxW/castle.width,maxH/castle.height);const dw=castle.width*scale,dh=castle.height*scale;pdf.addImage(castle.toDataURL('image/png'),'PNG',(pw-dw)/2,top,dw,dh,undefined,'FAST')}
+   const castle=await bpPdfCastleCanvas();if(castle){newPage();font(24,'bold',C.ink);pdf.text('Castle Layout',M,M+10);const top=M+32,panelX=M-8,panelW=contentW+16,panelH=ph-top-M+4;fill('#080b12');pdf.roundedRect(panelX,top,panelW,panelH,10,10,'F');const pad=10,maxW=panelW-pad*2,maxH=panelH-pad*2;const scale=Math.min(maxW/castle.width,maxH/castle.height);const dw=castle.width*scale,dh=castle.height*scale;pdf.addImage(castle.toDataURL('image/png'),'PNG',panelX+(panelW-dw)/2,top+(panelH-dh)/2,dw,dh,undefined,'FAST')}
 
    const pet=battlePlanPetItem()?.snapshot?.data;if(Array.isArray(pet)&&pet.length){newPage();drawPetSchedule(pet)}
    const groups=battlePlanAllianceGroups();for(const g of groups){for(const item of g.items||[]){const data=item?.snapshot?.data;if(data)await drawAlliance(data)}}

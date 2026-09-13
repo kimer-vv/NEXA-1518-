@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • SvS Battle Operations</title>
-<!-- NEXA SVS OPERATIONS V14.39 • CASTLE LABELS LARGER • BETTER TAG/NAME READABILITY -->
+<!-- NEXA SVS OPERATIONS V14.40 • CASTLE DIAMOND BIGGER • PDF MAP FILL + SIMPLIFIED LEGEND -->
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -5077,13 +5077,12 @@ function bpPdfStripLead(line){return String(line||'').replace(/^(?:📢|❌|✅|
 async function bpPdfCastleCanvas(){
  const live=$('#castle-stage');
  let raw='';
+ let exportRatio=1;
  if(live){
    try{
      const clone=live.cloneNode(true);
      clone.removeAttribute('class');
      clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
-     clone.setAttribute('width','2400');
-     clone.setAttribute('height','2400');
      clone.setAttribute('preserveAspectRatio','xMidYMid meet');
      clone.querySelectorAll('[data-castle-city] rect').forEach(r=>{r.setAttribute('stroke','rgba(255,255,255,.42)');r.setAttribute('stroke-width','1.3')});
      const rot=live.querySelector('g[transform="rotate(45)"]');
@@ -5091,14 +5090,17 @@ async function bpPdfCastleCanvas(){
      if(rot&&typeof rot.getBBox==='function'){
        const box=rot.getBBox?.();
        if(box&&Number.isFinite(box.width)&&box.width>0&&Number.isFinite(box.height)&&box.height>0){
-         const padX=Math.max(18,box.width*.02),padY=Math.max(18,box.height*.02);
+         const padX=Math.max(10,box.width*.008),padY=Math.max(10,box.height*.008);
          x=Math.floor(box.x-padX);
          y=Math.floor(box.y-padY);
          w=Math.ceil(box.width+padX*2);
          h=Math.ceil(box.height+padY*2);
        }
      }
+     exportRatio=h>0?(w/h):1;
      clone.setAttribute('viewBox',`${x} ${y} ${w} ${h}`);
+     clone.setAttribute('width',String(Math.round(2600*exportRatio)));
+     clone.setAttribute('height','2600');
      const bg=document.createElementNS('http://www.w3.org/2000/svg','rect');
      bg.setAttribute('x',String(x));
      bg.setAttribute('y',String(y));
@@ -5109,7 +5111,7 @@ async function bpPdfCastleCanvas(){
      if(defs&&defs.parentNode) defs.parentNode.insertBefore(bg,defs.nextSibling);
      else clone.insertBefore(bg,clone.firstChild);
      raw=new XMLSerializer().serializeToString(clone);
-   }catch(_){raw=''}
+   }catch(_){raw='';exportRatio=1}
  }
  if(!raw){
    const item=battlePlanCastleItems().find(x=>x.snapshot?.export_svg);if(!item)return null;
@@ -5118,7 +5120,13 @@ async function bpPdfCastleCanvas(){
  const blob=new Blob([raw],{type:'image/svg+xml;charset=utf-8'}),url=URL.createObjectURL(blob);
  try{
    const img=await new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=reject;i.src=url});
-   const out=document.createElement('canvas');out.width=2400;out.height=2400;
+   const naturalW=Math.max(1,Number(img.naturalWidth)||0);
+   const naturalH=Math.max(1,Number(img.naturalHeight)||0);
+   const ratio=(naturalW&&naturalH)?(naturalW/naturalH):(exportRatio||1);
+   const out=document.createElement('canvas');
+   const targetH=2600;
+   const targetW=Math.max(2200,Math.round(targetH*ratio));
+   out.width=targetW;out.height=targetH;
    const ctx=out.getContext('2d');ctx.fillStyle='#080b12';ctx.fillRect(0,0,out.width,out.height);
    ctx.drawImage(img,0,0,out.width,out.height);
    return out;
@@ -5256,7 +5264,7 @@ async function battlePlanDownloadPdf(){
      y=ensure(y+8,90);y=sectionTitle('SvS Rules',y+8);for(const ln0 of bpPdfPlainLines(d.svs_rules)){const ln=String(ln0),clean=bpPdfStripLead(ln);let mark='•',mc=C.muted;if(ln.startsWith('❌')){mark='×';mc='#dc2626'}else if(ln.startsWith('✅')){mark='✓';mc='#16a34a'}else if(ln.startsWith('📍')){mark='•';mc='#dc2626'}else if(ln.startsWith('📢')){mark='•';mc=C.cyan}y=ensure(y,22);font(13.2,'bold',mc);pdf.text(mark,M+4,y);font(11.4,'bold',C.ink);y=text(clean,M+24,y,contentW-28,{leading:15})+7}
    }
 
-   const castle=await bpPdfCastleCanvas();if(castle){newPage();const panelX=M-16,panelY=M-10,panelW=contentW+32,panelH=panelW*1.045;fill('#080b12');pdf.roundedRect(panelX,panelY,panelW,panelH,8,8,'F');font(13.5,'bold','#f8fafc');pdf.text('SVS September 2026 — Castle Layout',panelX+12,panelY+18);const legend=[['Castle','#f2c21b'],['Turret','#a66b2c'],['Fixed','#586777'],['Open','#34404c'],['Opponent','#ff6b70']];let lx=panelX+12,ly=panelY+35;legend.forEach(([name,col])=>{fill(col);pdf.rect(lx,ly-7,7,7,'F');font(6.8,'bold','#94a3b8');pdf.text(name,lx+10,ly-1);lx+=pdf.getTextWidth(name)+28});const mapTop=panelY+48,mapPad=4,mapW=panelW-mapPad*2,mapH=panelH-52;const scale=Math.min(mapW/castle.width,mapH/castle.height);const dw=castle.width*scale,dh=castle.height*scale;pdf.addImage(castle.toDataURL('image/png'),'PNG',panelX+(panelW-dw)/2,mapTop+(mapH-dh)/2,dw,dh,undefined,'MEDIUM')}
+   const castle=await bpPdfCastleCanvas();if(castle){newPage();const panelX=M-16,panelY=M-10,panelW=contentW+32,panelH=panelW*1.045;fill('#080b12');pdf.roundedRect(panelX,panelY,panelW,panelH,8,8,'F');font(13.5,'bold','#f8fafc');pdf.text('SVS September 2026 — Castle Layout',panelX+12,panelY+18);const legend=[['Castle','#f2c21b'],['Turrets','#a66b2c'],['Opponent','#ff6b70']];let lx=panelX+12,ly=panelY+35;legend.forEach(([name,col])=>{fill(col);pdf.rect(lx,ly-7,7,7,'F');font(6.8,'bold','#94a3b8');pdf.text(name,lx+10,ly-1);lx+=pdf.getTextWidth(name)+28});const mapTop=panelY+44,mapPad=0,mapW=panelW-mapPad*2,mapH=panelH-48;const baseScale=Math.min(mapW/castle.width,mapH/castle.height);const scale=baseScale*1.14;const dw=castle.width*scale,dh=castle.height*scale;pdf.addImage(castle.toDataURL('image/png'),'PNG',panelX+(panelW-dw)/2,mapTop+(mapH-dh)/2,dw,dh,undefined,'MEDIUM')}
 
    const pet=battlePlanPetItem()?.snapshot?.data;if(Array.isArray(pet)&&pet.length){newPage();drawPetSchedule(pet)}
    const groups=battlePlanAllianceGroups();for(const g of groups){for(const item of g.items||[]){const data=item?.snapshot?.data;if(data)await drawAlliance(data)}}

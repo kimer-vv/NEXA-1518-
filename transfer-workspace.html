@@ -1,6 +1,6 @@
 <!doctype html>
 <!-- TARGET GITHUB FILE: transfer-workspace.html -->
-<!-- NEXA TRANSFER WORKSPACE V5.18 — GROUP DESTINATION INHERITANCE / OWN ALLIANCE TAG / ATOMIC BATCH -->
+<!-- NEXA TRANSFER WORKSPACE V5.19 — BOARDING MANIFEST PDF / GROUP DESTINATION / ATOMIC BATCH -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -645,32 +645,108 @@ function pdfRouteTone(a){const b=bucketOf(a);if(b==='special')return'vip';if(b==
 function drawInviteBox(pdf,x,y,sent,size=13){pdf.setLineWidth(1);if(sent){pdf.setFillColor(225,247,236);pdf.setDrawColor(33,150,99);pdf.roundedRect(x,y,size,size,2,2,'FD');pdf.setDrawColor(24,132,83);pdf.setLineWidth(1.6);pdf.line(x+3,y+size*.55,x+size*.42,y+size*.75);pdf.line(x+size*.42,y+size*.75,x+size*.80,y+size*.30)}else{pdf.setFillColor(255,255,255);pdf.setDrawColor(155,166,184);pdf.roundedRect(x,y,size,size,2,2,'FD')}}
 function drawBarcode(pdf,x,y,w,h,ink=[55,66,88]){pdf.setFillColor(...ink);const seq=[2,1,3,1,1,2,4,1,2,2,1,3,1,1,2,3,2,1,4,1,1,2,2,3,1,2,1,4,2,1,3,1,1,3,2,1];const unit=w/seq.reduce((a,b)=>a+b,0);let cx=x;seq.forEach((n,i)=>{const bw=n*unit;if(i%2===0)pdf.rect(cx,y,bw,h,'F');cx+=bw})}
 function ticketPassLabel(a){return bucketOf(a)==='special'?'VIP PASS · SPECIAL':'STANDARD PASS · ORDINARY'}
-function drawCheckInTicket(pdf,a,x,y,w,h){
- const vip=pdfRouteTone(a)==='vip',group=isGroupApplicant(a),sent=a.invite_status==='sent';
- const accent=vip?[197,148,39]:[28,150,110],accent2=vip?[255,244,210]:[230,249,241],ink=[34,45,65],muted=[93,107,130];
- const stubW=74,bodyW=w-stubW;
- pdf.setFillColor(255,255,255);pdf.setDrawColor(...accent);pdf.setLineWidth(1.05);pdf.roundedRect(x,y,w,h,8,8,'FD');
- pdf.setFillColor(...accent2);pdf.roundedRect(x,y,7,h,7,7,'F');
- pdf.setDrawColor(215,222,233);pdf.setLineDashPattern([2,2],0);pdf.line(x+bodyW,y+7,x+bodyW,y+h-7);pdf.setLineDashPattern([],0);
- pdf.setFont('helvetica','bold');pdf.setFontSize(6.9);pdf.setTextColor(...accent);pdf.text(ticketPassLabel(a),x+14,y+13);
- if(group){pdf.setFontSize(6.7);pdf.setTextColor(180,67,91);pdf.text(`GROUP · ${String(a.group_name||'GROUP').toUpperCase()}`,x+14,y+24,{maxWidth:bodyW-28})}
- const nameY=group?40:33;
- pdf.setFont('helvetica','bold');pdf.setFontSize(13.1);pdf.setTextColor(...ink);pdf.text(String(a.in_game_name||'Applicant'),x+14,y+nameY,{maxWidth:bodyW-28});
- pdf.setFontSize(9.6);pdf.setTextColor(...accent);pdf.text(`ID ${a.player_id||'—'}`,x+14,y+nameY+16,{maxWidth:bodyW-28});
- pdf.setFontSize(9.5);pdf.text(`ALLIANCE ${String(a.assigned_alliance_tag||'—').toUpperCase()}`,x+14,y+nameY+31,{maxWidth:bodyW-28});
- pdf.setFont('helvetica','normal');pdf.setFontSize(7.7);pdf.setTextColor(...muted);pdf.text(`${String(a.furnace_level||'—').toUpperCase()}  ·  ${fmt(a.current_power)}  ·  T12 ${hasT12(a)?'YES':'NO'}`,x+14,y+nameY+45,{maxWidth:bodyW-28});
- pdf.setFontSize(7.4);pdf.text(`Discord  ${a.discord_username||'—'}`,x+14,y+nameY+58,{maxWidth:bodyW-28});
- const sx=x+bodyW+10;
- pdf.setFont('helvetica','bold');pdf.setFontSize(5.8);pdf.setTextColor(...muted);pdf.text('INVITE',sx,y+14);
- drawInviteBox(pdf,sx,y+19,sent,14);
- pdf.setFontSize(6.2);pdf.setTextColor(sent?28:96,sent?139:108,sent?91:126);pdf.text(sent?'SENT':'PENDING',sx,y+40);
- drawBarcode(pdf,sx,y+h-33,stubW-20,19,[64,74,94]);
- pdf.setFont('helvetica','bold');pdf.setFontSize(5.4);pdf.setTextColor(...muted);pdf.text('NEXA CHECK-IN',sx,y+h-8);
+function pdfRgb(kind){
+ if(kind==='ordinary')return [31,145,101];
+ if(kind==='special')return [190,139,30];
+ if(kind==='group')return [181,67,91];
+ return [74,91,119];
 }
-function drawLegendCell(pdf,x,y,w,type,label){
- pdf.setFillColor(248,250,253);pdf.setDrawColor(224,229,237);pdf.roundedRect(x,y,w,27,6,6,'FD');
- if(type==='sent')drawInviteBox(pdf,x+8,y+7,true,12);else if(type==='pending')drawInviteBox(pdf,x+8,y+7,false,12);else if(type==='vip'){pdf.setFillColor(255,243,207);pdf.setDrawColor(202,156,45);pdf.roundedRect(x+7,y+6,34,14,5,5,'FD');pdf.setFont('helvetica','bold');pdf.setFontSize(5.7);pdf.setTextColor(151,103,13);pdf.text('VIP PASS',x+11,y+15)}else{pdf.setFillColor(255,231,237);pdf.setDrawColor(208,102,127);pdf.roundedRect(x+7,y+6,35,14,5,5,'FD');pdf.setFont('helvetica','bold');pdf.setFontSize(5.5);pdf.setTextColor(164,61,86);pdf.text('GROUP',x+13,y+15)}
- pdf.setFont('helvetica','bold');pdf.setFontSize(6.5);pdf.setTextColor(67,80,102);pdf.text(label,x+(type==='sent'||type==='pending'?25:47),y+16,{maxWidth:w-(type==='sent'||type==='pending'?31:53)});
+function pdfApplicantKind(a){
+ if(isGroupApplicant(a))return'group';
+ const b=bucketOf(a);
+ if(b==='special')return'special';
+ if(b==='ordinary')return'ordinary';
+ return'neutral';
+}
+function pdfApplicantNameColor(a){
+ const b=bucketOf(a);
+ if(b==='special')return pdfRgb('special');
+ if(b==='ordinary')return pdfRgb('ordinary');
+ return isGroupApplicant(a)?pdfRgb('group'):pdfRgb('neutral');
+}
+function pdfPower(v){
+ const n=Number(v||0);
+ if(!n)return'—';
+ if(n>=1e9)return`${(n/1e9).toFixed(2).replace(/\.00$/,'')}B`;
+ if(n>=1e6)return`${(n/1e6).toFixed(1).replace(/\.0$/,'')}M`;
+ if(n>=1e3)return`${Math.round(n/1e3)}K`;
+ return String(n);
+}
+function pdfFit(pdf,text,maxWidth,maxSize=8.2,minSize=5.4){
+ let size=maxSize;
+ pdf.setFontSize(size);
+ while(size>minSize&&pdf.getTextWidth(String(text||'—'))>maxWidth){size-=.35;pdf.setFontSize(size)}
+ return size;
+}
+function drawManifestLegend(pdf,x,y,w){
+ const gap=7,cell=(w-gap*4)/5,items=[
+  ['ordinary','Ordinary'],
+  ['special','Special'],
+  ['group','Group Transfer'],
+  ['sent','Invite Sent'],
+  ['pending','Invite Pending']
+ ];
+ items.forEach((it,i)=>{
+  const cx=x+i*(cell+gap);
+  pdf.setFillColor(248,250,253);pdf.setDrawColor(222,228,237);pdf.roundedRect(cx,y,cell,25,6,6,'FD');
+  if(it[0]==='sent'||it[0]==='pending'){
+   drawInviteBox(pdf,cx+7,y+6,it[0]==='sent',12);
+   pdf.setFont('helvetica','bold');pdf.setFontSize(5.8);pdf.setTextColor(66,81,107);pdf.text(it[1],cx+24,y+15,{maxWidth:cell-29});
+  }else{
+   const c=pdfRgb(it[0]);pdf.setFillColor(...c);pdf.roundedRect(cx+7,y+7,14,11,3,3,'F');
+   pdf.setFont('helvetica','bold');pdf.setFontSize(5.8);pdf.setTextColor(66,81,107);pdf.text(it[1],cx+27,y+15,{maxWidth:cell-32});
+  }
+ });
+}
+function drawManifestShell(pdf,x,y,w,h,title,subtitle,pageLabel=''){
+ const rose=pdfRgb('group');
+ pdf.setFillColor(255,255,255);pdf.setDrawColor(205,213,226);pdf.setLineWidth(1.1);pdf.roundedRect(x,y,w,h,10,10,'FD');
+ pdf.setFillColor(247,249,253);pdf.roundedRect(x,y,w,47,10,10,'F');
+ pdf.setFillColor(...rose);pdf.roundedRect(x,y,8,47,8,8,'F');
+ pdf.setDrawColor(211,218,230);pdf.setLineDashPattern([2,2],0);pdf.line(x+w-92,y+7,x+w-92,y+40);pdf.setLineDashPattern([],0);
+ pdf.setFont('helvetica','bold');pdf.setFontSize(6.6);pdf.setTextColor(104,116,139);pdf.text('NEXA · TRANSFER CHECK-IN',x+17,y+13);
+ pdf.setFontSize(15.5);pdf.setTextColor(35,47,67);pdf.text(String(title||'TRANSFER MANIFEST'),x+17,y+31,{maxWidth:w-126});
+ pdf.setFont('helvetica','normal');pdf.setFontSize(6.4);pdf.setTextColor(96,109,133);pdf.text(String(subtitle||''),x+17,y+41,{maxWidth:w-126});
+ pdf.setFont('helvetica','bold');pdf.setFontSize(6.4);pdf.setTextColor(...rose);pdf.text(pageLabel||'BOARDING MANIFEST',x+w-81,y+17,{maxWidth:68});
+ drawBarcode(pdf,x+w-80,y+24,66,12,[70,80,99]);
+}
+function drawManifestTableHeader(pdf,x,y,widths){
+ const labels=['NAME','GAME ID','ALLIANCE','FURNACE','POWER','INVITE'];
+ let cx=x;
+ pdf.setFillColor(241,244,249);pdf.rect(x,y,widths.reduce((a,b)=>a+b,0),22,'F');
+ labels.forEach((label,i)=>{
+  pdf.setFont('helvetica','bold');pdf.setFontSize(6.3);pdf.setTextColor(88,102,127);
+  const pad=i===5?4:7;
+  pdf.text(label,cx+pad,y+14,{maxWidth:widths[i]-pad*2});
+  cx+=widths[i];
+ });
+ pdf.setDrawColor(219,225,234);pdf.line(x,y+22,cx,y+22);
+}
+function drawManifestRow(pdf,a,x,y,widths,rowH){
+ const kind=pdfApplicantKind(a),rowColor=pdfRgb(kind),nameColor=pdfApplicantNameColor(a),sent=a.invite_status==='sent';
+ const vals=[
+  String(a.in_game_name||'Applicant'),
+  String(a.player_id||'—'),
+  String(a.assigned_alliance_tag||'—').toUpperCase(),
+  String(a.furnace_level||'—').toUpperCase(),
+  pdfPower(a.current_power)
+ ];
+ pdf.setFillColor(kind==='group'?255:kind==='special'?255:kind==='ordinary'?247:250,kind==='group'?246:kind==='special'?251:kind==='ordinary'?252:251,kind==='group'?248:kind==='special'?237:kind==='ordinary'?249:253);
+ pdf.rect(x,y,widths.reduce((a,b)=>a+b,0),rowH,'F');
+ pdf.setFillColor(...rowColor);pdf.rect(x,y,3,rowH,'F');
+ let cx=x;
+ vals.forEach((val,i)=>{
+  const color=i===0?nameColor:rowColor;
+  pdf.setFont('helvetica',i===0||i===2?'bold':'normal');
+  pdf.setTextColor(...color);
+  pdfFit(pdf,val,widths[i]-12,i===0?8.1:7.3,5.2);
+  pdf.text(val,cx+7,y+15,{maxWidth:widths[i]-12});
+  cx+=widths[i];
+ });
+ drawInviteBox(pdf,cx+7,y+5,sent,12);
+ pdf.setFont('helvetica','bold');pdf.setFontSize(5.6);pdf.setTextColor(sent?34:98,sent?139:108,sent?91:126);
+ pdf.text(sent?'SENT':'PENDING',cx+24,y+13,{maxWidth:widths[5]-28});
+ pdf.setDrawColor(228,233,240);pdf.line(x,y+rowH,x+widths.reduce((a,b)=>a+b,0),y+rowH);
 }
 function pdfEligibleProcessed(a){const b=bucketOf(a);return b==='ordinary'||b==='special'||isGroupApplicant(a)}
 function pdfCategoryRows(mode,value){
@@ -707,25 +783,47 @@ function ensurePdfFilterModal(){
 }
 async function downloadApplicantsPdf(mode='all',value=''){
  if(!window.jspdf?.jsPDF)return $('cycleStatus').textContent='PDF tools are still loading. Try again in a moment.';
- const rows=pdfCategoryRows(mode,value),label=pdfModeLabel(mode,value);if(!rows.length){const s=$('pdfFilterStatus');if(s)s.textContent=`No applicants found for ${label}.`;return}
- const {jsPDF}=window.jspdf,pdf=new jsPDF({orientation:'portrait',unit:'pt',format:'a4',compress:true}),pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight(),M=34,CW=pw-M*2;let y=M;
- const page=()=>{pdf.setFillColor(253,254,255);pdf.rect(0,0,pw,ph,'F')};page();
- pdf.setFont('helvetica','bold');pdf.setFontSize(8);pdf.setTextColor(94,109,137);pdf.text('NEXA · TRANSFER OPERATIONS',M,y);y+=24;
- const title='NEXA Transfer Check-In';pdf.setFont('helvetica','bold');pdf.setFontSize(25);let tx=M;for(let i=0;i<title.length;i++){const t=i/Math.max(1,title.length-1),r=Math.round(123+(83-123)*t),g=Math.round(105+(207-105)*t),b=Math.round(255+(255-255)*t);pdf.setTextColor(r,g,b);const ch=title[i];pdf.text(ch,tx,y);tx+=pdf.getTextWidth(ch)}
- y+=20;pdf.setFont('helvetica','bold');pdf.setFontSize(9.8);pdf.setTextColor(72,87,111);pdf.text(label,M,y);y+=16;pdf.setFontSize(9);pdf.text(`Transfer Window  ${pdfDate(event?.starts_at)} - ${pdfDate(event?.ends_at)}`,M,y);y+=22;
- const ord=rows.filter(a=>bucketOf(a)==='ordinary').length,sp=rows.filter(a=>bucketOf(a)==='special').length,sent=rows.filter(a=>a.invite_status==='sent').length,groupNames=new Set(rows.filter(isGroupApplicant).map(pdfGroupKey));const summary=[`Applicants ${rows.length}`,`Ordinary ${ord}`,`Special ${sp}`,`Groups ${groupNames.size}`,`Invites Sent ${sent}`];let sx=M;pdf.setFontSize(7.5);summary.forEach(t=>{const tw=pdf.getTextWidth(t)+16;if(sx+tw>pw-M){sx=M;y+=20}pdf.setFillColor(246,248,252);pdf.setDrawColor(218,225,235);pdf.roundedRect(sx,y-10,tw,18,9,9,'FD');pdf.setTextColor(56,70,91);pdf.text(t,sx+8,y+2);sx+=tw+6});y+=27;
- const lg=6,cellW=(CW-lg*3)/4;[['sent','Invite Sent'],['pending','Invite Pending'],['vip','VIP Pass · Special'],['group','Group Transfer']].forEach((it,i)=>drawLegendCell(pdf,M+i*(cellW+lg),y,cellW,it[0],it[1]));y+=39;
- const section=(title,list,groupLabel='')=>{if(!list.length)return;const gap=9,cardW=(CW-gap)/2,cardH=113,sectionTitle=groupLabel?`${title} · ${groupLabel}`:title;if(y+31+cardH>ph-M){pdf.addPage();page();y=M}pdf.setFont('helvetica','bold');pdf.setFontSize(12.5);pdf.setTextColor(31,43,62);pdf.text(sectionTitle,M,y,{maxWidth:CW});y+=16;pdf.setDrawColor(226,231,238);pdf.line(M,y,pw-M,y);y+=10;list.forEach((a,i)=>{if(i%2===0&&y+cardH>ph-M){pdf.addPage();page();y=M}const col=i%2,x=M+col*(cardW+gap);drawCheckInTicket(pdf,a,x,y,cardW,cardH);if(col===1||i===list.length-1)y+=cardH+10});y+=7};
- const grouped=rows.filter(isGroupApplicant),nonGroup=rows.filter(a=>!isGroupApplicant(a));
- if(mode==='category'&&value==='new'){section('NEW APPLICANTS',rows)}
- else if(mode==='category'&&value==='groups'){const by=new Map();grouped.forEach(a=>{const k=pdfGroupKey(a);if(!by.has(k))by.set(k,[]);by.get(k).push(a)});for(const [name,list] of by)section('GROUP TRANSFER',list,name)}
- else if(mode==='category'&&value==='invites'){section('INVITE PENDING',rows.filter(a=>a.invite_status!=='sent'));section('INVITE SENT',rows.filter(a=>a.invite_status==='sent'))}
- else {
-   section('ORDINARY',nonGroup.filter(a=>bucketOf(a)==='ordinary'));
-   section('SPECIAL · VIP PASS',nonGroup.filter(a=>bucketOf(a)==='special'));
-   if(grouped.length){const by=new Map();grouped.forEach(a=>{const k=pdfGroupKey(a);if(!by.has(k))by.set(k,[]);by.get(k).push(a)});for(const [name,list] of by)section('GROUP TRANSFER',list,name)}
+ const rows=pdfCategoryRows(mode,value),label=pdfModeLabel(mode,value);
+ if(!rows.length){const st=$('pdfFilterStatus');if(st)st.textContent=`No applicants found for ${label}.`;return}
+ const {jsPDF}=window.jspdf;
+ const pdf=new jsPDF({orientation:'landscape',unit:'pt',format:'a4',compress:true});
+ const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight(),M=28,CW=pw-M*2;
+ const widths=[170,105,90,72,86,CW-523],rowH=24,tableW=widths.reduce((a,b)=>a+b,0);
+ const ord=rows.filter(a=>bucketOf(a)==='ordinary').length;
+ const sp=rows.filter(a=>bucketOf(a)==='special').length;
+ const gp=rows.filter(isGroupApplicant).length;
+ const sent=rows.filter(a=>a.invite_status==='sent').length;
+ const pending=rows.length-sent;
+ const title=mode==='category'&&value==='invites'?'INVITES MANIFEST':
+             mode==='category'&&value==='transfer'?'TRANSFER LIST':
+             mode==='category'&&value==='groups'?'GROUP TRANSFER MANIFEST':
+             mode==='category'&&value==='new'?'NEW APPLICANTS':
+             mode==='alliance'?`${String(value||'').toUpperCase()} MANIFEST`:
+             'TRANSFER MANIFEST';
+ const subtitle=`${rows.length} players  ·  Ordinary ${ord}  ·  Special ${sp}  ·  Group ${gp}  ·  Sent ${sent}  ·  Pending ${pending}  ·  ${pdfDate(event?.starts_at)} - ${pdfDate(event?.ends_at)}`;
+ const shellTop=72,legendY=37,headerY=shellTop+58,bodyTop=headerY+22,bottom=32;
+ const rowsPerPage=Math.max(1,Math.floor((ph-bottom-bodyTop-10)/rowH));
+ const pageCount=Math.ceil(rows.length/rowsPerPage);
+ for(let p=0;p<pageCount;p++){
+  if(p>0)pdf.addPage();
+  pdf.setFillColor(253,254,255);pdf.rect(0,0,pw,ph,'F');
+  pdf.setFont('helvetica','bold');pdf.setFontSize(7);pdf.setTextColor(100,112,137);
+  pdf.text('NEXA · TRANSFER OPERATIONS',M,18);
+  drawManifestLegend(pdf,M,legendY,CW);
+  const slice=rows.slice(p*rowsPerPage,(p+1)*rowsPerPage);
+  const shellH=58+22+slice.length*rowH+13;
+  drawManifestShell(pdf,M,shellTop,CW,shellH,title,subtitle,`PAGE ${p+1} / ${pageCount}`);
+  drawManifestTableHeader(pdf,M,headerY,widths);
+  slice.forEach((a,i)=>drawManifestRow(pdf,a,M,bodyTop+i*rowH,widths,rowH));
+  pdf.setFont('helvetica','normal');pdf.setFontSize(5.8);pdf.setTextColor(116,127,147);
+  pdf.text('Green = Ordinary  ·  Gold = Special  ·  Rose = Group Transfer  ·  Checked = Invite Sent  ·  Empty = Invite Pending',M,ph-13,{maxWidth:CW});
  }
- const blob=pdf.output('blob'),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`NEXA-Transfer-Check-In-${pdfSafeName(label)}-${pdfDate(event?.starts_at)}-to-${pdfDate(event?.ends_at)}.pdf`;a.style.display='none';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(url);a.remove()},4000);$('pdfFilterModal')?.classList.remove('open');
+ const blob=pdf.output('blob'),url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;
+ a.download=`NEXA-Transfer-Check-In-${pdfSafeName(label)}-${pdfDate(event?.starts_at)}-to-${pdfDate(event?.ends_at)}.pdf`;
+ a.style.display='none';document.body.appendChild(a);a.click();
+ setTimeout(()=>{URL.revokeObjectURL(url);a.remove()},4000);
+ $('pdfFilterModal')?.classList.remove('open');
 }
 $('appDownloadPdf').onclick=()=>ensurePdfFilterModal().classList.add('open');
 

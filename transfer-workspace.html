@@ -1,6 +1,6 @@
 <!doctype html>
 <!-- TARGET GITHUB FILE: transfer-workspace.html -->
-<!-- NEXA TRANSFER WORKSPACE V5.19 — BOARDING MANIFEST PDF / GROUP DESTINATION / ATOMIC BATCH -->
+<!-- NEXA TRANSFER WORKSPACE V5.20 — LARGE BOARDING MANIFEST PDF / 13 PER PAGE / ATOMIC BATCH -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -713,14 +713,14 @@ function drawManifestShell(pdf,x,y,w,h,title,subtitle,pageLabel=''){
 function drawManifestTableHeader(pdf,x,y,widths){
  const labels=['NAME','GAME ID','ALLIANCE','FURNACE','POWER','INVITE'];
  let cx=x;
- pdf.setFillColor(241,244,249);pdf.rect(x,y,widths.reduce((a,b)=>a+b,0),22,'F');
+ pdf.setFillColor(241,244,249);pdf.rect(x,y,widths.reduce((a,b)=>a+b,0),27,'F');
  labels.forEach((label,i)=>{
-  pdf.setFont('helvetica','bold');pdf.setFontSize(6.3);pdf.setTextColor(88,102,127);
+  pdf.setFont('helvetica','bold');pdf.setFontSize(7.6);pdf.setTextColor(88,102,127);
   const pad=i===5?4:7;
-  pdf.text(label,cx+pad,y+14,{maxWidth:widths[i]-pad*2});
+  pdf.text(label,cx+pad,y+18,{maxWidth:widths[i]-pad*2});
   cx+=widths[i];
  });
- pdf.setDrawColor(219,225,234);pdf.line(x,y+22,cx,y+22);
+ pdf.setDrawColor(219,225,234);pdf.line(x,y+27,cx,y+27);
 }
 function drawManifestRow(pdf,a,x,y,widths,rowH){
  const kind=pdfApplicantKind(a),rowColor=pdfRgb(kind),nameColor=pdfApplicantNameColor(a),sent=a.invite_status==='sent';
@@ -739,13 +739,13 @@ function drawManifestRow(pdf,a,x,y,widths,rowH){
   const color=i===0?nameColor:rowColor;
   pdf.setFont('helvetica',i===0||i===2?'bold':'normal');
   pdf.setTextColor(...color);
-  pdfFit(pdf,val,widths[i]-12,i===0?8.1:7.3,5.2);
-  pdf.text(val,cx+7,y+15,{maxWidth:widths[i]-12});
+  pdfFit(pdf,val,widths[i]-12,i===0?10.2:9.1,6.8);
+  pdf.text(val,cx+7,y+20,{maxWidth:widths[i]-12});
   cx+=widths[i];
  });
- drawInviteBox(pdf,cx+7,y+5,sent,12);
- pdf.setFont('helvetica','bold');pdf.setFontSize(5.6);pdf.setTextColor(sent?34:98,sent?139:108,sent?91:126);
- pdf.text(sent?'SENT':'PENDING',cx+24,y+13,{maxWidth:widths[5]-28});
+ drawInviteBox(pdf,cx+8,y+7,sent,15);
+ pdf.setFont('helvetica','bold');pdf.setFontSize(7.2);pdf.setTextColor(sent?34:98,sent?139:108,sent?91:126);
+ pdf.text(sent?'SENT':'PENDING',cx+29,y+18,{maxWidth:widths[5]-33});
  pdf.setDrawColor(228,233,240);pdf.line(x,y+rowH,x+widths.reduce((a,b)=>a+b,0),y+rowH);
 }
 function pdfEligibleProcessed(a){const b=bucketOf(a);return b==='ordinary'||b==='special'||isGroupApplicant(a)}
@@ -788,7 +788,7 @@ async function downloadApplicantsPdf(mode='all',value=''){
  const {jsPDF}=window.jspdf;
  const pdf=new jsPDF({orientation:'landscape',unit:'pt',format:'a4',compress:true});
  const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight(),M=28,CW=pw-M*2;
- const widths=[170,105,90,72,86,CW-523],rowH=24,tableW=widths.reduce((a,b)=>a+b,0);
+ const widths=[170,105,90,72,86,CW-523],rowH=30,tableW=widths.reduce((a,b)=>a+b,0);
  const ord=rows.filter(a=>bucketOf(a)==='ordinary').length;
  const sp=rows.filter(a=>bucketOf(a)==='special').length;
  const gp=rows.filter(isGroupApplicant).length;
@@ -801,8 +801,8 @@ async function downloadApplicantsPdf(mode='all',value=''){
              mode==='alliance'?`${String(value||'').toUpperCase()} MANIFEST`:
              'TRANSFER MANIFEST';
  const subtitle=`${rows.length} players  ·  Ordinary ${ord}  ·  Special ${sp}  ·  Group ${gp}  ·  Sent ${sent}  ·  Pending ${pending}  ·  ${pdfDate(event?.starts_at)} - ${pdfDate(event?.ends_at)}`;
- const shellTop=72,legendY=37,headerY=shellTop+58,bodyTop=headerY+22,bottom=32;
- const rowsPerPage=Math.max(1,Math.floor((ph-bottom-bodyTop-10)/rowH));
+ const shellTop=72,legendY=37,headerY=shellTop+58,bodyTop=headerY+27,bottom=22;
+ const rowsPerPage=Math.min(13,Math.max(1,Math.floor((ph-bottom-bodyTop-8)/rowH)));
  const pageCount=Math.ceil(rows.length/rowsPerPage);
  for(let p=0;p<pageCount;p++){
   if(p>0)pdf.addPage();
@@ -811,12 +811,10 @@ async function downloadApplicantsPdf(mode='all',value=''){
   pdf.text('NEXA · TRANSFER OPERATIONS',M,18);
   drawManifestLegend(pdf,M,legendY,CW);
   const slice=rows.slice(p*rowsPerPage,(p+1)*rowsPerPage);
-  const shellH=58+22+slice.length*rowH+13;
+  const shellH=58+27+slice.length*rowH+13;
   drawManifestShell(pdf,M,shellTop,CW,shellH,title,subtitle,`PAGE ${p+1} / ${pageCount}`);
   drawManifestTableHeader(pdf,M,headerY,widths);
   slice.forEach((a,i)=>drawManifestRow(pdf,a,M,bodyTop+i*rowH,widths,rowH));
-  pdf.setFont('helvetica','normal');pdf.setFontSize(5.8);pdf.setTextColor(116,127,147);
-  pdf.text('Green = Ordinary  ·  Gold = Special  ·  Rose = Group Transfer  ·  Checked = Invite Sent  ·  Empty = Invite Pending',M,ph-13,{maxWidth:CW});
  }
  const blob=pdf.output('blob'),url=URL.createObjectURL(blob),a=document.createElement('a');
  a.href=url;

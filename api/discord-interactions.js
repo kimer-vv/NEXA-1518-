@@ -1,4 +1,4 @@
-// NEXA DISCORD BOT V1.8.3 — COPYABLE GAME IDS / SEPARATE CATEGORY POSTS
+// NEXA DISCORD BOT V1.8.4 — INVITE SENT/PENDING ONLY / SPECIAL STAR
 import {
   rawBody,verifyDiscord,subcommand,db,getConfigByGuild,
   getCurrentEvent,currentApps,selectedApps,recruitingAlliances,inviteCounts,inviteReport,
@@ -201,20 +201,21 @@ function routeDot(a){
   if(a.application_bucket==='ordinary')return'🟢';
   return'⚪';
 }
-function compactApplicantLine(a,{groupMode=false}={}){
+function compactApplicantLine(a){
   const name=a.in_game_name||'Applicant',id=a.player_id||'—';
   const furnace=String(a.furnace_level||'—').toUpperCase();
   const n=Number(a.current_power||0),power=!n?'—':n>=1e9?`${Math.round(n/1e7)/100}B`:n>=1e6?`${Math.round(n/1e6)}M`:fmtPower(n);
   const alliance=a.assigned_alliance_tag||a._group_destination||'—';
-  return `${groupMode?routeDot(a):''}${name} · \`${id}\` · ${furnace} · ${power} · ${alliance} · ${inviteIcon(a)}`;
+  const special=a.application_bucket==='special'?'⭐ ':'';
+  return `${special}${name} · \`${id}\`\n${furnace} │ ${power} │ ${alliance}`;
 }
-function categoryEmbeds(cfg,rows,{title,color,groupMode=false}){
+function categoryEmbeds(cfg,rows,{title,color}){
   if(!rows.length)return[];
-  return chunkRows(rows,15).map((part,i)=>embed(cfg,{
-    title:`${title} · ${rows.length}${rows.length>15?` · ${i+1}/${Math.ceil(rows.length/15)}`:''}`,
-    description:part.map(a=>compactApplicantLine(a,{groupMode})).join('\n'),
+  return chunkRows(rows,10).map((part,i)=>embed(cfg,{
+    title:`${title} · ${rows.length}${rows.length>10?` · ${i+1}/${Math.ceil(rows.length/10)}`:''}`,
+    description:part.map(a=>compactApplicantLine(a)).join('\n\n'),
     color,
-    footer:groupMode?'🟢 Ordinary · 🟡 Special · ✅ Sent · ⬜ Pending':'✅ Sent · ⬜ Pending'
+    footer:'⭐ Special Invite'
   }));
 }
 function compactListEmbeds(cfg,apps,placement='all'){
@@ -480,30 +481,27 @@ export default async function handler(req,res){
       if(name==='list'){
         const rawApps=await currentApps(cfg.workspace_id,event.id),apps=await hydrateGroupMeta(cfg.workspace_id,rawApps),target=channelFor(cfg,'invites');
         if(!target)return res.status(200).json(responseEmbed(errorEmbed(cfg,'Invite Channel Not Configured','Assign an Invite Operations channel first in NEXA Workspace.')));
-        const active=apps.filter(a=>a.application_cycle!=='next');
+        const selected=apps.filter(a=>a.application_cycle!=='next'&&['ordinary','special'].includes(String(a.application_bucket||'')));
+        const sent=selected.filter(a=>a.invite_status==='sent');
+        const pending=selected.filter(a=>a.invite_status!=='sent');
         const sections=[
-          ['inbox','New Applicants',active.filter(a=>!a.group_id&&a.application_bucket==='inbox')],
-          ['ordinary','Ordinary',active.filter(a=>!a.group_id&&a.application_bucket==='ordinary')],
-          ['special','Special',active.filter(a=>!a.group_id&&a.application_bucket==='special')],
-          ['group','Group Transfer',active.filter(a=>a.group_id)]
+          {rows:sent,title:'✅ Invite Sent',color:COLORS.success},
+          {rows:pending,title:'⏳ Invite Pending',color:COLORS.invite}
         ];
         let posted=0;
-        for(const [placement,label,rows] of sections){
-          if(!rows.length)continue;
-          const embeds=compactListEmbeds(cfg,apps,placement);
+        for(const s of sections){
+          const embeds=categoryEmbeds(cfg,s.rows,s);
           for(const e of embeds){
             await sendChannel(target,{embeds:[e],components:workspaceOnlyComponents(cfg),allowed_mentions:{parse:[]}});
             posted++;
           }
         }
-        const counts=Object.fromEntries(sections.map(([,label,rows])=>[label,rows.length]));
         return res.status(200).json(responseEmbed(successEmbed(cfg,'Invite List Posted',
-          `Posted **${posted}** roster section${posted===1?'':'s'} to <#${target}>.`,
+          `Posted **${posted}** invite section${posted===1?'':'s'} to <#${target}>.`,
           [
-            field('🔵 New',String(counts['New Applicants']||0),true),
-            field('🟢 Ordinary',String(counts.Ordinary||0),true),
-            field('🟡 Special',String(counts.Special||0),true),
-            field('🔴 Group',String(counts['Group Transfer']||0),true)
+            field('✅ Sent',String(sent.length),true),
+            field('⏳ Pending',String(pending.length),true),
+            field('⭐ Special',String(selected.filter(a=>a.application_bucket==='special').length),true)
           ]
         )));
       }

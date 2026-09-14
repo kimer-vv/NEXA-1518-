@@ -331,12 +331,48 @@ const $=s=>document.querySelector(s),$$=s=>Array.from(document.querySelectorAll(
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const state=Number(localStorage.getItem('nexa_active_state_v49')||window.NEXA_ACTIVE_STATE||1518)||1518;
 $('#stateLabel').textContent='State '+state;
-const KEY='nexa_fdt_ops_v225_'+state;
+const KEY='nexa_fdt_ops_'+state;
+const LEGACY_KEYS=['nexa_fdt_ops_v225_','nexa_fdt_ops_v224_','nexa_fdt_ops_v223_','nexa_fdt_ops_v222_','nexa_fdt_ops_v221_','nexa_fdt_ops_v22_','nexa_fdt_ops_v20_','nexa_fdt_ops_v19_','nexa_fdt_ops_v18_','nexa_fdt_ops_v17_'].map(k=>k+state);
 const COLORS=['#9b78ff','#ffc75b','#48ddff','#67dfb1','#ff79b7','#b897ff','#ff9f5b','#68e6ff','#ff6f91','#6ee7b7','#60a5fa','#f59e0b','#a78bfa','#34d399','#f472b6','#22d3ee','#fb7185','#84cc16','#c084fc','#38bdf8','#fbbf24','#4ade80','#e879f9','#2dd4bf'];
 let store=load(),alliances=[],players=[],responses=[],heroes=[],rules=[],activeGen=0,fcTab='approved';
 
+function storageProgressScore(x){
+ if(!x||typeof x!=='object')return -1;
+ let score=0;
+ const lp=x.legionPlacement;
+ if(lp&&Array.isArray(lp.legions)){
+   score+=lp.legions.length*5;
+   score+=lp.legions.reduce((s,l)=>s+(Array.isArray(l.playerIds)?l.playerIds.length:0),0)*20;
+   if(lp.phase==='review')score+=30;
+   if(lp.phase==='final')score+=60;
+ }
+ if(Array.isArray(x.legions)){
+   score+=x.legions.length*3;
+   for(const l of x.legions){
+     score+=(Array.isArray(l.members)?l.members.length:0)*10;
+     score+=(Array.isArray(l.teams)?l.teams.length:0)*4;
+     for(const t of l.teams||[])score+=(Array.isArray(t.assignments)?t.assignments.length:0)*6+(Array.isArray(t.players)?t.players.length:0)*5;
+   }
+ }
+ if(x.setup?.saved)score+=20;
+ if(x.setup?.battleDate)score+=10;
+ if(x.plan?.title||x.plan?.notes)score+=8;
+ return score
+}
 function load(){
- try{const x=JSON.parse(localStorage.getItem(KEY)||'null');if(x)return x}catch(_){}
+ try{
+   const current=JSON.parse(localStorage.getItem(KEY)||'null');
+   if(current)return current;
+   const candidates=[];
+   LEGACY_KEYS.forEach((k,idx)=>{try{const raw=localStorage.getItem(k);if(!raw)return;const data=JSON.parse(raw);if(data)candidates.push({k,data,score:storageProgressScore(data),idx})}catch(_){}});
+   if(candidates.length){
+     candidates.sort((a,b)=>b.score-a.score||a.idx-b.idx);
+     const chosen=candidates[0];
+     localStorage.setItem(KEY,JSON.stringify(chosen.data));
+     console.info('[NEXA FDT] Migrated saved workspace data from',chosen.k,'score',chosen.score);
+     return chosen.data
+   }
+ }catch(_){}
  const start=12,end=17,colors=COLORS;
  const allianceTags=['BBC','EVG','FSU','HOS','WAR','LGC','TAX','OA'];
  const mkTroops=(i,isWhale)=>{

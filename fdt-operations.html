@@ -65,11 +65,21 @@ label{display:grid;gap:6px;color:#aeb7d1;font-size:12px;font-weight:850}input,se
 .hero-check-list{display:grid;gap:8px;margin-top:12px;max-height:58dvh;overflow:auto}.hero-check{display:grid;grid-template-columns:64px 1fr 26px;gap:10px;align-items:center;border:1px solid rgba(255,255,255,.11);border-radius:16px;padding:10px;background:#0c1428}.hero-check img{width:64px;height:64px;border-radius:12px;object-fit:cover}.hero-check input{width:22px;height:22px;min-height:22px}
 .map img{width:100%;display:block;border-radius:16px;border:1px solid rgba(255,255,255,.12)}
 @media(max-width:620px){.card,.desc,.status,.nav{margin-left:0}.grid2,.mode-box{grid-template-columns:1fr}.response-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.hero-edit-grid,.hero-choice-grid{grid-template-columns:1fr 1fr}.board-name{font-size:20px}}
+
+.setup-editor.hidden,.setup-collapsed.hidden{display:none!important}
+.setup-collapsed{border:1px solid rgba(72,221,255,.18);border-radius:16px;background:rgba(5,12,28,.72);padding:13px}
+.setup-summary-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.setup-summary-chip{border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(255,255,255,.025);padding:10px}
+.setup-summary-chip small{display:block;color:#8f9bbb;font-size:9px;font-weight:950;letter-spacing:.08em;text-transform:uppercase}
+.setup-summary-chip b{display:block;margin-top:4px}
+.setup-action-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.setup-action-row .btn{flex:1 1 120px}
+@media(max-width:620px){.setup-summary-row{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
 <main class="sh">
-<!-- NEXA FDT OPERATIONS V1.5 • TEST SANDBOX / 5-HOUR SLOTS / MULTI-RALLY CELLS -->
+<!-- NEXA FDT OPERATIONS V1.6 • WORKING PILLS / COLLAPSIBLE SETUP / TEST SANDBOX -->
 <div class="top">
   <a class="round" href="index.html" aria-label="Back">‹</a>
   <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div><div class="autosave">AUTOSAVE • SAVED</div></div>
@@ -90,17 +100,33 @@ label{display:grid;gap:6px;color:#aeb7d1;font-size:12px;font-weight:850}input,se
 <section class="panel active" data-panel="setup">
   <div class="desc">Set the FDT Battle Date and UTC battle window. FDT does not require an opponent.</div>
   <div class="card">
-    <div class="section-head"><div><h2>FDT Setup</h2><div class="tiny muted">Battle window controls Pet Schedule hours.</div></div><span class="live-badge">FDT</span></div>
-    <div class="grid2" style="margin-top:12px">
-      <label>Battle Date<input id="battleDate" type="date"></label>
-      <label>Event Status<select id="eventStatus"><option value="planning">Planning</option><option value="live">Live Event</option><option value="ended">Ended</option></select></label>
-      <label>Battle Start • UTC<select id="battleStart"></select></label>
-      <label>Battle End • UTC<select id="battleEnd"></select></label>
+    <div id="setupEditor" class="setup-editor">
+      <div class="section-head"><div><h2>FDT Setup</h2><div class="tiny muted">Battle window controls Pet Schedule hours.</div></div><span class="live-badge">FDT</span></div>
+      <div class="grid2" style="margin-top:12px">
+        <label>Battle Date<input id="battleDate" type="date"></label>
+        <label>Event Status<select id="eventStatus"><option value="planning">Planning</option><option value="live">Live Event</option><option value="ended">Ended</option></select></label>
+        <label>Battle Start • UTC<select id="battleStart"></select></label>
+        <label>Battle End • UTC<select id="battleEnd"></select></label>
+      </div>
+      <label style="margin-top:10px">Event / State Alliance Name<input id="eventAlliance" placeholder="Optional"></label>
+      <div class="setup-summary">
+        <div class="setup-item"><small>Battle Day</small><b id="battleDateRead">Not set</b></div>
+        <div class="setup-item"><small>Battle Window</small><b id="battleWindowRead">12:00–17:00 UTC</b></div>
+      </div>
+      <div class="row" style="margin-top:12px"><button class="btn violet" id="saveSetup">Save Setup</button></div>
     </div>
-    <label style="margin-top:10px">Event / State Alliance Name<input id="eventAlliance" placeholder="Optional"></label>
-    <div class="setup-summary">
-      <div class="setup-item"><small>Battle Day</small><b id="battleDateRead">Not set</b></div>
-      <div class="setup-item"><small>Battle Window</small><b id="battleWindowRead">12:00–17:00 UTC</b></div>
+
+    <div id="setupCollapsed" class="setup-collapsed hidden">
+      <div class="section-head"><div><h2 style="margin:0">FDT Setup</h2><div class="tiny muted">Saved setup summary</div></div><span id="setupStatusBadge" class="live-badge">PLANNING</span></div>
+      <div class="setup-summary-row" style="margin-top:10px">
+        <div class="setup-summary-chip"><small>Battle Day</small><b id="summaryBattleDate">Not set</b></div>
+        <div class="setup-summary-chip"><small>Battle Window</small><b id="summaryBattleWindow">12:00–17:00 UTC</b></div>
+      </div>
+      <div class="setup-action-row">
+        <button class="btn" id="editSetup">Edit</button>
+        <button class="btn" id="openSetup">Open</button>
+        <button class="btn violet" id="publishNext">Publish Next</button>
+      </div>
     </div>
   </div>
 </section>
@@ -150,7 +176,7 @@ const $=s=>document.querySelector(s),$$=s=>Array.from(document.querySelectorAll(
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const state=Number(localStorage.getItem('nexa_active_state_v49')||window.NEXA_ACTIVE_STATE||1518)||1518;
 $('#stateLabel').textContent='State '+state;
-const KEY='nexa_fdt_ops_v15_'+state;
+const KEY='nexa_fdt_ops_v16_'+state;
 const COLORS=['#9b78ff','#ffc75b','#48ddff','#67dfb1','#ff79b7','#b897ff','#ff9f5b','#68e6ff'];
 let store=load(),alliances=[],players=[],responses=[],heroes=[],rules=[],activeGen=0,fcTab='approved';
 
@@ -160,10 +186,46 @@ function load(){
  const whales=Array.from({length:13},(_,i)=>({id:`test_whale_${String(i+1).padStart(2,'0')}`,name:`Test Whale ${String(i+1).padStart(2,'0')}`,in_game_name:`Test Whale ${String(i+1).padStart(2,'0')}`,manual:true,test:true}));
  const joiners=Array.from({length:40},(_,i)=>({id:`test_joiner_${String(i+1).padStart(2,'0')}`,name:`Test Joiner ${String(i+1).padStart(2,'0')}`,in_game_name:`Test Joiner ${String(i+1).padStart(2,'0')}`,player_id:`TJ${String(i+1).padStart(3,'0')}`,manual:true,test:true}));
  let wi=0;
- const mkTeam=(n,count,color)=>{const ids=whales.slice(wi,wi+count).map(x=>x.id);wi+=count;return{id:`seed_team_${n}`,name:`Team ${n}`,color,assignments:ids.map((pid,j)=>({id:`seed_asg_${n}_${j}`,playerId:pid,start,end,pet:j===0})),players:[],playerHeroes:{}}};
+ const mkTeam=(n,count,color)=>{const ids=whales.slice(wi,wi+count).map(x=>x.id);wi+=count;return{id:`seed_team_${n}_${wi}`,name:`Team ${n}`,color,assignments:ids.map((pid,j)=>({id:`seed_asg_${n}_${wi}_${j}`,playerId:pid,start,end,pet:j===0})),players:[],playerHeroes:{}}};
  const l1={id:'seed_leg_1',name:'Legion 1',color:colors[0],allianceId:'',manualAlliance:'TEST-L1',configured:true,teams:[mkTeam(1,4,colors[1]),mkTeam(2,3,colors[2])],mode:'assigned',roles:{garrisonChief:'',rallyManagers:'',incomingTraffic:'',kickingCrew:''},ratios:{garrison:'40/0/60',rally:'49/2/49'},sharedHeroIds:[]};
  const l2={id:'seed_leg_2',name:'Legion 2',color:colors[3],allianceId:'',manualAlliance:'TEST-L2',configured:true,teams:[mkTeam(1,3,colors[4]),mkTeam(2,3,colors[5])],mode:'pool',roles:{garrisonChief:'',rallyManagers:'',incomingTraffic:'',kickingCrew:''},ratios:{garrison:'40/0/60',rally:'49/2/49'},sharedHeroIds:[]};
- return{setup:{battleDate:'',status:'planning',battleStart:start,battleEnd:end,alliance:''},legions:[l1,l2],manualRally:whales,manualPlayers:joiners,plan:{title:'',alliance:'',notes:''}}
+ return{setup:{battleDate:'',status:'planning',battleStart:start,battleEnd:end,alliance:'',saved:false},legions:[l1,l2],manualRally:whales,manualPlayers:joiners,plan:{title:'',alliance:'',notes:''}}
+}
+function save(){localStorage.setItem(KEY,JSON.stringify(store))}
+function uid(p){return p+Math.random().toString(36).slice(2,10)}
+function say(t){$('#status').textContent=t||''}
+function modal(html){const r=document.createElement('div');r.className='modal';r.innerHTML=`<div class="modal-card">${html}</div>`;r.onclick=e=>{if(e.target===r||e.target.closest('[data-modal-close]'))r.remove()};document.body.appendChild(r);return r}
+function panel(n){$$('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.panel===n));$$('.panel').forEach(p=>p.classList.toggle('active',p.dataset.panel===n))}
+$('#nav').onclick=e=>{const b=e.target.closest('[data-panel]');if(b)panel(b.dataset.panel)}
+function hourOpts(sel){let s='';for(let h=0;h<24;h++)s+=`<option value="${h}" ${Number(sel)===h?'selected':''}>${String(h).padStart(2,'0')}:00</option>`;return s}
+function hourLabel(h){return String(h).padStart(2,'0')+':00'}
+function battleHours(){const a=Number(store.setup.battleStart??12),b=Number(store.setup.battleEnd??17),x=[];for(let h=a;h<b;h++)x.push(h);return x}
+function scheduleOpts(sel,includeEnd=false){const a=Number(store.setup.battleStart??12),b=Number(store.setup.battleEnd??17),arr=[];for(let h=a;h<(includeEnd?b+1:b);h++)arr.push(h);return arr.map(h=>`<option value="${h}" ${Number(sel)===h?'selected':''}>${hourLabel(h)}</option>`).join('')}
+
+/* SETUP */
+function wireSetup(){
+ store.setup=Object.assign({battleDate:'',status:'planning',battleStart:12,battleEnd:17,alliance:'',saved:false},store.setup||{});
+ if(Number(store.setup.battleEnd)<=Number(store.setup.battleStart))store.setup.battleEnd=Math.min(23,Number(store.setup.battleStart)+1);
+ $('#battleDate').value=store.setup.battleDate||'';$('#eventStatus').value=store.setup.status||'planning';$('#eventAlliance').value=store.setup.alliance||'';
+ $('#battleStart').innerHTML=hourOpts(store.setup.battleStart);$('#battleEnd').innerHTML=hourOpts(store.setup.battleEnd);
+ const paint=()=>{
+   $('#battleDateRead').textContent=store.setup.battleDate||'Not set';
+   $('#battleWindowRead').textContent=`${hourLabel(store.setup.battleStart)}–${hourLabel(store.setup.battleEnd)} UTC`;
+   $('#summaryBattleDate').textContent=store.setup.battleDate||'Not set';
+   $('#summaryBattleWindow').textContent=`${hourLabel(store.setup.battleStart)}–${hourLabel(store.setup.battleEnd)} UTC`;
+   $('#setupStatusBadge').textContent=String(store.setup.status||'planning').toUpperCase();
+   $('#setupEditor').classList.toggle('hidden',!!store.setup.saved);
+   $('#setupCollapsed').classList.toggle('hidden',!store.setup.saved);
+ };paint();
+ $('#battleDate').oninput=e=>{store.setup.battleDate=e.target.value;save();paint()};
+ $('#eventStatus').onchange=e=>{store.setup.status=e.target.value;save();paint()};
+ $('#eventAlliance').oninput=e=>{store.setup.alliance=e.target.value;save()};
+ $('#battleStart').onchange=e=>{store.setup.battleStart=Number(e.target.value);if(store.setup.battleEnd<=store.setup.battleStart)store.setup.battleEnd=Math.min(23,store.setup.battleStart+1);save();wireSetup();renderPets();renderBoard()};
+ $('#battleEnd').onchange=e=>{store.setup.battleEnd=Number(e.target.value);if(store.setup.battleEnd<=store.setup.battleStart)store.setup.battleEnd=Math.min(23,store.setup.battleStart+1);save();wireSetup();renderPets();renderBoard()};
+ $('#saveSetup').onclick=()=>{store.setup.saved=true;save();paint()};
+ $('#editSetup').onclick=()=>{store.setup.saved=false;save();paint()};
+ $('#openSetup').onclick=()=>{store.setup.saved=false;save();paint()};
+ $('#publishNext').onclick=()=>{store.setup.status='live';store.setup.saved=true;save();$('#eventStatus').value='live';paint();say('FDT setup marked Live Event locally. Backend publishing is not connected yet.')};
 }
 
 /* DATA */

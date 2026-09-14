@@ -218,6 +218,13 @@ label{display:grid;gap:6px;color:#aeb7d1;font-size:12px;font-weight:850}input,se
 .export-stage .final-placement-wrap{margin-left:0}
 .export-stage .final-placement{break-inside:avoid}
 
+
+/* V2.2.8 */
+.legion-type-label{font-size:10px;font-weight:1000;letter-spacing:.08em;text-transform:uppercase;color:#dce6ff;margin-top:3px}
+.export-player-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 8px;border-radius:9px;background:rgba(255,255,255,.022);font-size:10px}
+.export-player-main{min-width:0}
+.export-player-name{font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.export-player-id{font-size:8px;color:#9aa6c5;margin-top:2px;letter-spacing:.04em}
 </style>
 </head>
 <body>
@@ -605,11 +612,32 @@ function draftRoleSelect(p){const role=fdtOperationalRole(p);return`<select data
 function draftPlayerRow(p,l){return`<div class="draft-player"><input type="checkbox" data-draft-check="${p.id}" data-lid="${l.id}"><div class="pn">[${esc(playerAllianceTag(p)||'NO TAG')}] ${esc(p.in_game_name||'Player')}</div>${draftRoleSelect(p)}<div class="score">${fdtScore(p)}</div><div class="avail">${availabilityLabel(p)}</div></div>`}
 function draftAllianceSelect(l){return`<select data-draft-alliance="${l.id}"><option value="">Choose Alliance…</option>${alliances.map(a=>`<option value="${a.id}" ${String(a.id)===String(l.allianceId)?'selected':''}>${esc(a.tag||a.name)}</option>`).join('')}<option value="__manual__" ${l.manualAlliance?'selected':''}>Add Manually…</option></select>`}
 function renderReview(){const w=ensureLegionWorkflow();return`<div class="card"><div class="section-head"><div><h2>Final Draft</h2></div><button class="btn" data-back-assignment>Back to Assignment</button></div></div>${w.legions.map(l=>`<section class="draft-legion" style="--lc:${l.color}"><div class="draft-head"><div class="draft-head-top"><div><div class="draft-title">${esc(l.name)}</div><div class="draft-summary">${l.playerIds.length}/60 players • Power ${legionPower(l).toLocaleString()} • Score ${legionScoreTotal(l).toLocaleString()}</div></div></div></div><div class="draft-config"><label>Legion Alliance${draftAllianceSelect(l)}</label><label>Manual Alliance<input data-draft-manual="${l.id}" value="${esc(l.manualAlliance||'')}" placeholder="Optional"></label></div><div class="draft-player-list">${l.playerIds.map(id=>playerById(id)).filter(Boolean).sort((a,b)=>fdtScore(b)-fdtScore(a)).map(p=>draftPlayerRow(p,l)).join('')||'<div class="empty">No players.</div>'}</div><div class="draft-bulk"><button class="btn" data-draft-move="${l.id}">Move</button><button class="btn" data-draft-replace="${l.id}">Replace</button><button class="btn danger" data-draft-remove="${l.id}">Remove</button></div>${l.playerIds.length<60?`<div class="short-warning"><b>${esc(l.name)} has ${60-l.playerIds.length} open spot${60-l.playerIds.length===1?'':'s'}.</b><div class="row"><button class="btn small" data-add-unassigned="${l.id}">Add Unassigned</button><button class="btn small" data-move-in="${l.id}">Move from Another Legion</button></div></div>`:''}</section>`).join('')}<div class="card"><div class="workflow-actions"><button class="btn violet" data-finalize-placement>Finalize Legions</button></div></div>`}
+
+function legionTypeLabel(l){
+ const w=ensureLegionWorkflow(),idx=w.legions.findIndex(x=>String(x.id)===String(l.id));
+ if(idx===0)return'FDT Main Alliance';
+ if(idx===1)return'Support Alliance';
+ return'Support Alliance'
+}
+function playerGameId(p){
+ return String(p?.player_id||p?.game_id||p?.gameId||fdtResponseForPlayer(p)?.response_data?.game_id||fdtResponseForPlayer(p)?.response_data?.player_id||'—')
+}
+
 function finalGroups(l){const groups={};l.playerIds.forEach(id=>{const p=playerById(id);if(!p)return;const tag=playerAllianceTag(p)||'NO TAG';(groups[tag]||(groups[tag]=[])).push(p)});return groups}
 function finalRolePill(p){const role=fdtOperationalRole(p);return role==='RL'?'<span class="place-pill rl">RL</span>':role==='PRL'?'<span class="place-pill prl">PRL</span>':''}
 function finalMemberMarkup(p){return`<div class="final-member"><div class="final-member-main"><div class="final-member-name">${esc(p.in_game_name||'Player')}</div>${finalRolePill(p)}</div><div class="final-member-sub">${fdtScore(p)} • ${availabilityLabel(p)}</div></div>`}
-function placementLegionMarkup(l,forExport=false){const g=finalGroups(l);return`<section class="final-placement" style="--lc:${l.color}"><div class="final-placement-head"><div><div class="final-placement-title">${esc(l.name).toUpperCase()}</div><div class="final-placement-meta">${esc(draftAllianceName(l))} • ${l.playerIds.length}/60 • Power ${legionPower(l).toLocaleString()}</div></div>${forExport?'':`<div class="final-placement-actions"><button class="btn small" data-export-placement="${l.id}">Save Image</button><button class="btn small" data-print-placement="${l.id}">Save PDF</button></div>`}</div><div class="final-alliance-groups">${Object.entries(g).sort((a,b)=>a[0].localeCompare(b[0])).map(([tag,list])=>`<div class="final-alliance"><h4><span>[${esc(tag)}]</span><span>${list.length}</span></h4><div class="final-members">${list.sort((a,b)=>fdtScore(b)-fdtScore(a)).map(p=>finalMemberMarkup(p)).join('')}</div></div>`).join('')||'<div class="empty">No players.</div>'}</div></section>`}
-function placementBoardMarkup(singleId=''){const w=ensureLegionWorkflow(),legs=singleId?w.legions.filter(l=>String(l.id)===String(singleId)):w.legions;return`<div class="final-placement-wrap">${legs.map(l=>placementLegionMarkup(l,true)).join('')}</div>`}
+function placementLegionMarkup(l,forExport=false){
+ const g=finalGroups(l),type=legionTypeLabel(l);
+ return`<section class="final-placement" style="--lc:${l.color}"><div class="final-placement-head"><div><div class="final-placement-title">${esc(l.name).toUpperCase()}</div><div class="legion-type-label">${esc(type)}</div><div class="final-placement-meta">${esc(draftAllianceName(l))} • ${l.playerIds.length}/60 • Power ${legionPower(l).toLocaleString()}</div></div>${forExport?'':`<div class="final-placement-actions"><button class="btn small" data-export-placement="${l.id}">Save Image</button><button class="btn small" data-print-placement="${l.id}">Save PDF</button></div>`}</div><div class="final-alliance-groups">${Object.entries(g).sort((a,b)=>a[0].localeCompare(b[0])).map(([tag,list])=>`<div class="final-alliance"><h4><span>[${esc(tag)}]</span><span>${list.length}</span></h4><div class="final-members">${list.sort((a,b)=>fdtScore(b)-fdtScore(a)).map(p=>finalMemberMarkup(p)).join('')}</div></div>`).join('')||'<div class="empty">No players.</div>'}</div></section>`
+}
+function exportMemberMarkup(p){
+ return`<div class="export-player-row"><div class="export-player-main"><div class="export-player-name">${esc(p.in_game_name||'Player')}</div><div class="export-player-id">Game ID: ${esc(playerGameId(p))}</div></div>${finalRolePill(p)}</div>`
+}
+function placementLegionExportMarkup(l){
+ const g=finalGroups(l),type=legionTypeLabel(l);
+ return`<section class="final-placement" style="--lc:${l.color}"><div class="final-placement-head"><div><div class="final-placement-title">${esc(l.name).toUpperCase()}</div><div class="legion-type-label">${esc(type)}</div><div class="final-placement-meta">${esc(draftAllianceName(l))} • ${l.playerIds.length}/60</div></div></div><div class="final-alliance-groups">${Object.entries(g).sort((a,b)=>a[0].localeCompare(b[0])).map(([tag,list])=>`<div class="final-alliance"><h4><span>[${esc(tag)}]</span><span>${list.length}</span></h4><div class="final-members">${list.sort((a,b)=>String(a.in_game_name||'').localeCompare(String(b.in_game_name||''))).map(p=>exportMemberMarkup(p)).join('')}</div></div>`).join('')||'<div class="empty">No players.</div>'}</div></section>`
+}
+function placementBoardMarkup(singleId=''){const w=ensureLegionWorkflow(),legs=singleId?w.legions.filter(l=>String(l.id)===String(singleId)):w.legions;return`<div class="final-placement-wrap">${legs.map(l=>placementLegionExportMarkup(l)).join('')}</div>`}
 async function shareOrSaveBlob(blob,filename,mime){
  const file=new File([blob],filename,{type:mime});
  try{

@@ -7,101 +7,138 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
-:root{--a:#48ddff;--m:#aeb7d1;--violet:#9b78ff;--gold:#ffc75b;--red:#ff7289;--blue:#66cfff;--green:#67dfb1}
+:root{
+  --bg:#02030b;--panel:#08101f;--panel2:#0a1226;--line:rgba(255,255,255,.11);
+  --text:#fff;--muted:#aeb7d1;--cyan:#48ddff;--violet:#9b78ff;--gold:#ffc75b;
+  --green:#67dfb1;--red:#ff7289
+}
 *{box-sizing:border-box}
-body{margin:0;min-height:100dvh;background:radial-gradient(circle at 5% 22%,rgba(44,194,255,.08),transparent 28%),radial-gradient(circle at 95% 8%,rgba(104,78,255,.10),transparent 32%),#02030b;color:#fff;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body{margin:0;min-height:100dvh;background:radial-gradient(circle at 5% 22%,rgba(44,194,255,.08),transparent 28%),radial-gradient(circle at 95% 8%,rgba(104,78,255,.10),transparent 32%),var(--bg);color:#fff;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 button,input,select,textarea{font:inherit}
-.sh{width:min(760px,100%);margin:auto;padding:26px 18px 100px}
+button{cursor:pointer}
+.sh{width:min(760px,100%);margin:auto;padding:26px 18px 110px}
 .top{display:grid;grid-template-columns:48px 1fr 48px;align-items:center;gap:12px}
 .round{width:48px;height:48px;border-radius:50%;border:1px solid rgba(72,221,255,.36);background:#081329;color:#bff6ff;display:grid;place-items:center;text-decoration:none;font-size:28px}
 .title{text-align:center}.title small{color:#aab4d1;font-size:10px;font-weight:950;letter-spacing:.2em}.title h1{margin:5px 0;font-size:clamp(2rem,8vw,3rem)}.state{text-align:center;color:#8f9bbb;font-size:11px;font-weight:800;margin-top:6px}.autosave{text-align:center;color:#9ff4d1;font-size:10px;font-weight:950;letter-spacing:.12em;margin-top:6px}
-.nav{display:flex;gap:8px;overflow-x:auto;margin:14px 0 16px 18px;padding-bottom:4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}.nav::-webkit-scrollbar{display:none}.nav button{flex:0 0 auto;min-height:44px;border-radius:22px;border:1px solid rgba(109,130,255,.35);background:#070b1f;color:#b8c5e4;padding:0 14px;font-weight:900}.nav button.active{color:#fff;border-color:rgba(148,111,255,.8);background:linear-gradient(135deg,rgba(75,54,170,.9),rgba(28,82,130,.9))}
-.panel{display:none}.panel.active{display:block}.card,.desc{margin-left:18px;border:1px solid rgba(255,255,255,.12);border-radius:20px;background:rgba(9,17,38,.82);padding:16px}.card{margin-bottom:14px}.desc{color:var(--m);margin-bottom:16px;line-height:1.5}.section-head{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}.section-head h2,.section-head h3{margin:0}.muted{color:var(--m)}.tiny{font-size:12px;line-height:1.4}.mini{font-size:10px;letter-spacing:.1em;color:#98a6c7;font-weight:950;text-transform:uppercase}.status{min-height:18px;margin:0 0 10px 18px;color:#82f0ff;font-size:12px}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.nav{display:flex;gap:8px;overflow-x:auto;margin:14px 0 16px 18px;padding-bottom:4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}.nav::-webkit-scrollbar{display:none}.nav button{flex:0 0 auto;min-height:44px;border-radius:22px;border:1px solid rgba(109,130,255,.35);background:#070b1f;color:#b8c5e4;padding:0 14px;font-weight:900}.nav button.active{color:#fff;border-color:rgba(148,111,255,.8);background:linear-gradient(135deg,rgba(75,54,170,.9),rgba(28,82,130,.9));box-shadow:0 0 18px rgba(112,66,255,.15)}
+.panel{display:none}.panel.active{display:block}
+.card,.desc{margin-left:18px;border:1px solid var(--line);border-radius:20px;background:rgba(9,17,38,.82);padding:16px}.card{margin-bottom:14px}.desc{color:var(--muted);margin-bottom:16px;line-height:1.5}.section-head{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}.section-head h2,.section-head h3{margin:0}.muted{color:var(--muted)}.tiny{font-size:12px;line-height:1.4}.mini{font-size:10px;letter-spacing:.1em;color:#98a6c7;font-weight:950;text-transform:uppercase}.status{min-height:18px;margin:0 0 10px 18px;color:#82f0ff;font-size:12px}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
 label{display:grid;gap:6px;color:#aeb7d1;font-size:12px;font-weight:850}input,select,textarea{width:100%;min-height:44px;background:#060b1c;color:#fff;border:1px solid rgba(122,142,203,.26);border-radius:12px;padding:10px}textarea{min-height:90px;resize:vertical}
 .btn{min-height:44px;border-radius:13px;border:1px solid rgba(72,221,255,.36);background:linear-gradient(135deg,rgba(19,104,111,.68),rgba(32,75,118,.68) 54%,rgba(61,49,139,.72));color:#fff;font-weight:900;padding:9px 12px}.btn.violet{border-color:rgba(159,116,255,.48);background:linear-gradient(135deg,rgba(68,43,145,.86),rgba(47,69,138,.78))}.btn.danger{border-color:rgba(255,114,137,.35);background:rgba(110,24,46,.42)}.btn.small{min-height:36px;padding:7px 10px;font-size:11px}.empty{border:1px dashed rgba(255,255,255,.12);border-radius:14px;padding:16px;text-align:center;color:#8290ad;background:rgba(255,255,255,.02)}
 .setup-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}.setup-item{border:1px solid rgba(255,255,255,.08);border-radius:13px;background:rgba(255,255,255,.025);padding:10px}.setup-item small{display:block;color:#8f9bbb;font-size:9px;font-weight:950;letter-spacing:.08em;text-transform:uppercase}.setup-item b{display:block;margin-top:4px}.live-badge{display:inline-flex;padding:5px 8px;border-radius:999px;border:1px solid rgba(103,223,177,.42);color:#9ff4d1;font-size:9px;font-weight:950;letter-spacing:.08em}
-.response-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:12px}.response{border:1px solid rgba(255,255,255,.10);border-radius:16px;background:rgba(255,255,255,.035);padding:11px;min-width:0}.response h4{margin:0 0 4px;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.response .meta{font-size:10px;color:#9ba8c4;line-height:1.45}.response .score{font-size:18px;font-weight:950;margin-top:8px;color:#dce7ff}.response .pill{display:inline-flex;margin-top:7px;padding:4px 7px;border:1px solid rgba(255,255,255,.12);border-radius:999px;font-size:9px;font-weight:950}
+.response-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:12px}.response{border:1px solid rgba(255,255,255,.10);border-radius:16px;background:rgba(255,255,255,.035);padding:11px;min-width:0}.response h4{margin:0 0 4px;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.response .meta{font-size:10px;color:#9ba8c4;line-height:1.45}.response .score{font-size:18px;font-weight:950;margin-top:8px;color:#dce7ff}
 .fc-tabs{display:flex;gap:8px;margin:12px 0}.formation-grid{display:grid;gap:11px}.formation{border:1px solid rgba(255,255,255,.11);border-radius:18px;padding:13px;background:rgba(8,13,30,.76)}.formation.attack{border-color:rgba(255,114,137,.38)}.formation.defense{border-color:rgba(103,223,177,.38)}.formation-head{display:flex;justify-content:space-between;gap:10px}.formation-badge{font-size:9px;font-weight:950;border:1px solid rgba(255,255,255,.13);border-radius:999px;padding:5px 7px}.formation-badge.approved{color:#9ff4d1;border-color:rgba(103,223,177,.4)}.formation-badge.suggested{color:#ffe0a2;border-color:rgba(255,199,91,.38)}.formation-heroes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:340px;margin:12px auto 8px}.formation-hero{text-align:center}.formation-hero img{width:58px;height:58px;border-radius:11px;object-fit:cover;background:#11182f;border:1px solid rgba(255,255,255,.13)}.formation-hero b{display:block;font-size:10px;margin-top:4px}.formation-ratio{text-align:center;font-size:23px;font-weight:950}
-.pet-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}.pet-stat{border:1px solid rgba(255,255,255,.09);border-radius:15px;padding:12px;text-align:center;background:rgba(255,255,255,.025)}.pet-stat b{display:block;font-size:22px}.pet-stat small{color:#9ba8c4}
-.legion{border:1px solid var(--lc,rgba(255,199,91,.32));border-radius:20px;overflow:hidden;margin-top:12px;background:rgba(7,12,29,.78)}.legion-head{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:12px;background:linear-gradient(90deg,color-mix(in srgb,var(--lc) 24%,transparent),rgba(92,64,178,.10))}.legion-title{font-weight:950;color:var(--lc)}.teams-row{display:flex;gap:10px;overflow-x:auto;padding:10px;-webkit-overflow-scrolling:touch;scrollbar-width:none}.teams-row::-webkit-scrollbar{display:none}.team{flex:0 0 310px;border:1px solid color-mix(in srgb,var(--tc) 55%,transparent);border-radius:16px;overflow:hidden;background:#070c1c}.team-head{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:10px;background:color-mix(in srgb,var(--tc) 14%,transparent)}.team-title{font-weight:950;color:var(--tc)}.schedule-table{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px}.schedule-slot{border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:9px;background:rgba(255,255,255,.025)}.schedule-slot.pet{background:linear-gradient(135deg,color-mix(in srgb,var(--tc) 30%,#0a0d19),rgba(64,39,125,.58));border-color:color-mix(in srgb,var(--tc) 60%,transparent)}.schedule-slot b{display:block}.schedule-slot small{display:block;color:#aeb7d1}.pet-tag{display:inline-flex;margin-top:5px;padding:3px 7px;border-radius:999px;background:rgba(155,120,255,.26);border:1px solid rgba(192,148,255,.36);font-size:9px;font-weight:950}
-.rally-editor{margin:10px;padding:11px;border:1px solid rgba(72,221,255,.20);border-radius:14px;background:rgba(8,24,43,.76)}.rally-editor.hidden{display:none}.manual-alliance{margin:10px;padding:10px;border:1px dashed rgba(255,255,255,.15);border-radius:13px}
-.mode-box{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.mode{border:1px solid rgba(255,255,255,.11);border-radius:16px;background:#081027;color:#fff;padding:12px;text-align:left}.mode.active{border-color:rgba(155,120,255,.68);background:linear-gradient(135deg,rgba(74,48,158,.55),rgba(20,83,121,.42))}.mode b{display:block}.mode small{display:block;color:#aeb7d1;margin-top:5px;line-height:1.4}
-.board-legion{border:1px solid var(--lc);border-radius:22px;overflow:hidden;margin-top:12px}.board-head{padding:15px;background:linear-gradient(90deg,color-mix(in srgb,var(--lc) 24%,transparent),rgba(53,47,133,.18));display:flex;justify-content:space-between;gap:10px}.board-section{padding:14px;border-top:1px solid rgba(255,255,255,.08)}.board-section h4{margin:0 0 10px;font-size:11px;letter-spacing:.14em}.board-team{border:1px solid rgba(255,255,255,.08);border-radius:15px;margin-top:9px;padding:11px;background:rgba(255,255,255,.025)}.board-team-head{display:flex;justify-content:space-between;gap:8px;align-items:center}.ratio-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ratio-card{border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:11px}.ratio-card strong{font-size:20px}.hero-picker-row{display:grid;grid-template-columns:48px 1fr;gap:8px;align-items:center;margin-top:8px}.hero-picker-row img{width:48px;height:48px;border-radius:10px;object-fit:cover;background:#101522;border:1px solid rgba(255,255,255,.12)}.player-list{display:grid;gap:7px;margin-top:8px}.player-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:8px}.player-row small{display:block;color:#9ba8c4}
-.map img{width:100%;display:block;border-radius:16px;border:1px solid rgba(255,255,255,.12)}.spire-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.spire{border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:10px;background:rgba(255,255,255,.025)}.spire b{display:block}.spire small{display:block;color:#aeb7d1;margin-top:4px}.spire em{display:block;color:#ffd98c;font-style:normal;font-size:10px;font-weight:900;margin-top:6px}
-.exporting .no-export{display:none!important}
-@media(max-width:620px){.card,.desc,.status,.nav{margin-left:0}.grid2,.mode-box{grid-template-columns:1fr}.response-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.schedule-table{grid-template-columns:1fr 1fr}.setup-summary{grid-template-columns:1fr 1fr}}
-.picker-modal{position:fixed;inset:0;z-index:2147483600;background:rgba(0,2,13,.86);display:grid;place-items:center;padding:14px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}.picker-card{width:min(620px,100%);max-height:88dvh;overflow:auto;border:1px solid rgba(115,100,255,.42);border-radius:22px;background:linear-gradient(155deg,#0b1531,#050817);padding:15px}.check-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.check-card{border:1px solid rgba(255,255,255,.10);border-radius:14px;background:rgba(255,255,255,.035);padding:10px;display:grid;grid-template-columns:44px 1fr auto;gap:9px;align-items:center}.check-card img{width:44px;height:44px;border-radius:10px;object-fit:cover;background:#101522}.check-card input{width:20px;height:20px;min-height:20px}.hero-slots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px}.hero-slot{border:1px solid rgba(155,120,255,.26);border-radius:13px;background:#080d20;padding:8px;text-align:center}.hero-slot img{width:48px;height:48px;border-radius:10px;object-fit:cover;background:#101522}.hero-slot b{display:block;font-size:9px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pool-heroes{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}.pool-hero{width:64px;text-align:center}.pool-hero img{width:54px;height:54px;border-radius:11px;object-fit:cover;background:#101522}.pool-hero b{display:block;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}@media(max-width:620px){.check-grid{grid-template-columns:1fr}.hero-slots{grid-template-columns:repeat(2,1fr)}}</style>
+
+/* PET SCHEDULE */
+.pet-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}.pet-stat{border:1px solid rgba(255,255,255,.09);border-radius:15px;padding:12px;text-align:center;background:rgba(255,255,255,.025)}.pet-stat b{display:block;font-size:22px}.pet-stat small{color:#9ba8c4}
+.setup-pet{border:1px solid rgba(155,120,255,.32);border-radius:18px;padding:14px;background:linear-gradient(145deg,rgba(59,36,130,.14),rgba(9,19,37,.76))}
+.legion-pet{border:1px solid var(--lc);border-radius:20px;overflow:hidden;margin-top:12px;background:rgba(7,12,29,.80)}
+.legion-pet-head{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:13px;background:linear-gradient(90deg,color-mix(in srgb,var(--lc) 22%,transparent),rgba(92,64,178,.10))}
+.legion-pet-title{font-size:20px;font-weight:950;color:var(--lc);line-height:1.1}.legion-sub{font-size:10px;color:#9ba8c4;margin-top:4px;font-weight:850;letter-spacing:.06em}
+.teams-strip{display:flex;gap:10px;overflow-x:auto;padding:10px;-webkit-overflow-scrolling:touch;scrollbar-width:none}.teams-strip::-webkit-scrollbar{display:none}
+.pet-team{flex:0 0 min(620px,92vw);border:1px solid color-mix(in srgb,var(--tc) 62%,transparent);border-radius:16px;overflow:hidden;background:#060a18}
+.pet-team-head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;background:color-mix(in srgb,var(--tc) 13%,transparent);box-shadow:inset 4px 0 0 var(--tc)}
+.pet-team-name{font-weight:950;color:var(--tc)}.hour-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;padding:10px}.hour-grid{display:grid;grid-auto-flow:column;grid-auto-columns:165px;gap:8px;min-width:max-content}.hour-cell{min-height:98px;border:1px solid rgba(255,255,255,.09);border-radius:13px;padding:10px;background:rgba(255,255,255,.025)}.hour-cell strong{display:block;font-size:12px}.hour-cell .dash{font-size:21px;color:var(--tc);font-weight:950;margin-top:8px}.hour-assignment{margin-top:7px;font-weight:900;line-height:1.25}.hour-assignment small{display:block;color:#c7d0e8;font-weight:800}.pet-pill{display:inline-flex;margin-top:6px;padding:3px 7px;border-radius:999px;background:rgba(155,120,255,.25);border:1px solid rgba(192,148,255,.35);font-size:9px;font-weight:950}
+.rl-editor{margin:0 10px 10px;padding:11px;border:1px solid rgba(72,221,255,.20);border-radius:14px;background:rgba(8,24,43,.78)}.hidden{display:none!important}
+
+/* LEGION BOARD */
+.board-legion{border:1px solid rgba(255,255,255,.12);border-radius:22px;overflow:hidden;margin:14px 0;background:rgba(7,12,28,.82)}
+.board-head{padding:15px;display:flex;justify-content:space-between;gap:10px;align-items:center;background:linear-gradient(90deg,color-mix(in srgb,var(--lc) 17%,transparent),rgba(52,48,126,.16));border-bottom:1px solid rgba(255,255,255,.08)}
+.board-identity{display:flex;align-items:center;gap:11px;min-width:0}.board-emblem{width:58px;height:58px;border-radius:13px;object-fit:contain;background:#070c1d;border:1px solid rgba(255,255,255,.10)}.board-name{font-size:23px;font-weight:950}.board-role{font-size:10px;letter-spacing:.2em;color:#b6bfd8;font-weight:950;margin-top:4px}
+.board-section{padding:14px;border-top:1px solid rgba(255,255,255,.08)}.board-section:first-of-type{border-top:0}.board-section h4{margin:0 0 10px;font-size:11px;letter-spacing:.14em}
+.role-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.role-card{border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:11px;background:rgba(255,255,255,.025)}.role-card small{display:block;color:#aeb7d1;font-size:9px;font-weight:950;letter-spacing:.08em}.role-card b{display:block;margin-top:5px}
+.board-schedule{overflow-x:auto;-webkit-overflow-scrolling:touch}.board-schedule-row{display:grid;grid-auto-flow:column;grid-auto-columns:190px;gap:8px;min-width:max-content}.board-schedule-cell{border:1px solid rgba(255,255,255,.08);border-radius:13px;padding:10px;background:rgba(255,255,255,.02);box-shadow:inset 4px 0 0 var(--tc)}.board-schedule-cell b{color:var(--tc)}
+.ratio-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.ratio-card{border:1px solid rgba(255,255,255,.10);border-radius:15px;padding:11px;background:rgba(255,255,255,.02)}.ratio-card.g{border-color:rgba(103,223,177,.36)}.ratio-card.r{border-color:rgba(155,120,255,.36)}.ratio-card small{display:block;font-weight:950;letter-spacing:.08em}.ratio-card strong{font-size:22px;display:block;margin-top:3px}.ratio-card span{font-size:8px;color:#8f9bbb}
+.mode-box{display:grid;grid-template-columns:1fr 1fr;gap:8px}.mode{border:1px solid rgba(255,255,255,.11);border-radius:15px;background:#081027;color:#fff;padding:11px;text-align:left}.mode.active{border-color:rgba(155,120,255,.68);background:linear-gradient(135deg,rgba(74,48,158,.55),rgba(20,83,121,.42))}.mode b{display:block}.mode small{display:block;color:#aeb7d1;margin-top:4px;line-height:1.35}
+.player-table{width:100%;border-collapse:collapse;margin-top:9px}.player-table th,.player-table td{border-top:1px solid rgba(255,255,255,.07);padding:10px 6px;text-align:left;vertical-align:top}.player-table th{color:#8998b8;font-size:9px;letter-spacing:.1em;background:rgba(255,255,255,.025)}.player-table td{font-size:11px}.hero-names{color:#ffd260;font-weight:900;line-height:1.45}.edit-pill{width:40px;height:40px;border-radius:11px;border:1px solid rgba(72,221,255,.35);background:linear-gradient(135deg,rgba(19,104,111,.68),rgba(61,49,139,.72));color:#fff}
+.pool-hero-list{display:flex;gap:8px;flex-wrap:wrap}.pool-hero{width:68px;text-align:center}.pool-hero img{width:58px;height:58px;border-radius:11px;object-fit:cover;background:#101522}.pool-hero b{display:block;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px;color:#ffd260}
+
+/* MODALS */
+.modal{position:fixed;inset:0;z-index:2147483600;background:rgba(0,2,13,.87);display:grid;place-items:center;padding:14px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.modal-card{width:min(650px,100%);max-height:88dvh;overflow:auto;border:1px solid rgba(72,221,255,.38);border-radius:24px;background:linear-gradient(155deg,#0b1531,#050817);padding:16px;box-shadow:0 30px 90px rgba(0,0,0,.65)}
+.modal-card h3{margin:0}.modal-x{width:36px;height:36px;border-radius:50%;border:0;background:transparent;color:#ff9db3;font-size:24px;font-weight:950}
+.modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}.modal-actions .btn{min-height:52px}
+.big-choice{width:100%;min-height:58px;margin-top:10px;font-size:16px}
+.rank-list{display:grid;gap:8px;margin-top:10px}.rank-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;border:1px solid rgba(255,255,255,.10);border-radius:14px;background:rgba(255,255,255,.025);padding:10px}.rank-row input{width:20px;height:20px;min-height:20px}
+.hero-edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.hero-edit-slot{border:1px solid rgba(155,120,255,.25);border-radius:16px;background:#0a1125;padding:10px;text-align:left}.hero-edit-slot-inner{display:grid;grid-template-columns:64px 1fr;gap:10px;align-items:center}.hero-edit-slot img{width:64px;height:64px;border-radius:12px;object-fit:cover;background:#101522}.hero-edit-slot b{display:block;color:#ffd260}.hero-edit-slot small{display:block;color:#aeb7d1;margin-top:3px}
+.hero-choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}.hero-choice{border:1px solid rgba(255,255,255,.12);border-radius:18px;background:#0c1428;padding:12px;text-align:center;color:#fff}.hero-choice.selected{border-color:#9b78ff;box-shadow:0 0 0 1px #9b78ff inset}.hero-choice img{width:78px;height:78px;border-radius:14px;object-fit:cover;background:#101522}.hero-choice b{display:block;color:#ffd260;margin-top:5px}.hero-choice small{display:block;color:#aeb7d1;margin-top:4px}.hero-choice.empty-choice{display:grid;place-items:center;min-height:150px}
+.hero-check-list{display:grid;gap:8px;margin-top:12px;max-height:58dvh;overflow:auto}.hero-check{display:grid;grid-template-columns:64px 1fr 26px;gap:10px;align-items:center;border:1px solid rgba(255,255,255,.11);border-radius:16px;padding:10px;background:#0c1428}.hero-check img{width:64px;height:64px;border-radius:12px;object-fit:cover}.hero-check input{width:22px;height:22px;min-height:22px}
+.map img{width:100%;display:block;border-radius:16px;border:1px solid rgba(255,255,255,.12)}
+@media(max-width:620px){.card,.desc,.status,.nav{margin-left:0}.grid2,.mode-box{grid-template-columns:1fr}.response-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.hero-edit-grid,.hero-choice-grid{grid-template-columns:1fr 1fr}.board-name{font-size:20px}}
+</style>
 </head>
-<body><main class="sh">
-<!-- NEXA FDT OPERATIONS V1.3 • HORIZONTAL TEAM SCHEDULE / MULTI-PLAYER PICKER / HERO MODALS -->
+<body>
+<main class="sh">
+<!-- NEXA FDT OPERATIONS V1.4 • SVS-PET + LEGION-BOARD PARITY -->
 <div class="top">
-<a class="round" href="index.html" aria-label="Back">‹</a>
-<div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div class="state" id="stateLabel">State 1518</div><div class="autosave">AUTOSAVE • SAVED</div></div>
-<a class="round" href="index.html" aria-label="Close">×</a>
+  <a class="round" href="index.html" aria-label="Back">‹</a>
+  <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div><div class="autosave">AUTOSAVE • SAVED</div></div>
+  <a class="round" href="index.html" aria-label="Close">×</a>
 </div>
 
 <nav class="nav" id="nav">
-<button class="active" data-panel="setup">FDT Setup</button>
-<button data-panel="responses">Responses</button>
-<button data-panel="formations">Formations</button>
-<button data-panel="pets">Pet Schedule</button>
-<button data-panel="board">Legion Board</button>
-<button data-panel="layout">FDT Layout</button>
-<button data-panel="plan">Battle Plan</button>
+  <button class="active" data-panel="setup">FDT Setup</button>
+  <button data-panel="responses">Responses</button>
+  <button data-panel="formations">Formations</button>
+  <button data-panel="pets">Pet Schedule</button>
+  <button data-panel="board">Legion Board</button>
+  <button data-panel="layout">FDT Layout</button>
+  <button data-panel="plan">Battle Plan</button>
 </nav>
 <div id="status" class="status"></div>
 
 <section class="panel active" data-panel="setup">
-<div class="desc">FDT Setup controls the Battle Date and the UTC battle window used by Pet Schedule. No opponent is required.</div>
-<div class="card">
-<div class="section-head"><div><h2>FDT Setup</h2><div class="tiny muted">The battle window stays editable in case the game schedule changes.</div></div><span class="live-badge">FDT</span></div>
-<div class="grid2" style="margin-top:12px">
-<label>Battle Date<input id="battleDate" type="date"></label>
-<label>Event Status<select id="eventStatus"><option value="planning">Planning</option><option value="live">Live Event</option><option value="ended">Ended</option></select></label>
-<label>Battle Start • UTC<select id="battleStart"></select></label>
-<label>Battle End • UTC<select id="battleEnd"></select></label>
-</div>
-<label style="margin-top:10px">Event / State Alliance Name<input id="eventAlliance" placeholder="Optional"></label>
-<div class="setup-summary">
-<div class="setup-item"><small>Battle Day</small><b id="battleDateRead">Not set</b></div>
-<div class="setup-item"><small>Battle Window</small><b id="battleWindowRead">12:00–17:00 UTC</b></div>
-</div>
-</div>
+  <div class="desc">Set the FDT Battle Date and UTC battle window. FDT does not require an opponent.</div>
+  <div class="card">
+    <div class="section-head"><div><h2>FDT Setup</h2><div class="tiny muted">Battle window controls Pet Schedule hours.</div></div><span class="live-badge">FDT</span></div>
+    <div class="grid2" style="margin-top:12px">
+      <label>Battle Date<input id="battleDate" type="date"></label>
+      <label>Event Status<select id="eventStatus"><option value="planning">Planning</option><option value="live">Live Event</option><option value="ended">Ended</option></select></label>
+      <label>Battle Start • UTC<select id="battleStart"></select></label>
+      <label>Battle End • UTC<select id="battleEnd"></select></label>
+    </div>
+    <label style="margin-top:10px">Event / State Alliance Name<input id="eventAlliance" placeholder="Optional"></label>
+    <div class="setup-summary">
+      <div class="setup-item"><small>Battle Day</small><b id="battleDateRead">Not set</b></div>
+      <div class="setup-item"><small>Battle Window</small><b id="battleWindowRead">12:00–17:00 UTC</b></div>
+    </div>
+  </div>
 </section>
 
 <section class="panel" data-panel="responses">
-<div class="desc">FDT Sign-Up remains managed in Form Center. Responses appear here and are ranked using submitted battle data when available.</div>
-<div class="card"><div class="section-head"><div><h2>Responses</h2><div class="tiny muted">Battle Role, availability and saved battle information.</div></div><button class="btn" id="refreshResponses">Refresh</button></div><div id="responseGrid" class="response-grid"></div></div>
+  <div class="desc">FDT Sign-Up remains managed in Form Center. Responses appear here and are ranked using submitted battle data when available.</div>
+  <div class="card"><div class="section-head"><div><h2>Responses</h2><div class="tiny muted">Battle Role, availability and saved battle information.</div></div><button class="btn" id="refreshResponses">Refresh</button></div><div id="responseGrid" class="response-grid"></div></div>
 </section>
 
 <section class="panel" data-panel="formations">
-<div class="desc">FDT uses the same shared Formation Center as SvS. Approved and Suggested remain separate.</div>
-<div class="card"><div class="section-head"><div><h2>Formations</h2><div class="tiny muted" id="formationGen">Current unlocked generation.</div></div></div><div class="fc-tabs"><button class="btn violet active" data-fc="approved">Approved</button><button class="btn" data-fc="suggested">Suggested</button></div><div id="formationList" class="formation-grid"></div></div>
+  <div class="desc">FDT uses the same shared Formation Center as SvS. Approved and Suggested remain separate.</div>
+  <div class="card"><div class="section-head"><div><h2>Formations</h2><div class="tiny muted" id="formationGen">Current unlocked generation.</div></div></div><div class="fc-tabs"><button class="btn violet active" data-fc="approved">Approved</button><button class="btn" data-fc="suggested">Suggested</button></div><div id="formationList" class="formation-grid"></div></div>
 </section>
 
 <section class="panel" data-panel="pets">
-<div class="desc">Pet Schedule is organized by Legion → Alliance → Team. Add Rally Leaders to hourly UTC windows exactly like the SvS scheduling flow.</div>
-<div class="card">
-<div class="section-head"><div><h2>Whale Group & Pet Schedule</h2></div><div class="row no-export"><button class="btn violet" disabled>Send to Battle Plan</button></div></div>
-<div class="pet-summary"><div class="pet-stat"><b id="statRL">0</b><small>Total Rally Leads</small></div><div class="pet-stat"><b id="statScheduled">0</b><small>Scheduled</small></div><div class="pet-stat"><b id="statOpen">0</b><small>Not Scheduled</small></div></div>
-<div id="petRoot"></div>
-<div class="row no-export" style="margin-top:12px"><button class="btn" id="addLegion">+ Add Legion</button><button class="btn" id="manualRL">+ Manual Rally Lead</button></div>
-</div>
+  <div class="desc">Build each Legion like the SvS Whale Group schedule: choose its Alliance, add Teams, then place Rally Leaders into hourly UTC slots.</div>
+  <div class="card">
+    <div class="section-head"><div><h2>Whale Group & Pet Schedule</h2></div><div class="row"><button class="btn violet" disabled>Send to Battle Plan</button></div></div>
+    <div class="pet-stats"><div class="pet-stat"><b id="statRL">0</b><small>Total Rally Leads</small></div><div class="pet-stat"><b id="statScheduled">0</b><small>Scheduled</small></div><div class="pet-stat"><b id="statOpen">0</b><small>Not Scheduled</small></div></div>
+    <div class="tiny muted" style="margin-bottom:12px">A Rally Lead may appear in multiple Teams only when the time windows do not overlap.</div>
+    <div id="petRoot"></div>
+    <div class="row" style="margin-top:12px"><button class="btn" id="addLegion">+ Add Legion</button><button class="btn" id="manualRL">+ Manual Rally Lead</button></div>
+  </div>
 </section>
 
 <section class="panel" data-panel="board">
-<div class="desc">Legion Board inherits the Pet Schedule. Hero Assignment Mode is chosen here — never in Pet Schedule.</div>
-<div class="card"><div class="section-head"><div><h2>Legion Board</h2><div class="tiny muted">Assigned by Team or Shared Hero Pool, independently for each Legion.</div></div></div><div id="boardRoot"></div></div>
+  <div class="desc">Legion Board mirrors the SvS Team Board. Each Legion inherits its Pet Schedule and can use Assigned by Team or a Shared Hero Pool.</div>
+  <div id="boardRoot"></div>
 </section>
 
 <section class="panel" data-panel="layout">
-<div class="desc">FDT zone planning. Detailed Legion overlays and Spire timing controls will be refined after the core Legion workflow is locked.</div>
-<div class="card map"><div class="section-head"><div><h2>FDT Layout</h2></div><button class="btn" disabled>Export Image</button></div><img src="fdt-layout-map.jpg" alt="FDT map" style="margin-top:12px"><div class="spire-grid"><div class="spire"><b>Shield Spire</b><small>North</small><em>Defense Buff</em></div><div class="spire"><b>Blade Spire</b><small>West</small><em>Attack Buff</em></div><div class="spire"><b>Dragonbane Spire</b><small>East</small><em>Lethality Buff</em></div><div class="spire"><b>Life Spire</b><small>South</small><em>Health Buff</em></div></div></div>
+  <div class="desc">FDT zone planning. Detailed Legion overlays and Spire timing controls will be refined after the Legion workflow is locked.</div>
+  <div class="card map"><div class="section-head"><div><h2>FDT Layout</h2></div><button class="btn" disabled>Export Image</button></div><img src="fdt-layout-map.jpg" alt="FDT map" style="margin-top:12px"></div>
 </section>
 
 <section class="panel" data-panel="plan">
-<div class="desc">Final FDT Battle Plan will collect the approved Setup, Responses, Formations, Pet Schedule, Legion Board and Layout.</div>
-<div class="card"><div class="section-head"><div><h2>Battle Plan</h2></div><button class="btn violet" disabled>Export Share Image</button></div><div class="grid2" style="margin-top:12px"><label>Plan Title<input id="planTitle"></label><label>Alliance / State Alliance<input id="planAlliance"></label></div><label style="margin-top:10px">Leadership Notes<textarea id="planNotes"></textarea></label></div>
+  <div class="desc">Final FDT Battle Plan will collect Setup, Responses, Formations, Pet Schedule, Legion Board and Layout.</div>
+  <div class="card"><div class="section-head"><div><h2>Battle Plan</h2></div><button class="btn violet" disabled>Export Share Image</button></div><div class="grid2" style="margin-top:12px"><label>Plan Title<input id="planTitle"></label><label>Alliance / State Alliance<input id="planAlliance"></label></div><label style="margin-top:10px">Leadership Notes<textarea id="planNotes"></textarea></label></div>
 </section>
 </main>
 
@@ -113,138 +150,229 @@ const $=s=>document.querySelector(s),$$=s=>Array.from(document.querySelectorAll(
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const state=Number(localStorage.getItem('nexa_active_state_v49')||window.NEXA_ACTIVE_STATE||1518)||1518;
 $('#stateLabel').textContent='State '+state;
-const KEY='nexa_fdt_ops_state_v12_'+state;
-const COLORS=['#ffc75b','#59e4ff','#ff79b7','#7df1be','#b897ff','#ff9f5b','#68e6ff','#f35f86'];
+const KEY='nexa_fdt_ops_v14_'+state;
+const COLORS=['#9b78ff','#ffc75b','#48ddff','#67dfb1','#ff79b7','#b897ff','#ff9f5b','#68e6ff'];
 let store=load(),alliances=[],players=[],responses=[],heroes=[],rules=[],activeGen=0,fcTab='approved';
 
-function uid(p){return p+Math.random().toString(36).slice(2,9)}
-function load(){try{const x=JSON.parse(localStorage.getItem(KEY)||'null');if(x)return x}catch(_){}return{setup:{battleDate:'',status:'planning',battleStart:12,battleEnd:17,alliance:''},legions:[],manualPlayers:[],plan:{title:'',alliance:'',notes:''}}}
+function load(){try{const x=JSON.parse(localStorage.getItem(KEY)||'null');if(x)return x}catch(_){}return{setup:{battleDate:'',status:'planning',battleStart:12,battleEnd:17,alliance:''},legions:[],manualRally:[],manualPlayers:[],plan:{title:'',alliance:'',notes:''}}}
 function save(){localStorage.setItem(KEY,JSON.stringify(store))}
+function uid(p){return p+Math.random().toString(36).slice(2,10)}
 function say(t){$('#status').textContent=t||''}
+function modal(html){const r=document.createElement('div');r.className='modal';r.innerHTML=`<div class="modal-card">${html}</div>`;r.onclick=e=>{if(e.target===r||e.target.closest('[data-modal-close]'))r.remove()};document.body.appendChild(r);return r}
 function panel(n){$$('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.panel===n));$$('.panel').forEach(p=>p.classList.toggle('active',p.dataset.panel===n))}
 $('#nav').onclick=e=>{const b=e.target.closest('[data-panel]');if(b)panel(b.dataset.panel)}
-function hourOpts(selected){let s='';for(let h=0;h<=23;h++)s+=`<option value="${h}" ${Number(selected)===h?'selected':''}>${String(h).padStart(2,'0')}:00</option>`;return s}
-function battleHours(){const a=Number(store.setup.battleStart??12),b=Number(store.setup.battleEnd??17),arr=[];for(let h=a;h<=b;h++)arr.push(h);return arr}
-function scheduleHourOpts(selected,allowEnd=false){const a=Number(store.setup.battleStart??12),b=Number(store.setup.battleEnd??17);let s='';for(let h=a;h<=b;h++)s+=`<option value="${h}" ${Number(selected)===h?'selected':''}>${String(h).padStart(2,'0')}:00</option>`;return s}
-function normalizeSetup(){store.setup=Object.assign({battleDate:'',status:'planning',battleStart:12,battleEnd:17,alliance:''},store.setup||{});if(Number(store.setup.battleEnd)<=Number(store.setup.battleStart))store.setup.battleEnd=Number(store.setup.battleStart)+1}
-function wireSetup(){normalizeSetup();$('#battleDate').value=store.setup.battleDate;$('#eventStatus').value=store.setup.status;$('#eventAlliance').value=store.setup.alliance;$('#battleStart').innerHTML=hourOpts(store.setup.battleStart);$('#battleEnd').innerHTML=hourOpts(store.setup.battleEnd);const paint=()=>{$('#battleDateRead').textContent=store.setup.battleDate||'Not set';$('#battleWindowRead').textContent=`${String(store.setup.battleStart).padStart(2,'0')}:00–${String(store.setup.battleEnd).padStart(2,'0')}:00 UTC`};paint();$('#battleDate').oninput=e=>{store.setup.battleDate=e.target.value;save();paint()};$('#eventStatus').onchange=e=>{store.setup.status=e.target.value;save()};$('#eventAlliance').oninput=e=>{store.setup.alliance=e.target.value;save()};$('#battleStart').onchange=e=>{store.setup.battleStart=Number(e.target.value);if(store.setup.battleEnd<=store.setup.battleStart)store.setup.battleEnd=Math.min(23,store.setup.battleStart+1);save();wireSetup();renderPets()};$('#battleEnd').onchange=e=>{store.setup.battleEnd=Number(e.target.value);if(store.setup.battleEnd<=store.setup.battleStart)store.setup.battleEnd=Math.min(23,store.setup.battleStart+1);save();wireSetup();renderPets()}}
+function hourOpts(sel){let s='';for(let h=0;h<24;h++)s+=`<option value="${h}" ${Number(sel)===h?'selected':''}>${String(h).padStart(2,'0')}:00</option>`;return s}
+function hourLabel(h){return String(h).padStart(2,'0')+':00'}
+function battleHours(){const a=Number(store.setup.battleStart??12),b=Number(store.setup.battleEnd??17),x=[];for(let h=a;h<=b;h++)x.push(h);return x}
+function scheduleOpts(sel){return battleHours().map(h=>`<option value="${h}" ${Number(sel)===h?'selected':''}>${hourLabel(h)}</option>`).join('')}
 
+/* SETUP */
+function wireSetup(){
+ store.setup=Object.assign({battleDate:'',status:'planning',battleStart:12,battleEnd:17,alliance:''},store.setup||{});
+ if(Number(store.setup.battleEnd)<=Number(store.setup.battleStart))store.setup.battleEnd=Math.min(23,Number(store.setup.battleStart)+1);
+ $('#battleDate').value=store.setup.battleDate;$('#eventStatus').value=store.setup.status;$('#eventAlliance').value=store.setup.alliance;
+ $('#battleStart').innerHTML=hourOpts(store.setup.battleStart);$('#battleEnd').innerHTML=hourOpts(store.setup.battleEnd);
+ const paint=()=>{$('#battleDateRead').textContent=store.setup.battleDate||'Not set';$('#battleWindowRead').textContent=`${hourLabel(store.setup.battleStart)}–${hourLabel(store.setup.battleEnd)} UTC`};paint();
+ $('#battleDate').oninput=e=>{store.setup.battleDate=e.target.value;save();paint()};
+ $('#eventStatus').onchange=e=>{store.setup.status=e.target.value;save()};
+ $('#eventAlliance').oninput=e=>{store.setup.alliance=e.target.value;save()};
+ $('#battleStart').onchange=e=>{store.setup.battleStart=Number(e.target.value);if(store.setup.battleEnd<=store.setup.battleStart)store.setup.battleEnd=Math.min(23,store.setup.battleStart+1);save();wireSetup();renderPets();renderBoard()};
+ $('#battleEnd').onchange=e=>{store.setup.battleEnd=Number(e.target.value);if(store.setup.battleEnd<=store.setup.battleStart)store.setup.battleEnd=Math.min(23,store.setup.battleStart+1);save();wireSetup();renderPets();renderBoard()};
+}
+
+/* DATA */
 async function loadData(){
  const [a,p,r,h,g,m]=await Promise.all([
   sb.from('alliances').select('id,tag,name,emblem_url,state_number').eq('state_number',state).eq('is_active',true).order('server_rank'),
   sb.from('player_accounts').select('id,in_game_name,player_id,alliance_id,battle_role,deployment_capacity,rally_capacity,power').eq('state_number',state).order('deployment_capacity',{ascending:false}),
   sb.from('event_operation_responses').select('*').eq('event_type_key','fdt').order('updated_at',{ascending:false}),
-  sb.from('nexa_library_items').select('id,name,image_url,rarity,generation,troop_type').eq('item_type','hero').eq('is_active',true).order('generation').order('name'),
+  sb.from('nexa_library_items').select('id,name,image_url,rarity,generation,troop_type').eq('item_type','hero').eq('is_active',true).order('generation',{ascending:false}).order('name'),
   sb.from('nexa_library_generations').select('generation,is_visible,unlock_at').eq('item_type','hero').order('generation'),
   sb.from('nexa_battle_meta_rules').select('*').eq('event_scope','pvp_rally').eq('is_active',true)
  ]);
  alliances=a.data||[];players=p.data||[];responses=r.data||[];heroes=h.data||[];rules=m.data||[];
- const now=Date.now(),vr=(g.data||[]).filter(x=>x.is_visible===true||(x.unlock_at&&new Date(x.unlock_at).getTime()<=now));activeGen=Math.max(0,...vr.map(x=>Number(x.generation||0)));if(!activeGen)activeGen=Math.max(0,...heroes.map(x=>Number(x.generation||0)));
+ const now=Date.now(),vr=(g.data||[]).filter(x=>x.is_visible===true||(x.unlock_at&&new Date(x.unlock_at).getTime()<=now));
+ activeGen=Math.max(0,...vr.map(x=>Number(x.generation||0)));if(!activeGen)activeGen=Math.max(0,...heroes.map(x=>Number(x.generation||0)));
  renderResponses();renderFormations();renderPets();renderBoard();
 }
 function respScore(r){const x=r.response_data||{};for(const k of ['troop_score','battle_score','deployment_capacity','rally_capacity','power']){const n=Number(x[k]);if(n>0)return n}return 0}
 function respName(r){const x=r.response_data||{},p=players.find(y=>String(y.id)===String(r.player_account_id));return p?.in_game_name||x.in_game_name||x.player_name||x.name||('Response #'+r.id)}
-function renderResponses(){const list=[...responses].sort((a,b)=>respScore(b)-respScore(a)),h=$('#responseGrid');if(!list.length){h.innerHTML='<div class="empty" style="grid-column:1/-1">No FDT Sign-Up responses yet.</div>';return}h.innerHTML=list.map(r=>{const x=r.response_data||{},role=String(r.role||x.role||'').replaceAll('_',' '),sc=respScore(r);return`<article class="response"><h4>${esc(respName(r))}</h4><div class="meta">${esc(role||'Role not set')}</div><div class="score">${sc?sc.toLocaleString():'—'}</div><div class="meta">Battle score / deployment</div></article>`}).join('')}
+function renderResponses(){const h=$('#responseGrid'),list=[...responses].sort((a,b)=>respScore(b)-respScore(a));if(!list.length){h.innerHTML='<div class="empty" style="grid-column:1/-1">No FDT Sign-Up responses yet.</div>';return}h.innerHTML=list.map(r=>`<article class="response"><h4>${esc(respName(r))}</h4><div class="meta">${esc(String(r.role||r.response_data?.role||'Role not set').replaceAll('_',' '))}</div><div class="score">${respScore(r)?respScore(r).toLocaleString():'—'}</div><div class="meta">Battle score / deployment</div></article>`).join('')}
 $('#refreshResponses').onclick=async()=>{const {data,error}=await sb.from('event_operation_responses').select('*').eq('event_type_key','fdt').order('updated_at',{ascending:false});if(error)return say(error.message);responses=data||[];renderResponses();renderPets()}
 
+/* FORMATIONS */
 function heroByName(n){return heroes.find(h=>String(h.name||'').toLowerCase()===String(n||'').toLowerCase())}
-function renderFormations(){const h=$('#formationList');$('#formationGen').textContent=`Gen ${activeGen} • Approved / Suggested`;$$('[data-fc]').forEach(b=>{const on=b.dataset.fc===fcTab;b.classList.toggle('violet',on);b.classList.toggle('active',on)});let list=rules.filter(r=>Number(r.generation)===activeGen);list=list.filter(r=>fcTab==='approved'?(r.approval_status||'approved')==='approved':(r.approval_status||'approved')!=='approved');if(!list.length){h.innerHTML=`<div class="empty">No ${fcTab==='approved'?'Approved':'Suggested'} Gen ${activeGen} formations are currently saved.</div>`;return}h.innerHTML=list.map(r=>`<article class="formation ${esc(r.mode||'')}"><div class="formation-head"><div><b>${r.mode==='attack'?'⚔ ATTACK':'🛡 DEFENSE'}</b><div class="tiny muted">Gen ${r.generation}</div></div><span class="formation-badge ${fcTab}">${fcTab==='approved'?'APPROVED':'SUGGESTED'}</span></div><div class="formation-heroes">${(r.leader_heroes||[]).map(n=>{const x=heroByName(n);return`<div class="formation-hero">${x?.image_url?`<img src="${esc(x.image_url)}" alt="">`:''}<b>${esc(n)}</b></div>`}).join('')}</div><div class="formation-ratio">${(r.primary_ratio||[]).join(' / ')}</div>${r.evidence_note?`<div class="tiny muted" style="margin-top:8px">${esc(r.evidence_note)}</div>`:''}</article>`).join('')}
+function renderFormations(){
+ $('#formationGen').textContent=`Gen ${activeGen} • Approved / Suggested`;
+ $$('[data-fc]').forEach(b=>{const on=b.dataset.fc===fcTab;b.classList.toggle('violet',on);b.classList.toggle('active',on)});
+ let list=rules.filter(r=>Number(r.generation)===activeGen);
+ list=list.filter(r=>fcTab==='approved'?(r.approval_status||'approved')==='approved':(r.approval_status||'approved')!=='approved');
+ const h=$('#formationList');if(!list.length){h.innerHTML=`<div class="empty">No ${fcTab==='approved'?'Approved':'Suggested'} Gen ${activeGen} formations are currently saved.</div>`;return}
+ h.innerHTML=list.map(r=>`<article class="formation ${esc(r.mode||'')}"><div class="formation-head"><div><b>${r.mode==='attack'?'⚔ ATTACK':'🛡 DEFENSE'}</b><div class="tiny muted">Gen ${r.generation}</div></div><span class="formation-badge ${fcTab}">${fcTab==='approved'?'APPROVED':'SUGGESTED'}</span></div><div class="formation-heroes">${(r.leader_heroes||[]).map(n=>{const x=heroByName(n);return`<div class="formation-hero">${x?.image_url?`<img src="${esc(x.image_url)}" alt="">`:''}<b>${esc(n)}</b></div>`}).join('')}</div><div class="formation-ratio">${(r.primary_ratio||[]).join(' / ')}</div></article>`).join('')
+}
 $$('[data-fc]').forEach(b=>b.onclick=()=>{fcTab=b.dataset.fc;renderFormations()});
 
-function newLegion(){const n=store.legions.length+1;return{id:uid('l_'),name:'Legion '+n,color:COLORS[(n-1)%COLORS.length],allianceId:'',manualAlliance:'',mode:'',teams:[newTeam(1)],sharedHeroIds:[],players:[],ratios:{garrison:'40/0/60',rally:'49/2/49'}}}
-function newTeam(n){return{id:uid('t_'),name:'Team '+n,color:COLORS[(n)%COLORS.length],assignments:[],heroIds:[],players:[]}}
-function legName(l){const a=alliances.find(x=>String(x.id)===String(l.allianceId));return l.manualAlliance||a?.tag||a?.name||l.name}
-function allianceOptions(l){return `<option value="">Choose Alliance…</option>${alliances.map(a=>`<option value="${a.id}" ${String(l.allianceId)===String(a.id)?'selected':''}>${esc(a.tag||a.name)}</option>`).join('')}<option value="__manual__" ${l.manualAlliance?'selected':''}>Add Manually…</option>`}
+/* PET SCHEDULE */
+function newTeam(n){return{id:uid('team_'),name:'Team '+n,color:COLORS[n%COLORS.length],assignments:[],players:[],playerHeroes:{}}}
+function newLegion(){
+ const n=store.legions.length+1;
+ return{id:uid('leg_'),name:'Legion '+n,color:COLORS[(n-1)%COLORS.length],allianceId:'',manualAlliance:'',configured:false,teams:[],mode:'assigned',roles:{garrisonChief:'',rallyManagers:'',incomingTraffic:'',kickingCrew:''},ratios:{garrison:'40/0/60',rally:'49/2/49'},sharedHeroIds:[]}
+}
+function allianceFor(l){return alliances.find(a=>String(a.id)===String(l.allianceId))}
+function legDisplay(l){const a=allianceFor(l);return l.manualAlliance||a?.tag||a?.name||l.name}
+function allianceSelect(l){return `<option value="">Choose Alliance…</option>${alliances.map(a=>`<option value="${a.id}" ${String(l.allianceId)===String(a.id)?'selected':''}>${esc(a.tag||a.name)}</option>`).join('')}<option value="__manual__">Add Manually…</option>`}
 function rallyCandidates(){
  const ids=new Set(responses.filter(r=>String(r.role||r.response_data?.role||'').toLowerCase().includes('rally')).map(r=>String(r.player_account_id||'')));
- let list=players.filter(p=>ids.has(String(p.id))||String(p.battle_role||'').toLowerCase().includes('rally'));
- for(const m of store.manualPlayers||[])list.push({id:m.id,in_game_name:m.name,manual:true});
- return list.sort((a,b)=>String(a.in_game_name).localeCompare(String(b.in_game_name)));
+ const list=players.filter(p=>ids.has(String(p.id))||String(p.battle_role||'').toLowerCase().includes('rally')).map(x=>({...x}));
+ for(const m of store.manualRally||[])list.push({id:m.id,in_game_name:m.name,manual:true});
+ return list.sort((a,b)=>String(a.in_game_name).localeCompare(String(b.in_game_name)))
 }
-function candidateOptions(sel){const list=rallyCandidates();return `<option value="">Choose Rally Leader…</option>${list.map(p=>`<option value="${p.id}" ${String(sel)===String(p.id)?'selected':''}>${esc(p.in_game_name)}</option>`).join('')}`}
-function assignmentPlayer(a){return rallyCandidates().find(p=>String(p.id)===String(a.playerId))}
+function rallyName(id){return rallyCandidates().find(p=>String(p.id)===String(id))?.in_game_name||'Unknown'}
 function allAssignments(){return store.legions.flatMap(l=>l.teams.flatMap(t=>t.assignments.map(a=>({...a,legionId:l.id,teamId:t.id}))))}
 function overlaps(a,b){return Number(a.start)<Number(b.end)&&Number(b.start)<Number(a.end)}
-function hasConflict(candidate,ignoreId=''){return allAssignments().find(a=>a.id!==ignoreId&&String(a.playerId)===String(candidate.playerId)&&overlaps(a,candidate))}
-function countStats(){const all=allAssignments(),unique=new Set(all.map(x=>String(x.playerId)));$('#statRL').textContent=unique.size;$('#statScheduled').textContent=all.length;$('#statOpen').textContent=Math.max(0,rallyCandidates().length-unique.size)}
-function hourLabel(h){return String(h).padStart(2,'0')+':00'}
-function exportLegion(id){
- const el=document.querySelector(`[data-legion-export="${id}"]`);if(!el||!window.html2canvas)return;
- el.classList.add('exporting');html2canvas(el,{backgroundColor:'#050817',scale:2}).then(c=>{el.classList.remove('exporting');const a=document.createElement('a');a.href=c.toDataURL('image/png');const l=store.legions.find(x=>x.id===id);a.download=(l?.name||'FDT-Legion').replace(/\s+/g,'-')+'.png';a.click()}).catch(()=>el.classList.remove('exporting'));
+function conflictFor(c){return allAssignments().find(a=>String(a.playerId)===String(c.playerId)&&overlaps(a,c))}
+function schedulePlayerOptions(){return `<option value="">Choose Rally Leader…</option>${rallyCandidates().map(p=>`<option value="${p.id}">${esc(p.in_game_name)}</option>`).join('')}`}
+function hourAssignment(t,h){return t.assignments.find(a=>Number(a.start)<=h&&Number(a.end)>h)}
+function hourCells(t){
+ return battleHours().map(h=>{const a=hourAssignment(t,h);return`<div class="hour-cell"><strong>${hourLabel(h)}</strong>${a?`<div class="hour-assignment">${esc(rallyName(a.playerId))}<small>${a.pet?'PET':'NO PET'}</small>${a.pet?'<span class="pet-pill">PET</span>':''}</div>`:`<div class="dash">—</div>`}</div>`}).join('')
 }
-function assignmentCards(t){if(!t.assignments.length)return'<div class="empty" style="grid-column:1/-1">No Rally Leaders scheduled.</div>';return [...t.assignments].sort((a,b)=>a.start-b.start).map(a=>{const p=assignmentPlayer(a);return`<div class="schedule-slot ${a.pet?'pet':''}"><b>${hourLabel(a.start)}–${hourLabel(a.end)}</b><span>${esc(p?.in_game_name||'Unknown')}</span>${a.pet?'<span class="pet-tag">PET</span>':'<small>NO PET</small>'}<button class="btn danger small no-export" data-remove-assignment="${a.id}" data-tid="${t.id}" type="button" style="margin-top:7px">Remove</button></div>`}).join('')}
-function teamPetHtml(l,t,idx){return`<section class="team" style="--tc:${t.color}"><div class="team-head"><div><div class="team-title">${esc(t.name)}</div><div class="tiny muted">${t.assignments.length} scheduled</div></div><div class="row no-export"><button class="btn small" data-add-rally="${t.id}" data-lid="${l.id}" type="button">+ Rally Lead</button>${idx>0?`<button class="btn danger small" data-remove-team="${t.id}" data-lid="${l.id}" type="button">×</button>`:''}</div></div><div class="schedule-table">${assignmentCards(t)}</div><div class="rally-editor hidden no-export" data-editor="${t.id}"><div class="grid2"><label>Rally Leader<select data-editor-player="${t.id}">${candidateOptions('')}</select></label><label>Pet<select data-editor-pet="${t.id}"><option value="yes">Pets</option><option value="no">No Pets</option></select></label><label>From • UTC<select data-editor-start="${t.id}">${scheduleHourOpts(store.setup.battleStart)}</select></label><label>To • UTC<select data-editor-end="${t.id}">${scheduleHourOpts(Math.min(store.setup.battleEnd,Number(store.setup.battleStart)+1))}</select></label></div><div class="row" style="margin-top:8px"><button class="btn violet" data-save-rally="${t.id}" data-lid="${l.id}" type="button">Add to Schedule</button><button class="btn" data-cancel-rally="${t.id}" type="button">Cancel</button></div></div></section>`}
-function legionPetHtml(l,i){const manual=l.manualAlliance?`<div class="manual-alliance no-export"><label>Manual Alliance Name / Tag<input data-manual-alliance="${l.id}" value="${esc(l.manualAlliance)}" placeholder="Alliance"></label></div>`:'';return`<section class="legion" style="--lc:${l.color}" data-legion-export="${l.id}"><div class="legion-head"><div><div class="legion-title">${esc(l.name)}${legName(l)!==l.name?' • '+esc(legName(l)):''}</div><div class="tiny muted">${l.teams.length} Team${l.teams.length===1?'':'s'} configured</div></div><div class="row no-export"><button class="btn small" data-export-legion="${l.id}">Download</button>${i>0?`<button class="btn danger small" data-remove-legion="${l.id}">Remove</button>`:''}</div></div><div class="no-export" style="padding:10px"><label>Choose the ${esc(l.name)} Main Alliance<select data-legion-alliance="${l.id}">${allianceOptions(l)}</select></label>${manual}</div><div class="teams-row">${l.teams.map((t,idx)=>teamPetHtml(l,t,idx)).join('')}</div><div class="row no-export" style="padding:0 10px 10px"><button class="btn" data-add-team="${l.id}">+ Add Team</button></div></section>`}
-function renderPets(){const h=$('#petRoot');if(!store.legions.length)store.legions.push(newLegion());h.innerHTML=store.legions.map(legionPetHtml).join('');countStats()}
+function teamPetHtml(l,t,idx){
+ return `<section class="pet-team" style="--tc:${t.color}"><div class="pet-team-head"><div><div class="pet-team-name">${esc(t.name)}</div><div class="tiny muted">${t.assignments.length} Rally Lead assignment${t.assignments.length===1?'':'s'}</div></div><div class="row"><button class="btn small" data-open-rl="${t.id}" data-lid="${l.id}">+ Rally Lead</button>${idx>0?`<button class="btn danger small" data-remove-team="${t.id}" data-lid="${l.id}">×</button>`:''}</div></div><div class="hour-scroll"><div class="hour-grid">${hourCells(t)}</div></div><div class="rl-editor hidden" data-rl-editor="${t.id}"><div class="grid2"><label>Rally Leader<select data-rl-player="${t.id}">${schedulePlayerOptions()}</select></label><label>Pets<select data-rl-pet="${t.id}"><option value="yes">Pets</option><option value="no">No Pets</option></select></label><label>From • UTC<select data-rl-start="${t.id}">${scheduleOpts(store.setup.battleStart)}</select></label><label>To • UTC<select data-rl-end="${t.id}">${scheduleOpts(Math.min(store.setup.battleEnd,Number(store.setup.battleStart)+1))}</select></label></div><div class="row" style="margin-top:8px"><button class="btn violet" data-save-rl="${t.id}" data-lid="${l.id}">Done</button><button class="btn" data-cancel-rl="${t.id}">Cancel</button></div></div></section>`
+}
+function petSetupHtml(l,i){
+ if(!l.configured){
+  return `<div class="setup-pet"><h3 style="margin:0">Start ${esc(l.name)}</h3><p class="muted tiny">Choose the ${esc(l.name)} Main Alliance.</p><label>Main Alliance<select data-start-alliance="${l.id}">${allianceSelect(l)}</select></label><div class="hidden" data-manual-wrap="${l.id}" style="margin-top:9px"><label>Manual Alliance Name / Tag<input data-start-manual="${l.id}" placeholder="Alliance"></label></div><button class="btn violet" style="width:100%;margin-top:10px" data-start-legion="${l.id}">Start Setup</button></div>`
+ }
+ const a=allianceFor(l),emblem=a?.emblem_url||'';
+ return `<section class="legion-pet" style="--lc:${l.color}"><div class="legion-pet-head"><div class="board-identity">${emblem?`<img class="board-emblem" src="${esc(emblem)}" alt="">`:''}<div><div class="legion-pet-title">${esc(legDisplay(l))} • ${esc(l.name)}</div><div class="legion-sub">${l.teams.length} Team${l.teams.length===1?'':'s'} configured</div></div></div><div class="row"><button class="btn small" data-change-legion="${l.id}">Change</button><button class="btn danger small" data-remove-legion="${l.id}">Remove</button><button class="btn small" data-add-team="${l.id}">+ Add Team</button></div></div>${l.teams.length?`<div class="teams-strip">${l.teams.map((t,idx)=>teamPetHtml(l,t,idx)).join('')}</div>`:'<div class="empty" style="margin:12px">No Teams yet. Add Team 1 to begin.</div>'}</section>`
+}
+function renderPets(){
+ if(!store.legions.length)store.legions.push(newLegion());
+ $('#petRoot').innerHTML=store.legions.map(petSetupHtml).join('');
+ const all=allAssignments(),unique=new Set(all.map(a=>String(a.playerId)));$('#statRL').textContent=unique.size;$('#statScheduled').textContent=all.length;$('#statOpen').textContent=Math.max(0,rallyCandidates().length-unique.size)
+}
 $('#addLegion').onclick=()=>{store.legions.push(newLegion());save();renderPets();renderBoard()}
-$('#manualRL').onclick=()=>{const name=prompt('Manual Rally Leader name');if(!name)return;(store.manualPlayers||(store.manualPlayers=[])).push({id:uid('manual_'),name:name.trim()});save();renderPets()}
+$('#manualRL').onclick=()=>{const name=prompt('Manual Rally Leader name');if(!name)return;(store.manualRally||(store.manualRally=[])).push({id:uid('manual_rl_'),name:name.trim()});save();renderPets()}
+$('#petRoot').onchange=e=>{
+ const s=e.target.closest('[data-start-alliance]');if(s){const l=store.legions.find(x=>x.id===s.dataset.startAlliance);if(!l)return;if(s.value==='__manual__'){l.allianceId='';document.querySelector(`[data-manual-wrap="${l.id}"]`)?.classList.remove('hidden')}else{l.allianceId=s.value;l.manualAlliance='';document.querySelector(`[data-manual-wrap="${l.id}"]`)?.classList.add('hidden')}save()}
+}
+$('#petRoot').oninput=e=>{const x=e.target.closest('[data-start-manual]');if(x){const l=store.legions.find(y=>y.id===x.dataset.startManual);if(l){l.manualAlliance=x.value;save()}}}
 $('#petRoot').onclick=e=>{
- const ex=e.target.closest('[data-export-legion]');if(ex)return exportLegion(ex.dataset.exportLegion);
+ const start=e.target.closest('[data-start-legion]');if(start){const l=store.legions.find(x=>x.id===start.dataset.startLegion);if(!l)return;if(!l.allianceId&&!String(l.manualAlliance||'').trim())return alert('Choose an Alliance or add one manually.');l.configured=true;save();renderPets();renderBoard();return}
+ const change=e.target.closest('[data-change-legion]');if(change){const l=store.legions.find(x=>x.id===change.dataset.changeLegion);if(l){l.configured=false;save();renderPets();renderBoard()}return}
+ const remL=e.target.closest('[data-remove-legion]');if(remL){if(confirm('Remove this Legion?')){store.legions=store.legions.filter(x=>x.id!==remL.dataset.removeLegion);save();renderPets();renderBoard()}return}
  const addT=e.target.closest('[data-add-team]');if(addT){const l=store.legions.find(x=>x.id===addT.dataset.addTeam);if(l){l.teams.push(newTeam(l.teams.length+1));save();renderPets();renderBoard()}return}
  const remT=e.target.closest('[data-remove-team]');if(remT){const l=store.legions.find(x=>x.id===remT.dataset.lid);if(l){l.teams=l.teams.filter(t=>t.id!==remT.dataset.removeTeam);save();renderPets();renderBoard()}return}
- const remL=e.target.closest('[data-remove-legion]');if(remL){if(confirm('Remove this Legion?')){store.legions=store.legions.filter(x=>x.id!==remL.dataset.removeLegion);save();renderPets();renderBoard()}return}
- const addR=e.target.closest('[data-add-rally]');if(addR){const ed=document.querySelector(`[data-editor="${addR.dataset.addRally}"]`);ed?.classList.remove('hidden');return}
- const cancel=e.target.closest('[data-cancel-rally]');if(cancel){document.querySelector(`[data-editor="${cancel.dataset.cancelRally}"]`)?.classList.add('hidden');return}
- const remA=e.target.closest('[data-remove-assignment]');if(remA){for(const l of store.legions){const t=l.teams.find(x=>x.id===remA.dataset.tid);if(t)t.assignments=t.assignments.filter(a=>a.id!==remA.dataset.removeAssignment)}save();renderPets();renderBoard();return}
- const saveR=e.target.closest('[data-save-rally]');if(saveR){const tid=saveR.dataset.saveRally,lid=saveR.dataset.lid,l=store.legions.find(x=>x.id===lid),t=l?.teams.find(x=>x.id===tid);if(!t)return;const playerId=document.querySelector(`[data-editor-player="${tid}"]`)?.value,start=Number(document.querySelector(`[data-editor-start="${tid}"]`)?.value),end=Number(document.querySelector(`[data-editor-end="${tid}"]`)?.value),pet=document.querySelector(`[data-editor-pet="${tid}"]`)?.value==='yes';if(!playerId)return alert('Choose a Rally Leader.');if(!(end>start))return alert('End time must be after start time.');const cand={id:uid('ra_'),playerId,start,end,pet},conf=hasConflict(cand);if(conf){const p=assignmentPlayer(conf);if(!confirm(`${p?.in_game_name||'This Rally Leader'} is already assigned ${hourLabel(conf.start)}–${hourLabel(conf.end)} UTC. Move/change the schedule anyway?`))return;for(const ll of store.legions)for(const tt of ll.teams)tt.assignments=tt.assignments.filter(a=>a.id!==conf.id)}t.assignments.push(cand);save();renderPets();renderBoard();return}
-}
-$('#petRoot').onchange=e=>{const s=e.target.closest('[data-legion-alliance]');if(s){const l=store.legions.find(x=>x.id===s.dataset.legionAlliance);if(!l)return;if(s.value==='__manual__'){l.allianceId='';l.manualAlliance=l.manualAlliance||'Manual Alliance'}else{l.allianceId=s.value;l.manualAlliance=''}save();renderPets();renderBoard()}}
-$('#petRoot').oninput=e=>{if(e.target.dataset.manualAlliance){const l=store.legions.find(x=>x.id===e.target.dataset.manualAlliance);if(l){l.manualAlliance=e.target.value;save();renderBoard()}}}
-
-
-function closePicker(){document.querySelector('.picker-modal')?.remove()}
-function openPlayerMultiPicker(lid,tid){
- const l=store.legions.find(x=>x.id===lid),t=l?.teams.find(x=>x.id===tid);if(!t)return;
- const selected=new Set((t.players||[]).map(String));
- const root=document.createElement('div');root.className='picker-modal';
- root.innerHTML=`<div class="picker-card"><div class="section-head"><div><h3>Add Players • ${esc(t.name)}</h3><div class="tiny muted">Select one or multiple players, then save.</div></div><button class="btn danger small" data-close-picker>×</button></div><div class="check-grid" style="margin-top:10px">${players.map(p=>`<label class="check-card"><div></div><div><b>${esc(p.in_game_name)}</b><small>${esc(p.player_id||'')}</small></div><input type="checkbox" value="${p.id}" ${selected.has(String(p.id))?'checked':''}></label>`).join('')}</div><div class="row" style="margin-top:12px"><button class="btn violet" data-save-players>Save Players</button><button class="btn" data-close-picker>Cancel</button></div></div>`;
- root.onclick=e=>{if(e.target===root||e.target.closest('[data-close-picker]'))return closePicker();if(e.target.closest('[data-save-players]')){t.players=Array.from(root.querySelectorAll('input[type="checkbox"]:checked')).map(x=>x.value);save();closePicker();renderBoard()}};
- document.body.appendChild(root)
-}
-function openHeroMultiPicker(lid){
- const l=store.legions.find(x=>x.id===lid);if(!l)return;
- const selected=new Set((l.sharedHeroIds||[]).map(String));
- const root=document.createElement('div');root.className='picker-modal';
- root.innerHTML=`<div class="picker-card"><div class="section-head"><div><h3>Choose Heroes</h3><div class="tiny muted">Select all Heroes you want in the Legion Shared Pool.</div></div><button class="btn danger small" data-close-picker>×</button></div><div class="check-grid" style="margin-top:10px">${heroes.filter(h=>Number(h.generation)<=activeGen).map(h=>`<label class="check-card">${h.image_url?`<img src="${esc(h.image_url)}" alt="">`:'<div></div>'}<div><b>${esc(h.name)}</b><small>Gen ${h.generation}</small></div><input type="checkbox" value="${h.id}" ${selected.has(String(h.id))?'checked':''}></label>`).join('')}</div><div class="row" style="margin-top:12px"><button class="btn violet" data-save-pool>Save Heroes</button><button class="btn" data-close-picker>Cancel</button></div></div>`;
- root.onclick=e=>{if(e.target===root||e.target.closest('[data-close-picker]'))return closePicker();if(e.target.closest('[data-save-pool]')){l.sharedHeroIds=Array.from(root.querySelectorAll('input[type="checkbox"]:checked')).map(x=>x.value);save();closePicker();renderBoard()}};
- document.body.appendChild(root)
-}
-function openPlayerHeroEditor(lid,tid,pid){
- const l=store.legions.find(x=>x.id===lid),t=l?.teams.find(x=>x.id===tid),p=players.find(x=>String(x.id)===String(pid));if(!t||!p)return;
- t.playerHeroes=t.playerHeroes||{};const cur=[...(t.playerHeroes[pid]||['','','',''])];while(cur.length<4)cur.push('');
- const labels=['Garrison A','Garrison B','Rally A','Rally B'];let active=0;
- const root=document.createElement('div');root.className='picker-modal';
- const slotHtml=()=>labels.map((lab,i)=>{const h=heroes.find(x=>String(x.id)===String(cur[i]||''));return`<button class="hero-slot" type="button" data-hero-slot="${i}">${h?.image_url?`<img src="${esc(h.image_url)}" alt="">`:'<div style="width:48px;height:48px;margin:auto;border-radius:10px;background:#101522"></div>'}<b>${esc(h?.name||lab)}</b><small>${lab}</small></button>`}).join('');
- root.innerHTML=`<div class="picker-card"><div class="section-head"><div><h3>${esc(p.in_game_name)} • Heroes</h3><div class="tiny muted">Pick the four Heroes for Garrison and Rally.</div></div><button class="btn danger small" data-close-picker>×</button></div><div class="hero-slots" id="heroSlots">${slotHtml()}</div><div class="check-grid" id="heroChoices" style="margin-top:12px"></div><div class="row" style="margin-top:12px"><button class="btn violet" data-save-player-heroes>Save</button><button class="btn" data-close-picker>Cancel</button></div></div>`;
- const paint=()=>{root.querySelector('#heroSlots').innerHTML=slotHtml();root.querySelector('#heroChoices').innerHTML=heroes.filter(h=>Number(h.generation)<=activeGen).map(h=>`<button type="button" class="check-card" data-pick-hero="${h.id}">${h.image_url?`<img src="${esc(h.image_url)}" alt="">`:'<div></div>'}<div><b>${esc(h.name)}</b><small>Gen ${h.generation} • ${esc(h.rarity||'')}</small></div><div>${String(cur[active])===String(h.id)?'✓':''}</div></button>`).join('')};
- paint();
- root.onclick=e=>{if(e.target===root||e.target.closest('[data-close-picker]'))return closePicker();const s=e.target.closest('[data-hero-slot]');if(s){active=Number(s.dataset.heroSlot);paint();return}const pick=e.target.closest('[data-pick-hero]');if(pick){cur[active]=pick.dataset.pickHero;paint();return}if(e.target.closest('[data-save-player-heroes]')){t.playerHeroes[pid]=cur;save();closePicker();renderBoard()}};
- document.body.appendChild(root)
+ const open=e.target.closest('[data-open-rl]');if(open){document.querySelector(`[data-rl-editor="${open.dataset.openRl}"]`)?.classList.remove('hidden');return}
+ const cancel=e.target.closest('[data-cancel-rl]');if(cancel){document.querySelector(`[data-rl-editor="${cancel.dataset.cancelRl}"]`)?.classList.add('hidden');return}
+ const saveR=e.target.closest('[data-save-rl]');if(saveR){
+   const l=store.legions.find(x=>x.id===saveR.dataset.lid),t=l?.teams.find(x=>x.id===saveR.dataset.saveRl);if(!t)return;
+   const pid=document.querySelector(`[data-rl-player="${t.id}"]`)?.value,start=Number(document.querySelector(`[data-rl-start="${t.id}"]`)?.value),end=Number(document.querySelector(`[data-rl-end="${t.id}"]`)?.value),pet=document.querySelector(`[data-rl-pet="${t.id}"]`)?.value==='yes';
+   if(!pid)return alert('Choose a Rally Leader.');if(!(end>start))return alert('End time must be after start time.');
+   const cand={id:uid('asg_'),playerId:pid,start,end,pet},conf=conflictFor(cand);
+   if(conf){if(!confirm(`${rallyName(pid)} is already assigned ${hourLabel(conf.start)}–${hourLabel(conf.end)} UTC. Move that assignment here?`))return;for(const ll of store.legions)for(const tt of ll.teams)tt.assignments=tt.assignments.filter(a=>a.id!==conf.id)}
+   t.assignments.push(cand);save();renderPets();renderBoard();return
+ }
 }
 
-function approvedFormationOptions(type,sel){const list=rules.filter(r=>Number(r.generation)===activeGen&&r.mode===type&&(r.approval_status||'approved')==='approved');return `<option value="">Choose ${type==='attack'?'Rally':'Garrison'} Formation…</option>${list.map(r=>`<option value="${r.id}" ${String(sel)===String(r.id)?'selected':''}>${(r.primary_ratio||[]).join('/')} • ${(r.leader_heroes||[]).join(', ')}</option>`).join('')}`}
-function heroOptions(sel){return `<option value="">Choose Hero…</option>${heroes.filter(h=>Number(h.generation)<=activeGen).map(h=>`<option value="${h.id}" ${String(sel)===String(h.id)?'selected':''}>${esc(h.name)} • Gen ${h.generation}</option>`).join('')}`}
-function heroRow(id,sel,label,scope){const h=heroes.find(x=>String(x.id)===String(sel));return`<div class="hero-picker-row">${h?.image_url?`<img src="${esc(h.image_url)}" alt="">`:'<div style="width:48px;height:48px;border-radius:10px;background:#101522"></div>'}<label>${label}<select data-hero-scope="${scope}" data-hero-index="${id}">${heroOptions(sel)}</select></label></div>`}
-function playerOptions(sel){return `<option value="">Choose Player…</option>${players.map(p=>`<option value="${p.id}" ${String(sel)===String(p.id)?'selected':''}>${esc(p.in_game_name)}</option>`).join('')}`}
-function boardTeamHtml(l,t){
- const schedule=t.assignments.length?t.assignments.map(a=>`${hourLabel(a.start)}–${hourLabel(a.end)} ${assignmentPlayer(a)?.in_game_name||''}${a.pet?' • PET':''}`).join('<br>'):'No Rally Leaders scheduled.';
- const rows=(t.players||[]).map(pid=>{const p=players.find(x=>String(x.id)===String(pid)),ph=t.playerHeroes?.[pid]||[];return`<div class="player-row" data-edit-player-heroes="${pid}" data-lid="${l.id}" data-tid="${t.id}"><div><b>${esc(p?.in_game_name||'Player')}</b><small>${esc(p?.player_id||'')} • tap to assign Heroes</small></div><div>${ph.filter(Boolean).length}/4 Heroes</div></div>`}).join('');
- return`<div class="board-team"><div class="board-team-head"><div><b>${esc(t.name)}</b><div class="tiny muted">${schedule}</div></div><button class="btn small" data-add-player="${t.id}" data-lid="${l.id}">+ Add Player</button></div>${l.mode==='pool'?'<div class="tiny muted" style="margin-top:8px">Heroes come from the Legion Shared Hero Pool.</div>':''}<div class="player-list">${rows||'<div class="empty">No Players assigned.</div>'}</div></div>`
+/* BOARD */
+function eligibleJoinerHeroes(){
+ return heroes.filter(h=>Number(h.generation)<=activeGen&&['epic','purple','legendary','mythic','gold'].some(x=>String(h.rarity||'').toLowerCase().includes(x)))
 }
-function sharedPoolHtml(l){
+function playerById(id){return players.find(p=>String(p.id)===String(id))||store.manualPlayers?.find(p=>String(p.id)===String(id))}
+function roleCard(icon,label,val){return `<div class="role-card"><small>${icon} ${label}</small><b>${esc(val||'—')}</b></div>`}
+function scheduleForLegion(l){
+ if(!l.teams.length)return'<div class="muted tiny">No Teams exist in Pet Schedule.</div>';
+ return `<div class="board-schedule"><div class="board-schedule-row">${l.teams.map(t=>`<div class="board-schedule-cell" style="--tc:${t.color}"><b>${esc(t.name)}</b><div class="tiny muted" style="margin-top:5px">${t.assignments.length?t.assignments.map(a=>`${hourLabel(a.start)}–${hourLabel(a.end)} • ${esc(rallyName(a.playerId))}${a.pet?' • PET':''}`).join('<br>'):'No Rally Leaders scheduled.'}</div></div>`).join('')}</div></div>`
+}
+function heroNames(ids){return(ids||[]).map(id=>heroes.find(h=>String(h.id)===String(id))?.name).filter(Boolean)}
+function playerRowsAssigned(l){
+ const rows=l.teams.flatMap(t=>(t.players||[]).map(pid=>({t,pid})));
+ if(!rows.length)return'<tr><td colspan="4" class="muted">No Players assigned.</td></tr>';
+ return rows.map(({t,pid})=>{const p=playerById(pid),x=t.playerHeroes?.[pid]||['','','',''],g=heroNames(x.slice(0,2)),r=heroNames(x.slice(2,4));return`<tr><td><b>${esc(p?.in_game_name||p?.name||'Player')}</b><div class="tiny muted">${esc(t.name)}</div></td><td class="hero-names">${g.length?g.map(esc).join('<br>'):'—'}</td><td class="hero-names">${r.length?r.map(esc).join('<br>'):'—'}</td><td><button class="edit-pill" data-edit-player="${pid}" data-tid="${t.id}" data-lid="${l.id}">✎</button></td></tr>`}).join('')
+}
+function playerRowsPool(l){
+ const rows=l.teams.flatMap(t=>(t.players||[]).map(pid=>({t,pid})));
+ if(!rows.length)return'<tr><td colspan="2" class="muted">No Players assigned.</td></tr>';
+ return rows.map(({t,pid})=>{const p=playerById(pid);return`<tr><td><b>${esc(p?.in_game_name||p?.name||'Player')}</b><div class="tiny muted">${esc(t.name)}</div></td><td><button class="edit-pill" data-remove-player="${pid}" data-tid="${t.id}" data-lid="${l.id}">×</button></td></tr>`}).join('')
+}
+function sharedPoolBlock(l){
  const chosen=(l.sharedHeroIds||[]).map(id=>heroes.find(h=>String(h.id)===String(id))).filter(Boolean);
- return`<div class="board-section"><div class="section-head"><div><h4>LEGION SHARED HERO POOL</h4><div class="tiny muted">All Teams in this Legion use this same Hero pool.</div></div><button class="btn small" data-choose-pool="${l.id}">Choose Heroes</button></div><div class="pool-heroes">${chosen.length?chosen.map(h=>`<div class="pool-hero">${h.image_url?`<img src="${esc(h.image_url)}" alt="">`:'<div></div>'}<b>${esc(h.name)}</b></div>`).join(''):'<div class="empty" style="width:100%">No Heroes selected yet.</div>'}</div></div>`
+ return `<div class="board-section"><div class="section-head"><div><h4>JOINER HEROES • USE ANY OF THESE</h4></div><button class="btn small" data-choose-pool="${l.id}">Choose Heroes</button></div><div class="pool-hero-list">${chosen.length?chosen.map(h=>`<div class="pool-hero">${h.image_url?`<img src="${esc(h.image_url)}" alt="">`:''}<b>${esc(h.name)}</b></div>`).join(''):'<div class="muted tiny">No Joiner Heroes selected yet.</div>'}</div></div>`
 }
-function renderBoard(){const h=$('#boardRoot');if(!store.legions.length){h.innerHTML='<div class="empty">No Legions exist in Pet Schedule.</div>';return}h.innerHTML=store.legions.map(l=>`<section class="board-legion" style="--lc:${l.color}"><div class="board-head"><div><h3 style="margin:0">${esc(l.name)}${legName(l)!==l.name?' • '+esc(legName(l)):''}</h3><small>${l.mode==='assigned'?'ASSIGNED BY TEAM':l.mode==='pool'?'SHARED HERO POOL':'CHOOSE HERO ASSIGNMENT MODE'}</small></div></div><div class="board-section"><h4>HERO ASSIGNMENT MODE</h4><div class="mode-box"><button class="mode ${l.mode==='assigned'?'active':''}" data-board-mode="assigned" data-lid="${l.id}"><b>Assigned by Team</b><small>Each Team gets its own Rally/Garrison Formations and Hero assignments.</small></button><button class="mode ${l.mode==='pool'?'active':''}" data-board-mode="pool" data-lid="${l.id}"><b>Shared Hero Pool</b><small>All Teams in this Legion pull Hero options from one shared pool.</small></button></div></div><div class="board-section"><h4>WHALE GROUP SCHEDULE</h4>${l.teams.map(t=>`<div class="schedule-slot" style="margin-bottom:7px"><b>${esc(t.name)}</b><small>${t.assignments.length?t.assignments.map(a=>`${hourLabel(a.start)}–${hourLabel(a.end)} ${assignmentPlayer(a)?.in_game_name||''}${a.pet?' • PET':''}`).join(' · '):'No Rally Leaders scheduled.'}</small></div>`).join('')}</div>${l.mode==='pool'?sharedPoolHtml(l):''}<div class="board-section"><h4>TEAMS & PLAYERS</h4>${l.mode?l.teams.map(t=>boardTeamHtml(l,t)).join(''):'<div class="empty">Choose Assigned by Team or Shared Hero Pool first.</div>'}</div></section>`).join('')}
-$('#boardRoot').onclick=e=>{
- const m=e.target.closest('[data-board-mode]');if(m){const l=store.legions.find(x=>x.id===m.dataset.lid);if(l){l.mode=m.dataset.boardMode;save();renderBoard()}return}
- const add=e.target.closest('[data-add-player]');if(add){openPlayerMultiPicker(add.dataset.lid,add.dataset.addPlayer);return}
- const choose=e.target.closest('[data-choose-pool]');if(choose){openHeroMultiPicker(choose.dataset.choosePool);return}
- const edit=e.target.closest('[data-edit-player-heroes]');if(edit){openPlayerHeroEditor(edit.dataset.lid,edit.dataset.tid,edit.dataset.editPlayerHeroes);return}
+function boardLegionHtml(l,i){
+ if(!l.configured)return'';
+ const a=allianceFor(l),emblem=a?.emblem_url||'',roleText=`${l.name.toUpperCase()}${l.mode==='pool'?' • SHARED HERO POOL':' • ASSIGNED BY TEAM'}`;
+ return `<section class="board-legion" style="--lc:${l.color}"><div class="board-head"><div class="board-identity">${emblem?`<img class="board-emblem" src="${esc(emblem)}" alt="">`:''}<div><div class="board-name">${esc(legDisplay(l))}</div><div class="board-role">${esc(roleText)}</div></div></div><button class="btn small" data-edit-roles="${l.id}">Edit Roles</button></div>
+ <div class="board-section"><div class="mode-box"><button class="mode ${l.mode==='assigned'?'active':''}" data-mode="assigned" data-lid="${l.id}"><b>Assigned by Team</b><small>Each player gets four Hero assignments.</small></button><button class="mode ${l.mode==='pool'?'active':''}" data-mode="pool" data-lid="${l.id}"><b>Shared Hero Pool</b><small>All Teams use one Legion Joiner Hero pool.</small></button></div></div>
+ <div class="board-section"><div class="role-grid">${roleCard('👑','GARRISON CHIEF',l.roles.garrisonChief)}${roleCard('📣','RALLY MANAGERS',l.roles.rallyManagers)}${roleCard('🚦','INCOMING TRAFFIC',l.roles.incomingTraffic)}${roleCard('🧹','KICKING CREW',l.roles.kickingCrew)}</div></div>
+ <div class="board-section"><h4>WHALE GROUP SCHEDULE</h4>${scheduleForLegion(l)}</div>
+ <div class="board-section"><div class="section-head"><h4>TROOP RATIOS</h4><button class="btn small" data-edit-ratios="${l.id}">Edit Ratios</button></div><div class="ratio-grid"><div class="ratio-card g"><small>★ GARRISON</small><strong>${esc(l.ratios.garrison)}</strong><span>INFANTRY &nbsp; LANCER &nbsp; MARKSMAN</span></div><div class="ratio-card r"><small>MIA RALLY</small><strong>${esc(l.ratios.rally)}</strong><span>INFANTRY &nbsp; LANCER &nbsp; MARKSMAN</span></div></div></div>
+ ${l.mode==='pool'?sharedPoolBlock(l):''}
+ <div class="board-section"><div class="section-head"><h4>PLAYERS (${l.teams.reduce((n,t)=>n+(t.players?.length||0),0)})</h4><button class="btn small" data-add-player="${l.id}">+ Add Player</button></div>${l.mode==='assigned'?`<table class="player-table"><thead><tr><th>PLAYER</th><th>GARRISON</th><th>MIA RALLY</th><th></th></tr></thead><tbody>${playerRowsAssigned(l)}</tbody></table>`:`<table class="player-table"><thead><tr><th>PLAYER</th><th></th></tr></thead><tbody>${playerRowsPool(l)}</tbody></table>`}</div></section>`
 }
-$('#boardRoot').onchange=()=>{};
+function renderBoard(){const list=store.legions.filter(l=>l.configured);$('#boardRoot').innerHTML=list.length?list.map(boardLegionHtml).join(''):'<div class="card"><div class="empty">Create a Legion in Pet Schedule first.</div></div>'}
 
+/* BOARD MODALS */
+function editRoles(l){
+ const r=modal(`<div class="section-head"><div><h3>Edit Roles • ${esc(legDisplay(l))}</h3></div><button class="modal-x" data-modal-close>×</button></div><div class="grid2" style="margin-top:12px"><label>👑 Garrison Chief<input id="rgc" value="${esc(l.roles.garrisonChief)}"></label><label>📣 Rally Managers<input id="rrm" value="${esc(l.roles.rallyManagers)}"></label><label>🚦 Incoming Traffic<input id="rit" value="${esc(l.roles.incomingTraffic)}"></label><label>🧹 Kicking Crew<input id="rkc" value="${esc(l.roles.kickingCrew)}"></label></div><div class="modal-actions"><button class="btn" data-modal-close>Cancel</button><button class="btn violet" id="saveRoles">Save</button></div>`);
+ r.querySelector('#saveRoles').onclick=()=>{l.roles={garrisonChief:r.querySelector('#rgc').value,rallyManagers:r.querySelector('#rrm').value,incomingTraffic:r.querySelector('#rit').value,kickingCrew:r.querySelector('#rkc').value};save();r.remove();renderBoard()}
+}
+function editRatios(l){
+ const r=modal(`<div class="section-head"><div><h3>Troop Ratios • ${esc(legDisplay(l))}</h3></div><button class="modal-x" data-modal-close>×</button></div><div class="grid2" style="margin-top:12px"><label>Garrison<input id="gRatio" value="${esc(l.ratios.garrison)}"></label><label>MIA Rally<input id="rRatio" value="${esc(l.ratios.rally)}"></label></div><div class="modal-actions"><button class="btn" data-modal-close>Cancel</button><button class="btn violet" id="saveRatios">Save</button></div>`);
+ r.querySelector('#saveRatios').onclick=()=>{l.ratios.garrison=r.querySelector('#gRatio').value;l.ratios.rally=r.querySelector('#rRatio').value;save();r.remove();renderBoard()}
+}
+function addPlayerFlow(l){
+ const r=modal(`<div class="section-head"><div><h3>Add Player • ${esc(legDisplay(l))}</h3><div class="muted">Choose from the ranked Joiner list or add a player manually. NEXA assigns selected players to an active Team.</div></div><button class="modal-x" data-modal-close>×</button></div><button class="btn violet big-choice" id="ranked">Choose from Ranked List</button><button class="btn big-choice" id="manual">Add Manually</button>`);
+ r.querySelector('#ranked').onclick=()=>{r.remove();rankedPicker(l)};
+ r.querySelector('#manual').onclick=()=>{r.remove();manualPlayer(l)}
+}
+function rankedJoiners(){
+ const rallyIds=new Set(rallyCandidates().map(x=>String(x.id)));
+ return players.filter(p=>!rallyIds.has(String(p.id))).sort((a,b)=>(Number(b.deployment_capacity||0)-Number(a.deployment_capacity||0))||(Number(b.power||0)-Number(a.power||0)))
+}
+function targetTeam(l){return l.teams[0]||null}
+function rankedPicker(l){
+ const t=targetTeam(l);if(!t)return alert('Add Team 1 in Pet Schedule first.');
+ const list=rankedJoiners(),selected=new Set((t.players||[]).map(String));
+ const r=modal(`<div class="section-head"><div><h3>Ranked Joiners • ${esc(legDisplay(l))}</h3><div class="tiny muted">Select one or multiple players.</div></div><button class="modal-x" data-modal-close>×</button></div><div class="rank-list">${list.map((p,i)=>`<label class="rank-row"><div><b>${i+1}. ${esc(p.in_game_name)}</b><div class="tiny muted">${esc(p.player_id||'')} • Deployment ${Number(p.deployment_capacity||0).toLocaleString()}</div></div><input type="checkbox" value="${p.id}" ${selected.has(String(p.id))?'checked':''}></label>`).join('')}</div><div class="modal-actions"><button class="btn" data-modal-close>Cancel</button><button class="btn violet" id="saveRanked">Add</button></div>`);
+ r.querySelector('#saveRanked').onclick=()=>{t.players=Array.from(r.querySelectorAll('input[type="checkbox"]:checked')).map(x=>x.value);save();r.remove();renderBoard()}
+}
+function manualPlayer(l){
+ const t=targetTeam(l);if(!t)return alert('Add Team 1 in Pet Schedule first.');
+ const r=modal(`<div class="section-head"><div><h3>Add Player Manually</h3></div><button class="modal-x" data-modal-close>×</button></div><label style="margin-top:12px">Player Name<input id="manualName" placeholder="Name"></label><div class="modal-actions"><button class="btn" data-modal-close>Cancel</button><button class="btn violet" id="saveManual">Add</button></div>`);
+ r.querySelector('#saveManual').onclick=()=>{const name=r.querySelector('#manualName').value.trim();if(!name)return;const p={id:uid('manual_player_'),name,in_game_name:name,player_id:''};(store.manualPlayers||(store.manualPlayers=[])).push(p);t.players.push(p.id);save();r.remove();renderBoard()}
+}
+function heroCardValue(id,label){const h=heroes.find(x=>String(x.id)===String(id));return `<div class="hero-edit-slot-inner">${h?.image_url?`<img src="${esc(h.image_url)}" alt="">`:'<div style="width:64px;height:64px;border-radius:12px;background:#101522"></div>'}<div><b>${esc(h?.name||'—')}</b><small>${h?`Gen ${h.generation} • ${esc(h.rarity||'')}`:'Leave empty'}</small></div></div>`}
+function editPlayerHeroes(l,t,pid){
+ const p=playerById(pid);t.playerHeroes=t.playerHeroes||{};const vals=[...(t.playerHeroes[pid]||['','','',''])];while(vals.length<4)vals.push('');
+ const labels=['Garrison Hero 1','Garrison Hero 2','MIA Rally Hero 1','MIA Rally Hero 2'];
+ const r=modal(`<div class="section-head"><div><h3>Garrison + MIA Heroes • ${esc(p?.in_game_name||p?.name||'Player')}</h3></div><button class="modal-x" data-modal-close>×</button></div><div class="hero-edit-grid">${labels.map((x,i)=>`<div><label>${x}</label><button class="hero-edit-slot" data-slot="${i}">${heroCardValue(vals[i],x)}</button></div>`).join('')}</div><div class="tiny muted" style="margin-top:10px">Two Garrison heroes + two MIA Rally heroes. Legion Board displays names only.</div><div class="modal-actions"><button class="btn" data-modal-close>Cancel</button><button class="btn violet" id="savePlayerHeroes">Save</button></div>`);
+ r.querySelectorAll('[data-slot]').forEach(b=>b.onclick=()=>chooseHero(Number(b.dataset.slot),vals,()=>{b.innerHTML=heroCardValue(vals[Number(b.dataset.slot)],labels[Number(b.dataset.slot)])}));
+ r.querySelector('#savePlayerHeroes').onclick=()=>{t.playerHeroes[pid]=vals;save();r.remove();renderBoard()}
+}
+function chooseHero(slot,vals,onPick){
+ const list=eligibleJoinerHeroes(),r=modal(`<div class="section-head"><div><h3>Choose Hero</h3><div class="muted">Gen ${activeGen} or earlier • Epic/Purple + Legendary/Mythic only</div></div><button class="modal-x" data-modal-close>×</button></div><div class="hero-choice-grid"><button class="hero-choice empty-choice" data-hero=""><div><b>—</b><small>Leave empty</small></div></button>${list.map(h=>`<button class="hero-choice ${String(vals[slot])===String(h.id)?'selected':''}" data-hero="${h.id}">${h.image_url?`<img src="${esc(h.image_url)}" alt="">`:''}<b>${esc(h.name)}</b><small>Gen ${h.generation} • ${esc(h.rarity||'')}</small></button>`).join('')}</div>`);
+ r.querySelectorAll('[data-hero]').forEach(b=>b.onclick=()=>{vals[slot]=b.dataset.hero||'';r.remove();onPick()})
+}
+function choosePool(l){
+ const eligible=eligibleJoinerHeroes(),selected=new Set((l.sharedHeroIds||[]).map(String));
+ const r=modal(`<div class="section-head"><div><h3>Joiner Heroes • ${esc(legDisplay(l))}</h3><div class="muted">Choose up to 8 heroes for MIA Rally • JOINER HEROES • USE ANY OF THESE.</div></div><button class="modal-x" data-modal-close>×</button></div><div class="hero-check-list">${eligible.map(h=>`<label class="hero-check">${h.image_url?`<img src="${esc(h.image_url)}" alt="">`:''}<div><b style="color:#ffd260">${esc(h.name)}</b><div class="muted">Gen ${h.generation} • ${esc(h.troop_type||'')}</div></div><input type="checkbox" value="${h.id}" ${selected.has(String(h.id))?'checked':''}></label>`).join('')}</div><div class="modal-actions"><button class="btn" data-modal-close>Cancel</button><button class="btn violet" id="savePool">Save</button></div>`);
+ r.querySelector('#savePool').onclick=()=>{const ids=Array.from(r.querySelectorAll('input[type="checkbox"]:checked')).map(x=>x.value);if(ids.length>8)return alert('Choose up to 8 heroes.');l.sharedHeroIds=ids;save();r.remove();renderBoard()}
+}
+$('#boardRoot').onclick=e=>{
+ const mode=e.target.closest('[data-mode]');if(mode){const l=store.legions.find(x=>x.id===mode.dataset.lid);if(l){l.mode=mode.dataset.mode;save();renderBoard()}return}
+ const roles=e.target.closest('[data-edit-roles]');if(roles){const l=store.legions.find(x=>x.id===roles.dataset.editRoles);if(l)editRoles(l);return}
+ const ratios=e.target.closest('[data-edit-ratios]');if(ratios){const l=store.legions.find(x=>x.id===ratios.dataset.editRatios);if(l)editRatios(l);return}
+ const add=e.target.closest('[data-add-player]');if(add){const l=store.legions.find(x=>x.id===add.dataset.addPlayer);if(l)addPlayerFlow(l);return}
+ const edit=e.target.closest('[data-edit-player]');if(edit){const l=store.legions.find(x=>x.id===edit.dataset.lid),t=l?.teams.find(x=>x.id===edit.dataset.tid);if(l&&t)editPlayerHeroes(l,t,edit.dataset.editPlayer);return}
+ const pool=e.target.closest('[data-choose-pool]');if(pool){const l=store.legions.find(x=>x.id===pool.dataset.choosePool);if(l)choosePool(l);return}
+ const rem=e.target.closest('[data-remove-player]');if(rem){const l=store.legions.find(x=>x.id===rem.dataset.lid),t=l?.teams.find(x=>x.id===rem.dataset.tid);if(t){t.players=t.players.filter(x=>String(x)!==String(rem.dataset.removePlayer));save();renderBoard()}}
+}
+
+/* PLAN */
 function wirePlan(){store.plan=store.plan||{title:'',alliance:'',notes:''};$('#planTitle').value=store.plan.title||'';$('#planAlliance').value=store.plan.alliance||'';$('#planNotes').value=store.plan.notes||'';$('#planTitle').oninput=e=>{store.plan.title=e.target.value;save()};$('#planAlliance').oninput=e=>{store.plan.alliance=e.target.value;save()};$('#planNotes').oninput=e=>{store.plan.notes=e.target.value;save()}}
+
 wireSetup();wirePlan();renderPets();renderBoard();loadData().catch(e=>say(e.message||String(e)));
 })();
 </script>

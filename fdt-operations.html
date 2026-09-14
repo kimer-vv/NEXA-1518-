@@ -185,7 +185,7 @@ label{display:grid;gap:6px;color:#aeb7d1;font-size:12px;font-weight:850}input,se
 </head>
 <body>
 <main class="sh">
-<!-- NEXA FDT OPERATIONS V2.2.1 • LEGION WORKFLOW LOAD FIX / CHECKLIST / DRAFT / FINAL PLACEMENT -->
+<!-- NEXA FDT OPERATIONS V2.2.2 • 120 TEST PLAYER POOL / 12 WHALES / LEGION ASSIGNMENT TESTING -->
 <div class="top">
   <a class="round" href="index.html" aria-label="Back">‹</a>
   <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div><div class="autosave">AUTOSAVE • SAVED</div></div>
@@ -294,19 +294,57 @@ const $=s=>document.querySelector(s),$$=s=>Array.from(document.querySelectorAll(
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const state=Number(localStorage.getItem('nexa_active_state_v49')||window.NEXA_ACTIVE_STATE||1518)||1518;
 $('#stateLabel').textContent='State '+state;
-const KEY='nexa_fdt_ops_v221_'+state;
+const KEY='nexa_fdt_ops_v222_'+state;
 const COLORS=['#9b78ff','#ffc75b','#48ddff','#67dfb1','#ff79b7','#b897ff','#ff9f5b','#68e6ff','#ff6f91','#6ee7b7','#60a5fa','#f59e0b','#a78bfa','#34d399','#f472b6','#22d3ee','#fb7185','#84cc16','#c084fc','#38bdf8','#fbbf24','#4ade80','#e879f9','#2dd4bf'];
 let store=load(),alliances=[],players=[],responses=[],heroes=[],rules=[],activeGen=0,fcTab='approved';
 
 function load(){
  try{const x=JSON.parse(localStorage.getItem(KEY)||'null');if(x)return x}catch(_){}
  const start=12,end=17,colors=COLORS;
- const whales=Array.from({length:13},(_,i)=>({id:`test_whale_${String(i+1).padStart(2,'0')}`,name:`Test Whale ${String(i+1).padStart(2,'0')}`,in_game_name:`Test Whale ${String(i+1).padStart(2,'0')}`,manual:true,test:true}));
- const joiners=Array.from({length:40},(_,i)=>({id:`test_joiner_${String(i+1).padStart(2,'0')}`,name:`Test Joiner ${String(i+1).padStart(2,'0')}`,in_game_name:`Test Joiner ${String(i+1).padStart(2,'0')}`,player_id:`TJ${String(i+1).padStart(3,'0')}`,manual:true,test:true}));
+ const allianceTags=['BBC','EVG','FSU','HOS','WAR','LGC','TAX','OA'];
+ const mkTroops=(i,isWhale)=>{
+   const fullT12=isWhale||i%4===0;
+   const helios=!fullT12&&(i%3===0||i%5===0);
+   const skill=(i%3)+1;
+   const one=(name,t12,t11,s)=>({name,tier:t12?12:t11?11:10,t12_unlocked:t12,t11_unlocked:t11,advanced_skill:s});
+   return{
+     infantry:one(fullT12?'Exalted T12 Infantry':helios?'Helios T11 Infantry':'T10 Infantry',fullT12,helios,skill),
+     lancer:one(fullT12?'Exalted T12 Lancer':helios?'Helios T11 Lancer':'T10 Lancer',fullT12,helios,Math.max(1,skill-1)),
+     marksman:one(fullT12?'Exalted T12 Marksman':helios?'Helios T11 Marksman':'T10 Marksman',fullT12,helios,Math.min(3,skill+1))
+   }
+ };
+ const whales=Array.from({length:12},(_,i)=>({
+   id:`test_whale_${String(i+1).padStart(2,'0')}`,
+   name:`Test Whale ${String(i+1).padStart(2,'0')}`,
+   in_game_name:`Test Whale ${String(i+1).padStart(2,'0')}`,
+   player_id:`TW${String(i+1).padStart(3,'0')}`,
+   manual:true,test:true,battle_role:'rally_lead',
+   custom_alliance_tag:allianceTags[i%allianceTags.length],
+   deployment_capacity:1850000-(i*35000),
+   rally_capacity:2600000-(i*45000),
+   power:2200000000-(i*65000000),
+   test_troops:mkTroops(i,true),
+   test_availability:['12:00–13:00 UTC','13:00–14:00 UTC','14:00–15:00 UTC','15:00–16:00 UTC','16:00–17:00 UTC']
+ }));
+ const joiners=Array.from({length:108},(_,i)=>({
+   id:`test_joiner_${String(i+1).padStart(3,'0')}`,
+   name:`Test Joiner ${String(i+1).padStart(3,'0')}`,
+   in_game_name:`Test Joiner ${String(i+1).padStart(3,'0')}`,
+   player_id:`TJ${String(i+1).padStart(3,'0')}`,
+   manual:true,test:true,battle_role:'joiner',
+   custom_alliance_tag:allianceTags[i%allianceTags.length],
+   deployment_capacity:1450000-(i*5000),
+   rally_capacity:(i<15?1900000-(i*20000):0),
+   power:1250000000-(i*6500000),
+   test_troops:mkTroops(i,false),
+   test_availability:i%5===0?['12:00–13:00 UTC','13:00–14:00 UTC']:
+     i%3===0?['12:00–13:00 UTC','13:00–14:00 UTC','14:00–15:00 UTC']:
+     ['12:00–13:00 UTC','13:00–14:00 UTC','14:00–15:00 UTC','15:00–16:00 UTC','16:00–17:00 UTC']
+ }));
  let wi=0;
  const mkTeam=(n,count,color)=>{const ids=whales.slice(wi,wi+count).map(x=>x.id);wi+=count;return{id:`seed_team_${n}_${wi}`,name:`Team ${n}`,color,assignments:ids.map((pid,j)=>({id:`seed_asg_${n}_${wi}_${j}`,playerId:pid,start,end:j===0?Math.min(end,start+2):end,pet:j===0})),players:[],playerHeroes:{}}};
- const l1={id:'seed_leg_1',name:'Legion 1',color:colors[0],allianceId:'',manualAlliance:'TEST-L1',configured:true,teams:[mkTeam(1,4,colors[1]),mkTeam(2,3,colors[2])],mode:'assigned',roles:{garrisonChief:'',rallyManagers:'',incomingTraffic:'',kickingCrew:''},ratios:{garrison:'60/40/0',rally:'48/4/48',showRally:true},sharedHeroIds:[],focusPools:{}};
- const l2={id:'seed_leg_2',name:'Legion 2',color:colors[3],allianceId:'',manualAlliance:'TEST-L2',configured:true,teams:[mkTeam(1,3,colors[4]),mkTeam(2,3,colors[5])],mode:'pool',roles:{garrisonChief:'',rallyManagers:'',incomingTraffic:'',kickingCrew:''},ratios:{garrison:'60/40/0',rally:'48/4/48',showRally:true},sharedHeroIds:[]};
+ const l1={id:'seed_leg_1',name:'Legion 1',color:colors[0],allianceId:'',manualAlliance:'TEST-L1',configured:true,members:[],teams:[mkTeam(1,3,colors[1]),mkTeam(2,3,colors[2])],mode:'assigned',roles:{garrisonChief:'',rallyManagers:'',incomingTraffic:'',kickingCrew:''},ratios:{garrison:'60/40/0',rally:'48/4/48',showRally:true},sharedHeroIds:[],focusPools:{}};
+ const l2={id:'seed_leg_2',name:'Legion 2',color:colors[3],allianceId:'',manualAlliance:'TEST-L2',configured:true,members:[],teams:[mkTeam(1,3,colors[4]),mkTeam(2,3,colors[5])],mode:'pool',roles:{garrisonChief:'',rallyManagers:'',incomingTraffic:'',kickingCrew:''},ratios:{garrison:'60/40/0',rally:'48/4/48',showRally:true},sharedHeroIds:[],focusPools:{}};
  return{setup:{battleDate:'',status:'planning',battleStart:start,battleEnd:end,alliance:'',saved:false},legions:[l1,l2],manualRally:whales,manualPlayers:joiners,plan:{title:'',alliance:'',notes:''}}
 }
 function save(){localStorage.setItem(KEY,JSON.stringify(store))}
@@ -433,19 +471,26 @@ $$('[data-fc]').forEach(b=>b.onclick=()=>{fcTab=b.dataset.fc;renderFormations()}
 const LEGION_PLACEMENT_COLORS=['#9b78ff','#48ddff','#ffc75b','#67dfb1','#ff79b7','#b897ff','#ff9f5b','#68e6ff'];
 function fdtResponseForPlayer(p){return responses.find(r=>String(r.player_account_id||'')===String(p?.id))||null}
 function fdtSnapshot(p){return fdtResponseForPlayer(p)?.response_data?.profile_snapshot||{}}
-function fdtTroops(p){const r=fdtResponseForPlayer(p),q=fdtSnapshot(p)?.troop_quality||r?.response_data?.troops||{};return ['infantry','lancer','marksman'].map(k=>({key:k,data:q?.[k]||{}}))}
+function fdtTroops(p){const r=fdtResponseForPlayer(p),q=fdtSnapshot(p)?.troop_quality||r?.response_data?.troops||p?.test_troops||{};return ['infantry','lancer','marksman'].map(k=>({key:k,data:q?.[k]||{}}))}
 function fdtRoleBase(p){const r=fdtResponseForPlayer(p);return String(r?.role||r?.response_data?.role||p?.battle_role||'joiner').toLowerCase().replaceAll(' ','_')}
 function fdtIsRL(p){return ['rally_lead','rallyleader','rally_leader'].includes(fdtRoleBase(p))}
 function fdtT12Count(p){return fdtTroops(p).filter(x=>x.data?.t12_unlocked===true||String(x.data?.quality||x.data?.name||'').toLowerCase().includes('t12')).length}
 function fdtFullT12(p){return fdtT12Count(p)===3}
 function fdtHelios(p){return !fdtFullT12(p)&&fdtTroops(p).some(x=>x.data?.t11_unlocked===true||String(x.data?.quality||x.data?.name||'').toLowerCase().includes('helios')||Number(x.data?.tier||0)===11)}
 function fdtSkillTags(p){const names={infantry:'INF',lancer:'LAN',marksman:'MRK'};return fdtTroops(p).map(x=>{const n=Number(x.data?.advanced_skill||x.data?.skill_level||0);return n>0?`${names[x.key]} S${n}`:''}).filter(Boolean)}
-function responseAvailabilitySlots(p){const r=fdtResponseForPlayer(p),a=r?.availability||r?.response_data?.availability||[];return Array.isArray(a)?a:[]}
+function responseAvailabilitySlots(p){const r=fdtResponseForPlayer(p),a=r?.availability||r?.response_data?.availability||p?.test_availability||[];return Array.isArray(a)?a:[]}
 function availabilityCount(p){const arr=responseAvailabilitySlots(p);const battle=arr.filter(v=>{const s=String(v);return ['12:','13:','14:','15:','16:'].some(h=>s.includes(h))});return new Set(battle.map(String)).size}
 function availabilityLabel(p){const n=availabilityCount(p);return n>=5?'Full':n>=3?'Half':n>0?'Some':'—'}
 function availabilityLabelForResponse(r){const p=players.find(x=>String(x.id)===String(r.player_account_id));return p?availabilityLabel(p):'—'}
-function fdtRawScore(p){const snap=fdtSnapshot(p),r=fdtResponseForPlayer(p)?.response_data||{};const dep=Number(snap?.deployment_capacity||snap?.account?.deployment_capacity||r.deployment_capacity||p.deployment_capacity||0);const rally=Number(snap?.account?.rally_capacity||r.rally_capacity||p.rally_capacity||0);const power=Number(r.power||p.power||0);const skills=fdtTroops(p).reduce((s,x)=>s+Number(x.data?.advanced_skill||x.data?.skill_level||0),0);const heroData=Array.isArray(snap?.heroes)?snap.heroes:[];const expertData=Array.isArray(snap?.experts)?snap.experts:[];const widget=heroData.reduce((s,h)=>s+Number(h.widget_level||0),0);const heroSkill=heroData.reduce((s,h)=>s+Number(h.skill_level||0),0);const expertAffinity=expertData.reduce((s,e)=>s+Number(e.affinity||0),0);const troopQuality=(fdtFullT12(p)?100:0)+(fdtHelios(p)?55:0)+(fdtT12Count(p)*18)+(skills*7);if(fdtIsRL(p))return troopQuality+(dep/100000)+(rally/100000)+(power/10000000)+(widget*6)+(heroSkill*2)+(expertAffinity*1.5);return troopQuality+(dep/100000)+(power/18000000)+(skills*10)}
-function legionCandidates(){const ids=new Set(responses.map(r=>String(r.player_account_id||'')).filter(Boolean));const responsePlayers=players.filter(p=>ids.has(String(p.id)));return responsePlayers.length?responsePlayers:players}
+function fdtRawScore(p){const snap=fdtSnapshot(p),r=fdtResponseForPlayer(p)?.response_data||{};const dep=Number(snap?.deployment_capacity||snap?.account?.deployment_capacity||r.deployment_capacity||p?.deployment_capacity||0);const rally=Number(snap?.account?.rally_capacity||r.rally_capacity||p.rally_capacity||0);const power=Number(r.power||p.power||0);const skills=fdtTroops(p).reduce((s,x)=>s+Number(x.data?.advanced_skill||x.data?.skill_level||0),0);const heroData=Array.isArray(snap?.heroes)?snap.heroes:[];const expertData=Array.isArray(snap?.experts)?snap.experts:[];const widget=heroData.reduce((s,h)=>s+Number(h.widget_level||0),0);const heroSkill=heroData.reduce((s,h)=>s+Number(h.skill_level||0),0);const expertAffinity=expertData.reduce((s,e)=>s+Number(e.affinity||0),0);const troopQuality=(fdtFullT12(p)?100:0)+(fdtHelios(p)?55:0)+(fdtT12Count(p)*18)+(skills*7);if(fdtIsRL(p))return troopQuality+(dep/100000)+(rally/100000)+(power/10000000)+(widget*6)+(heroSkill*2)+(expertAffinity*1.5);return troopQuality+(dep/100000)+(power/18000000)+(skills*10)}
+function legionCandidates(){
+ const ids=new Set(responses.map(r=>String(r.player_account_id||'')).filter(Boolean));
+ const responsePlayers=players.filter(p=>ids.has(String(p.id)));
+ const tests=[...(store.manualRally||[]),...(store.manualPlayers||[])].filter(p=>p.test);
+ const base=responsePlayers.length?responsePlayers:players;
+ const seen=new Set();
+ return [...tests,...base].filter(p=>p?.id&&!seen.has(String(p.id))&&seen.add(String(p.id)))
+}
 function scoreMap(){const candidates=legionCandidates(),rl=candidates.filter(fdtIsRL),jr=candidates.filter(p=>!fdtIsRL(p));const normalize=list=>{if(!list.length)return new Map();const vals=list.map(fdtRawScore),min=Math.min(...vals),max=Math.max(...vals);const map=new Map();list.forEach((p,i)=>{const ratio=max===min?1:(vals[i]-min)/(max-min);map.set(String(p.id),Math.max(20,Math.min(60,Math.round(20+40*ratio))))});return map};return{rl:normalize(rl),jr:normalize(jr)}}
 function fdtScore(p){const maps=scoreMap();return(fdtIsRL(p)?maps.rl:maps.jr).get(String(p.id))||20}
 function fdtOperationalRole(p){const w=ensureLegionWorkflow(),override=w.roleOverrides?.[String(p.id)];if(override)return override;if(fdtIsRL(p))return'RL';const list=legionCandidates().filter(x=>!fdtIsRL(x)).sort((a,b)=>fdtRawScore(b)-fdtRawScore(a));const rank=list.findIndex(x=>String(x.id)===String(p.id)),pct=list.length?rank/list.length:1;return(pct<=.12&&Number(p.rally_capacity||fdtSnapshot(p)?.account?.rally_capacity||0)>0)?'PRL':'JOINER'}
@@ -461,7 +506,7 @@ function playerDetail(p){const role=fdtOperationalRole(p),skills=fdtSkillTags(p)
 function assignmentFilters(){return['ALL','RL','PRL',...[...new Set(legionCandidates().map(p=>playerAllianceTag(p)||'NO TAG'))].sort()]}
 let legionFilter='ALL';
 function filteredAssignmentPlayers(){let list=legionCandidates();if(legionFilter==='RL')list=list.filter(p=>fdtOperationalRole(p)==='RL');else if(legionFilter==='PRL')list=list.filter(p=>fdtOperationalRole(p)==='PRL');else if(legionFilter!=='ALL')list=list.filter(p=>(playerAllianceTag(p)||'NO TAG')===legionFilter);return[...list].sort((a,b)=>{const w={RL:3,PRL:2,JOINER:1},d=w[fdtOperationalRole(b)]-w[fdtOperationalRole(a)];return d||fdtScore(b)-fdtScore(a)||String(a.in_game_name).localeCompare(String(b.in_game_name))})}
-function renderAssignment(){const w=ensureLegionWorkflow(),l=currentDraftLegion(),assigned=legionAssignedMap();if(!w.legions.length)return`<div class="card"><div class="section-head"><div><h2>Legion Assignment</h2></div><button class="btn violet" data-create-draft-legion>+ Legion 1</button></div></div>`;const filters=assignmentFilters();return`<div class="card"><div class="section-head"><div><h2>Legion Assignment</h2></div><button class="btn" data-create-draft-legion>+ Add Legion</button></div><div class="legion-toolbar"><label>Which Legion do you want to place players in?<select id="activeDraftLegion">${w.legions.map(x=>`<option value="${x.id}" ${x.id===l.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></label><div class="legion-counter">${l.playerIds.length}/60</div></div><div class="legion-filter">${filters.map(f=>`<button class="${legionFilter===f?'active':''}" data-legion-filter="${esc(f)}">${esc(f)}</button>`).join('')}</div><div class="assignment-grid">${filteredAssignmentPlayers().map(p=>assignmentCard(p,l,assigned)).join('')||'<div class="empty" style="grid-column:1/-1">No players found.</div>'}</div><div class="workflow-actions"><button class="btn violet" data-save-current-legion>Save ${esc(l.name)}</button><button class="btn" data-finish-assignment>Finish Legion Assignment</button></div></div>`}
+function renderAssignment(){const w=ensureLegionWorkflow(),l=currentDraftLegion(),assigned=legionAssignedMap();if(!w.legions.length)return`<div class="card"><div class="section-head"><div><h2>Legion Assignment</h2></div><button class="btn violet" data-create-draft-legion>+ Legion 1</button></div></div>`;const filters=assignmentFilters();return`<div class="card"><div class="section-head"><div><h2>Legion Assignment</h2><div class="tiny muted">Test pool: 120 players • 12 Rally Leads</div></div><button class="btn" data-create-draft-legion>+ Add Legion</button></div><div class="legion-toolbar"><label>Which Legion do you want to place players in?<select id="activeDraftLegion">${w.legions.map(x=>`<option value="${x.id}" ${x.id===l.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></label><div class="legion-counter">${l.playerIds.length}/60</div></div><div class="legion-filter">${filters.map(f=>`<button class="${legionFilter===f?'active':''}" data-legion-filter="${esc(f)}">${esc(f)}</button>`).join('')}</div><div class="assignment-grid">${filteredAssignmentPlayers().map(p=>assignmentCard(p,l,assigned)).join('')||'<div class="empty" style="grid-column:1/-1">No players found.</div>'}</div><div class="workflow-actions"><button class="btn violet" data-save-current-legion>Save ${esc(l.name)}</button><button class="btn" data-finish-assignment>Finish Legion Assignment</button></div></div>`}
 function draftRoleSelect(p){const role=fdtOperationalRole(p);return`<select data-role-player="${p.id}" style="min-height:30px;padding:4px 5px;font-size:8px"><option value="RL" ${role==='RL'?'selected':''}>RL</option><option value="PRL" ${role==='PRL'?'selected':''}>PRL</option><option value="JOINER" ${role==='JOINER'?'selected':''}>Joiner</option></select>`}
 function draftPlayerRow(p,l){return`<div class="draft-player"><input type="checkbox" data-draft-check="${p.id}" data-lid="${l.id}"><div class="pn">[${esc(playerAllianceTag(p)||'NO TAG')}] ${esc(p.in_game_name||'Player')}</div>${draftRoleSelect(p)}<div class="score">${fdtScore(p)}</div><div class="avail">${availabilityLabel(p)}</div></div>`}
 function draftAllianceSelect(l){return`<select data-draft-alliance="${l.id}"><option value="">Choose Alliance…</option>${alliances.map(a=>`<option value="${a.id}" ${String(a.id)===String(l.allianceId)?'selected':''}>${esc(a.tag||a.name)}</option>`).join('')}<option value="__manual__" ${l.manualAlliance?'selected':''}>Add Manually…</option></select>`}
@@ -603,12 +648,12 @@ $('#petRoot').onclick=async e=>{
 function eligibleJoinerHeroes(){
  return heroes.filter(h=>Number(h.generation)<=activeGen&&['epic','purple','legendary','mythic','gold'].some(x=>String(h.rarity||'').toLowerCase().includes(x)))
 }
-function playerById(id){return players.find(p=>String(p.id)===String(id))||store.manualPlayers?.find(p=>String(p.id)===String(id))}
+function playerById(id){return players.find(p=>String(p.id)===String(id))||store.manualPlayers?.find(p=>String(p.id)===String(id))||store.manualRally?.find(p=>String(p.id)===String(id))}
 
 function playerAllianceTag(p){
  if(!p)return'';
  const a=alliances.find(x=>String(x.id)===String(p.alliance_id));
- return a?.tag||a?.name||p.alliance_tag||''
+ return a?.tag||a?.name||p.custom_alliance_tag||p.alliance_tag||''
 }
 function playerNameWithTag(p){
  const name=esc(p?.in_game_name||p?.name||'Player'),tag=playerAllianceTag(p);

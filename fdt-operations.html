@@ -88,11 +88,25 @@ label{display:grid;gap:6px;color:#aeb7d1;font-size:12px;font-weight:850}input,se
 .ratio-toggle-row label{display:flex;grid-template-columns:auto 1fr;align-items:center;gap:7px}
 .ratio-toggle-row input{width:20px;height:20px;min-height:20px}
 @media(max-width:620px){.rally-modal-grid{grid-template-columns:1fr 1fr}}
+
+/* V1.8 */
+.teams-strip{display:grid!important;grid-template-columns:1fr!important;gap:12px!important;overflow:visible!important}
+.pet-team{width:100%!important;max-width:100%!important;flex:none!important}
+.pet-hour-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;padding:10px}
+.pet-hour-table{min-width:780px;width:100%;border-collapse:separate;border-spacing:8px 0}
+.pet-hour-table th,.pet-hour-table td{border:1px solid rgba(255,255,255,.09);border-radius:13px;background:rgba(255,255,255,.025);padding:10px;vertical-align:top;text-align:left;min-width:145px}
+.pet-hour-table th{background:#0c1430;font-size:11px;font-weight:950}
+.pet-lead-line{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:5px 0;font-size:12px;font-weight:950}
+.pet-lead-line .lead-name{color:var(--tc)}
+.pet-pill{display:inline-flex;align-items:center;justify-content:center;min-height:22px;padding:2px 8px;border-radius:999px;border:1px solid color-mix(in srgb,var(--tc) 65%,transparent);background:color-mix(in srgb,var(--tc) 18%,transparent);color:var(--tc);font-size:9px;font-weight:1000;letter-spacing:.06em}
+.board-pet-team{margin-bottom:12px;border:1px solid color-mix(in srgb,var(--tc) 48%,transparent);border-radius:15px;background:rgba(255,255,255,.02);overflow:hidden}
+.board-pet-team-head{padding:9px 11px;box-shadow:inset 4px 0 0 var(--tc);font-weight:950;color:var(--tc);border-bottom:1px solid rgba(255,255,255,.07)}
+.rarity-mythic,.rarity-gold,.rarity-legendary{color:#ffd260!important}.rarity-epic,.rarity-purple{color:#c78bff!important}.rarity-rare,.rarity-blue{color:#68c9ff!important}
 </style>
 </head>
 <body>
 <main class="sh">
-<!-- NEXA FDT OPERATIONS V1.7 • MODAL RALLY EDITOR / FORMATION RATIOS / OPTIONAL MIA / PUBLISH TO NEXA -->
+<!-- NEXA FDT OPERATIONS V1.8 • SVS PET PARITY / STACKED TEAMS / 2H PET WINDOWS / LEGION READONLY TABLE -->
 <div class="top">
   <a class="round" href="index.html" aria-label="Back">‹</a>
   <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div><div class="autosave">AUTOSAVE • SAVED</div></div>
@@ -188,7 +202,7 @@ const $=s=>document.querySelector(s),$$=s=>Array.from(document.querySelectorAll(
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const state=Number(localStorage.getItem('nexa_active_state_v49')||window.NEXA_ACTIVE_STATE||1518)||1518;
 $('#stateLabel').textContent='State '+state;
-const KEY='nexa_fdt_ops_v17_'+state;
+const KEY='nexa_fdt_ops_v18_'+state;
 const COLORS=['#9b78ff','#ffc75b','#48ddff','#67dfb1','#ff79b7','#b897ff','#ff9f5b','#68e6ff'];
 let store=load(),alliances=[],players=[],responses=[],heroes=[],rules=[],activeGen=0,fcTab='approved';
 
@@ -198,7 +212,7 @@ function load(){
  const whales=Array.from({length:13},(_,i)=>({id:`test_whale_${String(i+1).padStart(2,'0')}`,name:`Test Whale ${String(i+1).padStart(2,'0')}`,in_game_name:`Test Whale ${String(i+1).padStart(2,'0')}`,manual:true,test:true}));
  const joiners=Array.from({length:40},(_,i)=>({id:`test_joiner_${String(i+1).padStart(2,'0')}`,name:`Test Joiner ${String(i+1).padStart(2,'0')}`,in_game_name:`Test Joiner ${String(i+1).padStart(2,'0')}`,player_id:`TJ${String(i+1).padStart(3,'0')}`,manual:true,test:true}));
  let wi=0;
- const mkTeam=(n,count,color)=>{const ids=whales.slice(wi,wi+count).map(x=>x.id);wi+=count;return{id:`seed_team_${n}_${wi}`,name:`Team ${n}`,color,assignments:ids.map((pid,j)=>({id:`seed_asg_${n}_${wi}_${j}`,playerId:pid,start,end,pet:j===0})),players:[],playerHeroes:{}}};
+ const mkTeam=(n,count,color)=>{const ids=whales.slice(wi,wi+count).map(x=>x.id);wi+=count;return{id:`seed_team_${n}_${wi}`,name:`Team ${n}`,color,assignments:ids.map((pid,j)=>({id:`seed_asg_${n}_${wi}_${j}`,playerId:pid,start,end:j===0?Math.min(end,start+2):end,pet:j===0})),players:[],playerHeroes:{}}};
  const l1={id:'seed_leg_1',name:'Legion 1',color:colors[0],allianceId:'',manualAlliance:'TEST-L1',configured:true,teams:[mkTeam(1,4,colors[1]),mkTeam(2,3,colors[2])],mode:'assigned',roles:{garrisonChief:'',rallyManagers:'',incomingTraffic:'',kickingCrew:''},ratios:{garrison:'60/40/0',rally:'48/4/48',showRally:true},sharedHeroIds:[]};
  const l2={id:'seed_leg_2',name:'Legion 2',color:colors[3],allianceId:'',manualAlliance:'TEST-L2',configured:true,teams:[mkTeam(1,3,colors[4]),mkTeam(2,3,colors[5])],mode:'pool',roles:{garrisonChief:'',rallyManagers:'',incomingTraffic:'',kickingCrew:''},ratios:{garrison:'60/40/0',rally:'48/4/48',showRally:true},sharedHeroIds:[]};
  return{setup:{battleDate:'',status:'planning',battleStart:start,battleEnd:end,alliance:'',saved:false},legions:[l1,l2],manualRally:whales,manualPlayers:joiners,plan:{title:'',alliance:'',notes:''}}
@@ -260,6 +274,7 @@ $('#refreshResponses').onclick=async()=>{const {data,error}=await sb.from('event
 
 /* FORMATIONS */
 function heroByName(n){return heroes.find(h=>String(h.name||'').toLowerCase()===String(n||'').toLowerCase())}
+function rarityClass(h){const r=String(h?.rarity||'').toLowerCase();if(r.includes('mythic')||r.includes('legendary')||r.includes('gold'))return 'rarity-legendary';if(r.includes('epic')||r.includes('purple'))return 'rarity-epic';if(r.includes('rare')||r.includes('blue'))return 'rarity-rare';return ''}
 function renderFormations(){
  $('#formationGen').textContent=`Gen ${activeGen} • Approved / Suggested`;
  $$('[data-fc]').forEach(b=>{const on=b.dataset.fc===fcTab;b.classList.toggle('violet',on);b.classList.toggle('active',on)});
@@ -292,10 +307,13 @@ function conflictFor(c){return allAssignments().find(a=>String(a.playerId)===Str
 function schedulePlayerOptions(){return `<option value="">Choose Rally Leader…</option>${rallyCandidates().map(p=>`<option value="${p.id}">${esc(p.in_game_name)}</option>`).join('')}`}
 function hourAssignments(t,h){return t.assignments.filter(a=>Number(a.start)<=h&&Number(a.end)>h)}
 function hourCells(t){
- return battleHours().map(h=>{const rows=hourAssignments(t,h);return`<div class="hour-cell" style="--tc:${t.color}"><strong>${hourLabel(h)}</strong>${rows.length?rows.map(a=>`<div class="hour-assignment team-colored-text">${esc(rallyName(a.playerId))}${a.pet?'<span class="pet-bonus-icon" title="Pet bonus">🐔</span>':''}</div>`).join(''):`<div class="dash">—</div>`}</div>`}).join('')
+ return battleHours().map(h=>{const rows=hourAssignments(t,h);return `<td>${rows.length?rows.map(a=>`<div class="pet-lead-line"><span class="lead-name">${esc(rallyName(a.playerId))}</span>${a.pet?'<span class="pet-pill">PET</span>':''}</div>`).join(''):'<div class="dash">—</div>'}</td>`}).join('')
+}
+function petHourTable(t){
+ return `<div class="pet-hour-wrap"><table class="pet-hour-table" style="--tc:${t.color}"><thead><tr>${battleHours().map(h=>`<th>${hourLabel(h)}</th>`).join('')}</tr></thead><tbody><tr>${hourCells(t)}</tr></tbody></table></div>`
 }
 function teamPetHtml(l,t,idx){
- return `<section class="pet-team" style="--tc:${t.color}"><div class="pet-team-head"><div><div class="pet-team-name">${esc(t.name)}</div><div class="tiny muted">${t.assignments.length} Rally Lead assignment${t.assignments.length===1?'':'s'}</div></div><div class="row"><button class="btn small" data-open-rl="${t.id}" data-lid="${l.id}">+ Rally Lead</button>${idx>0?`<button class="btn danger small" data-remove-team="${t.id}" data-lid="${l.id}">×</button>`:''}</div></div><div class="hour-scroll"><div class="hour-grid">${hourCells(t)}</div></div></section>`
+ return `<section class="pet-team" style="--tc:${t.color}"><div class="pet-team-head"><div><div class="pet-team-name">${esc(t.name)}</div><div class="tiny muted">${t.assignments.length} Rally Lead assignment${t.assignments.length===1?'':'s'}</div></div><div class="row"><button class="btn small" data-open-rl="${t.id}" data-lid="${l.id}">+ Rally Lead</button>${idx>0?`<button class="btn danger small" data-remove-team="${t.id}" data-lid="${l.id}">×</button>`:''}</div></div>${petHourTable(t)}</section>`
 }
 function petSetupHtml(l,i){
  if(!l.configured){
@@ -322,6 +340,7 @@ function openRallyModal(l,t){
    const pid=r.querySelector('#rmPlayer').value,start=Number(r.querySelector('#rmStart').value),end=Number(r.querySelector('#rmEnd').value),pet=r.querySelector('#rmPet').value==='yes';
    if(!pid)return alert('Choose a Rally Leader.');
    if(!(end>start))return alert('End time must be after start time.');
+   if(pet && (end-start)>2)return alert('PET windows can be a maximum of 2 hours.');
    const cand={id:uid('asg_'),playerId:pid,start,end,pet},conf=conflictFor(cand);
    if(conf){if(!confirm(`${rallyName(pid)} is already assigned ${hourLabel(conf.start)}–${hourLabel(conf.end)} UTC. Move that assignment here?`))return;for(const ll of store.legions)for(const tt of ll.teams)tt.assignments=tt.assignments.filter(a=>a.id!==conf.id)}
    t.assignments.push(cand);save();r.remove();renderPets();renderBoard();
@@ -345,14 +364,10 @@ function playerById(id){return players.find(p=>String(p.id)===String(id))||store
 function roleCard(icon,label,val){return `<div class="role-card"><small>${icon} ${label}</small><b>${esc(val||'—')}</b></div>`}
 function scheduleForLegion(l){
  if(!l.teams.length)return'<div class="muted tiny">No Teams exist in Pet Schedule.</div>';
- return `<div class="board-schedule"><div class="board-schedule-row">${l.teams.map(t=>`<div class="board-team-card" style="--tc:${t.color}"><b>${esc(t.name)}</b><div class="tiny muted" style="margin-top:5px">${t.assignments.length?t.assignments.map(a=>`${hourLabel(a.start)}–${hourLabel(a.end)} • <span class="team-colored-text">${esc(rallyName(a.playerId))}</span>${a.pet?' <span class="pet-bonus-icon">🐔</span>':''}`).join('<br>'):'No Rally Leaders scheduled.'}</div></div>`).join('')}</div></div>`
+ return l.teams.map(t=>`<div class="board-pet-team" style="--tc:${t.color}"><div class="board-pet-team-head">${esc(t.name)}</div>${petHourTable(t)}</div>`).join('')
 }
-function heroNames(ids){return(ids||[]).map(id=>heroes.find(h=>String(h.id)===String(id))?.name).filter(Boolean)}
-function playerRowsAssigned(l){
- const rows=l.teams.flatMap(t=>(t.players||[]).map(pid=>({t,pid})));
- if(!rows.length)return'<tr><td colspan="4" class="muted">No Players assigned.</td></tr>';
- return rows.map(({t,pid})=>{const p=playerById(pid),x=t.playerHeroes?.[pid]||['','','',''],g=heroNames(x.slice(0,2)),r=heroNames(x.slice(2,4));return`<tr><td><b>${esc(p?.in_game_name||p?.name||'Player')}</b><div class="tiny muted">${esc(t.name)}</div></td><td class="hero-names">${g.length?g.map(esc).join('<br>'):'—'}</td><td class="hero-names">${r.length?r.map(esc).join('<br>'):'—'}</td><td><button class="edit-pill" data-edit-player="${pid}" data-tid="${t.id}" data-lid="${l.id}">✎</button></td></tr>`}).join('')
-}
+function heroNames(ids){return(ids||[]).map(id=>heroes.find(h=>String(h.id)===String(id))).filter(Boolean)}
+function heroNameMarkup(list){return(list||[]).length?list.map(h=>`<span class="${rarityClass(h)}">${esc(h.name)}</span>`).join('<br>'):'—'}
 function playerRowsPool(l){
  const rows=l.teams.flatMap(t=>(t.players||[]).map(pid=>({t,pid})));
  if(!rows.length)return'<tr><td colspan="2" class="muted">No Players assigned.</td></tr>';

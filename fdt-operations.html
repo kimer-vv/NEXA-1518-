@@ -69,7 +69,7 @@ label{display:grid;gap:6px;color:#aeb7d1;font-size:12px;font-weight:850}input,se
 </head>
 <body>
 <main class="sh">
-<!-- NEXA FDT OPERATIONS V1.4 • SVS-PET + LEGION-BOARD PARITY -->
+<!-- NEXA FDT OPERATIONS V1.5 • TEST SANDBOX / 5-HOUR SLOTS / MULTI-RALLY CELLS -->
 <div class="top">
   <a class="round" href="index.html" aria-label="Back">‹</a>
   <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div><div class="autosave">AUTOSAVE • SAVED</div></div>
@@ -150,34 +150,20 @@ const $=s=>document.querySelector(s),$$=s=>Array.from(document.querySelectorAll(
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const state=Number(localStorage.getItem('nexa_active_state_v49')||window.NEXA_ACTIVE_STATE||1518)||1518;
 $('#stateLabel').textContent='State '+state;
-const KEY='nexa_fdt_ops_v14_'+state;
+const KEY='nexa_fdt_ops_v15_'+state;
 const COLORS=['#9b78ff','#ffc75b','#48ddff','#67dfb1','#ff79b7','#b897ff','#ff9f5b','#68e6ff'];
 let store=load(),alliances=[],players=[],responses=[],heroes=[],rules=[],activeGen=0,fcTab='approved';
 
-function load(){try{const x=JSON.parse(localStorage.getItem(KEY)||'null');if(x)return x}catch(_){}return{setup:{battleDate:'',status:'planning',battleStart:12,battleEnd:17,alliance:''},legions:[],manualRally:[],manualPlayers:[],plan:{title:'',alliance:'',notes:''}}}
-function save(){localStorage.setItem(KEY,JSON.stringify(store))}
-function uid(p){return p+Math.random().toString(36).slice(2,10)}
-function say(t){$('#status').textContent=t||''}
-function modal(html){const r=document.createElement('div');r.className='modal';r.innerHTML=`<div class="modal-card">${html}</div>`;r.onclick=e=>{if(e.target===r||e.target.closest('[data-modal-close]'))r.remove()};document.body.appendChild(r);return r}
-function panel(n){$$('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.panel===n));$$('.panel').forEach(p=>p.classList.toggle('active',p.dataset.panel===n))}
-$('#nav').onclick=e=>{const b=e.target.closest('[data-panel]');if(b)panel(b.dataset.panel)}
-function hourOpts(sel){let s='';for(let h=0;h<24;h++)s+=`<option value="${h}" ${Number(sel)===h?'selected':''}>${String(h).padStart(2,'0')}:00</option>`;return s}
-function hourLabel(h){return String(h).padStart(2,'0')+':00'}
-function battleHours(){const a=Number(store.setup.battleStart??12),b=Number(store.setup.battleEnd??17),x=[];for(let h=a;h<=b;h++)x.push(h);return x}
-function scheduleOpts(sel){return battleHours().map(h=>`<option value="${h}" ${Number(sel)===h?'selected':''}>${hourLabel(h)}</option>`).join('')}
-
-/* SETUP */
-function wireSetup(){
- store.setup=Object.assign({battleDate:'',status:'planning',battleStart:12,battleEnd:17,alliance:''},store.setup||{});
- if(Number(store.setup.battleEnd)<=Number(store.setup.battleStart))store.setup.battleEnd=Math.min(23,Number(store.setup.battleStart)+1);
- $('#battleDate').value=store.setup.battleDate;$('#eventStatus').value=store.setup.status;$('#eventAlliance').value=store.setup.alliance;
- $('#battleStart').innerHTML=hourOpts(store.setup.battleStart);$('#battleEnd').innerHTML=hourOpts(store.setup.battleEnd);
- const paint=()=>{$('#battleDateRead').textContent=store.setup.battleDate||'Not set';$('#battleWindowRead').textContent=`${hourLabel(store.setup.battleStart)}–${hourLabel(store.setup.battleEnd)} UTC`};paint();
- $('#battleDate').oninput=e=>{store.setup.battleDate=e.target.value;save();paint()};
- $('#eventStatus').onchange=e=>{store.setup.status=e.target.value;save()};
- $('#eventAlliance').oninput=e=>{store.setup.alliance=e.target.value;save()};
- $('#battleStart').onchange=e=>{store.setup.battleStart=Number(e.target.value);if(store.setup.battleEnd<=store.setup.battleStart)store.setup.battleEnd=Math.min(23,store.setup.battleStart+1);save();wireSetup();renderPets();renderBoard()};
- $('#battleEnd').onchange=e=>{store.setup.battleEnd=Number(e.target.value);if(store.setup.battleEnd<=store.setup.battleStart)store.setup.battleEnd=Math.min(23,store.setup.battleStart+1);save();wireSetup();renderPets();renderBoard()};
+function load(){
+ try{const x=JSON.parse(localStorage.getItem(KEY)||'null');if(x)return x}catch(_){}
+ const start=12,end=17,colors=COLORS;
+ const whales=Array.from({length:13},(_,i)=>({id:`test_whale_${String(i+1).padStart(2,'0')}`,name:`Test Whale ${String(i+1).padStart(2,'0')}`,in_game_name:`Test Whale ${String(i+1).padStart(2,'0')}`,manual:true,test:true}));
+ const joiners=Array.from({length:40},(_,i)=>({id:`test_joiner_${String(i+1).padStart(2,'0')}`,name:`Test Joiner ${String(i+1).padStart(2,'0')}`,in_game_name:`Test Joiner ${String(i+1).padStart(2,'0')}`,player_id:`TJ${String(i+1).padStart(3,'0')}`,manual:true,test:true}));
+ let wi=0;
+ const mkTeam=(n,count,color)=>{const ids=whales.slice(wi,wi+count).map(x=>x.id);wi+=count;return{id:`seed_team_${n}`,name:`Team ${n}`,color,assignments:ids.map((pid,j)=>({id:`seed_asg_${n}_${j}`,playerId:pid,start,end,pet:j===0})),players:[],playerHeroes:{}}};
+ const l1={id:'seed_leg_1',name:'Legion 1',color:colors[0],allianceId:'',manualAlliance:'TEST-L1',configured:true,teams:[mkTeam(1,4,colors[1]),mkTeam(2,3,colors[2])],mode:'assigned',roles:{garrisonChief:'',rallyManagers:'',incomingTraffic:'',kickingCrew:''},ratios:{garrison:'40/0/60',rally:'49/2/49'},sharedHeroIds:[]};
+ const l2={id:'seed_leg_2',name:'Legion 2',color:colors[3],allianceId:'',manualAlliance:'TEST-L2',configured:true,teams:[mkTeam(1,3,colors[4]),mkTeam(2,3,colors[5])],mode:'pool',roles:{garrisonChief:'',rallyManagers:'',incomingTraffic:'',kickingCrew:''},ratios:{garrison:'40/0/60',rally:'49/2/49'},sharedHeroIds:[]};
+ return{setup:{battleDate:'',status:'planning',battleStart:start,battleEnd:end,alliance:''},legions:[l1,l2],manualRally:whales,manualPlayers:joiners,plan:{title:'',alliance:'',notes:''}}
 }
 
 /* DATA */
@@ -232,12 +218,12 @@ function allAssignments(){return store.legions.flatMap(l=>l.teams.flatMap(t=>t.a
 function overlaps(a,b){return Number(a.start)<Number(b.end)&&Number(b.start)<Number(a.end)}
 function conflictFor(c){return allAssignments().find(a=>String(a.playerId)===String(c.playerId)&&overlaps(a,c))}
 function schedulePlayerOptions(){return `<option value="">Choose Rally Leader…</option>${rallyCandidates().map(p=>`<option value="${p.id}">${esc(p.in_game_name)}</option>`).join('')}`}
-function hourAssignment(t,h){return t.assignments.find(a=>Number(a.start)<=h&&Number(a.end)>h)}
+function hourAssignments(t,h){return t.assignments.filter(a=>Number(a.start)<=h&&Number(a.end)>h)}
 function hourCells(t){
- return battleHours().map(h=>{const a=hourAssignment(t,h);return`<div class="hour-cell"><strong>${hourLabel(h)}</strong>${a?`<div class="hour-assignment">${esc(rallyName(a.playerId))}<small>${a.pet?'PET':'NO PET'}</small>${a.pet?'<span class="pet-pill">PET</span>':''}</div>`:`<div class="dash">—</div>`}</div>`}).join('')
+ return battleHours().map(h=>{const rows=hourAssignments(t,h);return`<div class="hour-cell"><strong>${hourLabel(h)}</strong>${rows.length?rows.map(a=>`<div class="hour-assignment">${esc(rallyName(a.playerId))}<small>${a.pet?'PET':'NO PET'}</small>${a.pet?'<span class="pet-pill">PET</span>':''}</div>`).join(''):`<div class="dash">—</div>`}</div>`}).join('')
 }
 function teamPetHtml(l,t,idx){
- return `<section class="pet-team" style="--tc:${t.color}"><div class="pet-team-head"><div><div class="pet-team-name">${esc(t.name)}</div><div class="tiny muted">${t.assignments.length} Rally Lead assignment${t.assignments.length===1?'':'s'}</div></div><div class="row"><button class="btn small" data-open-rl="${t.id}" data-lid="${l.id}">+ Rally Lead</button>${idx>0?`<button class="btn danger small" data-remove-team="${t.id}" data-lid="${l.id}">×</button>`:''}</div></div><div class="hour-scroll"><div class="hour-grid">${hourCells(t)}</div></div><div class="rl-editor hidden" data-rl-editor="${t.id}"><div class="grid2"><label>Rally Leader<select data-rl-player="${t.id}">${schedulePlayerOptions()}</select></label><label>Pets<select data-rl-pet="${t.id}"><option value="yes">Pets</option><option value="no">No Pets</option></select></label><label>From • UTC<select data-rl-start="${t.id}">${scheduleOpts(store.setup.battleStart)}</select></label><label>To • UTC<select data-rl-end="${t.id}">${scheduleOpts(Math.min(store.setup.battleEnd,Number(store.setup.battleStart)+1))}</select></label></div><div class="row" style="margin-top:8px"><button class="btn violet" data-save-rl="${t.id}" data-lid="${l.id}">Done</button><button class="btn" data-cancel-rl="${t.id}">Cancel</button></div></div></section>`
+ return `<section class="pet-team" style="--tc:${t.color}"><div class="pet-team-head"><div><div class="pet-team-name">${esc(t.name)}</div><div class="tiny muted">${t.assignments.length} Rally Lead assignment${t.assignments.length===1?'':'s'}</div></div><div class="row"><button class="btn small" data-open-rl="${t.id}" data-lid="${l.id}">+ Rally Lead</button>${idx>0?`<button class="btn danger small" data-remove-team="${t.id}" data-lid="${l.id}">×</button>`:''}</div></div><div class="hour-scroll"><div class="hour-grid">${hourCells(t)}</div></div><div class="rl-editor hidden" data-rl-editor="${t.id}"><div class="grid2"><label>Rally Leader<select data-rl-player="${t.id}">${schedulePlayerOptions()}</select></label><label>Pets<select data-rl-pet="${t.id}"><option value="yes">Pets</option><option value="no">No Pets</option></select></label><label>From • UTC<select data-rl-start="${t.id}">${scheduleOpts(store.setup.battleStart)}</select></label><label>To • UTC<select data-rl-end="${t.id}">${scheduleOpts(Math.min(store.setup.battleEnd,Number(store.setup.battleStart)+1),true)}</select></label></div><div class="row" style="margin-top:8px"><button class="btn violet" data-save-rl="${t.id}" data-lid="${l.id}">Done</button><button class="btn" data-cancel-rl="${t.id}">Cancel</button></div></div></section>`
 }
 function petSetupHtml(l,i){
  if(!l.configured){
@@ -271,7 +257,7 @@ $('#petRoot').onclick=e=>{
    if(!pid)return alert('Choose a Rally Leader.');if(!(end>start))return alert('End time must be after start time.');
    const cand={id:uid('asg_'),playerId:pid,start,end,pet},conf=conflictFor(cand);
    if(conf){if(!confirm(`${rallyName(pid)} is already assigned ${hourLabel(conf.start)}–${hourLabel(conf.end)} UTC. Move that assignment here?`))return;for(const ll of store.legions)for(const tt of ll.teams)tt.assignments=tt.assignments.filter(a=>a.id!==conf.id)}
-   t.assignments.push(cand);save();renderPets();renderBoard();return
+   t.assignments.push(cand);document.querySelector(`[data-rl-editor="${t.id}"]`)?.classList.add('hidden');save();renderPets();renderBoard();return
  }
 }
 
@@ -329,7 +315,9 @@ function addPlayerFlow(l){
 }
 function rankedJoiners(){
  const rallyIds=new Set(rallyCandidates().map(x=>String(x.id)));
- return players.filter(p=>!rallyIds.has(String(p.id))).sort((a,b)=>(Number(b.deployment_capacity||0)-Number(a.deployment_capacity||0))||(Number(b.power||0)-Number(a.power||0)))
+ const real=players.filter(p=>!rallyIds.has(String(p.id)));
+ const test=(store.manualPlayers||[]).filter(p=>p.test);
+ return [...test,...real].sort((a,b)=>(Number(b.deployment_capacity||0)-Number(a.deployment_capacity||0))||(Number(b.power||0)-Number(a.power||0))||String(a.in_game_name||a.name).localeCompare(String(b.in_game_name||b.name)))
 }
 function targetTeam(l){return l.teams[0]||null}
 function rankedPicker(l){
@@ -358,7 +346,7 @@ function chooseHero(slot,vals,onPick){
 function choosePool(l){
  const eligible=eligibleJoinerHeroes(),selected=new Set((l.sharedHeroIds||[]).map(String));
  const r=modal(`<div class="section-head"><div><h3>Joiner Heroes • ${esc(legDisplay(l))}</h3><div class="muted">Choose up to 8 heroes for MIA Rally • JOINER HEROES • USE ANY OF THESE.</div></div><button class="modal-x" data-modal-close>×</button></div><div class="hero-check-list">${eligible.map(h=>`<label class="hero-check">${h.image_url?`<img src="${esc(h.image_url)}" alt="">`:''}<div><b style="color:#ffd260">${esc(h.name)}</b><div class="muted">Gen ${h.generation} • ${esc(h.troop_type||'')}</div></div><input type="checkbox" value="${h.id}" ${selected.has(String(h.id))?'checked':''}></label>`).join('')}</div><div class="modal-actions"><button class="btn" data-modal-close>Cancel</button><button class="btn violet" id="savePool">Save</button></div>`);
- r.querySelector('#savePool').onclick=()=>{const ids=Array.from(r.querySelectorAll('input[type="checkbox"]:checked')).map(x=>x.value);if(ids.length>8)return alert('Choose up to 8 heroes.');l.sharedHeroIds=ids;save();r.remove();renderBoard()}
+ r.querySelector('#savePool').onclick=()=>{const ids=Array.from(r.querySelectorAll('input[type="checkbox"]:checked')).map(x=>x.value);if(ids.length>8)return alert('Choose up to 8 heroes. You may save fewer than 8.');l.sharedHeroIds=ids;save();r.remove();renderBoard()}
 }
 $('#boardRoot').onclick=e=>{
  const mode=e.target.closest('[data-mode]');if(mode){const l=store.legions.find(x=>x.id===mode.dataset.lid);if(l){l.mode=mode.dataset.mode;save();renderBoard()}return}

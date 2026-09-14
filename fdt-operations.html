@@ -181,11 +181,20 @@ label{display:grid;gap:6px;color:#aeb7d1;font-size:12px;font-weight:850}input,se
 .review-choice{display:grid;gap:7px;margin-top:10px}.review-choice button{min-height:45px;border-radius:13px;border:1px solid rgba(155,120,255,.28);background:#091126;color:#fff;font-weight:950}
 @media(max-width:430px){.draft-config{grid-template-columns:1fr}.draft-player{grid-template-columns:22px minmax(0,1fr) 54px 31px 40px}.assignment-grid{gap:7px}.assign-card{padding:9px}.legion-toolbar{grid-template-columns:1fr 64px}}
 
+
+/* V2.2.3 */
+.selection-mode-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px}
+.selection-mode-toggle{display:flex;gap:6px}
+.selection-mode-toggle button{min-height:34px;border-radius:999px;border:1px solid rgba(255,255,255,.1);background:#081127;color:#9aa6c5;padding:7px 10px;font-size:9px;font-weight:1000}
+.selection-mode-toggle button.active{color:#fff;border-color:rgba(103,223,177,.5);background:rgba(31,115,84,.22)}
+.assignment-grid.swipe-mode{touch-action:none;user-select:none;-webkit-user-select:none}
+.assignment-grid.swipe-mode .assign-card{cursor:crosshair}
+.assignment-grid.swipe-mode .assign-card.paint-hit{box-shadow:0 0 0 2px rgba(103,223,177,.75)}
 </style>
 </head>
 <body>
 <main class="sh">
-<!-- NEXA FDT OPERATIONS V2.2.2 • 120 TEST PLAYER POOL / 12 WHALES / LEGION ASSIGNMENT TESTING -->
+<!-- NEXA FDT OPERATIONS V2.2.3 • AUTO NEXT LEGION / REMAINING PLAYER POOL / SWIPE SELECT -->
 <div class="top">
   <a class="round" href="index.html" aria-label="Back">‹</a>
   <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div><div class="autosave">AUTOSAVE • SAVED</div></div>
@@ -294,7 +303,7 @@ const $=s=>document.querySelector(s),$$=s=>Array.from(document.querySelectorAll(
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const state=Number(localStorage.getItem('nexa_active_state_v49')||window.NEXA_ACTIVE_STATE||1518)||1518;
 $('#stateLabel').textContent='State '+state;
-const KEY='nexa_fdt_ops_v222_'+state;
+const KEY='nexa_fdt_ops_v223_'+state;
 const COLORS=['#9b78ff','#ffc75b','#48ddff','#67dfb1','#ff79b7','#b897ff','#ff9f5b','#68e6ff','#ff6f91','#6ee7b7','#60a5fa','#f59e0b','#a78bfa','#34d399','#f472b6','#22d3ee','#fb7185','#84cc16','#c084fc','#38bdf8','#fbbf24','#4ade80','#e879f9','#2dd4bf'];
 let store=load(),alliances=[],players=[],responses=[],heroes=[],rules=[],activeGen=0,fcTab='approved';
 
@@ -505,8 +514,29 @@ function assignmentCard(p,l,assigned){const role=fdtOperationalRole(p),skills=fd
 function playerDetail(p){const role=fdtOperationalRole(p),skills=fdtSkillTags(p),troops=fdtTroops(p);modal(`<div class="section-head"><div><h3>${esc(p.in_game_name||'Player')}</h3><div class="tiny muted">[${esc(playerAllianceTag(p)||'NO TAG')}] • ${role}</div></div><button class="modal-x" data-modal-close>×</button></div><div class="detail-grid" style="margin-top:12px"><div class="detail"><small>FDT SCORE</small><b>${fdtScore(p)}</b></div><div class="detail"><small>AVAILABILITY</small><b>${availabilityLabel(p)}</b></div><div class="detail"><small>T12</small><b>${fdtT12Count(p)}/3</b></div><div class="detail"><small>DEPLOYMENT</small><b>${Number(p.deployment_capacity||fdtSnapshot(p)?.deployment_capacity||0).toLocaleString()}</b></div></div><div class="note" style="margin-top:12px">${troops.map(x=>`${x.key.toUpperCase()}: ${esc(x.data?.name||x.data?.quality||'—')} ${Number(x.data?.advanced_skill||x.data?.skill_level||0)?`• Skill ${Number(x.data?.advanced_skill||x.data?.skill_level||0)}`:''}`).join('<br>')}${skills.length?`<br><br>${esc(skills.join(' • '))}`:''}</div>`)}
 function assignmentFilters(){return['ALL','RL','PRL',...[...new Set(legionCandidates().map(p=>playerAllianceTag(p)||'NO TAG'))].sort()]}
 let legionFilter='ALL';
-function filteredAssignmentPlayers(){let list=legionCandidates();if(legionFilter==='RL')list=list.filter(p=>fdtOperationalRole(p)==='RL');else if(legionFilter==='PRL')list=list.filter(p=>fdtOperationalRole(p)==='PRL');else if(legionFilter!=='ALL')list=list.filter(p=>(playerAllianceTag(p)||'NO TAG')===legionFilter);return[...list].sort((a,b)=>{const w={RL:3,PRL:2,JOINER:1},d=w[fdtOperationalRole(b)]-w[fdtOperationalRole(a)];return d||fdtScore(b)-fdtScore(a)||String(a.in_game_name).localeCompare(String(b.in_game_name))})}
-function renderAssignment(){const w=ensureLegionWorkflow(),l=currentDraftLegion(),assigned=legionAssignedMap();if(!w.legions.length)return`<div class="card"><div class="section-head"><div><h2>Legion Assignment</h2></div><button class="btn violet" data-create-draft-legion>+ Legion 1</button></div></div>`;const filters=assignmentFilters();return`<div class="card"><div class="section-head"><div><h2>Legion Assignment</h2><div class="tiny muted">Test pool: 120 players • 12 Rally Leads</div></div><button class="btn" data-create-draft-legion>+ Add Legion</button></div><div class="legion-toolbar"><label>Which Legion do you want to place players in?<select id="activeDraftLegion">${w.legions.map(x=>`<option value="${x.id}" ${x.id===l.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></label><div class="legion-counter">${l.playerIds.length}/60</div></div><div class="legion-filter">${filters.map(f=>`<button class="${legionFilter===f?'active':''}" data-legion-filter="${esc(f)}">${esc(f)}</button>`).join('')}</div><div class="assignment-grid">${filteredAssignmentPlayers().map(p=>assignmentCard(p,l,assigned)).join('')||'<div class="empty" style="grid-column:1/-1">No players found.</div>'}</div><div class="workflow-actions"><button class="btn violet" data-save-current-legion>Save ${esc(l.name)}</button><button class="btn" data-finish-assignment>Finish Legion Assignment</button></div></div>`}
+let legionSelectMode='tap';
+let legionPaintActive=false;
+let legionPaintAction='select';
+let legionPaintSeen=new Set();
+function filteredAssignmentPlayers(){
+ const current=currentDraftLegion(),assigned=legionAssignedMap();
+ let list=legionCandidates().filter(p=>!assigned.has(String(p.id))||assigned.get(String(p.id))===current?.id);
+ if(legionFilter==='RL')list=list.filter(p=>fdtOperationalRole(p)==='RL');
+ else if(legionFilter==='PRL')list=list.filter(p=>fdtOperationalRole(p)==='PRL');
+ else if(legionFilter!=='ALL')list=list.filter(p=>(playerAllianceTag(p)||'NO TAG')===legionFilter);
+ return[...list].sort((a,b)=>{const w={RL:3,PRL:2,JOINER:1},d=w[fdtOperationalRole(b)]-w[fdtOperationalRole(a)];return d||fdtScore(b)-fdtScore(a)||String(a.in_game_name).localeCompare(String(b.in_game_name))})
+}
+function renderAssignment(){
+ const w=ensureLegionWorkflow(),l=currentDraftLegion(),assigned=legionAssignedMap();
+ if(!w.legions.length)return`<div class="card"><div class="section-head"><div><h2>Legion Assignment</h2></div><button class="btn violet" data-create-draft-legion>+ Legion 1</button></div></div>`;
+ const filters=assignmentFilters(),remaining=legionCandidates().filter(p=>!assigned.has(String(p.id))||assigned.get(String(p.id))===l.id).length;
+ return`<div class="card"><div class="section-head"><div><h2>Legion Assignment</h2><div class="tiny muted">Test pool: 120 players • 12 Rally Leads</div></div><button class="btn" data-create-draft-legion>+ Add Legion</button></div>
+ <div class="legion-toolbar"><label>Which Legion do you want to place players in?<select id="activeDraftLegion">${w.legions.map(x=>`<option value="${x.id}" ${x.id===l.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></label><div class="legion-counter">${l.playerIds.length}/60</div></div>
+ <div class="selection-mode-row"><div class="tiny muted">${remaining} available for this Legion</div><div class="selection-mode-toggle"><button data-select-mode="tap" class="${legionSelectMode==='tap'?'active':''}">Tap</button><button data-select-mode="swipe" class="${legionSelectMode==='swipe'?'active':''}">Swipe Select</button></div></div>
+ <div class="legion-filter">${filters.map(f=>`<button class="${legionFilter===f?'active':''}" data-legion-filter="${esc(f)}">${esc(f)}</button>`).join('')}</div>
+ <div class="assignment-grid ${legionSelectMode==='swipe'?'swipe-mode':''}" id="legionAssignmentGrid">${filteredAssignmentPlayers().map(p=>assignmentCard(p,l,assigned)).join('')||'<div class="empty" style="grid-column:1/-1">No unassigned players left.</div>'}</div>
+ <div class="workflow-actions"><button class="btn violet" data-save-current-legion>Save ${esc(l.name)}</button><button class="btn" data-finish-assignment>Finish Legion Assignment</button></div></div>`
+}
 function draftRoleSelect(p){const role=fdtOperationalRole(p);return`<select data-role-player="${p.id}" style="min-height:30px;padding:4px 5px;font-size:8px"><option value="RL" ${role==='RL'?'selected':''}>RL</option><option value="PRL" ${role==='PRL'?'selected':''}>PRL</option><option value="JOINER" ${role==='JOINER'?'selected':''}>Joiner</option></select>`}
 function draftPlayerRow(p,l){return`<div class="draft-player"><input type="checkbox" data-draft-check="${p.id}" data-lid="${l.id}"><div class="pn">[${esc(playerAllianceTag(p)||'NO TAG')}] ${esc(p.in_game_name||'Player')}</div>${draftRoleSelect(p)}<div class="score">${fdtScore(p)}</div><div class="avail">${availabilityLabel(p)}</div></div>`}
 function draftAllianceSelect(l){return`<select data-draft-alliance="${l.id}"><option value="">Choose Alliance…</option>${alliances.map(a=>`<option value="${a.id}" ${String(a.id)===String(l.allianceId)?'selected':''}>${esc(a.tag||a.name)}</option>`).join('')}<option value="__manual__" ${l.manualAlliance?'selected':''}>Add Manually…</option></select>`}
@@ -520,7 +550,80 @@ function openPlayerChoice(title,list,onChoose,excludeId=''){const r=modal(`<div 
 function chooseTargetLegion(source,ids){const w=ensureLegionWorkflow(),targets=w.legions.filter(l=>l.id!==source.id&&l.playerIds.length<60),r=modal(`<div class="section-head"><div><h3>Move Players</h3></div><button class="modal-x" data-modal-close>×</button></div><div class="review-choice">${targets.map(l=>`<button data-target-legion="${l.id}">${esc(l.name)} • ${l.playerIds.length}/60</button>`).join('')||'<div class="empty">No Legion has enough room.</div>'}</div>`);r.onclick=e=>{if(e.target===r||e.target.closest('[data-modal-close]')){r.remove();return}const b=e.target.closest('[data-target-legion]');if(!b)return;const t=w.legions.find(x=>x.id===b.dataset.targetLegion);if(!t)return;if(t.playerIds.length+ids.length>60){nexaAlert('That Legion does not have enough open spots.','Legion Limit');return}source.playerIds=source.playerIds.filter(x=>!ids.includes(String(x)));ids.forEach(id=>{if(!t.playerIds.some(x=>String(x)===id))t.playerIds.push(id)});save();r.remove();renderLegionWorkflow()}}
 function replacePlayer(source,oldId){const r=modal(`<div class="section-head"><div><h3>Replace Player</h3></div><button class="modal-x" data-modal-close>×</button></div><div class="review-choice"><button data-replace-kind="unassigned">Replace with Unassigned</button><button data-replace-kind="other">Replace from Another Legion</button></div>`);r.onclick=e=>{if(e.target===r||e.target.closest('[data-modal-close]')){r.remove();return}const b=e.target.closest('[data-replace-kind]');if(!b)return;const kind=b.dataset.replaceKind;r.remove();if(kind==='unassigned'){openPlayerChoice('Unassigned Players',unassignedPlayers(),p=>{source.playerIds=source.playerIds.filter(x=>String(x)!==oldId);source.playerIds.push(String(p.id));save();renderLegionWorkflow()},oldId)}else{const w=ensureLegionWorkflow(),list=w.legions.filter(l=>l.id!==source.id).flatMap(l=>l.playerIds.map(id=>playerById(id))).filter(Boolean);openPlayerChoice('Players from Other Legions',list,p=>{const from=w.legions.find(l=>l.playerIds.some(id=>String(id)===String(p.id)));if(!from)return;from.playerIds=from.playerIds.filter(id=>String(id)!==String(p.id));source.playerIds=source.playerIds.filter(x=>String(x)!==oldId);source.playerIds.push(String(p.id));save();renderLegionWorkflow()},oldId)}}}
 function syncPlacementToOperationalLegions(){const w=ensureLegionWorkflow();w.legions.forEach((d,i)=>{let l=store.legions[i];if(!l){l=newLegion();store.legions.push(l)}l.name=d.name;l.members=[...d.playerIds];l.legionColor=d.color;l.allianceId=d.allianceId||l.allianceId||'';l.manualAlliance=d.manualAlliance||l.manualAlliance||''})}
-if($('#legionWorkflowRoot'))$('#legionWorkflowRoot').onclick=async e=>{const w=ensureLegionWorkflow();if(e.target.closest('[data-create-draft-legion]')){createDraftLegion();return}const view=e.target.closest('[data-view-player]');if(view){e.stopPropagation();const p=playerById(view.dataset.viewPlayer);if(p)playerDetail(p);return}const card=e.target.closest('[data-assign-player]');if(card&&w.phase==='assignment'){const l=currentDraftLegion(),id=String(card.dataset.assignPlayer),assigned=legionAssignedMap();if(assigned.has(id)&&assigned.get(id)!==l.id)return;const has=l.playerIds.some(x=>String(x)===id);if(has)l.playerIds=l.playerIds.filter(x=>String(x)!==id);else{if(l.playerIds.length>=60){await nexaAlert('This Legion already has 60 players.','Legion Limit');return}l.playerIds.push(id)}save();renderLegionWorkflow();return}const filter=e.target.closest('[data-legion-filter]');if(filter){legionFilter=filter.dataset.legionFilter;renderLegionWorkflow();return}if(e.target.closest('[data-save-current-legion]')){save();say('Legion saved.');return}if(e.target.closest('[data-finish-assignment]')){if(!w.legions.length)return;const ok=await nexaConfirm('Are you done assigning players to Legions?','Finish Assignment');if(ok){w.phase='review';save();renderLegionWorkflow()}return}if(e.target.closest('[data-back-assignment]')){w.phase='assignment';save();renderLegionWorkflow();return}const move=e.target.closest('[data-draft-move]');if(move){const l=w.legions.find(x=>x.id===move.dataset.draftMove),ids=checkedDraftIds(l.id);if(!ids.length){await nexaAlert('Select at least one player.','Move Players');return}chooseTargetLegion(l,ids);return}const remove=e.target.closest('[data-draft-remove]');if(remove){const l=w.legions.find(x=>x.id===remove.dataset.draftRemove),ids=checkedDraftIds(l.id);if(!ids.length){await nexaAlert('Select at least one player.','Remove Players');return}if(await nexaConfirm(`Remove ${ids.length} selected player${ids.length===1?'':'s'} from ${l.name}?`,'Remove Players')){l.playerIds=l.playerIds.filter(x=>!ids.includes(String(x)));save();renderLegionWorkflow()}return}const replace=e.target.closest('[data-draft-replace]');if(replace){const l=w.legions.find(x=>x.id===replace.dataset.draftReplace),ids=checkedDraftIds(l.id);if(ids.length!==1){await nexaAlert('Select exactly one player to replace.','Replace Player');return}replacePlayer(l,ids[0]);return}const addU=e.target.closest('[data-add-unassigned]');if(addU){const l=w.legions.find(x=>x.id===addU.dataset.addUnassigned);openPlayerChoice('Unassigned Players',unassignedPlayers(),p=>{if(l.playerIds.length>=60)return;l.playerIds.push(String(p.id));save();renderLegionWorkflow()});return}const moveIn=e.target.closest('[data-move-in]');if(moveIn){const target=w.legions.find(x=>x.id===moveIn.dataset.moveIn),list=w.legions.filter(l=>l.id!==target.id).flatMap(l=>l.playerIds.map(id=>playerById(id))).filter(Boolean);openPlayerChoice('Move from Another Legion',list,p=>{if(target.playerIds.length>=60)return;const from=w.legions.find(l=>l.playerIds.some(id=>String(id)===String(p.id)));if(from)from.playerIds=from.playerIds.filter(id=>String(id)!==String(p.id));target.playerIds.push(String(p.id));save();renderLegionWorkflow()});return}if(e.target.closest('[data-finalize-placement]')){const ok=await nexaConfirm('Finalize these Legions and use them as the FDT roster?','Finalize Legions');if(ok){w.phase='final';syncPlacementToOperationalLegions();save();renderLegionWorkflow();renderPets();renderBoard()}return}if(e.target.closest('[data-edit-final]')){w.phase='review';save();renderLegionWorkflow();return}};
+
+function setPlayerSelectedInCurrent(id,wantSelected){
+ const l=currentDraftLegion();if(!l)return false;
+ id=String(id);
+ const has=l.playerIds.some(x=>String(x)===id);
+ if(wantSelected&&!has){
+   if(l.playerIds.length>=60)return false;
+   l.playerIds.push(id);return true
+ }
+ if(!wantSelected&&has){l.playerIds=l.playerIds.filter(x=>String(x)!==id);return true}
+ return false
+}
+function nextLegionAfterSave(){
+ const w=ensureLegionWorkflow(),current=currentDraftLegion(),idx=w.legions.findIndex(x=>x.id===current?.id);
+ const unassigned=unassignedPlayers();
+ if(!unassigned.length)return null;
+ let next=w.legions[idx+1];
+ if(!next){
+   const n=w.legions.length+1;
+   next={id:uid('draft_leg_'),name:`Legion ${n}`,color:LEGION_PLACEMENT_COLORS[(n-1)%LEGION_PLACEMENT_COLORS.length],playerIds:[],allianceId:'',manualAlliance:''};
+   w.legions.push(next)
+ }
+ w.activeLegionId=next.id;
+ return next
+}
+function startSwipePaint(card){
+ if(legionSelectMode!=='swipe'||!card||card.classList.contains('other'))return;
+ const id=String(card.dataset.assignPlayer||'');if(!id)return;
+ const l=currentDraftLegion(),has=l?.playerIds.some(x=>String(x)===id);
+ legionPaintActive=true;legionPaintAction=has?'remove':'select';legionPaintSeen=new Set();
+ paintSwipeCard(card)
+}
+function paintSwipeCard(card){
+ if(!legionPaintActive||!card||card.classList.contains('other'))return;
+ const id=String(card.dataset.assignPlayer||'');if(!id||legionPaintSeen.has(id))return;
+ legionPaintSeen.add(id);
+ const changed=setPlayerSelectedInCurrent(id,legionPaintAction==='select');
+ if(changed){
+   card.classList.toggle('selected',legionPaintAction==='select');
+   card.classList.add('paint-hit');
+   const l=currentDraftLegion(),counter=document.querySelector('.legion-counter');if(counter)counter.textContent=`${l.playerIds.length}/60`
+ }
+ if(legionPaintAction==='select'&&currentDraftLegion()?.playerIds.length>=60)legionPaintActive=false
+}
+function endSwipePaint(){
+ if(!legionPaintActive)return;
+ legionPaintActive=false;save();renderLegionWorkflow()
+}
+document.addEventListener('pointerdown',e=>{
+ if(legionSelectMode!=='swipe')return;
+ const card=e.target.closest?.('#legionAssignmentGrid [data-assign-player]');
+ if(card)startSwipePaint(card)
+});
+document.addEventListener('pointermove',e=>{
+ if(!legionPaintActive||legionSelectMode!=='swipe')return;
+ const el=document.elementFromPoint(e.clientX,e.clientY),card=el?.closest?.('#legionAssignmentGrid [data-assign-player]');
+ if(card)paintSwipeCard(card)
+});
+document.addEventListener('pointerup',endSwipePaint);
+document.addEventListener('pointercancel',endSwipePaint);
+
+if($('#legionWorkflowRoot'))$('#legionWorkflowRoot').onclick=async e=>{const w=ensureLegionWorkflow();if(e.target.closest('[data-create-draft-legion]')){createDraftLegion();return}const view=e.target.closest('[data-view-player]');if(view){e.stopPropagation();const p=playerById(view.dataset.viewPlayer);if(p)playerDetail(p);return}const card=e.target.closest('[data-assign-player]');if(card&&w.phase==='assignment'){
+ if(legionSelectMode==='swipe')return;
+ const l=currentDraftLegion(),id=String(card.dataset.assignPlayer),assigned=legionAssignedMap();if(assigned.has(id)&&assigned.get(id)!==l.id)return;
+ const has=l.playerIds.some(x=>String(x)===id);
+ if(has)l.playerIds=l.playerIds.filter(x=>String(x)!==id);else{if(l.playerIds.length>=60){await nexaAlert('This Legion already has 60 players.','Legion Limit');return}l.playerIds.push(id)}
+ save();renderLegionWorkflow();return
+}const modeBtn=e.target.closest('[data-select-mode]');if(modeBtn){legionSelectMode=modeBtn.dataset.selectMode;legionPaintActive=false;renderLegionWorkflow();return}
+ const filter=e.target.closest('[data-legion-filter]');if(filter){legionFilter=filter.dataset.legionFilter;renderLegionWorkflow();return}if(e.target.closest('[data-save-current-legion]')){
+ const saved=currentDraftLegion(),next=nextLegionAfterSave();save();renderLegionWorkflow();
+ if(next){say(`${saved?.name||'Legion'} saved. Continue with ${next.name}.`);window.scrollTo({top:0,behavior:'smooth'})}
+ else{say(`${saved?.name||'Legion'} saved. All available players are assigned.`);window.scrollTo({top:0,behavior:'smooth'})}
+ return
+}if(e.target.closest('[data-finish-assignment]')){if(!w.legions.length)return;const ok=await nexaConfirm('Are you done assigning players to Legions?','Finish Assignment');if(ok){w.phase='review';save();renderLegionWorkflow()}return}if(e.target.closest('[data-back-assignment]')){w.phase='assignment';save();renderLegionWorkflow();return}const move=e.target.closest('[data-draft-move]');if(move){const l=w.legions.find(x=>x.id===move.dataset.draftMove),ids=checkedDraftIds(l.id);if(!ids.length){await nexaAlert('Select at least one player.','Move Players');return}chooseTargetLegion(l,ids);return}const remove=e.target.closest('[data-draft-remove]');if(remove){const l=w.legions.find(x=>x.id===remove.dataset.draftRemove),ids=checkedDraftIds(l.id);if(!ids.length){await nexaAlert('Select at least one player.','Remove Players');return}if(await nexaConfirm(`Remove ${ids.length} selected player${ids.length===1?'':'s'} from ${l.name}?`,'Remove Players')){l.playerIds=l.playerIds.filter(x=>!ids.includes(String(x)));save();renderLegionWorkflow()}return}const replace=e.target.closest('[data-draft-replace]');if(replace){const l=w.legions.find(x=>x.id===replace.dataset.draftReplace),ids=checkedDraftIds(l.id);if(ids.length!==1){await nexaAlert('Select exactly one player to replace.','Replace Player');return}replacePlayer(l,ids[0]);return}const addU=e.target.closest('[data-add-unassigned]');if(addU){const l=w.legions.find(x=>x.id===addU.dataset.addUnassigned);openPlayerChoice('Unassigned Players',unassignedPlayers(),p=>{if(l.playerIds.length>=60)return;l.playerIds.push(String(p.id));save();renderLegionWorkflow()});return}const moveIn=e.target.closest('[data-move-in]');if(moveIn){const target=w.legions.find(x=>x.id===moveIn.dataset.moveIn),list=w.legions.filter(l=>l.id!==target.id).flatMap(l=>l.playerIds.map(id=>playerById(id))).filter(Boolean);openPlayerChoice('Move from Another Legion',list,p=>{if(target.playerIds.length>=60)return;const from=w.legions.find(l=>l.playerIds.some(id=>String(id)===String(p.id)));if(from)from.playerIds=from.playerIds.filter(id=>String(id)!==String(p.id));target.playerIds.push(String(p.id));save();renderLegionWorkflow()});return}if(e.target.closest('[data-finalize-placement]')){const ok=await nexaConfirm('Finalize these Legions and use them as the FDT roster?','Finalize Legions');if(ok){w.phase='final';syncPlacementToOperationalLegions();save();renderLegionWorkflow();renderPets();renderBoard()}return}if(e.target.closest('[data-edit-final]')){w.phase='review';save();renderLegionWorkflow();return}};
 document.addEventListener('change',e=>{const w=ensureLegionWorkflow();if(e.target?.id==='activeDraftLegion'){w.activeLegionId=e.target.value;save();renderLegionWorkflow();return}const role=e.target.closest?.('[data-role-player]');if(role){w.roleOverrides[String(role.dataset.rolePlayer)]=role.value;save();renderLegionWorkflow();return}const a=e.target.closest?.('[data-draft-alliance]');if(a){const l=w.legions.find(x=>x.id===a.dataset.draftAlliance);if(!l)return;if(a.value==='__manual__'){l.allianceId=''}else{l.allianceId=a.value;l.manualAlliance=''}save();renderLegionWorkflow();return}const manual=e.target.closest?.('[data-draft-manual]');if(manual){const l=w.legions.find(x=>x.id===manual.dataset.draftManual);if(l){l.manualAlliance=manual.value.trim();if(l.manualAlliance)l.allianceId='';save()}}});
 
 /* PET SCHEDULE */

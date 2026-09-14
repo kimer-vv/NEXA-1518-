@@ -466,102 +466,61 @@ label{display:grid;gap:6px;color:#aeb7d1;font-size:12px;font-weight:850}input,se
 }
 
 
-/* V2.3.7 — alliance tag/count bars match the reference */
-.final-alliance{
+
+/* V2.4.0 — SINGLE OWNER: alliance header visual */
+.final-placement .final-alliance{
   background:#050816!important;
   border:1px solid var(--lc)!important;
+  box-shadow:none!important;
 }
 
-.final-alliance h4{
-  background:var(--lc-strip,#050816)!important;
+.final-placement .final-alliance > h4.final-alliance-head{
+  background:#080b18!important;
   background-image:none!important;
-  border-bottom:1px solid var(--lc)!important;
   color:#f7f8ff!important;
-  font-weight:850!important;
+  border-bottom:1px solid rgba(255,255,255,.09)!important;
+  box-shadow:none!important;
+  padding:8px 10px!important;
+  font-weight:900!important;
   letter-spacing:.045em!important;
-  padding:9px 11px!important;
 }
 
-.final-alliance h4 span:first-child{
-  color:#ffffff!important;
+.final-placement .final-alliance > h4.final-alliance-head span:first-child,
+.final-placement .final-alliance > h4.final-alliance-head span:last-child{
+  color:#f7f8ff!important;
   font-weight:900!important;
-}
-
-.final-alliance h4 span:last-child{
-  color:#ffffff!important;
-  font-weight:900!important;
-  opacity:.96!important;
-}
-
-.export-stage .final-alliance{
-  background:#050816!important;
-  border:1px solid var(--lc)!important;
-}
-
-.export-stage .final-alliance h4{
-  background:var(--lc-strip,#050816)!important;
-  background-image:none!important;
-  border-bottom:1px solid var(--lc)!important;
-  color:#ffffff!important;
-  font-weight:850!important;
-}
-
-.export-stage .final-alliance h4 span:first-child,
-.export-stage .final-alliance h4 span:last-child{
-  color:#ffffff!important;
-  font-weight:900!important;
-}
-
-
-/* V2.3.8 — visible same-tone alliance header bars */
-.final-alliance h4{
-  background:var(--lc-strip,#101326)!important;
-  border-bottom:1px solid var(--lc)!important;
-  box-shadow:inset 3px 0 0 var(--lc)!important;
-}
-
-.export-stage .final-alliance h4{
-  background:var(--lc-strip,#101326)!important;
-  border-bottom:1px solid var(--lc)!important;
-  box-shadow:inset 3px 0 0 var(--lc)!important;
-}
-
-
-
-/* V2.3.9 — make alliance headers match the dark reference style */
-.final-alliance,
-.export-stage .final-alliance{
-  background:rgba(4,7,20,.72)!important;
-  border:1px solid rgba(255,255,255,.10)!important;
-  box-shadow:none!important;
-}
-
-.final-alliance h4,
-.export-stage .final-alliance h4{
-  background:rgba(7,10,24,.98)!important;
-  color:#f3f4ff!important;
-  box-shadow:none!important;
-  border-bottom:1px solid rgba(255,255,255,.08)!important;
-}
-
-.final-alliance h4 span:first-child,
-.final-alliance h4 span:last-child,
-.export-stage .final-alliance h4 span:first-child,
-.export-stage .final-alliance h4 span:last-child{
-  color:#f3f4ff!important;
+  opacity:1!important;
   text-shadow:none!important;
 }
 
-.final-members,
-.export-stage .final-members{
+.final-placement .final-members{
   background:transparent!important;
+}
+
+.export-stage .final-placement .final-alliance{
+  background:#050816!important;
+  border:1px solid var(--lc)!important;
+}
+
+.export-stage .final-placement .final-alliance > h4.final-alliance-head{
+  background:#080b18!important;
+  background-image:none!important;
+  color:#f7f8ff!important;
+  border-bottom:1px solid rgba(255,255,255,.09)!important;
+  box-shadow:none!important;
+}
+
+.export-stage .final-placement .final-alliance > h4.final-alliance-head span{
+  color:#f7f8ff!important;
+  font-weight:900!important;
+  text-shadow:none!important;
 }
 
 </style>
 </head>
 <body>
 <main class="sh">
-<!-- NEXA FDT OPERATIONS V2.3.9 • DARK ALLIANCE HEADERS / REFERENCE MATCH -->
+<!-- NEXA FDT OPERATIONS V2.4.0 • CLEAN ALLIANCE HEADER OWNER / REFERENCE MATCH -->
 <div class="top">
   <a class="round" href="index.html" aria-label="Back">‹</a>
   <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div><div class="autosave">AUTOSAVE • SAVED</div></div>
@@ -900,13 +859,12 @@ function legionToneVars(color){
  return {
    base,
    title:mixHex(base,'#ffffff',0.34),
-   head:mixHex(base,'#050916',0.78),
-   strip:mixHex(base,'#02040d',0.68)
+   head:mixHex(base,'#050916',0.78)
  };
 }
 function legionStyleVars(l){
  const t=legionToneVars(l?.color);
- return `--lc:${t.base};--lc-title:${t.title};--lc-head:${t.head};--lc-strip:${t.strip}`;
+ return `--lc:${t.base};--lc-title:${t.title};--lc-head:${t.head}`;
 }
 
 function fdtResponseForPlayer(p){return responses.find(r=>String(r.player_account_id||'')===String(p?.id))||null}
@@ -988,14 +946,14 @@ function finalRolePill(p){const role=fdtOperationalRole(p);return role==='RL'?'<
 function finalMemberMarkup(p){return`<div class="final-member"><div class="final-member-main"><div class="final-member-name">${esc(p.in_game_name||'Player')}</div>${finalRolePill(p)}</div><div class="final-member-sub">${fdtScore(p)} • ${availabilityLabel(p)}</div></div>`}
 function placementLegionMarkup(l,forExport=false){
  const g=finalGroups(l),type=legionTypeLabel(l);
- return`<section class="final-placement" style="${legionStyleVars(l)}"><div class="final-placement-head"><div><div class="final-placement-title">${esc(l.name).toUpperCase()}</div><div class="legion-type-label">${esc(type)}</div><div class="final-placement-meta">${esc(draftAllianceName(l))} • ${l.playerIds.length}/60 • Power ${legionPower(l).toLocaleString()}</div></div>${forExport?'':`<div class="final-placement-actions"><button class="btn small" data-export-placement="${l.id}">Save Image</button><button class="btn small" data-print-placement="${l.id}">Save PDF</button></div>`}</div><div class="final-alliance-groups">${Object.entries(g).sort((a,b)=>a[0].localeCompare(b[0])).map(([tag,list])=>`<div class="final-alliance"><h4><span>[${esc(tag)}]</span><span>${list.length}</span></h4><div class="final-members">${list.sort((a,b)=>fdtScore(b)-fdtScore(a)).map(p=>finalMemberMarkup(p)).join('')}</div></div>`).join('')||'<div class="empty">No players.</div>'}</div></section>`
+ return`<section class="final-placement" style="${legionStyleVars(l)}"><div class="final-placement-head"><div><div class="final-placement-title">${esc(l.name).toUpperCase()}</div><div class="legion-type-label">${esc(type)}</div><div class="final-placement-meta">${esc(draftAllianceName(l))} • ${l.playerIds.length}/60 • Power ${legionPower(l).toLocaleString()}</div></div>${forExport?'':`<div class="final-placement-actions"><button class="btn small" data-export-placement="${l.id}">Save Image</button><button class="btn small" data-print-placement="${l.id}">Save PDF</button></div>`}</div><div class="final-alliance-groups">${Object.entries(g).sort((a,b)=>a[0].localeCompare(b[0])).map(([tag,list])=>`<div class="final-alliance"><h4 class="final-alliance-head"><span>[${esc(tag)}]</span><span>${list.length}</span></h4><div class="final-members">${list.sort((a,b)=>fdtScore(b)-fdtScore(a)).map(p=>finalMemberMarkup(p)).join('')}</div></div>`).join('')||'<div class="empty">No players.</div>'}</div></section>`
 }
 function exportMemberMarkup(p){
  return`<div class="export-player-row"><div class="export-player-main"><div class="export-player-name">${esc(p.in_game_name||'Player')}</div><div class="export-player-id">Game ID: ${esc(playerGameId(p))}</div></div>${finalRolePill(p)}</div>`
 }
 function placementLegionExportMarkup(l){
  const g=finalGroups(l),type=legionTypeLabel(l);
- return`<section class="final-placement" style="${legionStyleVars(l)}"><div class="final-placement-head"><div><div class="final-placement-title">${esc(l.name).toUpperCase()}</div><div class="legion-type-label">${esc(type)}</div><div class="final-placement-meta">${esc(draftAllianceName(l))} • ${l.playerIds.length}/60</div></div></div><div class="final-alliance-groups">${Object.entries(g).sort((a,b)=>a[0].localeCompare(b[0])).map(([tag,list])=>`<div class="final-alliance"><h4><span>[${esc(tag)}]</span><span>${list.length}</span></h4><div class="final-members">${list.sort((a,b)=>String(a.in_game_name||'').localeCompare(String(b.in_game_name||''))).map(p=>exportMemberMarkup(p)).join('')}</div></div>`).join('')||'<div class="empty">No players.</div>'}</div></section>`
+ return`<section class="final-placement" style="${legionStyleVars(l)}"><div class="final-placement-head"><div><div class="final-placement-title">${esc(l.name).toUpperCase()}</div><div class="legion-type-label">${esc(type)}</div><div class="final-placement-meta">${esc(draftAllianceName(l))} • ${l.playerIds.length}/60</div></div></div><div class="final-alliance-groups">${Object.entries(g).sort((a,b)=>a[0].localeCompare(b[0])).map(([tag,list])=>`<div class="final-alliance"><h4 class="final-alliance-head"><span>[${esc(tag)}]</span><span>${list.length}</span></h4><div class="final-members">${list.sort((a,b)=>String(a.in_game_name||'').localeCompare(String(b.in_game_name||''))).map(p=>exportMemberMarkup(p)).join('')}</div></div>`).join('')||'<div class="empty">No players.</div>'}</div></section>`
 }
 function placementBoardMarkup(singleId=''){const w=ensureLegionWorkflow(),legs=singleId?w.legions.filter(l=>String(l.id)===String(singleId)):w.legions;return`<div class="final-placement-wrap">${legs.map(l=>placementLegionExportMarkup(l)).join('')}</div>`}
 async function shareOrSaveBlob(blob,filename,mime){

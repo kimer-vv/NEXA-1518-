@@ -1255,7 +1255,7 @@ section.panel{position:relative;z-index:1}
 </head>
 <body>
 <main class="sh">
-<!-- NEXA FDT OPERATIONS V2.6.3 • STAFF SNAPSHOT DATA LOAD FIX -->
+<!-- NEXA FDT OPERATIONS V2.6.4 • MAIN AUTH DATA LOAD + SAFE RENDER -->
 <div class="top">
   <a class="round" href="index.html" aria-label="Back">‹</a>
   <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div><div class="autosave">AUTOSAVE • SAVED</div></div>
@@ -1560,33 +1560,48 @@ function applyFdtSnapshot(data){
  activeGen=Math.max(0,...vr.map(x=>Number(x.generation||0)));
  if(!activeGen)activeGen=Math.max(0,...heroes.map(x=>Number(x.generation||0)));
 }
+function safeFdtRender(name,fn){
+ try{fn();return true}
+ catch(e){
+   console.error(`[NEXA FDT] ${name} render failed`,e);
+   return false
+ }
+}
 function renderLoadedFdtData(){
- renderResponses();
- renderFormations();
- renderLegionWorkflow();
- renderPets();
- renderBoard();
+ const results=[
+   safeFdtRender('Responses',renderResponses),
+   safeFdtRender('Formations',renderFormations),
+   safeFdtRender('Legions',renderLegionWorkflow),
+   safeFdtRender('Pet Schedule',renderPets),
+   safeFdtRender('Legion Board',renderBoard),
+   safeFdtRender('Layout Export',refreshLayoutExport)
+ ];
+ return results.every(Boolean)
 }
 async function loadData(){
+ /* Main NEXA auth and Workspace staff auth are both accepted by the backend.
+    Always call the snapshot — do not skip it merely because a staff token is absent. */
+ try{await sb.auth.getSession()}catch(_){}
  const token=fdtStaffToken();
- if(token){
-   const {data,error}=await sb.rpc('nexa_fdt_operations_snapshot_v1',{p_token:token,p_state:state});
-   if(!error&&data?.ok===true){
-     applyFdtSnapshot(data);
-     renderLoadedFdtData();
-     say('');
-     return
-   }
-   if(!error&&data?.error==='session_expired'){
-     say('Your NEXA staff session expired. Sign in again to load FDT Responses and player data.')
-   }else if(error){
-     console.error('[NEXA FDT] snapshot load failed',error);
-     say('FDT data could not be loaded from NEXA. Public data fallback loaded where available.')
-   }
+
+ const {data,error}=await sb.rpc('nexa_fdt_operations_snapshot_v1',{
+   p_token:token||'',
+   p_state:state
+ });
+
+ if(!error&&data?.ok===true){
+   applyFdtSnapshot(data);
+   const clean=renderLoadedFdtData();
+   say(clean
+     ?`Loaded ${responses.length} FDT response${responses.length===1?'':'s'} • ${rules.length} formation rules • Gen ${activeGen}`
+     :'FDT data loaded, but one section has a display error. Other sections remain available.');
+   return
  }
 
- /* Public fallback keeps non-private library/meta content available,
-    but private Responses / state player roster require the shared staff session. */
+ console.error('[NEXA FDT] secure snapshot failed',error||data);
+
+ /* Public fallback is intentionally limited, but Formations and visible Hero data
+    should still render even if private roster access is unavailable. */
  const [a,h,g,m]=await Promise.all([
   sb.from('alliances').select('id,tag,name,emblem_url,state_number').eq('state_number',state).eq('is_active',true).order('server_rank'),
   sb.from('nexa_library_items').select('id,name,image_url,rarity,generation,troop_type').eq('item_type','hero').eq('is_active',true).order('generation',{ascending:false}).order('name'),
@@ -1602,6 +1617,9 @@ async function loadData(){
  activeGen=Math.max(0,...vr.map(x=>Number(x.generation||0)));
  if(!activeGen)activeGen=Math.max(0,...heroes.map(x=>Number(x.generation||0)));
  renderLoadedFdtData();
+
+ const reason=error?.message||data?.error||'not_authorized';
+ say(`FDT private data unavailable (${reason}). Formations/public Library fallback loaded.`);
 }
 
 function respScore(r){const x=r.response_data||{},s=x.profile_snapshot||{};for(const k of ['troop_score','battle_score','deployment_capacity','rally_capacity','power']){const n=Number(x[k]??s[k]);if(n>0)return n}return Number(s?.account?.deployment_capacity||0)||0}
@@ -1625,14 +1643,18 @@ let responseView='responses';
 function setResponseView(v){responseView=v;$$('[data-response-view]').forEach(b=>{const on=b.dataset.responseView===v;b.classList.toggle('violet',on);b.classList.toggle('active',on)});$('#responseGrid').classList.toggle('hidden',v!=='responses');$('#responseChecklist').classList.toggle('hidden',v!=='checklist')}
 $$('[data-response-view]').forEach(b=>b.onclick=()=>setResponseView(b.dataset.responseView));
 $('#refreshResponses').onclick=async()=>{
- const token=fdtStaffToken();
- if(!token){say('Sign in to NEXA staff access to refresh FDT Responses.');return}
- const {data,error}=await sb.rpc('nexa_fdt_operations_snapshot_v1',{p_token:token,p_state:state});
- if(error){say(error.message||'Could not refresh FDT data.');return}
- if(data?.ok!==true){say(data?.error==='session_expired'?'Your NEXA staff session expired. Sign in again.':'Could not refresh FDT data.');return}
+ try{await sb.auth.getSession()}catch(_){}
+ const {data,error}=await sb.rpc('nexa_fdt_operations_snapshot_v1',{
+   p_token:fdtStaffToken()||'',
+   p_state:state
+ });
+ if(error||data?.ok!==true){
+   say(error?.message||`Could not refresh FDT data (${data?.error||'not_authorized'}).`);
+   return
+ }
  applyFdtSnapshot(data);
  renderLoadedFdtData();
- say('FDT data refreshed.')
+ say(`Refreshed ${responses.length} FDT response${responses.length===1?'':'s'} • ${rules.length} formation rules • Gen ${activeGen}`);
 }
 
 /* FORMATIONS */
@@ -2575,8 +2597,16 @@ $('#boardRoot').onclick=e=>{
 /* PLAN */
 function wirePlan(){store.plan=store.plan||{title:'',alliance:'',notes:''};$('#planTitle').value=store.plan.title||'';$('#planAlliance').value=store.plan.alliance||'';$('#planNotes').value=store.plan.notes||'';$('#planTitle').oninput=e=>{store.plan.title=e.target.value;save()};$('#planAlliance').oninput=e=>{store.plan.alliance=e.target.value;save()};$('#planNotes').oninput=e=>{store.plan.notes=e.target.value;save()}}
 
-wireSetup();wirePlan();renderLegionWorkflow();renderPets();renderBoard();refreshLayoutExport();loadData().catch(e=>say(e.message||String(e)));
+wireSetup();
+wirePlan();
+safeFdtRender('Initial Legions',renderLegionWorkflow);
+safeFdtRender('Initial Pet Schedule',renderPets);
+safeFdtRender('Initial Legion Board',renderBoard);
+safeFdtRender('Initial Layout Export',refreshLayoutExport);
+loadData().catch(e=>{
+ console.error('[NEXA FDT] loadData fatal',e);
+ say(e?.message||String(e));
+});
 })();
 </script>
 </body>
-</html>

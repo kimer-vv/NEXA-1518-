@@ -1617,11 +1617,61 @@ section.panel{position:relative;z-index:1}
   }
 }
 
+
+/* V2.7.0 — Assigned export splits long Joiner lists into balanced columns */
+.assigned-export-columns{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+  align-items:start;
+}
+.assigned-export-columns.single{
+  grid-template-columns:1fr;
+}
+.assigned-export-column{
+  min-width:0;
+}
+.assigned-export-column .assigned-svs-table{
+  width:100%!important;
+  min-width:0!important;
+}
+.assigned-export-column .assigned-svs-head,
+.assigned-export-column .assigned-svs-row{
+  width:100%!important;
+  min-width:0!important;
+  grid-template-columns:minmax(0,1.15fr) minmax(0,.95fr) minmax(0,.95fr)!important;
+}
+.assigned-export-column .assigned-svs-head>div,
+.assigned-export-column .assigned-svs-row>div{
+  padding:12px 11px!important;
+}
+.assigned-export-column .assigned-svs-player b{
+  font-size:11px!important;
+}
+.assigned-export-column .assigned-svs-heroes{
+  font-size:10px!important;
+}
+.assigned-export-column .assigned-svs-scroll{
+  overflow:visible!important;
+}
+
+/* Give the export enough width so both Joiner columns stay readable */
+.legion-export-card{
+  width:1560px!important;
+}
+
+@media(max-width:760px){
+  /* Live board stays one scrollable table on mobile; split is for clean export/share */
+  .assigned-export-columns{
+    grid-template-columns:1fr!important;
+  }
+}
+
 </style>
 </head>
 <body>
 <main class="sh">
-<!-- NEXA FDT OPERATIONS V2.6.9 • SVS TABLE SCROLL / REMOVE JOINERS -->
+<!-- NEXA FDT OPERATIONS V2.7.0 • ASSIGNED JOINERS SPLIT COLUMNS EXPORT -->
 <div class="top">
   <a class="round" href="index.html" aria-label="Back">‹</a>
   <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div><div class="autosave">AUTOSAVE • SAVED</div></div>
@@ -2969,18 +3019,30 @@ function formationExportHtml(t){
 function assignedJoinersExport(t){
  const ids=Array.isArray(t?.players)?t.players:[];
  if(!ids.length)return'<div class="muted tiny">No Joiners assigned.</div>';
- return `<div class="assigned-svs-scroll"><div class="assigned-svs-table">
-   <div class="assigned-svs-head"><div>PLAYER</div><div>GARRISON</div>${t.ratios?.showRally===false?'':`<div>MIA RALLY</div>`}<div></div></div>
-   ${ids.map(pid=>{
+
+ const makeTable=list=>`<div class="assigned-export-column"><div class="assigned-svs-table">
+   <div class="assigned-svs-head">
+     <div>PLAYER</div>
+     <div>GARRISON</div>
+     ${t.ratios?.showRally===false?'':`<div>MIA RALLY</div>`}
+   </div>
+   ${list.map(pid=>{
      const p=playerById(pid),x=t.playerHeroes?.[pid]||['','','',''];
      return `<div class="assigned-svs-row">
        <div class="assigned-svs-player"><b>${playerNameWithTag(p)}</b></div>
        <div class="assigned-svs-heroes">${heroPairInline(heroNames(x.slice(0,2)))}</div>
        ${t.ratios?.showRally===false?'':`<div class="assigned-svs-heroes">${heroPairInline(heroNames(x.slice(2,4)))}</div>`}
-       <div></div>
      </div>`
    }).join('')}
- </div></div>`
+ </div></div>`;
+
+ if(ids.length<=12){
+   return `<div class="assigned-export-columns single">${makeTable(ids)}</div>`
+ }
+
+ const cut=Math.ceil(ids.length/2);
+ const left=ids.slice(0,cut),right=ids.slice(cut);
+ return `<div class="assigned-export-columns">${makeTable(left)}${makeTable(right)}</div>`
 }
 function sharedJoinersExport(t){
  return teamJoinerList(null,t,{editable:false})

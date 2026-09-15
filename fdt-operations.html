@@ -1817,7 +1817,7 @@ section.panel{position:relative;z-index:1}
 </head>
 <body>
 <main class="sh">
-<!-- NEXA FDT OPERATIONS V2.7.3 • HERO IMAGES / RARITY FRAMES / EXPORT IMAGE WAIT -->
+<!-- NEXA FDT OPERATIONS V2.7.4 • SAME-ORIGIN HERO IMAGE PROXY -->
 <div class="top">
   <a class="round" href="index.html" aria-label="Back">‹</a>
   <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div><div class="autosave">AUTOSAVE • SAVED</div></div>
@@ -2989,14 +2989,15 @@ function heroRarityKey(h){
 }
 function heroPortraitHtml(h){
  const url=String(h?.image_url||'').trim();
- return `<div class="shared-hero-portrait">${url?`<img src="${esc(url)}" alt="${esc(h?.name||'Hero')}" referrerpolicy="no-referrer" loading="eager" onerror="this.style.display='none'">`:''}</div>`
+ const proxied=url?`/api/hero-image?url=${encodeURIComponent(url)}`:'';
+ return `<div class="shared-hero-portrait">${proxied?`<img src="${esc(proxied)}" alt="${esc(h?.name||'Hero')}" crossorigin="anonymous" loading="eager">`:''}</div>`
 }
 async function waitForExportImages(root,timeout=3500){
  const imgs=[...root.querySelectorAll('img')];
  if(!imgs.length)return;
  await Promise.race([
    Promise.all(imgs.map(img=>{
-     if(img.complete)return Promise.resolve();
+     if(img.complete&&img.naturalWidth>0)return Promise.resolve();
      return new Promise(resolve=>{
        const done=()=>resolve();
        img.addEventListener('load',done,{once:true});

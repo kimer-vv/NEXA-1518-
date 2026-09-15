@@ -684,7 +684,7 @@ label{display:grid;gap:6px;color:#aeb7d1;font-size:12px;font-weight:850}input,se
 </head>
 <body>
 <main class="sh">
-<!-- NEXA FDT OPERATIONS V2.4.3 • CLEAN PET UI / NEXA EXPORT FLOW -->
+<!-- NEXA FDT OPERATIONS V2.4.4 • FOCUS-COLOR GROUPS / CLEAN PET UI / NEXA MODALS -->
 <div class="top">
   <a class="round" href="index.html" aria-label="Back">‹</a>
   <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div><div class="autosave">AUTOSAVE • SAVED</div></div>
@@ -1255,20 +1255,33 @@ document.addEventListener('change',e=>{const w=ensureLegionWorkflow();if(e.targe
 
 /* PET SCHEDULE */
 
-function usedTeamColors(exceptId=''){
- return new Set((store.legions||[]).flatMap(l=>(l.teams||[]).filter(t=>String(t.id)!==String(exceptId)).map(t=>String(t.color||'').toLowerCase())).filter(Boolean))
-}
-function nextTeamColor(exceptId=''){
- const used=usedTeamColors(exceptId);
- return COLORS.find(c=>!used.has(c.toLowerCase()))||`hsl(${Math.floor(Math.random()*360)} 78% 64%)`
-}
-function ensureUniqueTeamColors(){
+function usedFocusColors(exceptLegionId='',exceptFocusKey=''){
  const used=new Set();
  (store.legions||[]).forEach(l=>(l.teams||[]).forEach(t=>{
-   let c=String(t.color||'').toLowerCase();
-   if(!c||used.has(c)){t.color=COLORS.find(x=>!used.has(x.toLowerCase()))||`hsl(${Math.floor(Math.random()*360)} 78% 64%)`;c=String(t.color).toLowerCase()}
-   used.add(c)
- }))
+   const fk=teamFocusGroupKey(t);
+   if(String(l.id)===String(exceptLegionId)&&fk===String(exceptFocusKey))return;
+   const c=String(t.color||'').toLowerCase();
+   if(c)used.add(c)
+ }));
+ return used
+}
+function nextFocusColor(exceptLegionId='',exceptFocusKey=''){
+ const used=usedFocusColors(exceptLegionId,exceptFocusKey);
+ return COLORS.find(c=>!used.has(c.toLowerCase()))||`hsl(${Math.floor(Math.random()*360)} 78% 64%)`
+}
+function ensureFocusGroupColors(){
+ (store.legions||[]).forEach(l=>{
+   const groups={};
+   (l.teams||[]).forEach(t=>{
+     const k=teamFocusGroupKey(t);
+     (groups[k]||(groups[k]=[])).push(t)
+   });
+   Object.entries(groups).forEach(([k,list])=>{
+     let color=String(list.find(t=>String(t.color||'').trim())?.color||'');
+     if(!color)color=nextFocusColor(l.id,k);
+     list.forEach(t=>t.color=color)
+   })
+ })
 }
 
 function focusLabel(key,custom=''){
@@ -1287,8 +1300,8 @@ function normalizeTeamNames(l){
    t.name=arr.length===1?base:`${base} ${String.fromCharCode(65+i)}`;
  }));
 }
-function newTeam(n,focusKey='custom',customFocus=''){
- return{id:uid('team_'),name:'Team '+n,focusKey,customFocus,color:nextTeamColor(),assignments:[],players:[],playerHeroes:{},ratios:{garrison:'60/40/0',rally:'48/4/48',showRally:true}}
+function newTeam(n,focusKey='custom',customFocus='',focusColor=''){
+ return{id:uid('team_'),name:'Team '+n,focusKey,customFocus,color:focusColor||nextFocusColor(),assignments:[],players:[],playerHeroes:{},ratios:{garrison:'60/40/0',rally:'48/4/48',showRally:true}}
 }
 function newLegion(){
  const n=store.legions.length+1;
@@ -1395,7 +1408,7 @@ function petSetupHtml(l,i){
  return `<section class="legion-pet" style="${legionStyleVars(l)}"><div class="legion-pet-head"><div><div class="legion-pet-title">${esc(l.name)}</div><div class="legion-sub">${l.teams.length} Team${l.teams.length===1?'':'s'} configured</div></div><div class="pet-action-row"><button class="btn small" data-change-legion="${l.id}">Change</button><button class="btn danger small" data-remove-legion="${l.id}">Remove</button><button class="btn small" data-add-team="${l.id}">+ Team</button></div></div>${l.teams.length?petFocusGroups(l).map(([key,list])=>focusGroupHtml(l,key,list)).join(''):'<div class="empty" style="margin:12px">No Teams yet.</div>'}</section>`
 }
 function hydrateTeams(){
- ensureUniqueTeamColors();
+ ensureFocusGroupColors();
  (store.legions||[]).forEach(l=>{l.focusPools=l.focusPools||{};(l.teams||[]).forEach((t,i)=>{if(!t.focusKey){t.focusKey='custom';t.customFocus=t.name||('Team '+(i+1))}t.ratios=t.ratios||{garrison:l.ratios?.garrison||'60/40/0',rally:l.ratios?.rally||'48/4/48',showRally:l.ratios?.showRally!==false}});normalizeTeamNames(l)})
 }
 
@@ -1419,7 +1432,10 @@ function openFocusPicker(l){
  r.querySelectorAll('[data-focus]').forEach(b=>b.onclick=async()=>{
    const key=b.dataset.focus;let custom='';
    if(key==='custom'){custom=String(await nexaPrompt('Team Focus','Custom Focus')||'').trim();if(!custom)return}
-   l.teams.push(newTeam(l.teams.length+1,key,custom));normalizeTeamNames(l);save();r.remove();renderPets();renderBoard();refreshLayoutExport();
+   const groupKey=key==='custom'?`custom:${String(custom||'Custom').trim().toLowerCase()}`:key;
+   const existing=(l.teams||[]).find(t=>teamFocusGroupKey(t)===groupKey);
+   const color=existing?.color||nextFocusColor(l.id,groupKey);
+   l.teams.push(newTeam(l.teams.length+1,key,custom,color));normalizeTeamNames(l);ensureFocusGroupColors();save();r.remove();renderPets();renderBoard();refreshLayoutExport();
  });
 }
 
@@ -1450,8 +1466,11 @@ $('#petRoot').onclick=async e=>{
    const l=store.legions.find(x=>x.id===addFT.dataset.addFocusTeam);
    if(l){
      const key=addFT.dataset.focusKey||'custom',custom=addFT.dataset.customFocus||'';
-     l.teams.push(newTeam(l.teams.length+1,key,custom));
-     normalizeTeamNames(l);save();renderPets();renderBoard();refreshLayoutExport()
+     const groupKey=key==='custom'?`custom:${String(custom||'Custom').trim().toLowerCase()}`:key;
+     const existing=(l.teams||[]).find(t=>teamFocusGroupKey(t)===groupKey);
+     const color=existing?.color||nextFocusColor(l.id,groupKey);
+     l.teams.push(newTeam(l.teams.length+1,key,custom,color));
+     normalizeTeamNames(l);ensureFocusGroupColors();save();renderPets();renderBoard();refreshLayoutExport()
    }
    return
  }

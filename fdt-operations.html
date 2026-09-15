@@ -1233,11 +1233,29 @@ label{display:grid;gap:6px;color:#aeb7d1;font-size:12px;font-weight:850}input,se
   .board-building{margin-left:8px;margin-right:8px}
 }
 
+
+/* V2.6.2 — main FDT pills must remain tappable on iPhone/Safari */
+#nav{
+  position:relative!important;
+  z-index:50!important;
+  pointer-events:auto!important;
+  touch-action:pan-x!important;
+}
+#nav button[data-panel]{
+  position:relative!important;
+  z-index:51!important;
+  pointer-events:auto!important;
+  touch-action:manipulation!important;
+  -webkit-user-select:none!important;
+  user-select:none!important;
+}
+section.panel{position:relative;z-index:1}
+
 </style>
 </head>
 <body>
 <main class="sh">
-<!-- NEXA FDT OPERATIONS V2.6.1 • LEGION BOARD PILL SWITCH FIX -->
+<!-- NEXA FDT OPERATIONS V2.6.3 • STAFF SNAPSHOT DATA LOAD FIX -->
 <div class="top">
   <a class="round" href="index.html" aria-label="Back">‹</a>
   <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div><div class="autosave">AUTOSAVE • SAVED</div></div>
@@ -1474,8 +1492,25 @@ function nexaPrompt(label,title='NEXA',initial=''){
    input.onkeydown=e=>{if(e.key==='Enter')r.querySelector('#nexaPromptSave').click()}
  })
 }
-function panel(n){$$('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.panel===n));$$('.panel').forEach(p=>p.classList.toggle('active',p.dataset.panel===n))}
-$('#nav').onclick=e=>{const b=e.target.closest('[data-panel]');if(b)panel(b.dataset.panel)}
+function panel(n){
+ const key=String(n||'');
+ $$('#nav button[data-panel]').forEach(b=>b.classList.toggle('active',String(b.dataset.panel)===key));
+ $$('section.panel[data-panel]').forEach(p=>p.classList.toggle('active',String(p.dataset.panel)===key));
+}
+function bindMainFdtNav(){
+ const nav=$('#nav');
+ if(!nav)return;
+ nav.querySelectorAll('button[data-panel]').forEach(btn=>{
+   btn.type='button';
+   btn.onclick=null;
+   btn.addEventListener('click',e=>{
+     e.preventDefault();
+     e.stopPropagation();
+     panel(btn.dataset.panel);
+   },{passive:false});
+ });
+}
+bindMainFdtNav();
 function hourOpts(sel){let s='';for(let h=0;h<24;h++)s+=`<option value="${h}" ${Number(sel)===h?'selected':''}>${String(h).padStart(2,'0')}:00</option>`;return s}
 function hourLabel(h){return String(h).padStart(2,'0')+':00'}
 function battleHours(){const a=Number(store.setup.battleStart??12),b=Number(store.setup.battleEnd??17),x=[];for(let h=a;h<b;h++)x.push(h);return x}
@@ -1506,20 +1541,69 @@ function wireSetup(){
 }
 
 /* DATA */
+function fdtStaffToken(){
+ return localStorage.getItem('nexa_transfer_staff_token')
+   ||sessionStorage.getItem('nexa_transfer_staff_token')
+   ||localStorage.getItem('nexa_staff_token')
+   ||sessionStorage.getItem('nexa_staff_token')
+   ||'';
+}
+function applyFdtSnapshot(data){
+ alliances=Array.isArray(data?.alliances)?data.alliances:[];
+ players=Array.isArray(data?.players)?data.players:[];
+ responses=Array.isArray(data?.responses)?data.responses:[];
+ heroes=Array.isArray(data?.heroes)?data.heroes:[];
+ rules=Array.isArray(data?.rules)?data.rules:[];
+ const generations=Array.isArray(data?.generations)?data.generations:[];
+ const now=Date.now();
+ const vr=generations.filter(x=>x.is_visible===true||(x.unlock_at&&new Date(x.unlock_at).getTime()<=now));
+ activeGen=Math.max(0,...vr.map(x=>Number(x.generation||0)));
+ if(!activeGen)activeGen=Math.max(0,...heroes.map(x=>Number(x.generation||0)));
+}
+function renderLoadedFdtData(){
+ renderResponses();
+ renderFormations();
+ renderLegionWorkflow();
+ renderPets();
+ renderBoard();
+}
 async function loadData(){
- const [a,p,r,h,g,m]=await Promise.all([
+ const token=fdtStaffToken();
+ if(token){
+   const {data,error}=await sb.rpc('nexa_fdt_operations_snapshot_v1',{p_token:token,p_state:state});
+   if(!error&&data?.ok===true){
+     applyFdtSnapshot(data);
+     renderLoadedFdtData();
+     say('');
+     return
+   }
+   if(!error&&data?.error==='session_expired'){
+     say('Your NEXA staff session expired. Sign in again to load FDT Responses and player data.')
+   }else if(error){
+     console.error('[NEXA FDT] snapshot load failed',error);
+     say('FDT data could not be loaded from NEXA. Public data fallback loaded where available.')
+   }
+ }
+
+ /* Public fallback keeps non-private library/meta content available,
+    but private Responses / state player roster require the shared staff session. */
+ const [a,h,g,m]=await Promise.all([
   sb.from('alliances').select('id,tag,name,emblem_url,state_number').eq('state_number',state).eq('is_active',true).order('server_rank'),
-  sb.from('player_accounts').select('id,in_game_name,player_id,alliance_id,battle_role,deployment_capacity,rally_capacity,power').eq('state_number',state).order('deployment_capacity',{ascending:false}),
-  sb.from('event_operation_responses').select('*').eq('event_type_key','fdt').order('updated_at',{ascending:false}),
   sb.from('nexa_library_items').select('id,name,image_url,rarity,generation,troop_type').eq('item_type','hero').eq('is_active',true).order('generation',{ascending:false}).order('name'),
   sb.from('nexa_library_generations').select('generation,is_visible,unlock_at').eq('item_type','hero').order('generation'),
   sb.from('nexa_battle_meta_rules').select('*').eq('event_scope','pvp_rally').eq('is_active',true)
  ]);
- alliances=a.data||[];players=p.data||[];responses=r.data||[];heroes=h.data||[];rules=m.data||[];
+ alliances=a.data||[];
+ players=[];
+ responses=[];
+ heroes=h.data||[];
+ rules=m.data||[];
  const now=Date.now(),vr=(g.data||[]).filter(x=>x.is_visible===true||(x.unlock_at&&new Date(x.unlock_at).getTime()<=now));
- activeGen=Math.max(0,...vr.map(x=>Number(x.generation||0)));if(!activeGen)activeGen=Math.max(0,...heroes.map(x=>Number(x.generation||0)));
- renderResponses();renderFormations();renderLegionWorkflow();renderPets();renderBoard();
+ activeGen=Math.max(0,...vr.map(x=>Number(x.generation||0)));
+ if(!activeGen)activeGen=Math.max(0,...heroes.map(x=>Number(x.generation||0)));
+ renderLoadedFdtData();
 }
+
 function respScore(r){const x=r.response_data||{},s=x.profile_snapshot||{};for(const k of ['troop_score','battle_score','deployment_capacity','rally_capacity','power']){const n=Number(x[k]??s[k]);if(n>0)return n}return Number(s?.account?.deployment_capacity||0)||0}
 function respName(r){const x=r.response_data||{},p=players.find(y=>String(y.id)===String(r.player_account_id));return p?.in_game_name||x.in_game_name||x.player_name||x.name||('Response #'+r.id)}
 function responseAllianceTag(r){const p=players.find(y=>String(y.id)===String(r.player_account_id));return playerAllianceTag(p)||p?.custom_alliance_tag||'NO TAG'}
@@ -1540,7 +1624,16 @@ function renderResponseChecklist(){
 let responseView='responses';
 function setResponseView(v){responseView=v;$$('[data-response-view]').forEach(b=>{const on=b.dataset.responseView===v;b.classList.toggle('violet',on);b.classList.toggle('active',on)});$('#responseGrid').classList.toggle('hidden',v!=='responses');$('#responseChecklist').classList.toggle('hidden',v!=='checklist')}
 $$('[data-response-view]').forEach(b=>b.onclick=()=>setResponseView(b.dataset.responseView));
-$('#refreshResponses').onclick=async()=>{const {data,error}=await sb.from('event_operation_responses').select('*').eq('event_type_key','fdt').order('updated_at',{ascending:false});if(error)return say(error.message);responses=data||[];renderResponses();renderLegionWorkflow();renderPets()}
+$('#refreshResponses').onclick=async()=>{
+ const token=fdtStaffToken();
+ if(!token){say('Sign in to NEXA staff access to refresh FDT Responses.');return}
+ const {data,error}=await sb.rpc('nexa_fdt_operations_snapshot_v1',{p_token:token,p_state:state});
+ if(error){say(error.message||'Could not refresh FDT data.');return}
+ if(data?.ok!==true){say(data?.error==='session_expired'?'Your NEXA staff session expired. Sign in again.':'Could not refresh FDT data.');return}
+ applyFdtSnapshot(data);
+ renderLoadedFdtData();
+ say('FDT data refreshed.')
+}
 
 /* FORMATIONS */
 function heroByName(n){return heroes.find(h=>String(h.name||'').toLowerCase()===String(n||'').toLowerCase())}
@@ -2482,15 +2575,6 @@ $('#boardRoot').onclick=e=>{
 /* PLAN */
 function wirePlan(){store.plan=store.plan||{title:'',alliance:'',notes:''};$('#planTitle').value=store.plan.title||'';$('#planAlliance').value=store.plan.alliance||'';$('#planNotes').value=store.plan.notes||'';$('#planTitle').oninput=e=>{store.plan.title=e.target.value;save()};$('#planAlliance').oninput=e=>{store.plan.alliance=e.target.value;save()};$('#planNotes').oninput=e=>{store.plan.notes=e.target.value;save()}}
 
-const mainNav=$('#nav');
-if(mainNav){
- mainNav.onclick=e=>{
-   const b=e.target.closest('[data-panel]');
-   if(!b)return;
-   e.preventDefault();
-   panel(b.dataset.panel);
- };
-}
 wireSetup();wirePlan();renderLegionWorkflow();renderPets();renderBoard();refreshLayoutExport();loadData().catch(e=>say(e.message||String(e)));
 })();
 </script>

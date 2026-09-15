@@ -1255,7 +1255,7 @@ section.panel{position:relative;z-index:1}
 </head>
 <body>
 <main class="sh">
-<!-- NEXA FDT OPERATIONS V2.6.4 • MAIN AUTH DATA LOAD + SAFE RENDER -->
+<!-- NEXA FDT OPERATIONS V2.6.5 • LEGION BOARD LEGACY-STATE NORMALIZER -->
 <div class="top">
   <a class="round" href="index.html" aria-label="Back">‹</a>
   <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div><div class="autosave">AUTOSAVE • SAVED</div></div>
@@ -1560,23 +1560,24 @@ function applyFdtSnapshot(data){
  activeGen=Math.max(0,...vr.map(x=>Number(x.generation||0)));
  if(!activeGen)activeGen=Math.max(0,...heroes.map(x=>Number(x.generation||0)));
 }
+let fdtRenderErrors=[];
 function safeFdtRender(name,fn){
  try{fn();return true}
  catch(e){
    console.error(`[NEXA FDT] ${name} render failed`,e);
+   fdtRenderErrors.push({name,message:e?.message||String(e)});
    return false
  }
 }
 function renderLoadedFdtData(){
- const results=[
-   safeFdtRender('Responses',renderResponses),
-   safeFdtRender('Formations',renderFormations),
-   safeFdtRender('Legions',renderLegionWorkflow),
-   safeFdtRender('Pet Schedule',renderPets),
-   safeFdtRender('Legion Board',renderBoard),
-   safeFdtRender('Layout Export',refreshLayoutExport)
- ];
- return results.every(Boolean)
+ fdtRenderErrors=[];
+ safeFdtRender('Responses',renderResponses);
+ safeFdtRender('Formations',renderFormations);
+ safeFdtRender('Legions',renderLegionWorkflow);
+ safeFdtRender('Pet Schedule',renderPets);
+ safeFdtRender('Legion Board',renderBoard);
+ safeFdtRender('Layout Export',refreshLayoutExport);
+ return fdtRenderErrors.length===0
 }
 async function loadData(){
  /* Main NEXA auth and Workspace staff auth are both accepted by the backend.
@@ -1594,7 +1595,7 @@ async function loadData(){
    const clean=renderLoadedFdtData();
    say(clean
      ?`Loaded ${responses.length} FDT response${responses.length===1?'':'s'} • ${rules.length} formation rules • Gen ${activeGen}`
-     :'FDT data loaded, but one section has a display error. Other sections remain available.');
+     :(`FDT data loaded. Display issue: ${fdtRenderErrors.map(x=>x.name).join(', ')}${fdtRenderErrors[0]?.message?` — ${fdtRenderErrors[0].message}`:''}`));
    return
  }
 
@@ -2159,12 +2160,53 @@ function petSetupHtml(l,i){
  const buildings=legionBuildings(l);
  return `<section class="legion-pet" style="${legionStyleVars(l)}"><div class="legion-pet-head"><div><div class="legion-pet-title">${esc(l.name)}</div><div class="legion-sub">${buildings.length} Building${buildings.length===1?'':'s'} • ${l.teams.length} Team${l.teams.length===1?'':'s'}</div></div><div class="pet-action-row"><button class="btn small" data-change-legion="${l.id}">Change</button><button class="btn danger small" data-remove-legion="${l.id}">Remove</button><button class="btn small" data-add-team="${l.id}">+ Building</button></div></div>${buildings.length?buildings.map(b=>buildingHtml(l,b)).join(''):'<div class="empty" style="margin:12px">No Buildings yet.</div>'}</section>`
 }
+function normalizeLegionState(l,index=0){
+ if(!l||typeof l!=='object')return l;
+ l.id=l.id||uid('leg_');
+ l.name=l.name||`Legion ${index+1}`;
+ l.color=l.color||COLORS[index%COLORS.length]||'#9b78ff';
+ l.configured=l.configured!==false;
+ l.teams=Array.isArray(l.teams)?l.teams:[];
+ l.members=Array.isArray(l.members)?l.members:[];
+ l.focusPools=(l.focusPools&&typeof l.focusPools==='object')?l.focusPools:{};
+ l.roles=Object.assign({
+   garrisonChief:'',
+   rallyManagers:'',
+   incomingTraffic:'',
+   kickingCrew:''
+ },(l.roles&&typeof l.roles==='object')?l.roles:{});
+ if(l.mode==='shared'||l.mode==='shared_pool'||l.mode==='hero_pool')l.mode='pool';
+ if(!['assigned','pool'].includes(l.mode))l.mode='assigned';
+ l.ratios=Object.assign({
+   garrison:'60/40/0',
+   rally:'48/4/48',
+   showRally:true
+ },(l.ratios&&typeof l.ratios==='object')?l.ratios:{});
+ l.sharedHeroIds=Array.isArray(l.sharedHeroIds)?l.sharedHeroIds:[];
+ l.teams.forEach((t,i)=>{
+   if(!t||typeof t!=='object')return;
+   t.id=t.id||uid('team_');
+   t.name=t.name||`Team ${i+1}`;
+   t.assignments=Array.isArray(t.assignments)?t.assignments:[];
+   t.players=Array.isArray(t.players)?t.players:[];
+   t.playerHeroes=(t.playerHeroes&&typeof t.playerHeroes==='object')?t.playerHeroes:{};
+   t.ratios=Object.assign({
+     garrison:l.ratios.garrison||'60/40/0',
+     rally:l.ratios.rally||'48/4/48',
+     showRally:l.ratios.showRally!==false
+   },(t.ratios&&typeof t.ratios==='object')?t.ratios:{});
+   if(!t.focusKey){
+     t.focusKey='custom';
+     t.customFocus=t.customFocus||t.name||`Building ${i+1}`;
+   }
+ });
+ return l
+}
+
 function hydrateTeams(){
- (store.legions||[]).forEach(l=>{
-   l.focusPools=l.focusPools||{};
-   (l.teams||[]).forEach((t,i)=>{
-     if(!t.focusKey){t.focusKey='custom';t.customFocus=t.name||('Building '+(i+1))}
-   });
+ store.legions=Array.isArray(store.legions)?store.legions:[];
+ store.legions.forEach((l,idx)=>{
+   normalizeLegionState(l,idx);
    ensureBuildingModel(l)
  })
 }
@@ -2404,6 +2446,7 @@ function assignedBuildingBoardHtml(l,b){
  </section>`
 }
 function boardLegionHtml(l){
+ normalizeLegionState(l,store.legions.indexOf(l));
  if(!l.configured)return'';
  const buildings=legionBuildings(l);
  return `<section class="board-legion" style="${legionStyleVars(l)}">
@@ -2420,6 +2463,7 @@ function boardLegionHtml(l){
  </section>`
 }
 function renderBoard(){
+ hydrateTeams();
  const list=store.legions.filter(l=>l.configured);
  $('#boardRoot').innerHTML=list.length?list.map(boardLegionHtml).join(''):'<div class="card"><div class="empty">Create a Legion in Pet Schedule first.</div></div>';
  refreshLayoutExport()
@@ -2427,6 +2471,7 @@ function renderBoard(){
 
 /* BOARD MODALS */
 function editRoles(l){
+ normalizeLegionState(l,store.legions.indexOf(l));
  const r=modal(`<div class="section-head"><div><h3>Edit Roles • ${esc(l.name)}</h3></div><button class="modal-x" data-modal-close>×</button></div><div class="grid2" style="margin-top:12px"><label>👑 Garrison Chief<input id="rgc" value="${esc(l.roles.garrisonChief)}"></label><label>📣 Rally Managers<input id="rrm" value="${esc(l.roles.rallyManagers)}"></label><label>🚦 Incoming Traffic<input id="rit" value="${esc(l.roles.incomingTraffic)}"></label><label>🧹 Kicking Crew<input id="rkc" value="${esc(l.roles.kickingCrew)}"></label></div><div class="modal-actions"><button class="btn" data-modal-close>Cancel</button><button class="btn violet" id="saveRoles">Save</button></div>`);
  r.querySelector('#saveRoles').onclick=()=>{l.roles={garrisonChief:r.querySelector('#rgc').value,rallyManagers:r.querySelector('#rrm').value,incomingTraffic:r.querySelector('#rit').value,kickingCrew:r.querySelector('#rkc').value};save();r.remove();renderBoard()}
 }
@@ -2597,6 +2642,8 @@ $('#boardRoot').onclick=e=>{
 /* PLAN */
 function wirePlan(){store.plan=store.plan||{title:'',alliance:'',notes:''};$('#planTitle').value=store.plan.title||'';$('#planAlliance').value=store.plan.alliance||'';$('#planNotes').value=store.plan.notes||'';$('#planTitle').oninput=e=>{store.plan.title=e.target.value;save()};$('#planAlliance').oninput=e=>{store.plan.alliance=e.target.value;save()};$('#planNotes').oninput=e=>{store.plan.notes=e.target.value;save()}}
 
+hydrateTeams();
+save();
 wireSetup();
 wirePlan();
 safeFdtRender('Initial Legions',renderLegionWorkflow);
@@ -2610,3 +2657,4 @@ loadData().catch(e=>{
 })();
 </script>
 </body>
+</html>

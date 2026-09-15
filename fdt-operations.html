@@ -1813,11 +1813,36 @@ section.panel{position:relative;z-index:1}
   height:58px!important;
 }
 
+
+/* V2.7.5 — Individual Team export keeps Building/Team color */
+.export-card{
+  position:relative!important;
+  overflow:hidden!important;
+  border-color:var(--tc)!important;
+  box-shadow:0 0 0 1px rgba(255,255,255,.02) inset!important;
+}
+.export-card::before{
+  content:"";
+  display:block;
+  height:14px;
+  margin:-20px -20px 18px;
+  background:var(--tc);
+}
+.export-card .export-title{
+  color:var(--tc)!important;
+}
+.export-card .team-board-block{
+  border-top-color:rgba(255,255,255,.08)!important;
+}
+.export-card .team-board-block>h4{
+  color:var(--tc)!important;
+}
+
 </style>
 </head>
 <body>
 <main class="sh">
-<!-- NEXA FDT OPERATIONS V2.7.4 • DIRECT LIBRARY HERO IMAGES -->
+<!-- NEXA FDT OPERATIONS V2.7.5 • TEAM EXPORT COLOR RENDER FIX -->
 <div class="top">
   <a class="round" href="index.html" aria-label="Back">‹</a>
   <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div><div class="autosave">AUTOSAVE • SAVED</div></div>
@@ -3217,11 +3242,11 @@ function teamExportHtml(l,t,includeMap=false){
  const b=buildingById(l,t.buildingId)||buildingBySlot(l,focusTypeKey(t));
  const shared=l.mode==='pool';
  const mapBlock=includeMap?`<div class="team-board-block"><h4>FDT LAYOUT</h4><img src="fdt-layout-map.jpg" style="width:100%;border-radius:16px"></div>`:'';
- return `<div class="export-card" style="--tc:${t.color}">
+ return `<div class="export-card" style="--tc:${esc(b?.color||t.color||'#9b78ff')}">
    <div class="export-title">${esc(b?.label||'Building')} • Team ${Number(t.teamOrder||1)}</div>
    <div class="export-sub">${esc(l.name)} · FDT</div>
-   <div class="team-board-block"><h4>PET SCHEDULE</h4>${petScheduleOnlyTable(t)}</div>
-   <div class="team-board-block"><h4>FORMATION</h4>${formationExportHtml(t)}</div>
+   <div class="team-board-block" style="border-left:3px solid var(--tc);padding-left:12px"><h4>PET SCHEDULE</h4>${petScheduleOnlyTable(t)}</div>
+   <div class="team-board-block" style="border-left:3px solid var(--tc);padding-left:12px"><h4>FORMATION</h4>${formationExportHtml(t)}</div>
    ${shared?`<div class="team-board-block"><h4>SHARED HERO POOL</h4>${sharedHeroPoolHtml(l,b,{editable:false})}</div><div class="team-board-block"><h4>JOINERS · TEAM ${Number(t.teamOrder||1)}</h4>${sharedJoinersExport(t)}</div>`:`<div class="team-board-block"><h4>JOINERS + HEROES</h4>${assignedJoinersExport(t)}</div>`}
    ${mapBlock}
  </div>`
@@ -3320,5 +3345,3 @@ loadData().catch(e=>{
 });
 })();
 </script>
-</body>
-</html>

@@ -5,6 +5,65 @@ import {
   bypassCookie,
 } from '../server/_nexa-maintenance-common-new.js';
 
+const HERO_IMAGE_HOSTS = new Set([
+  'www.whiteoutsurvival-community.com',
+  'whiteoutsurvival-community.com',
+  'gom-s3-user-avatar.s3.us-west-2.amazonaws.com',
+]);
+
+function heroImageUrl(raw) {
+  try {
+    const u = new URL(String(raw || ''));
+    if (u.protocol !== 'https:') return null;
+    if (!HERO_IMAGE_HOSTS.has(u.hostname)) return null;
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
+
+async function serveHeroImage(req, res) {
+  const raw = Array.isArray(req.query?.url) ? req.query.url[0] : req.query?.url;
+  const url = heroImageUrl(raw);
+
+  if (!url) {
+    return json(res, 400, { error: 'Invalid hero image URL.' });
+  }
+
+  try {
+    const upstream = await fetch(url, {
+      redirect: 'follow',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 NEXA/1.0',
+        Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+      },
+    });
+
+    if (!upstream.ok) {
+      return json(res, upstream.status, { error: 'Hero image could not be loaded.' });
+    }
+
+    const contentType = upstream.headers.get('content-type') || '';
+    if (!contentType.toLowerCase().startsWith('image/')) {
+      return json(res, 415, { error: 'Requested resource is not an image.' });
+    }
+
+    const body = Buffer.from(await upstream.arrayBuffer());
+
+    res.setHeader('Content-Type', contentType);
+    res.setHeader(
+      'Cache-Control',
+      'public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400'
+    );
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    return res.status(200).send(body);
+  } catch (error) {
+    console.error('[NEXA hero image]', error);
+    return json(res, 502, { error: 'Hero image proxy failed.' });
+  }
+}
+
 async function getSetting(service) {
   const r = await fetch(
     `${SUPABASE_URL}/rest/v1/nexa_system_settings?key=eq.maintenance_mode&select=value&limit=1`,
@@ -49,6 +108,11 @@ async function setSetting(service, enabled) {
 
 export default async function handler(req, res) {
   try {
+    // Consolidated public image route: does NOT consume another /api file.
+    if (req.method === 'GET' && req.query?.mode === 'hero-image') {
+      return await serveHeroImage(req, res);
+    }
+
     const token = String(req.headers.authorization || '').replace(
       /^Bearer\s+/i,
       ''

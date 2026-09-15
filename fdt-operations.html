@@ -1237,7 +1237,7 @@ label{display:grid;gap:6px;color:#aeb7d1;font-size:12px;font-weight:850}input,se
 </head>
 <body>
 <main class="sh">
-<!-- NEXA FDT OPERATIONS V2.6.0 • DELICATE LEGION BOARD / ASSIGNED + SHARED HERO POOL -->
+<!-- NEXA FDT OPERATIONS V2.6.1 • LEGION BOARD PILL SWITCH FIX -->
 <div class="top">
   <a class="round" href="index.html" aria-label="Back">‹</a>
   <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div><div class="autosave">AUTOSAVE • SAVED</div></div>
@@ -2159,6 +2159,15 @@ $('#petRoot').onclick=async e=>{
 }
 
 /* BOARD */
+function eligibleJoinerHeroes(){
+ return heroes.filter(h=>Number(h.generation)<=activeGen&&['epic','purple','legendary','mythic','gold'].some(x=>String(h.rarity||'').toLowerCase().includes(x)))
+}
+function playerById(id){
+ return players.find(p=>String(p.id)===String(id))
+   ||store.manualPlayers?.find(p=>String(p.id)===String(id))
+   ||store.manualRally?.find(p=>String(p.id)===String(id))
+}
+
 function playerAllianceTag(p){
  return p?.alliance_tag||p?.alliance||p?.alliance_name||p?.custom_alliance_tag||''
 }
@@ -2299,3 +2308,191 @@ function renderBoard(){
  const list=store.legions.filter(l=>l.configured);
  $('#boardRoot').innerHTML=list.length?list.map(boardLegionHtml).join(''):'<div class="card"><div class="empty">Create a Legion in Pet Schedule first.</div></div>';
  refreshLayoutExport()
+}
+
+/* BOARD MODALS */
+function editRoles(l){
+ const r=modal(`<div class="section-head"><div><h3>Edit Roles • ${esc(l.name)}</h3></div><button class="modal-x" data-modal-close>×</button></div><div class="grid2" style="margin-top:12px"><label>👑 Garrison Chief<input id="rgc" value="${esc(l.roles.garrisonChief)}"></label><label>📣 Rally Managers<input id="rrm" value="${esc(l.roles.rallyManagers)}"></label><label>🚦 Incoming Traffic<input id="rit" value="${esc(l.roles.incomingTraffic)}"></label><label>🧹 Kicking Crew<input id="rkc" value="${esc(l.roles.kickingCrew)}"></label></div><div class="modal-actions"><button class="btn" data-modal-close>Cancel</button><button class="btn violet" id="saveRoles">Save</button></div>`);
+ r.querySelector('#saveRoles').onclick=()=>{l.roles={garrisonChief:r.querySelector('#rgc').value,rallyManagers:r.querySelector('#rrm').value,incomingTraffic:r.querySelector('#rit').value,kickingCrew:r.querySelector('#rkc').value};save();r.remove();renderBoard()}
+}
+function editTeamRatios(l,t){
+ t.ratios=t.ratios||{garrison:'60/40/0',rally:'48/4/48',showRally:true};
+ const approved=rules.filter(r=>Number(r.generation)===activeGen&&(r.approval_status||'approved')==='approved');
+ const defenses=approved.filter(r=>r.mode==='defense'),attacks=approved.filter(r=>r.mode==='attack');
+ const r=modal(`<div class="section-head"><div><h3>Formation • Team ${Number(t.teamOrder||1)}</h3></div><button class="modal-x" data-modal-close>×</button></div>
+ <div class="mini">GARRISON</div><div class="ratio-choice-list">${defenses.map(x=>`<button class="ratio-choice" data-ratio-g="${(x.primary_ratio||[]).join('/')}"><b>${(x.primary_ratio||[]).join(' / ')}</b><small>Defense • Gen ${x.generation}</small></button>`).join('')}<button class="ratio-choice" data-ratio-g="__manual__"><b>Manual</b></button></div>
+ <div class="mini" style="margin-top:14px">MIA RALLY</div><div class="ratio-toggle-row"><label><input id="showRally" type="checkbox" ${t.ratios.showRally===false?'':'checked'}><span>Use MIA Rally</span></label></div>
+ <div class="ratio-choice-list">${attacks.map(x=>`<button class="ratio-choice" data-ratio-r="${(x.primary_ratio||[]).join('/')}"><b>${(x.primary_ratio||[]).join(' / ')}</b><small>Attack • Gen ${x.generation}</small></button>`).join('')}<button class="ratio-choice" data-ratio-r="__manual__"><b>Manual</b></button></div>
+ <div id="manualRatioFields" class="grid2 hidden" style="margin-top:12px"><label>Garrison<input id="manualG" value="${esc(t.ratios.garrison||'')}"></label><label>MIA Rally<input id="manualR" value="${esc(t.ratios.rally||'')}"></label></div>
+ <div class="modal-actions"><button class="btn" data-modal-close>Cancel</button><button class="btn violet" id="saveRatios">Save</button></div>`);
+ let g=t.ratios.garrison||'',ra=t.ratios.rally||'',manual=false;
+ r.querySelectorAll('[data-ratio-g]').forEach(b=>b.onclick=()=>{if(b.dataset.ratioG==='__manual__'){manual=true;r.querySelector('#manualRatioFields').classList.remove('hidden')}else g=b.dataset.ratioG});
+ r.querySelectorAll('[data-ratio-r]').forEach(b=>b.onclick=()=>{if(b.dataset.ratioR==='__manual__'){manual=true;r.querySelector('#manualRatioFields').classList.remove('hidden')}else ra=b.dataset.ratioR});
+ r.querySelector('#saveRatios').onclick=()=>{if(manual){g=r.querySelector('#manualG').value.trim()||g;ra=r.querySelector('#manualR').value.trim()||ra}t.ratios={garrison:g,rally:ra,showRally:r.querySelector('#showRally').checked};save();r.remove();renderBoard()}
+}
+function addPlayerFlow(l,t){
+ const r=modal(`<div class="section-head"><div><h3>Select Joiners • Team ${Number(t.teamOrder||1)}</h3></div><button class="modal-x" data-modal-close>×</button></div><button class="btn violet big-choice" id="ranked">Choose from Ranked List</button><button class="btn big-choice" id="manual">Add Manually</button>`);
+ r.querySelector('#ranked').onclick=()=>{r.remove();rankedPicker(l,t)};
+ r.querySelector('#manual').onclick=()=>{r.remove();manualPlayer(l,t)}
+}
+function rankedJoiners(legionId=''){
+ const rallyIds=new Set(rallyCandidates(legionId).map(x=>String(x.id)));
+ const op=store.legions.find(l=>String(l.id)===String(legionId)),roster=new Set((op?.members||[]).map(String)),finalized=ensureLegionWorkflow().phase==='final'&&roster.size;
+ const real=players.filter(p=>!rallyIds.has(String(p.id))&&(!finalized||roster.has(String(p.id))));
+ const test=(store.manualPlayers||[]).filter(p=>p.test);
+ return [...test,...real].sort((a,b)=>(Number(b.deployment_capacity||0)-Number(a.deployment_capacity||0))||(Number(b.power||0)-Number(a.power||0))||String(a.in_game_name||a.name).localeCompare(String(b.in_game_name||b.name)))
+}
+function rankedPicker(l,t){
+ const list=rankedJoiners(l.id),selected=new Set((t.players||[]).map(String));
+ const r=modal(`<div class="section-head"><div><h3>Joiners • Team ${Number(t.teamOrder||1)}</h3></div><button class="modal-x" data-modal-close>×</button></div><div class="rank-list">${list.map((p,i)=>`<label class="rank-row"><div><b>${i+1}. ${esc(p.in_game_name)}</b><div class="tiny muted">${esc(p.player_id||'')} • Deployment ${Number(p.deployment_capacity||0).toLocaleString()}</div></div><input type="checkbox" value="${p.id}" ${selected.has(String(p.id))?'checked':''}></label>`).join('')}</div><div class="modal-actions"><button class="btn" data-modal-close>Cancel</button><button class="btn violet" id="saveRanked">Save Selected</button></div>`);
+ r.querySelector('#saveRanked').onclick=()=>{t.players=Array.from(r.querySelectorAll('input[type="checkbox"]:checked')).map(x=>x.value);save();r.remove();renderBoard()}
+}
+function manualPlayer(l,t){
+ const r=modal(`<div class="section-head"><div><h3>Add Joiner • Team ${Number(t.teamOrder||1)}</h3></div><button class="modal-x" data-modal-close>×</button></div><label style="margin-top:12px">Player Name<input id="manualName" placeholder="Name"></label><div class="modal-actions"><button class="btn" data-modal-close>Cancel</button><button class="btn violet" id="saveManual">Add</button></div>`);
+ r.querySelector('#saveManual').onclick=()=>{const name=r.querySelector('#manualName').value.trim();if(!name)return;const p={id:uid('manual_player_'),name,in_game_name:name,player_id:''};(store.manualPlayers||(store.manualPlayers=[])).push(p);t.players.push(p.id);save();r.remove();renderBoard()}
+}
+function heroCardValue(id,label){
+ const h=heroes.find(x=>String(x.id)===String(id));
+ return `<div class="hero-edit-slot-inner">${h?.image_url?`<img src="${esc(h.image_url)}" alt="">`:'<div style="width:64px;height:64px;border-radius:12px;background:#101522"></div>'}<div><b>${esc(h?.name||'—')}</b><small>${h?`Gen ${h.generation} • ${esc(h.rarity||'')}`:'Leave empty'}</small></div></div>`
+}
+function editPlayerHeroes(l,t,pid){
+ const p=playerById(pid);t.playerHeroes=t.playerHeroes||{};const vals=[...(t.playerHeroes[pid]||['','','',''])];while(vals.length<4)vals.push('');
+ const labels=['Garrison Hero 1','Garrison Hero 2','MIA Rally Hero 1','MIA Rally Hero 2'];
+ const r=modal(`<div class="section-head"><div><h3>Heroes • ${esc(p?.in_game_name||p?.name||'Player')}</h3></div><button class="modal-x" data-modal-close>×</button></div><div class="hero-edit-grid">${labels.map((x,i)=>`<div><label>${x}</label><button class="hero-edit-slot" data-slot="${i}">${heroCardValue(vals[i],x)}</button></div>`).join('')}</div><div class="tiny muted" style="margin-top:10px">Two Garrison heroes + two MIA Rally heroes.</div><div class="modal-actions"><button class="btn" data-modal-close>Cancel</button><button class="btn violet" id="savePlayerHeroes">Save</button></div>`);
+ r.querySelectorAll('[data-slot]').forEach(b=>b.onclick=()=>chooseHero(Number(b.dataset.slot),vals,()=>{b.innerHTML=heroCardValue(vals[Number(b.dataset.slot)],labels[Number(b.dataset.slot)])}));
+ r.querySelector('#savePlayerHeroes').onclick=()=>{t.playerHeroes[pid]=vals;save();r.remove();renderBoard()}
+}
+function chooseHero(slot,vals,onPick){
+ const list=eligibleJoinerHeroes(),r=modal(`<div class="section-head"><div><h3>Choose Hero</h3><div class="muted">Gen ${activeGen} or earlier • Epic/Purple + Legendary/Mythic only</div></div><button class="modal-x" data-modal-close>×</button></div><div class="hero-choice-grid"><button class="hero-choice empty-choice" data-hero=""><div><b>—</b><small>Leave empty</small></div></button>${list.map(h=>`<button class="hero-choice ${String(vals[slot])===String(h.id)?'selected':''}" data-hero="${h.id}">${h.image_url?`<img src="${esc(h.image_url)}" alt="">`:''}<b>${esc(h.name)}</b><small>Gen ${h.generation} • ${esc(h.rarity||'')}</small></button>`).join('')}</div>`);
+ r.querySelectorAll('[data-hero]').forEach(b=>b.onclick=()=>{vals[slot]=b.dataset.hero||'';r.remove();onPick()})
+}
+function chooseBuildingPool(l,b){
+ l.focusPools=l.focusPools||{};
+ const key=b.slotKey,eligible=eligibleJoinerHeroes(),selected=new Set((l.focusPools[key]||[]).map(String));
+ const r=modal(`<div class="section-head"><div><h3>Shared Hero Pool • ${esc(b.label)}</h3><div class="muted">Choose up to 8 Heroes. Team 1 and Team 2 can use any Hero in this Building pool.</div></div><button class="modal-x" data-modal-close>×</button></div><div class="hero-check-list">${eligible.map(h=>`<label class="hero-check">${h.image_url?`<img src="${esc(h.image_url)}" alt="">`:''}<div><b class="${rarityClass(h)}">${esc(h.name)}</b><div class="muted">Gen ${h.generation} • ${esc(h.troop_type||'')}</div></div><input type="checkbox" value="${h.id}" ${selected.has(String(h.id))?'checked':''}></label>`).join('')}</div><div class="modal-actions"><button class="btn" data-modal-close>Cancel</button><button class="btn violet" id="savePool">Save Pool</button></div>`);
+ r.querySelector('#savePool').onclick=async()=>{
+   const ids=Array.from(r.querySelectorAll('input[type="checkbox"]:checked')).map(x=>x.value);
+   if(ids.length>8){await nexaAlert('Choose up to 8 heroes.','Shared Hero Pool');return}
+   l.focusPools[key]=ids;save();r.remove();renderBoard()
+ }
+}
+
+/* LEGION BOARD EXPORTS */
+function formationExportHtml(t){
+ const rt=t.ratios||{garrison:'60/40/0',rally:'48/4/48',showRally:true};
+ return `<div class="ratio-grid"><div class="ratio-card g"><small>GARRISON</small><strong>${esc(rt.garrison||'—')}</strong><span>INFANTRY · LANCER · MARKSMAN</span></div>${rt.showRally===false?'':`<div class="ratio-card r"><small>MIA RALLY</small><strong>${esc(rt.rally||'—')}</strong><span>INFANTRY · LANCER · MARKSMAN</span></div>`}</div>`
+}
+function assignedJoinersExport(t){
+ if(!(t.players||[]).length)return'<div class="muted tiny">No Joiners assigned.</div>';
+ return `<table class="hero-assignment-table"><thead><tr><th>JOINER</th><th>GARRISON HEROES</th>${t.ratios?.showRally===false?'':'<th>MIA RALLY HEROES</th>'}</tr></thead><tbody>${(t.players||[]).map(pid=>{
+   const p=playerById(pid),x=t.playerHeroes?.[pid]||['','','',''];
+   return `<tr><td><b>${playerNameWithTag(p)}</b></td><td>${heroNameMarkup(heroNames(x.slice(0,2)))}</td>${t.ratios?.showRally===false?'':`<td>${heroNameMarkup(heroNames(x.slice(2,4)))}</td>`}</tr>`
+ }).join('')}</tbody></table>`
+}
+function sharedJoinersExport(t){
+ return teamJoinerList(null,t,{editable:false})
+}
+function teamExportHtml(l,t,includeMap=false){
+ const b=buildingById(l,t.buildingId)||buildingBySlot(l,focusTypeKey(t));
+ const shared=l.mode==='pool';
+ const mapBlock=includeMap?`<div class="team-board-block"><h4>FDT LAYOUT</h4><img src="fdt-layout-map.jpg" style="width:100%;border-radius:16px"></div>`:'';
+ return `<div class="export-card" style="--tc:${t.color}">
+   <div class="export-title">${esc(b?.label||'Building')} • Team ${Number(t.teamOrder||1)}</div>
+   <div class="export-sub">${esc(l.name)} · FDT</div>
+   <div class="team-board-block"><h4>PET SCHEDULE</h4>${petScheduleOnlyTable(t)}</div>
+   <div class="team-board-block"><h4>FORMATION</h4>${formationExportHtml(t)}</div>
+   ${shared?`<div class="team-board-block"><h4>SHARED HERO POOL</h4>${sharedHeroPoolHtml(l,b,{editable:false})}</div><div class="team-board-block"><h4>JOINERS · TEAM ${Number(t.teamOrder||1)}</h4>${sharedJoinersExport(t)}</div>`:`<div class="team-board-block"><h4>JOINERS + HEROES</h4>${assignedJoinersExport(t)}</div>`}
+   ${mapBlock}
+ </div>`
+}
+function buildingBoardExportHtml(l,b){
+ const shared=l.mode==='pool';
+ return `<div class="legion-export-card">
+   <div class="legion-export-title">${esc(b.label)} · ${esc(l.name)}</div>
+   <div class="legion-export-sub">FDT LEGION BOARD · ${shared?'SHARED HERO POOL':'ASSIGNED BY TEAM'}</div>
+   <section class="legion-export-building" style="--bc:${b.color}">
+     <div class="legion-export-building-head">${esc(b.label)}</div>
+     <div class="legion-export-building-body">
+       ${shared?`
+         <div class="shared-block"><h4>PET SCHEDULE</h4><div class="shared-pet-stack">${b.teams.map(t=>`<div class="shared-pet-team" style="--tc:${t.color}"><div class="shared-pet-team-head">Team ${Number(t.teamOrder||1)}</div>${petScheduleOnlyTable(t)}</div>`).join('')}</div></div>
+         <div class="shared-block" style="margin-top:12px"><h4>FORMATION</h4><div class="shared-formation-grid">${b.teams.map(t=>compactFormationCard(l,t,{editable:false})).join('')}</div></div>
+         <div style="margin-top:12px">${sharedHeroPoolHtml(l,b,{editable:false})}</div>
+         <div class="shared-block" style="margin-top:12px"><h4>JOINERS</h4><div class="shared-joiners-grid">${b.teams.map(t=>`<div class="shared-joiner-col" style="--tc:${t.color}"><div class="shared-joiner-col-head"><b>Team ${Number(t.teamOrder||1)}</b></div>${teamJoinerList(l,t,{editable:false})}</div>`).join('')}</div></div>
+       `:b.teams.map(t=>`<div class="legion-export-team" style="--tc:${t.color}"><div class="legion-export-team-title">Team ${Number(t.teamOrder||1)}</div><div class="team-board-block"><h4>PET SCHEDULE</h4>${petScheduleOnlyTable(t)}</div><div class="team-board-block"><h4>FORMATION</h4>${formationExportHtml(t)}</div><div class="team-board-block"><h4>JOINERS + HEROES</h4>${assignedJoinersExport(t)}</div></div>`).join('')}
+     </div>
+   </section>
+ </div>`
+}
+async function nexaExportFile(blob,filename,mime='image/png'){
+ const file=new File([blob],filename,{type:mime});
+ return new Promise(resolve=>{
+   const r=modal(`<div class="nexa-dialog-card"><div class="section-head"><div><h3>Export Ready</h3><div class="tiny muted" style="margin-top:4px">${esc(filename)}</div></div><button class="modal-x" data-modal-close>×</button></div><div class="nexa-dialog-message">Your image is ready.</div><div class="nexa-dialog-actions"><button class="btn" id="nexaExportCancel">Cancel</button><button class="btn violet" id="nexaExportSave">Share / Save</button></div></div>`);
+   const finish=v=>{if(r.isConnected)r.remove();resolve(v)};
+   r.querySelector('#nexaExportCancel').onclick=()=>finish(false);
+   r.querySelector('#nexaExportSave').onclick=async()=>{
+     try{
+       if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:filename});finish(true);return}
+       const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;a.rel='noopener';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);finish(true)
+     }catch(e){if(e?.name==='AbortError')return;await nexaAlert(e?.message||'Could not save the export.','Export')}
+   }
+ })
+}
+async function exportTeamImage(l,t,includeMap=false){
+ const stage=document.createElement('div');stage.className='export-stage';stage.innerHTML=teamExportHtml(l,t,includeMap);document.body.appendChild(stage);
+ try{
+   await new Promise(r=>setTimeout(r,120));
+   const canvas=await html2canvas(stage.querySelector('.export-card'),{backgroundColor:'#050916',scale:2,useCORS:true,logging:false});
+   const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Image export failed')),'image/png',1));
+   const b=buildingById(l,t.buildingId)||buildingBySlot(l,focusTypeKey(t));
+   const filename=`FDT_${String(l.name).replace(/\s+/g,'-')}_${String(b?.label||'Building').replace(/\s+/g,'-')}_Team-${Number(t.teamOrder||1)}.png`;
+   await nexaExportFile(blob,filename,'image/png')
+ }catch(e){await nexaAlert(e?.message||'Could not create the Team image.','Share Team')}
+ finally{stage.remove()}
+}
+async function exportBoardBuildingImage(l,b){
+ const stage=document.createElement('div');stage.className='export-stage';stage.innerHTML=buildingBoardExportHtml(l,b);document.body.appendChild(stage);
+ try{
+   await new Promise(r=>setTimeout(r,140));
+   const canvas=await html2canvas(stage.querySelector('.legion-export-card'),{backgroundColor:'#050916',scale:2,useCORS:true,logging:false});
+   const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Image export failed')),'image/png',1));
+   const filename=`FDT_${String(l.name).replace(/\s+/g,'-')}_${String(b.label).replace(/\s+/g,'-')}_Board.png`;
+   await nexaExportFile(blob,filename,'image/png')
+ }catch(e){await nexaAlert(e?.message||'Could not create the Building image.','Share Building')}
+ finally{stage.remove()}
+}
+function allTeamRefs(){return store.legions.filter(l=>l.configured).flatMap(l=>l.teams.map(t=>({l,t})))}
+function refreshLayoutExport(){
+ const s=$('#layoutTeamExport');if(!s)return;const refs=allTeamRefs();
+ s.innerHTML=refs.length?refs.map(({l,t})=>{const b=buildingById(l,t.buildingId)||buildingBySlot(l,focusTypeKey(t));return`<option value="${l.id}|${t.id}">${esc(l.name)} • ${esc(b?.label||'Building')} • Team ${Number(t.teamOrder||1)}</option>`}).join(''):'<option value="">No Teams</option>'
+}
+if($('#exportLayoutTeam'))$('#exportLayoutTeam').onclick=()=>{const v=$('#layoutTeamExport').value;if(!v)return;const [lid,tid]=v.split('|'),l=store.legions.find(x=>x.id===lid),t=l?.teams.find(x=>x.id===tid);if(l&&t)exportTeamImage(l,t,true)};
+
+$('#boardRoot').onclick=e=>{
+ const mode=e.target.closest('[data-mode]');if(mode){const l=store.legions.find(x=>x.id===mode.dataset.lid);if(l){l.mode=mode.dataset.mode;save();renderBoard()}return}
+ const roles=e.target.closest('[data-edit-roles]');if(roles){const l=store.legions.find(x=>x.id===roles.dataset.editRoles);if(l)editRoles(l);return}
+ const ratios=e.target.closest('[data-edit-team-ratios]');if(ratios){const l=store.legions.find(x=>x.id===ratios.dataset.lid),t=l?.teams.find(x=>x.id===ratios.dataset.editTeamRatios);if(l&&t)editTeamRatios(l,t);return}
+ const add=e.target.closest('[data-add-player-team]');if(add){const l=store.legions.find(x=>x.id===add.dataset.lid),t=l?.teams.find(x=>x.id===add.dataset.addPlayerTeam);if(l&&t)addPlayerFlow(l,t);return}
+ const edit=e.target.closest('[data-edit-player]');if(edit){const l=store.legions.find(x=>x.id===edit.dataset.lid),t=l?.teams.find(x=>x.id===edit.dataset.tid);if(l&&t)editPlayerHeroes(l,t,edit.dataset.editPlayer);return}
+ const pool=e.target.closest('[data-choose-building-pool]');if(pool){const l=store.legions.find(x=>x.id===pool.dataset.lid),b=l?buildingById(l,pool.dataset.chooseBuildingPool):null;if(l&&b)chooseBuildingPool(l,b);return}
+ const exp=e.target.closest('[data-export-team]');if(exp){const l=store.legions.find(x=>x.id===exp.dataset.lid),t=l?.teams.find(x=>x.id===exp.dataset.exportTeam);if(l&&t)exportTeamImage(l,t,false);return}
+ const expB=e.target.closest('[data-export-board-building]');if(expB){const l=store.legions.find(x=>x.id===expB.dataset.lid),b=l?buildingById(l,expB.dataset.exportBoardBuilding):null;if(l&&b)exportBoardBuildingImage(l,b);return}
+ const rem=e.target.closest('[data-remove-player]');if(rem){const l=store.legions.find(x=>x.id===rem.dataset.lid),t=l?.teams.find(x=>x.id===rem.dataset.tid);if(t){t.players=t.players.filter(x=>String(x)!==String(rem.dataset.removePlayer));save();renderBoard()}}
+}
+
+/* PLAN */
+function wirePlan(){store.plan=store.plan||{title:'',alliance:'',notes:''};$('#planTitle').value=store.plan.title||'';$('#planAlliance').value=store.plan.alliance||'';$('#planNotes').value=store.plan.notes||'';$('#planTitle').oninput=e=>{store.plan.title=e.target.value;save()};$('#planAlliance').oninput=e=>{store.plan.alliance=e.target.value;save()};$('#planNotes').oninput=e=>{store.plan.notes=e.target.value;save()}}
+
+const mainNav=$('#nav');
+if(mainNav){
+ mainNav.onclick=e=>{
+   const b=e.target.closest('[data-panel]');
+   if(!b)return;
+   e.preventDefault();
+   panel(b.dataset.panel);
+ };
+}
+wireSetup();wirePlan();renderLegionWorkflow();renderPets();renderBoard();refreshLayoutExport();loadData().catch(e=>say(e.message||String(e)));
+})();
+</script>
+</body>
+</html>

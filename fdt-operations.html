@@ -780,10 +780,14 @@ label{display:grid;gap:6px;color:#aeb7d1;font-size:12px;font-weight:850}input,se
   border-bottom:1px solid rgba(255,255,255,.08);
 }
 .pet-export-team .pet-hour-wrap{padding:10px}
+.pet-export-team .pet-hour-table th{font-size:11px!important}
+.pet-export-team .pet-hour-table td{font-size:11px!important;min-width:165px!important}
+.pet-export-team .lead-name{font-size:13px!important;line-height:1.15!important}
+.pet-export-team .pet-pill{font-size:8px!important;padding:2px 6px!important}
 
 .pet-all-export{
-  width:1500px;
-  padding:18px;
+  width:1680px;
+  padding:20px;
 }
 .pet-all-head{
   padding:16px 18px 18px;
@@ -844,17 +848,17 @@ label{display:grid;gap:6px;color:#aeb7d1;font-size:12px;font-weight:850}input,se
 }
 .pet-all-team:first-of-type{margin-top:0}
 .pet-all-team-name{
-  padding:7px 9px;
-  font-size:10px;
+  padding:8px 10px;
+  font-size:12px;
   font-weight:900;
   color:var(--tc);
   border-bottom:1px solid rgba(255,255,255,.07);
 }
-.pet-all-team .pet-hour-wrap{padding:7px}
-.pet-all-team .pet-hour-table th{font-size:8px!important}
-.pet-all-team .pet-hour-table td{font-size:8px!important}
-.pet-all-team .lead-name{font-size:8px!important}
-.pet-all-team .pet-pill{font-size:6px!important;padding:1px 4px!important}
+.pet-all-team .pet-hour-wrap{padding:9px}
+.pet-all-team .pet-hour-table th{font-size:10px!important}
+.pet-all-team .pet-hour-table td{font-size:10px!important;min-width:165px!important}
+.pet-all-team .lead-name{font-size:12px!important;line-height:1.15!important}
+.pet-all-team .pet-pill{font-size:8px!important;padding:2px 6px!important}
 
 @media(max-width:700px){
   .pet-focus-head{
@@ -867,11 +871,73 @@ label{display:grid;gap:6px;color:#aeb7d1;font-size:12px;font-weight:850}input,se
   .pet-focus-actions .btn{width:100%!important}
 }
 
+
+/* V2.5.3 — export: larger, readable, all five hours fit */
+.pet-building-export{width:1360px!important}
+.pet-all-export{width:1880px!important}
+
+.pet-building-export .pet-hour-table,
+.pet-all-export .pet-hour-table{
+  width:100%!important;
+  min-width:0!important;
+  table-layout:fixed!important;
+  border-spacing:8px 0!important;
+}
+.pet-building-export .pet-hour-table th,
+.pet-building-export .pet-hour-table td,
+.pet-all-export .pet-hour-table th,
+.pet-all-export .pet-hour-table td{
+  min-width:0!important;
+  width:20%!important;
+  overflow:visible!important;
+}
+.pet-building-export .pet-hour-table th{
+  font-size:14px!important;
+  padding:12px 10px!important;
+}
+.pet-building-export .pet-hour-table td{
+  font-size:13px!important;
+  padding:13px 10px!important;
+  height:92px!important;
+}
+.pet-building-export .lead-name{
+  font-size:15px!important;
+  line-height:1.2!important;
+}
+.pet-building-export .pet-pill{
+  font-size:9px!important;
+  padding:2px 7px!important;
+}
+
+.pet-all-team .pet-hour-wrap{
+  padding:10px!important;
+  overflow:visible!important;
+}
+.pet-all-team .pet-hour-table th{
+  font-size:12px!important;
+  padding:10px 8px!important;
+}
+.pet-all-team .pet-hour-table td{
+  font-size:11px!important;
+  padding:12px 8px!important;
+  height:88px!important;
+}
+.pet-all-team .lead-name{
+  font-size:14px!important;
+  line-height:1.2!important;
+}
+.pet-all-team .pet-pill{
+  font-size:8px!important;
+  padding:2px 6px!important;
+}
+.pet-all-legion{min-width:0!important}
+.pet-all-team{overflow:visible!important}
+
 </style>
 </head>
 <body>
 <main class="sh">
-<!-- NEXA FDT OPERATIONS V2.5.1 • REAL BUILDINGS WITH INNER TEAMS / REMOVE RL / EXPORT -->
+<!-- NEXA FDT OPERATIONS V2.5.3 • UNIQUE CAPITAL + SPIRE A-D / INNER TEAMS / LARGE EXPORT -->
 <div class="top">
   <a class="round" href="index.html" aria-label="Back">‹</a>
   <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div><div class="autosave">AUTOSAVE • SAVED</div></div>
@@ -1443,84 +1509,71 @@ document.addEventListener('change',e=>{const w=ensureLegionWorkflow();if(e.targe
 /* PET SCHEDULE */
 
 
+
 function focusTypeKeyFromValues(focusKey='custom',customFocus=''){
  const key=String(focusKey||'custom');
  return key==='custom'?`custom:${String(customFocus||'Custom').trim().toLowerCase()}`:key
 }
-function focusTypeKey(t){
- return focusTypeKeyFromValues(t?.focusKey,t?.customFocus)
-}
+function focusTypeKey(t){return focusTypeKeyFromValues(t?.focusKey,t?.customFocus)}
 function focusLabel(key,custom=''){
- const map={capital:'Capital',spire1:'Spire 1',spire2:'Spire 2',spire3:'Spire 3',spire4:'Spire 4',flex:'Flex / Support',custom:custom||'Custom'};
+ const map={
+   capital:'Capital',
+   spirea:'Spire A',
+   spireb:'Spire B',
+   spirec:'Spire C',
+   spired:'Spire D',
+   flex:'Flex / Support',
+   custom:custom||'Custom'
+ };
  return map[key]||custom||'Building'
 }
-function usedBuildingColors(exceptBuildingId=''){
+function usedBuildingColors(exceptKey=''){
  const used=new Set();
  (store.legions||[]).forEach(l=>(l.teams||[]).forEach(t=>{
-   if(String(t.buildingId||'')===String(exceptBuildingId))return;
+   const k=focusTypeKey(t);
+   if(exceptKey&&k===String(exceptKey))return;
    const c=String(t.color||'').toLowerCase();
    if(c)used.add(c)
  }));
  return used
 }
-function nextBuildingColor(exceptBuildingId=''){
- const used=usedBuildingColors(exceptBuildingId);
+function nextBuildingColor(exceptKey=''){
+ const used=usedBuildingColors(exceptKey);
  return COLORS.find(c=>!used.has(c.toLowerCase()))||`hsl(${Math.floor(Math.random()*360)} 78% 64%)`
 }
 function ensureBuildingModel(l){
  l.teams=l.teams||[];
 
- /* Legacy migration:
-    Before V2.5.1 every card such as "Spire 1 A / Spire 1 B"
-    was stored as a separate team. Each legacy card becomes one Building
-    containing Team 1, so no existing schedule data is lost. */
- const legacyByFocus={};
+ /* Final migration:
+    old spire1/spire2/spire3/spire4 -> Spire A/B/C/D.
+    Old duplicate building cards collapse into Team 1/2/3 of one Building.
+    Existing assignments are preserved on their original team objects. */
+ const legacyMap={spire1:'spirea',spire2:'spireb',spire3:'spirec',spire4:'spired'};
  l.teams.forEach(t=>{
-   if(t.buildingId)return;
-   const fk=focusTypeKey(t);
-   (legacyByFocus[fk]||(legacyByFocus[fk]=[])).push(t)
+   if(legacyMap[t.focusKey])t.focusKey=legacyMap[t.focusKey]
  });
- Object.values(legacyByFocus).forEach(list=>{
+
+ const groups={};
+ l.teams.forEach(t=>{
+   const k=focusTypeKey(t);
+   (groups[k]||(groups[k]=[])).push(t)
+ });
+
+ Object.entries(groups).forEach(([k,list])=>{
+   const canonicalId=`${String(l.id)}::${k}`;
+   let color=String(list.find(t=>String(t.color||'').trim())?.color||'');
+   if(!color)color=nextBuildingColor(k);
    list.forEach((t,i)=>{
-     t.buildingId=`bld_${String(t.id||uid('legacy_'))}`;
-     t.buildingOrder=i+1;
-     t.teamOrder=1;
-   })
- });
-
- // Normalize building order per focus type.
- const buildings={};
- l.teams.forEach(t=>{
-   const bid=String(t.buildingId||'');
-   if(!bid)return;
-   if(!buildings[bid])buildings[bid]={
-     id:bid,
-     focusKey:t.focusKey||'custom',
-     customFocus:t.customFocus||'',
-     firstPos:l.teams.indexOf(t),
-     teams:[]
-   };
-   buildings[bid].teams.push(t)
- });
-
- const byFocus={};
- Object.values(buildings).sort((a,b)=>a.firstPos-b.firstPos).forEach(b=>{
-   const fk=focusTypeKeyFromValues(b.focusKey,b.customFocus);
-   (byFocus[fk]||(byFocus[fk]=[])).push(b)
- });
- Object.values(byFocus).forEach(list=>list.forEach((b,i)=>{
-   b.teams.forEach(t=>t.buildingOrder=i+1)
- }));
-
- // Same Building = same color + Team 1/2/3...
- Object.values(buildings).forEach(b=>{
-   let color=String(b.teams.find(t=>String(t.color||'').trim())?.color||'');
-   if(!color)color=nextBuildingColor(b.id);
-   b.teams.sort((a,b)=>Number(a.teamOrder||999)-Number(b.teamOrder||999));
-   b.teams.forEach((t,i)=>{
-     t.color=color;
+     t.buildingId=canonicalId;
+     t.buildingOrder=1;
      t.teamOrder=i+1;
-     t.ratios=t.ratios||{garrison:l.ratios?.garrison||'60/40/0',rally:l.ratios?.rally||'48/4/48',showRally:l.ratios?.showRally!==false}
+     t.name=`Team ${i+1}`;
+     t.color=color;
+     t.ratios=t.ratios||{
+       garrison:l.ratios?.garrison||'60/40/0',
+       rally:l.ratios?.rally||'48/4/48',
+       showRally:l.ratios?.showRally!==false
+     }
    })
  })
 }
@@ -1528,38 +1581,27 @@ function legionBuildings(l){
  ensureBuildingModel(l);
  const map=new Map();
  (l.teams||[]).forEach((t,pos)=>{
-   const bid=String(t.buildingId||'');
-   if(!map.has(bid))map.set(bid,{
-     id:bid,
+   const k=focusTypeKey(t);
+   if(!map.has(k))map.set(k,{
+     id:`${String(l.id)}::${k}`,
+     slotKey:k,
      focusKey:t.focusKey||'custom',
      customFocus:t.customFocus||'',
-     order:Number(t.buildingOrder||1),
-     firstPos:pos,
+     label:focusLabel(t.focusKey,t.customFocus),
      color:t.color,
+     firstPos:pos,
      teams:[]
    });
-   map.get(bid).teams.push(t)
+   map.get(k).teams.push(t)
  });
- const arr=[...map.values()];
- const counts={};
- arr.forEach(b=>{const fk=focusTypeKeyFromValues(b.focusKey,b.customFocus);counts[fk]=(counts[fk]||0)+1});
- arr.forEach(b=>{
-   const fk=focusTypeKeyFromValues(b.focusKey,b.customFocus);
-   const base=focusLabel(b.focusKey,b.customFocus);
-   b.label=counts[fk]>1?`${base} ${String.fromCharCode(64+b.order)}`:base;
-   b.slotKey=`${fk}::${b.order}`;
-   b.teams.sort((a,b)=>Number(a.teamOrder||1)-Number(b.teamOrder||1))
- });
- const order=['capital','spire1','spire2','spire3','spire4','flex'];
- return arr.sort((a,b)=>{
-   const ak=focusTypeKeyFromValues(a.focusKey,a.customFocus),bk=focusTypeKeyFromValues(b.focusKey,b.customFocus);
-   const ai=order.indexOf(ak),bi=order.indexOf(bk);
-   if(ai!==-1||bi!==-1){
-     const d=(ai===-1?999:ai)-(bi===-1?999:bi);
-     if(d)return d
-   }
-   if(ak!==bk)return ak.localeCompare(bk);
-   return a.order-b.order
+ const order=['capital','spirea','spireb','spirec','spired','flex'];
+ return [...map.values()].map(b=>{
+   b.teams.sort((a,b)=>Number(a.teamOrder||1)-Number(b.teamOrder||1));
+   return b
+ }).sort((a,b)=>{
+   const ai=order.indexOf(a.slotKey),bi=order.indexOf(b.slotKey);
+   if(ai!==-1||bi!==-1)return(ai===-1?999:ai)-(bi===-1?999:bi);
+   return a.slotKey.localeCompare(b.slotKey)
  })
 }
 function buildingById(l,buildingId){
@@ -1571,11 +1613,11 @@ function buildingBySlot(l,slotKey){
 function newTeam(n,focusKey='custom',customFocus='',focusColor='',buildingId='',buildingOrder=1,teamOrder=1){
  return{
    id:uid('team_'),
-   name:'Team '+teamOrder,
+   name:`Team ${teamOrder}`,
    focusKey,
    customFocus,
    buildingId:buildingId||uid('bld_'),
-   buildingOrder,
+   buildingOrder:1,
    teamOrder,
    color:focusColor||nextBuildingColor(),
    assignments:[],
@@ -1586,18 +1628,20 @@ function newTeam(n,focusKey='custom',customFocus='',focusColor='',buildingId='',
 }
 function createBuilding(l,focusKey='custom',customFocus=''){
  ensureBuildingModel(l);
- const fk=focusTypeKeyFromValues(focusKey,customFocus);
- const siblings=legionBuildings(l).filter(b=>focusTypeKeyFromValues(b.focusKey,b.customFocus)===fk);
- const bid=uid('bld_'),order=siblings.length+1,color=nextBuildingColor(bid);
- l.teams.push(newTeam(l.teams.length+1,focusKey,customFocus,color,bid,order,1));
- ensureBuildingModel(l)
+ const key=focusTypeKeyFromValues(focusKey,customFocus);
+ if(buildingBySlot(l,key))return false;
+ const id=`${String(l.id)}::${key}`,color=nextBuildingColor(key);
+ l.teams.push(newTeam(1,focusKey,customFocus,color,id,1,1));
+ ensureBuildingModel(l);
+ return true
 }
 function addTeamToBuilding(l,buildingId){
  const b=buildingById(l,buildingId);
- if(!b)return;
+ if(!b)return false;
  const next=(b.teams?.length||0)+1;
- l.teams.push(newTeam(l.teams.length+1,b.focusKey,b.customFocus,b.color,b.id,b.order,next));
- ensureBuildingModel(l)
+ l.teams.push(newTeam(next,b.focusKey,b.customFocus,b.color,b.id,1,next));
+ ensureBuildingModel(l);
+ return true
 }
 function newLegion(){
  const n=store.legions.length+1;
@@ -1664,8 +1708,9 @@ function petHourTable(t){
  return `<div class="pet-hour-wrap"><table class="pet-hour-table" style="--tc:${t.color}"><thead><tr>${battleHours().map(h=>`<th>${hourLabel(h)}</th>`).join('')}</tr></thead><tbody><tr>${hourCells(t)}</tr></tbody></table></div>`
 }
 
+
 function teamPetHtml(l,t,idx){
- return `<section class="pet-team" style="--tc:${t.color}" data-building-id="${esc(t.buildingId)}">
+ return `<section class="pet-team" style="--tc:${t.color}">
    <div class="pet-team-head">
      <div><div class="team-focus-title">Team ${Number(t.teamOrder||idx+1)}</div></div>
      <div class="team-rl-actions">
@@ -1697,17 +1742,7 @@ function petSetupHtml(l,i){
   return `<div class="setup-pet"><h3 style="margin:0">Start ${esc(l.name)}</h3><label>Main Alliance<select data-start-alliance="${l.id}">${allianceSelect(l)}</select></label><div class="hidden" data-manual-wrap="${l.id}" style="margin-top:9px"><label>Manual Alliance Name / Tag<input data-start-manual="${l.id}" placeholder="Alliance"></label></div><button class="btn violet" style="width:100%;margin-top:10px" data-start-legion="${l.id}">Start Setup</button></div>`
  }
  const buildings=legionBuildings(l);
- return `<section class="legion-pet" style="${legionStyleVars(l)}">
-   <div class="legion-pet-head">
-     <div><div class="legion-pet-title">${esc(l.name)}</div><div class="legion-sub">${buildings.length} Building${buildings.length===1?'':'s'} • ${l.teams.length} Team${l.teams.length===1?'':'s'}</div></div>
-     <div class="pet-action-row">
-       <button class="btn small" data-change-legion="${l.id}">Change</button>
-       <button class="btn danger small" data-remove-legion="${l.id}">Remove</button>
-       <button class="btn small" data-add-team="${l.id}">+ Building</button>
-     </div>
-   </div>
-   ${buildings.length?buildings.map(b=>buildingHtml(l,b)).join(''):'<div class="empty" style="margin:12px">No Buildings yet.</div>'}
- </section>`
+ return `<section class="legion-pet" style="${legionStyleVars(l)}"><div class="legion-pet-head"><div><div class="legion-pet-title">${esc(l.name)}</div><div class="legion-sub">${buildings.length} Building${buildings.length===1?'':'s'} • ${l.teams.length} Team${l.teams.length===1?'':'s'}</div></div><div class="pet-action-row"><button class="btn small" data-change-legion="${l.id}">Change</button><button class="btn danger small" data-remove-legion="${l.id}">Remove</button><button class="btn small" data-add-team="${l.id}">+ Building</button></div></div>${buildings.length?buildings.map(b=>buildingHtml(l,b)).join(''):'<div class="empty" style="margin:12px">No Buildings yet.</div>'}</section>`
 }
 function hydrateTeams(){
  (store.legions||[]).forEach(l=>{
@@ -1732,14 +1767,37 @@ $('#petRoot').onchange=e=>{
 $('#petRoot').oninput=e=>{const x=e.target.closest('[data-start-manual]');if(x){const l=store.legions.find(y=>y.id===x.dataset.startManual);if(l){l.manualAlliance=x.value;save()}}}
 
 
+
 function openFocusPicker(l){
+ const choices=[
+   ['capital','Capital'],
+   ['spirea','Spire A'],
+   ['spireb','Spire B'],
+   ['spirec','Spire C'],
+   ['spired','Spire D'],
+   ['flex','Flex / Support'],
+   ['custom','Custom']
+ ];
  const r=modal(`<div class="section-head"><div><h3>Add Building • ${esc(l.name)}</h3></div><button class="modal-x" data-modal-close>×</button></div><div class="focus-picker">
- ${[['capital','Capital'],['spire1','Spire 1'],['spire2','Spire 2'],['spire3','Spire 3'],['spire4','Spire 4'],['flex','Flex / Support'],['custom','Custom']].map(x=>`<button class="focus-choice" data-focus="${x[0]}">${x[1]}</button>`).join('')}
+ ${choices.map(x=>{
+   const exists=x[0]!=='custom'&&!!buildingBySlot(l,x[0]);
+   return `<button class="focus-choice" data-focus="${x[0]}" ${exists?'disabled':''}>${x[1]}${exists?' • Added':''}</button>`
+ }).join('')}
  </div>`);
- r.querySelectorAll('[data-focus]').forEach(b=>b.onclick=async()=>{
+ r.querySelectorAll('[data-focus]:not([disabled])').forEach(b=>b.onclick=async()=>{
    const key=b.dataset.focus;let custom='';
-   if(key==='custom'){custom=String(await nexaPrompt('Team Focus','Custom Focus')||'').trim();if(!custom)return}
-   createBuilding(l,key,custom);
+   if(key==='custom'){
+     custom=String(await nexaPrompt('Building name','Custom Building')||'').trim();
+     if(!custom)return;
+     if(buildingBySlot(l,`custom:${custom.toLowerCase()}`)){
+       await nexaAlert('That Building already exists.','Building');
+       return
+     }
+   }
+   if(!createBuilding(l,key,custom)){
+     await nexaAlert(`${focusLabel(key,custom)} already exists.`,'Building');
+     return
+   }
    save();r.remove();renderPets();renderBoard();refreshLayoutExport();
  });
 }
@@ -1818,7 +1876,7 @@ function playerNameWithTag(p){
 function roleCard(icon,label,val){return `<div class="role-card"><small>${icon} ${label}</small><b>${esc(val||'—')}</b></div>`}
 function scheduleForLegion(l){
  if(!l.teams.length)return'<div class="muted tiny">No Teams exist in Pet Schedule.</div>';
- return l.teams.map(t=>`<div class="board-pet-team" style="--tc:${t.color}"><div class="board-pet-team-head">${esc(buildingById(l,t.buildingId)?.label||focusLabel(t.focusKey,t.customFocus))} • Team ${Number(t.teamOrder||1)}</div>${petHourTable(t)}</div>`).join('')
+ return l.teams.map(t=>`<div class="board-pet-team" style="--tc:${t.color}"><div class="board-pet-team-head">${esc(buildingBySlot(l,focusTypeKey(t))?.label||focusLabel(t.focusKey,t.customFocus))} • Team ${Number(t.teamOrder||1)}</div>${petHourTable(t)}</div>`).join('')
 }
 function heroNames(ids){return(ids||[]).map(id=>heroes.find(h=>String(h.id)===String(id))).filter(Boolean)}
 function heroNameMarkup(list){return(list||[]).length?list.map(h=>`<span class="${rarityClass(h)}">${esc(h.name)}</span>`).join('<br>'):'—'}
@@ -1927,6 +1985,7 @@ function petScheduleOnlyTable(t){
  return `<div class="pet-hour-wrap"><table class="pet-hour-table" style="--tc:${t.color}"><thead><tr>${battleHours().map(h=>`<th>${hourLabel(h)}</th>`).join('')}</tr></thead><tbody><tr>${hourCells(t)}</tr></tbody></table></div>`
 }
 
+
 function buildingExportHtml(l,buildingId){
  const b=buildingById(l,buildingId);
  if(!b)return'';
@@ -1953,21 +2012,21 @@ async function exportBuildingImage(l,buildingId){
  finally{stage.remove()}
 }
 function allBuildingSlots(){
- const seen=new Map();
- store.legions.filter(l=>l.configured).forEach(l=>legionBuildings(l).forEach(b=>{
-   if(!seen.has(b.slotKey))seen.set(b.slotKey,{slotKey:b.slotKey,focusKey:b.focusKey,customFocus:b.customFocus,order:b.order,label:b.label})
- }));
- const order=['capital','spire1','spire2','spire3','spire4','flex'];
- return [...seen.values()].sort((a,b)=>{
-   const ak=focusTypeKeyFromValues(a.focusKey,a.customFocus),bk=focusTypeKeyFromValues(b.focusKey,b.customFocus);
-   const ai=order.indexOf(ak),bi=order.indexOf(bk);
-   if(ai!==-1||bi!==-1){
-     const d=(ai===-1?999:ai)-(bi===-1?999:bi);
-     if(d)return d
-   }
-   if(ak!==bk)return ak.localeCompare(bk);
-   return Number(a.order)-Number(b.order)
+ const order=['capital','spirea','spireb','spirec','spired','flex'];
+ const seen=new Set();
+ store.legions.filter(l=>l.configured).forEach(l=>legionBuildings(l).forEach(b=>seen.add(b.slotKey)));
+ return [...seen].sort((a,b)=>{
+   const ai=order.indexOf(a),bi=order.indexOf(b);
+   if(ai!==-1||bi!==-1)return(ai===-1?999:ai)-(bi===-1?999:bi);
+   return a.localeCompare(b)
  })
+}
+function buildingLabelForSlot(slotKey){
+ for(const l of store.legions.filter(x=>x.configured)){
+   const b=buildingBySlot(l,slotKey);
+   if(b)return b.label
+ }
+ return slotKey
 }
 function allPetExportHtml(){
  const legs=store.legions.filter(l=>l.configured);
@@ -1975,13 +2034,13 @@ function allPetExportHtml(){
  const slots=allBuildingSlots();
  return `<div class="pet-all-export">
    <div class="pet-all-head"><h2>FDT PET SCHEDULE</h2><small>${esc(store.setup?.battleDate||'')} • ${hourLabel(store.setup?.battleStart??12)}–${hourLabel(store.setup?.battleEnd??17)} UTC</small></div>
-   ${slots.map(slot=>{
-     const isCapital=slot.focusKey==='capital';
+   ${slots.map(slotKey=>{
+     const label=buildingLabelForSlot(slotKey),isCapital=slotKey==='capital';
      return `<section class="pet-all-building ${isCapital?'capital':''}">
-       <div class="pet-all-building-title">${esc(slot.label)}</div>
+       <div class="pet-all-building-title">${esc(label)}</div>
        <div class="pet-all-legions" style="--legions:${legs.length}">
          ${legs.map(l=>{
-           const b=buildingBySlot(l,slot.slotKey);
+           const b=buildingBySlot(l,slotKey);
            return `<div class="pet-all-legion"><div class="pet-all-legion-name" style="color:${esc(l.color||'#9b78ff')}">${esc(l.name)}</div>${b?b.teams.map((t,i)=>`<div class="pet-all-team" style="--tc:${t.color}"><div class="pet-all-team-name">Team ${i+1}</div>${petScheduleOnlyTable(t)}</div>`).join(''):'<div class="pet-all-empty"></div>'}</div>`
          }).join('')}
        </div>

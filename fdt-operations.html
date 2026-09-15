@@ -1762,11 +1762,62 @@ section.panel{position:relative;z-index:1}
   font-size:17px!important;
 }
 
+
+/* V2.7.3 — Shared Hero Pool image + rarity treatment */
+.shared-hero-chip{
+  position:relative;
+  overflow:hidden;
+  padding:8px 6px!important;
+}
+.shared-hero-portrait{
+  width:50px;
+  height:50px;
+  margin:0 auto;
+  border-radius:12px;
+  overflow:hidden;
+  background:#101522;
+  border:2px solid rgba(255,255,255,.10);
+  box-shadow:0 0 0 1px rgba(255,255,255,.03) inset;
+}
+.shared-hero-portrait img{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+.shared-hero-chip.rarity-legendary .shared-hero-portrait{
+  border-color:#f3c65c;
+  box-shadow:0 0 14px rgba(243,198,92,.16);
+}
+.shared-hero-chip.rarity-epic .shared-hero-portrait{
+  border-color:#d88cff;
+  box-shadow:0 0 14px rgba(216,140,255,.18);
+}
+.shared-hero-chip.rarity-rare .shared-hero-portrait{
+  border-color:#6fd0ff;
+  box-shadow:0 0 14px rgba(111,208,255,.15);
+}
+.shared-hero-chip.rarity-legendary b{color:#f3c65c!important}
+.shared-hero-chip.rarity-epic b{color:#e5a1ff!important}
+.shared-hero-chip.rarity-rare b{color:#84dcff!important}
+
+.shared-hero-pool{
+  border-color:rgba(216,140,255,.32)!important;
+  box-shadow:inset 0 0 0 1px rgba(216,140,255,.04);
+}
+.shared-hero-head h4{
+  color:#e0a0ff!important;
+}
+.legion-export-card .shared-hero-portrait{
+  width:58px!important;
+  height:58px!important;
+}
+
 </style>
 </head>
 <body>
 <main class="sh">
-<!-- NEXA FDT OPERATIONS V2.7.2 • LARGER PET / PLAYER TYPOGRAPHY -->
+<!-- NEXA FDT OPERATIONS V2.7.3 • HERO IMAGES / RARITY FRAMES / EXPORT IMAGE WAIT -->
 <div class="top">
   <a class="round" href="index.html" aria-label="Back">‹</a>
   <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div><div class="autosave">AUTOSAVE • SAVED</div></div>
@@ -2929,6 +2980,33 @@ function sharedPoolForBuilding(l,b){
  const ids=l.focusPools[b.slotKey]||[];
  return ids.map(id=>heroes.find(h=>String(h.id)===String(id))).filter(Boolean)
 }
+function heroRarityKey(h){
+ const r=String(h?.rarity||'').toLowerCase();
+ if(r.includes('legend')||r.includes('mythic')||r.includes('gold'))return'legendary';
+ if(r.includes('epic')||r.includes('purple'))return'epic';
+ if(r.includes('rare')||r.includes('blue'))return'rare';
+ return'common'
+}
+function heroPortraitHtml(h){
+ const url=String(h?.image_url||'').trim();
+ return `<div class="shared-hero-portrait">${url?`<img src="${esc(url)}" alt="${esc(h?.name||'Hero')}" referrerpolicy="no-referrer" loading="eager" onerror="this.style.display='none'">`:''}</div>`
+}
+async function waitForExportImages(root,timeout=3500){
+ const imgs=[...root.querySelectorAll('img')];
+ if(!imgs.length)return;
+ await Promise.race([
+   Promise.all(imgs.map(img=>{
+     if(img.complete)return Promise.resolve();
+     return new Promise(resolve=>{
+       const done=()=>resolve();
+       img.addEventListener('load',done,{once:true});
+       img.addEventListener('error',done,{once:true});
+     })
+   })),
+   new Promise(resolve=>setTimeout(resolve,timeout))
+ ])
+}
+
 function sharedHeroPoolHtml(l,b,{editable=true}={}){
  const chosen=sharedPoolForBuilding(l,b);
  return `<div class="shared-hero-pool">
@@ -2937,7 +3015,7 @@ function sharedHeroPoolHtml(l,b,{editable=true}={}){
      ${editable?`<button class="btn small" data-choose-building-pool="${esc(b.id)}" data-lid="${l.id}">Choose Heroes</button>`:''}
    </div>
    <div class="shared-hero-grid">
-     ${chosen.length?chosen.map(h=>`<div class="shared-hero-chip">${h.image_url?`<img src="${esc(h.image_url)}" alt="">`:''}<b class="${rarityClass(h)}">${esc(h.name)}</b></div>`).join(''):'<div class="muted tiny" style="grid-column:1/-1">Choose up to 8 Heroes for this Building.</div>'}
+     ${chosen.length?chosen.map(h=>`<div class="shared-hero-chip rarity-${heroRarityKey(h)}">${heroPortraitHtml(h)}<b>${esc(h.name)}</b></div>`).join(''):'<div class="muted tiny" style="grid-column:1/-1">Choose up to 8 Heroes for this Building.</div>'}
    </div>
  </div>`
 }
@@ -3184,6 +3262,7 @@ async function exportTeamImage(l,t,includeMap=false){
  const stage=document.createElement('div');stage.className='export-stage';stage.innerHTML=teamExportHtml(l,t,includeMap);document.body.appendChild(stage);
  try{
    await new Promise(r=>setTimeout(r,120));
+   await waitForExportImages(stage);
    const canvas=await html2canvas(stage.querySelector('.export-card'),{backgroundColor:'#050916',scale:2,useCORS:true,logging:false});
    const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Image export failed')),'image/png',1));
    const b=buildingById(l,t.buildingId)||buildingBySlot(l,focusTypeKey(t));
@@ -3196,6 +3275,7 @@ async function exportBoardBuildingImage(l,b){
  const stage=document.createElement('div');stage.className='export-stage';stage.innerHTML=buildingBoardExportHtml(l,b);document.body.appendChild(stage);
  try{
    await new Promise(r=>setTimeout(r,140));
+   await waitForExportImages(stage);
    const canvas=await html2canvas(stage.querySelector('.legion-export-card'),{backgroundColor:'#050916',scale:2,useCORS:true,logging:false});
    const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Image export failed')),'image/png',1));
    const filename=`FDT_${String(l.name).replace(/\s+/g,'-')}_${String(b.label).replace(/\s+/g,'-')}_Board.png`;

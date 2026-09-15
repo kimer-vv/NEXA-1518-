@@ -1842,7 +1842,7 @@ section.panel{position:relative;z-index:1}
 </head>
 <body>
 <main class="sh">
-<!-- NEXA FDT OPERATIONS V2.7.5 • TEAM EXPORT COLOR RENDER FIX -->
+<!-- NEXA FDT OPERATIONS V2.7.6 • CONSOLIDATED HERO IMAGE ROUTE -->
 <div class="top">
   <a class="round" href="index.html" aria-label="Back">‹</a>
   <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div><div class="autosave">AUTOSAVE • SAVED</div></div>
@@ -2254,7 +2254,7 @@ function renderFormations(){
  let list=rules.filter(r=>Number(r.generation)===activeGen);
  list=list.filter(r=>fcTab==='approved'?(r.approval_status||'approved')==='approved':(r.approval_status||'approved')!=='approved');
  const h=$('#formationList');if(!list.length){h.innerHTML=`<div class="empty">No ${fcTab==='approved'?'Approved':'Suggested'} Gen ${activeGen} formations are currently saved.</div>`;return}
- h.innerHTML=list.map(r=>`<article class="formation ${esc(r.mode||'')}"><div class="formation-head"><div><b>${r.mode==='attack'?'⚔ ATTACK':'🛡 DEFENSE'}</b><div class="tiny muted">Gen ${r.generation}</div></div><span class="formation-badge ${fcTab}">${fcTab==='approved'?'APPROVED':'SUGGESTED'}</span></div><div class="formation-heroes">${(r.leader_heroes||[]).map(n=>{const x=heroByName(n);return`<div class="formation-hero">${x?.image_url?`<img src="${esc(x.image_url)}" alt="">`:''}<b>${esc(n)}</b></div>`}).join('')}</div><div class="formation-ratio">${(r.primary_ratio||[]).join(' / ')}</div></article>`).join('')
+ h.innerHTML=list.map(r=>`<article class="formation ${esc(r.mode||'')}"><div class="formation-head"><div><b>${r.mode==='attack'?'⚔ ATTACK':'🛡 DEFENSE'}</b><div class="tiny muted">Gen ${r.generation}</div></div><span class="formation-badge ${fcTab}">${fcTab==='approved'?'APPROVED':'SUGGESTED'}</span></div><div class="formation-heroes">${(r.leader_heroes||[]).map(n=>{const x=heroByName(n);return`<div class="formation-hero">${x&&heroImageSrc(x)?`<img src="${esc(heroImageSrc(x))}" alt="">`:''}<b>${esc(n)}</b></div>`}).join('')}</div><div class="formation-ratio">${(r.primary_ratio||[]).join(' / ')}</div></article>`).join('')
 }
 $$('[data-fc]').forEach(b=>b.onclick=()=>{fcTab=b.dataset.fc;renderFormations()});
 
@@ -3012,9 +3012,13 @@ function heroRarityKey(h){
  if(r.includes('rare')||r.includes('blue'))return'rare';
  return'common'
 }
-function heroPortraitHtml(h){
+function heroImageSrc(h){
  const url=String(h?.image_url||'').trim();
- return `<div class="shared-hero-portrait">${url?`<img src="${esc(url)}" alt="${esc(h?.name||'Hero')}" loading="eager">`:''}</div>`
+ return url?`/api/nexa-system-settings?mode=hero-image&url=${encodeURIComponent(url)}`:''
+}
+function heroPortraitHtml(h){
+ const src=heroImageSrc(h);
+ return `<div class="shared-hero-portrait">${src?`<img src="${esc(src)}" alt="${esc(h?.name||'Hero')}" loading="eager">`:''}</div>`
 }
 async function waitForExportImages(root,timeout=3500){
  const imgs=[...root.querySelectorAll('img')];
@@ -3195,13 +3199,13 @@ function editPlayerHeroes(l,t,pid){
  r.querySelector('#savePlayerHeroes').onclick=()=>{t.playerHeroes[pid]=vals;save();r.remove();renderBoard()}
 }
 function chooseHero(slot,vals,onPick){
- const list=eligibleJoinerHeroes(),r=modal(`<div class="section-head"><div><h3>Choose Hero</h3><div class="muted">Gen ${activeGen} or earlier • Epic/Purple + Legendary/Mythic only</div></div><button class="modal-x" data-modal-close>×</button></div><div class="hero-choice-grid"><button class="hero-choice empty-choice" data-hero=""><div><b>—</b><small>Leave empty</small></div></button>${list.map(h=>`<button class="hero-choice ${String(vals[slot])===String(h.id)?'selected':''}" data-hero="${h.id}">${h.image_url?`<img src="${esc(h.image_url)}" alt="">`:''}<b>${esc(h.name)}</b><small>Gen ${h.generation} • ${esc(h.rarity||'')}</small></button>`).join('')}</div>`);
+ const list=eligibleJoinerHeroes(),r=modal(`<div class="section-head"><div><h3>Choose Hero</h3><div class="muted">Gen ${activeGen} or earlier • Epic/Purple + Legendary/Mythic only</div></div><button class="modal-x" data-modal-close>×</button></div><div class="hero-choice-grid"><button class="hero-choice empty-choice" data-hero=""><div><b>—</b><small>Leave empty</small></div></button>${list.map(h=>`<button class="hero-choice ${String(vals[slot])===String(h.id)?'selected':''}" data-hero="${h.id}">${heroImageSrc(h)?`<img src="${esc(heroImageSrc(h))}" alt="">`:''}<b>${esc(h.name)}</b><small>Gen ${h.generation} • ${esc(h.rarity||'')}</small></button>`).join('')}</div>`);
  r.querySelectorAll('[data-hero]').forEach(b=>b.onclick=()=>{vals[slot]=b.dataset.hero||'';r.remove();onPick()})
 }
 function chooseBuildingPool(l,b){
  l.focusPools=l.focusPools||{};
  const key=b.slotKey,eligible=eligibleJoinerHeroes(),selected=new Set((l.focusPools[key]||[]).map(String));
- const r=modal(`<div class="section-head"><div><h3>Shared Hero Pool • ${esc(b.label)}</h3><div class="muted">Choose up to 8 Heroes. Team 1 and Team 2 can use any Hero in this Building pool.</div></div><button class="modal-x" data-modal-close>×</button></div><div class="hero-check-list">${eligible.map(h=>`<label class="hero-check">${h.image_url?`<img src="${esc(h.image_url)}" alt="">`:''}<div><b class="${rarityClass(h)}">${esc(h.name)}</b><div class="muted">Gen ${h.generation} • ${esc(h.troop_type||'')}</div></div><input type="checkbox" value="${h.id}" ${selected.has(String(h.id))?'checked':''}></label>`).join('')}</div><div class="modal-actions"><button class="btn" data-modal-close>Cancel</button><button class="btn violet" id="savePool">Save Pool</button></div>`);
+ const r=modal(`<div class="section-head"><div><h3>Shared Hero Pool • ${esc(b.label)}</h3><div class="muted">Choose up to 8 Heroes. Team 1 and Team 2 can use any Hero in this Building pool.</div></div><button class="modal-x" data-modal-close>×</button></div><div class="hero-check-list">${eligible.map(h=>`<label class="hero-check">${heroImageSrc(h)?`<img src="${esc(heroImageSrc(h))}" alt="">`:''}<div><b class="${rarityClass(h)}">${esc(h.name)}</b><div class="muted">Gen ${h.generation} • ${esc(h.troop_type||'')}</div></div><input type="checkbox" value="${h.id}" ${selected.has(String(h.id))?'checked':''}></label>`).join('')}</div><div class="modal-actions"><button class="btn" data-modal-close>Cancel</button><button class="btn violet" id="savePool">Save Pool</button></div>`);
  r.querySelector('#savePool').onclick=async()=>{
    const ids=Array.from(r.querySelectorAll('input[type="checkbox"]:checked')).map(x=>x.value);
    if(ids.length>8){await nexaAlert('Choose up to 8 heroes.','Shared Hero Pool');return}

@@ -520,7 +520,7 @@ label{display:grid;gap:6px;color:#aeb7d1;font-size:12px;font-weight:850}input,se
 </head>
 <body>
 <main class="sh">
-<!-- NEXA FDT OPERATIONS V2.4.0 • CLEAN ALLIANCE HEADER OWNER / REFERENCE MATCH -->
+<!-- NEXA FDT OPERATIONS V2.4.1 • GLOBAL PET 2H CONSECUTIVE GUARD -->
 <div class="top">
   <a class="round" href="index.html" aria-label="Back">‹</a>
   <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div><div class="autosave">AUTOSAVE • SAVED</div></div>
@@ -1140,6 +1140,44 @@ function rallyName(id){return rallyCandidates().find(p=>String(p.id)===String(id
 function allAssignments(){return store.legions.flatMap(l=>l.teams.flatMap(t=>t.assignments.map(a=>({...a,legionId:l.id,teamId:t.id}))))}
 function overlaps(a,b){return Number(a.start)<Number(b.end)&&Number(b.start)<Number(a.end)}
 function conflictFor(c){return allAssignments().find(a=>String(a.playerId)===String(c.playerId)&&overlaps(a,c))}
+
+/* V2.4.1 — PET rule is global for each Rally Lead across every Team/Legion. */
+function petHourSlots(a){
+ const start=Number(a?.start),end=Number(a?.end),out=[];
+ if(!Number.isFinite(start)||!Number.isFinite(end)||end<=start)return out;
+ for(let h=Math.floor(start);h<Math.ceil(end);h++){
+   if(h>=start&&h<end)out.push(h)
+ }
+ return out
+}
+function existingPetAssignments(playerId,excludeId=''){
+ return allAssignments().filter(a=>
+   a?.pet===true &&
+   String(a.playerId)===String(playerId) &&
+   (!excludeId||String(a.id)!==String(excludeId))
+ )
+}
+function petWindowSummary(playerId,excludeId=''){
+ return existingPetAssignments(playerId,excludeId)
+   .sort((a,b)=>Number(a.start)-Number(b.start))
+   .map(a=>`${hourLabel(a.start)}–${hourLabel(a.end)}`)
+   .join(' • ')
+}
+function petWindowViolation(cand,excludeId=''){
+ if(!cand?.pet)return null;
+ const hours=new Set();
+ existingPetAssignments(cand.playerId,excludeId).forEach(a=>petHourSlots(a).forEach(h=>hours.add(h)));
+ petHourSlots(cand).forEach(h=>hours.add(h));
+ const sorted=[...hours].sort((a,b)=>a-b);
+
+ if(sorted.length>2){
+   return 'PET can only be active for a maximum of 2 hours total across all Teams.'
+ }
+ if(sorted.length===2 && sorted[1]!==sorted[0]+1){
+   return 'The 2 PET hours must be consecutive, even when they are split between different Teams.'
+ }
+ return null
+}
 function schedulePlayerOptions(){return `<option value="">Choose Rally Leader…</option>${rallyCandidates().map(p=>`<option value="${p.id}">${esc(p.in_game_name)}</option>`).join('')}`}
 function hourAssignments(t,h){return t.assignments.filter(a=>Number(a.start)<=h&&Number(a.end)>h)}
 function hourCells(t){
@@ -1195,6 +1233,12 @@ function openRallyModal(l,t){
    if(!(end>start)){await nexaAlert('End time must be after start time.','Time Window');return}
    if(pet && (end-start)>2){await nexaAlert('PET windows can be a maximum of 2 hours.','PET Window');return}
    const cand={id:uid('asg_'),playerId:pid,start,end,pet},conf=conflictFor(cand);
+   const petProblem=petWindowViolation(cand,conf?.id||'');
+   if(petProblem){
+     const current=petWindowSummary(pid,conf?.id||'');
+     await nexaAlert(`${rallyName(pid)} cannot use PET in this window. ${petProblem}${current?` Current PET: ${current} UTC.`:''}`,'PET Schedule Conflict');
+     return
+   }
    if(conf){const ok=await nexaConfirm(`${rallyName(pid)} is already assigned ${hourLabel(conf.start)}–${hourLabel(conf.end)} UTC. Move that assignment here?`,'Assignment Conflict');if(!ok)return;for(const ll of store.legions)for(const tt of ll.teams)tt.assignments=tt.assignments.filter(a=>a.id!==conf.id)}
    t.assignments.push(cand);save();r.remove();renderPets();renderBoard();
  };

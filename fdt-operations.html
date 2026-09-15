@@ -3532,4 +3532,310 @@ function heroCardValue(id,label){
  return `<div class="hero-edit-slot-inner">${h?.image_url?`<img src="${esc(h.image_url)}" alt="">`:'<div style="width:64px;height:64px;border-radius:12px;background:#101522"></div>'}<div><b>${esc(h?.name||'—')}</b><small>${h?`Gen ${h.generation} • ${esc(h.rarity||'')}`:'Leave empty'}</small></div></div>`
 }
 function editPlayerHeroes(l,t,pid){
- const 
+ const p=playerById(pid);t.playerHeroes=t.playerHeroes||{};const vals=[...(t.playerHeroes[pid]||['','','',''])];while(vals.length<4)vals.push('');
+ const labels=['Garrison Hero 1','Garrison Hero 2','MIA Rally Hero 1','MIA Rally Hero 2'];
+ const r=modal(`<div class="section-head"><div><h3>Heroes • ${esc(p?.in_game_name||p?.name||'Player')}</h3></div><button class="modal-x" data-modal-close>×</button></div><div class="hero-edit-grid">${labels.map((x,i)=>`<div><label>${x}</label><button class="hero-edit-slot" data-slot="${i}">${heroCardValue(vals[i],x)}</button></div>`).join('')}</div><div class="tiny muted" style="margin-top:10px">Two Garrison heroes + two MIA Rally heroes.</div><div class="modal-actions"><button class="btn" data-modal-close>Cancel</button><button class="btn violet" id="savePlayerHeroes">Save</button></div>`);
+ r.querySelectorAll('[data-slot]').forEach(b=>b.onclick=()=>chooseHero(Number(b.dataset.slot),vals,()=>{b.innerHTML=heroCardValue(vals[Number(b.dataset.slot)],labels[Number(b.dataset.slot)])}));
+ r.querySelector('#savePlayerHeroes').onclick=()=>{t.playerHeroes[pid]=vals;save();r.remove();renderBoard()}
+}
+function chooseHero(slot,vals,onPick){
+ const list=eligibleJoinerHeroes(),r=modal(`<div class="section-head"><div><h3>Choose Hero</h3><div class="muted">Gen ${activeGen} or earlier • Epic/Purple + Legendary/Mythic only</div></div><button class="modal-x" data-modal-close>×</button></div><div class="hero-choice-grid"><button class="hero-choice empty-choice" data-hero=""><div><b>—</b><small>Leave empty</small></div></button>${list.map(h=>`<button class="hero-choice ${String(vals[slot])===String(h.id)?'selected':''}" data-hero="${h.id}">${heroImageSrc(h)?`<img src="${esc(heroImageSrc(h))}" alt="">`:''}<b>${esc(h.name)}</b><small>Gen ${h.generation} • ${esc(h.rarity||'')}</small></button>`).join('')}</div>`);
+ r.querySelectorAll('[data-hero]').forEach(b=>b.onclick=()=>{vals[slot]=b.dataset.hero||'';r.remove();onPick()})
+}
+function chooseBuildingPool(l,b){
+ l.focusPools=l.focusPools||{};
+ const key=b.slotKey,eligible=eligibleJoinerHeroes(),selected=new Set((l.focusPools[key]||[]).map(String));
+ const r=modal(`<div class="section-head"><div><h3>Shared Hero Pool • ${esc(b.label)}</h3><div class="muted">Choose up to 8 Heroes. Team 1 and Team 2 can use any Hero in this Building pool.</div></div><button class="modal-x" data-modal-close>×</button></div><div class="hero-check-list">${eligible.map(h=>`<label class="hero-check">${heroImageSrc(h)?`<img src="${esc(heroImageSrc(h))}" alt="">`:''}<div><b class="${rarityClass(h)}">${esc(h.name)}</b><div class="muted">Gen ${h.generation} • ${esc(h.troop_type||'')}</div></div><input type="checkbox" value="${h.id}" ${selected.has(String(h.id))?'checked':''}></label>`).join('')}</div><div class="modal-actions"><button class="btn" data-modal-close>Cancel</button><button class="btn violet" id="savePool">Save Pool</button></div>`);
+ r.querySelector('#savePool').onclick=async()=>{
+   const ids=Array.from(r.querySelectorAll('input[type="checkbox"]:checked')).map(x=>x.value);
+   if(ids.length>8){await nexaAlert('Choose up to 8 heroes.','Shared Hero Pool');return}
+   l.focusPools[key]=ids;save();r.remove();renderBoard()
+ }
+}
+
+/* LEGION BOARD EXPORTS */
+function formationExportHtml(t){
+ const rt=t.ratios||{garrison:'60/40/0',rally:'48/4/48',showRally:true};
+ return `<div class="ratio-grid"><div class="ratio-card g"><small>GARRISON</small><strong>${esc(rt.garrison||'—')}</strong><span>INFANTRY · LANCER · MARKSMAN</span></div>${rt.showRally===false?'':`<div class="ratio-card r"><small>MIA RALLY</small><strong>${esc(rt.rally||'—')}</strong><span>INFANTRY · LANCER · MARKSMAN</span></div>`}</div>`
+}
+function assignedJoinersExport(t){
+ const ids=Array.isArray(t?.players)?t.players:[];
+ if(!ids.length)return'<div class="muted tiny">No Joiners assigned.</div>';
+ return `<div class="assigned-svs-scroll"><div class="assigned-svs-table">
+   <div class="assigned-svs-head">
+     <div>PLAYER</div>
+     <div>GARRISON</div>
+     ${t.ratios?.showRally===false?'':`<div>MIA RALLY</div>`}
+     <div></div>
+   </div>
+   ${ids.map(pid=>{
+     const p=playerById(pid),x=t.playerHeroes?.[pid]||['','','',''];
+     return `<div class="assigned-svs-row">
+       <div class="assigned-svs-player"><b>${playerNameWithTag(p)}</b></div>
+       <div class="assigned-svs-heroes">${heroPairInline(heroNames(x.slice(0,2)))}</div>
+       ${t.ratios?.showRally===false?'':`<div class="assigned-svs-heroes">${heroPairInline(heroNames(x.slice(2,4)))}</div>`}
+       <div></div>
+     </div>`
+   }).join('')}
+ </div></div>`
+}
+function sharedJoinersExport(t){
+ return teamJoinerList(null,t,{editable:false})
+}
+function teamExportHtml(l,t,includeMap=false){
+ const b=buildingById(l,t.buildingId)||buildingBySlot(l,focusTypeKey(t));
+ const shared=l.mode==='pool';
+ const mapBlock=includeMap?`<div class="team-board-block"><h4>FDT LAYOUT</h4><img src="fdt-layout-map.jpg" style="width:100%;border-radius:16px"></div>`:'';
+ return `<div class="export-card" style="--tc:${esc(b?.color||t.color||'#9b78ff')}">
+   <div class="export-title">${esc(b?.label||'Building')} • Team ${Number(t.teamOrder||1)}</div>
+   <div class="export-sub">${esc(l.name)} · FDT</div>
+   <div class="team-board-block" style="border-left:3px solid var(--tc);padding-left:12px"><h4>PET SCHEDULE</h4>${petScheduleOnlyTable(t)}</div>
+   <div class="team-board-block" style="border-left:3px solid var(--tc);padding-left:12px"><h4>FORMATION</h4>${formationExportHtml(t)}</div>
+   ${shared?`<div class="team-board-block"><h4>SHARED HERO POOL</h4>${sharedHeroPoolHtml(l,b,{editable:false})}</div><div class="team-board-block"><h4>JOINERS · TEAM ${Number(t.teamOrder||1)}</h4>${sharedJoinersExport(t)}</div>`:`<div class="team-board-block"><h4>JOINERS + HEROES</h4>${assignedJoinersExport(t)}</div>`}
+   ${mapBlock}
+ </div>`
+}
+function buildingBoardExportHtml(l,b){
+ const shared=l.mode==='pool';
+ return `<div class="legion-export-card">
+   <div class="legion-export-title">${esc(b.label)} · ${esc(l.name)}</div>
+   <div class="legion-export-sub">FDT LEGION BOARD · ${shared?'SHARED HERO POOL':'ASSIGNED BY TEAM'}</div>
+   <section class="legion-export-building" style="--bc:${b.color}">
+     <div class="legion-export-building-head">${esc(b.label)}</div>
+     <div class="legion-export-building-body">
+       ${shared?`
+         <div class="shared-block"><h4>PET SCHEDULE</h4><div class="shared-pet-stack">${b.teams.map(t=>`<div class="shared-pet-team" style="--tc:${t.color}"><div class="shared-pet-team-head">Team ${Number(t.teamOrder||1)}</div>${petScheduleOnlyTable(t)}</div>`).join('')}</div></div>
+         <div class="shared-block" style="margin-top:12px"><h4>FORMATION</h4><div class="shared-formation-grid">${b.teams.map(t=>compactFormationCard(l,t,{editable:false})).join('')}</div></div>
+         <div style="margin-top:12px">${sharedHeroPoolHtml(l,b,{editable:false})}</div>
+         <div class="shared-block" style="margin-top:12px"><h4>JOINERS</h4><div class="shared-joiners-grid" style="${b.teams.length===1?'grid-template-columns:1fr':''}">${b.teams.map(t=>`<div class="shared-joiner-col" style="--tc:${t.color}"><div class="shared-joiner-col-head"><b>Team ${Number(t.teamOrder||1)}</b></div>${teamJoinerList(l,t,{editable:false})}</div>`).join('')}</div></div>
+       `:b.teams.map(t=>`<div class="legion-export-team" style="--tc:${t.color}"><div class="legion-export-team-title">Team ${Number(t.teamOrder||1)}</div><div class="team-board-block"><h4>PET SCHEDULE</h4>${petScheduleOnlyTable(t)}</div><div class="team-board-block"><h4>FORMATION</h4>${formationExportHtml(t)}</div><div class="team-board-block"><h4>JOINERS + HEROES</h4>${assignedJoinersExport(t)}</div></div>`).join('')}
+     </div>
+   </section>
+ </div>`
+}
+async function nexaExportFile(blob,filename,mime='image/png'){
+ const file=new File([blob],filename,{type:mime});
+ return new Promise(resolve=>{
+   const r=modal(`<div class="nexa-dialog-card"><div class="section-head"><div><h3>Export Ready</h3><div class="tiny muted" style="margin-top:4px">${esc(filename)}</div></div><button class="modal-x" data-modal-close>×</button></div><div class="nexa-dialog-message">Your image is ready.</div><div class="nexa-dialog-actions"><button class="btn" id="nexaExportCancel">Cancel</button><button class="btn violet" id="nexaExportSave">Share / Save</button></div></div>`);
+   const finish=v=>{if(r.isConnected)r.remove();resolve(v)};
+   r.querySelector('#nexaExportCancel').onclick=()=>finish(false);
+   r.querySelector('#nexaExportSave').onclick=async()=>{
+     try{
+       if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:filename});finish(true);return}
+       const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;a.rel='noopener';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);finish(true)
+     }catch(e){if(e?.name==='AbortError')return;await nexaAlert(e?.message||'Could not save the export.','Export')}
+   }
+ })
+}
+async function exportTeamImage(l,t,includeMap=false){
+ const stage=document.createElement('div');stage.className='export-stage';stage.innerHTML=teamExportHtml(l,t,includeMap);document.body.appendChild(stage);
+ try{
+   await new Promise(r=>setTimeout(r,120));
+   await waitForExportImages(stage);
+   const canvas=await html2canvas(stage.querySelector('.export-card'),{backgroundColor:'#050916',scale:2,useCORS:true,logging:false});
+   const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Image export failed')),'image/png',1));
+   const b=buildingById(l,t.buildingId)||buildingBySlot(l,focusTypeKey(t));
+   const filename=`FDT_${String(l.name).replace(/\s+/g,'-')}_${String(b?.label||'Building').replace(/\s+/g,'-')}_Team-${Number(t.teamOrder||1)}.png`;
+   await nexaExportFile(blob,filename,'image/png')
+ }catch(e){await nexaAlert(e?.message||'Could not create the Team image.','Share Team')}
+ finally{stage.remove()}
+}
+async function exportBoardBuildingImage(l,b){
+ const stage=document.createElement('div');stage.className='export-stage';stage.innerHTML=buildingBoardExportHtml(l,b);document.body.appendChild(stage);
+ try{
+   await new Promise(r=>setTimeout(r,140));
+   await waitForExportImages(stage);
+   const canvas=await html2canvas(stage.querySelector('.legion-export-card'),{backgroundColor:'#050916',scale:2,useCORS:true,logging:false});
+   const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Image export failed')),'image/png',1));
+   const filename=`FDT_${String(l.name).replace(/\s+/g,'-')}_${String(b.label).replace(/\s+/g,'-')}_Board.png`;
+   await nexaExportFile(blob,filename,'image/png')
+ }catch(e){await nexaAlert(e?.message||'Could not create the Building image.','Share Building')}
+ finally{stage.remove()}
+}
+function allTeamRefs(){return store.legions.filter(l=>l.configured).flatMap(l=>l.teams.map(t=>({l,t})))}
+function refreshLayoutExport(){
+ const s=$('#layoutTeamExport');if(!s)return;const refs=allTeamRefs();
+ s.innerHTML=refs.length?refs.map(({l,t})=>{const b=buildingById(l,t.buildingId)||buildingBySlot(l,focusTypeKey(t));return`<option value="${l.id}|${t.id}">${esc(l.name)} • ${esc(b?.label||'Building')} • Team ${Number(t.teamOrder||1)}</option>`}).join(''):'<option value="">No Teams</option>'
+}
+if($('#exportLayoutTeam'))$('#exportLayoutTeam').onclick=()=>{const v=$('#layoutTeamExport').value;if(!v)return;const [lid,tid]=v.split('|'),l=store.legions.find(x=>x.id===lid),t=l?.teams.find(x=>x.id===tid);if(l&&t)exportTeamImage(l,t,true)};
+
+$('#boardRoot').onclick=e=>{
+ const mode=e.target.closest('[data-mode]');if(mode){const l=store.legions.find(x=>x.id===mode.dataset.lid);if(l){l.mode=mode.dataset.mode;save();renderBoard()}return}
+ const roles=e.target.closest('[data-edit-roles]');if(roles){const l=store.legions.find(x=>x.id===roles.dataset.editRoles);if(l)editRoles(l);return}
+ const ratios=e.target.closest('[data-edit-team-ratios]');if(ratios){const l=store.legions.find(x=>x.id===ratios.dataset.lid),t=l?.teams.find(x=>x.id===ratios.dataset.editTeamRatios);if(l&&t)editTeamRatios(l,t);return}
+ const add=e.target.closest('[data-add-player-team]');if(add){const l=store.legions.find(x=>x.id===add.dataset.lid),t=l?.teams.find(x=>x.id===add.dataset.addPlayerTeam);if(l&&t)addPlayerFlow(l,t);return}
+ const remJoin=e.target.closest('[data-remove-joiners-team]');if(remJoin){const l=store.legions.find(x=>x.id===remJoin.dataset.lid),t=l?.teams.find(x=>x.id===remJoin.dataset.removeJoinersTeam);if(l&&t)openRemoveJoinersModal(l,t);return}
+ const edit=e.target.closest('[data-edit-player]');if(edit){const l=store.legions.find(x=>x.id===edit.dataset.lid),t=l?.teams.find(x=>x.id===edit.dataset.tid);if(l&&t)editPlayerHeroes(l,t,edit.dataset.editPlayer);return}
+ const pool=e.target.closest('[data-choose-building-pool]');if(pool){const l=store.legions.find(x=>x.id===pool.dataset.lid),b=l?buildingById(l,pool.dataset.chooseBuildingPool):null;if(l&&b)chooseBuildingPool(l,b);return}
+ const exp=e.target.closest('[data-export-team]');if(exp){const l=store.legions.find(x=>x.id===exp.dataset.lid),t=l?.teams.find(x=>x.id===exp.dataset.exportTeam);if(l&&t)exportTeamImage(l,t,false);return}
+ const expB=e.target.closest('[data-export-board-building]');if(expB){const l=store.legions.find(x=>x.id===expB.dataset.lid),b=l?buildingById(l,expB.dataset.exportBoardBuilding):null;if(l&&b)exportBoardBuildingImage(l,b);return}
+ const rem=e.target.closest('[data-remove-player]');if(rem){const l=store.legions.find(x=>x.id===rem.dataset.lid),t=l?.teams.find(x=>x.id===rem.dataset.tid);if(t){t.players=t.players.filter(x=>String(x)!==String(rem.dataset.removePlayer));save();renderBoard()}}
+}
+
+/* PLAN */
+
+function fdtPlanSnapshot(){
+ hydrateTeams();
+ const legions=(store.legions||[]).filter(l=>l.configured).map(l=>JSON.parse(JSON.stringify({
+   id:l.id,
+   name:l.name,
+   color:l.color,
+   mode:l.mode,
+   roles:l.roles,
+   ratios:l.ratios,
+   sharedHeroIds:l.sharedHeroIds,
+   focusPools:l.focusPools,
+   teams:l.teams
+ })));
+ return {
+   sentAt:new Date().toISOString(),
+   state,
+   legions
+ }
+}
+function fdtPlanPlayerName(pid){
+ const p=playerById(pid);
+ return playerNameWithTag(p)
+}
+function fdtPlanHeroNames(ids){
+ return heroNames(ids||[]).map(h=>esc(h.name)).join(' + ')||'—'
+}
+function fdtPlanPetCells(t){
+ const hours=[12,13,14,15,16];
+ return `<div class="fdt-bp-pet-grid">${hours.map(h=>{
+   const items=(t.assignments||[]).filter(a=>Number(a.start)<=h&&Number(a.end)>h);
+   const names=items.length?items.map(a=>{
+     const p=playerById(a.playerId);
+     return `${esc(p?.in_game_name||p?.name||'Rally Lead')}${a.pet?' • PET':''}`
+   }).join('<br>'):'—';
+   return `<div class="fdt-bp-pet-cell"><strong>${String(h).padStart(2,'0')}:00</strong><span>${names}</span></div>`
+ }).join('')}</div>`
+}
+function fdtPlanAssignedJoiners(t){
+ const ids=Array.isArray(t.players)?t.players:[];
+ if(!ids.length)return'<div class="fdt-bp-empty">No Joiners assigned.</div>';
+ return `<div class="fdt-bp-joiner-table">
+   <div class="fdt-bp-joiner-head"><div>PLAYER</div><div>GARRISON</div><div>MIA RALLY</div></div>
+   ${ids.map(pid=>{
+     const x=t.playerHeroes?.[pid]||['','','',''];
+     return `<div class="fdt-bp-joiner-row">
+       <div><b>${fdtPlanPlayerName(pid)}</b></div>
+       <div class="heroes">${fdtPlanHeroNames(x.slice(0,2))}</div>
+       <div class="heroes">${t.ratios?.showRally===false?'—':fdtPlanHeroNames(x.slice(2,4))}</div>
+     </div>`
+   }).join('')}
+ </div>`
+}
+function fdtPlanPoolJoiners(t){
+ const ids=Array.isArray(t.players)?t.players:[];
+ if(!ids.length)return'<div class="fdt-bp-empty">No Joiners assigned.</div>';
+ return `<div class="fdt-bp-joiner-table">
+   <div class="fdt-bp-joiner-head" style="grid-template-columns:1fr"><div>PLAYER</div></div>
+   ${ids.map(pid=>`<div class="fdt-bp-joiner-row" style="grid-template-columns:1fr"><div><b>${fdtPlanPlayerName(pid)}</b></div></div>`).join('')}
+ </div>`
+}
+function fdtPlanHeroPool(l,b){
+ const chosen=sharedPoolForBuilding(l,b);
+ if(!chosen.length)return'<div class="fdt-bp-empty">No Shared Hero Pool selected.</div>';
+ return `<div class="fdt-bp-hero-pool">${chosen.map(h=>{
+   const src=heroImageSrc(h);
+   return `<div class="fdt-bp-hero">${src?`<img src="${esc(src)}" alt="">`:''}<b class="${rarityClass(h)}">${esc(h.name)}</b></div>`
+ }).join('')}</div>`
+}
+function fdtPlanTeamHtml(l,b,t){
+ return `<div class="fdt-bp-team" style="--tc:${esc(t.color||b.color||l.color||'#9b78ff')}">
+   <div class="fdt-bp-team-title">Team ${Number(t.teamOrder||1)}</div>
+   <div class="fdt-bp-section"><h4>PET SCHEDULE</h4>${fdtPlanPetCells(t)}</div>
+   <div class="fdt-bp-section"><h4>FORMATION</h4><div class="fdt-bp-formation">
+     <div class="fdt-bp-ratio g"><b>GARRISON</b><strong>${esc(t.ratios?.garrison||l.ratios?.garrison||'60/40/0')}</strong></div>
+     ${t.ratios?.showRally===false?'':`<div class="fdt-bp-ratio r"><b>MIA RALLY</b><strong>${esc(t.ratios?.rally||l.ratios?.rally||'48/4/48')}</strong></div>`}
+   </div></div>
+   ${l.mode==='assigned'
+     ?`<div class="fdt-bp-section"><h4>JOINERS + HEROES</h4>${fdtPlanAssignedJoiners(t)}</div>`
+     :`<div class="fdt-bp-section"><h4>JOINERS</h4>${fdtPlanPoolJoiners(t)}</div>`}
+ </div>`
+}
+function fdtPlanLegionHtml(l){
+ normalizeLegionState(l,0);
+ const buildings=legionBuildings(l);
+ const role=(label,value)=>`<div class="fdt-bp-role"><b>${label}</b><span>${esc(value||'—')}</span></div>`;
+ return `<section class="fdt-bp-legion" style="--lc:${esc(l.color||'#9b78ff')}">
+   <div class="fdt-bp-legion-head">
+     <div><h3>${esc(l.name)}</h3><small>${l.mode==='pool'?'SHARED HERO POOL':'ASSIGNED BY TEAM'}</small></div>
+   </div>
+   <div class="fdt-bp-role-grid">
+     ${role('Garrison Chief',l.roles?.garrisonChief)}
+     ${role('Rally Managers',l.roles?.rallyManagers)}
+     ${role('Incoming Traffic',l.roles?.incomingTraffic)}
+     ${role('Kicking Crew',l.roles?.kickingCrew)}
+   </div>
+   ${buildings.map(b=>`<section class="fdt-bp-building" style="--bc:${esc(b.color||l.color||'#9b78ff')}">
+     <div class="fdt-bp-building-head"><b>${esc(b.label)}</b><small>${b.teams.length} Team${b.teams.length===1?'':'s'}</small></div>
+     ${l.mode==='pool'?`<div class="fdt-bp-team"><div class="fdt-bp-section"><h4>SHARED HERO POOL</h4>${fdtPlanHeroPool(l,b)}</div></div>`:''}
+     ${b.teams.map(t=>fdtPlanTeamHtml(l,b,t)).join('')}
+   </section>`).join('')}
+ </section>`
+}
+function renderBattlePlanPreview(){
+ const root=$('#battlePlanPreview'),sync=$('#planSyncState');
+ if(!root)return;
+ const snap=store.plan?.snapshot;
+ if(!snap?.legions?.length){
+   root.innerHTML='<div class="card"><div class="empty">Nothing has been sent from Legion Board yet.</div></div>';
+   if(sync){sync.textContent='NOT SYNCED';sync.style.color=''}
+   return
+ }
+ const title=(store.plan?.title||'').trim()||'FDT Battle Plan';
+ const alliance=(store.plan?.alliance||'').trim();
+ const sent=snap.sentAt?new Date(snap.sentAt):null;
+ root.innerHTML=`<div class="fdt-bp-doc">
+   <div class="fdt-bp-head">
+     <small>NEXA • FDT BATTLE PLAN</small>
+     <h2>${esc(title)}</h2>
+     <div class="fdt-bp-meta">
+       <span class="fdt-bp-pill">State ${esc(snap.state||state)}</span>
+       <span class="fdt-bp-pill">${snap.legions.length} Legion${snap.legions.length===1?'':'s'}</span>
+       ${alliance?`<span class="fdt-bp-pill">${esc(alliance)}</span>`:''}
+     </div>
+     ${store.plan?.notes?.trim()?`<div class="fdt-bp-notes">${esc(store.plan.notes.trim())}</div>`:''}
+   </div>
+   ${snap.legions.map(l=>fdtPlanLegionHtml(l)).join('')}
+ </div>`;
+ if(sync){
+   sync.textContent=sent&&!Number.isNaN(sent.getTime())?`SYNCED • ${sent.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`:'SYNCED';
+ }
+}
+function sendLegionBoardToBattlePlan(){
+ const snap=fdtPlanSnapshot();
+ if(!snap.legions.length){
+   nexaAlert('Create and configure at least one Legion first.','Battle Plan');
+   return
+ }
+ store.plan=store.plan||{title:'',alliance:'',notes:''};
+ store.plan.snapshot=snap;
+ save();
+ renderBattlePlanPreview();
+ panel('plan');
+ window.scrollTo({top:0,behavior:'smooth'});
+ say(`Battle Plan updated with ${snap.legions.length} Legion${snap.legions.length===1?'':'s'}.`)
+}
+
+function wirePlan(){store.plan=store.plan||{title:'',alliance:'',notes:''};$('#planTitle').value=store.plan.title||'';$('#planAlliance').value=store.plan.alliance||'';$('#planNotes').value=store.plan.notes||'';$('#planTitle').oninput=e=>{store.plan.title=e.target.value;save();renderBattlePlanPreview()};$('#planAlliance').oninput=e=>{store.plan.alliance=e.target.value;save();renderBattlePlanPreview()};$('#planNotes').oninput=e=>{store.plan.notes=e.target.value;save();renderBattlePlanPreview()};renderBattlePlanPreview()}
+
+hydrateTeams();
+save();
+wireSetup();
+wirePlan();
+$('#sendLegionBoardToPlan').onclick=sendLegionBoardToBattlePlan;
+safeFdtRender('Initial Legions',renderLegionWorkflow);
+safeFdtRender('Initial Pet Schedule',renderPets);
+safeFdtRender('Initial Legion Board',renderBoard);
+safeFdtRender('Initial Layout Export',refreshLayoutExport);
+loadData().catch(e=>{
+ console.error('[NEXA FDT] loadData fatal',e);
+ say(e?.message||String(e));
+});
+})();
+</script>
+</body>
+</html>

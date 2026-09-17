@@ -2606,11 +2606,116 @@ section.panel{position:relative;z-index:1}
 .layout-export-note b,.fdt-bp-layout-note b{color:#c9b7ff!important}
 @media(max-width:620px){.layout-pin{min-width:38px!important;min-height:38px!important}.layout-pin>span{font-size:7px}}
 
+
+/* V2.10.2 — polished FDT Layout export */
+.layout-export-notes,
+.fdt-bp-layout-notes{
+  gap:10px!important;
+}
+
+.layout-export-note,
+.fdt-bp-layout-note,
+.layout-saved-item{
+  position:relative!important;
+  overflow:hidden!important;
+  background:linear-gradient(145deg,rgba(8,15,31,.96),rgba(4,9,22,.96))!important;
+  border:1px solid rgba(255,255,255,.10)!important;
+  border-radius:14px!important;
+  box-shadow:none!important;
+  padding:12px 13px 12px 16px!important;
+}
+
+.layout-export-note::before,
+.fdt-bp-layout-note::before,
+.layout-saved-item::before{
+  content:""!important;
+  position:absolute!important;
+  left:0!important;
+  top:0!important;
+  bottom:0!important;
+  width:4px!important;
+  background:var(--lc,#9b78ff)!important;
+}
+
+.layout-export-note b,
+.fdt-bp-layout-note b,
+.layout-saved-item b{
+  color:#f4f6ff!important;
+  font-size:11px!important;
+  line-height:1.25!important;
+  font-weight:950!important;
+}
+
+.layout-export-note p,
+.fdt-bp-layout-note div,
+.layout-saved-item small{
+  margin:5px 0 0!important;
+  color:#aebbd5!important;
+  font-size:10px!important;
+  line-height:1.45!important;
+  font-weight:700!important;
+}
+
+.layout-export-note p:empty,
+.fdt-bp-layout-note div:empty{
+  display:none!important;
+}
+
+/* Cleaner map pins: compact teardrop with readable horizontal label */
+.layout-pin{
+  min-width:48px!important;
+  width:auto!important;
+  height:38px!important;
+  min-height:38px!important;
+  padding:0 10px!important;
+  border-radius:18px 18px 18px 5px!important;
+  transform:translate(-50%,-70%) rotate(-45deg)!important;
+  border:2px solid rgba(255,255,255,.95)!important;
+  box-shadow:0 6px 18px rgba(0,0,0,.45),0 0 0 2px rgba(0,0,0,.18)!important;
+}
+.layout-pin>span{
+  transform:rotate(45deg)!important;
+  display:block!important;
+  font-size:9px!important;
+  line-height:1!important;
+  font-weight:1000!important;
+  letter-spacing:.02em!important;
+  white-space:nowrap!important;
+}
+
+/* Make map/export itself the visual focus */
+.layout-export-card{
+  padding:18px!important;
+}
+.layout-export-map{
+  margin-top:14px!important;
+  border-radius:18px!important;
+}
+.layout-export-notes{
+  margin-top:14px!important;
+}
+
+/* No "No additional note." filler in polished exports */
+.layout-export-note[data-empty-note="1"],
+.fdt-bp-layout-note[data-empty-note="1"]{
+  display:none!important;
+}
+
+@media(max-width:620px){
+  .layout-pin{
+    min-width:44px!important;
+    height:36px!important;
+    min-height:36px!important;
+    padding:0 9px!important;
+  }
+  .layout-pin>span{font-size:8px!important}
+}
+
 </style>
 </head>
 <body>
 <main class="sh">
-<!-- NEXA FDT OPERATIONS V2.10.1 • MULTI-TEAM LAYOUT + CLEAN NOTES -->
+<!-- NEXA FDT OPERATIONS V2.10.2 • POLISHED LAYOUT EXPORT -->
 <div class="top">
   <a class="round" href="index.html" aria-label="Back">‹</a>
   <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div><div class="autosave">AUTOSAVE • SAVED</div></div>
@@ -4287,7 +4392,7 @@ function renderLayoutSavedList(){
  const list=layoutAllSaved(),root=$('#layoutSavedList'),count=$('#layoutSavedCount');
  if(count)count.textContent=`${list.length} SAVED`;
  if(!root)return;
- root.innerHTML=list.length?list.map(({l,b,t,d})=>`<div class="layout-saved-item" style="--lc:${esc(b?.color||l.color||'#9b78ff')}"><b>${esc(l.name)} • ${esc(b?.label||'Building')} • Team ${Number(t.teamOrder||1)}</b><small>${d.note?esc(d.note):'No note'} • ${Number(d.x).toFixed(1)}%, ${Number(d.y).toFixed(1)}%</small></div>`).join(''):'<div class="empty">No Team positions saved yet.</div>'
+ root.innerHTML=list.length?list.map(({l,b,t,d})=>`<div class="layout-saved-item" style="--lc:${esc(b?.color||l.color||'#9b78ff')}"><b>${esc(l.name)} • ${esc(b?.label||'Building')} • Team ${Number(t.teamOrder||1)}</b><small>${d.note?esc(d.note)+' • ':''}${Number(d.x).toFixed(1)}%, ${Number(d.y).toFixed(1)}%</small></div>`).join(''):'<div class="empty">No Team positions saved yet.</div>'
 }
 function changeLayoutSelection(kind,value){
  const ls=layoutStore();
@@ -4337,7 +4442,7 @@ function layoutExportHtml(scope){
  return `<div class="layout-export-card">
    <div class="layout-export-head"><small>NEXA • FDT LAYOUT</small><h2>${esc(data.title)}</h2><div class="tiny muted">${data.items.length} saved Team${data.items.length===1?'':'s'}</div></div>
    <div class="layout-export-map"><img src="fdt-layout-map.jpg" alt=""><div class="layout-pins">${layoutPinsHtml(data.items)}</div></div>
-   <div class="layout-export-notes">${data.items.map(({l,b,t,d})=>`<div class="layout-export-note" style="--lc:${esc(b?.color||l.color||'#9b78ff')}"><b>${esc(l.name)} • ${esc(b?.label||'Building')} • Team ${Number(t.teamOrder||1)}</b><p>${esc(d.note||'No additional note.')}</p></div>`).join('')}</div>
+   <div class="layout-export-notes">${data.items.map(({l,b,t,d})=>`<div class="layout-export-note" data-empty-note="${d.note?0:1}" style="--lc:${esc(b?.color||l.color||'#9b78ff')}"><b>${esc(l.name)} • ${esc(b?.label||'Building')} • Team ${Number(t.teamOrder||1)}</b>${d.note?`<p>${esc(d.note)}</p>`:''}</div>`).join('')}</div>
  </div>`
 }
 async function exportLayout(scope){
@@ -4378,7 +4483,7 @@ function layoutBattlePlanHtml(){
  }));
  return `<section class="fdt-bp-layout"><h3>FDT Layout</h3>
    <div class="fdt-bp-layout-map"><img src="fdt-layout-map.jpg" alt=""><div class="layout-pins">${layoutPinsHtml(items)}</div></div>
-   <div class="fdt-bp-layout-notes">${snap.items.map(x=>`<div class="fdt-bp-layout-note" style="--lc:${esc(x.color||'#9b78ff')}"><b>${esc(x.legionName)} • ${esc(x.buildingLabel)} • Team ${Number(x.teamOrder||1)}</b><div>${esc(x.note||'No additional note.')}</div></div>`).join('')}</div>
+   <div class="fdt-bp-layout-notes">${snap.items.map(x=>`<div class="fdt-bp-layout-note" data-empty-note="${x.note?0:1}" style="--lc:${esc(x.color||'#9b78ff')}"><b>${esc(x.legionName)} • ${esc(x.buildingLabel)} • Team ${Number(x.teamOrder||1)}</b>${x.note?`<div>${esc(x.note)}</div>`:''}</div>`).join('')}</div>
  </section>`
 }
 function wireLayout(){

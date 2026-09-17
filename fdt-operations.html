@@ -2769,11 +2769,27 @@ section.panel{position:relative;z-index:1}
   .layout-pin>span{font-size:10px!important}
 }
 
+
+/* V2.10.5 — export uses the exact same live-map CSS geometry as Safari */
+.layout-export-stage .layout-export-map{
+  flex:none!important;
+  align-self:flex-start!important;
+}
+.layout-export-stage .layout-export-map>img{
+  width:100%!important;
+  height:auto!important;
+  display:block!important;
+}
+.layout-export-stage .layout-pins{
+  position:absolute!important;
+  inset:0!important;
+}
+
 </style>
 </head>
 <body>
 <main class="sh">
-<!-- NEXA FDT OPERATIONS V2.10.4 • SAFARI-SAFE OUTLINE PINS + CLEAR SPIRE LABELS -->
+<!-- NEXA FDT OPERATIONS V2.10.5 • EXPORT MATCHES LIVE SAFARI MAP -->
 <div class="top">
   <a class="round" href="index.html" aria-label="Back">‹</a>
   <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div><div class="autosave">AUTOSAVE • SAVED</div></div>
@@ -4512,9 +4528,27 @@ function layoutExportHtml(scope){
 async function exportLayout(scope){
  const data=layoutExportScope(scope);
  if(!data.items.length){await nexaAlert('Save at least one Team position for this view first.','FDT Layout');return}
- const stage=document.createElement('div');stage.className='layout-export-stage';stage.innerHTML=layoutExportHtml(scope);document.body.appendChild(stage);
+ const stage=document.createElement('div');
+ stage.className='layout-export-stage';
+ stage.innerHTML=layoutExportHtml(scope);
+ document.body.appendChild(stage);
  try{
-   await new Promise(r=>setTimeout(r,140));await waitForExportImages(stage);
+   // Match the exact live Safari map geometry instead of reflowing the export at 900px.
+   // html2canvas scale provides resolution; CSS dimensions stay identical to what the user sees.
+   const liveWrap=$('#layoutMapWrap');
+   const liveWidth=Math.max(280,Math.round(liveWrap?.getBoundingClientRect?.().width||0));
+   const exportMap=stage.querySelector('.layout-export-map');
+   const exportCard=stage.querySelector('.layout-export-card');
+   if(liveWidth&&exportMap&&exportCard){
+     exportMap.style.width=`${liveWidth}px`;
+     exportMap.style.maxWidth='none';
+     exportCard.style.width=`${liveWidth+36}px`;
+     exportCard.style.maxWidth='none';
+     stage.style.width=`${liveWidth+84}px`;
+     stage.style.maxWidth='none';
+   }
+   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>setTimeout(r,120))));
+   await waitForExportImages(stage);
    const card=stage.querySelector('.layout-export-card');
    const canvas=await html2canvas(card,{backgroundColor:'#050916',scale:2,useCORS:true,logging:false});
    const blob=await new Promise(r=>canvas.toBlob(r,'image/png',.95));

@@ -2594,11 +2594,23 @@ section.panel{position:relative;z-index:1}
   overscroll-behavior-x:contain;
 }
 
+
+/* V2.10.1 — multi-Team placement + cleaner notes */
+.layout-team-choices{display:flex;gap:6px;flex-wrap:wrap;min-height:44px;padding:4px;border:1px solid rgba(122,142,203,.26);border-radius:12px;background:#060b1c}
+.layout-team-choice{min-height:34px;border:1px solid rgba(255,255,255,.11);border-radius:999px;padding:6px 10px;background:#0b1226;color:#aeb9d7;font-size:10px;font-weight:950}
+.layout-team-choice.active{color:#fff;border-color:rgba(155,120,255,.72);background:linear-gradient(135deg,rgba(80,53,170,.74),rgba(32,95,132,.62))}
+.layout-pin{min-width:42px!important;min-height:42px!important;border-radius:50% 50% 50% 10%!important;transform:translate(-50%,-62%) rotate(-45deg)!important;padding:0!important}
+.layout-pin>span{transform:rotate(45deg);display:block;font-size:8px;font-weight:1000;white-space:nowrap}
+.layout-export-note,.fdt-bp-layout-note,.layout-saved-item{background:rgba(7,13,29,.90)!important;border-color:rgba(155,120,255,.22)!important;box-shadow:inset 3px 0 0 var(--lc,#9b78ff)!important}
+.layout-export-note p,.fdt-bp-layout-note div{color:#d5deef!important}
+.layout-export-note b,.fdt-bp-layout-note b{color:#c9b7ff!important}
+@media(max-width:620px){.layout-pin{min-width:38px!important;min-height:38px!important}.layout-pin>span{font-size:7px}}
+
 </style>
 </head>
 <body>
 <main class="sh">
-<!-- NEXA FDT OPERATIONS V2.10.0 • STABLE REINFORCEMENTS + INTERACTIVE FDT LAYOUT -->
+<!-- NEXA FDT OPERATIONS V2.10.1 • MULTI-TEAM LAYOUT + CLEAN NOTES -->
 <div class="top">
   <a class="round" href="index.html" aria-label="Back">‹</a>
   <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div><div class="autosave">AUTOSAVE • SAVED</div></div>
@@ -2703,7 +2715,7 @@ section.panel{position:relative;z-index:1}
     <div class="section-head">
       <div>
         <h2>FDT Layout</h2>
-        <div class="tiny muted">Select a Team → tap the map → add a note → Save Team.</div>
+        <div class="tiny muted">Select one or more Teams → tap the map → add a note → Save Selected.</div>
       </div>
       <div class="row">
         <button class="btn violet" id="layoutSendPlan">Send to Battle Plan</button>
@@ -2713,7 +2725,7 @@ section.panel{position:relative;z-index:1}
     <div class="layout-select-grid" style="margin-top:12px">
       <label>Legion<select id="layoutLegion"></select></label>
       <label>Building<select id="layoutBuilding"></select></label>
-      <label>Team<select id="layoutTeam"></select></label>
+      <label>Team(s)<div id="layoutTeamChoices" class="layout-team-choices"></div></label>
     </div>
 
     <div class="layout-map-toolbar">
@@ -2734,8 +2746,8 @@ section.panel{position:relative;z-index:1}
     </label>
 
     <div class="row" style="margin-top:10px">
-      <button class="btn violet" id="layoutSaveTeam">Save Team</button>
-      <button class="btn danger" id="layoutClearTeam">Clear Team Position</button>
+      <button class="btn violet" id="layoutSaveTeam">Save Selected</button>
+      <button class="btn danger" id="layoutClearTeam">Clear Selected</button>
     </div>
 
     <div class="layout-export-row">
@@ -4160,8 +4172,9 @@ async function exportBoardBuildingImage(l,b){
 function allTeamRefs(){return store.legions.filter(l=>l.configured).flatMap(l=>l.teams.map(t=>({l,t})))}
 
 function layoutStore(){
- if(!store.layout||typeof store.layout!=='object')store.layout={activeLegionId:'',activeBuildingId:'',activeTeamId:'',view:'selected',teams:{}};
+ if(!store.layout||typeof store.layout!=='object')store.layout={activeLegionId:'',activeBuildingId:'',activeTeamIds:[],view:'selected',teams:{}};
  if(!store.layout.teams||typeof store.layout.teams!=='object')store.layout.teams={};
+ if(!Array.isArray(store.layout.activeTeamIds)){store.layout.activeTeamIds=store.layout.activeTeamId?[String(store.layout.activeTeamId)]:[]}
  return store.layout
 }
 function layoutKey(lid,tid){return `${String(lid)}|${String(tid)}`}
@@ -4180,21 +4193,24 @@ function layoutCurrent(){
  let b=buildings.find(x=>String(x.id)===String(ls.activeBuildingId))||buildings[0];
  if(!b)return {l};
  ls.activeBuildingId=b.id;
- let t=(b.teams||[]).find(x=>String(x.id)===String(ls.activeTeamId))||b.teams[0];
- if(t)ls.activeTeamId=t.id;
- return {l,b,t,buildings}
+ const validIds=(b.teams||[]).map(t=>String(t.id));
+ ls.activeTeamIds=(ls.activeTeamIds||[]).map(String).filter(id=>validIds.includes(id));
+ if(!ls.activeTeamIds.length&&validIds.length)ls.activeTeamIds=[validIds[0]];
+ const teams=(b.teams||[]).filter(t=>ls.activeTeamIds.includes(String(t.id)));
+ return {l,b,t:teams[0]||null,teams,buildings}
 }
 let layoutDraft={x:null,y:null,note:''};
 function loadLayoutDraft(){
- const {l,t}=layoutCurrent();
- if(!l||!t){layoutDraft={x:null,y:null,note:''};return}
- const d=layoutTeamData(l.id,t.id);
+ const {l,teams}=layoutCurrent();
+ if(!l||!teams?.length){layoutDraft={x:null,y:null,note:''};return}
+ if(teams.length>1){layoutDraft={x:null,y:null,note:''};return}
+ const d=layoutTeamData(l.id,teams[0].id);
  layoutDraft={x:Number.isFinite(Number(d.x))?Number(d.x):null,y:Number.isFinite(Number(d.y))?Number(d.y):null,note:String(d.note||'')}
 }
 function layoutPinLabel(l,b,t){
  const slot=focusTypeKey(t);
- const short=slot==='capital'?'CAP':slot==='spire_a'?'A':slot==='spire_b'?'B':slot==='spire_c'?'C':slot==='spire_d'?'D':(b?.label||'T').slice(0,3).toUpperCase();
- return `${short}${Number(t.teamOrder||1)}`
+ const prefix=slot==='capital'?'CAP':slot==='spire_a'?'SA':slot==='spire_b'?'SB':slot==='spire_c'?'SC':slot==='spire_d'?'SD':String(b?.label||'T').replace(/\\s+/g,'').slice(0,3).toUpperCase();
+ return `${prefix}-T${Number(t.teamOrder||1)}`
 }
 function layoutAllSaved(){
  const out=[];
@@ -4210,44 +4226,45 @@ function layoutAllSaved(){
 }
 function layoutPinsForView(){
  const ls=layoutStore(),cur=layoutCurrent(),all=layoutAllSaved();
- if(!cur.l||!cur.t)return [];
- const currentDraft={l:cur.l,b:cur.b,t:cur.t,d:{...layoutTeamData(cur.l.id,cur.t.id),...layoutDraft,saved:true},draft:true};
- if(ls.view==='full'){
-   const withoutCurrent=all.filter(x=>layoutKey(x.l.id,x.t.id)!==layoutKey(cur.l.id,cur.t.id));
-   if(Number.isFinite(Number(layoutDraft.x))&&Number.isFinite(Number(layoutDraft.y)))withoutCurrent.push(currentDraft);
-   return withoutCurrent
- }
- if(ls.view==='building'){
-   const withoutCurrent=all.filter(x=>String(x.l.id)===String(cur.l.id)&&String(x.b.id)===String(cur.b.id)&&String(x.t.id)!==String(cur.t.id));
-   if(Number.isFinite(Number(layoutDraft.x))&&Number.isFinite(Number(layoutDraft.y)))withoutCurrent.push(currentDraft);
-   return withoutCurrent
- }
- return Number.isFinite(Number(layoutDraft.x))&&Number.isFinite(Number(layoutDraft.y))?[currentDraft]:[]
+ if(!cur.l||!cur.teams?.length)return [];
+ const selectedKeys=new Set(cur.teams.map(t=>layoutKey(cur.l.id,t.id)));
+ const drafts=cur.teams
+   .filter(()=>Number.isFinite(Number(layoutDraft.x))&&Number.isFinite(Number(layoutDraft.y)))
+   .map(t=>({l:cur.l,b:cur.b,t,d:{...layoutTeamData(cur.l.id,t.id),...layoutDraft,saved:true},draft:true}));
+ if(ls.view==='full')return [...all.filter(x=>!selectedKeys.has(layoutKey(x.l.id,x.t.id))),...drafts];
+ if(ls.view==='building')return [...all.filter(x=>String(x.l.id)===String(cur.l.id)&&String(x.b.id)===String(cur.b.id)&&!selectedKeys.has(layoutKey(x.l.id,x.t.id))),...drafts];
+ return drafts.length?drafts:cur.teams.map(t=>{const d=layoutTeamData(cur.l.id,t.id);return d.saved?{l:cur.l,b:cur.b,t,d}:null}).filter(Boolean)
 }
 function layoutPinsHtml(items,selectedKey=''){
- return items.map(({l,b,t,d})=>`<div class="layout-pin ${layoutKey(l.id,t.id)===selectedKey?'selected':''}" style="left:${Number(d.x)}%;top:${Number(d.y)}%;--pc:${esc(b?.color||t.color||l.color||'#9b78ff')}" title="${esc(l.name)} • ${esc(b?.label||'Building')} • Team ${Number(t.teamOrder||1)}">${esc(layoutPinLabel(l,b,t))}</div>`).join('')
+ return items.map(({l,b,t,d})=>`<div class="layout-pin ${layoutKey(l.id,t.id)===selectedKey?'selected':''}" style="left:${Number(d.x)}%;top:${Number(d.y)}%;--pc:${esc(b?.color||t.color||l.color||'#9b78ff')}" title="${esc(l.name)} • ${esc(b?.label||'Building')} • Team ${Number(t.teamOrder||1)}"><span>${esc(layoutPinLabel(l,b,t))}</span></div>`).join('')
 }
 function renderLayoutSelectors(){
  const ls=layoutStore(),legs=layoutConfiguredLegions();
- const leg=$('#layoutLegion'),build=$('#layoutBuilding'),team=$('#layoutTeam');
- if(!leg||!build||!team)return;
+ const leg=$('#layoutLegion'),build=$('#layoutBuilding'),choices=$('#layoutTeamChoices');
+ if(!leg||!build||!choices)return;
  if(!legs.length){
    leg.innerHTML='<option value="">No Legions</option>';
    build.innerHTML='<option value="">No Buildings</option>';
-   team.innerHTML='<option value="">No Teams</option>';
+   choices.innerHTML='<span class="muted tiny">No Teams</span>';
    return
  }
  const cur=layoutCurrent();
  leg.innerHTML=legs.map(l=>`<option value="${esc(l.id)}" ${String(l.id)===String(cur.l?.id)?'selected':''}>${esc(l.name)}</option>`).join('');
  build.innerHTML=(cur.buildings||[]).map(b=>`<option value="${esc(b.id)}" ${String(b.id)===String(cur.b?.id)?'selected':''}>${esc(b.label)}</option>`).join('');
- team.innerHTML=(cur.b?.teams||[]).map(t=>`<option value="${esc(t.id)}" ${String(t.id)===String(cur.t?.id)?'selected':''}>Team ${Number(t.teamOrder||1)}</option>`).join('')
+ choices.innerHTML=(cur.b?.teams||[]).map(t=>`<button type="button" class="layout-team-choice ${(ls.activeTeamIds||[]).includes(String(t.id))?'active':''}" data-layout-team-choice="${esc(t.id)}">Team ${Number(t.teamOrder||1)}</button>`).join('');
+ choices.querySelectorAll('[data-layout-team-choice]').forEach(btn=>btn.onclick=()=>{
+   const id=String(btn.dataset.layoutTeamChoice),set=new Set((ls.activeTeamIds||[]).map(String));
+   if(set.has(id)&&set.size>1)set.delete(id);else set.add(id);
+   ls.activeTeamIds=[...set];
+   loadLayoutDraft();save();renderLayout()
+ })
 }
 function renderLayout(){
  hydrateTeams();
  renderLayoutSelectors();
  const cur=layoutCurrent(),ls=layoutStore();
  const wrap=$('#layoutMapWrap'),pins=$('#layoutPins'),read=$('#layoutSelectedRead'),note=$('#layoutTeamNote');
- if(!cur.l||!cur.t){
+ if(!cur.l||!cur.teams?.length){
    if(read)read.innerHTML='<b>No Teams available.</b> Configure Teams in Legion Board first.';
    if(pins)pins.innerHTML='';
    if(note)note.value='';
@@ -4255,10 +4272,11 @@ function renderLayout(){
    return
  }
  if(note&&document.activeElement!==note)note.value=layoutDraft.note||'';
- const selectedKey=layoutKey(cur.l.id,cur.t.id);
- if(pins)pins.innerHTML=layoutPinsHtml(layoutPinsForView(),selectedKey);
- const saved=layoutTeamData(cur.l.id,cur.t.id);
- if(read)read.innerHTML=`<b>${esc(cur.l.name)} • ${esc(cur.b?.label||'Building')} • Team ${Number(cur.t.teamOrder||1)}</b><br>${Number.isFinite(Number(layoutDraft.x))?`Position ${Number(layoutDraft.x).toFixed(1)}%, ${Number(layoutDraft.y).toFixed(1)}%`:'Tap the map to place this Team.'}${saved.saved?' • SAVED':''}`;
+ const selectedKeys=new Set((cur.teams||[]).map(t=>layoutKey(cur.l.id,t.id)));
+ if(pins)pins.innerHTML=layoutPinsHtml(layoutPinsForView(),[...selectedKeys][0]||'');
+ const savedCount=(cur.teams||[]).filter(t=>layoutTeamData(cur.l.id,t.id).saved).length;
+ const teamLabel=(cur.teams||[]).map(t=>`Team ${Number(t.teamOrder||1)}`).join(' + ');
+ if(read)read.innerHTML=`<b>${esc(cur.l.name)} • ${esc(cur.b?.label||'Building')} • ${esc(teamLabel)}</b><br>${Number.isFinite(Number(layoutDraft.x))?`Shared position ${Number(layoutDraft.x).toFixed(1)}%, ${Number(layoutDraft.y).toFixed(1)}%`:'Tap the map to place the selected Team(s).'}${savedCount?` • ${savedCount} SAVED`:''}`;
  ['selected','building','full'].forEach(v=>{
    const id=v==='selected'?'#layoutViewSelected':v==='building'?'#layoutViewBuilding':'#layoutViewFull';
    const btn=$(id);if(btn)btn.classList.toggle('active',ls.view===v)
@@ -4273,11 +4291,8 @@ function renderLayoutSavedList(){
 }
 function changeLayoutSelection(kind,value){
  const ls=layoutStore();
- if(kind==='legion'){
-   ls.activeLegionId=value;ls.activeBuildingId='';ls.activeTeamId=''
- }else if(kind==='building'){
-   ls.activeBuildingId=value;ls.activeTeamId=''
- }else if(kind==='team')ls.activeTeamId=value;
+ if(kind==='legion'){ls.activeLegionId=value;ls.activeBuildingId='';ls.activeTeamIds=[]}
+ else if(kind==='building'){ls.activeBuildingId=value;ls.activeTeamIds=[]}
  loadLayoutDraft();save();renderLayout()
 }
 function layoutPlaceFromEvent(e){
@@ -4291,16 +4306,18 @@ function layoutPlaceFromEvent(e){
 }
 function saveLayoutTeam(){
  const cur=layoutCurrent();
- if(!cur.l||!cur.t)return;
- if(!Number.isFinite(Number(layoutDraft.x))||!Number.isFinite(Number(layoutDraft.y))){nexaAlert('Tap the map to place this Team first.','FDT Layout');return}
- const d=layoutTeamData(cur.l.id,cur.t.id);
- d.x=Number(layoutDraft.x);d.y=Number(layoutDraft.y);d.note=String(layoutDraft.note||'').trim();d.saved=true;d.savedAt=new Date().toISOString();
- save();renderLayout();say(`${cur.b?.label||'Building'} • Team ${Number(cur.t.teamOrder||1)} saved.`)
+ if(!cur.l||!cur.teams?.length)return;
+ if(!Number.isFinite(Number(layoutDraft.x))||!Number.isFinite(Number(layoutDraft.y))){nexaAlert('Tap the map to place the selected Team(s) first.','FDT Layout');return}
+ const now=new Date().toISOString();
+ cur.teams.forEach(t=>{const d=layoutTeamData(cur.l.id,t.id);d.x=Number(layoutDraft.x);d.y=Number(layoutDraft.y);d.note=String(layoutDraft.note||'').trim();d.saved=true;d.savedAt=now});
+ save();renderLayout();
+ say(`${cur.b?.label||'Building'} • ${cur.teams.map(t=>`Team ${Number(t.teamOrder||1)}`).join(' + ')} saved.`)
 }
 async function clearLayoutTeam(){
- const cur=layoutCurrent();if(!cur.l||!cur.t)return;
- if(!await nexaConfirm(`Clear ${cur.b?.label||'Building'} • Team ${Number(cur.t.teamOrder||1)} position and note?`,'FDT Layout'))return;
- const d=layoutTeamData(cur.l.id,cur.t.id);d.x=null;d.y=null;d.note='';d.saved=false;d.savedAt='';
+ const cur=layoutCurrent();if(!cur.l||!cur.teams?.length)return;
+ const label=cur.teams.map(t=>`Team ${Number(t.teamOrder||1)}`).join(' + ');
+ if(!await nexaConfirm(`Clear ${cur.b?.label||'Building'} • ${label} position and note?`,'FDT Layout'))return;
+ cur.teams.forEach(t=>{const d=layoutTeamData(cur.l.id,t.id);d.x=null;d.y=null;d.note='';d.saved=false;d.savedAt=''});
  layoutDraft={x:null,y:null,note:''};save();renderLayout()
 }
 function layoutExportScope(scope){
@@ -4310,8 +4327,10 @@ function layoutExportScope(scope){
    if(!cur.l||!cur.b)return {title:'FDT Building Layout',items:[]};
    return {title:`${cur.b.label} Layout`,items:all.filter(x=>String(x.l.id)===String(cur.l.id)&&String(x.b.id)===String(cur.b.id))}
  }
- if(!cur.l||!cur.t)return {title:'FDT Team Layout',items:[]};
- return {title:`${cur.b?.label||'Building'} • Team ${Number(cur.t.teamOrder||1)}`,items:all.filter(x=>String(x.l.id)===String(cur.l.id)&&String(x.t.id)===String(cur.t.id))}
+ if(!cur.l||!cur.teams?.length)return {title:'FDT Team Layout',items:[]};
+ const ids=new Set(cur.teams.map(t=>String(t.id)));
+ const label=cur.teams.map(t=>`Team ${Number(t.teamOrder||1)}`).join(' + ');
+ return {title:`${cur.b?.label||'Building'} • ${label}`,items:all.filter(x=>String(x.l.id)===String(cur.l.id)&&ids.has(String(x.t.id)))}
 }
 function layoutExportHtml(scope){
  const data=layoutExportScope(scope);
@@ -4367,7 +4386,6 @@ function wireLayout(){
  loadLayoutDraft();
  $('#layoutLegion').onchange=e=>changeLayoutSelection('legion',e.target.value);
  $('#layoutBuilding').onchange=e=>changeLayoutSelection('building',e.target.value);
- $('#layoutTeam').onchange=e=>changeLayoutSelection('team',e.target.value);
  $('#layoutMapWrap').onclick=layoutPlaceFromEvent;
  $('#layoutTeamNote').oninput=e=>{layoutDraft.note=e.target.value};
  $('#layoutSaveTeam').onclick=saveLayoutTeam;

@@ -2716,11 +2716,64 @@ section.panel{position:relative;z-index:1}
   .layout-pin>span{font-size:9px!important}
 }
 
+
+/* V2.10.4 — Safari-safe live pins: same geometry in app and exports */
+.layout-pin{
+  min-width:58px!important;
+  width:auto!important;
+  height:38px!important;
+  min-height:38px!important;
+  padding:0 11px!important;
+  border-radius:18px!important;
+  transform:translate(-50%,-100%)!important;
+  border:3px solid var(--pc,#9b78ff)!important;
+  background:rgba(5,10,23,.62)!important;
+  color:#fff!important;
+  box-shadow:0 5px 14px rgba(0,0,0,.42)!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+  overflow:visible!important;
+}
+.layout-pin::after{
+  content:""!important;
+  position:absolute!important;
+  left:50%!important;
+  bottom:-9px!important;
+  width:14px!important;
+  height:14px!important;
+  margin-left:-8px!important;
+  background:rgba(5,10,23,.62)!important;
+  border-right:3px solid var(--pc,#9b78ff)!important;
+  border-bottom:3px solid var(--pc,#9b78ff)!important;
+  transform:rotate(45deg)!important;
+  border-radius:0 0 3px 0!important;
+  box-sizing:border-box!important;
+}
+.layout-pin>span{
+  transform:none!important;
+  display:block!important;
+  position:relative!important;
+  z-index:2!important;
+  font-size:11px!important;
+  line-height:1!important;
+  font-weight:1000!important;
+  letter-spacing:.025em!important;
+  white-space:nowrap!important;
+  text-shadow:0 1px 5px rgba(0,0,0,.85)!important;
+}
+.layout-pin.selected{
+  box-shadow:0 0 0 3px rgba(72,221,255,.28),0 5px 14px rgba(0,0,0,.42)!important;
+}
+@media(max-width:620px){
+  .layout-pin{min-width:54px!important;height:36px!important;min-height:36px!important;padding:0 10px!important}
+  .layout-pin>span{font-size:10px!important}
+}
+
 </style>
 </head>
 <body>
 <main class="sh">
-<!-- NEXA FDT OPERATIONS V2.10.3 • OUTLINE PINS + SAFARI READABILITY -->
+<!-- NEXA FDT OPERATIONS V2.10.4 • SAFARI-SAFE OUTLINE PINS + CLEAR SPIRE LABELS -->
 <div class="top">
   <a class="round" href="index.html" aria-label="Back">‹</a>
   <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div><div class="autosave">AUTOSAVE • SAVED</div></div>
@@ -4318,8 +4371,14 @@ function loadLayoutDraft(){
  layoutDraft={x:Number.isFinite(Number(d.x))?Number(d.x):null,y:Number.isFinite(Number(d.y))?Number(d.y):null,note:String(d.note||'')}
 }
 function layoutPinLabel(l,b,t){
- const slot=focusTypeKey(t);
- const prefix=slot==='capital'?'CAP':slot==='spire_a'?'SA':slot==='spire_b'?'SB':slot==='spire_c'?'SC':slot==='spire_d'?'SD':String(b?.label||'T').replace(/\\s+/g,'').slice(0,3).toUpperCase();
+ const label=String(b?.label||'').trim();
+ let prefix='T';
+ if(/capital/i.test(label)) prefix='CAP';
+ else {
+   const m=label.match(/spire\s*([a-d])/i);
+   if(m) prefix=`S${m[1].toUpperCase()}`;
+   else prefix=label.replace(/\s+/g,'').slice(0,3).toUpperCase()||'T';
+ }
  return `${prefix}-T${Number(t.teamOrder||1)}`
 }
 function layoutAllSaved(){

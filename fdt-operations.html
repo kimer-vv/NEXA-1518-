@@ -2770,26 +2770,20 @@ section.panel{position:relative;z-index:1}
 }
 
 
-/* V2.10.5 — export uses the exact same live-map CSS geometry as Safari */
-.layout-export-stage .layout-export-map{
-  flex:none!important;
-  align-self:flex-start!important;
-}
-.layout-export-stage .layout-export-map>img{
+
+/* V2.10.6 — exported map is a direct capture of the live Safari map */
+.layout-export-map>img{
+  display:block!important;
   width:100%!important;
   height:auto!important;
-  display:block!important;
-}
-.layout-export-stage .layout-pins{
-  position:absolute!important;
-  inset:0!important;
+  max-width:100%!important;
 }
 
 </style>
 </head>
 <body>
 <main class="sh">
-<!-- NEXA FDT OPERATIONS V2.10.5 • EXPORT MATCHES LIVE SAFARI MAP -->
+<!-- NEXA FDT OPERATIONS V2.10.6 • EXPORT CAPTURES EXACT LIVE MAP -->
 <div class="top">
   <a class="round" href="index.html" aria-label="Back">‹</a>
   <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div><div class="autosave">AUTOSAVE • SAVED</div></div>
@@ -4517,46 +4511,78 @@ function layoutExportScope(scope){
  const label=cur.teams.map(t=>`Team ${Number(t.teamOrder||1)}`).join(' + ');
  return {title:`${cur.b?.label||'Building'} • ${label}`,items:all.filter(x=>String(x.l.id)===String(cur.l.id)&&ids.has(String(x.t.id)))}
 }
-function layoutExportHtml(scope){
+function layoutExportHtml(scope,mapImageSrc=''){
  const data=layoutExportScope(scope);
  return `<div class="layout-export-card">
    <div class="layout-export-head"><small>NEXA • FDT LAYOUT</small><h2>${esc(data.title)}</h2><div class="tiny muted">${data.items.length} saved Team${data.items.length===1?'':'s'}</div></div>
-   <div class="layout-export-map"><img src="fdt-layout-map.jpg" alt=""><div class="layout-pins">${layoutPinsHtml(data.items)}</div></div>
+   <div class="layout-export-map">${mapImageSrc
+     ? `<img src="${mapImageSrc}" alt="FDT Layout Map">`
+     : `<img src="fdt-layout-map.jpg" alt=""><div class="layout-pins">${layoutPinsHtml(data.items)}</div>`}
+   </div>
    <div class="layout-export-notes">${data.items.map(({l,b,t,d})=>`<div class="layout-export-note" data-empty-note="${d.note?0:1}" style="--lc:${esc(b?.color||l.color||'#9b78ff')}"><b>${esc(l.name)} • ${esc(b?.label||'Building')} • Team ${Number(t.teamOrder||1)}</b>${d.note?`<p>${esc(d.note)}</p>`:''}</div>`).join('')}</div>
  </div>`
+}
+async function captureExactLiveLayoutMap(scope){
+ const ls=layoutStore();
+ const previousView=ls.view;
+ const previousScrollY=window.scrollY;
+ try{
+   ls.view=scope==='full'?'full':scope==='building'?'building':'selected';
+   renderLayout();
+   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>setTimeout(r,100))));
+   const live=$('#layoutMapWrap');
+   if(!live)throw new Error('Live FDT map could not be found.');
+   await waitForExportImages(live);
+   const canvas=await html2canvas(live,{
+     backgroundColor:'#030711',
+     scale:2,
+     useCORS:true,
+     logging:false,
+     scrollX:0,
+     scrollY:0,
+     windowWidth:document.documentElement.clientWidth,
+     windowHeight:document.documentElement.clientHeight
+   });
+   return canvas.toDataURL('image/png',1);
+ } finally{
+   ls.view=previousView;
+   renderLayout();
+   requestAnimationFrame(()=>window.scrollTo({top:previousScrollY,left:0,behavior:'auto'}))
+ }
 }
 async function exportLayout(scope){
  const data=layoutExportScope(scope);
  if(!data.items.length){await nexaAlert('Save at least one Team position for this view first.','FDT Layout');return}
- const stage=document.createElement('div');
- stage.className='layout-export-stage';
- stage.innerHTML=layoutExportHtml(scope);
- document.body.appendChild(stage);
+ let stage=null;
  try{
-   // Match the exact live Safari map geometry instead of reflowing the export at 900px.
-   // html2canvas scale provides resolution; CSS dimensions stay identical to what the user sees.
-   const liveWrap=$('#layoutMapWrap');
-   const liveWidth=Math.max(280,Math.round(liveWrap?.getBoundingClientRect?.().width||0));
-   const exportMap=stage.querySelector('.layout-export-map');
-   const exportCard=stage.querySelector('.layout-export-card');
-   if(liveWidth&&exportMap&&exportCard){
-     exportMap.style.width=`${liveWidth}px`;
-     exportMap.style.maxWidth='none';
-     exportCard.style.width=`${liveWidth+36}px`;
-     exportCard.style.maxWidth='none';
-     stage.style.width=`${liveWidth+84}px`;
-     stage.style.maxWidth='none';
-   }
-   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>setTimeout(r,120))));
+   // Capture the SAME live Safari map DOM first.
+   // Export uses this rasterized map, so pin geometry/position cannot reflow differently.
+   const exactMapImage=await captureExactLiveLayoutMap(scope);
+
+   stage=document.createElement('div');
+   stage.className='layout-export-stage';
+   stage.innerHTML=layoutExportHtml(scope,exactMapImage);
+   document.body.appendChild(stage);
+
+   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>setTimeout(r,100))));
    await waitForExportImages(stage);
+
    const card=stage.querySelector('.layout-export-card');
-   const canvas=await html2canvas(card,{backgroundColor:'#050916',scale:2,useCORS:true,logging:false});
+   const canvas=await html2canvas(card,{
+     backgroundColor:'#050916',
+     scale:2,
+     useCORS:true,
+     logging:false
+   });
    const blob=await new Promise(r=>canvas.toBlob(r,'image/png',.95));
    if(!blob)throw new Error('Could not create Layout image.');
    const safe=data.title.replace(/[^a-z0-9]+/gi,'_').replace(/^_|_$/g,'');
    await nexaExportFile(blob,`${safe||'FDT_Layout'}.png`)
- }catch(e){await nexaAlert(e?.message||'Could not export Layout.','FDT Layout')}
- finally{stage.remove()}
+ }catch(e){
+   await nexaAlert(e?.message||'Could not export Layout.','FDT Layout')
+ }finally{
+   if(stage)stage.remove()
+ }
 }
 function layoutSnapshot(){
  const items=layoutAllSaved().map(({l,b,t,d})=>({

@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • FDT Battle Plan</title>
-<!-- NEXA FDT PUBLIC BATTLE PLAN V2.11.2 • Native SvS-style PDF -->
+<!-- NEXA FDT PUBLIC BATTLE PLAN V2.11.3 • Native SvS-style PDF -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -2952,6 +2952,19 @@ section.panel{position:relative;z-index:1}
 .public-pdf-stage .fdt-bp-joiner-table{overflow:visible!important}
 .public-pdf-stage .fdt-bp-role-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 @media(max-width:620px){.public-shell{padding:14px 10px 60px}.public-toolbar .btn{flex:1 1 auto;font-size:12px}.public-pdf-stage .fdt-bp-doc{font-size:14px}}
+
+/* V2.11.3 — real assigned hero portraits/rarity in published snapshot */
+.fdt-bp-joiner-row .heroes{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.fdt-bp-hero-tag{display:inline-flex;align-items:center;gap:5px;min-width:0;font-weight:900}
+.fdt-bp-hero-tag img{width:25px;height:25px;object-fit:cover;border-radius:6px;border:2px solid #9aa6bf;background:#080e1e;flex:0 0 auto}
+.fdt-bp-hero-tag b{font-size:11px;white-space:normal;overflow-wrap:anywhere}
+.fdt-bp-hero-tag.rarity-legendary img{border-color:#e2aa31}
+.fdt-bp-hero-tag.rarity-epic img{border-color:#a869df}
+.fdt-bp-hero-tag.rarity-rare img{border-color:#42a8ed}
+.fdt-bp-hero-tag.rarity-legendary b{color:#ffd260!important}
+.fdt-bp-hero-tag.rarity-epic b{color:#c78bff!important}
+.fdt-bp-hero-tag.rarity-rare b{color:#68c9ff!important}
+
 </style></head><body>
 <main class="public-shell">
  <div class="public-toolbar"><a href="fdt-operations.html" class="btn">← Battle Plan</a><button type="button" id="publicDownloadPdf" class="btn violet" disabled>Download PDF</button></div>
@@ -2982,7 +2995,7 @@ async function readyImages(scope){
  await Promise.all(images.map(img=>img.complete?Promise.resolve():new Promise(resolve=>{img.onload=resolve;img.onerror=resolve;setTimeout(resolve,6500)})));
 }
 
-/* FDT V2.11.2 — native, paginated PDF document, independent of online page CSS */
+/* FDT V2.11.3 — native, paginated PDF document, independent of online page CSS */
 async function fdtNativePlanPdf(source,title){
  if(!window.jspdf?.jsPDF)throw new Error('PDF engine is still loading. Please refresh.');
  if(!source)throw new Error('Battle Plan is not ready.');
@@ -3029,14 +3042,54 @@ async function fdtNativePlanPdf(source,title){
    font(9,true,K.muted);pdf.text(clean(label).toUpperCase(),M+13,y+2);
    font(11,true,K.ink);pdf.text(lines,M+13,y+19);y+=h+1;
  };
+
+ const heroHue=node=>{const classes=String(node?.className||'')+' '+String(node?.querySelector('b')?.className||'');return classes.includes('legendary')?'#b47705':classes.includes('epic')?'#8541bd':classes.includes('rare')?'#1971b9':'#475569'};
+ const heroInfo=node=>({name:clean(node?.querySelector('b')?.textContent||node?.textContent||''),col:heroHue(node),img:node?.querySelector('img')||null});
+ const portraitCache=new WeakMap();
+ const portrait=img=>{
+   if(!img||!img.complete||!img.naturalWidth||!img.naturalHeight)return null;
+   if(portraitCache.has(img))return portraitCache.get(img);
+   let result=null;try{const cv=document.createElement('canvas');cv.width=96;cv.height=96;const cx=cv.getContext('2d');const side=Math.min(img.naturalWidth,img.naturalHeight);cx.drawImage(img,(img.naturalWidth-side)/2,(img.naturalHeight-side)/2,side,side,0,0,96,96);result=cv.toDataURL('image/jpeg',.88)}catch(err){console.warn('[FDT PDF] Hero image not available',err)}
+   portraitCache.set(img,result);return result;
+ };
+ const heroRow=(label,nodes,rowY,accent=K.green)=>{
+   const h=38;paint('#f8fafc','fill');paint('#e0e7ef','line');pdf.roundedRect(M,rowY,W,h,5,5,'FD');
+   paint(accent,'fill');pdf.roundedRect(M,rowY,4,h,2,2,'F');font(8.3,true,accent);pdf.text(label,M+11,rowY+14);
+   let x=M+107;const all=nodes.map(heroInfo).filter(h=>h.name);if(!all.length){font(9.6,false,K.muted);pdf.text('—',x,rowY+22);return};
+   const per=(W-115)/all.length;
+   for(let i=0;i<all.length;i++){
+     const item=all[i],xx=x+i*per,square=26,photo=portrait(item.img);paint(item.col,'line');pdf.setLineWidth(1.4);paint('#f4f6fa','fill');pdf.roundedRect(xx,rowY+6,square,square,4,4,'FD');
+     if(photo){try{pdf.addImage(photo,'JPEG',xx+1.5,rowY+7.5,square-3,square-3,undefined,'FAST')}catch(_){}}
+     else{font(12,true,item.col);pdf.text(item.name.slice(0,1).toUpperCase(),xx+8,rowY+23)}
+     font(10.8,true,item.col);const lines=pdf.splitTextToSize(item.name,Math.max(25,per-square-8)).slice(0,2);pdf.text(lines,xx+square+5,rowY+18);
+   }
+ };
+ const playerBlock=(row,accent)=>{
+   const cells=[...row.children],player=clean(cells[0]?.textContent)||'Player',assigned=!!cells[1]&&!!cells[2];
+   const blockH=assigned?102:35;need(blockH+8);
+   paint('#f1f5f9','fill');pdf.roundedRect(M,y-9,W,25,6,6,'F');paint(accent,'fill');pdf.roundedRect(M,y-9,4,25,2,2,'F');font(12,true,K.ink);pdf.text(player,M+12,y+7,{maxWidth:W-25});y+=23;
+   if(assigned){heroRow('GARRISON', [...cells[1].querySelectorAll('.fdt-bp-hero-tag')],y,K.green);y+=40;heroRow('MIA RALLY',[...cells[2].querySelectorAll('.fdt-bp-hero-tag')],y,'#7555bc');y+=43}
+   else y+=4;
+ };
+ const ratioBlock=(ratio,accent)=>{
+   if(!ratio.length)return;need(85);font(10,true,K.muted);pdf.text('FORMATIONS',M,y);y+=13;
+   const gap=10,w=(W-gap)/Math.max(1,ratio.length),h=64;
+   ratio.forEach((r,i)=>{const x=M+i*(w+gap),g=r.classList.contains('g'),col=g?'#168a5b':'#7555bc';pdf.setFillColor(...tint(col,.87));paint(col,'line');pdf.setLineWidth(1.5);pdf.roundedRect(x,y,w,h,7,7,'FD');font(10,true,col);pdf.text((g?'* GARRISON':'* MIA RALLY'),x+12,y+18);font(21,true,g?'#086a46':'#52389a');pdf.text(clean(r.querySelector('strong')?.textContent)||'—',x+12,y+46,{maxWidth:w-20})});y+=h+14;
+ };
+ const drawHeroPool=(pool,accent)=>{
+   const heroes=[...pool.querySelectorAll('.fdt-bp-hero')].map(heroInfo).filter(h=>h.name);
+   if(!heroes.length)return;need(56);font(9.5,true,K.muted);pdf.text('SHARED HERO POOL',M,y);y+=12;
+   const cols=4,gap=8,w=(W-gap*(cols-1))/cols,h=47;
+   heroes.forEach((item,i)=>{if(i%cols===0)need(h+9);const xx=M+(i%cols)*(w+gap),yy=y;paint('#f8fafc','fill');paint('#e1e6ef','line');pdf.roundedRect(xx,yy,w,h,6,6,'FD');const photo=portrait(item.img);paint(item.col,'line');pdf.roundedRect(xx+6,yy+8,30,30,5,5,'S');if(photo){try{pdf.addImage(photo,'JPEG',xx+7,yy+9,28,28,undefined,'FAST')}catch(_){}}else{font(12,true,item.col);pdf.text(item.name.slice(0,1),xx+15,yy+27)}font(10.8,true,item.col);pdf.text(item.name,xx+41,yy+27,{maxWidth:w-46});if(i%cols===cols-1||i===heroes.length-1)y+=h+6});y+=5;
+ };
  const sectionLabel=(el,sel,fallback)=>clean(el.querySelector(sel)?.textContent)||fallback;
  // Intro and notes are authored natively: no browser wallpaper can bleed into the PDF.
- font(9,true,K.purple);pdf.text('NEXA  /  FDT BATTLE PLAN',M,y);y+=33;
- font(25,true,K.ink);for(const l of pdf.splitTextToSize(clean(title)||'FDT Battle Plan',W)){need(34);pdf.text(l,M,y);y+=31}y+=3;
+ font(12,true,K.purple);pdf.text('NEXA  /  FDT BATTLE PLAN',M,y);y+=39;
+ font(32,true,K.ink);for(const l of pdf.splitTextToSize(clean(title)||'FDT Battle Plan',W)){need(39);pdf.text(l,M,y);y+=38}y+=9;
  const meta=[...source.querySelectorAll('.fdt-bp-pill')].map(n=>clean(n.textContent)).filter(Boolean);
- if(meta.length){paragraph(meta.join('    |    '),{size:9,lh:13,col:K.muted});y+=6}
+ if(meta.length){paragraph(meta.join('    |    '),{size:11,lh:17,col:K.muted,bold:true});y+=12}
  const notes=source.querySelector('.fdt-bp-notes');heading('Important Notes');
- if(notes){const clone=notes.cloneNode(true);clone.querySelectorAll('strong').forEach(n=>n.remove());const raw=clone.innerText||clone.textContent||'';if(raw.trim())paragraph(raw,{size:11.5,lh:17});else paragraph('No general notes provided.',{size:10,col:K.muted});}else paragraph('No general notes provided.',{size:10,col:K.muted});
+ if(notes){const clone=notes.cloneNode(true);clone.querySelectorAll('strong').forEach(n=>n.remove());const raw=clone.innerText||clone.textContent||'';if(raw.trim())paragraph(raw,{size:14,lh:22});else paragraph('No general notes provided.',{size:10,col:K.muted});}else paragraph('No general notes provided.',{size:10,col:K.muted});
  // Map is an isolated inserted image, as in SvS; native PDF page stays solid white.
  const layout=source.querySelector('.fdt-bp-layout');
  if(layout){heading('FDT Layout',true);const img=layout.querySelector('.fdt-bp-layout-map img');
@@ -3059,15 +3112,15 @@ async function fdtNativePlanPdf(source,title){
    pets.querySelectorAll('.fdt-bp-pet-legion').forEach(leg=>{
      sub(sectionLabel(leg,':scope > h4','Legion'),cs(leg,'--lc'),19);
      leg.querySelectorAll('.fdt-bp-pet-building').forEach(build=>{
-       sub(sectionLabel(build,':scope > h5','Building'),cs(build,'--bc'),12);
+       sub(sectionLabel(build,':scope > h5','Building'),cs(build,'--bc'),14);
        build.querySelectorAll('.fdt-bp-pet-team').forEach(team=>{
-         const teamCol=cs(team,'--tc');sub(sectionLabel(team,':scope > b','Team'),teamCol,12);
-         const cells=[...team.querySelectorAll('.fdt-bp-pet-cell')];const gap=6,cw=(W-gap*4)/5,ch=91;
+         const teamCol=cs(team,'--tc');sub(sectionLabel(team,':scope > b','Team'),teamCol,15);
+         const cells=[...team.querySelectorAll('.fdt-bp-pet-cell')];const gap=7,cw=(W-gap*4)/5,ch=104;
          for(let start=0;start<cells.length;start+=5){need(ch+17);cells.slice(start,start+5).forEach((cell,i)=>{
            const xx=M+i*(cw+gap);pdf.setFillColor(...tint(teamCol,.92));paint(teamCol,'line');pdf.setLineWidth(.7);pdf.roundedRect(xx,y-9,cw,ch,6,6,'FD');
-           txt(cell.querySelector('strong')?.textContent,xx+6,y+5,cw-12,9,true,K.muted,11);
+           txt(cell.querySelector('strong')?.textContent,xx+7,y+6,cw-14,10.8,true,K.ink,13);
            const names=[...(cell.querySelector('span')?.childNodes||[])].map(n=>clean(n.textContent)).filter(Boolean);
-           const body=names.join(' ')||'—';font(8.4,true,teamCol);const lines=pdf.splitTextToSize(body,cw-12).slice(0,7);pdf.text(lines,xx+6,y+23);
+           const body=names.join(' ')||'—';font(10.6,true,K.ink);const lines=pdf.splitTextToSize(body,cw-14).slice(0,7);pdf.text(lines,xx+7,y+27);
          });y+=ch+15}
          y+=3;
        });y+=9;
@@ -3082,20 +3135,17 @@ async function fdtNativePlanPdf(source,title){
      for(const role of roleCards)card(role.querySelector('b')?.textContent||'Role',role.querySelector('span')?.textContent||'—',lc);
      leg.querySelectorAll(':scope > .fdt-bp-building').forEach(build=>{
        const bc=cs(build,'--bc');sub(sectionLabel(build,'.fdt-bp-building-head b','Building'),bc,15);
-       const pool=build.querySelector('.fdt-bp-hero-pool');if(pool){const names=[...pool.querySelectorAll('.fdt-bp-hero b')].map(n=>clean(n.textContent));card('Shared Hero Pool',names.join('  •  ')||'—',bc)}
+       const pool=build.querySelector('.fdt-bp-hero-pool');if(pool)drawHeroPool(pool,bc)
        build.querySelectorAll(':scope > .fdt-bp-team').forEach(team=>{
          const label=team.querySelector('.fdt-bp-team-title')?.textContent;if(!label)return;
          sub(label,cs(team,'--tc',bc),13);
-         const ratio=[...team.querySelectorAll('.fdt-bp-ratio')].map(n=>clean(n.textContent)).filter(Boolean);
-         if(ratio.length)card('Troop formation',ratio.join('    |    '),bc);
+         const ratio=[...team.querySelectorAll('.fdt-bp-ratio')];
+         ratioBlock(ratio,bc);
          const rows=[...team.querySelectorAll('.fdt-bp-joiner-row')];
          if(!rows.length){paragraph('No Joiners assigned.',{size:9.5,col:K.muted});}
          else{
-           need(32);font(9,true,K.muted);pdf.text('JOINERS / HEROES',M,y);y+=17;
-           for(const row of rows){
-             const cells=[...row.children].map(n=>clean(n.textContent)).filter(Boolean);
-             card(cells[0]||'Player',cells.slice(1).join('  |  ')||'Assigned Joiner',bc);
-           }
+           need(32);font(10,true,K.muted);pdf.text('JOINERS / HEROES',M,y);y+=18;
+           for(const row of rows)playerBlock(row,bc);
          }
          y+=7;
        });y+=9;

@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • FDT Battle Plan</title>
+<!-- NEXA FDT PUBLIC BATTLE PLAN V2.11.2 • Native SvS-style PDF -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -2980,43 +2981,154 @@ async function readyImages(scope){
  const images=[...scope.querySelectorAll('img')];
  await Promise.all(images.map(img=>img.complete?Promise.resolve():new Promise(resolve=>{img.onload=resolve;img.onerror=resolve;setTimeout(resolve,6500)})));
 }
+
+/* FDT V2.11.2 — native, paginated PDF document, independent of online page CSS */
+async function fdtNativePlanPdf(source,title){
+ if(!window.jspdf?.jsPDF)throw new Error('PDF engine is still loading. Please refresh.');
+ if(!source)throw new Error('Battle Plan is not ready.');
+ const pdf=new window.jspdf.jsPDF({orientation:'portrait',unit:'pt',format:'a4',compress:true});
+ const PW=pdf.internal.pageSize.getWidth(),PH=pdf.internal.pageSize.getHeight(),M=37,W=PW-M*2,BOT=PH-39;
+ const K={ink:'#172033',muted:'#59677b',line:'#dce3ed',purple:'#7555bc',soft:'#f4f6fa',gold:'#a86e0a',green:'#187958'};
+ const rgb=v=>{const h=String(v||'').trim().match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);if(!h)return [117,85,188];let x=h[1];if(x.length===3)x=x.split('').map(c=>c+c).join('');return [0,2,4].map(i=>parseInt(x.slice(i,i+2),16))};
+ const paint=(hex,mode='text')=>{const c=rgb(hex);if(mode==='fill')pdf.setFillColor(...c);else if(mode==='line')pdf.setDrawColor(...c);else pdf.setTextColor(...c)};
+ const font=(sz=10,bold=false,col=K.ink)=>{pdf.setFont('helvetica',bold?'bold':'normal');pdf.setFontSize(sz);paint(col)};
+ const white=()=>{paint('#ffffff','fill');pdf.rect(0,0,PW,PH,'F')};
+ let y=M;white();
+ const page=()=>{pdf.addPage();white();y=M};
+ const need=(height=20)=>{if(y+height>BOT)page()};
+ const clean=s=>String(s||'').replace(/\s+/g,' ').trim().replace(/[\u{1F300}-\u{1FAFF}]/gu,'');
+ const tint=(col,k=.91)=>rgb(col).map(n=>Math.round(n*(1-k)+255*k));
+ const cs=(el,key,def=K.purple)=>{if(!el)return def;const c=el.style?.getPropertyValue(key)||getComputedStyle(el).getPropertyValue(key);return /^#[\da-f]{3}(?:[\da-f]{3})?$/i.test(c.trim())?c.trim():def};
+ const txt=(value,x,yy,width=W,size=10,bold=false,col=K.ink,line=13)=>{
+   const s=clean(value);if(!s)return yy;
+   font(size,bold,col);const lines=pdf.splitTextToSize(s,width);pdf.text(lines,x,yy);
+   return yy+Math.max(1,lines.length)*line;
+ };
+ const paragraph=(value,opts={})=>{
+   const s=String(value||'').trim();if(!s)return;
+   const size=opts.size||11,lh=opts.lh||16,indent=opts.indent||0,width=W-indent;
+   for(const line of s.split(/\n+/)){
+     if(!line.trim()){y+=5;continue}
+     font(size,!!opts.bold,opts.col||K.ink);
+     for(const part of pdf.splitTextToSize(clean(line),width)){
+       need(lh+5);font(size,!!opts.bold,opts.col||K.ink);pdf.text(part,M+indent,y);y+=lh;
+     }
+     y+=4;
+   }
+ };
+ const heading=(value,force=false)=>{
+   if(force&&y>M+15)page();need(65);y+=9;
+   font(17,true,K.ink);pdf.text(clean(value),M,y);
+   paint(K.line,'line');pdf.setLineWidth(.8);pdf.line(M,y+10,PW-M,y+10);y+=37;
+ };
+ const sub=(value,col=K.purple,size=15)=>{need(38);font(size,true,col);pdf.text(clean(value),M,y,{maxWidth:W});y+=24};
+ const bar=(col)=>{paint(col,'fill');pdf.roundedRect(M,y-12,4,17,2,2,'F')};
+ const card=(label,body,col=K.purple)=>{
+   const lines=pdf.splitTextToSize(clean(body)||'—',W-30),h=Math.max(42,25+lines.length*13);
+   need(h+8);paint(K.soft,'fill');paint(K.line,'line');pdf.roundedRect(M,y-12,W,h,7,7,'FD');bar(col);
+   font(9,true,K.muted);pdf.text(clean(label).toUpperCase(),M+13,y+2);
+   font(11,true,K.ink);pdf.text(lines,M+13,y+19);y+=h+1;
+ };
+ const sectionLabel=(el,sel,fallback)=>clean(el.querySelector(sel)?.textContent)||fallback;
+ // Intro and notes are authored natively: no browser wallpaper can bleed into the PDF.
+ font(9,true,K.purple);pdf.text('NEXA  /  FDT BATTLE PLAN',M,y);y+=33;
+ font(25,true,K.ink);for(const l of pdf.splitTextToSize(clean(title)||'FDT Battle Plan',W)){need(34);pdf.text(l,M,y);y+=31}y+=3;
+ const meta=[...source.querySelectorAll('.fdt-bp-pill')].map(n=>clean(n.textContent)).filter(Boolean);
+ if(meta.length){paragraph(meta.join('    |    '),{size:9,lh:13,col:K.muted});y+=6}
+ const notes=source.querySelector('.fdt-bp-notes');heading('Important Notes');
+ if(notes){const clone=notes.cloneNode(true);clone.querySelectorAll('strong').forEach(n=>n.remove());const raw=clone.innerText||clone.textContent||'';if(raw.trim())paragraph(raw,{size:11.5,lh:17});else paragraph('No general notes provided.',{size:10,col:K.muted});}else paragraph('No general notes provided.',{size:10,col:K.muted});
+ // Map is an isolated inserted image, as in SvS; native PDF page stays solid white.
+ const layout=source.querySelector('.fdt-bp-layout');
+ if(layout){heading('FDT Layout',true);const img=layout.querySelector('.fdt-bp-layout-map img');
+   if(img){if(!img.complete)await new Promise(resolve=>{img.addEventListener('load',resolve,{once:true});img.addEventListener('error',resolve,{once:true});setTimeout(resolve,7500)});
+     if(img.naturalWidth&&img.naturalHeight){
+       try{
+         const maxH=PH-2*M-28,scale=Math.min(W/img.naturalWidth,maxH/img.naturalHeight),iw=img.naturalWidth*scale,ih=img.naturalHeight*scale;
+         need(ih+15);paint('#071022','fill');pdf.roundedRect(M,y-7,W,ih+14,8,8,'F');
+         const canvas=document.createElement('canvas');canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;
+         canvas.getContext('2d').drawImage(img,0,0);const data=canvas.toDataURL('image/jpeg',.92);
+         pdf.addImage(data,'JPEG',M+(W-iw)/2,y,iw,ih,undefined,'FAST');y+=ih+22;
+       }catch(e){card('Map','Map image could not be embedded; view the Battle Plan online.',K.purple)}
+     }
+   }
+   layout.querySelectorAll('.fdt-bp-layout-note').forEach(n=>{if(n.dataset.emptyNote==='1')return;const a=n.querySelector('b')?.textContent||'Team';const d=n.querySelector('div')?.textContent||'';if(d.trim())card(a,d,cs(n,'--lc'))});
+ }
+ // Pet hour cards are generated in vector/text rather than rasterizing the online schedule.
+ const pets=source.querySelector('.fdt-bp-pets');
+ if(pets){heading('Whale Group & Pet Schedule',true);
+   pets.querySelectorAll('.fdt-bp-pet-legion').forEach(leg=>{
+     sub(sectionLabel(leg,':scope > h4','Legion'),cs(leg,'--lc'),19);
+     leg.querySelectorAll('.fdt-bp-pet-building').forEach(build=>{
+       sub(sectionLabel(build,':scope > h5','Building'),cs(build,'--bc'),12);
+       build.querySelectorAll('.fdt-bp-pet-team').forEach(team=>{
+         const teamCol=cs(team,'--tc');sub(sectionLabel(team,':scope > b','Team'),teamCol,12);
+         const cells=[...team.querySelectorAll('.fdt-bp-pet-cell')];const gap=6,cw=(W-gap*4)/5,ch=91;
+         for(let start=0;start<cells.length;start+=5){need(ch+17);cells.slice(start,start+5).forEach((cell,i)=>{
+           const xx=M+i*(cw+gap);pdf.setFillColor(...tint(teamCol,.92));paint(teamCol,'line');pdf.setLineWidth(.7);pdf.roundedRect(xx,y-9,cw,ch,6,6,'FD');
+           txt(cell.querySelector('strong')?.textContent,xx+6,y+5,cw-12,9,true,K.muted,11);
+           const names=[...(cell.querySelector('span')?.childNodes||[])].map(n=>clean(n.textContent)).filter(Boolean);
+           const body=names.join(' ')||'—';font(8.4,true,teamCol);const lines=pdf.splitTextToSize(body,cw-12).slice(0,7);pdf.text(lines,xx+6,y+23);
+         });y+=ch+15}
+         y+=3;
+       });y+=9;
+     });y+=11;
+   });
+ }
+ const board=[...source.querySelectorAll(':scope > section')].find(s=>s.querySelector(':scope > .fdt-bp-section-title')?.textContent.includes('Legion Board'));
+ if(board){heading('Legion Board & Team Assignments',true);
+   board.querySelectorAll('.fdt-bp-legion').forEach(leg=>{
+     const lc=cs(leg,'--lc');sub(sectionLabel(leg,'.fdt-bp-legion-head h3','Legion'),lc,20);
+     const roleCards=[...leg.querySelectorAll(':scope > .fdt-bp-role-grid .fdt-bp-role')];
+     for(const role of roleCards)card(role.querySelector('b')?.textContent||'Role',role.querySelector('span')?.textContent||'—',lc);
+     leg.querySelectorAll(':scope > .fdt-bp-building').forEach(build=>{
+       const bc=cs(build,'--bc');sub(sectionLabel(build,'.fdt-bp-building-head b','Building'),bc,15);
+       const pool=build.querySelector('.fdt-bp-hero-pool');if(pool){const names=[...pool.querySelectorAll('.fdt-bp-hero b')].map(n=>clean(n.textContent));card('Shared Hero Pool',names.join('  •  ')||'—',bc)}
+       build.querySelectorAll(':scope > .fdt-bp-team').forEach(team=>{
+         const label=team.querySelector('.fdt-bp-team-title')?.textContent;if(!label)return;
+         sub(label,cs(team,'--tc',bc),13);
+         const ratio=[...team.querySelectorAll('.fdt-bp-ratio')].map(n=>clean(n.textContent)).filter(Boolean);
+         if(ratio.length)card('Troop formation',ratio.join('    |    '),bc);
+         const rows=[...team.querySelectorAll('.fdt-bp-joiner-row')];
+         if(!rows.length){paragraph('No Joiners assigned.',{size:9.5,col:K.muted});}
+         else{
+           need(32);font(9,true,K.muted);pdf.text('JOINERS / HEROES',M,y);y+=17;
+           for(const row of rows){
+             const cells=[...row.children].map(n=>clean(n.textContent)).filter(Boolean);
+             card(cells[0]||'Player',cells.slice(1).join('  |  ')||'Assigned Joiner',bc);
+           }
+         }
+         y+=7;
+       });y+=9;
+     });y+=13;
+   });
+ }
+ const rein=source.querySelector('.fdt-bp-reinforcements');
+ if(rein){heading('Reinforcement Partners',true);
+   rein.querySelectorAll(':scope > .fdt-bp-building').forEach(leg=>{
+     const lc=cs(leg,'--bc');sub(sectionLabel(leg,'.fdt-bp-building-head b','Legion'),lc,17);
+     leg.querySelectorAll('.fdt-bp-pair').forEach(p=>card(p.querySelector('b')?.textContent||'Partner pair',p.querySelector('small')?.textContent||'Reinforce each other',lc));y+=8;
+   });
+ }
+ // Reserved white page footer, no repeated page wallpaper / images.
+ const total=pdf.internal.getNumberOfPages();for(let i=1;i<=total;i++){
+   pdf.setPage(i);font(8,false,K.muted);paint(K.line,'line');pdf.line(M,PH-29,PW-M,PH-29);
+   pdf.text('NEXA  •  FDT BATTLE PLAN',M,PH-17);pdf.text(`${i} / ${total}`,PW-M,PH-17,{align:'right'});
+ }
+ return pdf.output('blob');
+}
+
 async function downloadPdf(){
- const btn=document.getElementById('publicDownloadPdf');let stage=null;btn.disabled=true;btn.textContent='Preparing PDF…';
+ const btn=document.getElementById('publicDownloadPdf');btn.disabled=true;btn.textContent='Preparing PDF…';
  try{
-  if(!window.jspdf?.jsPDF||!window.html2canvas)throw new Error('PDF tools have not loaded yet. Refresh and try again.');
   const source=root.querySelector('.fdt-bp-doc');if(!source)throw new Error('Battle Plan not loaded.');
-  stage=document.createElement('div');stage.className='public-pdf-stage';stage.innerHTML=source.outerHTML;document.body.appendChild(stage);
-  await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-  await readyImages(stage);
-  const doc=stage.querySelector('.fdt-bp-doc');
-  const chunks=[doc.querySelector('.fdt-bp-head')];
-  for(const section of doc.querySelectorAll(':scope > section')){
-   const legions=section.querySelectorAll(':scope > .fdt-bp-pet-legion, :scope > .fdt-bp-legion');
-   if(legions.length){const heading=section.querySelector(':scope > .fdt-bp-section-title');if(heading)chunks.push(heading);chunks.push(...legions)}
-   else chunks.push(section);
-  }
-  const {jsPDF}=window.jspdf,pdf=new jsPDF({orientation:'portrait',unit:'pt',format:'a4',compress:true});
-  const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight(),margin=24,gap=10,usableW=pw-2*margin;
-  let y=margin,printed=false;
-  for(const chunk of chunks.filter(Boolean)){
-   const canvas=await window.html2canvas(chunk,{backgroundColor:'#071022',scale:1.5,useCORS:true,logging:false,windowWidth:900});
-   const per=usableW/canvas.width;let sy=0;
-   while(sy<canvas.height){
-    if(printed&&y>=ph-margin-24){pdf.addPage();y=margin}
-    const available=ph-margin-y;
-    const h=Math.max(1,Math.min(canvas.height-sy,Math.floor(available/per)));
-    const piece=document.createElement('canvas');piece.width=canvas.width;piece.height=h;
-    piece.getContext('2d').drawImage(canvas,0,sy,canvas.width,h,0,0,canvas.width,h);
-    pdf.addImage(piece.toDataURL('image/jpeg',.84),'JPEG',margin,y,usableW,h*per,undefined,'FAST');
-    y+=h*per;sy+=h;printed=true;
-    if(sy<canvas.height){pdf.addPage();y=margin}
-   }y+=gap;
-  }
+  await readyImages(source);
+  const blob=await fdtNativePlanPdf(source,plan?.title||'FDT Battle Plan');
   const filename=String(plan?.title||'FDT_Battle_Plan').replace(/[^a-z0-9_-]+/gi,'_').replace(/^_+|_+$/g,'')||'FDT_Battle_Plan';
-  const blob=pdf.output('blob');const name=filename+'.pdf';
-  if(navigator.canShare&&navigator.share&&navigator.canShare({files:[new File([blob],name,{type:'application/pdf'})]}))await navigator.share({files:[new File([blob],name,{type:'application/pdf'})],title:plan?.title||'FDT Battle Plan'});
-  else {const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000)}
- }catch(error){failPdf(error?.message||'Could not export PDF.')}finally{stage?.remove();btn.disabled=false;btn.textContent='Download PDF'}
+  const name=filename+'.pdf';
+  const file=new File([blob],name,{type:'application/pdf'});
+  if(navigator.canShare&&navigator.share&&navigator.canShare({files:[file]}))await navigator.share({files:[file],title:plan?.title||'FDT Battle Plan'});
+  else {const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000)}
+ }catch(error){if(error?.name!=='AbortError')failPdf(error?.message||'Could not export PDF.')}finally{btn.disabled=false;btn.textContent='Download PDF'}
 }
 function failPdf(message){const e=document.createElement('div');e.className='public-loader';e.textContent=message;root.prepend(e)}
 document.getElementById('publicDownloadPdf').addEventListener('click',downloadPdf);

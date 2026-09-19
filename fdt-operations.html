@@ -2783,7 +2783,7 @@ section.panel{position:relative;z-index:1}
 </head>
 <body>
 <main class="sh">
-<!-- NEXA FDT OPERATIONS V2.10.6 • EXPORT CAPTURES EXACT LIVE MAP -->
+<!-- NEXA FDT OPERATIONS V2.10.7 • CANVAS-PIN EXPORT LOCK -->
 <div class="top">
   <a class="round" href="index.html" aria-label="Back">‹</a>
   <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div><div class="autosave">AUTOSAVE • SAVED</div></div>
@@ -4522,41 +4522,119 @@ function layoutExportHtml(scope,mapImageSrc=''){
    <div class="layout-export-notes">${data.items.map(({l,b,t,d})=>`<div class="layout-export-note" data-empty-note="${d.note?0:1}" style="--lc:${esc(b?.color||l.color||'#9b78ff')}"><b>${esc(l.name)} • ${esc(b?.label||'Building')} • Team ${Number(t.teamOrder||1)}</b>${d.note?`<p>${esc(d.note)}</p>`:''}</div>`).join('')}</div>
  </div>`
 }
+function layoutHexToRgba(hex,alpha=1){
+ const s=String(hex||'').trim();
+ const m=s.match(/^#([0-9a-f]{6})$/i);
+ if(!m)return `rgba(155,120,255,${alpha})`;
+ const n=parseInt(m[1],16);
+ return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${alpha})`
+}
+function layoutRoundRect(ctx,x,y,w,h,r){
+ const rr=Math.min(r,w/2,h/2);
+ ctx.beginPath();
+ ctx.moveTo(x+rr,y);
+ ctx.arcTo(x+w,y,x+w,y+h,rr);
+ ctx.arcTo(x+w,y+h,x,y+h,rr);
+ ctx.arcTo(x,y+h,x,y,rr);
+ ctx.arcTo(x,y,x+w,y,rr);
+ ctx.closePath()
+}
 async function captureExactLiveLayoutMap(scope){
- const ls=layoutStore();
- const previousView=ls.view;
- const previousScrollY=window.scrollY;
- try{
-   ls.view=scope==='full'?'full':scope==='building'?'building':'selected';
-   renderLayout();
-   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>setTimeout(r,100))));
-   const live=$('#layoutMapWrap');
-   if(!live)throw new Error('Live FDT map could not be found.');
-   await waitForExportImages(live);
-   const canvas=await html2canvas(live,{
-     backgroundColor:'#030711',
-     scale:2,
-     useCORS:true,
-     logging:false,
-     scrollX:0,
-     scrollY:0,
-     windowWidth:document.documentElement.clientWidth,
-     windowHeight:document.documentElement.clientHeight
-   });
-   return canvas.toDataURL('image/png',1);
- } finally{
-   ls.view=previousView;
-   renderLayout();
-   requestAnimationFrame(()=>window.scrollTo({top:previousScrollY,left:0,behavior:'auto'}))
+ const data=layoutExportScope(scope);
+ const live=$('#layoutMapWrap');
+ const img=$('#layoutMapImage');
+ if(!live||!img)throw new Error('Live FDT map could not be found.');
+ await waitForExportImages(live);
+
+ const rect=img.getBoundingClientRect();
+ const cssW=Math.max(280,Math.round(rect.width));
+ const cssH=Math.max(180,Math.round(rect.height));
+ const dpr=2;
+
+ const canvas=document.createElement('canvas');
+ canvas.width=Math.round(cssW*dpr);
+ canvas.height=Math.round(cssH*dpr);
+ const ctx=canvas.getContext('2d');
+ ctx.scale(dpr,dpr);
+
+ // Draw the exact base map at the same CSS dimensions Safari is displaying.
+ ctx.drawImage(img,0,0,cssW,cssH);
+
+ const mobile=window.matchMedia?.('(max-width: 620px)')?.matches;
+ const bodyH=mobile?36:38;
+ const minW=mobile?54:58;
+ const padX=mobile?10:11;
+ const fontSize=mobile?10:11;
+ const tail=14;
+ const border=3;
+
+ ctx.textAlign='center';
+ ctx.textBaseline='middle';
+ ctx.font=`1000 ${fontSize}px Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+
+ for(const {l,b,t,d} of data.items){
+   const label=layoutPinLabel(l,b,t);
+   const color=b?.color||t?.color||l?.color||'#9b78ff';
+   const x=(Number(d.x)/100)*cssW;
+   const anchorY=(Number(d.y)/100)*cssH;
+   const measured=Math.ceil(ctx.measureText(label).width);
+   const bodyW=Math.max(minW,measured+(padX*2));
+   const bodyX=x-(bodyW/2);
+   const bodyY=anchorY-bodyH;
+
+   // Shadow
+   ctx.save();
+   ctx.shadowColor='rgba(0,0,0,.42)';
+   ctx.shadowBlur=14;
+   ctx.shadowOffsetY=5;
+   layoutRoundRect(ctx,bodyX,bodyY,bodyW,bodyH,18);
+   ctx.fillStyle='rgba(5,10,23,.62)';
+   ctx.fill();
+   ctx.restore();
+
+   // Body
+   layoutRoundRect(ctx,bodyX,bodyY,bodyW,bodyH,18);
+   ctx.fillStyle='rgba(5,10,23,.62)';
+   ctx.fill();
+   ctx.lineWidth=border;
+   ctx.strokeStyle=color;
+   ctx.stroke();
+
+   // Pointer/tip: same visual anchor as Safari's ::after.
+   ctx.save();
+   ctx.translate(x,anchorY+1);
+   ctx.rotate(Math.PI/4);
+   ctx.fillStyle='rgba(5,10,23,.62)';
+   ctx.strokeStyle=color;
+   ctx.lineWidth=border;
+   ctx.beginPath();
+   ctx.rect(-tail/2,-tail/2,tail,tail);
+   ctx.fill();
+   ctx.stroke();
+   ctx.restore();
+
+   // Repaint lower body edge over top half of the diamond to mimic CSS layering.
+   ctx.fillStyle='rgba(5,10,23,.62)';
+   ctx.fillRect(bodyX+border,bodyY+bodyH-border-1,bodyW-(border*2),border+2);
+
+   // Label
+   ctx.fillStyle='#fff';
+   ctx.shadowColor='rgba(0,0,0,.85)';
+   ctx.shadowBlur=5;
+   ctx.shadowOffsetY=1;
+   ctx.fillText(label,x,bodyY+(bodyH/2)+.5);
+   ctx.shadowColor='transparent';
  }
+
+ return canvas.toDataURL('image/png',1)
 }
 async function exportLayout(scope){
  const data=layoutExportScope(scope);
  if(!data.items.length){await nexaAlert('Save at least one Team position for this view first.','FDT Layout');return}
  let stage=null;
  try{
-   // Capture the SAME live Safari map DOM first.
-   // Export uses this rasterized map, so pin geometry/position cannot reflow differently.
+   // Render the export map directly to canvas from the SAME saved x/y percentages Safari uses.
+   // This bypasses html2canvas's DOM positioning for pins entirely.
    const exactMapImage=await captureExactLiveLayoutMap(scope);
 
    stage=document.createElement('div');

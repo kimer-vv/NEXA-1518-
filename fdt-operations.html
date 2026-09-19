@@ -2779,11 +2779,92 @@ section.panel{position:relative;z-index:1}
   max-width:100%!important;
 }
 
+
+/* V2.10.8 — compact uniform red pushpin. Exact point = stored left/top percentages.
+   Labels take the building color; the pin is the same red for everybody. */
+.layout-pin{
+  position:absolute!important;
+  width:24px!important;
+  min-width:24px!important;
+  max-width:24px!important;
+  height:32px!important;
+  min-height:32px!important;
+  max-height:32px!important;
+  padding:0!important;
+  display:block!important;
+  border:0!important;
+  border-radius:0!important;
+  background:none!important;
+  color:var(--pc,#9b78ff)!important;
+  box-shadow:none!important;
+  transform:translate(-50%,-100%)!important;
+  overflow:visible!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+}
+.layout-pin::before{
+  content:""!important;
+  position:absolute!important;
+  left:3px!important;
+  top:0!important;
+  width:18px!important;
+  height:18px!important;
+  box-sizing:border-box!important;
+  border-radius:50%!important;
+  border:1px solid rgba(255,240,240,.8)!important;
+  background:radial-gradient(circle at 32% 28%,#ffb5b7 0%,#f45260 39%,#d8233c 85%)!important;
+  box-shadow:0 2px 4px rgba(0,0,0,.43)!important;
+  transform:none!important;
+}
+.layout-pin::after{
+  content:""!important;
+  position:absolute!important;
+  left:10px!important;
+  top:16px!important;
+  bottom:auto!important;
+  width:4px!important;
+  height:16px!important;
+  margin:0!important;
+  box-sizing:border-box!important;
+  border:0!important;
+  border-radius:1px 1px 0 0!important;
+  background:linear-gradient(90deg,#a5aab5,#f4f5f8 48%,#838995)!important;
+  box-shadow:1px 1px 2px rgba(0,0,0,.52)!important;
+  transform:none!important;
+}
+.layout-pin>span{
+  position:absolute!important;
+  left:29px!important;
+  top:2px!important;
+  z-index:2!important;
+  display:block!important;
+  width:max-content!important;
+  max-width:none!important;
+  padding:0!important;
+  margin:0!important;
+  transform:none!important;
+  color:var(--pc,#9b78ff)!important;
+  font-size:12px!important;
+  line-height:16px!important;
+  font-weight:1000!important;
+  letter-spacing:.025em!important;
+  white-space:nowrap!important;
+  text-shadow:0 1px 2px #061020,1px 0 3px #061020,-1px 0 3px #061020,0 0 5px #061020!important;
+}
+.layout-pin.selected::before{
+  box-shadow:0 0 0 3px rgba(72,221,255,.42),0 2px 4px rgba(0,0,0,.43)!important;
+}
+.layout-pin.selected{box-shadow:none!important}
+@media(max-width:620px){
+  .layout-pin{width:24px!important;min-width:24px!important;height:32px!important;min-height:32px!important;padding:0!important}
+  .layout-pin>span{font-size:11px!important;line-height:16px!important}
+}
+
 </style>
 </head>
 <body>
 <main class="sh">
-<!-- NEXA FDT OPERATIONS V2.10.7 • CANVAS-PIN EXPORT LOCK -->
+<!-- NEXA FDT OPERATIONS V2.10.8 • UNIFORM RED PINS + BUILDING-COLOR LABELS -->
 <div class="top">
   <a class="round" href="index.html" aria-label="Back">‹</a>
   <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div><div class="autosave">AUTOSAVE • SAVED</div></div>
@@ -4557,73 +4638,47 @@ async function captureExactLiveLayoutMap(scope){
  const ctx=canvas.getContext('2d');
  ctx.scale(dpr,dpr);
 
- // Draw the exact base map at the same CSS dimensions Safari is displaying.
+ // Draw base map at the same CSS dimensions Safari is displaying.
  ctx.drawImage(img,0,0,cssW,cssH);
 
  const mobile=window.matchMedia?.('(max-width: 620px)')?.matches;
- const bodyH=mobile?36:38;
- const minW=mobile?54:58;
- const padX=mobile?10:11;
- const fontSize=mobile?10:11;
- const tail=14;
- const border=3;
-
- ctx.textAlign='center';
+ const labelSize=mobile?11:12;
+ ctx.textAlign='left';
  ctx.textBaseline='middle';
- ctx.font=`1000 ${fontSize}px Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+ ctx.font=`1000 ${labelSize}px Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
 
  for(const {l,b,t,d} of data.items){
    const label=layoutPinLabel(l,b,t);
    const color=b?.color||t?.color||l?.color||'#9b78ff';
+   // x/y is the actual stem TIP; do not shift saved coordinates.
    const x=(Number(d.x)/100)*cssW;
-   const anchorY=(Number(d.y)/100)*cssH;
-   const measured=Math.ceil(ctx.measureText(label).width);
-   const bodyW=Math.max(minW,measured+(padX*2));
-   const bodyX=x-(bodyW/2);
-   const bodyY=anchorY-bodyH;
+   const y=(Number(d.y)/100)*cssH;
+   const pinTop=y-32;
 
-   // Shadow
+   // Uniform red pushpin head (18 px diameter, centered on x).
    ctx.save();
-   ctx.shadowColor='rgba(0,0,0,.42)';
-   ctx.shadowBlur=14;
-   ctx.shadowOffsetY=5;
-   layoutRoundRect(ctx,bodyX,bodyY,bodyW,bodyH,18);
-   ctx.fillStyle='rgba(5,10,23,.62)';
-   ctx.fill();
+   ctx.shadowColor='rgba(0,0,0,.43)';
+   ctx.shadowBlur=4;
+   ctx.shadowOffsetY=2;
+   const red=ctx.createRadialGradient(x-4,pinTop+5,1,x,pinTop+9,12);
+   red.addColorStop(0,'#ffb5b7');red.addColorStop(.39,'#f45260');red.addColorStop(1,'#d8233c');
+   ctx.beginPath();ctx.arc(x,pinTop+9,9,0,Math.PI*2);
+   ctx.fillStyle=red;ctx.fill();
+   ctx.shadowColor='transparent';ctx.lineWidth=1;ctx.strokeStyle='rgba(255,240,240,.8)';ctx.stroke();
    ctx.restore();
 
-   // Body
-   layoutRoundRect(ctx,bodyX,bodyY,bodyW,bodyH,18);
-   ctx.fillStyle='rgba(5,10,23,.62)';
-   ctx.fill();
-   ctx.lineWidth=border;
-   ctx.strokeStyle=color;
-   ctx.stroke();
+   // Slim silver stem: ends at the exact selected point (x,y).
+   const stem=ctx.createLinearGradient(x-2,0,x+2,0);
+   stem.addColorStop(0,'#a5aab5');stem.addColorStop(.48,'#f4f5f8');stem.addColorStop(1,'#838995');
+   ctx.save();ctx.shadowColor='rgba(0,0,0,.52)';ctx.shadowBlur=2;ctx.shadowOffsetX=1;ctx.shadowOffsetY=1;
+   ctx.fillStyle=stem;ctx.fillRect(x-2,pinTop+16,4,16);ctx.restore();
 
-   // Pointer/tip: same visual anchor as Safari's ::after.
-   ctx.save();
-   ctx.translate(x,anchorY+1);
-   ctx.rotate(Math.PI/4);
-   ctx.fillStyle='rgba(5,10,23,.62)';
-   ctx.strokeStyle=color;
-   ctx.lineWidth=border;
-   ctx.beginPath();
-   ctx.rect(-tail/2,-tail/2,tail,tail);
-   ctx.fill();
-   ctx.stroke();
-   ctx.restore();
-
-   // Repaint lower body edge over top half of the diamond to mimic CSS layering.
-   ctx.fillStyle='rgba(5,10,23,.62)';
-   ctx.fillRect(bodyX+border,bodyY+bodyH-border-1,bodyW-(border*2),border+2);
-
-   // Label
-   ctx.fillStyle='#fff';
-   ctx.shadowColor='rgba(0,0,0,.85)';
-   ctx.shadowBlur=5;
-   ctx.shadowOffsetY=1;
-   ctx.fillText(label,x,bodyY+(bodyH/2)+.5);
-   ctx.shadowColor='transparent';
+   // Building color ONLY on its label; same dimensions as live Safari CSS.
+   ctx.font=`1000 ${labelSize}px Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+   ctx.textAlign='left';ctx.textBaseline='middle';
+   ctx.lineWidth=3;ctx.lineJoin='round';ctx.strokeStyle='#061020';
+   ctx.strokeText(label,x+17,pinTop+10);
+   ctx.fillStyle=color;ctx.fillText(label,x+17,pinTop+10);
  }
 
  return canvas.toDataURL('image/png',1)

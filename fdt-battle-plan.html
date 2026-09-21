@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • FDT Battle Plan</title>
-<!-- NEXA FDT PUBLIC BATTLE PLAN V2.11.3 • Native SvS-style PDF -->
+<!-- NEXA FDT PUBLIC BATTLE PLAN V2.11.4 • SvS PDF tables and hero pool -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -2965,6 +2965,16 @@ section.panel{position:relative;z-index:1}
 .fdt-bp-hero-tag.rarity-epic b{color:#c78bff!important}
 .fdt-bp-hero-tag.rarity-rare b{color:#68c9ff!important}
 
+
+
+/* V2.11.4: unified SvS online document typography and spacing */
+#publicDocument .fdt-bp-doc{border:1px solid rgba(155,120,255,.38);border-radius:20px;padding:18px;background:radial-gradient(circle at 100% 0%,rgba(91,65,183,.14),transparent 28%),linear-gradient(160deg,#071022,#050914)}
+#publicDocument .fdt-bp-head{padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.10)}
+#publicDocument .fdt-bp-section-title{font-size:22px;line-height:1.25;margin:15px 0}
+#publicDocument .fdt-bp-pet-cell{padding:9px;min-height:100px}
+#publicDocument .fdt-bp-pet-cell span{font-size:11px;line-height:1.55}
+#publicDocument .fdt-bp-joiner-row .heroes{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+#publicDocument .fdt-bp-team{padding:12px 0}
 </style></head><body>
 <main class="public-shell">
  <div class="public-toolbar"><a href="fdt-operations.html" class="btn">← Battle Plan</a><button type="button" id="publicDownloadPdf" class="btn violet" disabled>Download PDF</button></div>
@@ -3066,10 +3076,28 @@ async function fdtNativePlanPdf(source,title){
  };
  const playerBlock=(row,accent)=>{
    const cells=[...row.children],player=clean(cells[0]?.textContent)||'Player',assigned=!!cells[1]&&!!cells[2];
-   const blockH=assigned?102:35;need(blockH+8);
-   paint('#f1f5f9','fill');pdf.roundedRect(M,y-9,W,25,6,6,'F');paint(accent,'fill');pdf.roundedRect(M,y-9,4,25,2,2,'F');font(12,true,K.ink);pdf.text(player,M+12,y+7,{maxWidth:W-25});y+=23;
-   if(assigned){heroRow('GARRISON', [...cells[1].querySelectorAll('.fdt-bp-hero-tag')],y,K.green);y+=40;heroRow('MIA RALLY',[...cells[2].querySelectorAll('.fdt-bp-hero-tag')],y,'#7555bc');y+=43}
-   else y+=4;
+   const h=assigned?58:29;need(h+4);
+   if(Math.round(y)%2===0){paint('#f8fafc','fill');pdf.roundedRect(M,y-9,W,h,5,5,'F')}
+   paint('#e0e7ef','line');pdf.setLineWidth(.65);pdf.line(M,y+h-10,PW-M,y+h-10);
+   const x0=M+9,x1=M+W*.34,x2=M+W*.67;
+   paint(accent,'fill');pdf.roundedRect(M,y-9,3,h,1.5,1.5,'F');
+   font(11.1,true,K.ink);pdf.text(player,x0,y+7,{maxWidth:W*.32-12});
+   if(assigned){
+     const two=(nodes,x,limit)=>{
+       const items=nodes.map(heroInfo).filter(v=>v.name),wid=limit/Math.max(1,Math.min(2,items.length));
+       if(!items.length){font(10,false,K.muted);pdf.text('—',x,y+16);return}
+       items.slice(0,2).forEach((v,i)=>{
+         const xx=x+wid*i,photo=portrait(v.img),sq=22,yy=y-2;
+         paint(v.col,'line');pdf.setLineWidth(1.3);paint('#f8fafc','fill');pdf.roundedRect(xx,yy,sq,sq,4,4,'FD');
+         if(photo){try{pdf.addImage(photo,'JPEG',xx+1,yy+1,sq-2,sq-2,undefined,'FAST')}catch(_){}}
+         else{font(10,true,v.col);pdf.text(v.name.slice(0,1).toUpperCase(),xx+7,yy+15)}
+         font(9.1,true,v.col);const lines=pdf.splitTextToSize(v.name,Math.max(28,wid-sq-4)).slice(0,2);pdf.text(lines,xx+sq+3,yy+11);
+       });
+     };
+     two([...cells[1].querySelectorAll('.fdt-bp-hero-tag')],x1,W*.32-5);
+     two([...cells[2].querySelectorAll('.fdt-bp-hero-tag')],x2,W*.32-5);
+   }
+   y+=h+2;
  };
  const ratioBlock=(ratio,accent)=>{
    if(!ratio.length)return;need(85);font(10,true,K.muted);pdf.text('FORMATIONS',M,y);y+=13;
@@ -3078,7 +3106,7 @@ async function fdtNativePlanPdf(source,title){
  };
  const drawHeroPool=(pool,accent)=>{
    const heroes=[...pool.querySelectorAll('.fdt-bp-hero')].map(heroInfo).filter(h=>h.name);
-   if(!heroes.length)return;need(56);font(9.5,true,K.muted);pdf.text('SHARED HERO POOL',M,y);y+=12;
+   if(!heroes.length)return;need(56);font(9.5,true,K.muted);pdf.text('JOINER HEROES · USE ANY OF THESE',M,y);y+=12;
    const cols=4,gap=8,w=(W-gap*(cols-1))/cols,h=47;
    heroes.forEach((item,i)=>{if(i%cols===0)need(h+9);const xx=M+(i%cols)*(w+gap),yy=y;paint('#f8fafc','fill');paint('#e1e6ef','line');pdf.roundedRect(xx,yy,w,h,6,6,'FD');const photo=portrait(item.img);paint(item.col,'line');pdf.roundedRect(xx+6,yy+8,30,30,5,5,'S');if(photo){try{pdf.addImage(photo,'JPEG',xx+7,yy+9,28,28,undefined,'FAST')}catch(_){}}else{font(12,true,item.col);pdf.text(item.name.slice(0,1),xx+15,yy+27)}font(10.8,true,item.col);pdf.text(item.name,xx+41,yy+27,{maxWidth:w-46});if(i%cols===cols-1||i===heroes.length-1)y+=h+6});y+=5;
  };
@@ -3115,12 +3143,12 @@ async function fdtNativePlanPdf(source,title){
        sub(sectionLabel(build,':scope > h5','Building'),cs(build,'--bc'),14);
        build.querySelectorAll('.fdt-bp-pet-team').forEach(team=>{
          const teamCol=cs(team,'--tc');sub(sectionLabel(team,':scope > b','Team'),teamCol,15);
-         const cells=[...team.querySelectorAll('.fdt-bp-pet-cell')];const gap=7,cw=(W-gap*4)/5,ch=104;
+         const cells=[...team.querySelectorAll('.fdt-bp-pet-cell')];const gap=7,cw=(W-gap*4)/5,ch=110;
          for(let start=0;start<cells.length;start+=5){need(ch+17);cells.slice(start,start+5).forEach((cell,i)=>{
            const xx=M+i*(cw+gap);pdf.setFillColor(...tint(teamCol,.92));paint(teamCol,'line');pdf.setLineWidth(.7);pdf.roundedRect(xx,y-9,cw,ch,6,6,'FD');
            txt(cell.querySelector('strong')?.textContent,xx+7,y+6,cw-14,10.8,true,K.ink,13);
-           const names=[...(cell.querySelector('span')?.childNodes||[])].map(n=>clean(n.textContent)).filter(Boolean);
-           const body=names.join(' ')||'—';font(10.6,true,K.ink);const lines=pdf.splitTextToSize(body,cw-14).slice(0,7);pdf.text(lines,xx+7,y+27);
+           const names=(cell.querySelector('span')?.innerHTML||'').split(/<br\s*\/?\s*>/i).map(n=>clean(n.replace(/<[^>]*>/g,''))).filter(Boolean);
+           let ly=y+27;for(const name of names.slice(0,4)){const pet=/\bPET\b/i.test(name),nm=name.replace(/\s*[•\-]\s*PET\b/ig,'').trim();font(11.8,true,pet?'#7655b9':K.ink);pdf.text(pdf.splitTextToSize(nm,cw-14).slice(0,2),xx+7,ly);if(pet){paint(teamCol,'fill');pdf.roundedRect(xx+7,ly+4,24,11,5,5,'F');font(6.2,true,'#ffffff');pdf.text('PET',xx+12,ly+12)}ly+=pet?26:18;}
          });y+=ch+15}
          y+=3;
        });y+=9;
@@ -3136,19 +3164,38 @@ async function fdtNativePlanPdf(source,title){
      leg.querySelectorAll(':scope > .fdt-bp-building').forEach(build=>{
        const bc=cs(build,'--bc');sub(sectionLabel(build,'.fdt-bp-building-head b','Building'),bc,15);
        const pool=build.querySelector('.fdt-bp-hero-pool');if(pool)drawHeroPool(pool,bc)
-       build.querySelectorAll(':scope > .fdt-bp-team').forEach(team=>{
-         const label=team.querySelector('.fdt-bp-team-title')?.textContent;if(!label)return;
-         sub(label,cs(team,'--tc',bc),13);
-         const ratio=[...team.querySelectorAll('.fdt-bp-ratio')];
-         ratioBlock(ratio,bc);
-         const rows=[...team.querySelectorAll('.fdt-bp-joiner-row')];
-         if(!rows.length){paragraph('No Joiners assigned.',{size:9.5,col:K.muted});}
-         else{
-           need(32);font(10,true,K.muted);pdf.text('JOINERS / HEROES',M,y);y+=18;
-           for(const row of rows)playerBlock(row,bc);
+       const teamNodes=[...build.querySelectorAll(':scope > .fdt-bp-team')].filter(t=>t.querySelector('.fdt-bp-team-title'));
+       let prevRatio='';
+       // Shared-hero-pool teams have only a player list: display two Team columns,
+       // as in SvS, while assigned-hero teams need full-width PLAYER/GARRISON/MIA columns.
+       const poolOnly=teamNodes.length>1&&teamNodes.every(t=>![...t.querySelectorAll('.fdt-bp-joiner-row')].some(r=>r.children.length>1));
+       if(poolOnly){
+         for(let j=0;j<teamNodes.length;j+=2){
+           const duo=teamNodes.slice(j,j+2);
+           for(const t of duo){const ratio=[...t.querySelectorAll('.fdt-bp-ratio')],rk=ratio.map(r=>clean(r.textContent)).join('|');if(rk!==prevRatio)ratioBlock(ratio,bc);prevRatio=rk}
+           const gap=12,colW=(W-gap)/2,lists=duo.map(t=>[...t.querySelectorAll('.fdt-bp-joiner-row')]);
+           const maxRows=Math.max(...lists.map(v=>v.length),0),headerH=32,rowH=25;
+           need(headerH+Math.min(maxRows,4)*rowH+14);
+           duo.forEach((t,k)=>{const x=M+k*(colW+gap),tone=cs(t,'--tc',bc);paint('#eef2f7','fill');paint('#dce3ed','line');pdf.roundedRect(x,y-10,colW,headerH,6,6,'FD');font(14,true,tone);pdf.text(clean(t.querySelector('.fdt-bp-team-title')?.textContent||'Team'),x+10,y+9,{maxWidth:colW-18})});y+=headerH;
+           for(let n=0;n<maxRows;n++){
+             need(rowH+8);for(let k=0;k<duo.length;k++){const row=lists[k]?.[n];if(!row)continue;const x=M+k*(colW+gap);if(n%2===0){paint('#f8fafc','fill');pdf.roundedRect(x,y-8,colW,rowH,4,4,'F')}font(10.6,true,K.ink);pdf.text(clean(row.textContent),x+9,y+8,{maxWidth:colW-16})}y+=rowH;
+           }y+=18;
          }
-         y+=7;
-       });y+=9;
+       }else{
+         teamNodes.forEach(team=>{
+           const label=team.querySelector('.fdt-bp-team-title')?.textContent;if(!label)return;
+           sub(label,cs(team,'--tc',bc),13);
+           const ratio=[...team.querySelectorAll('.fdt-bp-ratio')];
+           const rk=ratio.map(r=>clean(r.textContent)).join('|');if(rk!==prevRatio)ratioBlock(ratio,bc);prevRatio=rk;
+           const rows=[...team.querySelectorAll('.fdt-bp-joiner-row')];
+           if(!rows.length){paragraph('No Joiners assigned.',{size:9.5,col:K.muted});}
+           else{
+             need(40);font(10,true,K.muted);pdf.text('JOINERS / HEROES',M,y);y+=17;paint('#eaf0f6','fill');pdf.roundedRect(M,y-11,W,25,5,5,'F');font(9,true,K.muted);pdf.text('PLAYER',M+9,y+5);font(9,true,K.green);pdf.text('GARRISON',M+W*.34,y+5);font(9,true,K.purple);pdf.text('MIA RALLY',M+W*.67,y+5);y+=30;
+             for(const row of rows)playerBlock(row,bc);
+           }
+           y+=7;
+         });
+       }y+=9;
      });y+=13;
    });
  }

@@ -1499,12 +1499,14 @@ function openOwnedFormsCenterMenu(){ownedMenuSubview('FORMS CENTER',[
 ]),true]
 ])}
 async function openOwnedBattleOperationsMenu(){
+  
   const items=[
     ['SvS',()=>ownedMenuGo('svs-operations.html')],
-    ['Matchup Lab',()=>ownedMenuGo('svs-matchup-lab.html')],
     ['FDT',()=>ownedMenuGo('fdt-operations.html')],
-    ['TAL',()=>ownedMenuGo('battle-operations.html?event=tal')]
+    ['TAL',()=>ownedMenuGo('battle-operations.html?event=tal')],
+    ['Matchup Lab',()=>ownedMenuGo('svs-matchup-lab.html')]
   ];
+
   try{
     const c=sb();
     const {data:{user}}=await c.auth.getUser();

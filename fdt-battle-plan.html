@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • FDT Battle Plan</title>
-<!-- NEXA FDT PUBLIC BATTLE PLAN V2.11.4 • SvS PDF tables and hero pool -->
+<!-- NEXA FDT PUBLIC BATTLE PLAN V2.11.5 • SHARED POOL TEAMS + PDF PAGE BREAKS -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -2975,6 +2975,17 @@ section.panel{position:relative;z-index:1}
 #publicDocument .fdt-bp-pet-cell span{font-size:11px;line-height:1.55}
 #publicDocument .fdt-bp-joiner-row .heroes{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 #publicDocument .fdt-bp-team{padding:12px 0}
+
+/* V2.11.5 — Shared Hero Pool team-first SvS parity, no redundant team formations. */
+.fdt-bp-pool-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:14px 0 19px;align-items:start}
+.fdt-bp-pool-team{min-width:0;display:grid;align-content:start;gap:5px;border:0;background:transparent}
+.fdt-bp-pool-team>.fdt-bp-team-title{margin:0 0 4px;padding:10px 12px;border:1px solid rgba(148,164,192,.35);border-radius:11px;background:rgba(110,155,197,.11);color:var(--tc,#9b78ff);font-size:17px;font-weight:950}
+.fdt-bp-pool-player{padding:9px 11px;border-left:3px solid var(--tc,#9b78ff);border-radius:8px;background:rgba(255,255,255,.025);font-size:12px;font-weight:850;line-height:1.3;overflow-wrap:anywhere}
+.fdt-bp-pool-player:nth-of-type(2n){background:rgba(255,255,255,.045)}
+.fdt-bp-pool-player .alliance-tag{margin:0 5px 0 0;font-size:10px}
+.fdt-bp-shared-formation{margin-top:12px}
+.fdt-bp-printstage .fdt-bp-pool-columns{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+@media(max-width:460px){.fdt-bp-pool-columns{gap:8px}.fdt-bp-pool-player{padding:8px 6px;font-size:11px}.fdt-bp-pool-team>.fdt-bp-team-title{font-size:15px;padding:9px 8px}}
 </style></head><body>
 <main class="public-shell">
  <div class="public-toolbar"><a href="fdt-operations.html" class="btn">← Battle Plan</a><button type="button" id="publicDownloadPdf" class="btn violet" disabled>Download PDF</button></div>
@@ -3164,6 +3175,36 @@ async function fdtNativePlanPdf(source,title){
      leg.querySelectorAll(':scope > .fdt-bp-building').forEach(build=>{
        const bc=cs(build,'--bc');sub(sectionLabel(build,'.fdt-bp-building-head b','Building'),bc,15);
        const pool=build.querySelector('.fdt-bp-hero-pool');if(pool)drawHeroPool(pool,bc)
+       const sharedColumns=build.querySelector(':scope > .fdt-bp-pool-columns');
+       const sharedRatios=build.querySelector(':scope > .fdt-bp-shared-formation');
+       if(sharedColumns){
+         const ratios=[...sharedRatios?.querySelectorAll('.fdt-bp-ratio')||[]];
+         if(ratios.length)ratioBlock(ratios,bc);
+         const teams=[...sharedColumns.querySelectorAll(':scope > .fdt-bp-pool-team')];
+         for(let j=0;j<teams.length;j+=2){
+           const pair=teams.slice(j,j+2),lists=pair.map(t=>[...t.querySelectorAll(':scope > .fdt-bp-pool-player')]);
+           const maxRows=Math.max(0,...lists.map(a=>a.length)),gap=12,cw=(W-gap)/2,rowH=25,headerH=32;
+           let position=0;
+           // Repeat team headings on overflow, rather than orphaning empty Team 1/Team 2 cards at page bottom.
+           while(position<Math.max(1,maxRows)){
+             need(headerH+Math.min(Math.max(1,maxRows-position),4)*rowH+16);
+             pair.forEach((t,k)=>{const x=M+k*(cw+gap),tone=cs(t,'--tc',bc);paint('#eef2f7','fill');paint('#dce3ed','line');pdf.roundedRect(x,y-10,cw,headerH,6,6,'FD');font(14,true,tone);pdf.text(clean(t.querySelector('.fdt-bp-team-title')?.textContent||'Team'),x+10,y+9,{maxWidth:cw-18})});
+             y+=headerH;
+             if(maxRows===0){font(10,false,K.muted);pdf.text('No Joiners assigned.',M+9,y+8);y+=rowH;break}
+             const fit=Math.max(1,Math.floor((BOT-y-12)/rowH)),end=Math.min(maxRows,position+fit);
+             for(let n=position;n<end;n++){
+               for(let k=0;k<pair.length;k++){
+                 const item=lists[k][n];if(!item)continue;
+                 const x=M+k*(cw+gap);if(n%2===0){paint('#f8fafc','fill');pdf.roundedRect(x,y-8,cw,rowH,4,4,'F')}
+                 const tag=clean(item.querySelector('.alliance-tag')?.textContent||'');const player=clean(item.textContent.replace(tag,''));
+                 font(10.6,true,K.ink);pdf.text((tag?tag+' ':'')+player,x+9,y+8,{maxWidth:cw-17});
+               }y+=rowH;
+             }
+             position=end;
+             if(position<maxRows)page();
+           }y+=18;
+         }
+       }else{
        const teamNodes=[...build.querySelectorAll(':scope > .fdt-bp-team')].filter(t=>t.querySelector('.fdt-bp-team-title'));
        let prevRatio='';
        // Shared-hero-pool teams have only a player list: display two Team columns,
@@ -3195,6 +3236,7 @@ async function fdtNativePlanPdf(source,title){
            }
            y+=7;
          });
+       }
        }y+=9;
      });y+=13;
    });

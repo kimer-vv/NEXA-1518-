@@ -2995,11 +2995,17 @@ section.panel{position:relative;z-index:1}
  #boardRoot .shared-joiner-col-head{align-items:flex-start}
  #boardRoot .joiner-actions-inline{flex-wrap:wrap}
 }
+/* V2.12 — One Legion per operational workspace; no cross-Legion presentation. */
+.fdt-legion-tabs{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0;padding:5px;border:1px solid rgba(155,120,255,.2);border-radius:17px;background:rgba(8,13,30,.85)}
+.fdt-legion-tabs button{flex:1 1 120px;min-height:45px;min-width:0;padding:9px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:#090f22;color:#aeb7d1;font-weight:950}
+.fdt-legion-tabs button.active{border-color:var(--legion-tab,#9b78ff);color:#fff;background:linear-gradient(130deg,rgba(69,48,143,.5),rgba(25,83,105,.4));box-shadow:inset 0 3px 0 var(--legion-tab,#9b78ff)}
+.fdt-legion-tabs button:disabled{opacity:.38}
+.fdt-legion-hint{font-size:11px;color:#aeb7d1;line-height:1.45;margin:0 0 12px}@media(max-width:620px){.fdt-legion-tabs,.fdt-legion-hint{margin-left:0!important}}
 </style>
 </head>
 <body>
 <main class="sh">
-<!-- NEXA FDT OPERATIONS V2.11.8 • LOSSLESS SHARED JOINERS + MODE ISOLATION -->
+<!-- NEXA FDT OPERATIONS V2.12.0 • LEGION-ISOLATED OPERATIONS + BATTLE PLANS -->
 <div class="top">
   <a class="round" href="index.html" aria-label="Back">‹</a>
   <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div></div>
@@ -3079,6 +3085,7 @@ section.panel{position:relative;z-index:1}
 <section class="panel" data-panel="pets">
 <div class="card">
     <div class="section-head"><div><h2>Whale Group & Pet Schedule</h2></div><div class="row"><button class="btn violet" id="sendPetsToBattlePlan">Send to Battle Plan</button><button class="btn" id="exportAllPets">Save All Image</button></div></div>
+    <div class="fdt-legion-tabs" id="petLegionTabs" aria-label="Pet Schedule Legion"></div><div class="fdt-legion-hint">Only the selected Legion is displayed and sent to its own Battle Plan.</div>
     <div class="pet-stats"><div class="pet-stat"><b id="statRL">0</b><small>Total Rally Leads</small></div><div class="pet-stat"><b id="statScheduled">0</b><small>Scheduled</small></div><div class="pet-stat"><b id="statOpen">0</b><small>Not Scheduled</small></div></div>
     <div class="tiny muted" style="margin-bottom:12px">A Rally Lead may work across multiple Teams. PET is limited to 2 consecutive hours total.</div>
     <div id="petRoot"></div>
@@ -3090,10 +3097,11 @@ section.panel{position:relative;z-index:1}
   <div class="board-sendbar">
     <div class="board-sendbar-copy">
       <b>Battle Plan</b>
-      <small>Sends all configured Legions, Buildings, Teams, Pets, Formations, Heroes, Joiners and Roles.</small>
+      <small>Sends only the selected Legion: Buildings, Teams, Pets, Formations, Heroes, Joiners and Roles.</small>
     </div>
     <button class="btn violet" id="sendLegionBoardToPlan">Send to Battle Plan</button>
   </div>
+  <div class="fdt-legion-tabs" id="boardLegionTabs" aria-label="Legion Board Legion"></div><div class="fdt-legion-hint">Select a Legion to manage its own Buildings, Teams and Heroes.</div>
   <div id="boardRoot"></div>
 </section>
 
@@ -3111,6 +3119,7 @@ section.panel{position:relative;z-index:1}
       </div>
     </div>
 
+    <div class="fdt-legion-tabs" id="layoutLegionTabs" aria-label="FDT Layout Legion"></div><div class="fdt-legion-hint">The map, its markers, saved layouts and exports belong only to this Legion.</div>
     <div class="layout-select-grid" style="margin-top:12px">
       <label>Legion<select id="layoutLegion"></select></label>
       <label>Building<select id="layoutBuilding"></select></label>
@@ -3168,7 +3177,7 @@ section.panel{position:relative;z-index:1}
         <select id="reinforcementLegion" style="min-width:170px"></select>
       </div>
     </div>
-    <div class="reinforcement-summary" id="reinforcementSummary"></div>
+    <div class="fdt-legion-tabs" id="reinforcementLegionTabs" aria-label="Reinforcement Legion"></div><div class="reinforcement-summary" id="reinforcementSummary"></div>
     <div class="row" style="margin-top:12px">
       <button class="btn" id="reinforcementAuto">Auto Suggest</button>
       <button class="btn danger" id="reinforcementClear">Clear All</button>
@@ -3179,11 +3188,11 @@ section.panel{position:relative;z-index:1}
 </section>
 
 <section class="panel" data-panel="plan">
-  
+  <div class="fdt-legion-tabs" id="planLegionTabs" aria-label="Battle Plan Legion"></div><div class="fdt-legion-hint" style="margin-left:18px">Each Legion has its own plan, PDF and published link. No combined Battle Plan.</div>
   <div class="card">
     <div class="section-head"><div><h2>Battle Plan</h2></div></div>
     <div class="grid2" style="margin-top:12px"><label>Plan Title<input id="planTitle" placeholder="FDT Battle Plan"></label><label>Alliance / State Alliance<input id="planAlliance" placeholder="Optional"></label></div>
-    <label style="margin-top:10px">Important Notes<textarea id="planNotes" placeholder="General instructions for all Legions and Teams..."></textarea></label>
+    <label style="margin-top:10px">Important Notes<textarea id="planNotes" placeholder="Instructions for the selected Legion and its Teams..."></textarea></label>
     
     <div class="row" style="margin-top:12px"><button class="btn violet" id="planSaveDone">Save &amp; Done</button><button class="btn" id="planSavePdf">Download PDF</button><button class="btn" id="planSaveImage">Save Full Plan Image</button></div>
   </div>
@@ -3298,7 +3307,59 @@ function load(){
  const l2={id:'seed_leg_2',name:'Legion 2',color:colors[3],allianceId:'',manualAlliance:'TEST-L2',configured:true,members:[],teams:[mkTeam(1,3,colors[4]),mkTeam(2,3,colors[5])],mode:'pool',roles:{garrisonChief:'',rallyManagers:'',incomingTraffic:'',kickingCrew:''},ratios:{garrison:'60/40/0',rally:'48/4/48',showRally:true},sharedHeroIds:[],focusPools:{}};
  return{setup:{battleDate:'',status:'planning',battleStart:start,battleEnd:end,alliance:'',saved:false},legions:[l1,l2],manualRally:whales,manualPlayers:joiners,plan:{title:'',alliance:'',notes:''}}
 }
-function save(){localStorage.setItem(KEY,JSON.stringify(store))}
+function save(){
+ if(store.fdtPlansByLegion&&store.fdtSelectedPlanId)store.fdtPlansByLegion[store.fdtSelectedPlanId]=store.plan;
+ localStorage.setItem(KEY,JSON.stringify(store))
+}
+/* Preserve legacy combined data separately; NEVER silently assign it to either Legion. */
+function initFdtLegionIsolation(){
+ if(!store.fdtPlansByLegion||typeof store.fdtPlansByLegion!=='object'){
+   if(store.plan&&Object.values(store.plan).some(v=>v!==null&&v!==undefined&&v!=='')){store.fdtLegacyCombinedPlan=JSON.parse(JSON.stringify(store.plan))}
+   store.fdtPlansByLegion={};
+ }
+ if(!store.fdtViews||typeof store.fdtViews!=='object')store.fdtViews={};
+ const first=(store.legions||[])[0];
+ const ids=new Set((store.legions||[]).map(l=>String(l.id)));
+ const wanted=String(store.fdtSelectedPlanId||'');
+ store.fdtSelectedPlanId=ids.has(wanted)?wanted:String(first?.id||'');
+ if(store.fdtSelectedPlanId&&!store.fdtPlansByLegion[store.fdtSelectedPlanId])store.fdtPlansByLegion[store.fdtSelectedPlanId]={title:'',alliance:'',notes:''};
+ store.plan=store.fdtPlansByLegion[store.fdtSelectedPlanId]||{title:'',alliance:'',notes:''};
+}
+function fdtLegion(section){
+ const list=(store.legions||[]);
+ if(!list.length)return null;
+ const selected=section==='pets'?store.fdtViews?.pets:section==='board'?store.fdtViews?.board:section==='layout'?store.layout?.activeLegionId:section==='reinforcements'?store.reinforcements?.activeLegionId:store.fdtSelectedPlanId;
+ return list.find(l=>String(l.id)===String(selected))||list[0];
+}
+function renderFdtLegionTabs(section){
+ const id={pets:'petLegionTabs',board:'boardLegionTabs',layout:'layoutLegionTabs',reinforcements:'reinforcementLegionTabs',plan:'planLegionTabs'}[section];
+ const root=id?document.getElementById(id):null;if(!root)return;
+ const active=fdtLegion(section);
+ root.innerHTML=(store.legions||[]).map(l=>`<button type="button" style="--legion-tab:${esc(l.color||'#9b78ff')}" class="${active&&String(active.id)===String(l.id)?'active':''}" data-fdt-select-legion="${esc(l.id)}">${esc(l.name)}</button>`).join('')||'<div class="muted tiny">Configure Legion 1 and Legion 2 first.</div>';
+ root.querySelectorAll('[data-fdt-select-legion]').forEach(b=>b.onclick=()=>selectFdtLegion(section,b.dataset.fdtSelectLegion));
+}
+function selectFdtPlan(lid){
+ if(String(store.fdtSelectedPlanId)===String(lid))return;
+ if(store.fdtSelectedPlanId)store.fdtPlansByLegion[store.fdtSelectedPlanId]=store.plan;
+ store.fdtSelectedPlanId=String(lid);
+ if(!store.fdtPlansByLegion[lid])store.fdtPlansByLegion[lid]={title:'',alliance:'',notes:''};
+ store.plan=store.fdtPlansByLegion[lid];save();
+}
+function openFdtPlanFor(lid){
+ if(lid)selectFdtPlan(lid);
+ wirePlan();renderFdtLegionTabs('plan');panel('plan');window.scrollTo({top:0,behavior:'smooth'});
+}
+let fdtPublishing=false;
+function selectFdtLegion(section,lid){
+ if(fdtPublishing){say('Finish saving the current Legion Battle Plan before switching.');return}
+ if(!(store.legions||[]).some(l=>String(l.id)===String(lid)))return;
+ if(section==='pets'){store.fdtViews.pets=lid;save();renderPets()}
+ else if(section==='board'){store.fdtViews.board=lid;save();renderBoard()}
+ else if(section==='layout'){changeLayoutSelection('legion',lid)}
+ else if(section==='reinforcements'){reinforcementStore().activeLegionId=lid;reinforcementSelected=null;save();renderReinforcements(false)}
+ else if(section==='plan')openFdtPlanFor(lid)
+}
+
 
 function ensureLegionWorkflow(){
  if(!store.legionPlacement)store.legionPlacement={phase:'assignment',activeLegionId:'',legions:[],roleOverrides:{}};
@@ -4109,8 +4170,9 @@ function hydrateTeams(){
 
 function renderPets(){hydrateTeams();
  if(!store.legions.length)store.legions.push(newLegion());
- $('#petRoot').innerHTML=store.legions.map(petSetupHtml).join('');
- const all=allAssignments(),unique=new Set(all.map(a=>String(a.playerId)));$('#statRL').textContent=unique.size;$('#statScheduled').textContent=all.length;$('#statOpen').textContent=Math.max(0,rallyCandidates().length-unique.size)
+ const legion=fdtLegion('pets');renderFdtLegionTabs('pets');
+ $('#petRoot').innerHTML=legion?petSetupHtml(legion,store.legions.indexOf(legion)):'<div class="empty">Configure a Legion first.</div>';
+ const all=legion?allAssignments().filter(a=>String(a.legionId)===String(legion.id)):[],unique=new Set(all.map(a=>String(a.playerId)));$('#statRL').textContent=unique.size;$('#statScheduled').textContent=all.length;$('#statOpen').textContent=Math.max(0,(legion?rallyCandidates(legion.id):[]).length-unique.size)
 }
 $('#addLegion').onclick=()=>{store.legions.push(newLegion());save();renderPets();renderBoard()}
 $('#manualRL').onclick=async()=>{const name=await nexaPrompt('Rally Leader name','Add Rally Leader');if(!name?.trim())return;(store.manualRally||(store.manualRally=[])).push({id:uid('manual_rl_'),name:name.trim()});save();renderPets()}
@@ -4453,7 +4515,8 @@ function boardLegionHtml(l){
 function renderBoard(){
  hydrateTeams();
  const list=store.legions.filter(l=>l.configured);
- $('#boardRoot').innerHTML=list.length?list.map(boardLegionHtml).join(''):'<div class="card"><div class="empty">Create a Legion in Pet Schedule first.</div></div>';
+ const selected=fdtLegion('board');renderFdtLegionTabs('board');
+ $('#boardRoot').innerHTML=selected&&list.some(l=>String(l.id)===String(selected.id))?boardLegionHtml(selected):'<div class="card"><div class="empty">Create a Legion in Pet Schedule first.</div></div>';
  refreshLayoutExport()
 }
 
@@ -4675,7 +4738,8 @@ function layoutPinLabel(l,b,t){
 }
 function layoutAllSaved(){
  const out=[];
- for(const l of layoutConfiguredLegions()){
+ const active=String(layoutStore().activeLegionId||'');
+ for(const l of layoutConfiguredLegions().filter(l=>!active||String(l.id)===active)){
    for(const b of legionBuildings(l)){
      for(const t of b.teams||[]){
        const d=layoutTeamData(l.id,t.id);
@@ -4710,6 +4774,7 @@ function renderLayoutSelectors(){
    return
  }
  const cur=layoutCurrent();
+ renderFdtLegionTabs('layout');
  leg.innerHTML=legs.map(l=>`<option value="${esc(l.id)}" ${String(l.id)===String(cur.l?.id)?'selected':''}>${esc(l.name)}</option>`).join('');
  build.innerHTML=(cur.buildings||[]).map(b=>`<option value="${esc(b.id)}" ${String(b.id)===String(cur.b?.id)?'selected':''}>${esc(b.label)}</option>`).join('');
  choices.innerHTML=(cur.b?.teams||[]).map(t=>`<button type="button" class="layout-team-choice ${(ls.activeTeamIds||[]).includes(String(t.id))?'active':''}" data-layout-team-choice="${esc(t.id)}">Team ${Number(t.teamOrder||1)}</button>`).join('');
@@ -4931,9 +4996,9 @@ function layoutSnapshot(){
  return {sentAt:new Date().toISOString(),items}
 }
 function sendLayoutToBattlePlan(){
- const snap=layoutSnapshot();
+ const lid=fdtLegion('layout')?.id;const snap=layoutSnapshot();
  if(!snap.items.length){nexaAlert('Save at least one Team position first.','Battle Plan');return}
- store.plan=store.plan||{title:'',alliance:'',notes:''};store.plan.layout=snap;save();renderBattlePlanPreview();fdtPlanSavedState(false);panel('plan');window.scrollTo({top:0,behavior:'smooth'});say('FDT Layout sent to Battle Plan.')
+ selectFdtPlan(lid);store.plan.layout=snap;save();openFdtPlanFor(lid);fdtPlanSavedState(false);say('FDT Layout sent to the selected Legion Battle Plan.')
 }
 function layoutBattlePlanHtml(){
  const snap=store.plan?.layout;
@@ -5104,6 +5169,7 @@ function renderReinforcements(keepView=true){
  if(!configured.some(l=>String(l.id)===String(rs.activeLegionId)))rs.activeLegionId=configured[0].id;
  select.innerHTML=configured.map(l=>`<option value="${esc(l.id)}" ${String(l.id)===String(rs.activeLegionId)?'selected':''}>${esc(l.name)}</option>`).join('');
  const l=configured.find(x=>String(x.id)===String(rs.activeLegionId))||configured[0];
+ renderFdtLegionTabs('reinforcements');
  const {d,pools}=reinforcementPairRows(l);
  const paired=d.pairs.filter(x=>x.a&&x.b).length;
  const used=new Set(d.pairs.flatMap(x=>[x.a,x.b]).filter(Boolean).map(String));
@@ -5251,12 +5317,9 @@ function reinforcementSnapshot(){
  return {sentAt:new Date().toISOString(),legions:out}
 }
 function sendReinforcementsToBattlePlan(){
- const snap=reinforcementSnapshot();
+ const lid=fdtLegion('reinforcements')?.id;const snap=reinforcementSnapshot();snap.legions=snap.legions.filter(l=>String(l.legionId)===String(lid));
  if(!snap.legions.length){nexaAlert('Create at least one reinforcement pair first.','Battle Plan');return}
- store.plan=store.plan||{title:'',alliance:'',notes:''};
- store.plan.reinforcements=snap;
- save();renderBattlePlanPreview();fdtPlanSavedState(false);panel('plan');window.scrollTo({top:0,behavior:'smooth'});
- say('Reinforcement Partners sent to Battle Plan.')
+ selectFdtPlan(lid);store.plan.reinforcements=snap;save();openFdtPlanFor(lid);fdtPlanSavedState(false);say('Reinforcement Partners sent to the selected Legion Battle Plan.')
 }
 function reinforcementBattlePlanHtml(){
  const snap=store.plan?.reinforcements;
@@ -5294,13 +5357,11 @@ function fdtPetPlanSnapshot(){
  }))}
 }
 function sendPetsToBattlePlan(){
- const snap=fdtPetPlanSnapshot();
+ const lid=fdtLegion('pets')?.id;const snap=fdtPetPlanSnapshot();snap.legions=snap.legions.filter(l=>String(l.id)===String(lid));
  if(!snap.legions.length){
    nexaAlert('Create a Legion and add at least one Building / Team in Pet Schedule first.','Battle Plan');return
  }
- store.plan=store.plan||{title:'',alliance:'',notes:''};store.plan.pets=snap;
- save();renderBattlePlanPreview();fdtPlanSavedState(false);panel('plan');window.scrollTo({top:0,behavior:'smooth'});
- say('Complete Pet Schedule sent to Battle Plan.')
+ selectFdtPlan(lid);store.plan.pets=snap;save();openFdtPlanFor(lid);fdtPlanSavedState(false);say('Selected Legion Pet Schedule sent to its Battle Plan.')
 }
 function fdtPetPlanHtml(){
  const snap=store.plan?.pets;
@@ -5431,8 +5492,9 @@ function fdtPlanLegionHtml(l){
  </section>`
 }
 function fdtPlanReady(){
- const p=store.plan||{};
- return {pets:!!p.pets?.legions?.length,board:!!p.snapshot?.legions?.length,layout:!!p.layout?.items?.length,partners:!!p.reinforcements?.legions?.length}
+ const p=store.plan||{},id=String(fdtLegion('plan')?.id||'');
+ const own=(rows,key)=>Array.isArray(rows)&&rows.length>0&&rows.every(x=>String(x[key])===id);
+ return {pets:own(p.pets?.legions,'id'),board:own(p.snapshot?.legions,'id'),layout:own(p.layout?.items,'legionId'),partners:own(p.reinforcements?.legions,'legionId')}
 }
 function renderPlanStatus(){/* NEXA SvS-parity: no decorative readiness pills. */}
 
@@ -5464,14 +5526,14 @@ function renderBattlePlanPreview(){
  const root=$('#battlePlanPreview'),sync=null;
  if(!root)return;
  renderPlanStatus();
- const plan=store.plan||{},snap=plan.snapshot;
+ const plan=store.plan||{},lid=String(fdtLegion('plan')?.id||''),snap=plan.snapshot?.legions?.every(l=>String(l.id)===lid)?plan.snapshot:null;
  const ready=fdtPlanReady(),total=Object.values(ready).filter(Boolean).length;
  if(!total){
    ++fdtPlanMapGeneration;
    root.innerHTML='<div class="card"><div class="empty">Send Pet Schedule, Legion Board, FDT Layout or Reinforcement Partners here to assemble the plan.</div></div>';
    if(sync)sync.textContent='NOT SYNCED';return
  }
- const title=(plan.title||'').trim()||'FDT Battle Plan';
+ const title=(plan.title||'').trim()||`FDT Battle Plan • ${fdtLegion('plan')?.name||'Legion'}`;
  const alliance=(plan.alliance||store.setup?.alliance||'').trim();
  const battleDate=store.setup?.battleDate||'';
  const sent=[plan.pets?.sentAt,snap?.sentAt,plan.layout?.sentAt,plan.reinforcements?.sentAt].filter(Boolean).sort().at(-1);
@@ -5481,47 +5543,41 @@ function renderBattlePlanPreview(){
      <h2>${esc(title)}</h2>
      <div class="fdt-bp-meta">
        <span class="fdt-bp-pill">State ${esc(state)}</span>
+       <span class="fdt-bp-pill">${esc(fdtLegion('plan')?.name||'Legion')}</span>
        ${battleDate?`<span class="fdt-bp-pill">${esc(battleDate)}</span>`:''}
        <span class="fdt-bp-pill">${hourLabel(Number(store.setup?.battleStart??12))}–${hourLabel(Number(store.setup?.battleEnd??17))} UTC</span>
        ${alliance?`<span class="fdt-bp-pill">${esc(alliance)}</span>`:''}
      </div>
      <div class="fdt-bp-notes"><strong>IMPORTANT NOTES</strong>${plan.notes?.trim()?esc(plan.notes.trim()):''}</div>
    </div>
-   ${layoutBattlePlanHtml()}
-   ${fdtPetPlanHtml()}
-   ${ready.board?`<section><h3 class="fdt-bp-section-title">Legion Board &amp; Team Assignments</h3>${snap.legions.map(l=>fdtPlanLegionHtml(l)).join('')}</section>`:''}
-   ${reinforcementBattlePlanHtml()}
+   ${plan.layout?.items?.every(x=>String(x.legionId)===lid)?layoutBattlePlanHtml():''}
+   ${plan.pets?.legions?.every(l=>String(l.id)===lid)?fdtPetPlanHtml():''}
+   ${ready.board&&snap?`<section><h3 class="fdt-bp-section-title">Legion Board &amp; Team Assignments</h3>${snap.legions.map(l=>fdtPlanLegionHtml(l)).join('')}</section>`:''}
+   ${plan.reinforcements?.legions?.every(l=>String(l.legionId)===lid)?reinforcementBattlePlanHtml():''}
  </div>`;
  if(sync){
    const date=sent?new Date(sent):null;
    sync.textContent=`${total}/4 SECTIONS${date&&!Number.isNaN(date.getTime())?' • '+date.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):''}`;
  }
- if(ready.layout)paintFdtBattlePlanMap(root)
+ if(ready.layout&&plan.layout?.items?.every(x=>String(x.legionId)===lid))paintFdtBattlePlanMap(root)
 }
 function sendLegionBoardToBattlePlan(){
- const snap=fdtPlanSnapshot();
+ const lid=fdtLegion('board')?.id;const snap=fdtPlanSnapshot();snap.legions=snap.legions.filter(l=>String(l.id)===String(lid));
  if(!snap.legions.length){
    nexaAlert('Create and configure at least one Legion first.','Battle Plan');
    return
  }
- store.plan=store.plan||{title:'',alliance:'',notes:''};
- store.plan.snapshot=snap;
- save();
- renderBattlePlanPreview();
- fdtPlanSavedState(false);
- panel('plan');
- window.scrollTo({top:0,behavior:'smooth'});
- say(`Battle Plan updated with ${snap.legions.length} Legion${snap.legions.length===1?'':'s'}.`)
+ selectFdtPlan(lid);store.plan.snapshot=snap;save();openFdtPlanFor(lid);fdtPlanSavedState(false);say('Selected Legion Board sent to its Battle Plan.')
 }
 
 function fdtPlanName(extension){
  const title=String(store.plan?.title||'FDT_Battle_Plan').trim().replace(/[^a-z0-9_-]+/gi,'_').replace(/^_+|_+$/g,'')||'FDT_Battle_Plan';
- return `${title}.${extension}`
+ return `${String(fdtLegion('plan')?.name||'Legion').replace(/[^a-z0-9_-]+/gi,'_')}_${title}.${extension}`
 }
 async function fdtPlanExportStage(){
  const root=$('#battlePlanPreview');
  if(!root?.querySelector('.fdt-bp-doc'))throw new Error('Send a section to Battle Plan before exporting.');
- if(store.plan?.layout?.items?.length){
+ if(fdtPlanReady().layout){
    const liveMap=root.querySelector('[data-fdt-plan-map]');
    if(!liveMap||!liveMap.src.startsWith('data:image/png')){
      await paintFdtBattlePlanMap(root);
@@ -5796,7 +5852,7 @@ async function exportFdtBattlePlanPdf(){
   if(!source)throw new Error('Send at least one section to Battle Plan first.');
   await waitForExportImages(source,7500);
   const map=source.querySelector('[data-fdt-plan-map]');
-  if(map&&store.plan?.layout?.items?.length&&!map.src.startsWith('data:image/')){
+  if(map&&fdtPlanReady().layout&&!map.src.startsWith('data:image/')){
    try{const url=await captureExactLiveLayoutMap('full',fdtPlanMapItems(store.plan.layout));map.src=url;await waitForExportImages(source,4000)}catch(e){console.warn('FDT PDF map unavailable',e)}
   }
   const blob=await fdtNativePlanPdf(source,(store.plan?.title||'FDT Battle Plan'));
@@ -5819,8 +5875,8 @@ function fdtPlanSavedState(saved,persist=true){
  root.classList.toggle('hidden',!!saved);
  card.classList.toggle('hidden',!saved);
  $('#planSavedDetail').textContent=store.plan?.publishedAt
-  ?'Published • '+new Date(store.plan.publishedAt).toLocaleString()+' • State '+state
-  :'Your FDT Battle Plan is ready to publish.';
+  ?'Published • '+new Date(store.plan.publishedAt).toLocaleString()+' • State '+state+' • '+(fdtLegion('plan')?.name||'Legion')
+  :'Your '+(fdtLegion('plan')?.name||'Legion')+' Battle Plan is ready to publish.';
  const hasLink=!!store.plan?.publicId;
  $('#planCopyLink').disabled=!hasLink;
  $('#planViewOnline').disabled=!hasLink;
@@ -5828,8 +5884,8 @@ function fdtPlanSavedState(saved,persist=true){
 function fdtPlanEditAgain(){fdtPlanSavedState(false);$('#planTitle').focus()}
 async function fdtPlanPublish(){
  const btn=$('#planSaveDone');
- if(btn.disabled)return;
- btn.disabled=true;btn.textContent='Saving…';
+ if(btn.disabled||fdtPublishing)return;
+ fdtPublishing=true;btn.disabled=true;btn.textContent='Saving…';
  let stage=null;
  try{
    const ready=fdtPlanReady();
@@ -5839,10 +5895,14 @@ async function fdtPlanPublish(){
    stage=await fdtPlanExportStage();
    const doc=stage.querySelector('.fdt-bp-doc');
    if(!doc)throw new Error('The final Battle Plan could not be assembled.');
-   const document={html:doc.outerHTML,sections:ready,revision:1};
+   const lidCheck=String(fdtLegion('plan')?.id||'');
+   if(!lidCheck)throw new Error('Select a Legion first.');
+   for(const [key,rows,idKey] of [['pets',store.plan?.pets?.legions,'id'],['snapshot',store.plan?.snapshot?.legions,'id'],['layout',store.plan?.layout?.items,'legionId'],['reinforcements',store.plan?.reinforcements?.legions,'legionId']]){if(rows?.some(row=>String(row[idKey])!==lidCheck))throw new Error('A saved section contains another Legion. Send the selected Legion section again before publishing.')}
+   const document={html:doc.outerHTML,sections:ready,revision:2};
    const now=new Date().toISOString();
-   const payload={owner_id:user.id,state_number:state,title:String(store.plan?.title||'').trim()||'FDT Battle Plan',document,published_at:now,updated_at:now};
-   const {data,error}=await sb.from('fdt_battle_plans').upsert(payload,{onConflict:'owner_id,state_number'}).select('id,published_at').single();
+   const lid=String(fdtLegion('plan')?.id||'');if(!lid)throw new Error('Select a Legion before publishing.');
+   const payload={owner_id:user.id,state_number:state,legion_id:lid,title:String(store.plan?.title||'').trim()||`FDT Battle Plan • ${fdtLegion('plan')?.name||'Legion'}`,document,published_at:now,updated_at:now};
+   const {data,error}=await sb.from('fdt_battle_plans').upsert(payload,{onConflict:'owner_id,state_number,legion_id'}).select('id,published_at').single();
    if(error||!data?.id)throw new Error(error?.message||'Could not save the public Battle Plan. Please try again.');
    store.plan.publicId=data.id;
    store.plan.publishedAt=data.published_at||now;
@@ -5850,7 +5910,7 @@ async function fdtPlanPublish(){
    fdtPlanSavedState(true);
    say('FDT Battle Plan published. Copy Link or View Battle Plan Online.');
  }catch(error){console.error('[FDT publish]',error);await nexaAlert(error?.message||'Could not save the Battle Plan.','Save & Done')}
- finally{stage?.remove();btn.disabled=false;btn.textContent='Save & Done'}
+ finally{stage?.remove();fdtPublishing=false;btn.disabled=false;btn.textContent='Save & Done'}
 }
 async function fdtCopyPublishedLink(){
  const url=fdtPublishedUrl();if(!url)return nexaAlert('Press Save & Done first.','Battle Plan');
@@ -5864,13 +5924,30 @@ async function fdtCopyPublishedLink(){
  }catch(_){await nexaAlert('Copy this link: '+url,'Battle Plan Link')}
 }
 function fdtViewPublishedPlan(){const url=fdtPublishedUrl();if(url)window.open(url,'_blank','noopener');else nexaAlert('Press Save & Done first.','Battle Plan')}
-function wirePlan(){store.plan=store.plan||{title:'',alliance:'',notes:''};$('#planTitle').value=store.plan.title||'';$('#planAlliance').value=store.plan.alliance||'';$('#planNotes').value=store.plan.notes||'';$('#planTitle').oninput=e=>{store.plan.title=e.target.value;save();renderBattlePlanPreview()};$('#planAlliance').oninput=e=>{store.plan.alliance=e.target.value;save();renderBattlePlanPreview()};$('#planNotes').oninput=e=>{store.plan.notes=e.target.value;save();renderBattlePlanPreview()};renderBattlePlanPreview();fdtPlanSavedState(!!store.plan.collapsed,false)}
+function wirePlan(){store.plan=store.plan||{title:'',alliance:'',notes:''};renderFdtLegionTabs('plan');$('#planTitle').value=store.plan.title||'';$('#planAlliance').value=store.plan.alliance||'';$('#planNotes').value=store.plan.notes||'';$('#planTitle').oninput=e=>{store.plan.title=e.target.value;save();renderBattlePlanPreview()};$('#planAlliance').oninput=e=>{store.plan.alliance=e.target.value;save();renderBattlePlanPreview()};$('#planNotes').oninput=e=>{store.plan.notes=e.target.value;save();renderBattlePlanPreview()};renderBattlePlanPreview();fdtPlanSavedState(!!store.plan.collapsed,false)}
 
 hydrateTeams();
+initFdtLegionIsolation();
 save();
 wireSetup();
 wirePlan();
+async function exportSelectedPetScheduleImage(){
+ const l=fdtLegion('pets'),node=$('#petRoot .legion-pet');
+ if(!l||!node)return nexaAlert('Configure and open a Legion Pet Schedule first.','Pet Schedule');
+ const stage=document.createElement('div');stage.className='export-stage';stage.style.width='1200px';
+ stage.innerHTML='<div style="width:1160px;padding:24px;background:#050916;color:#fff"><h2 style="color:#9b78ff">'+esc(l.name)+' • PET SCHEDULE</h2>'+node.outerHTML+'</div>';
+ document.body.appendChild(stage);
+ try{
+   const target=stage.firstElementChild;await waitForExportImages(stage,6000);
+   const canvas=await html2canvas(target,{backgroundColor:'#050916',scale:1.5,useCORS:true,logging:false,windowWidth:1200});
+   const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+   if(!blob)throw new Error('Could not create Pet Schedule image.');
+   await nexaExportFile(blob,'FDT_'+String(l.name).replace(/[^a-z0-9_-]+/gi,'_')+'_Pet_Schedule.png','image/png')
+ }catch(e){await nexaAlert(e?.message||'Could not export the selected Pet Schedule.','Pet Schedule')}
+ finally{stage.remove()}
+}
 $('#sendPetsToBattlePlan').onclick=sendPetsToBattlePlan;
+$('#exportAllPets').onclick=exportSelectedPetScheduleImage;
 $('#planSaveDone').onclick=fdtPlanPublish;
 $('#planCopyLink').onclick=fdtCopyPublishedLink;
 $('#planViewOnline').onclick=fdtViewPublishedPlan;

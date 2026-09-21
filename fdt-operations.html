@@ -3005,7 +3005,7 @@ section.panel{position:relative;z-index:1}
 </head>
 <body>
 <main class="sh">
-<!-- NEXA FDT OPERATIONS V2.12.2 • LEGION DELETE / NO DEMO RESEED / RESET AWARE -->
+<!-- NEXA FDT OPERATIONS V2.12.3 • REINFORCEMENT LEGION TABS ONLY -->
 <div class="top">
   <a class="round" href="index.html" aria-label="Back">‹</a>
   <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div></div>
@@ -3172,9 +3172,6 @@ section.panel{position:relative;z-index:1}
       <div>
         <h2>Reinforcement Partners</h2>
         <div class="muted tiny">Drag & drop, or tap a player and then tap an open partner slot.</div>
-      </div>
-      <div class="row">
-        <select id="reinforcementLegion" style="min-width:170px"></select>
       </div>
     </div>
     <div class="fdt-legion-tabs" id="reinforcementLegionTabs" aria-label="Reinforcement Legion"></div><div class="reinforcement-summary" id="reinforcementSummary"></div>
@@ -5190,16 +5187,15 @@ function renderReinforcements(keepView=true){
  hydrateTeams();
  const rs=reinforcementStore();
  const configured=(store.legions||[]).filter(l=>l.configured);
- const select=$('#reinforcementLegion'),root=$('#reinforcementBoard'),summary=$('#reinforcementSummary');
- if(!select||!root||!summary)return;
+ const root=$('#reinforcementBoard'),summary=$('#reinforcementSummary');
+ if(!root||!summary)return;
  if(!configured.length){
-   select.innerHTML='<option>No Legions</option>';
+   renderFdtLegionTabs('reinforcements');
    root.innerHTML='<div class="empty">Configure a Legion first.</div>';
    summary.innerHTML='';
    return
  }
  if(!configured.some(l=>String(l.id)===String(rs.activeLegionId)))rs.activeLegionId=configured[0].id;
- select.innerHTML=configured.map(l=>`<option value="${esc(l.id)}" ${String(l.id)===String(rs.activeLegionId)?'selected':''}>${esc(l.name)}</option>`).join('');
  const l=configured.find(x=>String(x.id)===String(rs.activeLegionId))||configured[0];
  renderFdtLegionTabs('reinforcements');
  const {d,pools}=reinforcementPairRows(l);
@@ -5369,7 +5365,6 @@ function reinforcementBattlePlanHtml(){
 }
 function wireReinforcements(){
  const rs=reinforcementStore();
- $('#reinforcementLegion').onchange=e=>{rs.activeLegionId=e.target.value;reinforcementSelected=null;save();renderReinforcements()};
  $('#reinforcementAuto').onclick=autoSuggestReinforcements;
  $('#reinforcementClear').onclick=clearReinforcements;
  $('#reinforcementSend').onclick=sendReinforcementsToBattlePlan;

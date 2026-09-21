@@ -2969,8 +2969,9 @@ section.panel{position:relative;z-index:1}
 .setup-collapsed .setup-action-row .btn{width:100%;min-width:0}
 @media(max-width:620px){.plan-saved-card{margin-left:0}.plan-saved-actions .btn{font-size:12px;padding:8px 5px}.setup-collapsed .setup-action-row .btn{font-size:12px}}
 
-/* V2.11.5 — Shared Hero Pool team-first SvS parity, no redundant team formations. */
+/* V2.11.7 — Shared Hero Pool mode isolation and lossless online/PDF joiner columns. */
 .fdt-bp-pool-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:14px 0 19px;align-items:start}
+.fdt-bp-pool-columns.single{grid-template-columns:1fr}
 .fdt-bp-pool-team{min-width:0;display:grid;align-content:start;gap:5px;border:0;background:transparent}
 .fdt-bp-pool-team>.fdt-bp-team-title{margin:0 0 4px;padding:10px 12px;border:1px solid rgba(148,164,192,.35);border-radius:11px;background:rgba(110,155,197,.11);color:var(--tc,#9b78ff);font-size:17px;font-weight:950}
 .fdt-bp-pool-player{padding:9px 11px;border-left:3px solid var(--tc,#9b78ff);border-radius:8px;background:rgba(255,255,255,.025);font-size:12px;font-weight:850;line-height:1.3;overflow-wrap:anywhere}
@@ -2978,15 +2979,16 @@ section.panel{position:relative;z-index:1}
 .fdt-bp-pool-player .alliance-tag{margin:0 5px 0 0;font-size:10px}
 .fdt-bp-shared-formation{margin-top:12px}
 .fdt-bp-printstage .fdt-bp-pool-columns{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+.fdt-bp-printstage .fdt-bp-pool-columns.single{grid-template-columns:1fr!important}
 @media(max-width:460px){.fdt-bp-pool-columns{gap:8px}.fdt-bp-pool-player{padding:8px 6px;font-size:11px}.fdt-bp-pool-team>.fdt-bp-team-title{font-size:15px;padding:9px 8px}}
 </style>
 </head>
 <body>
 <main class="sh">
-<!-- NEXA FDT OPERATIONS V2.11.5 • SHARED POOL + REAL LIVE EVENT + CLEAN SVS PARITY -->
+<!-- NEXA FDT OPERATIONS V2.11.7 • LOSSLESS SHARED JOINERS + MODE ISOLATION -->
 <div class="top">
   <a class="round" href="index.html" aria-label="Back">‹</a>
-  <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div><div class="autosave">AUTOSAVE • SAVED</div></div>
+  <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div></div>
   <a class="round" href="index.html" aria-label="Close">×</a>
 </div>
 
@@ -3387,12 +3389,15 @@ async function publishFdtLiveEvent(){
      const ok=await nexaConfirm('Another Live Event is still active in this State: '+other.map(x=>x.title||'Untitled').join(', ')+'. Publish FDT as the current Live Event and end the previous Live Event?','Publish FDT Live Event');
      if(!ok)return;
    }
+   const publishedAt=new Date().toISOString();
    const payload={
      title:'FDT • '+date,state_number:state,is_live:true,status:'live',
      description:'Frost Dragon Tyrant • Prep 11:00–12:00 UTC • Battle 12:00–17:00 UTC',
+     live_event_published_at:publishedAt,ended_at:null,
      live_event_payload:{theme:'fdt',event_key:'fdt',battle_date:date,prep_start:date,
        battle_start_utc:'12:00',battle_end_utc:'17:00',entry_start_utc:'11:00',
        state_number:state,alliance:String(store.setup?.alliance||'').trim(),
+       event_name:'Frost Dragon Tyrant',published_at:publishedAt,schema_version:1,
        schedule:[{day:'FDT',date,focus:'Preparation / Entry',time_utc:'11:00–12:00 UTC'},
                  {day:'FDT',date,focus:'FDT Battle',time_utc:'12:00–17:00 UTC'}]}
    };
@@ -4210,9 +4215,12 @@ function playerById(id){
 function playerAllianceTag(p){
  return p?.alliance_tag||p?.alliance||p?.alliance_name||p?.custom_alliance_tag||''
 }
+function normalizedAllianceTag(p){
+ return String(playerAllianceTag(p)||'').trim().replace(/^\[+|\]+$/g,'')
+}
 function playerNameWithTag(p){
- const name=esc(p?.in_game_name||p?.name||'Player'),tag=playerAllianceTag(p);
- return `${name}${tag?` <span class="alliance-tag">${esc(tag)}</span>`:''}`
+ const name=esc(p?.in_game_name||p?.name||'Player'),tag=normalizedAllianceTag(p);
+ return `${tag?`<span class="alliance-tag">[${esc(tag)}]</span> `:''}${name}`
 }
 function roleCard(icon,label,val){return `<div class="role-card"><small>${icon} ${label}</small><b>${esc(val||'—')}</b></div>`}
 function heroNames(ids){return(ids||[]).map(id=>heroes.find(h=>String(h.id)===String(id))).filter(Boolean)}
@@ -5311,8 +5319,13 @@ function fdtPlanSnapshot(){
 }
 function fdtPlanPlayerName(pid){
  const p=playerById(pid);
- const tag=playerAllianceTag(p),name=p?.in_game_name||p?.name||'Player';
+ const tag=normalizedAllianceTag(p),name=p?.in_game_name||p?.name||'Player';
  return `${tag?`<span class="alliance-tag">[${esc(tag)}]</span> `:''}${esc(name)}`
+}
+function fdtPlanPlayerLabel(pid){
+ const p=playerById(pid);
+ const tag=normalizedAllianceTag(p),name=String(p?.in_game_name||p?.name||'Player').trim();
+ return `${tag?`[${tag}] `:''}${name}`
 }
 function fdtPlanHeroNames(ids){
  const chosen=heroNames(ids||[]);
@@ -5358,7 +5371,7 @@ function fdtPlanPoolJoiners(t){
 function fdtPlanHeroPool(l,b){
  const chosen=sharedPoolForBuilding(l,b);
  if(!chosen.length)return'<div class="fdt-bp-empty">No Shared Hero Pool selected.</div>';
- return `<div class="fdt-bp-hero-pool">${chosen.map(h=>{
+ return `<div class="fdt-bp-hero-pool" data-fdt-shared-hero-pool="true">${chosen.map(h=>{
    const src=heroImageSrc(h);
    return `<div class="fdt-bp-hero">${src?`<img src="${esc(src)}" alt="">`:''}<b class="${rarityClass(h)}">${esc(h.name)}</b></div>`
  }).join('')}</div>`
@@ -5391,13 +5404,13 @@ function fdtPlanLegionHtml(l){
    </div>
    ${buildings.map(b=>`<section class="fdt-bp-building" style="--bc:${esc(b.color||l.color||'#9b78ff')}">
      <div class="fdt-bp-building-head"><b>${esc(b.label)}</b><small>${b.teams.length} Team${b.teams.length===1?'':'s'}</small></div>
-     ${sharedPoolForBuilding(l,b).length?`<div class="fdt-bp-team"><div class="fdt-bp-section"><h4>JOINER HEROES · USE ANY OF THESE</h4>${fdtPlanHeroPool(l,b)}</div></div>`:''}
+     ${l.mode==='pool'&&sharedPoolForBuilding(l,b).length?`<div class="fdt-bp-team"><div class="fdt-bp-section"><h4>JOINER HEROES · USE ANY OF THESE</h4>${fdtPlanHeroPool(l,b)}</div></div>`:''}
      ${l.mode==='pool'?`<div class="fdt-bp-shared-formation fdt-bp-section"><h4>FORMATIONS</h4><div class="fdt-bp-formation">
        <div class="fdt-bp-ratio g"><b>GARRISON</b><strong>${esc(b.teams[0]?.ratios?.garrison||l.ratios?.garrison||'60/40/0')}</strong></div>
        ${b.teams[0]?.ratios?.showRally===false?'':`<div class="fdt-bp-ratio r"><b>MIA RALLY</b><strong>${esc(b.teams[0]?.ratios?.rally||l.ratios?.rally||'48/4/48')}</strong></div>`}
-     </div></div><div class="fdt-bp-pool-columns">
-       ${b.teams.map(t=>`<div class="fdt-bp-pool-team" style="--tc:${esc(t.color||b.color||l.color||'#9b78ff')}"><h4 class="fdt-bp-team-title">Team ${Number(t.teamOrder||1)}</h4>
-         ${(t.players||[]).length?(t.players||[]).map(pid=>`<div class="fdt-bp-pool-player">${fdtPlanPlayerName(pid)}</div>`).join(''):'<div class="fdt-bp-empty">No Joiners assigned.</div>'}
+     </div></div><div class="fdt-bp-pool-columns ${b.teams.length===1?'single':''}" data-fdt-shared-building="${esc(b.id)}">
+       ${b.teams.map(t=>`<div class="fdt-bp-pool-team" data-fdt-shared-team="${Number(t.teamOrder||1)}" style="--tc:${esc(t.color||b.color||l.color||'#9b78ff')}"><h4 class="fdt-bp-team-title">Team ${Number(t.teamOrder||1)}</h4>
+         ${(t.players||[]).length?(t.players||[]).map(pid=>`<div class="fdt-bp-pool-player" data-player-label="${esc(fdtPlanPlayerLabel(pid))}">${fdtPlanPlayerName(pid)}</div>`).join(''):'<div class="fdt-bp-empty">No Joiners assigned.</div>'}
        </div>`).join('')}
      </div>`:b.teams.map(t=>fdtPlanTeamHtml(l,b,t)).join('')}
    </section>`).join('')}
@@ -5675,12 +5688,12 @@ async function fdtNativePlanPdf(source,title){
  const board=[...source.querySelectorAll(':scope > section')].find(s=>s.querySelector(':scope > .fdt-bp-section-title')?.textContent.includes('Legion Board'));
  if(board){heading('Legion Board & Team Assignments',true);
    board.querySelectorAll('.fdt-bp-legion').forEach(leg=>{
-     const lc=cs(leg,'--lc');sub(sectionLabel(leg,'.fdt-bp-legion-head h3','Legion'),lc,20);
+     const lc=cs(leg,'--lc'),sharedLegion=/SHARED HERO POOL/i.test(leg.querySelector('.fdt-bp-legion-head small')?.textContent||'');sub(sectionLabel(leg,'.fdt-bp-legion-head h3','Legion'),lc,20);
      const roleCards=[...leg.querySelectorAll(':scope > .fdt-bp-role-grid .fdt-bp-role')];
      for(const role of roleCards)card(role.querySelector('b')?.textContent||'Role',role.querySelector('span')?.textContent||'—',lc);
      leg.querySelectorAll(':scope > .fdt-bp-building').forEach(build=>{
        const bc=cs(build,'--bc');sub(sectionLabel(build,'.fdt-bp-building-head b','Building'),bc,15);
-       const pool=build.querySelector('.fdt-bp-hero-pool');if(pool)drawHeroPool(pool,bc)
+       const pool=sharedLegion?build.querySelector('[data-fdt-shared-hero-pool],.fdt-bp-hero-pool'):null;if(pool)drawHeroPool(pool,bc)
        const sharedColumns=build.querySelector(':scope > .fdt-bp-pool-columns');
        const sharedRatios=build.querySelector(':scope > .fdt-bp-shared-formation');
        if(sharedColumns){
@@ -5689,7 +5702,7 @@ async function fdtNativePlanPdf(source,title){
          const teams=[...sharedColumns.querySelectorAll(':scope > .fdt-bp-pool-team')];
          for(let j=0;j<teams.length;j+=2){
            const pair=teams.slice(j,j+2),lists=pair.map(t=>[...t.querySelectorAll(':scope > .fdt-bp-pool-player')]);
-           const maxRows=Math.max(0,...lists.map(a=>a.length)),gap=12,cw=(W-gap)/2,rowH=25,headerH=32;
+           const maxRows=Math.max(0,...lists.map(a=>a.length)),gap=12,cw=pair.length===1?W:(W-gap)/2,rowH=25,headerH=32;
            let position=0;
            // Repeat team headings on overflow, rather than orphaning empty Team 1/Team 2 cards at page bottom.
            while(position<Math.max(1,maxRows)){
@@ -5702,8 +5715,8 @@ async function fdtNativePlanPdf(source,title){
                for(let k=0;k<pair.length;k++){
                  const item=lists[k][n];if(!item)continue;
                  const x=M+k*(cw+gap);if(n%2===0){paint('#f8fafc','fill');pdf.roundedRect(x,y-8,cw,rowH,4,4,'F')}
-                 const tag=clean(item.querySelector('.alliance-tag')?.textContent||'');const player=clean(item.textContent.replace(tag,''));
-                 font(10.6,true,K.ink);pdf.text((tag?tag+' ':'')+player,x+9,y+8,{maxWidth:cw-17});
+                 const label=clean(item.dataset.playerLabel||item.textContent)||'Player';
+                 font(10.6,true,K.ink);pdf.text(label,x+9,y+8,{maxWidth:cw-17});
                }y+=rowH;
              }
              position=end;

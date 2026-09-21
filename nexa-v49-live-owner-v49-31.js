@@ -1,24 +1,9 @@
-/* NEXA LIVE OWNER V49.47 — STRICT SINGLETON / CANONICAL SLOT — 2026-09-12
+/* NEXA LIVE OWNER V49.48 — EVENT-TYPE-AWARE LIVE CARD — 2026-09-21
    COMPLETE REPLACEMENT for: nexa-v49-live-owner-v49-31.js
-
-   Owns ONLY:
-   - one and only one #nexa-v4937-live-event
-   - Live Event visible content
-   - retirement of stale legacy Live surfaces
-
-   Fixes:
-   - Removes duplicate Live cards with the same ID.
-   - Prefers an already-rendered .is-live card when duplicate nodes exist.
-   - Creates the Live card directly inside #nexa-home-signal-slot when available.
-   - Never appends a new Live card to the bottom of #home.
-   - Does not render a temporary "No Live Event" during initial boot before sync.
-   - Home order remains owned by nexa-home-compositor-v1.js.
-
-   Safety:
-   - No MutationObserver.
-   - No polling.
-   - No touchmove preventDefault.
-   - No manual scrollLeft.
+   Source baseline: GitHub SHA 62bdbb591b772c08b7da11ec54013d9aab949bca
+   SvS retains Star / Presidency and SVS SCHEDULE.
+   FDT and TAL show event title and SCHEDULE without SvS-only alliance cards.
+   Retains strict singleton and canonical slot behavior.
 */
 (()=>{
 'use strict';
@@ -98,7 +83,7 @@ function dedupeLiveCards(){
 
   if(keep){
     keep.id=CARD_ID;
-    keep.dataset.nexaLiveOwner='v49.47';
+    keep.dataset.nexaLiveOwner='v49.48';
   }
 
   return keep;
@@ -358,11 +343,11 @@ function ensureCard(){
     card.id=CARD_ID;
     card.className='section nexa-v477-tech-card nexa-v31-strip nexa-v4937-live-card is-pending';
     card.dataset.nexaTech='live';
-    card.dataset.nexaLiveOwner='v49.47';
+    card.dataset.nexaLiveOwner='v49.48';
     card.setAttribute('aria-live','polite');
   }
 
-  card.dataset.nexaLiveOwner='v49.47';
+  card.dataset.nexaLiveOwner='v49.48';
   insertIntoCanonicalPlace(card);
   dedupeLiveCards();
 
@@ -449,6 +434,8 @@ function render(live){
   window.NEXA_CURRENT_LIVE_EVENT=live;
 
   const p=payloadOf(live);
+  const eventKey=clean(p.event_key||p.theme||'svs').toLowerCase();
+  const isSvs=eventKey!=='fdt' && eventKey!=='tal';
   const schedule=Array.isArray(p.schedule)?p.schedule:[];
   const card=ensureCard();
   if(!card) return false;
@@ -483,20 +470,22 @@ function render(live){
     <div class="v4937-kicker">LIVE EVENT</div>
     <h2 class="v4937-title">${esc(live.title||'SvS')}</h2>
 
-    <div class="v4937-alliance-grid">
-      <div class="v4937-mini">
-        <span>GOING FOR THE STAR</span>
-        <strong>${esc(star)}</strong>
+    ${isSvs?`
+      <div class="v4937-alliance-grid">
+        <div class="v4937-mini">
+          <span>GOING FOR THE STAR</span>
+          <strong>${esc(star)}</strong>
+        </div>
+        <div class="v4937-mini">
+          <span>UP FOR PRESIDENCY</span>
+          <strong>${esc(presidency)}</strong>
+        </div>
       </div>
-      <div class="v4937-mini">
-        <span>UP FOR PRESIDENCY</span>
-        <strong>${esc(presidency)}</strong>
-      </div>
-    </div>
+    `:''}
 
     ${rows?`
       <div class="v4937-schedule">
-        <div class="v4937-schedule-title">SVS SCHEDULE</div>
+        <div class="v4937-schedule-title">${isSvs?'SVS SCHEDULE':'SCHEDULE'}</div>
         ${rows}
       </div>
     `:''}
@@ -533,7 +522,7 @@ async function syncThenConsume(){
     try{
       await window.NEXA_SYNC_STATE_HOME();
     }catch(err){
-      console.warn('[NEXA Live V49.47] State Home sync failed',err?.message||err);
+      console.warn('[NEXA Live V49.48] State Home sync failed',err?.message||err);
     }
   }
 

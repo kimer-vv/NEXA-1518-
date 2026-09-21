@@ -2968,11 +2968,22 @@ section.panel{position:relative;z-index:1}
 .setup-collapsed #publishNext{grid-column:1/-1}
 .setup-collapsed .setup-action-row .btn{width:100%;min-width:0}
 @media(max-width:620px){.plan-saved-card{margin-left:0}.plan-saved-actions .btn{font-size:12px;padding:8px 5px}.setup-collapsed .setup-action-row .btn{font-size:12px}}
+
+/* V2.11.5 — Shared Hero Pool team-first SvS parity, no redundant team formations. */
+.fdt-bp-pool-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:14px 0 19px;align-items:start}
+.fdt-bp-pool-team{min-width:0;display:grid;align-content:start;gap:5px;border:0;background:transparent}
+.fdt-bp-pool-team>.fdt-bp-team-title{margin:0 0 4px;padding:10px 12px;border:1px solid rgba(148,164,192,.35);border-radius:11px;background:rgba(110,155,197,.11);color:var(--tc,#9b78ff);font-size:17px;font-weight:950}
+.fdt-bp-pool-player{padding:9px 11px;border-left:3px solid var(--tc,#9b78ff);border-radius:8px;background:rgba(255,255,255,.025);font-size:12px;font-weight:850;line-height:1.3;overflow-wrap:anywhere}
+.fdt-bp-pool-player:nth-of-type(2n){background:rgba(255,255,255,.045)}
+.fdt-bp-pool-player .alliance-tag{margin:0 5px 0 0;font-size:10px}
+.fdt-bp-shared-formation{margin-top:12px}
+.fdt-bp-printstage .fdt-bp-pool-columns{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+@media(max-width:460px){.fdt-bp-pool-columns{gap:8px}.fdt-bp-pool-player{padding:8px 6px;font-size:11px}.fdt-bp-pool-team>.fdt-bp-team-title{font-size:15px;padding:9px 8px}}
 </style>
 </head>
 <body>
 <main class="sh">
-<!-- NEXA FDT OPERATIONS V2.11.3 • PUBLISHED BATTLE PLAN -->
+<!-- NEXA FDT OPERATIONS V2.11.5 • SHARED POOL + REAL LIVE EVENT + CLEAN SVS PARITY -->
 <div class="top">
   <a class="round" href="index.html" aria-label="Back">‹</a>
   <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div><div class="autosave">AUTOSAVE • SAVED</div></div>
@@ -2993,10 +3004,10 @@ section.panel{position:relative;z-index:1}
 <div id="status" class="status"></div>
 
 <section class="panel active" data-panel="setup">
-  <div class="desc">Set the FDT Battle Date and UTC battle window. FDT does not require an opponent.</div>
+  
   <div class="card">
     <div id="setupEditor" class="setup-editor">
-      <div class="section-head"><div><h2>FDT Setup</h2><div class="tiny muted">Battle window controls Pet Schedule hours.</div></div><span class="live-badge">FDT</span></div>
+      <div class="section-head"><div><h2>FDT Setup</h2></div></div>
       <div class="grid2" style="margin-top:12px">
         <label>Battle Date<input id="battleDate" type="date"></label>
         <label>Event Status<select id="eventStatus"><option value="planning">Planning</option><option value="live">Live Event</option><option value="ended">Ended</option></select></label>
@@ -3011,7 +3022,7 @@ section.panel{position:relative;z-index:1}
     </div>
 
     <div id="setupCollapsed" class="setup-collapsed hidden">
-      <div class="section-head"><div><h2 style="margin:0">FDT Setup</h2><div class="tiny muted">Saved setup summary</div></div><span id="setupStatusBadge" class="live-badge">PLANNING</span></div>
+      <div class="section-head"><div><h2 style="margin:0">FDT Setup</h2></div></div>
       <div class="setup-summary-row" style="margin-top:10px">
         <div class="setup-summary-chip"><small>Battle Day</small><b id="summaryBattleDate">Not set</b></div>
         <div class="setup-summary-chip"><small>Battle Window</small><b id="summaryBattleWindow">12:00–17:00 UTC</b></div>
@@ -3152,17 +3163,16 @@ section.panel{position:relative;z-index:1}
 </section>
 
 <section class="panel" data-panel="plan">
-  <div class="desc">Your complete FDT document, assembled from each module. Send a module again to update only that section; other sections and notes stay intact.</div>
+  
   <div class="card">
-    <div class="section-head"><div><h2>Battle Plan</h2><div class="tiny muted">Final document • State and UTC time</div></div><div id="planSyncState" class="live-badge">NOT SYNCED</div></div>
+    <div class="section-head"><div><h2>Battle Plan</h2></div></div>
     <div class="grid2" style="margin-top:12px"><label>Plan Title<input id="planTitle" placeholder="FDT Battle Plan"></label><label>Alliance / State Alliance<input id="planAlliance" placeholder="Optional"></label></div>
     <label style="margin-top:10px">Important Notes<textarea id="planNotes" placeholder="General instructions for all Legions and Teams..."></textarea></label>
-    <div id="planSectionStatus" class="plan-section-status"></div>
+    
     <div class="row" style="margin-top:12px"><button class="btn violet" id="planSaveDone">Save &amp; Done</button><button class="btn" id="planSavePdf">Download PDF</button><button class="btn" id="planSaveImage">Save Full Plan Image</button></div>
   </div>
   <div id="battlePlanPreview" style="margin-left:18px"></div>
   <div id="planSavedCard" class="plan-saved-card hidden" aria-live="polite">
-    <div class="live-badge">SAVED • READY TO SHARE</div>
     <h3>FDT Battle Plan</h3>
     <p id="planSavedDetail">Your final FDT Battle Plan is ready.</p>
     <div class="plan-saved-actions">
@@ -3345,18 +3355,67 @@ function wireSetup(){
    $('#battleWindowRead').textContent='12:00–17:00 UTC';
    $('#summaryBattleDate').textContent=store.setup.battleDate||'Not set';
    $('#summaryBattleWindow').textContent='Prep 11:00–12:00 • Battle 12:00–17:00 UTC';
-   $('#setupStatusBadge').textContent=String(store.setup.status||'planning').toUpperCase();
    $('#setupEditor').classList.toggle('hidden',!!store.setup.saved);
    $('#setupCollapsed').classList.toggle('hidden',!store.setup.saved);
  };paint();
  $('#battleDate').oninput=e=>{store.setup.battleDate=e.target.value;save();paint()};
- $('#eventStatus').onchange=e=>{store.setup.status=e.target.value;save();paint()};
+ $('#eventStatus').onchange=e=>{store.setup.status=e.target.value==='live'?'planning':e.target.value;save();paint()};
  $('#eventAlliance').oninput=e=>{store.setup.alliance=e.target.value;save()};
  $('#saveSetup').onclick=()=>{store.setup.saved=true;save();paint()};
  $('#editSetup').onclick=()=>{store.setup.saved=false;save();paint()};
  $('#openSetup').onclick=()=>{store.setup.saved=false;save();paint()};
  $('#publishNext').textContent='Publish to NEXA';
- $('#publishNext').onclick=()=>{store.setup.status='live';store.setup.saved=true;save();$('#eventStatus').value='live';paint();say('FDT setup marked Live Event locally. Backend publishing is not connected yet.')};
+ $('#publishNext').onclick=publishFdtLiveEvent;
+}
+
+
+/* FDT Live Event uses the established NEXA live-event feed; do not announce success before read-back. */
+async function publishFdtLiveEvent(){
+ const btn=$('#publishNext');if(btn?.disabled)return;
+ const date=String(store.setup?.battleDate||'').trim();
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return nexaAlert('Choose and save the FDT Battle Date before publishing.','FDT Live Event');
+ btn.disabled=true;btn.textContent='Publishing…';
+ try{
+   const {data:auth,error:authError}=await sb.auth.getUser();
+   if(authError||!auth?.user?.id)throw new Error('Sign in to NEXA before publishing the Live Event.');
+   const {data:active,error:activeError}=await sb.from('svs_events')
+     .select('id,title,status,is_live,live_event_payload').eq('state_number',state).eq('is_live',true);
+   if(activeError)throw activeError;
+   const existing=(active||[]).find(row=>String(row.live_event_payload?.event_key||row.live_event_payload?.theme||'').toLowerCase()==='fdt');
+   const other=(active||[]).filter(row=>row.id!==existing?.id);
+   if(other.length){
+     const ok=await nexaConfirm('Another Live Event is still active in this State: '+other.map(x=>x.title||'Untitled').join(', ')+'. Publish FDT as the current Live Event and end the previous Live Event?','Publish FDT Live Event');
+     if(!ok)return;
+   }
+   const payload={
+     title:'FDT • '+date,state_number:state,is_live:true,status:'live',
+     description:'Frost Dragon Tyrant • Prep 11:00–12:00 UTC • Battle 12:00–17:00 UTC',
+     live_event_payload:{theme:'fdt',event_key:'fdt',battle_date:date,prep_start:date,
+       battle_start_utc:'12:00',battle_end_utc:'17:00',entry_start_utc:'11:00',
+       state_number:state,alliance:String(store.setup?.alliance||'').trim(),
+       schedule:[{day:'FDT',date,focus:'Preparation / Entry',time_utc:'11:00–12:00 UTC'},
+                 {day:'FDT',date,focus:'FDT Battle',time_utc:'12:00–17:00 UTC'}]}
+   };
+   const query=existing
+     ?sb.from('svs_events').update(payload).eq('id',existing.id).select('id,title,status,is_live,live_event_payload').single()
+     :sb.from('svs_events').insert(payload).select('id,title,status,is_live,live_event_payload').single();
+   const {data:published,error:publishError}=await query;
+   if(publishError||!published?.id)throw publishError||new Error('FDT was not published.');
+   const {data:check,error:checkError}=await sb.from('svs_events')
+     .select('id,is_live,status,live_event_payload').eq('id',published.id).single();
+   if(checkError||!check?.is_live||check?.status!=='live'||check?.live_event_payload?.theme!=='fdt')
+     throw new Error('FDT publication could not be verified. Please check the Live Event before continuing.');
+   if(other.length){
+     const {error:endError}=await sb.from('svs_events').update({is_live:false,status:'ended',ended_at:new Date().toISOString()}).in('id',other.map(row=>row.id));
+     if(endError)throw new Error('FDT was published, but the previous Live Event could not be ended: '+endError.message);
+   }
+   store.setup.status='live';store.setup.saved=true;store.setup.liveEventId=published.id;
+   $('#eventStatus').value='live';save();
+   $('#setupEditor').classList.add('hidden');$('#setupCollapsed').classList.remove('hidden');
+   say('FDT Live Event published and verified in NEXA.');
+   await nexaAlert('FDT Live Event published successfully.','FDT Live Event');
+ }catch(error){console.error('[NEXA FDT Live Event]',error);await nexaAlert(error?.message||'FDT Live Event could not be published.','FDT Live Event')}
+ finally{btn.disabled=false;btn.textContent='Publish to NEXA'}
 }
 
 /* DATA */
@@ -3412,9 +3471,8 @@ async function loadData(){
  if(!error&&data?.ok===true){
    applyFdtSnapshot(data);
    const clean=renderLoadedFdtData();
-   say(clean
-     ?`Loaded ${responses.length} FDT response${responses.length===1?'':'s'} • ${rules.length} formation rules • Gen ${activeGen}`
-     :(`FDT data loaded. Display issue: ${fdtRenderErrors.map(x=>x.name).join(', ')}${fdtRenderErrors[0]?.message?` — ${fdtRenderErrors[0].message}`:''}`));
+   if(!clean)say(`FDT data loaded. Display issue: ${fdtRenderErrors.map(x=>x.name).join(', ')}${fdtRenderErrors[0]?.message?` — ${fdtRenderErrors[0].message}`:''}`);
+   else say('');
    return
  }
 
@@ -3474,7 +3532,7 @@ $('#refreshResponses').onclick=async()=>{
  }
  applyFdtSnapshot(data);
  renderLoadedFdtData();
- say(`Refreshed ${responses.length} FDT response${responses.length===1?'':'s'} • ${rules.length} formation rules • Gen ${activeGen}`);
+ say(''); // V2.11.5: preserve error messages, omit decorative blue loading summary.
 }
 
 /* FORMATIONS */
@@ -5334,7 +5392,14 @@ function fdtPlanLegionHtml(l){
    ${buildings.map(b=>`<section class="fdt-bp-building" style="--bc:${esc(b.color||l.color||'#9b78ff')}">
      <div class="fdt-bp-building-head"><b>${esc(b.label)}</b><small>${b.teams.length} Team${b.teams.length===1?'':'s'}</small></div>
      ${sharedPoolForBuilding(l,b).length?`<div class="fdt-bp-team"><div class="fdt-bp-section"><h4>JOINER HEROES · USE ANY OF THESE</h4>${fdtPlanHeroPool(l,b)}</div></div>`:''}
-     ${b.teams.map(t=>fdtPlanTeamHtml(l,b,t)).join('')}
+     ${l.mode==='pool'?`<div class="fdt-bp-shared-formation fdt-bp-section"><h4>FORMATIONS</h4><div class="fdt-bp-formation">
+       <div class="fdt-bp-ratio g"><b>GARRISON</b><strong>${esc(b.teams[0]?.ratios?.garrison||l.ratios?.garrison||'60/40/0')}</strong></div>
+       ${b.teams[0]?.ratios?.showRally===false?'':`<div class="fdt-bp-ratio r"><b>MIA RALLY</b><strong>${esc(b.teams[0]?.ratios?.rally||l.ratios?.rally||'48/4/48')}</strong></div>`}
+     </div></div><div class="fdt-bp-pool-columns">
+       ${b.teams.map(t=>`<div class="fdt-bp-pool-team" style="--tc:${esc(t.color||b.color||l.color||'#9b78ff')}"><h4 class="fdt-bp-team-title">Team ${Number(t.teamOrder||1)}</h4>
+         ${(t.players||[]).length?(t.players||[]).map(pid=>`<div class="fdt-bp-pool-player">${fdtPlanPlayerName(pid)}</div>`).join(''):'<div class="fdt-bp-empty">No Joiners assigned.</div>'}
+       </div>`).join('')}
+     </div>`:b.teams.map(t=>fdtPlanTeamHtml(l,b,t)).join('')}
    </section>`).join('')}
  </section>`
 }
@@ -5342,12 +5407,8 @@ function fdtPlanReady(){
  const p=store.plan||{};
  return {pets:!!p.pets?.legions?.length,board:!!p.snapshot?.legions?.length,layout:!!p.layout?.items?.length,partners:!!p.reinforcements?.legions?.length}
 }
-function renderPlanStatus(){
- const root=$('#planSectionStatus');if(!root)return;
- const ready=fdtPlanReady();
- root.innerHTML=[['pets','Pet Schedule'],['board','Legion Board'],['layout','FDT Layout'],['partners','Reinforcement Partners']]
-  .map(([key,label])=>`<span class="plan-status-pill ${ready[key]?'ready':''}">${ready[key]?'✓':'○'} ${label}</span>`).join('')
-}
+function renderPlanStatus(){/* NEXA SvS-parity: no decorative readiness pills. */}
+
 function fdtPlanMapItems(snap){
  return (snap?.items||[]).map(x=>({
    l:{id:x.legionId,name:x.legionName,color:x.color},
@@ -5373,7 +5434,7 @@ async function paintFdtBattlePlanMap(root){
  }
 }
 function renderBattlePlanPreview(){
- const root=$('#battlePlanPreview'),sync=$('#planSyncState');
+ const root=$('#battlePlanPreview'),sync=null;
  if(!root)return;
  renderPlanStatus();
  const plan=store.plan||{},snap=plan.snapshot;
@@ -5620,6 +5681,36 @@ async function fdtNativePlanPdf(source,title){
      leg.querySelectorAll(':scope > .fdt-bp-building').forEach(build=>{
        const bc=cs(build,'--bc');sub(sectionLabel(build,'.fdt-bp-building-head b','Building'),bc,15);
        const pool=build.querySelector('.fdt-bp-hero-pool');if(pool)drawHeroPool(pool,bc)
+       const sharedColumns=build.querySelector(':scope > .fdt-bp-pool-columns');
+       const sharedRatios=build.querySelector(':scope > .fdt-bp-shared-formation');
+       if(sharedColumns){
+         const ratios=[...sharedRatios?.querySelectorAll('.fdt-bp-ratio')||[]];
+         if(ratios.length)ratioBlock(ratios,bc);
+         const teams=[...sharedColumns.querySelectorAll(':scope > .fdt-bp-pool-team')];
+         for(let j=0;j<teams.length;j+=2){
+           const pair=teams.slice(j,j+2),lists=pair.map(t=>[...t.querySelectorAll(':scope > .fdt-bp-pool-player')]);
+           const maxRows=Math.max(0,...lists.map(a=>a.length)),gap=12,cw=(W-gap)/2,rowH=25,headerH=32;
+           let position=0;
+           // Repeat team headings on overflow, rather than orphaning empty Team 1/Team 2 cards at page bottom.
+           while(position<Math.max(1,maxRows)){
+             need(headerH+Math.min(Math.max(1,maxRows-position),4)*rowH+16);
+             pair.forEach((t,k)=>{const x=M+k*(cw+gap),tone=cs(t,'--tc',bc);paint('#eef2f7','fill');paint('#dce3ed','line');pdf.roundedRect(x,y-10,cw,headerH,6,6,'FD');font(14,true,tone);pdf.text(clean(t.querySelector('.fdt-bp-team-title')?.textContent||'Team'),x+10,y+9,{maxWidth:cw-18})});
+             y+=headerH;
+             if(maxRows===0){font(10,false,K.muted);pdf.text('No Joiners assigned.',M+9,y+8);y+=rowH;break}
+             const fit=Math.max(1,Math.floor((BOT-y-12)/rowH)),end=Math.min(maxRows,position+fit);
+             for(let n=position;n<end;n++){
+               for(let k=0;k<pair.length;k++){
+                 const item=lists[k][n];if(!item)continue;
+                 const x=M+k*(cw+gap);if(n%2===0){paint('#f8fafc','fill');pdf.roundedRect(x,y-8,cw,rowH,4,4,'F')}
+                 const tag=clean(item.querySelector('.alliance-tag')?.textContent||'');const player=clean(item.textContent.replace(tag,''));
+                 font(10.6,true,K.ink);pdf.text((tag?tag+' ':'')+player,x+9,y+8,{maxWidth:cw-17});
+               }y+=rowH;
+             }
+             position=end;
+             if(position<maxRows)page();
+           }y+=18;
+         }
+       }else{
        const teamNodes=[...build.querySelectorAll(':scope > .fdt-bp-team')].filter(t=>t.querySelector('.fdt-bp-team-title'));
        let prevRatio='';
        // Shared-hero-pool teams have only a player list: display two Team columns,
@@ -5651,6 +5742,7 @@ async function fdtNativePlanPdf(source,title){
            }
            y+=7;
          });
+       }
        }y+=9;
      });y+=13;
    });

@@ -3005,7 +3005,7 @@ section.panel{position:relative;z-index:1}
 </head>
 <body>
 <main class="sh">
-<!-- NEXA FDT OPERATIONS V2.12.3 • REINFORCEMENT LEGION TABS ONLY -->
+<!-- NEXA FDT OPERATIONS V2.12.4 • RESPONSES-ONLY LEGION ROSTER / RESET ISOLATION -->
 <div class="top">
   <a class="round" href="index.html" aria-label="Back">‹</a>
   <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div></div>
@@ -3674,10 +3674,12 @@ function fdtRawScore(p){const snap=fdtSnapshot(p),r=fdtResponseForPlayer(p)?.res
 function legionCandidates(){
  const ids=new Set(responses.map(r=>String(r.player_account_id||'')).filter(Boolean));
  const responsePlayers=players.filter(p=>ids.has(String(p.id)));
- const tests=[...(store.manualRally||[]),...(store.manualPlayers||[])].filter(p=>p.test);
- const base=responsePlayers.length?responsePlayers:players;
+ // FDT Working Reset must never repopulate its roster from all NEXA accounts.
+ // Shared player_accounts belong to NEXA, not to this event's working data.
+ // A member is eligible only after an FDT response or an explicit FDT manual add.
+ const manual=[...(store.manualRally||[]),...(store.manualPlayers||[])];
  const seen=new Set();
- return [...tests,...base].filter(p=>p?.id&&!seen.has(String(p.id))&&seen.add(String(p.id)))
+ return [...manual,...responsePlayers].filter(p=>p?.id&&!seen.has(String(p.id))&&seen.add(String(p.id)))
 }
 function scoreMap(){const candidates=legionCandidates(),rl=candidates.filter(fdtIsRL),jr=candidates.filter(p=>!fdtIsRL(p));const normalize=list=>{if(!list.length)return new Map();const vals=list.map(fdtRawScore),min=Math.min(...vals),max=Math.max(...vals);const map=new Map();list.forEach((p,i)=>{const ratio=max===min?1:(vals[i]-min)/(max-min);map.set(String(p.id),Math.max(20,Math.min(60,Math.round(20+40*ratio))))});return map};return{rl:normalize(rl),jr:normalize(jr)}}
 function fdtScore(p){const maps=scoreMap();return(fdtIsRL(p)?maps.rl:maps.jr).get(String(p.id))||20}

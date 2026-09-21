@@ -3005,7 +3005,7 @@ section.panel{position:relative;z-index:1}
 </head>
 <body>
 <main class="sh">
-<!-- NEXA FDT OPERATIONS V2.12.0 • LEGION-ISOLATED OPERATIONS + BATTLE PLANS -->
+<!-- NEXA FDT OPERATIONS V2.12.2 • LEGION DELETE / NO DEMO RESEED / RESET AWARE -->
 <div class="top">
   <a class="round" href="index.html" aria-label="Back">‹</a>
   <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div></div>
@@ -3089,7 +3089,7 @@ section.panel{position:relative;z-index:1}
     <div class="pet-stats"><div class="pet-stat"><b id="statRL">0</b><small>Total Rally Leads</small></div><div class="pet-stat"><b id="statScheduled">0</b><small>Scheduled</small></div><div class="pet-stat"><b id="statOpen">0</b><small>Not Scheduled</small></div></div>
     <div class="tiny muted" style="margin-bottom:12px">A Rally Lead may work across multiple Teams. PET is limited to 2 consecutive hours total.</div>
     <div id="petRoot"></div>
-    <div class="row" style="margin-top:12px"><button class="btn" id="addLegion">+ Add Legion</button><button class="btn" id="manualRL">+ Manual Rally Lead</button></div>
+    <div class="row" style="margin-top:12px"><button class="btn" id="manualRL">+ Manual Rally Lead</button></div>
   </div>
 </section>
 
@@ -3246,10 +3246,34 @@ function storageProgressScore(x){
  if(x.plan?.title||x.plan?.notes)score+=8;
  return score
 }
+/* Clear Working Data V1.6 predates per-Legion plans. Respect the sections it
+   removed from the selected legacy plan instead of reviving old saved copies. */
+function reconcileFdtClear(draft){
+ if(!draft||typeof draft!=='object'||!draft.fdtPlansByLegion||!draft.fdtSelectedPlanId)return draft;
+ const previous=draft.fdtPlansByLegion[draft.fdtSelectedPlanId];
+ const current=draft.plan;
+ if(!previous||!current||JSON.stringify(previous)===JSON.stringify(current))return draft;
+ const isBlankPlan=['title','alliance','notes'].every(k=>!current[k])
+   &&!['pets','snapshot','layout','reinforcements','publicId','publishedAt'].some(k=>current[k]);
+ if(isBlankPlan){
+   draft.fdtPlansByLegion={};delete draft.fdtLegacyCombinedPlan;
+   draft.fdtSelectedPlanId='';draft.plan={title:'',alliance:'',notes:''};
+   return draft;
+ }
+ const sections=['pets','snapshot','layout','reinforcements'];
+ for(const key of sections){
+   if(Object.prototype.hasOwnProperty.call(previous,key)&&!Object.prototype.hasOwnProperty.call(current,key)){
+     for(const plan of Object.values(draft.fdtPlansByLegion))if(plan&&typeof plan==='object')delete plan[key];
+     if(draft.fdtLegacyCombinedPlan)delete draft.fdtLegacyCombinedPlan[key];
+   }
+ }
+ draft.fdtPlansByLegion[draft.fdtSelectedPlanId]=current;
+ return draft;
+}
 function load(){
  try{
    const current=JSON.parse(localStorage.getItem(KEY)||'null');
-   if(current)return current;
+   if(current)return reconcileFdtClear(current);
    const candidates=[];
    LEGACY_KEYS.forEach((k,idx)=>{try{const raw=localStorage.getItem(k);if(!raw)return;const data=JSON.parse(raw);if(data)candidates.push({k,data,score:storageProgressScore(data),idx})}catch(_){}});
    if(candidates.length){
@@ -3260,52 +3284,16 @@ function load(){
      return chosen.data
    }
  }catch(_){}
- const start=12,end=17,colors=COLORS;
- const allianceTags=['BBC','EVG','FSU','HOS','WAR','LGC','TAX','OA'];
- const mkTroops=(i,isWhale)=>{
-   const fullT12=isWhale||i%4===0;
-   const helios=!fullT12&&(i%3===0||i%5===0);
-   const skill=(i%3)+1;
-   const one=(name,t12,t11,s)=>({name,tier:t12?12:t11?11:10,t12_unlocked:t12,t11_unlocked:t11,advanced_skill:s});
-   return{
-     infantry:one(fullT12?'Exalted T12 Infantry':helios?'Helios T11 Infantry':'T10 Infantry',fullT12,helios,skill),
-     lancer:one(fullT12?'Exalted T12 Lancer':helios?'Helios T11 Lancer':'T10 Lancer',fullT12,helios,Math.max(1,skill-1)),
-     marksman:one(fullT12?'Exalted T12 Marksman':helios?'Helios T11 Marksman':'T10 Marksman',fullT12,helios,Math.min(3,skill+1))
-   }
- };
- const whales=Array.from({length:12},(_,i)=>({
-   id:`test_whale_${String(i+1).padStart(2,'0')}`,
-   name:`Test Whale ${String(i+1).padStart(2,'0')}`,
-   in_game_name:`Test Whale ${String(i+1).padStart(2,'0')}`,
-   player_id:`TW${String(i+1).padStart(3,'0')}`,
-   manual:true,test:true,battle_role:'rally_lead',
-   custom_alliance_tag:allianceTags[i%allianceTags.length],
-   deployment_capacity:1850000-(i*35000),
-   rally_capacity:2600000-(i*45000),
-   power:2200000000-(i*65000000),
-   test_troops:mkTroops(i,true),
-   test_availability:['12:00–13:00 UTC','13:00–14:00 UTC','14:00–15:00 UTC','15:00–16:00 UTC','16:00–17:00 UTC']
- }));
- const joiners=Array.from({length:108},(_,i)=>({
-   id:`test_joiner_${String(i+1).padStart(3,'0')}`,
-   name:`Test Joiner ${String(i+1).padStart(3,'0')}`,
-   in_game_name:`Test Joiner ${String(i+1).padStart(3,'0')}`,
-   player_id:`TJ${String(i+1).padStart(3,'0')}`,
-   manual:true,test:true,battle_role:'joiner',
-   custom_alliance_tag:allianceTags[i%allianceTags.length],
-   deployment_capacity:1450000-(i*5000),
-   rally_capacity:(i<15?1900000-(i*20000):0),
-   power:1250000000-(i*6500000),
-   test_troops:mkTroops(i,false),
-   test_availability:i%5===0?['12:00–13:00 UTC','13:00–14:00 UTC']:
-     i%3===0?['12:00–13:00 UTC','13:00–14:00 UTC','14:00–15:00 UTC']:
-     ['12:00–13:00 UTC','13:00–14:00 UTC','14:00–15:00 UTC','15:00–16:00 UTC','16:00–17:00 UTC']
- }));
- let wi=0;
- const mkTeam=(n,count,color)=>{const ids=whales.slice(wi,wi+count).map(x=>x.id);wi+=count;return{id:`seed_team_${n}_${wi}`,name:`Team ${n}`,color,assignments:ids.map((pid,j)=>({id:`seed_asg_${n}_${wi}_${j}`,playerId:pid,start,end:j===0?Math.min(end,start+2):end,pet:j===0})),players:[],playerHeroes:{}}};
- const l1={id:'seed_leg_1',name:'Legion 1',color:colors[0],allianceId:'',manualAlliance:'TEST-L1',configured:true,members:[],teams:[mkTeam(1,3,colors[1]),mkTeam(2,3,colors[2])],mode:'assigned',roles:{garrisonChief:'',rallyManagers:'',incomingTraffic:'',kickingCrew:''},ratios:{garrison:'60/40/0',rally:'48/4/48',showRally:true},sharedHeroIds:[],focusPools:{}};
- const l2={id:'seed_leg_2',name:'Legion 2',color:colors[3],allianceId:'',manualAlliance:'TEST-L2',configured:true,members:[],teams:[mkTeam(1,3,colors[4]),mkTeam(2,3,colors[5])],mode:'pool',roles:{garrisonChief:'',rallyManagers:'',incomingTraffic:'',kickingCrew:''},ratios:{garrison:'60/40/0',rally:'48/4/48',showRally:true},sharedHeroIds:[],focusPools:{}};
- return{setup:{battleDate:'',status:'planning',battleStart:start,battleEnd:end,alliance:'',saved:false},legions:[l1,l2],manualRally:whales,manualPlayers:joiners,plan:{title:'',alliance:'',notes:''}}
+ // A cleared or brand-new workspace remains empty. Never seed test players or Legions here.
+ return {
+  setup:{battleDate:'',status:'planning',battleStart:12,battleEnd:17,alliance:'',saved:false},
+  legions:[],manualRally:[],manualPlayers:[],
+  legionPlacement:{phase:'assignment',activeLegionId:'',legions:[],roleOverrides:{}},
+  layout:{activeLegionId:'',activeBuildingId:'',activeTeamIds:[],view:'selected',teams:{}},
+  reinforcements:{activeLegionId:'',byLegion:{}},
+  fdtPlansByLegion:{},fdtViews:{},fdtSelectedPlanId:'',
+  plan:{title:'',alliance:'',notes:''}
+ }
 }
 function save(){
  if(store.fdtPlansByLegion&&store.fdtSelectedPlanId)store.fdtPlansByLegion[store.fdtSelectedPlanId]=store.plan;
@@ -3372,6 +3360,21 @@ function ensureLegionWorkflow(){
  return w
 }
 
+/* One-time compatibility: Pet Schedule could create operational Legions before
+   Legions became the single owner. Surface those existing Legions for deletion
+   instead of leaving an orphan with no Delete button. */
+function reconcileLegionOrigins(){
+ const w=ensureLegionWorkflow(),ops=Array.isArray(store.legions)?store.legions:[];
+ for(let i=w.legions.length;i<ops.length;i++){
+  const op=ops[i];
+  if(!op)continue;
+  w.legions.push({id:String(op.id||uid('draft_leg_')),name:op.name||`Legion ${i+1}`,
+   color:op.legionColor||op.color||LEGION_PLACEMENT_COLORS[i%LEGION_PLACEMENT_COLORS.length],
+   playerIds:Array.isArray(op.members)?[...op.members]:[],
+   allianceId:op.allianceId||'',manualAlliance:op.manualAlliance||''});
+ }
+ if(!w.activeLegionId&&w.legions.length)w.activeLegionId=w.legions[0].id;
+}
 function uid(p){return p+Math.random().toString(36).slice(2,10)}
 function say(t){$('#status').textContent=t||''}
 function modal(html){const r=document.createElement('div');r.className='modal';r.innerHTML=`<div class="modal-card">${html}</div>`;r.onclick=e=>{if(e.target===r||e.target.closest('[data-modal-close]'))r.remove()};document.body.appendChild(r);return r}
@@ -3585,7 +3588,7 @@ function respName(r){const x=r.response_data||{},p=players.find(y=>String(y.id)=
 function responseAllianceTag(r){const p=players.find(y=>String(y.id)===String(r.player_account_id));return playerAllianceTag(p)||p?.custom_alliance_tag||'NO TAG'}
 function renderResponses(){
  const h=$('#responseGrid'),list=[...responses].sort((a,b)=>respScore(b)-respScore(a));
- if(!list.length){h.innerHTML='<div class="empty" style="grid-column:1/-1">No FDT Sign-Up responses yet.</div>';renderResponseChecklist();return}
+ if(!list.length){h.innerHTML='<div class="empty" style="grid-column:1/-1">No FDT Sign-Up responses for this State yet. Manual and test players are not Sign-Up responses.</div>';renderResponseChecklist();return}
  h.innerHTML=list.map(r=>`<article class="response"><h4>${esc(respName(r))}</h4><div class="meta">[${esc(responseAllianceTag(r))}] • ${esc(String(r.role||r.response_data?.role||'Role not set').replaceAll('_',' '))}</div><div class="score">${respScore(r)?respScore(r).toLocaleString():'—'}</div><div class="meta">${esc(availabilityLabelForResponse(r))}</div></article>`).join('');
  renderResponseChecklist()
 }
@@ -3685,6 +3688,37 @@ function fdtOperationalRole(p){const w=ensureLegionWorkflow(),override=w.roleOve
 function legionAssignedMap(){const m=new Map(),w=ensureLegionWorkflow();w.legions.forEach(l=>l.playerIds.forEach(id=>m.set(String(id),l.id)));return m}
 function currentDraftLegion(){const w=ensureLegionWorkflow();return w.legions.find(l=>l.id===w.activeLegionId)||w.legions[0]||null}
 function createDraftLegion(){const w=ensureLegionWorkflow(),n=w.legions.length+1,l={id:uid('draft_leg_'),name:`Legion ${n}`,color:LEGION_PLACEMENT_COLORS[(n-1)%LEGION_PLACEMENT_COLORS.length],playerIds:[],allianceId:'',manualAlliance:''};w.legions.push(l);w.activeLegionId=l.id;save();renderLegionWorkflow()}
+async function deleteSelectedDraftLegion(){
+ const w=ensureLegionWorkflow(),draft=currentDraftLegion();
+ if(!draft)return;
+ const index=w.legions.findIndex(l=>String(l.id)===String(draft.id));
+ const op=(store.legions||[])[index];
+ const operationalIds=new Set([String(draft.id),...(op?[String(op.id)]:[])]);
+ const summary=`Delete ${draft.name} and its saved Pet Schedule, Legion Board, Layout, Reinforcement Partners and Battle Plan? Other Legions will not be changed.`;
+ if(!await nexaConfirm(summary,'DELETE LEGION'))return;
+ // Published plans are owner-scoped. Delete every saved cloud plan for this
+ // Legion even if its link was created in another browser or is not cached here.
+ const {data:{user},error:authErr}=await sb.auth.getUser();
+ if(authErr||!user?.id){await nexaAlert('Sign in before deleting a Legion. No local work was removed.','Delete Legion');return}
+ const {error:cloudError}=await sb.from('fdt_battle_plans').delete()
+   .eq('owner_id',user.id).eq('state_number',state).in('legion_id',[...operationalIds]);
+ if(cloudError){await nexaAlert('Cloud plan deletion failed: '+cloudError.message+'. Local Legion kept.','Delete Legion');return}
+ w.legions.splice(index,1);
+ if(op)store.legions.splice(index,1);
+ if(store.fdtPlansByLegion)for(const id of operationalIds)delete store.fdtPlansByLegion[id];
+ if(store.layout?.teams){
+  for(const k of Object.keys(store.layout.teams))if([...operationalIds].some(id=>k.startsWith(id+'|')))delete store.layout.teams[k];
+ }
+ if(store.reinforcements?.byLegion)for(const id of operationalIds)delete store.reinforcements.byLegion[id];
+ if(store.fdtViews)for(const key of ['pets','board'])if(operationalIds.has(String(store.fdtViews[key])))store.fdtViews[key]='';
+ if(operationalIds.has(String(store.layout?.activeLegionId))){store.layout.activeLegionId='';store.layout.activeBuildingId='';store.layout.activeTeamIds=[]}
+ if(operationalIds.has(String(store.reinforcements?.activeLegionId)))store.reinforcements.activeLegionId='';
+ if(operationalIds.has(String(store.fdtSelectedPlanId))){store.fdtSelectedPlanId='';store.plan={title:'',alliance:'',notes:''}}
+ w.activeLegionId=w.legions[Math.min(index,w.legions.length-1)]?.id||'';
+ initFdtLegionIsolation();save();
+ renderLegionWorkflow();renderPets();renderBoard();refreshLayoutExport();renderReinforcements(false);wirePlan();
+ say(draft.name+' deleted. Other Legions preserved.');
+}
 function draftAllianceName(l){const a=alliances.find(x=>String(x.id)===String(l.allianceId));return l.manualAlliance||a?.tag||a?.name||'Not assigned'}
 function legionPower(l){return l.playerIds.reduce((s,id)=>s+Number(playerById(id)?.power||0),0)}
 function legionScoreTotal(l){return l.playerIds.reduce((s,id)=>{const p=playerById(id);return s+(p?fdtScore(p):0)},0)}
@@ -3709,7 +3743,7 @@ function renderAssignment(){
  const w=ensureLegionWorkflow(),l=currentDraftLegion(),assigned=legionAssignedMap();
  if(!w.legions.length)return`<div class="card"><div class="section-head"><div><h2>Legion Assignment</h2></div><button class="btn violet" data-create-draft-legion>+ Legion 1</button></div></div>`;
  const filters=assignmentFilters(),remaining=legionCandidates().filter(p=>!assigned.has(String(p.id))||assigned.get(String(p.id))===l.id).length;
- return`<div class="card"><div class="section-head"><div><h2>Legion Assignment</h2><div class="tiny muted">Test pool: 120 players • 12 Rally Leads</div></div><button class="btn" data-create-draft-legion>+ Add Legion</button></div>
+ return`<div class="card"><div class="section-head"><div><h2>Legion Assignment</h2><div class="tiny muted">${legionCandidates().length} available players • ${legionCandidates().filter(fdtIsRL).length} Rally Leads</div></div><div class="row"><button class="btn" data-create-draft-legion>+ Add Legion</button><button class="btn danger" data-delete-draft-legion>Delete Legion</button></div></div>
  <div class="legion-toolbar"><label>Which Legion do you want to place players in?<select id="activeDraftLegion">${w.legions.map(x=>`<option value="${x.id}" ${x.id===l.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></label><div class="legion-counter">${l.playerIds.length}/60</div></div>
  <div class="selection-mode-row"><div class="tiny muted">${remaining} available for this Legion</div><div class="selection-mode-toggle"><button data-select-mode="tap" class="${legionSelectMode==='tap'?'active':''}">Tap</button><button data-select-mode="swipe" class="${legionSelectMode==='swipe'?'active':''}">Swipe Select</button></div></div>
  <div class="legion-filter">${filters.map(f=>`<button class="${legionFilter===f?'active':''}" data-legion-filter="${esc(f)}">${esc(f)}</button>`).join('')}</div>
@@ -3864,7 +3898,7 @@ document.addEventListener('pointermove',e=>{
 document.addEventListener('pointerup',endSwipePaint);
 document.addEventListener('pointercancel',endSwipePaint);
 
-if($('#legionWorkflowRoot'))$('#legionWorkflowRoot').onclick=async e=>{const w=ensureLegionWorkflow();if(e.target.closest('[data-create-draft-legion]')){createDraftLegion();return}const view=e.target.closest('[data-view-player]');if(view){e.stopPropagation();const p=playerById(view.dataset.viewPlayer);if(p)playerDetail(p);return}const card=e.target.closest('[data-assign-player]');if(card&&w.phase==='assignment'){
+if($('#legionWorkflowRoot'))$('#legionWorkflowRoot').onclick=async e=>{const w=ensureLegionWorkflow();if(e.target.closest('[data-create-draft-legion]')){createDraftLegion();return}if(e.target.closest('[data-delete-draft-legion]')){await deleteSelectedDraftLegion();return}const view=e.target.closest('[data-view-player]');if(view){e.stopPropagation();const p=playerById(view.dataset.viewPlayer);if(p)playerDetail(p);return}const card=e.target.closest('[data-assign-player]');if(card&&w.phase==='assignment'){
  if(legionSelectMode==='swipe')return;
  const l=currentDraftLegion(),id=String(card.dataset.assignPlayer),assigned=legionAssignedMap();if(assigned.has(id)&&assigned.get(id)!==l.id)return;
  const has=l.playerIds.some(x=>String(x)===id);
@@ -4115,7 +4149,7 @@ function petSetupHtml(l,i){
   return `<div class="setup-pet"><h3 style="margin:0">Start ${esc(l.name)}</h3><label>Main Alliance<select data-start-alliance="${l.id}">${allianceSelect(l)}</select></label><div class="hidden" data-manual-wrap="${l.id}" style="margin-top:9px"><label>Manual Alliance Name / Tag<input data-start-manual="${l.id}" placeholder="Alliance"></label></div><button class="btn violet" style="width:100%;margin-top:10px" data-start-legion="${l.id}">Start Setup</button></div>`
  }
  const buildings=legionBuildings(l);
- return `<section class="legion-pet" style="${legionStyleVars(l)}"><div class="legion-pet-head"><div><div class="legion-pet-title">${esc(l.name)}</div><div class="legion-sub">${buildings.length} Building${buildings.length===1?'':'s'} • ${l.teams.length} Team${l.teams.length===1?'':'s'}</div></div><div class="pet-action-row"><button class="btn small" data-change-legion="${l.id}">Change</button><button class="btn danger small" data-remove-legion="${l.id}">Remove</button><button class="btn small" data-add-team="${l.id}">+ Building</button></div></div>${buildings.length?buildings.map(b=>buildingHtml(l,b)).join(''):'<div class="empty" style="margin:12px">No Buildings yet.</div>'}</section>`
+ return `<section class="legion-pet" style="${legionStyleVars(l)}"><div class="legion-pet-head"><div><div class="legion-pet-title">${esc(l.name)}</div><div class="legion-sub">${buildings.length} Building${buildings.length===1?'':'s'} • ${l.teams.length} Team${l.teams.length===1?'':'s'}</div></div><div class="pet-action-row"><button class="btn small" data-change-legion="${l.id}">Change</button><button class="btn small" data-add-team="${l.id}">+ Building</button></div></div>${buildings.length?buildings.map(b=>buildingHtml(l,b)).join(''):'<div class="empty" style="margin:12px">No Buildings yet.</div>'}</section>`
 }
 function normalizeLegionState(l,index=0){
  if(!l||typeof l!=='object')return l;
@@ -4169,12 +4203,10 @@ function hydrateTeams(){
 }
 
 function renderPets(){hydrateTeams();
- if(!store.legions.length)store.legions.push(newLegion());
  const legion=fdtLegion('pets');renderFdtLegionTabs('pets');
  $('#petRoot').innerHTML=legion?petSetupHtml(legion,store.legions.indexOf(legion)):'<div class="empty">Configure a Legion first.</div>';
  const all=legion?allAssignments().filter(a=>String(a.legionId)===String(legion.id)):[],unique=new Set(all.map(a=>String(a.playerId)));$('#statRL').textContent=unique.size;$('#statScheduled').textContent=all.length;$('#statOpen').textContent=Math.max(0,(legion?rallyCandidates(legion.id):[]).length-unique.size)
 }
-$('#addLegion').onclick=()=>{store.legions.push(newLegion());save();renderPets();renderBoard()}
 $('#manualRL').onclick=async()=>{const name=await nexaPrompt('Rally Leader name','Add Rally Leader');if(!name?.trim())return;(store.manualRally||(store.manualRally=[])).push({id:uid('manual_rl_'),name:name.trim()});save();renderPets()}
 $('#petRoot').onchange=e=>{
  const s=e.target.closest('[data-start-alliance]');if(s){const l=store.legions.find(x=>x.id===s.dataset.startAlliance);if(!l)return;if(s.value==='__manual__'){l.allianceId='';document.querySelector(`[data-manual-wrap="${l.id}"]`)?.classList.remove('hidden')}else{l.allianceId=s.value;l.manualAlliance='';document.querySelector(`[data-manual-wrap="${l.id}"]`)?.classList.add('hidden')}save()}
@@ -4260,7 +4292,7 @@ function openRemoveRallyModal(l,t){
 $('#petRoot').onclick=async e=>{
  const start=e.target.closest('[data-start-legion]');if(start){const l=store.legions.find(x=>x.id===start.dataset.startLegion);if(!l)return;if(!l.allianceId&&!String(l.manualAlliance||'').trim()){await nexaAlert('Choose an Alliance or add one manually.','Alliance');return}l.configured=true;save();renderPets();renderBoard();return}
  const change=e.target.closest('[data-change-legion]');if(change){const l=store.legions.find(x=>x.id===change.dataset.changeLegion);if(l){l.configured=false;save();renderPets();renderBoard()}return}
- const remL=e.target.closest('[data-remove-legion]');if(remL){if(await nexaConfirm('Remove this Legion?','Remove Legion')){store.legions=store.legions.filter(x=>x.id!==remL.dataset.removeLegion);save();renderPets();renderBoard()}return}
+
  const addInner=e.target.closest('[data-add-inner-team]');if(addInner){
    const l=store.legions.find(x=>x.id===addInner.dataset.addInnerTeam);
    if(l){addTeamToBuilding(l,addInner.dataset.buildingId);save();renderPets();renderBoard();refreshLayoutExport()}
@@ -5926,7 +5958,11 @@ async function fdtCopyPublishedLink(){
 function fdtViewPublishedPlan(){const url=fdtPublishedUrl();if(url)window.open(url,'_blank','noopener');else nexaAlert('Press Save & Done first.','Battle Plan')}
 function wirePlan(){store.plan=store.plan||{title:'',alliance:'',notes:''};renderFdtLegionTabs('plan');$('#planTitle').value=store.plan.title||'';$('#planAlliance').value=store.plan.alliance||'';$('#planNotes').value=store.plan.notes||'';$('#planTitle').oninput=e=>{store.plan.title=e.target.value;save();renderBattlePlanPreview()};$('#planAlliance').oninput=e=>{store.plan.alliance=e.target.value;save();renderBattlePlanPreview()};$('#planNotes').oninput=e=>{store.plan.notes=e.target.value;save();renderBattlePlanPreview()};renderBattlePlanPreview();fdtPlanSavedState(!!store.plan.collapsed,false)}
 
+// A reset from Clear Working Data must not be overwritten by a stale FDT tab.
+window.addEventListener('storage',e=>{if(e.key===KEY||e.key==='nexa_fdt_reset_'+state)location.reload()});
+window.addEventListener('pageshow',e=>{if(e.persisted)location.reload()});
 hydrateTeams();
+reconcileLegionOrigins();
 initFdtLegionIsolation();
 save();
 wireSetup();

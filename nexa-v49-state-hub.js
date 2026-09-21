@@ -1503,7 +1503,7 @@ async function openOwnedBattleOperationsMenu(){
   const items=[
     ['SvS',()=>ownedMenuGo('svs-operations.html')],
     ['FDT',()=>ownedMenuGo('fdt-operations.html')],
-    ['TAL',()=>ownedMenuGo('battle-operations.html?event=tal')],
+    ['TAL',()=>ownedMenuGo('tal-operations.html')],
     ['Matchup Lab',()=>ownedMenuGo('svs-matchup-lab.html')]
   ];
 

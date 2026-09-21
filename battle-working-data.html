@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • Clear Working Data</title>
-<!-- NEXA BATTLE WORKING DATA V1.5 • EVENT PILLS / SVS SELECTIVE RESET / LEGACY TEAM LAYOUT HIDDEN -->
+<!-- NEXA BATTLE WORKING DATA V1.6 • FDT ADMIN RESET / EVENT ISOLATION / FORMATIONS PRESERVED -->
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="/nexa-responsive.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -71,8 +71,21 @@ select,input{width:100%;min-height:44px;border-radius:12px;border:1px solid rgba
    <div id="status" class="status" role="status" aria-live="polite"></div>
   </section>
   <section id="event-fdt" class="card event-panel" role="tabpanel" aria-labelledby="pill-fdt" hidden>
-   <h2>Delete in FDT</h2><span class="info-badge">PROTECTED — BACKEND PENDING</span>
-   <p class="muted">FDT working data is saved partly in this browser and partly in Supabase. Its deletion controls require a dedicated, administrator-authorized reset that clears the correct event's cloud records without affecting SvS or TAL. No FDT data will be deleted from this placeholder.</p>
+   <h2>Delete in FDT</h2><p class="muted">Reset this State’s FDT work. Formations is intentionally excluded: the shared approved/suggested formation library will not be touched. Browser-only work is cleared on this device; cloud responses and published Battle Plan are cleared for this State when selected.</p>
+   <div class="mods" id="fdt-mods">
+    <label class="mod full"><input type="checkbox" value="all_working" id="fdt-all-working"><span><b>Full FDT Working Reset</b><small>Clears all FDT work below: Setup / Live Event, Responses, Whale Group & Pet Schedule, Legion Board, FDT Layout, Reinforcement Partners and Battle Plan. Shared Formations stay intact.</small></span></label>
+    <label class="mod"><input type="checkbox" value="setup"><span><b>FDT Setup</b><small>Resets the saved FDT date, alliance and status; ends only the current FDT Live Event.</small></span></label>
+    <label class="mod"><input type="checkbox" value="responses"><span><b>Responses</b><small>Deletes FDT player responses for accounts in this State. SvS and TAL responses are untouched.</small></span></label>
+    <label class="mod"><input type="checkbox" value="pet_schedule"><span><b>Whale Group & Pet Schedule</b><small>Clears FDT rally leads and their saved schedule/assignments on this device. Affected Battle Plan copies are cleared locally.</small></span></label>
+    <label class="mod"><input type="checkbox" value="legion_board"><span><b>Legion Board</b><small>Clears Legions, player placements, Teams and related saved FDT Layout/Reinforcement work on this device.</small></span></label>
+    <label class="mod"><input type="checkbox" value="layout"><span><b>FDT Layout</b><small>Clears FDT map positions, pins and notes, including copied Layout inside the local Battle Plan.</small></span></label>
+    <label class="mod"><input type="checkbox" value="reinforcements"><span><b>Reinforcement Partners</b><small>Clears FDT partner assignments and their copied Battle Plan section.</small></span></label>
+    <label class="mod"><input type="checkbox" value="battle_plan"><span><b>Battle Plan</b><small>Clears the local FDT Battle Plan and its published cloud copy for this State.</small></span></label>
+   </div>
+   <div class="warning"><b>Permanent cloud deletion.</b> Browser work is stored separately on each device. Do not use another device with an older FDT draft after cleaning until that device has also been reset. Type <b>10-0</b> to proceed.</div>
+   <label style="margin-top:12px">Confirmation<input id="fdt-confirm" autocomplete="off" autocapitalize="off" inputmode="text" placeholder="Type 10-0"></label>
+   <div class="actions"><button id="fdt-clear" class="btn danger" type="button" disabled>Delete Selected FDT Working Data</button></div>
+   <div id="fdt-status" class="status" role="status" aria-live="polite"></div>
   </section>
   <section id="event-tal" class="card event-panel" role="tabpanel" aria-labelledby="pill-tal" hidden>
    <h2>Delete in TAL</h2><span class="info-badge">COMING WITH TAL WORKSPACE</span>
@@ -104,6 +117,20 @@ function syncFullResetChoice(){
 $('#all-working').addEventListener('change',syncFullResetChoice);
 $$('#event-svs .mod input').forEach(x=>x.addEventListener('change',refreshClearButton));
 $('#strategy').addEventListener('change',()=>{$('#confirm').value='';$('#status').textContent='';refreshClearButton()});
+function refreshFdtButton(){
+ $('#fdt-clear').disabled=$('#fdt-confirm').value.trim()!=='10-0'||!$$('#fdt-mods input:checked').length;
+}
+function syncFdtFull(){
+ const full=$('#fdt-all-working');
+ $$('#fdt-mods input').filter(el=>el!==full).forEach(el=>{
+  el.checked=full.checked?false:el.checked;
+  el.disabled=full.checked;
+ });
+ refreshFdtButton();
+}
+$('#fdt-confirm').addEventListener('input',refreshFdtButton);
+$('#fdt-all-working').addEventListener('change',syncFdtFull);
+$$('#fdt-mods input').forEach(el=>el.addEventListener('change',refreshFdtButton));
 function showEvent(event){
  for(const button of $$('.event-pill')){
   const selected=button.dataset.event===event;
@@ -111,26 +138,35 @@ function showEvent(event){
   $('#event-'+button.dataset.event).hidden=!selected;
  }
  $('#confirm').value='';
+ $('#fdt-confirm').value='';
  refreshClearButton();
+ refreshFdtButton();
 }
 $$('.event-pill').forEach(button=>button.addEventListener('click',()=>showEvent(button.dataset.event)));
 async function boot(){
  const state=activeState();
- // Preserves the existing backend authorization check rather than granting access through UI state alone.
- const {data:strategies,error}=await sb.from('svs_strategies').select('id,name,status,event_id,updated_at')
-  .eq('state_number',state).order('updated_at',{ascending:false});
- if(error){$('#loading').textContent='Unable to load SvS strategies: '+error.message;return}
- if(!(strategies||[]).length){
-  $('#loading').textContent='No SvS strategy is available for this State.';
+ // The FDT authorization check works even if all SvS strategies have been deleted.
+ const access=await sb.rpc('nexa_clear_fdt_working_data',{p_state:state,p_modules:[]});
+ if(access.error||access.data?.ok!==true){
+  $('#loading').classList.add('hidden');
+  $('#denied').classList.remove('hidden');
   return;
  }
- const esc=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
- $('#strategy').innerHTML=strategies.map(s=>`<option value="${esc(s.id)}">${esc(s.name||'SvS Strategy')} • ${esc(String(s.status||'draft').toUpperCase())}</option>`).join('');
- const probe=await sb.rpc('nexa_clear_svs_working_data',{p_state:state,p_strategy_id:$('#strategy').value,p_modules:[]});
+ const {data:strategies,error}=await sb.from('svs_strategies')
+  .select('id,name,status,event_id,updated_at')
+  .eq('state_number',state).order('updated_at',{ascending:false});
+ if(error){
+  $('#strategy').innerHTML='<option value="">SvS strategies unavailable</option>';
+  $('#status').textContent=error.message;
+ }else if(!(strategies||[]).length){
+  $('#strategy').innerHTML='<option value="">No SvS strategy for this State</option>';
+ }else{
+  const esc=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&quot;'}[ch]));
+  $('#strategy').innerHTML=strategies.map(s=>`<option value="${esc(s.id)}">${esc(s.name||'SvS Strategy')} • ${esc(String(s.status||'draft').toUpperCase())}</option>`).join('');
+ }
  $('#loading').classList.add('hidden');
- if(probe.error){$('#denied').classList.remove('hidden');return}
  $('#panel').classList.remove('hidden');
- refreshClearButton();
+ refreshClearButton();refreshFdtButton();
 }
 $('#clear').onclick=async()=>{
  const modules=$$('#event-svs .mod input:checked').map(x=>x.value);
@@ -151,6 +187,83 @@ $('#clear').onclick=async()=>{
  $('#confirm').value='';
  $('#status').textContent=modules.includes('all_working')?'Full SvS working reset completed. The workspace is ready for a fresh setup.':'Selected SvS working data cleared.';
  refreshClearButton();
+};
+
+function freshFdtData(){
+ return {
+  setup:{battleDate:'',status:'planning',battleStart:12,battleEnd:17,alliance:'',saved:false},
+  legions:[],manualRally:[],manualPlayers:[],
+  legionPlacement:{phase:'assignment',activeLegionId:'',legions:[],roleOverrides:{}},
+  layout:{activeLegionId:'',activeBuildingId:'',activeTeamIds:[],view:'selected',teams:{}},
+  reinforcements:{activeLegionId:'',byLegion:{}},
+  plan:{title:'',alliance:'',notes:''}
+ };
+}
+function clearFdtBrowser(modules,state){
+ // Preserve state boundary. Other states are not touched.
+ const key='nexa_fdt_ops_'+state;
+ const legacy=['nexa_fdt_ops_v225_','nexa_fdt_ops_v224_','nexa_fdt_ops_v223_',
+  'nexa_fdt_ops_v222_','nexa_fdt_ops_v221_','nexa_fdt_ops_v22_',
+  'nexa_fdt_ops_v20_','nexa_fdt_ops_v19_','nexa_fdt_ops_v18_',
+  'nexa_fdt_ops_v17_'].map(k=>k+state);
+ const all=modules.includes('all_working');
+ let draft;
+ try{draft=JSON.parse(localStorage.getItem(key)||'null')}catch(_){draft=null}
+ if(!draft||typeof draft!=='object')draft=freshFdtData();
+ const fresh=freshFdtData();
+ if(all)draft=fresh;
+ else{
+  if(modules.includes('setup'))draft.setup=fresh.setup;
+  if(modules.includes('pet_schedule')){
+   draft.manualRally=[];
+   for(const legion of draft.legions||[]){
+    for(const team of legion.teams||[])team.assignments=[];
+   }
+   if(draft.plan){delete draft.plan.pets;delete draft.plan.snapshot;}
+  }
+  if(modules.includes('legion_board')){
+   draft.legions=[];draft.legionPlacement=fresh.legionPlacement;
+   draft.manualRally=[];draft.manualPlayers=[];
+   draft.layout=fresh.layout;draft.reinforcements=fresh.reinforcements;
+   if(draft.plan){delete draft.plan.pets;delete draft.plan.snapshot;
+    delete draft.plan.layout;delete draft.plan.reinforcements;}
+  }
+  if(modules.includes('layout')){
+   draft.layout=fresh.layout;
+   if(draft.plan)delete draft.plan.layout;
+  }
+  if(modules.includes('reinforcements')){
+   draft.reinforcements=fresh.reinforcements;
+   if(draft.plan)delete draft.plan.reinforcements;
+  }
+  if(modules.includes('battle_plan'))draft.plan=fresh.plan;
+ }
+ // Write first; do not remove the current key and trigger legacy/demo seeding.
+ localStorage.setItem(key,JSON.stringify(draft));
+ // Legacy data must not migrate back into the cleaned workspace.
+ legacy.forEach(k=>localStorage.removeItem(k));
+}
+$('#fdt-clear').onclick=async()=>{
+ const modules=$$('#fdt-mods input:checked').map(el=>el.value);
+ if(!modules.length||$('#fdt-confirm').value.trim()!=='10-0')return;
+ const btn=$('#fdt-clear'),status=$('#fdt-status'),state=activeState();
+ btn.disabled=true;status.textContent='Deleting selected FDT working data…';
+ try{
+  const {data,error}=await sb.rpc('nexa_clear_fdt_working_data',
+   {p_state:state,p_modules:modules});
+  if(error||data?.ok!==true)throw new Error(error?.message||'FDT cloud reset was not verified.');
+  try{clearFdtBrowser(modules,state)}catch(e){
+   status.textContent='FDT cloud reset succeeded. Local browser cleanup failed: '+
+    String(e?.message||e)+'. Do not reopen the FDT draft until this is resolved.';
+   return;
+  }
+  $$('#fdt-mods input').forEach(el=>{el.checked=false;el.disabled=false});
+  $('#fdt-confirm').value='';
+  status.textContent=modules.includes('all_working')
+   ?'Full FDT Working Reset completed for this State and this browser. Shared Formations preserved.'
+   :'Selected FDT work cleared for this State and this browser. Shared Formations preserved.';
+ }catch(e){status.textContent=String(e?.message||e)}
+ finally{refreshFdtButton()}
 };
 boot().catch(e=>{$('#loading').textContent='Unable to load: '+String(e?.message||e)});
 })();

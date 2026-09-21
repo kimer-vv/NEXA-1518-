@@ -2939,11 +2939,40 @@ section.panel{position:relative;z-index:1}
 .fdt-bp-printstage .fdt-bp-pet-grid{grid-template-columns:repeat(5,minmax(0,1fr))!important;overflow:visible!important}
 .fdt-bp-printstage .fdt-bp-doc{font-size:14px}
 
+
+/* V2.11.3 — real assigned hero portraits/rarity in published snapshot */
+.fdt-bp-joiner-row .heroes{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.fdt-bp-hero-tag{display:inline-flex;align-items:center;gap:5px;min-width:0;font-weight:900}
+.fdt-bp-hero-tag img{width:25px;height:25px;object-fit:cover;border-radius:6px;border:2px solid #9aa6bf;background:#080e1e;flex:0 0 auto}
+.fdt-bp-hero-tag b{font-size:11px;white-space:normal;overflow-wrap:anywhere}
+.fdt-bp-hero-tag.rarity-legendary img{border-color:#e2aa31}
+.fdt-bp-hero-tag.rarity-epic img{border-color:#a869df}
+.fdt-bp-hero-tag.rarity-rare img{border-color:#42a8ed}
+.fdt-bp-hero-tag.rarity-legendary b{color:#ffd260!important}
+.fdt-bp-hero-tag.rarity-epic b{color:#c78bff!important}
+.fdt-bp-hero-tag.rarity-rare b{color:#68c9ff!important}
+
+
+
+/* V2.11.4 — shared SvS design language; no logic or storage changes */
+.nav{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.nav button{flex:0 0 auto;min-height:44px;padding:0 14px;border-radius:22px;border:1px solid rgba(109,130,255,.35);background:#070b1f;color:#b8c5e4;font-weight:900}
+.nav button.active{color:#fff;border-color:rgba(148,111,255,.8);background:linear-gradient(135deg,rgba(75,54,170,.9),rgba(28,82,130,.9));box-shadow:0 0 18px rgba(112,66,255,.15)}
+.plan-saved-card{display:grid;gap:11px;padding:14px;border:1px solid rgba(118,104,255,.28);border-radius:17px;background:linear-gradient(145deg,rgba(10,22,45,.86),rgba(25,15,55,.77))}
+.plan-saved-card h3{margin:0;font-size:20px}.plan-saved-card p{margin:0;color:#aeb7d1;font-size:11px}
+.plan-saved-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:7px}
+.plan-saved-actions .btn{width:100%;min-width:0;min-height:48px;text-align:center;display:grid;place-items:center;white-space:normal}
+.setup-collapsed{border:1px solid rgba(72,221,255,.25);border-radius:17px;background:rgba(5,12,28,.72);padding:15px}
+.setup-collapsed .setup-summary-chip{padding:12px;border-radius:14px}
+.setup-collapsed .setup-action-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.setup-collapsed #publishNext{grid-column:1/-1}
+.setup-collapsed .setup-action-row .btn{width:100%;min-width:0}
+@media(max-width:620px){.plan-saved-card{margin-left:0}.plan-saved-actions .btn{font-size:12px;padding:8px 5px}.setup-collapsed .setup-action-row .btn{font-size:12px}}
 </style>
 </head>
 <body>
 <main class="sh">
-<!-- NEXA FDT OPERATIONS V2.11.2 • PUBLISHED BATTLE PLAN -->
+<!-- NEXA FDT OPERATIONS V2.11.3 • PUBLISHED BATTLE PLAN -->
 <div class="top">
   <a class="round" href="index.html" aria-label="Back">‹</a>
   <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div><div class="autosave">AUTOSAVE • SAVED</div></div>
@@ -5224,10 +5253,15 @@ function fdtPlanSnapshot(){
 }
 function fdtPlanPlayerName(pid){
  const p=playerById(pid);
- return playerNameWithTag(p)
+ const tag=playerAllianceTag(p),name=p?.in_game_name||p?.name||'Player';
+ return `${tag?`<span class="alliance-tag">[${esc(tag)}]</span> `:''}${esc(name)}`
 }
 function fdtPlanHeroNames(ids){
- return heroNames(ids||[]).map(h=>esc(h.name)).join(' + ')||'—'
+ const chosen=heroNames(ids||[]);
+ return chosen.map(h=>{
+   const image=heroImageSrc(h),rarity=heroRarityKey(h);
+   return `<span class="fdt-bp-hero-tag rarity-${rarity}">${image?`<img src="${esc(image)}" alt="" loading="eager" crossorigin="anonymous">`:''}<b>${esc(h.name)}</b></span>`;
+ }).join('')||'—'
 }
 function fdtPlanPetCells(t){
  const hours=battleHours();
@@ -5299,7 +5333,7 @@ function fdtPlanLegionHtml(l){
    </div>
    ${buildings.map(b=>`<section class="fdt-bp-building" style="--bc:${esc(b.color||l.color||'#9b78ff')}">
      <div class="fdt-bp-building-head"><b>${esc(b.label)}</b><small>${b.teams.length} Team${b.teams.length===1?'':'s'}</small></div>
-     ${l.mode==='pool'?`<div class="fdt-bp-team"><div class="fdt-bp-section"><h4>SHARED HERO POOL</h4>${fdtPlanHeroPool(l,b)}</div></div>`:''}
+     ${sharedPoolForBuilding(l,b).length?`<div class="fdt-bp-team"><div class="fdt-bp-section"><h4>JOINER HEROES · USE ANY OF THESE</h4>${fdtPlanHeroPool(l,b)}</div></div>`:''}
      ${b.teams.map(t=>fdtPlanTeamHtml(l,b,t)).join('')}
    </section>`).join('')}
  </section>`
@@ -5427,7 +5461,7 @@ async function exportFdtBattlePlanImage(){
  finally{stage?.remove()}
 }
 
-/* FDT V2.11.2 — native, paginated PDF document, independent of online page CSS */
+/* FDT V2.11.3 — native, paginated PDF document, independent of online page CSS */
 async function fdtNativePlanPdf(source,title){
  if(!window.jspdf?.jsPDF)throw new Error('PDF engine is still loading. Please refresh.');
  if(!source)throw new Error('Battle Plan is not ready.');
@@ -5474,14 +5508,72 @@ async function fdtNativePlanPdf(source,title){
    font(9,true,K.muted);pdf.text(clean(label).toUpperCase(),M+13,y+2);
    font(11,true,K.ink);pdf.text(lines,M+13,y+19);y+=h+1;
  };
+
+ const heroHue=node=>{const classes=String(node?.className||'')+' '+String(node?.querySelector('b')?.className||'');return classes.includes('legendary')?'#b47705':classes.includes('epic')?'#8541bd':classes.includes('rare')?'#1971b9':'#475569'};
+ const heroInfo=node=>({name:clean(node?.querySelector('b')?.textContent||node?.textContent||''),col:heroHue(node),img:node?.querySelector('img')||null});
+ const portraitCache=new WeakMap();
+ const portrait=img=>{
+   if(!img||!img.complete||!img.naturalWidth||!img.naturalHeight)return null;
+   if(portraitCache.has(img))return portraitCache.get(img);
+   let result=null;try{const cv=document.createElement('canvas');cv.width=96;cv.height=96;const cx=cv.getContext('2d');const side=Math.min(img.naturalWidth,img.naturalHeight);cx.drawImage(img,(img.naturalWidth-side)/2,(img.naturalHeight-side)/2,side,side,0,0,96,96);result=cv.toDataURL('image/jpeg',.88)}catch(err){console.warn('[FDT PDF] Hero image not available',err)}
+   portraitCache.set(img,result);return result;
+ };
+ const heroRow=(label,nodes,rowY,accent=K.green)=>{
+   const h=38;paint('#f8fafc','fill');paint('#e0e7ef','line');pdf.roundedRect(M,rowY,W,h,5,5,'FD');
+   paint(accent,'fill');pdf.roundedRect(M,rowY,4,h,2,2,'F');font(8.3,true,accent);pdf.text(label,M+11,rowY+14);
+   let x=M+107;const all=nodes.map(heroInfo).filter(h=>h.name);if(!all.length){font(9.6,false,K.muted);pdf.text('—',x,rowY+22);return};
+   const per=(W-115)/all.length;
+   for(let i=0;i<all.length;i++){
+     const item=all[i],xx=x+i*per,square=26,photo=portrait(item.img);paint(item.col,'line');pdf.setLineWidth(1.4);paint('#f4f6fa','fill');pdf.roundedRect(xx,rowY+6,square,square,4,4,'FD');
+     if(photo){try{pdf.addImage(photo,'JPEG',xx+1.5,rowY+7.5,square-3,square-3,undefined,'FAST')}catch(_){}}
+     else{font(12,true,item.col);pdf.text(item.name.slice(0,1).toUpperCase(),xx+8,rowY+23)}
+     font(10.8,true,item.col);const lines=pdf.splitTextToSize(item.name,Math.max(25,per-square-8)).slice(0,2);pdf.text(lines,xx+square+5,rowY+18);
+   }
+ };
+ const playerBlock=(row,accent)=>{
+   const cells=[...row.children],player=clean(cells[0]?.textContent)||'Player',assigned=!!cells[1]&&!!cells[2];
+   const h=assigned?58:29;need(h+4);
+   if(Math.round(y)%2===0){paint('#f8fafc','fill');pdf.roundedRect(M,y-9,W,h,5,5,'F')}
+   paint('#e0e7ef','line');pdf.setLineWidth(.65);pdf.line(M,y+h-10,PW-M,y+h-10);
+   const x0=M+9,x1=M+W*.34,x2=M+W*.67;
+   paint(accent,'fill');pdf.roundedRect(M,y-9,3,h,1.5,1.5,'F');
+   font(11.1,true,K.ink);pdf.text(player,x0,y+7,{maxWidth:W*.32-12});
+   if(assigned){
+     const two=(nodes,x,limit)=>{
+       const items=nodes.map(heroInfo).filter(v=>v.name),wid=limit/Math.max(1,Math.min(2,items.length));
+       if(!items.length){font(10,false,K.muted);pdf.text('—',x,y+16);return}
+       items.slice(0,2).forEach((v,i)=>{
+         const xx=x+wid*i,photo=portrait(v.img),sq=22,yy=y-2;
+         paint(v.col,'line');pdf.setLineWidth(1.3);paint('#f8fafc','fill');pdf.roundedRect(xx,yy,sq,sq,4,4,'FD');
+         if(photo){try{pdf.addImage(photo,'JPEG',xx+1,yy+1,sq-2,sq-2,undefined,'FAST')}catch(_){}}
+         else{font(10,true,v.col);pdf.text(v.name.slice(0,1).toUpperCase(),xx+7,yy+15)}
+         font(9.1,true,v.col);const lines=pdf.splitTextToSize(v.name,Math.max(28,wid-sq-4)).slice(0,2);pdf.text(lines,xx+sq+3,yy+11);
+       });
+     };
+     two([...cells[1].querySelectorAll('.fdt-bp-hero-tag')],x1,W*.32-5);
+     two([...cells[2].querySelectorAll('.fdt-bp-hero-tag')],x2,W*.32-5);
+   }
+   y+=h+2;
+ };
+ const ratioBlock=(ratio,accent)=>{
+   if(!ratio.length)return;need(85);font(10,true,K.muted);pdf.text('FORMATIONS',M,y);y+=13;
+   const gap=10,w=(W-gap)/Math.max(1,ratio.length),h=64;
+   ratio.forEach((r,i)=>{const x=M+i*(w+gap),g=r.classList.contains('g'),col=g?'#168a5b':'#7555bc';pdf.setFillColor(...tint(col,.87));paint(col,'line');pdf.setLineWidth(1.5);pdf.roundedRect(x,y,w,h,7,7,'FD');font(10,true,col);pdf.text((g?'* GARRISON':'* MIA RALLY'),x+12,y+18);font(21,true,g?'#086a46':'#52389a');pdf.text(clean(r.querySelector('strong')?.textContent)||'—',x+12,y+46,{maxWidth:w-20})});y+=h+14;
+ };
+ const drawHeroPool=(pool,accent)=>{
+   const heroes=[...pool.querySelectorAll('.fdt-bp-hero')].map(heroInfo).filter(h=>h.name);
+   if(!heroes.length)return;need(56);font(9.5,true,K.muted);pdf.text('JOINER HEROES · USE ANY OF THESE',M,y);y+=12;
+   const cols=4,gap=8,w=(W-gap*(cols-1))/cols,h=47;
+   heroes.forEach((item,i)=>{if(i%cols===0)need(h+9);const xx=M+(i%cols)*(w+gap),yy=y;paint('#f8fafc','fill');paint('#e1e6ef','line');pdf.roundedRect(xx,yy,w,h,6,6,'FD');const photo=portrait(item.img);paint(item.col,'line');pdf.roundedRect(xx+6,yy+8,30,30,5,5,'S');if(photo){try{pdf.addImage(photo,'JPEG',xx+7,yy+9,28,28,undefined,'FAST')}catch(_){}}else{font(12,true,item.col);pdf.text(item.name.slice(0,1),xx+15,yy+27)}font(10.8,true,item.col);pdf.text(item.name,xx+41,yy+27,{maxWidth:w-46});if(i%cols===cols-1||i===heroes.length-1)y+=h+6});y+=5;
+ };
  const sectionLabel=(el,sel,fallback)=>clean(el.querySelector(sel)?.textContent)||fallback;
  // Intro and notes are authored natively: no browser wallpaper can bleed into the PDF.
- font(9,true,K.purple);pdf.text('NEXA  /  FDT BATTLE PLAN',M,y);y+=33;
- font(25,true,K.ink);for(const l of pdf.splitTextToSize(clean(title)||'FDT Battle Plan',W)){need(34);pdf.text(l,M,y);y+=31}y+=3;
+ font(12,true,K.purple);pdf.text('NEXA  /  FDT BATTLE PLAN',M,y);y+=39;
+ font(32,true,K.ink);for(const l of pdf.splitTextToSize(clean(title)||'FDT Battle Plan',W)){need(39);pdf.text(l,M,y);y+=38}y+=9;
  const meta=[...source.querySelectorAll('.fdt-bp-pill')].map(n=>clean(n.textContent)).filter(Boolean);
- if(meta.length){paragraph(meta.join('    |    '),{size:9,lh:13,col:K.muted});y+=6}
+ if(meta.length){paragraph(meta.join('    |    '),{size:11,lh:17,col:K.muted,bold:true});y+=12}
  const notes=source.querySelector('.fdt-bp-notes');heading('Important Notes');
- if(notes){const clone=notes.cloneNode(true);clone.querySelectorAll('strong').forEach(n=>n.remove());const raw=clone.innerText||clone.textContent||'';if(raw.trim())paragraph(raw,{size:11.5,lh:17});else paragraph('No general notes provided.',{size:10,col:K.muted});}else paragraph('No general notes provided.',{size:10,col:K.muted});
+ if(notes){const clone=notes.cloneNode(true);clone.querySelectorAll('strong').forEach(n=>n.remove());const raw=clone.innerText||clone.textContent||'';if(raw.trim())paragraph(raw,{size:14,lh:22});else paragraph('No general notes provided.',{size:10,col:K.muted});}else paragraph('No general notes provided.',{size:10,col:K.muted});
  // Map is an isolated inserted image, as in SvS; native PDF page stays solid white.
  const layout=source.querySelector('.fdt-bp-layout');
  if(layout){heading('FDT Layout',true);const img=layout.querySelector('.fdt-bp-layout-map img');
@@ -5504,15 +5596,15 @@ async function fdtNativePlanPdf(source,title){
    pets.querySelectorAll('.fdt-bp-pet-legion').forEach(leg=>{
      sub(sectionLabel(leg,':scope > h4','Legion'),cs(leg,'--lc'),19);
      leg.querySelectorAll('.fdt-bp-pet-building').forEach(build=>{
-       sub(sectionLabel(build,':scope > h5','Building'),cs(build,'--bc'),12);
+       sub(sectionLabel(build,':scope > h5','Building'),cs(build,'--bc'),14);
        build.querySelectorAll('.fdt-bp-pet-team').forEach(team=>{
-         const teamCol=cs(team,'--tc');sub(sectionLabel(team,':scope > b','Team'),teamCol,12);
-         const cells=[...team.querySelectorAll('.fdt-bp-pet-cell')];const gap=6,cw=(W-gap*4)/5,ch=91;
+         const teamCol=cs(team,'--tc');sub(sectionLabel(team,':scope > b','Team'),teamCol,15);
+         const cells=[...team.querySelectorAll('.fdt-bp-pet-cell')];const gap=7,cw=(W-gap*4)/5,ch=110;
          for(let start=0;start<cells.length;start+=5){need(ch+17);cells.slice(start,start+5).forEach((cell,i)=>{
            const xx=M+i*(cw+gap);pdf.setFillColor(...tint(teamCol,.92));paint(teamCol,'line');pdf.setLineWidth(.7);pdf.roundedRect(xx,y-9,cw,ch,6,6,'FD');
-           txt(cell.querySelector('strong')?.textContent,xx+6,y+5,cw-12,9,true,K.muted,11);
-           const names=[...(cell.querySelector('span')?.childNodes||[])].map(n=>clean(n.textContent)).filter(Boolean);
-           const body=names.join(' ')||'—';font(8.4,true,teamCol);const lines=pdf.splitTextToSize(body,cw-12).slice(0,7);pdf.text(lines,xx+6,y+23);
+           txt(cell.querySelector('strong')?.textContent,xx+7,y+6,cw-14,10.8,true,K.ink,13);
+           const names=(cell.querySelector('span')?.innerHTML||'').split(/<br\s*\/?\s*>/i).map(n=>clean(n.replace(/<[^>]*>/g,''))).filter(Boolean);
+           let ly=y+27;for(const name of names.slice(0,4)){const pet=/\bPET\b/i.test(name),nm=name.replace(/\s*[•\-]\s*PET\b/ig,'').trim();font(11.8,true,pet?'#7655b9':K.ink);pdf.text(pdf.splitTextToSize(nm,cw-14).slice(0,2),xx+7,ly);if(pet){paint(teamCol,'fill');pdf.roundedRect(xx+7,ly+4,24,11,5,5,'F');font(6.2,true,'#ffffff');pdf.text('PET',xx+12,ly+12)}ly+=pet?26:18;}
          });y+=ch+15}
          y+=3;
        });y+=9;
@@ -5527,23 +5619,39 @@ async function fdtNativePlanPdf(source,title){
      for(const role of roleCards)card(role.querySelector('b')?.textContent||'Role',role.querySelector('span')?.textContent||'—',lc);
      leg.querySelectorAll(':scope > .fdt-bp-building').forEach(build=>{
        const bc=cs(build,'--bc');sub(sectionLabel(build,'.fdt-bp-building-head b','Building'),bc,15);
-       const pool=build.querySelector('.fdt-bp-hero-pool');if(pool){const names=[...pool.querySelectorAll('.fdt-bp-hero b')].map(n=>clean(n.textContent));card('Shared Hero Pool',names.join('  •  ')||'—',bc)}
-       build.querySelectorAll(':scope > .fdt-bp-team').forEach(team=>{
-         const label=team.querySelector('.fdt-bp-team-title')?.textContent;if(!label)return;
-         sub(label,cs(team,'--tc',bc),13);
-         const ratio=[...team.querySelectorAll('.fdt-bp-ratio')].map(n=>clean(n.textContent)).filter(Boolean);
-         if(ratio.length)card('Troop formation',ratio.join('    |    '),bc);
-         const rows=[...team.querySelectorAll('.fdt-bp-joiner-row')];
-         if(!rows.length){paragraph('No Joiners assigned.',{size:9.5,col:K.muted});}
-         else{
-           need(32);font(9,true,K.muted);pdf.text('JOINERS / HEROES',M,y);y+=17;
-           for(const row of rows){
-             const cells=[...row.children].map(n=>clean(n.textContent)).filter(Boolean);
-             card(cells[0]||'Player',cells.slice(1).join('  |  ')||'Assigned Joiner',bc);
-           }
+       const pool=build.querySelector('.fdt-bp-hero-pool');if(pool)drawHeroPool(pool,bc)
+       const teamNodes=[...build.querySelectorAll(':scope > .fdt-bp-team')].filter(t=>t.querySelector('.fdt-bp-team-title'));
+       let prevRatio='';
+       // Shared-hero-pool teams have only a player list: display two Team columns,
+       // as in SvS, while assigned-hero teams need full-width PLAYER/GARRISON/MIA columns.
+       const poolOnly=teamNodes.length>1&&teamNodes.every(t=>![...t.querySelectorAll('.fdt-bp-joiner-row')].some(r=>r.children.length>1));
+       if(poolOnly){
+         for(let j=0;j<teamNodes.length;j+=2){
+           const duo=teamNodes.slice(j,j+2);
+           for(const t of duo){const ratio=[...t.querySelectorAll('.fdt-bp-ratio')],rk=ratio.map(r=>clean(r.textContent)).join('|');if(rk!==prevRatio)ratioBlock(ratio,bc);prevRatio=rk}
+           const gap=12,colW=(W-gap)/2,lists=duo.map(t=>[...t.querySelectorAll('.fdt-bp-joiner-row')]);
+           const maxRows=Math.max(...lists.map(v=>v.length),0),headerH=32,rowH=25;
+           need(headerH+Math.min(maxRows,4)*rowH+14);
+           duo.forEach((t,k)=>{const x=M+k*(colW+gap),tone=cs(t,'--tc',bc);paint('#eef2f7','fill');paint('#dce3ed','line');pdf.roundedRect(x,y-10,colW,headerH,6,6,'FD');font(14,true,tone);pdf.text(clean(t.querySelector('.fdt-bp-team-title')?.textContent||'Team'),x+10,y+9,{maxWidth:colW-18})});y+=headerH;
+           for(let n=0;n<maxRows;n++){
+             need(rowH+8);for(let k=0;k<duo.length;k++){const row=lists[k]?.[n];if(!row)continue;const x=M+k*(colW+gap);if(n%2===0){paint('#f8fafc','fill');pdf.roundedRect(x,y-8,colW,rowH,4,4,'F')}font(10.6,true,K.ink);pdf.text(clean(row.textContent),x+9,y+8,{maxWidth:colW-16})}y+=rowH;
+           }y+=18;
          }
-         y+=7;
-       });y+=9;
+       }else{
+         teamNodes.forEach(team=>{
+           const label=team.querySelector('.fdt-bp-team-title')?.textContent;if(!label)return;
+           sub(label,cs(team,'--tc',bc),13);
+           const ratio=[...team.querySelectorAll('.fdt-bp-ratio')];
+           const rk=ratio.map(r=>clean(r.textContent)).join('|');if(rk!==prevRatio)ratioBlock(ratio,bc);prevRatio=rk;
+           const rows=[...team.querySelectorAll('.fdt-bp-joiner-row')];
+           if(!rows.length){paragraph('No Joiners assigned.',{size:9.5,col:K.muted});}
+           else{
+             need(40);font(10,true,K.muted);pdf.text('JOINERS / HEROES',M,y);y+=17;paint('#eaf0f6','fill');pdf.roundedRect(M,y-11,W,25,5,5,'F');font(9,true,K.muted);pdf.text('PLAYER',M+9,y+5);font(9,true,K.green);pdf.text('GARRISON',M+W*.34,y+5);font(9,true,K.purple);pdf.text('MIA RALLY',M+W*.67,y+5);y+=30;
+             for(const row of rows)playerBlock(row,bc);
+           }
+           y+=7;
+         });
+       }y+=9;
      });y+=13;
    });
  }
@@ -5665,4 +5773,4 @@ loadData().catch(e=>{
 })();
 </script>
 </body>
-</html> 
+</html>

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • Clear Working Data</title>
-<!-- NEXA BATTLE WORKING DATA V1.6 • FDT ADMIN RESET / EVENT ISOLATION / FORMATIONS PRESERVED -->
+<!-- NEXA BATTLE WORKING DATA V1.7 • TAL RESET / FDT + SVS PRESERVED -->
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="/nexa-responsive.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -88,8 +88,19 @@ select,input{width:100%;min-height:44px;border-radius:12px;border:1px solid rgba
    <div id="fdt-status" class="status" role="status" aria-live="polite"></div>
   </section>
   <section id="event-tal" class="card event-panel" role="tabpanel" aria-labelledby="pill-tal" hidden>
-   <h2>Delete in TAL</h2><span class="info-badge">COMING WITH TAL WORKSPACE</span>
-   <p class="muted">TAL's options will be connected when TAL's working-data storage and deletion functions are established. No TAL data will be deleted from this placeholder.</p>
+   <h2>Delete in TAL</h2><p class="muted">Reset State-scoped TAL work. Shared Formations, FDT and SvS are preserved. TAL Live Event, regular TAL Responses, Legions, Team Roster and each published Legion plan can be cleared.</p>
+   <div class="mods" id="tal-mods">
+    <label class="mod full"><input id="tal-all-working" type="checkbox" value="all_working"><span><b>Full TAL Working Reset</b><small>Deletes TAL Setup and its published Live Event, TAL Responses, all Legions, Team Rosters and Battle Plans for this State.</small></span></label>
+    <label class="mod"><input type="checkbox" value="setup"><span><b>TAL Setup</b><small>Deletes TAL Setup and ends the TAL Live Event only.</small></span></label>
+    <label class="mod"><input type="checkbox" value="responses"><span><b>TAL Responses</b><small>Deletes registered TAL player responses in this State only.</small></span></label>
+    <label class="mod"><input type="checkbox" value="legions"><span><b>Legions</b><small>Removes TAL Legions, all their assignments, Team Rosters and Battle Plans.</small></span></label>
+    <label class="mod"><input type="checkbox" value="roster"><span><b>Team Roster</b><small>Clears all TAL Legion Rosters and copied Battle Plan details.</small></span></label>
+    <label class="mod"><input type="checkbox" value="battle_plan"><span><b>Battle Plan</b><small>Deletes all TAL Legion plans and published public copies for this State.</small></span></label>
+   </div>
+   <div class="warning"><b>Permanent TAL deletion.</b> FDT, SvS and shared Formations will stay intact. Type <b>10-0</b> to confirm. Old open TAL tabs must be reloaded after cleaning.</div>
+   <label style="margin-top:12px">Confirmation<input id="tal-confirm" autocomplete="off" autocapitalize="off" placeholder="Type 10-0"></label>
+   <div class="actions"><button id="tal-clear" class="btn danger" type="button" disabled>Delete Selected TAL Working Data</button></div>
+   <div id="tal-status" class="status" role="status" aria-live="polite"></div>
   </section>
  </div>
 </main>
@@ -131,6 +142,17 @@ function syncFdtFull(){
 $('#fdt-confirm').addEventListener('input',refreshFdtButton);
 $('#fdt-all-working').addEventListener('change',syncFdtFull);
 $$('#fdt-mods input').forEach(el=>el.addEventListener('change',refreshFdtButton));
+function refreshTalButton(){
+ $('#tal-clear').disabled=$('#tal-confirm').value.trim()!=='10-0'||!$$('#tal-mods input:checked').length;
+}
+function syncTalFull(){
+ const full=$('#tal-all-working');
+ $$('#tal-mods input').filter(el=>el!==full).forEach(el=>{el.checked=full.checked?false:el.checked;el.disabled=full.checked});
+ refreshTalButton();
+}
+$('#tal-confirm').addEventListener('input',refreshTalButton);
+$('#tal-all-working').addEventListener('change',syncTalFull);
+$$('#tal-mods input').forEach(el=>el.addEventListener('change',refreshTalButton));
 function showEvent(event){
  for(const button of $$('.event-pill')){
   const selected=button.dataset.event===event;
@@ -139,8 +161,10 @@ function showEvent(event){
  }
  $('#confirm').value='';
  $('#fdt-confirm').value='';
+ $('#tal-confirm').value='';
  refreshClearButton();
  refreshFdtButton();
+ refreshTalButton();
 }
 $$('.event-pill').forEach(button=>button.addEventListener('click',()=>showEvent(button.dataset.event)));
 async function boot(){
@@ -166,7 +190,7 @@ async function boot(){
  }
  $('#loading').classList.add('hidden');
  $('#panel').classList.remove('hidden');
- refreshClearButton();refreshFdtButton();
+ refreshClearButton();refreshFdtButton();refreshTalButton();
 }
 $('#clear').onclick=async()=>{
  const modules=$$('#event-svs .mod input:checked').map(x=>x.value);
@@ -264,6 +288,35 @@ $('#fdt-clear').onclick=async()=>{
    :'Selected FDT work cleared for this State and this browser. Shared Formations preserved.';
  }catch(e){status.textContent=String(e?.message||e)}
  finally{refreshFdtButton()}
+};
+function clearTalBrowser(modules,state){
+ const key='nexa_tal_ops_v2_'+state;
+ let draft;
+ try{draft=JSON.parse(localStorage.getItem(key)||'null')}catch(_){draft=null}
+ if(!draft||typeof draft!=='object')draft={legions:[],plans:{}};
+ if(modules.includes('all_working'))draft={legions:[],selected:'',rosterSelected:'',planSelected:'',plans:{},lastReset:Date.now()};
+ else{
+  if(modules.includes('legions')){draft.legions=[];draft.selected='';draft.rosterSelected='';draft.planSelected='';draft.plans={}}
+  if(modules.includes('roster')){for(const l of draft.legions||[])l.roster={};draft.plans={}}
+  if(modules.includes('battle_plan'))draft.plans={};
+  draft.lastReset=Date.now();
+ }
+ localStorage.setItem(key,JSON.stringify(draft));
+}
+$('#tal-clear').onclick=async()=>{
+ const modules=$$('#tal-mods input:checked').map(x=>x.value);
+ if(!modules.length||$('#tal-confirm').value.trim()!=='10-0')return;
+ const status=$('#tal-status'),btn=$('#tal-clear'),state=activeState();
+ btn.disabled=true;status.textContent='Deleting TAL working data…';
+ try{
+  const {data,error}=await sb.rpc('nexa_clear_tal_working_data',{p_state:state,p_modules:modules});
+  if(error||data?.ok!==true)throw new Error(error?.message||'TAL cloud reset could not be verified.');
+  try{clearTalBrowser(modules,state)}catch(e){status.textContent='TAL cloud reset succeeded, but Safari local cleanup failed: '+(e?.message||e);return}
+  $$('#tal-mods input').forEach(x=>{x.checked=false;x.disabled=false});
+  $('#tal-confirm').value='';
+  status.textContent='TAL working data reset confirmed for State '+state+'. Other events and shared Formations remain untouched.';
+ }catch(e){status.textContent='TAL reset failed: '+(e?.message||e)}
+ finally{refreshTalButton()}
 };
 boot().catch(e=>{$('#loading').textContent='Unable to load: '+String(e?.message||e)});
 })();

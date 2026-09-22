@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>NEXA • TAL Operations</title>
-<!-- NEXA TAL OPERATIONS V2.9 • REAL MAP ASSETS / LEGION TABS -->
+<!-- NEXA TAL OPERATIONS V3.0 • REAL MAP ASSETS / LEGION TABS -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <style>
 :root{--bg:#02030b;--panel:#08101f;--line:rgba(255,255,255,.12);--text:#fff;--muted:#aeb7d1;--cyan:#48ddff;--violet:#9b78ff;--pink:#ff79d6;--green:#67dfb1;--gold:#ffc75b}
@@ -125,10 +125,10 @@
 </section>
 <section class="panel" data-section="formations"><div class="card"><h2>Saved Formations</h2><p class="hint">Shared approved/suggested formation library. TAL does not modify FDT's or SvS's formation templates.</p><div class="pills"><button class="pill active" data-formation-tab="approved">Approved</button><button class="pill" data-formation-tab="suggested">Suggested</button></div><div id="formationRoot"></div></div></section>
 <section class="panel" data-section="responses"><div class="card"><div class="row between"><h2>TAL Responses</h2><button class="btn" id="refreshResponses">Refresh</button></div><p class="hint">Only actual TAL sign-ups. FDT and SvS responses are not mixed in.</p><div class="row" style="margin:10px 0"><button class="pill" id="toggleTalTests" type="button">Hide 15 Test Subjects</button><button class="btn danger" id="clearTalTests" type="button">Clear TAL Test Subjects</button></div><div class="responses" id="responsesRoot"></div></div></section>
-<section class="panel" data-section="legions"><div class="card"><div class="row between"><h2>Legion Assignment</h2><button class="btn violet" id="addLegion">Add Legion</button></div><p class="hint">Step 1: assign and save each Legion, then export its alliance transfer list. Share this list so players can move to the registering alliance. Step 2: build the Teams in Team Roster. The Legion list is separate from the Battle Plan. Combatants 30 / substitutes 20 per Legion.</p><div class="row"><button class="pill active" data-selectmode="tap">Tap</button><button class="pill" data-selectmode="swipe">Swipe Select</button></div><div class="pills" id="legionTabs"></div><div id="legionControls"></div><div id="candidateRoot" class="assign-grid"></div><div id="legionSummary"></div><div class="row" style="margin-top:16px"><button class="btn violet" id="saveSelectedLegion">Save Selected Legion</button><button class="btn" id="saveLegions">Save Both Legions</button><button class="btn" id="downloadLegion">Export Selected Legion PDF</button><button class="btn" id="downloadBothLegions">Export Both Legions PDF</button></div></div></section>
+<section class="panel" data-section="legions"><div class="card"><div class="row between"><h2>Legion Assignment</h2><button class="btn violet" id="addLegion">Add Legion</button></div><p class="hint">Step 1: assign and save each Legion, then export its alliance transfer list. Share this list so players can move to the registering alliance. Step 2: build the Teams in Team Roster. The Legion list is separate from the Battle Plan. Combatants 30 / substitutes 20 per Legion.</p><div class="row"><button class="pill active" data-selectmode="tap">Tap</button><button class="pill" data-selectmode="swipe">Swipe Select</button></div><div class="pills" id="legionTabs"></div><div id="legionControls"></div><div id="candidateRoot" class="assign-grid"></div><div id="legionSummary"></div><div class="row" style="margin-top:16px"><button class="btn violet" id="saveSelectedLegion">Save Selected Legion</button><button class="btn" id="saveLegions">Save Both Legions</button><button class="btn" id="downloadLegion">Export Selected Legion PDF</button><button class="btn" id="downloadBothLegions">Export Both Legions PDF</button><button class="btn violet" id="downloadLegionImage">Export Selected Legion PNG</button><button class="btn violet" id="downloadBothLegionsImage">Export Both Legions PNG</button></div></div></section>
 <section class="panel" data-section="roster"><div class="card"><h2>Team Roster</h2><p class="hint">Step 2: after you have saved and shared your Legion transfer lists, configure formations, Teams, Workshops and Loot Team here. This is separate from the Legion assignment PDF.</p><div class="pills" id="rosterTabs"></div><div id="rosterRoot"></div><div class="row" style="margin-top:16px"><button class="btn violet" id="saveRoster">Save Team Roster</button><button class="btn" id="sendRoster">Send to Battle Plan</button></div></div></section>
 <section class="panel" data-section="plan"><div class="card"><h2>TAL Battle Plan</h2><p class="hint">One independent plan per Legion. No combined plan, PDF or public link.</p><div class="pills" id="planTabs"></div><div class="grid2"><label class="field">Plan Title<input id="planTitle" placeholder="TAL Battle Plan"></label><label class="field">Current Round<select id="planRound"></select></label></div><label class="field" style="margin-top:12px">Legion Notes<textarea id="planNotes"></textarea></label><div id="planPreview" class="plan-view" style="margin-top:13px"></div><div class="row" style="margin-top:16px"><button class="btn violet" id="savePlan">Save &amp; Publish Plan</button><button class="btn" id="pdfPlan">Save PDF</button><button class="btn" id="copyPlan">Copy Public Link</button><button class="btn" id="viewPlan">View Online</button></div></div></section>
-<div class="foot">NEXA TAL OPERATIONS V2.9 • STATE-SCOPED • LEGION-ISOLATED</div>
+<div class="foot">NEXA TAL OPERATIONS V3.0 • STATE-SCOPED • LEGION-ISOLATED</div>
 </main><script>
 (()=>{'use strict';
 const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co',SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
@@ -288,6 +288,62 @@ function exportLegionsPdf(combined=false){
  }
  const filename='TAL_State_'+state+'_'+(combined?'Both_Legions':list[0].name.replace(/[^a-z0-9]+/ig,'_'))+'_Transfer_Roster.pdf';
  doc.save(filename);msg('Legion transfer PDF generated separately from the TAL Battle Plan.');
+}
+/* TAL V3.0: PNG transfer lists. Canvas text/vector artwork, not a screenshot of the UI. */
+async function exportLegionsPng(combined=false){
+ const list=(combined?ws.legions:[legion()]).filter(Boolean);
+ if(!list.length)return msg('Create a Legion first.',true);
+ const CW=1230,M=35,G=16,COL=(CW-2*M-2*G)/3;
+ const palettes={bg:'#080d1e',card:'#141d35',bar:'#2b2853',text:'#f7f7ff',muted:'#b3bfdc',violet:'#ad84ff',cyan:'#67dff6',green:'#65e0b5',gold:'#ffca6e',line:'#5b5293'};
+ const sheets=list.map(l=>{
+  const groups=new Map();
+  for(const member of l.members){const p=snapshot.players.find(x=>String(x.id)===String(member.id));const tag=p?.alliance_tag||'NOT LISTED';
+   if(!groups.has(tag))groups.set(tag,[]);groups.get(tag).push({p,slot:member.slot,role:role(p||{})});}
+  const cols=[138,138,138],cards=[];
+  for(const [tag,people] of [...groups.entries()].sort(([a],[b])=>a.localeCompare(b))){
+   people.sort((a,b)=>(a.slot==='combatant'?0:1)-(b.slot==='combatant'?0:1)||String(a.p?.in_game_name||'').localeCompare(String(b.p?.in_game_name||'')));
+   for(let n=0;n<people.length;n+=10){const entries=people.slice(n,n+10),h=48+entries.length*51+14,ix=cols.indexOf(Math.min(...cols));
+    cards.push({x:M+ix*(COL+G),y:cols[ix],height:h,tag,entries,cont:n>0});cols[ix]+=h+G;}
+  }
+  return {l,cards,height:Math.max(425,...cols)+55};
+ });
+ const logicalH=sheets.reduce((sum,x)=>sum+x.height+18,0)+M;
+ const resolution=2,canvas=document.createElement('canvas');canvas.width=CW*resolution;canvas.height=logicalH*resolution;
+ const ctx=canvas.getContext('2d');if(!ctx)return msg('Unable to create PNG image.',true);
+ ctx.scale(resolution,resolution);
+ const box=(x,y,w,h,fill,stroke='',r=10)=>{ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1;ctx.stroke()}};
+ const ink=(str,x,y,size=17,col=palettes.text,bold=false)=>{ctx.fillStyle=col;ctx.font=(bold?'800 ':'400 ')+size+'px system-ui,-apple-system,sans-serif';ctx.fillText(String(str),x,y)};
+ const ellipsis=(text,maxW,size=18,bold=true)=>{ctx.font=(bold?'800 ':'400 ')+size+'px system-ui,-apple-system,sans-serif';let t=String(text);while(t.length>1&&ctx.measureText(t).width>maxW)t=t.slice(0,-1);return t===String(text)?t:t.slice(0,-1)+'…'};
+ ctx.fillStyle=palettes.bg;ctx.fillRect(0,0,CW,logicalH);
+ let offset=M;
+ for(const sheet of sheets){const {l,cards,height}=sheet;
+  box(0,offset-10,CW,9,'#7849d7');
+  ink('NEXA  /  TAL  /  LEGION ASSIGNMENT',M,offset+22,16,palettes.violet,true);
+  ink(l.name.toUpperCase(),M,offset+69,39,palettes.text,true);
+  ink('REGISTERING ALLIANCE  /  '+legionAllianceName(l),M,offset+98,19,palettes.cyan,true);
+  const countC=l.members.filter(m=>m.slot==='combatant').length,countS=l.members.filter(m=>m.slot==='substitute').length;
+  ink(countC+' COMBATANTS   /   '+countS+' SUBSTITUTES',CW-420,offset+25,16,palettes.gold,true);
+  ink('STATE '+state+(combined?'  /  BOTH LEGIONS':'  /  SELECTED LEGION'),CW-420,offset+50,14,palettes.muted);
+  ink('Transfer roster — share before Team Roster and Battle Plan preparation.',M,offset+122,15,palettes.muted);
+  for(const card of cards){const x=card.x,y=offset+card.y,w=COL,h=card.height;
+   box(x,y,w,h,palettes.card,palettes.line,12);box(x+1,y+1,w-2,39,palettes.bar,'',11);
+   ink('['+card.tag+']'+(card.cont?'  CONT.':''),x+14,y+26,17,palettes.text,true);
+   ink(card.entries.length,x+w-32,y+26,14,palettes.muted);
+   for(let ix=0;ix<card.entries.length;ix++){const m=card.entries[ix],py=y+51+ix*51;
+    if(ix%2===0)box(x+7,py-7,w-14,47,'#1b2841','',5);
+    ctx.fillStyle=m.slot==='combatant'?palettes.green:palettes.gold;ctx.beginPath();ctx.arc(x+19,py+12,4,0,Math.PI*2);ctx.fill();
+    const leader=['RL','PRL'].includes(m.role),name=m.p?.in_game_name||'Unknown Player';
+    ink(ellipsis(name,w-(leader?118:47),18),x+30,py+12,18,palettes.text,true);
+    ink('Game ID: '+String(m.p?.player_id||'Not provided'),x+30,py+32,13,palettes.muted);
+    if(leader){box(x+w-67,py-3,54,27,m.role==='RL'?'#16634f':'#4b327b',m.role==='RL'?palettes.green:palettes.violet,8);ink(m.role,x+w-55,py+16,14,palettes.text,true)}
+   }
+  }
+  ink('NEXA TAL  /  TRANSFER LIST — NOT THE BATTLE PLAN',M,offset+height-17,13,palettes.muted);
+  offset+=height+18;
+ }
+ const fileName='TAL_State_'+state+'_'+(combined?'Both_Legions':list[0].name.replace(/[^a-z0-9]+/ig,'_'))+'_Transfer_Roster.png';
+ const saveBlob=blob=>{if(!blob){msg('Could not encode PNG.',true);return}const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=fileName;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),30000);msg('Legion PNG exported with the same NEXA transfer-roster layout as the PDF. On iPhone, use Share → Save Image if it opens in a preview.')};
+ canvas.toBlob(saveBlob,'image/png');
 }
 function renderLegions(){const l=legion();tabs('legionTabs',l?.id,'legions');$('legionControls').innerHTML=l?`<div class="legion-card" style="--lc:${ESC(l.color)}"><div class="row between"><h3>${ESC(l.name)}</h3><button class="btn danger" id="deleteLegion">Delete Legion</button></div><div class="grid2"><label class="field">Legion Name<input data-legion-field="name" value="${ESC(l.name)}"></label><label class="field">Registering Alliance<select data-legion-field="allianceId"><option value="">Choose alliance</option>${snapshot.alliances.map(a=>`<option value="${ESC(a.id)}" ${String(a.id)===String(l.allianceId)?'selected':''}>${ESC(a.tag||a.name)}</option>`).join('')}</select></label></div><label class="field" style="margin-top:9px">Custom Alliance Tag (optional)<input data-legion-field="customAlliance" value="${ESC(l.customAlliance||'')}" placeholder="For an alliance not listed"></label><h3 style="margin-top:18px">Confirmed Match Schedule</h3><p class="hint">Only fill dates and times after confirmation in the game. Times can differ by Legion.</p><div class="rounds">${roundRanges(setup?.battle_date||'').map(r=>`<div class="round-card"><b>${ESC(r.name)}</b><small>Window: ${ESC(r.start)} – ${ESC(r.end)}</small><label class="field">Battle date (UTC)<input type="date" data-match="${r.id}" data-matchfield="date" min="${r.start}" max="${r.end}" value="${ESC(l.matchTimes[r.id]?.date||'')}"></label><label class="field">Confirmed start (UTC)<input type="time" data-match="${r.id}" data-matchfield="time" value="${ESC(l.matchTimes[r.id]?.time||'')}"></label></div>`).join('')}</div><div class="item" style="margin-top:12px"><b>${l.members.filter(x=>x.slot==='combatant').length}/30 Combatants • ${l.members.filter(x=>x.slot==='substitute').length}/20 Substitutes</b><small>Tap a selected player's role in the roster below to switch between combatant and substitute.</small></div></div>`:'<div class="item">Add a Legion to start.</div>';
 if(l){$('deleteLegion').onclick=deleteLegion;$$('[data-legion-field]').forEach(e=>e.onchange=()=>{l[e.dataset.legionField]=e.value;store();renderLegions()});$$('[data-match]').forEach(e=>e.onchange=()=>{l.matchTimes[e.dataset.match]??={};l.matchTimes[e.dataset.match][e.dataset.matchfield]=e.value;store()})}
@@ -501,24 +557,38 @@ async function savePdf(){
   const subtitle=(s,col=C.purple)=>{need(30);font(12,true,col);pdf.text(clean(s),M,y);y+=22};
   const pill=(s,x,yy,fill=C.purple)=>{font(8.5,true,fill);pdf.text(clean(s),x,yy)};
   const note=(s)=>{const lines=pdf.splitTextToSize(clean(s),W-28),h=26+lines.length*12;need(h+8);color(C.soft,'fill');color(C.line,'line');pdf.roundedRect(M,y-12,W,h,7,7,'FD');font(9.5,false,C.muted);pdf.text(lines,M+14,y+4);y+=h+2};
-  const mediaCache=new Map();
+  const mediaCache=new Map();let heroPortraitCount=0,heroPortraitMissing=0;
   async function jpeg(url){if(!url)return null;const src=new URL(url,location.href).href;if(mediaCache.has(src))return mediaCache.get(src);
-   const work=(async()=>{try{const im=new Image();im.crossOrigin='anonymous';im.decoding='async';im.src=src;
-    await Promise.race([im.decode(),new Promise((_,reject)=>setTimeout(()=>reject(Error('Image timeout')),9000))]);
-    if(!im.naturalWidth||!im.naturalHeight)return null;
-    const scale=Math.min(1,1600/Math.max(im.naturalWidth,im.naturalHeight));
-    const cv=document.createElement('canvas');cv.width=Math.round(im.naturalWidth*scale);cv.height=Math.round(im.naturalHeight*scale);
-    cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);
-    return {data:cv.toDataURL('image/jpeg',.88),width:cv.width,height:cv.height};
-   }catch(err){console.warn('[TAL native PDF] Image unavailable',src,err?.message);return null}})();mediaCache.set(src,work);return work;
+   const work=(async()=>{const candidates=[src];
+    // Some public hero-image servers allow HTML <img> but disallow a CORS-safe canvas.
+    // A public image optimization endpoint provides CORS-safe image bytes for PDF embedding.
+    if(/^https?:\/\//i.test(src)&&!src.includes('wsrv.nl/'))candidates.push('https://wsrv.nl/?url='+encodeURIComponent(src)+'&w=800&output=jpg');
+    for(const source of candidates){try{const im=new Image();im.crossOrigin='anonymous';im.decoding='async';im.src=source;
+     await Promise.race([im.decode(),new Promise((_,reject)=>setTimeout(()=>reject(Error('Image timeout')),11000))]);
+     if(!im.naturalWidth||!im.naturalHeight)continue;
+     const scale=Math.min(1,1600/Math.max(im.naturalWidth,im.naturalHeight));
+     const cv=document.createElement('canvas');cv.width=Math.round(im.naturalWidth*scale);cv.height=Math.round(im.naturalHeight*scale);
+     cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);
+     return {data:cv.toDataURL('image/jpeg',.88),width:cv.width,height:cv.height};
+    }catch(err){console.warn('[TAL native PDF] image attempt unavailable',source,err?.message)}}
+    return null})() ;mediaCache.set(src,work);return work;
   }
+  // Load the relevant public hero portraits concurrently, so a slow image host
+  // cannot add a separate network wait for every row of the PDF.
+  const selectedHeroNames=[];
+  const collectFormationHeroes=obj=>{for(const mode of TAL_MODES){for(const entry of obj?.[mode+'Formations']||[]){const rule=getRule(entry.id),heroes=entry.id==='__manual__'?(entry.manual?.heroes||[]):(rule?.leader_heroes||[]);selectedHeroNames.push(...heroes.map(h=>typeof h==='object'?h.name||h.id:h).filter(Boolean));}}};
+  collectFormationHeroes(r.general);
+  selectedHeroNames.push(...(r.general?.poolHeroes||[]));
+  for(const team of r.teams||[]){if(!team.useGeneral)collectFormationHeroes(team);
+   for(const assigned of Object.values(team.joinerByPlayer||{}))for(const mode of TAL_MODES)selectedHeroNames.push(...(assigned[mode]||[]));}
+  await Promise.all([...new Set(selectedHeroNames)].map(name=>jpeg(heroObj(name)?.image_url)));
   const hue=name=>{const h=heroObj(name);return String(h?.rarity||'').toLowerCase()==='epic'?'#8855ba':String(h?.rarity||'').toLowerCase()==='legendary'?C.gold:C.purple};
   async function heroList(names,x,yy,availableW,max=3){const arr=(names||[]).map(v=>typeof v==='object'?v?.name||v?.id:v).filter(Boolean).slice(0,max);
    if(!arr.length){font(9,false,C.muted);pdf.text('Not assigned',x,yy+20);return}
    const gap=7,itemW=(availableW-gap*(max-1))/max;
    for(let i=0;i<arr.length;i++){const name=String(arr[i]),xx=x+i*(itemW+gap),col=hue(name),img=heroObj(name);
     color('#f8fafc','fill');color('#dce3ed','line');pdf.roundedRect(xx,yy,itemW,49,5,5,'FD');color(col,'line');pdf.setLineWidth(1.2);pdf.roundedRect(xx+5,yy+6,34,34,4,4,'S');
-    const bitmap=await jpeg(img?.image_url);if(bitmap)try{pdf.addImage(bitmap.data,'JPEG',xx+6,yy+7,32,32,undefined,'FAST')}catch(_){/* name stays */}
+    const bitmap=await jpeg(img?.image_url);if(bitmap)try{pdf.addImage(bitmap.data,'JPEG',xx+6,yy+7,32,32,undefined,'FAST');heroPortraitCount++}catch(_){heroPortraitMissing++}else heroPortraitMissing++;
     font(8.5,true,col);const lines=pdf.splitTextToSize(clean(name),itemW-47).slice(0,2);pdf.text(lines,xx+43,yy+19);
    }
   }
@@ -528,7 +598,7 @@ async function savePdf(){
    need(ih+20);color('#f5f7fb','fill');color(C.line,'line');pdf.roundedRect(M,y-7,W,ih+14,7,7,'FD');
    pdf.addImage(b.data,'JPEG',M+(W-iw)/2,y,iw,ih,undefined,'FAST');y+=ih+23;
   }
-  const zones=(title,kind,w,names)=>{header(title,true);const gap=10,colW=(W-gap)/2;
+  const zones=(title,kind,w,names,forcePage=true)=>{header(title,forcePage);const gap=10,colW=(W-gap)/2;
    for(let i=0;i<names.length;i+=2){const z1=zoneRead(kind,w,names[i]),z2=names[i+1]?zoneRead(kind,w,names[i+1]):null;
     const ht=z=>{if(!z)return 0;const n=Math.max(1,z.names.length),noteLines=z.note?pdf.splitTextToSize(clean(z.note),colW-25).length:0;return 41+n*16+noteLines*12+(noteLines?7:0)};
     const h=Math.max(62,ht(z1),ht(z2));need(h+10);
@@ -545,8 +615,11 @@ async function savePdf(){
   const alliance=l.customAlliance||snapshot.alliances.find(x=>String(x.id)===String(l.allianceId))?.tag||'Not set';
   para(l.name+'  /  '+alliance,{size:15,bold:true,color:C.purple,lineHeight:20});
   const rn=ROUND_IDS.indexOf(p.round),round=roundRanges(setup?.battle_date||'')[rn],mt=l.matchTimes[p.round]||{};
-  para((round?.name||'Round not selected')+'  |  Battle day: '+(mt.date||'TBD')+'  |  Start: '+(mt.time?mt.time+' UTC':'TBD'),{size:10.5,color:C.muted});
-  para('TAL start: '+(setup?.battle_date||'Not set'),{size:9,color:C.muted});y+=9;
+  para(round?.name||'Round not selected',{size:15,bold:true,color:C.ink,lineHeight:21});
+  let weekday='';if(mt.date){try{weekday=new Intl.DateTimeFormat('en-US',{weekday:'long',timeZone:'UTC'}).format(new Date(mt.date+'T12:00:00Z'))}catch(_){}}
+  para('BATTLE DAY  '+(weekday?weekday+'  ·  ':'')+(mt.date||'TBD'),{size:16,bold:true,color:C.purple,lineHeight:21});
+  para('START TIME  '+(mt.time?mt.time+' UTC':'TBD'),{size:14,bold:true,color:C.cyan,lineHeight:19});
+  para('TAL Start: '+(setup?.battle_date||'Not set'),{size:10,color:C.muted});y+=12;
   const ins=setup?.instructions||{};
   for(const [enabled,key,label] of [['includeWaveOne','waveOne','Wave 1 — Opening Facilities'],['includeWaveTwo','waveTwo','Wave 2 — Main Objectives'],['includeAlternative','alternative','Alternative Strategy']]){
    if(ins[enabled]&&ins[key]){subtitle(label);para(ins[key],{size:10});y+=3}
@@ -562,33 +635,41 @@ async function savePdf(){
   const battle=await jpeg(TAL_BATTLEFIELD_MAP);
   if(battle){const f=Math.min(W/battle.width,445/battle.height),iw=battle.width*f,ih=battle.height*f;
    need(ih+15);const bx=M+(W-iw)/2,by=y;pdf.addImage(battle.data,'JPEG',bx,by,iw,ih,undefined,'FAST');
-   for(const b of TAL_BUILDINGS){const xx=bx+(b.x/100)*iw,yy=by+(b.y/100)*ih,tag=[];
-    if(layers.labels)tag.push(b.name);if(layers.teams){const teams=(r.teams||[]).filter(t=>t.buildingId===b.id).map(t=>t.name);if(teams.length)tag.push(teams.join(', '))}if(layers.points)tag.push(b.points);
-    if(tag.length){font(6.7,true,layers.points&&!layers.labels?C.gold:C.ink);const chunks=pdf.splitTextToSize(clean(tag.join(' | ')),Math.min(110,iw*.25));
-     const tw=Math.min(115,Math.max(...chunks.map(s=>pdf.getTextWidth(s)),15)+9),th=chunks.length*8+6;
-     color('#ffffff','fill');pdf.roundedRect(Math.max(bx,Math.min(bx+iw-tw,xx-tw/2)),Math.max(by,yy-th-7),tw,th,3,3,'F');
-     font(6.7,true,C.ink);pdf.text(chunks,Math.max(bx+4,Math.min(bx+iw-tw+4,xx-tw/2+4)),Math.max(by+9,yy-th-7+9));
+   for(const b of TAL_BUILDINGS){const xx=bx+(b.x/100)*iw,yy=by+(b.y/100)*ih;
+    const teams=layers.teams?(r.teams||[]).filter(t=>t.buildingId===b.id).map(t=>t.name):[];
+    const entries=[];if(layers.labels)entries.push({s:b.name,c:C.ink});
+    for(const name of teams)entries.push({s:name,c:C.purple});
+    if(layers.points)entries.push({s:b.points,c:C.gold});
+    if(entries.length){const boxW=94,pad=4;
+     const rows=entries.flatMap(entry=>{font(6.7,true,entry.c);return pdf.splitTextToSize(clean(entry.s),boxW-pad*2).map(s=>({s,c:entry.c}))});
+     const boxH=rows.length*9+8;
+     const x=Math.max(bx,Math.min(bx+iw-boxW,xx-boxW/2));
+     const yyBox=Math.max(by,Math.min(by+ih-boxH,yy-boxH-8));
+     color('#ffffff','fill');color('#dce3ef','line');pdf.roundedRect(x,yyBox,boxW,boxH,3,3,'FD');
+     rows.forEach((row,idx)=>{font(6.7,true,row.c);pdf.text(row.s,x+pad,yyBox+10+idx*9)});
     }
    }y+=ih+14;
   }else note('Battlefield image unavailable in PDF. See the saved online Battle Plan.');
-  header('General Formations & Heroes',true);
+  header('General Formations & Heroes',true);para('General formations apply to rally leaders and joiners. The formation hero portraits are for rally leaders.',{size:9.4,color:C.muted});
   if(r.general?.show!==false){for(const mode of TAL_MODES){subtitle(mode==='attack'?'Attack Formations':'Defense Formations',mode==='attack'?C.cyan:C.purple);
     const arr=Array.isArray(r.general?.[mode+'Formations'])?r.general[mode+'Formations']:[];
     if(!arr.length){para('Not set',{color:C.muted});continue}
     for(const item of arr){const rule=getRule(item.id),manual=item.id==='__manual__',names=manual?item.manual?.heroes||[]:(rule?.leader_heroes||[]).map(h=>typeof h==='object'?h.name||h.id:h);
-     need(90);font(10,true,C.ink);pdf.text('Ready Formation',M,y);font(10,true,C.purple);pdf.text(clean(manual?(item.manual?.ratio||[]).join(' / '):ratioOf(rule)),M+112,y);y+=12;
+     need(100);font(15,true,mode==='attack'?C.cyan:C.purple);pdf.text(clean(manual?(item.manual?.ratio||[]).join(' / '):ratioOf(rule)),M,y);y+=19;
      await heroList(names,M,y,W,3);y+=60;
     }
    }
-   if(r.general?.joinerMode==='shared'){subtitle('Joiner Heroes · Shared Pool',C.green);const pool=r.general?.poolHeroes||[];
+   if(r.general?.joinerMode==='shared'){subtitle('Use Any of These Heroes · Joiners',C.green);para('Joiners can use any of these heroes with the formations provided above.',{size:9.2,color:C.muted});const pool=r.general?.poolHeroes||[];
     if(!pool.length)para('No shared heroes selected',{color:C.muted});else for(let i=0;i<pool.length;i+=3){need(65);await heroList(pool.slice(i,i+3),M,y,W,3);y+=61}
    }else para('Joiner Heroes assigned individually by Team.',{color:C.muted,size:10});
   }else para('General Formations hidden.',{color:C.muted});
   header('Teams',true);
   for(const t of r.teams||[]){need(95);const building=TAL_BUILDINGS.find(b=>b.id===t.buildingId)?.name||'Unassigned building';
    color(C.soft,'fill');color(C.line,'line');pdf.roundedRect(M,y-14,W,54,6,6,'FD');font(14,true,C.ink);pdf.text(clean(t.name)+'  /  '+building,M+11,y+5,{maxWidth:W-23});
-   font(11,true,C.cyan);pdf.text('Rally Lead: '+lineName(t.rl||'Not assigned'),M+11,y+28,{maxWidth:W-22});y+=66;
-   if(!t.useGeneral){for(const mode of TAL_MODES){subtitle(mode==='attack'?'Team Attack Formations':'Team Defense Formations');for(const e of t[mode+'Formations']||[]){const rr=getRule(e.id),manual=e.id==='__manual__';para('Ready Formation  '+(manual?(e.manual?.ratio||[]).join(' / '):ratioOf(rr)),{size:10,bold:true});need(59);await heroList(manual?e.manual?.heroes||[]:rr?.leader_heroes||[],M,y,W,3);y+=60}}}
+   color('#fff5da','fill');color(C.gold,'line');pdf.roundedRect(M+9,y+11,W-18,29,5,5,'FD');
+   color(C.gold,'fill');pdf.triangle(M+19,y+21,M+23,y+14,M+27,y+21,'F');pdf.triangle(M+25,y+21,M+30,y+12,M+35,y+21,'F');pdf.rect(M+19,y+21,16,4,'F');
+   font(12,true,C.gold);pdf.text('RALLY LEAD',M+44,y+30);font(12,true,C.ink);pdf.text(clean(lineName(t.rl||'Not assigned')),M+143,y+30,{maxWidth:W-165});y+=66;
+   if(!t.useGeneral){for(const mode of TAL_MODES){subtitle(mode==='attack'?'Team Attack Formations':'Team Defense Formations');for(const e of t[mode+'Formations']||[]){const rr=getRule(e.id),manual=e.id==='__manual__';para(manual?(e.manual?.ratio||[]).join(' / '):ratioOf(rr),{size:15,bold:true,color:mode==='attack'?C.cyan:C.purple});need(59);await heroList(manual?e.manual?.heroes||[]:rr?.leader_heroes||[],M,y,W,3);y+=60}}}
    for(const id of t.joiners||[]){const aa=t.joinerByPlayer?.[id]||{},personal=r.general?.joinerMode==='player';
     need(personal?104:34);color(C.green,'fill');pdf.roundedRect(M,y-9,3,20,1,1,'F');font(11,true,C.ink);pdf.text(clean(lineName(id)),M+12,y+5);y+=21;
     if(personal){const cw=(W-10)/2;for(let i=0;i<2;i++){const mode=TAL_MODES[i],xx=M+i*(cw+10);font(8.5,true,mode==='attack'?C.cyan:C.purple);pdf.text(mode==='attack'?'ATTACK HEROES':'DEFENSE HEROES',xx,y);}
@@ -599,13 +680,13 @@ async function savePdf(){
   }
   header('Workshops',true);await imageSection(TAL_WORKSHOP_MAP,W,485);
   // Cards are real text and vector boxes, not black webpage screenshot backgrounds.
-  zones('Workshop Assignments','workshops','all',ZONES);
+  zones('Workshop Assignments','workshops','all',ZONES,false);
   zones('Loot Team','loot','all',LOOT);
   if(r.notes){header('Team Roster Notes');para(r.notes)}
   if(p.notes){header('Legion Notes');para(p.notes)}
   const total=pdf.getNumberOfPages();for(let n=1;n<=total;n++){pdf.setPage(n);color(C.line,'line');pdf.line(M,PH-35,PW-M,PH-35);font(8,false,C.muted);pdf.text('NEXA  /  TAL  •  '+l.name,M,PH-23);pdf.text(n+' / '+total,PW-M,PH-23,{align:'right'});}
   pdf.save('TAL_'+l.name.replace(/[^a-z0-9]+/ig,'_')+'_Battle_Plan.pdf');
-  msg('Native white-page '+l.name+' Battle Plan PDF saved.');
+  msg('Native white-page '+l.name+' Battle Plan PDF saved. Hero photos embedded: '+heroPortraitCount+(heroPortraitMissing?' · Missing: '+heroPortraitMissing+' (image-host restrictions).':''));
  }catch(e){console.error('[TAL native PDF]',e);msg('PDF export failed: '+(e?.message||e),true)}
  finally{if(button)button.disabled=false}
 }
@@ -627,6 +708,6 @@ async function loadTalSnapshot(){
 async function boot(){try{$('stateLabel').textContent='State '+state;sb=window.supabase.createClient(SB_URL,SB_KEY);await auth();const [a,b,c,d,g]=await Promise.all([sb.from('tal_setups').select('*').eq('state_number',state).maybeSingle(),sb.from('tal_workspaces').select('document').eq('state_number',state).maybeSingle(),loadTalSnapshot(),sb.from('nexa_battle_meta_rules').select('id,mode,generation,leader_heroes,primary_ratio,approval_status').eq('event_scope','pvp_rally').eq('is_active',true),sb.from('nexa_library_generations').select('generation,is_visible,unlock_at').eq('item_type','hero').eq('is_visible',true)]);if(a.error)throw a.error;if(b.error)throw b.error;setup=a.data||null;ws=normalizeWorkspace(b.data?.document||empty());snapshot={...snapshot,...c,rules:d.data||[],visible_generations:g.data||[]};fillSetup(setup);renderSetup();store();msg('TAL loaded from NEXA for State '+state+'.');nav('setup')}catch(e){console.error('[NEXA TAL]',e);msg('TAL unavailable: '+e.message,true)}}
 $$('[data-nav]').forEach(b=>b.onclick=()=>nav(b.dataset.nav));$('talStart').onchange=()=>{previewRounds();dirty=true};$('saveSetup').onclick=saveSetup;$('editSetup').onclick=()=>{fillSetup(setup);editingSetup(true)};$('cancelSetup').onclick=()=>{fillSetup(setup);editingSetup(false)};$('publishTal').onclick=publishTal;$$('#setupEditor input,#setupEditor textarea').forEach(x=>x.addEventListener('input',()=>{dirty=true}));$('refreshResponses').onclick=async()=>{try{snapshot={...snapshot,...await loadTalSnapshot()};renderResponses();msg('TAL Responses refreshed.')}catch(e){msg(e.message||'Refresh failed',true)}};$('toggleTalTests').onclick=async()=>{try{testSubjectsVisible=!testSubjectsVisible;snapshot={...snapshot,...await loadTalSnapshot()};renderResponses();msg(testSubjectsVisible?'TAL test subjects visible.':'TAL test subjects hidden.')}catch(e){testSubjectsVisible=!testSubjectsVisible;msg(e.message,true)}};
 $('clearTalTests').onclick=async()=>{if(!confirm('Delete ONLY the 15 synthetic TAL test subjects from Supabase? Real profiles and real TAL responses will remain untouched.'))return;try{const testRows=await sb.rpc('nexa_tal_test_subjects_snapshot',{p_state:state});if(testRows.error||testRows.data?.ok!==true)throw testRows.error||Error('Could not inspect test subjects');const {data,error}=await sb.rpc('nexa_clear_tal_test_subjects',{p_state:state});if(error||data?.ok!==true)throw error||Error('Test removal failed');const ids=new Set((testRows.data?.players||[]).map(p=>String(p.id)));const scrub=v=>{if(Array.isArray(v))return v.filter(x=>!((typeof x==='string'&&ids.has(x))||(x&&typeof x==='object'&&ids.has(String(x.id))))).map(scrub);if(v&&typeof v==='object'){for(const k of Object.keys(v)){if(typeof v[k]==='string'&&ids.has(v[k]))v[k]='';else v[k]=scrub(v[k])}}return v};scrub(ws);await saveWorkspace('Test subject cleanup');snapshot={...snapshot,...await loadTalSnapshot()};renderResponses();msg(data.deleted+' TAL test subjects removed. Real responses are untouched.')}catch(e){msg(e.message,true)}};
-$$('[data-formation-tab]').forEach(b=>b.onclick=()=>{formationTab=b.dataset.formationTab;renderFormations()});$('addLegion').onclick=addLegion;$$('[data-selectmode]').forEach(b=>b.onclick=()=>{mode=b.dataset.selectmode;$$('[data-selectmode]').forEach(x=>x.classList.toggle('active',x===b));renderLegions()});$('saveSelectedLegion').onclick=saveSelectedLegion;$('saveLegions').onclick=()=>saveWorkspace('Both Legions');$('downloadLegion').onclick=()=>exportLegionsPdf(false);$('downloadBothLegions').onclick=()=>exportLegionsPdf(true);$('saveRoster').onclick=()=>saveWorkspace('Team Roster');$('sendRoster').onclick=sendRoster;['planTitle','planNotes'].forEach(id=>$(id).oninput=updatePlan);$('planRound').onchange=updatePlan;$('savePlan').onclick=publishPlan;$('copyPlan').onclick=copyLink;$('viewPlan').onclick=()=>{if(publicUrl())window.open(publicUrl(),'_blank','noopener')};$('pdfPlan').onclick=savePdf;window.addEventListener('beforeunload',e=>{if(!dirty)return;e.preventDefault();e.returnValue='' });boot();
+$$('[data-formation-tab]').forEach(b=>b.onclick=()=>{formationTab=b.dataset.formationTab;renderFormations()});$('addLegion').onclick=addLegion;$$('[data-selectmode]').forEach(b=>b.onclick=()=>{mode=b.dataset.selectmode;$$('[data-selectmode]').forEach(x=>x.classList.toggle('active',x===b));renderLegions()});$('saveSelectedLegion').onclick=saveSelectedLegion;$('saveLegions').onclick=()=>saveWorkspace('Both Legions');$('downloadLegion').onclick=()=>exportLegionsPdf(false);$('downloadBothLegions').onclick=()=>exportLegionsPdf(true);$('downloadLegionImage').onclick=()=>exportLegionsPng(false);$('downloadBothLegionsImage').onclick=()=>exportLegionsPng(true);$('saveRoster').onclick=()=>saveWorkspace('Team Roster');$('sendRoster').onclick=sendRoster;['planTitle','planNotes'].forEach(id=>$(id).oninput=updatePlan);$('planRound').onchange=updatePlan;$('savePlan').onclick=publishPlan;$('copyPlan').onclick=copyLink;$('viewPlan').onclick=()=>{if(publicUrl())window.open(publicUrl(),'_blank','noopener')};$('pdfPlan').onclick=savePdf;window.addEventListener('beforeunload',e=>{if(!dirty)return;e.preventDefault();e.returnValue='' });boot();
 })();
 </script></body></html>

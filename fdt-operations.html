@@ -3001,11 +3001,21 @@ section.panel{position:relative;z-index:1}
 .fdt-legion-tabs button.active{border-color:var(--legion-tab,#9b78ff);color:#fff;background:linear-gradient(130deg,rgba(69,48,143,.5),rgba(25,83,105,.4));box-shadow:inset 0 3px 0 var(--legion-tab,#9b78ff)}
 .fdt-legion-tabs button:disabled{opacity:.38}
 .fdt-legion-hint{font-size:11px;color:#aeb7d1;line-height:1.45;margin:0 0 12px}@media(max-width:620px){.fdt-legion-tabs,.fdt-legion-hint{margin-left:0!important}}
+/* NEXA FDT V2.12.5: TAL formation card presentation */
+#formationList.formation-grid{display:grid;grid-template-columns:1fr;gap:12px}
+#formationList .tal-format-card{border:1px solid rgba(172,181,205,.18);border-radius:20px;padding:17px 15px;background:rgba(19,25,44,.86);min-width:0}
+#formationList .tal-format-card h3{font-size:clamp(18px,4.8vw,24px);font-weight:950;color:#fff;margin:0 0 12px;text-transform:lowercase}
+#formationList .tal-format-heroes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;align-items:start;margin:0 0 12px}
+#formationList .tal-format-hero{display:grid;justify-items:center;gap:7px;min-width:0;text-align:center}
+#formationList .tal-format-hero img,#formationList .tal-format-placeholder{display:grid;place-items:center;width:clamp(65px,19vw,102px);height:clamp(65px,19vw,102px);max-width:100%;object-fit:cover;border:1.5px solid #9b78ff;border-radius:15px;background:#10182d;color:#9b78ff}
+#formationList .tal-format-hero small{font-size:clamp(11px,3.2vw,14px);color:#aeb7d1;white-space:normal;overflow-wrap:anywhere}
+#formationList .tal-format-ratio{display:block;font-size:clamp(24px,7vw,32px);font-weight:950;color:#fff;letter-spacing:.02em}
+#formationList .tal-format-status{font-size:13px;font-weight:800;color:#aeb7d1;margin-top:4px;letter-spacing:.03em}
 </style>
 </head>
 <body>
 <main class="sh">
-<!-- NEXA FDT OPERATIONS V2.12.4 • RESPONSES-ONLY LEGION ROSTER / RESET ISOLATION -->
+<!-- NEXA FDT OPERATIONS V2.12.5 • RESPONSES-ONLY LEGION ROSTER / RESET ISOLATION -->
 <div class="top">
   <a class="round" href="index.html" aria-label="Back">‹</a>
   <div class="title"><small>BATTLE OPERATIONS • FDT</small><h1>FDT</h1><div id="stateLabel" class="state">State 1518</div></div>
@@ -3074,8 +3084,8 @@ section.panel{position:relative;z-index:1}
 </section>
 
 <section class="panel" data-panel="formations">
-  <div class="desc">FDT uses the same shared Formation Center as SvS. Approved and Suggested remain separate.</div>
-  <div class="card"><div class="section-head"><div><h2>Formations</h2><div class="tiny muted" id="formationGen">Current unlocked generation.</div></div></div><div class="fc-tabs"><button class="btn violet active" data-fc="approved">Approved</button><button class="btn" data-fc="suggested">Suggested</button></div><div id="formationList" class="formation-grid"></div></div>
+  <div class="desc">Current and previous hero generations. Each Attack or Defense formation has its own visual card, as in TAL. Approved and Suggested remain separate.</div>
+  <div class="card"><div class="section-head"><div><h2>Formations</h2><div class="tiny muted" id="formationGen">Current and previous unlocked generations • Attack / Defense • all saved formations.</div></div></div><div class="fc-tabs"><button class="btn violet active" data-fc="approved">Approved</button><button class="btn" data-fc="suggested">Suggested</button></div><div id="formationList" class="formation-grid"></div></div>
 </section>
 
 <section class="panel" data-panel="legions">
@@ -3615,16 +3625,25 @@ $('#refreshResponses').onclick=async()=>{
  say(''); // V2.11.5: preserve error messages, omit decorative blue loading summary.
 }
 
-/* FORMATIONS */
+/* FORMATIONS — TAL-style mobile cards; separate rows, never collapse same mode / generation. */
 function heroByName(n){return heroes.find(h=>String(h.name||'').toLowerCase()===String(n||'').toLowerCase())}
 function rarityClass(h){const r=String(h?.rarity||'').toLowerCase();if(r.includes('mythic')||r.includes('legendary')||r.includes('gold'))return 'rarity-legendary';if(r.includes('epic')||r.includes('purple'))return 'rarity-epic';if(r.includes('rare')||r.includes('blue'))return 'rarity-rare';return ''}
 function renderFormations(){
- $('#formationGen').textContent=`Gen ${activeGen} • Approved / Suggested`;
+ const gen=activeGen,eligible=new Set([gen,gen-1]);
+ $('#formationGen').textContent=gen?`Hero Generations ${gen} & ${gen-1} • Attack and Defense`:'No active hero generation';
  $$('[data-fc]').forEach(b=>{const on=b.dataset.fc===fcTab;b.classList.toggle('violet',on);b.classList.toggle('active',on)});
- let list=rules.filter(r=>Number(r.generation)===activeGen);
- list=list.filter(r=>fcTab==='approved'?(r.approval_status||'approved')==='approved':(r.approval_status||'approved')!=='approved');
- const h=$('#formationList');if(!list.length){h.innerHTML=`<div class="empty">No ${fcTab==='approved'?'Approved':'Suggested'} Gen ${activeGen} formations are currently saved.</div>`;return}
- h.innerHTML=list.map(r=>`<article class="formation ${esc(r.mode||'')}"><div class="formation-head"><div><b>${r.mode==='attack'?'⚔ ATTACK':'🛡 DEFENSE'}</b><div class="tiny muted">Gen ${r.generation}</div></div><span class="formation-badge ${fcTab}">${fcTab==='approved'?'APPROVED':'SUGGESTED'}</span></div><div class="formation-heroes">${(r.leader_heroes||[]).map(n=>{const x=heroByName(n);return`<div class="formation-hero">${x&&heroImageSrc(x)?`<img src="${esc(heroImageSrc(x))}" alt="">`:''}<b>${esc(n)}</b></div>`}).join('')}</div><div class="formation-ratio">${(r.primary_ratio||[]).join(' / ')}</div></article>`).join('')
+ const list=rules.filter(r=>eligible.has(Number(r.generation)))
+  .filter(r=>fcTab==='approved'?(r.approval_status||'approved')==='approved':(r.approval_status||'approved')!=='approved')
+  .sort((a,b)=>Number(b.generation)-Number(a.generation)||
+   (String(a.mode).toLowerCase()==='attack'?0:1)-(String(b.mode).toLowerCase()==='attack'?0:1));
+ const host=$('#formationList');
+ if(!list.length){host.innerHTML=`<div class="empty">No ${fcTab==='approved'?'Approved':'Suggested'} formations for Gen ${gen} / ${gen-1}.</div>`;return}
+ host.innerHTML=list.map(r=>{
+  const mode=String(r.mode||'').toLowerCase()==='defense'?'defense':'attack';
+  const names=(Array.isArray(r.leader_heroes)?r.leader_heroes:[]).slice(0,3).map(n=>typeof n==='object'?(n.name||n.id||''):n);
+  const heroes=names.map(n=>{const h=heroByName(n);return`<div class="tal-format-hero">${h&&heroImageSrc(h)?`<img src="${esc(heroImageSrc(h))}" alt="${esc(h.name||n)}" loading="lazy">`:'<span class="tal-format-placeholder">✦</span>'}<small>${esc(h?.name||n||'—')}</small></div>`}).join('');
+  return `<article class="tal-format-card ${esc(mode)}"><h3>${mode} • Gen ${Number(r.generation)||'—'}</h3><div class="tal-format-heroes">${heroes}</div><strong class="tal-format-ratio">${esc((r.primary_ratio||[]).join(' / '))}</strong><div class="tal-format-status">${fcTab==='approved'?'APPROVED':'SUGGESTED'}</div></article>`
+ }).join('');
 }
 $$('[data-fc]').forEach(b=>b.onclick=()=>{fcTab=b.dataset.fc;renderFormations()});
 

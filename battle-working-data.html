@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • Clear Working Data</title>
-<!-- NEXA BATTLE WORKING DATA V1.7 • TAL RESET / FDT + SVS PRESERVED -->
+<!-- NEXA BATTLE WORKING DATA V1.8 • TAL RESET / FDT + SVS PRESERVED -->
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="/nexa-responsive.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -167,6 +167,10 @@ function showEvent(event){
  refreshTalButton();
 }
 $$('.event-pill').forEach(button=>button.addEventListener('click',()=>showEvent(button.dataset.event)));
+// From TAL Operations, open directly on the TAL reset tab without changing the default for other callers.
+const requestedEvent=new URLSearchParams(location.search).get('event');
+if(['svs','fdt','tal'].includes(requestedEvent))showEvent(requestedEvent);
+
 async function boot(){
  const state=activeState();
  // The FDT authorization check works even if all SvS strategies have been deleted.

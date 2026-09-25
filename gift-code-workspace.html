@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- NEXA Gift Code Workspace V1.5 — UNIFORM HEADER + MANAGE ALLIANCES | REPLACE EXISTING FILE: gift-code-workspace.html
+<!-- NEXA Gift Code Workspace V1.6 — UNIFORM HEADER + MANAGE ALLIANCES | REPLACE EXISTING FILE: gift-code-workspace.html
      Requires reviewed SQL migration and Gift Owner access. API reuses api/nexa-system-settings.js.
      Does not send redemption requests. -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NEXA • Gift Code Workspace</title>
@@ -128,6 +128,10 @@ textarea{min-height:146px;line-height:1.55;resize:vertical}
 .gift-share-card #giftCopyLink{background:#172544;border-color:#6f77b6}
 .gift-share-card #giftCopyStatus{margin:7px 0 0;min-height:16px;color:#85e8c7;font-size:13px}
 </style>
+<style id="nexa-gift-discovery-ui">
+.gift-code-list{display:grid;gap:9px}.gift-code-item{padding:12px 14px;background:#10182e;border:1px solid #3a4873;border-radius:14px;overflow-wrap:anywhere}
+.gift-code-item strong{font-size:16px;color:#b9eafb}.gift-code-item small{display:block;margin-top:5px;line-height:1.5}
+</style>
 </head>
 <body class="gift-auth"><main><header id="workspaceHeader"><div class="brand-area"><div class="kicker">NEXA · STATE OPERATIONS</div><h1>Gift Code Workspace</h1><span class="hidden" id="role" aria-hidden="true">STAFF</span></div><div class="header-actions"><select id="moduleSwitch" aria-label="Switch authorized Workspace"></select><button class="ghost" id="logout" type="button">Log Out</button></div></header>
 <section id="login">
@@ -171,7 +175,14 @@ textarea{min-height:146px;line-height:1.55;resize:vertical}
    <div class="card"><div class="flex" style="justify-content:space-between"><div><h2>Manage Alliances</h2><p class="muted">Organize each state, its alliances and their members in one place.</p></div><div class="flex"><button id="addState" type="button">+ Add State</button><button id="addAlliance" type="button">+ Add Alliance</button></div></div></div>
    <div id="directory"></div>
   </section>
-  <section class="hidden" data-panel="codes"><div class="card"><h2>Gift Codes</h2><p class="muted">Code discovery, provider integration and actual redemption are not enabled in this version. Alliance switches are administrative preferences only until verified redemption is implemented.</p><span class="pill">Redemption engine not enabled</span></div></section>
+  <section class="hidden" data-panel="codes">
+ <div class="card"><div class="flex" style="justify-content:space-between;align-items:flex-start"><div><h2>Automatic Code Discovery</h2><p class="muted">Public codes are checked on a server schedule. Source-listed does not mean every account can redeem them.</p></div><span class="pill">REDEMPTION OFF</span></div>
+ <p class="info-line">NEXA stores discovered codes and prepares a local queue for eligible enabled members. No Game IDs or code claims are sent to a redemption provider in this phase.</p>
+ <div class="flex"><button id="scanGiftCodes" type="button">Check for Codes Now</button><button class="ghost" id="refreshGiftCodes" type="button">Refresh</button><button class="ghost" id="addGiftCode" type="button">+ Add Gift Code</button></div>
+ <p id="giftCodeStatus" class="status" role="status"></p><p id="giftQueueCount" class="info-line"></p></div>
+ <div class="card"><h2>Code History</h2><p class="muted">Detected codes are shown here; redemption results appear after a separately approved provider integration.</p><div id="giftCodeList" class="gift-code-list"></div></div>
+ <div id="giftRunsCard" class="card hidden"><h2>Discovery Activity</h2><div id="giftRunList" class="info-line"></div></div>
+ </section>
   <section class="hidden" data-panel="staff">
    <div class="card gift-share-card"><h2>Workspace Link</h2><p class="muted">Share this link with authorized alliance leaders and staff. Access still requires permission for their Game ID.</p><label for="giftShareUrl">Gift Code Workspace URL<input id="giftShareUrl" type="url" readonly spellcheck="false" autocomplete="off" aria-label="Gift Code Workspace link"></label><div class="flex" style="margin-top:12px"><button id="giftCopyLink" type="button">Copy Workspace Link</button></div><p class="status" id="giftCopyStatus" role="status" aria-live="polite"></p></div>
    <div class="card"><h2>Manage Staff Access</h2><p class="muted">Authorize a Game ID to manage this Workspace. An existing staff account uses the same username and password; a first-time staff member registers here. Adding a code recipient does not grant staff access.</p>
@@ -192,8 +203,8 @@ const clean=s=>String(s??'').trim();
 function message(t){$('message').textContent=t||''}
 function storeToken(value,remember){localStorage.removeItem('nexa_transfer_staff_token');sessionStorage.removeItem('nexa_transfer_staff_token');(remember?localStorage:sessionStorage).setItem('nexa_transfer_staff_token',value);token=value}
 async function api(action,body){
- const qs=action==='snapshot'?'?mode=gift':action==='members'?`?mode=gift&action=members&alliance=${encodeURIComponent(body.id)}`:'?mode=gift';
- const GET=action==='snapshot'||action==='members';const r=await fetch('/api/nexa-system-settings'+qs,{method:GET?'GET':'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:GET?undefined:JSON.stringify({action,...body})});
+ const qs=action==='snapshot'?'?mode=gift':action==='codes'?'?mode=gift&action=codes':action==='members'?`?mode=gift&action=members&alliance=${encodeURIComponent(body.id)}`:'?mode=gift';
+ const GET=action==='snapshot'||action==='members'||action==='codes';const r=await fetch('/api/nexa-system-settings'+qs,{method:GET?'GET':'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:GET?undefined:JSON.stringify({action,...body})});
  const j=await r.json().catch(()=>({}));if(!r.ok||!j.ok)throw Error(j.error||'Request failed');return j;
 }
 async function rpc(name,body){const r=await sb.rpc(name,body);if(r.error)throw Error(r.error.message);return r.data}
@@ -262,9 +273,31 @@ $('giftCopyLink').onclick=async()=>{
  }catch{field.focus();field.select();field.setSelectionRange(0,field.value.length);status.textContent='Select and copy the highlighted link above.'}
 };
 $('staffState').onchange=staffSelectors;
+
+// NEXA Discovery phase 1: view public codes and owner-only actions; no redemption provider is connected.
+async function loadGiftCodes(){
+ const box=$('giftCodeList'),status=$('giftCodeStatus');
+ box.textContent='Loading discovered codes…';try{
+  const r=await api('codes');box.replaceChildren();$('scanGiftCodes').hidden=data.role!=='owner';$('addGiftCode').hidden=data.role!=='owner';
+  $('giftQueueCount').textContent=data.role==='owner'?`${r.pending} local pending entries (not sent to game).`:'Actual redemption is not enabled.';
+  for(const c of r.codes||[]){const div=document.createElement('article');div.className='gift-code-item';
+   const strong=document.createElement('strong');strong.textContent=c.code;const detail=document.createElement('small');
+   detail.textContent=`${c.status.toUpperCase()} · ${c.source||'Unknown source'} · Found ${new Date(c.discovered_at).toLocaleDateString()}`;
+   div.append(strong,detail);box.append(div)}
+  if(!box.children.length)box.textContent='No codes discovered yet. Owner can run Check for Codes Now.';
+  $('giftRunsCard').classList.toggle('hidden',data.role!=='owner');const runs=$('giftRunList');runs.replaceChildren();
+  for(const job of r.runs||[]){const line=document.createElement('p');line.textContent=`${new Date(job.finished_at).toLocaleString()} · ${job.status} · ${job.codes_found} found · ${job.codes_added} new · ${job.queue_added} queued${job.error_detail?' · '+job.error_detail:''}`;runs.append(line)}
+  if(!runs.children.length)runs.textContent='No discovery runs yet.';
+  status.textContent='';
+ }catch(e){box.textContent='Unable to load code history.';status.textContent=e.message||String(e)}
+}
+$('refreshGiftCodes').onclick=loadGiftCodes;
+$('scanGiftCodes').onclick=async()=>{const b=$('scanGiftCodes');b.disabled=true;$('giftCodeStatus').textContent='Checking public source…';try{const r=await api('scan_codes');await loadGiftCodes();$('giftCodeStatus').textContent=`Found ${r.codes_found}, added ${r.codes_added}, queued ${r.queue_added}. No redemptions sent.`}catch(e){$('giftCodeStatus').textContent=e.message||String(e)}finally{b.disabled=false}};
+$('addGiftCode').onclick=async()=>{await modal('Add Gift Code',field('manualGiftCode','Gift Code'),{ok:'Add Code',onOk:async body=>{const code=body.querySelector('#manualGiftCode').value.trim();const r=await api('manual_code',{code});await loadGiftCodes();$('giftCodeStatus').textContent=`Code ${r.saved?.added?'added':'already recorded'}. ${r.queued||0} new queue entries. Redemption remains OFF.`;return true}})};
+
 $('grantStaff').onclick=async()=>{const btn=$('grantStaff');btn.disabled=true;try{const role=$('staffRole').value,state=$('staffState').value,alliance=$('staffAlliance').value;const r=await api('grant_staff',{game_id:clean($('staffGameId').value),role,state_number:role==='redeemer_admin'?Number(state):null,alliance_id:role==='alliance_manager'?alliance:null});$('staffStatus').textContent=r.result?.status==='active_existing_account'?'Existing staff account activated.':'Game ID authorized for first-time registration.';$('staffGameId').value=''}catch(e){$('staffStatus').textContent=e.message}finally{btn.disabled=false}};
 $('logout').onclick=async()=>{try{await rpc('transfer_staff_logout',{p_token:token})}catch{}localStorage.removeItem('nexa_transfer_staff_token');sessionStorage.removeItem('nexa_transfer_staff_token');location.reload()};
-for(const b of document.querySelectorAll('[data-tab]'))b.onclick=()=>{for(const t of document.querySelectorAll('[data-tab]'))t.setAttribute('aria-selected',String(t===b));for(const p of document.querySelectorAll('[data-panel]'))p.classList.toggle('hidden',p.dataset.panel!==b.dataset.tab)};
+for(const b of document.querySelectorAll('[data-tab]'))b.onclick=()=>{for(const t of document.querySelectorAll('[data-tab]'))t.setAttribute('aria-selected',String(t===b));for(const p of document.querySelectorAll('[data-panel]'))p.classList.toggle('hidden',p.dataset.panel!==b.dataset.tab);if(b.dataset.tab==='codes')loadGiftCodes()};
 function authTab(reg){$('registerPane').classList.toggle('hidden',!reg);$('loginPane').classList.toggle('hidden',reg);$('loginTab').classList.toggle('active',!reg);$('registerTab').classList.toggle('active',reg);$('recoveryPanel').classList.add('hidden');message('')}
 $('loginTab').onclick=()=>authTab(false);$('registerTab').onclick=()=>authTab(true);
 $('forgotUser').onclick=()=>message('Your Workspace manager can look up your username by Game ID.');

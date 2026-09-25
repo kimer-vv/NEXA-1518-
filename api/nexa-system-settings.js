@@ -5,6 +5,7 @@ import {
   bypassCookie,
 } from '../server/_nexa-maintenance-common-new.js';
 import giftWorkspaceHandler from '../server/nexa-gift-workspace.js';
+import { giftCron } from '../server/nexa-gift-discovery.js';
 
 const HERO_IMAGE_HOSTS = new Set([
   'www.whiteoutsurvival-community.com',
@@ -111,6 +112,7 @@ export default async function handler(req, res) {
   try {
     // Gift Codes shares this existing Vercel Function; dedicated module stays in /server.
     // Each branch enforces its own authorization independently.
+    if (req.query?.mode === 'giftcron') return await giftCron(req, res);
     if (req.query?.mode === 'gift') {
       return await giftWorkspaceHandler(req, res);
     }

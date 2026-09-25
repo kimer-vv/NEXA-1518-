@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- NEXA Gift Code Workspace V1.3 | REPLACE EXISTING FILE: gift-code-workspace.html
+<!-- NEXA Gift Code Workspace V1.4 — UNIFORM HEADER + MANAGE ALLIANCES | REPLACE EXISTING FILE: gift-code-workspace.html
      Requires reviewed SQL migration and Gift Owner access. API reuses api/nexa-system-settings.js.
      Does not send redemption requests. -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NEXA • Gift Code Workspace</title>
@@ -76,8 +76,55 @@ textarea{min-height:146px;line-height:1.55;resize:vertical}
 .info-line{font-size:13px;color:#b6c4df;line-height:1.5}
 @media(max-width:650px){.alliance-grid{grid-template-columns:1fr}#workspaceHeader .header-actions{width:min(170px,44%)}#workspaceHeader .brand-area{flex:1;min-width:0}#workspaceHeader h1{font-size:clamp(24px,6vw,35px)}.card{padding:15px}.member-row{grid-template-columns:auto 1fr}.member-row button{grid-column:2;justify-self:start}}
 </style>
+
+<style id="nexa-gift-uniform-workspace-v3">
+/* Align Gift header with Transfer / Ministry. No extra owner/home row. */
+#workspaceHeader{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  gap:14px;flex-wrap:nowrap;padding:10px 0 19px;
+}
+#workspaceHeader .brand-area{flex:1 1 auto;min-width:0;text-align:left}
+#workspaceHeader .kicker{display:block;color:#92a2c8;font-size:10px;letter-spacing:.18em;font-weight:950;line-height:1.6}
+#workspaceHeader h1{
+  margin:4px 0;font-size:clamp(1.9rem,6vw,3.1rem);font-weight:950;line-height:1.05;
+  background:linear-gradient(90deg,#a779ff 0%,#7b82ff 34%,#55bfff 67%,#59efff 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
+}
+#workspaceHeader .header-actions{
+  display:flex;flex-direction:column;gap:9px;flex:0 0 min(235px,47%);
+  width:min(235px,47%);min-width:0;margin-left:auto;
+}
+#workspaceHeader #moduleSwitch,#workspaceHeader #logout{
+  width:100%;min-height:45px;border-radius:13px;color:#f5f7ff;
+  font-size:13px;font-weight:850;padding:9px 12px;
+}
+#workspaceHeader #moduleSwitch{
+  appearance:none;-webkit-appearance:none;
+  padding-right:30px;white-space:nowrap;text-overflow:ellipsis;
+  border:1px solid #554c90;background-color:#151b34;
+}
+#workspaceHeader #logout{background:#141b30;border:1px solid #52618d;text-align:center}
+/* Identical pill shape and active tone to Ministry's Request/Appointment/Access tabs. */
+#app > .tabs{display:flex;gap:8px;flex-wrap:nowrap;overflow-x:auto;padding:10px 0 14px;margin:12px 0 26px;scrollbar-width:none}
+#app > .tabs::-webkit-scrollbar{display:none}
+#app > .tabs button{
+  flex:0 0 auto;width:auto;min-height:44px;padding:10px 15px;border-radius:999px;
+  background:#0d1227;border:1px solid rgba(149,167,255,.25);
+  color:#aeb9d7;font-size:13px;font-weight:850;white-space:nowrap;
+}
+#app > .tabs button[aria-selected="true"]{
+  background:linear-gradient(135deg,rgba(114,78,255,.46),rgba(34,171,209,.28));
+  border-color:rgba(124,109,255,.7);color:#fff;
+}
+@media(max-width:590px){
+ #workspaceHeader{gap:10px}
+ #workspaceHeader .header-actions{flex-basis:min(185px,48%);width:min(185px,48%)}
+ #workspaceHeader h1{font-size:clamp(23px,6vw,35px)}
+ #workspaceHeader #moduleSwitch,#workspaceHeader #logout{font-size:12px}
+}
+</style>
 </head>
-<body class="gift-auth"><main><header id="workspaceHeader"><div class="brand-area"><div class="kicker">NEXA · STATE OPERATIONS</div><h1>Gift Code Workspace</h1><div class="flex"><span class="pill" id="role">STAFF</span><a href="index.html">← NEXA Home</a></div></div><div class="header-actions"><select id="moduleSwitch" aria-label="Switch authorized Workspace"></select><button class="ghost" id="logout" type="button">Log Out</button></div></header>
+<body class="gift-auth"><main><header id="workspaceHeader"><div class="brand-area"><div class="kicker">NEXA · STATE OPERATIONS</div><h1>Gift Code Workspace</h1><span class="hidden" id="role" aria-hidden="true">STAFF</span></div><div class="header-actions"><select id="moduleSwitch" aria-label="Switch authorized Workspace"></select><button class="ghost" id="logout" type="button">Log Out</button></div></header>
 <section id="login">
   <div class="loginBrand"><div class="kicker">GIFT CODE WORKSPACE</div><h1>Staff Access</h1><p class="muted">NEXA Gift Code Workspace</p></div>
   <div class="loginShell">
@@ -111,12 +158,12 @@ textarea{min-height:146px;line-height:1.55;resize:vertical}
 
 <section id="app" class="hidden">
   <nav class="tabs" aria-label="Gift Code Workspace sections">
-   <button data-tab="directory" aria-selected="true">State &amp; Alliances</button>
+   <button data-tab="directory" aria-selected="true">Manage Alliances</button>
    <button data-tab="codes" aria-selected="false">Gift Codes</button>
    <button data-tab="staff" aria-selected="false">Staff Access</button>
   </nav>
   <section data-panel="directory">
-   <div class="card"><div class="flex" style="justify-content:space-between"><div><h2>State &amp; Alliances</h2><p class="muted">Manage your states, alliances and member rosters together.</p></div><div class="flex"><button id="addState" type="button">+ Add State</button><button id="addAlliance" type="button">+ Add Alliance</button></div></div></div>
+   <div class="card"><div class="flex" style="justify-content:space-between"><div><h2>Manage Alliances</h2><p class="muted">Organize each state, its alliances and their members in one place.</p></div><div class="flex"><button id="addState" type="button">+ Add State</button><button id="addAlliance" type="button">+ Add Alliance</button></div></div></div>
    <div id="directory"></div>
   </section>
   <section class="hidden" data-panel="codes"><div class="card"><h2>Gift Codes</h2><p class="muted">Code discovery, provider integration and actual redemption are not enabled in this version. Alliance switches are administrative preferences only until verified redemption is implemented.</p><span class="pill">Redemption engine not enabled</span></div></section>

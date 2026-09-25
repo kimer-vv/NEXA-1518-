@@ -1,9 +1,10 @@
 /* NEXA Gift Code Workspace | Server API v1
  * CREATE: server/nexa-gift-workspace.js (imported from existing API route)
  * Requires reviewed Gift Workspace SQL and an explicitly assigned gift_staff_access owner.
- * No redemption calls are made by this module.
+ * Phase 1 discovers and queues; NO redemption calls are made by this module.
  */
 import { createHash } from 'node:crypto';
+import { discoverAndPrepare } from './nexa-gift-discovery.js';
 const URL = process.env.SUPABASE_URL || 'https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const json=(res,status,data)=>res.status(status).json(data);
@@ -52,10 +53,30 @@ export default async function handler(req,res){
   const s=await staff(req);
   if(req.method==='GET'){
    if(req.query?.action==='members'){const a=await alliance(allianceCheck(req.query.alliance));return json(res,200,{ok:true,members:await members(s,a)});}
+   if(req.query?.action==='codes'){
+    const codes=await db('gift_codes?select=id,code,status,source,reward_type,discovered_at,expires_at&order=discovered_at.desc&limit=150');
+    const runs=owner(s)?await db('gift_discovery_runs?select=source,finished_at,status,codes_found,codes_added,queue_added,error_detail&order=id.desc&limit=10'):[];
+    let pending=0;
+    if(owner(s)){
+      const items=await db('gift_redemptions?status=eq.pending&select=id&limit=10000');pending=items.length;
+    }
+    return json(res,200,{ok:true,codes,runs,pending,redemption_enabled:false,discovery_sources:['WSCO public active gift codes'],note:'Codes are source-listed; individual game eligibility has NOT been confirmed.'});
+   }
    return json(res,200,{ok:true,...await snapshot(s)});
   }
   const b=req.body||{};
   switch(b.action){
+   case 'scan_codes':{
+    if(!owner(s))throw fail('Owner access required.',403);
+    const result=await discoverAndPrepare();return json(res,result.ok?200:502,result);
+   }
+   case 'manual_code':{
+    if(!owner(s))throw fail('Owner access required.',403);
+    const code=String(b.code||'').trim();if(!/^[A-Za-z0-9_-]{4,120}$/.test(code))throw fail('Enter a valid code (4-120 letters, digits, hyphen or underscore).');
+    const saved=await rpc('gift_v1_record_discovered_code',{p_code:code,p_source:'NEXA Staff (manual)',p_reward_type:'unknown'});
+    const queue=await rpc('gift_v1_prepare_redemption_queue',{p_limit:5000});
+    return json(res,200,{ok:true,saved,queued:queue?.queued||0,redemption_enabled:false});
+   }
    case 'lookup':return json(res,200,{ok:true,existing:await exists(s,Array.isArray(b.ids)?b.ids:[])});
    case 'create_state':{
     if(!owner(s))throw fail('Owner access required.',403);

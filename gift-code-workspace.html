@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- NEXA Gift Code Workspace V1.4 — UNIFORM HEADER + MANAGE ALLIANCES | REPLACE EXISTING FILE: gift-code-workspace.html
+<!-- NEXA Gift Code Workspace V1.5 — UNIFORM HEADER + MANAGE ALLIANCES | REPLACE EXISTING FILE: gift-code-workspace.html
      Requires reviewed SQL migration and Gift Owner access. API reuses api/nexa-system-settings.js.
      Does not send redemption requests. -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NEXA • Gift Code Workspace</title>
@@ -123,6 +123,11 @@ textarea{min-height:146px;line-height:1.55;resize:vertical}
  #workspaceHeader #moduleSwitch,#workspaceHeader #logout{font-size:12px}
 }
 </style>
+<style id="gift-staff-share-v15">
+.gift-share-card #giftShareUrl{width:100%;font-size:13px;color:#afedff;overflow:hidden;text-overflow:ellipsis;user-select:all;-webkit-user-select:all}
+.gift-share-card #giftCopyLink{background:#172544;border-color:#6f77b6}
+.gift-share-card #giftCopyStatus{margin:7px 0 0;min-height:16px;color:#85e8c7;font-size:13px}
+</style>
 </head>
 <body class="gift-auth"><main><header id="workspaceHeader"><div class="brand-area"><div class="kicker">NEXA · STATE OPERATIONS</div><h1>Gift Code Workspace</h1><span class="hidden" id="role" aria-hidden="true">STAFF</span></div><div class="header-actions"><select id="moduleSwitch" aria-label="Switch authorized Workspace"></select><button class="ghost" id="logout" type="button">Log Out</button></div></header>
 <section id="login">
@@ -167,7 +172,9 @@ textarea{min-height:146px;line-height:1.55;resize:vertical}
    <div id="directory"></div>
   </section>
   <section class="hidden" data-panel="codes"><div class="card"><h2>Gift Codes</h2><p class="muted">Code discovery, provider integration and actual redemption are not enabled in this version. Alliance switches are administrative preferences only until verified redemption is implemented.</p><span class="pill">Redemption engine not enabled</span></div></section>
-  <section class="hidden" data-panel="staff"><div class="card"><h2>Staff Access</h2><p class="muted">Authorize a Game ID to manage this Workspace. An existing staff account uses the same username and password; a first-time staff member registers here. Adding a code recipient does not grant staff access.</p>
+  <section class="hidden" data-panel="staff">
+   <div class="card gift-share-card"><h2>Workspace Link</h2><p class="muted">Share this link with authorized alliance leaders and staff. Access still requires permission for their Game ID.</p><label for="giftShareUrl">Gift Code Workspace URL<input id="giftShareUrl" type="url" readonly spellcheck="false" autocomplete="off" aria-label="Gift Code Workspace link"></label><div class="flex" style="margin-top:12px"><button id="giftCopyLink" type="button">Copy Workspace Link</button></div><p class="status" id="giftCopyStatus" role="status" aria-live="polite"></p></div>
+   <div class="card"><h2>Manage Staff Access</h2><p class="muted">Authorize a Game ID to manage this Workspace. An existing staff account uses the same username and password; a first-time staff member registers here. Adding a code recipient does not grant staff access.</p>
    <div class="split"><label>Game ID<input id="staffGameId" inputmode="numeric" placeholder="238342952"></label><label>Access Level<select id="staffRole"><option value="alliance_manager">Alliance Manager</option><option value="redeemer_admin">State Admin</option></select></label><label>State<select id="staffState"></select></label><label>Alliance<select id="staffAlliance"></select></label></div>
    <p><button id="grantStaff" type="button">Add Staff Access</button></p><p id="staffStatus" class="status" role="status"></p>
   </div></section>
@@ -243,6 +250,17 @@ async function openMove(a,ids,card){if(!ids.size){message('Select at least one m
 }
 $('addState').onclick=async()=>{await modal('Add State',field('newState','State number','number'),{ok:'Add State',onOk:async body=>{const n=Number(body.querySelector('#newState').value);if(!Number.isSafeInteger(n)||n<1)throw Error('Enter a valid state number.');await api('create_state',{state_number:n});message(`State ${n} added.`);await load();return true}})};
 $('addAlliance').onclick=async()=>{if(!data.states.length){message('Add a state first.');return}const options=data.states.map(x=>`<option value="${x.state_number}">State ${x.state_number}</option>`).join('');await modal('Add Alliance',`<label>State<select id="newAllianceState">${options}</select></label>${field('newAllianceTag','Alliance tag')}${field('newAllianceName','Alliance name (optional)')}`,{ok:'Add Alliance',onOk:async body=>{const n=Number(body.querySelector('#newAllianceState').value),tag=clean(body.querySelector('#newAllianceTag').value).toUpperCase();if(!/^\S{1,24}$/.test(tag))throw Error('Enter an alliance tag of 1–24 characters without spaces.');await api('create_alliance',{state_number:n,tag,name:clean(body.querySelector('#newAllianceName').value)||tag});message(`${tag} added to State ${n}.`);await load();return true}})};
+const giftShareUrl=new URL('gift-code-workspace.html',location.href).href;
+$('giftShareUrl').value=giftShareUrl;
+$('giftShareUrl').onclick=e=>e.currentTarget.select();
+$('giftCopyLink').onclick=async()=>{
+ const field=$('giftShareUrl'),status=$('giftCopyStatus');
+ try{
+  if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(giftShareUrl)}
+  else{field.focus();field.select();field.setSelectionRange(0,field.value.length);if(!document.execCommand('copy'))throw Error('Copy unavailable')}
+  status.textContent='Link copied! Share it with authorized staff.';
+ }catch{field.focus();field.select();field.setSelectionRange(0,field.value.length);status.textContent='Select and copy the highlighted link above.'}
+};
 $('staffState').onchange=staffSelectors;
 $('grantStaff').onclick=async()=>{const btn=$('grantStaff');btn.disabled=true;try{const role=$('staffRole').value,state=$('staffState').value,alliance=$('staffAlliance').value;const r=await api('grant_staff',{game_id:clean($('staffGameId').value),role,state_number:role==='redeemer_admin'?Number(state):null,alliance_id:role==='alliance_manager'?alliance:null});$('staffStatus').textContent=r.result?.status==='active_existing_account'?'Existing staff account activated.':'Game ID authorized for first-time registration.';$('staffGameId').value=''}catch(e){$('staffStatus').textContent=e.message}finally{btn.disabled=false}};
 $('logout').onclick=async()=>{try{await rpc('transfer_staff_logout',{p_token:token})}catch{}localStorage.removeItem('nexa_transfer_staff_token');sessionStorage.removeItem('nexa_transfer_staff_token');location.reload()};

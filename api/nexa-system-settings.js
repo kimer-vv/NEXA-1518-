@@ -4,6 +4,7 @@ import {
   userRole,
   bypassCookie,
 } from '../server/_nexa-maintenance-common-new.js';
+import giftWorkspaceHandler from '../server/nexa-gift-workspace.js';
 
 const HERO_IMAGE_HOSTS = new Set([
   'www.whiteoutsurvival-community.com',
@@ -108,7 +109,13 @@ async function setSetting(service, enabled) {
 
 export default async function handler(req, res) {
   try {
-    // Consolidated public image route: does NOT consume another /api file.
+    // Gift Codes shares this existing Vercel Function; dedicated module stays in /server.
+    // Each branch enforces its own authorization independently.
+    if (req.query?.mode === 'gift') {
+      return await giftWorkspaceHandler(req, res);
+    }
+
+    // Existing public image route remains unchanged.
     if (req.method === 'GET' && req.query?.mode === 'hero-image') {
       return await serveHeroImage(req, res);
     }

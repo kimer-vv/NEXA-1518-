@@ -94,6 +94,19 @@ export default async function handler(req,res){
     const id=idCheck(b.game_id);const rows=await db(`gift_members?game_id=eq.${id}&select=alliance_id,state_number&limit=1`);if(!rows.length||!allowed(s,rows[0].state_number,rows[0].alliance_id))throw fail('Access denied.',403);
     const result=await rpc('gift_v1_set_member_auto_redeem',{p_staff_token:s.token,p_game_id:id,p_enabled:b.enabled===true});return json(res,200,{ok:true,result});
    }
+   case 'grant_staff':{
+    const gameId=idCheck(b.game_id),role=String(b.role||'');
+    if(!['redeemer_admin','alliance_manager'].includes(role))throw fail('Invalid Gift staff role.');
+    const targetState=role==='redeemer_admin'?stateCheck(b.state_number):null;
+    const targetAlliance=role==='alliance_manager'?allianceCheck(b.alliance_id):null;
+    if(role==='redeemer_admin'&&!owner(s))throw fail('Owner access required for State Admin.',403);
+    if(role==='alliance_manager'){
+      const dest=await alliance(targetAlliance);
+      if(!owner(s)&&!s.access.some(x=>x.role==='redeemer_admin'&&x.state_number===dest.state_number))throw fail('State Admin or Owner access required.',403);
+    }
+    const result=await rpc('gift_v1_grant_staff',{p_staff_token:s.token,p_game_id:gameId,p_role:role,p_state:targetState,p_alliance:targetAlliance});
+    return json(res,200,{ok:true,result});
+   }
    default:throw fail('Unknown action.');
   }
  }catch(e){return json(res,e.status||500,{ok:false,error:e.message||'Unexpected error.'});}

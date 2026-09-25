@@ -1,7 +1,7 @@
-/* NEXA Staff Workspace Shared UI V1.0
+/* NEXA Staff Workspace Shared UI V1.1
    CREATE: nexa-staff-workspace-shared-v1.js
    Identity is shared; module authorization is NOT shared.
-   Install with one script tag in Transfer, Ministry and Gift pages.
+   Install with one script tag in Transfer and Ministry; Gift has its own dropdown.
 */
 (()=>{'use strict';
 if(window.__NEXA_STAFF_SHARED_V1__)return;
@@ -47,14 +47,64 @@ function installStyle(){if($('nexa-staff-shared-css'))return;const s=document.cr
 #nexa-staff-module-nav a[aria-current=page]{border-color:#66e9ff;color:#a7f6ff;background:#1b3150}
 .top:has(#nexa-staff-module-nav){flex-wrap:wrap}
 `;document.head.appendChild(s);}
-function navRoot(){if(MODULE==='gift')return $('workspaceHeader')?.querySelector('.flex');return document.querySelector('#workspaceRoot .top')||document.querySelector('#app .top');}
-async function refreshNav(){const token=getToken();const parent=navRoot();if(!parent||!token)return;
- const screen=MODULE==='gift'?$('app'):MODULE==='ministry'?$('app'):$('workspaceRoot');if(!screen||screen.classList.contains('hidden'))return;
- let d;try{d=await rpc('nexa_staff_workspace_access_v1',{p_token:token})}catch{return;}if(!d?.ok)return;
- let el=$('nexa-staff-module-nav');if(!el){el=document.createElement('nav');el.id='nexa-staff-module-nav';el.setAttribute('aria-label','Authorized Workspaces');parent.appendChild(el)}
- el.replaceChildren();for(const m of d.modules||[]){const a=document.createElement('a');a.href=m.url;a.textContent=m.label;if(m.module===MODULE)a.setAttribute('aria-current','page');el.appendChild(a)}
+function modal(title,body,{confirmText='Confirm',danger=false,inputLabel='',verify='',showCancel=true}={}){
+ return new Promise(resolve=>{
+  const box=document.createElement('div');box.className='nexa-modal-backdrop';
+  const panel=document.createElement('section');panel.className='nexa-modal-card';panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');
+  const h=document.createElement('h2');h.textContent=title;const p=document.createElement('p');p.textContent=body;panel.append(h,p);
+  let input=null;if(inputLabel){const label=document.createElement('label');label.textContent=inputLabel;input=document.createElement('input');input.autocomplete='off';label.append(input);panel.append(label)}
+  const actions=document.createElement('div');actions.className='nexa-modal-actions';const cancel=document.createElement('button');cancel.textContent='Cancel';cancel.hidden=!showCancel;const ok=document.createElement('button');ok.textContent=confirmText;if(danger)ok.className='danger';actions.append(cancel,ok);panel.append(actions);box.append(panel);document.body.append(box);
+  const finish=value=>{box.remove();resolve(value)};cancel.onclick=()=>finish(null);box.onclick=e=>{if(e.target===box)finish(null)};
+  ok.onclick=()=>{if(verify&&String(input?.value||'').trim().toUpperCase()!==verify){input?.setAttribute('aria-invalid','true');input?.focus();return}finish(input?input.value:true)};
+  input?.focus();
+ });
 }
-function init(){installStyle();if(MODULE==='ministry'){$('loginScreen')?.classList.add('nexa-staff-shared-login');installMinistryLogin()};if(MODULE==='gift'){for(const a of document.querySelectorAll('#workspaceHeader a'))if(/^(transfer|ministr)/i.test(a.getAttribute('href')||''))a.remove()}
- const observer=new MutationObserver(()=>{if(getToken()&&!$('nexa-staff-module-nav'))refreshNav()});observer.observe(document.documentElement,{subtree:true,attributes:true,attributeFilter:['class']});refreshNav();window.addEventListener('pageshow',refreshNav);}
+window.nexaWorkspaceModal=modal;
+function ensureHeaderLayout(){
+ const style=$('nexa-staff-shared-css');if(style&&!style.dataset.v2){style.dataset.v2='1';style.textContent+=`
+ #nexa-staff-module-nav{display:none!important}
+ #workspaceRoot>.top,#app>.top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;background:transparent!important}
+ #workspaceRoot>.top .workspaceTopActions,#app>.top .top-actions{display:flex;flex-direction:column;align-items:stretch;gap:9px;margin-left:auto;width:min(218px,100%)}
+ #workspaceRoot>.top .workspaceSwitch,#app>.top .workspace-select{max-width:100%;width:100%;min-height:45px;border:1px solid #554c90;border-radius:13px;background:#151b34;color:#fff;font-size:13px;font-weight:850;padding:8px 12px}
+ #workspaceRoot>.top #logoutBtn,#app>.top #logoutBtn{min-height:42px;width:100%;border:1px solid #52618d;border-radius:13px;background:#141b30;color:#f5f7ff;font-size:13px}
+ .nexa-modal-backdrop{position:fixed;inset:0;z-index:2147483646;display:grid;place-items:center;padding:17px;background:rgba(1,4,15,.82);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+ .nexa-modal-card{width:min(490px,100%);max-height:87dvh;overflow:auto;padding:22px;border-radius:24px;background:linear-gradient(145deg,#172045,#090f25);border:1px solid #7664b5;box-shadow:0 25px 80px #000a;color:#fff;font-family:system-ui,-apple-system,sans-serif}
+ .nexa-modal-card h2{font-size:23px;margin:0 0 10px;color:#d2d6ff}.nexa-modal-card p{color:#c1c9e5;line-height:1.55;white-space:pre-line}
+ .nexa-modal-card label{display:grid;gap:8px;color:#c6d4f0;font-weight:800}.nexa-modal-card input{min-height:48px;padding:12px;background:#080e23;border:1px solid #6874a8;border-radius:13px;color:#fff;font:inherit}
+ .nexa-modal-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:23px}
+ .nexa-modal-actions button{border:1px solid #7281b8;border-radius:13px;background:linear-gradient(120deg,#5547bb,#167eaa);color:#fff;min-height:43px;padding:10px 17px;font-weight:850}
+ .nexa-modal-actions button:first-child{background:#17213b}.nexa-modal-actions button.danger{background:#653048;border-color:#ee81ab}
+ @media(max-width:560px){#workspaceRoot>.top .workspaceTopActions,#app>.top .top-actions{width:min(185px,48%);margin-left:auto}#workspaceRoot>.top .brand,#app>.top .brand{flex:1;min-width:0}#workspaceRoot>.top .brand h1,#app>.top .brand h1{font-size:clamp(23px,6vw,36px)}}`}
+}
+let navBusy=false;
+async function refreshNav(){
+ const token=getToken();const sel=$('workspaceSwitch');if(!token||!sel||navBusy)return;
+ const root=MODULE==='ministry'?$('app'):$('workspaceRoot');if(root?.classList.contains('hidden'))return;
+ navBusy=true;
+ try{const d=await rpc('nexa_staff_workspace_access_v1',{p_token:token});if(!d?.ok)return;
+  const mine=d.modules||[];const current=sel.value;const local=[...sel.options].filter(o=>MODULE==='transfer'?o.value.includes('transfer-workspace.html'):o.value.includes('ministry-workspace.html'));
+  if(!mine.some(x=>x.module===MODULE))return;
+  sel.replaceChildren(...local);
+  for(const m of mine){if(m.module===MODULE)continue;const o=new Option(m.label,m.url);sel.add(o)}
+  if([...sel.options].some(o=>o.value===current))sel.value=current;
+  sel.onchange=()=>{if(sel.value)location.href=sel.value};
+ }catch(e){console.warn('Workspace navigation',e)}finally{navBusy=false}
+}
+function installMinistryModals(){if(MODULE!=='ministry')return;const btn=$('resetAllBtn');if(btn){btn.onclick=async()=>{
+  if(!getToken())return;
+  const result=await modal('Reset All Ministry Data','This clears ALL requests, responses and appointments in this Ministry Workspace, across all linked events. Staff access remains. Type RESET to confirm.',{inputLabel:'Confirmation',verify:'RESET',confirmText:'Reset All',danger:true});
+  if(result===null)return;btn.disabled=true;try{
+   const workspace=new URLSearchParams(location.search).get('workspace')||$('workspaceSwitch')?.value?.match(/workspace=([0-9a-f-]{36})/)?.[1];
+   if(!workspace)throw Error('Open your Ministry Workspace before resetting.');
+   const d=await rpc('ministry_owner_reset_v2',{p_workspace_id:workspace,p_token:getToken(),p_event_id:null});if(!d?.ok)throw Error(d?.error||'Reset failed');
+   await modal('Ministry Cleared',`${d.requests_deleted||0} requests and ${d.appointments_deleted||0} appointments removed.`,{confirmText:'Done'});location.reload();
+  }catch(e){await modal('Unable to Reset',e.message||String(e),{confirmText:'OK'});btn.disabled=false}
+ }}
+ // Replace legacy Safari confirmations used in the other Ministry actions with async NEXA dialogs in the source file's next release.
+}
+function init(){installStyle();ensureHeaderLayout();if(MODULE==='ministry'){$('loginScreen')?.classList.add('nexa-staff-shared-login');installMinistryLogin()};
+ const observer=new MutationObserver(()=>{if(getToken())refreshNav()});observer.observe(document.documentElement,{subtree:true,attributes:true,attributeFilter:['class']});
+ const run=()=>{refreshNav();installMinistryModals()};setTimeout(run,50);window.addEventListener('pageshow',run);
+}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();

@@ -1,6 +1,7 @@
-/* NEXA Gift Discovery v1.4 — REPLACE EXISTING: server/nexa-gift-discovery.js
- * Source discovery and local queue only. NO game redemption or player IDs sent to sources.
- * Only verified fresh active sections are parsed; unrecognized pages are rejected.
+/* NEXA Gift Discovery v1.5 | REPLACE EXISTING: server/nexa-gift-discovery.js
+ * Public-source discovery and local queue ONLY. No redemption requests or player IDs sent to sources.
+ * BoostBot: preserve leading ordinal digits in codes (2ndYoutubeKR), separate rewards,
+ * skip unpublished placeholders, and reject ambiguous layouts instead of inventing codes.
  */
 const SB_URL=process.env.SUPABASE_URL||'https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||'';
@@ -33,20 +34,27 @@ export function extractWscoActiveCodes(html){
  return distinctCodes(codes);
 }
 function parseBoostBotRow(row,index){
- // The publisher varies markup: numbering and copy controls may be separate HTML spans.
- // Parse the FIRST clearly delimited token of each row, never reward descriptions.
  let text=stripHtml(row).trim();
  if(index===0){
   const instruction=text.match(/Tap a code to copy it\.[\s\S]*?paste rather than type\./i);
   if(instruction)text=text.slice(instruction.index+instruction[0].length).trim();
  }
+ // Only remove explicitly punctuated list numbering. Never strip a leading digit
+ // from 2ndYoutubeKR / 1stYoutubeKR just because it looks like a row index.
  text=text.replace(/^\s*\d{1,3}\s*[.)]\s*/,'').trim();
- // Unpublished entries may contain spaced placeholders (e.g. WOS 0919).
- // They are NOT codes: ignore them before attempting to validate a code token.
  if(/\bNot published\b/i.test(text))return {code:null,notPublished:true};
+ // BoostBot can split a code's ordinal digit and suffix across HTML elements:
+ // "2 ndYoutubeKR 5x 100 Gems" is code "2ndYoutubeKR", NOT a numbered row.
+ // Rejoin ONLY a 1-9 digit followed by st/nd/rd/th and an alphanumeric suffix.
+ const ordinal=text.match(/^([1-9])\s+(st|nd|rd|th)([A-Za-z0-9_-]+)(?=\s|$)/i);
+ if(ordinal)text=ordinal[1]+ordinal[2]+ordinal[3]+text.slice(ordinal[0].length);
+ // An unpunctuated ordinal row index may be present, but is ambiguous unless
+ // independently identified in source markup. Reject rather than guess.
  const match=text.match(/^([A-Za-z0-9_-]{4,120})(?=\s|$)/);
  if(!match||/^(Copy|Copied|Not|Code|Active|Tap|Verified|Gift|Current|Published)$/i.test(match[1]))return null;
- return {code:match[1],notPublished:/\bNot published\b/i.test(text)};
+ // Reward counts like "5x 100 Gems" must never be interpreted as gift codes.
+ if(/^\d+x$/i.test(match[1]))return null;
+ return {code:match[1],notPublished:false};
 }
 export function extractBoostBotActiveCodes(html,now=new Date()){
  const text=validateDocument(html);
@@ -67,13 +75,10 @@ export function extractBoostBotActiveCodes(html,now=new Date()){
  const marker=section.match(/\bCopy\s+all\b/i);
  if(!marker)throw Error('BoostBot copy-all marker missing');
  const list=section.slice(marker.index+marker[0].length);
- // Copy/Copied controls can be separated by tags; rendered lists may or may not number items.
  const rawRows=list.split(/\bCopy\s+Copied\b/i);
- let rows=rawRows.slice(0,-1);
+ const rows=rawRows.slice(0,-1);
  if(rows.length<1)throw Error('BoostBot code rows missing');
  let parsed=rows.map((r,i)=>parseBoostBotRow(r,i));
- // If the list appears to have lost separators in text extraction, prefer explicit
- // ordered-list item boundaries, not a free-form scan across the whole article.
  if(parsed.some(x=>!x)||expected&&rows.length!==Number(expected[1])){
   const activeHeading=html.search(/Current Active Whiteout Survival Gift Codes/i);
   const tail=html.slice(Math.max(0,activeHeading));
@@ -86,7 +91,6 @@ export function extractBoostBotActiveCodes(html,now=new Date()){
   }
  }
  if(parsed.some(x=>!x)||expected&&parsed.length!==Number(expected[1])){
-  // Only row length and short sanitized prefix are logged to diagnose source changes.
   const bad=parsed.findIndex(x=>!x);
   const sample=bad>=0?stripHtml(rows[bad]||'').slice(0,70).replace(/[^A-Za-z0-9 ._-]/g,''):'';
   throw Error(`BoostBot row layout changed (rows ${rows.length}, expected ${expected?.[1]||'unknown'}, bad row ${bad+1}, sample ${sample||'none'}); refusing to guess`);
@@ -102,7 +106,7 @@ export async function discoverAndPrepare(){
  for(const source of SOURCES){
   let count=0,status='success',error='';
   try{
-   const response=await fetch(source.url,{signal:AbortSignal.timeout(TIMEOUT_MS),headers:{Accept:'text/html','User-Agent':'NEXA-Gift-Discovery/1.4'}});
+   const response=await fetch(source.url,{signal:AbortSignal.timeout(TIMEOUT_MS),headers:{Accept:'text/html','User-Agent':'NEXA-Gift-Discovery/1.5'}});
    if(!response.ok)throw Error(`Source unavailable (${response.status})`);
    const html=await response.text();const codes=source.parse(html);count=codes.length;healthy++;
    for(const code of codes){const key=code.toLowerCase();if(!discovered.has(key))discovered.set(key,{code,source:source.url});}
@@ -120,7 +124,8 @@ export async function discoverAndPrepare(){
    const firstHealthy=sourceLogs.find(x=>x.status==='success');if(firstHealthy)firstHealthy.queue_added=queued;
   }catch(e){errors.push(`Storage or queue: ${String(e?.message||e).slice(0,350)}`);
    for(const log of sourceLogs)await logSource(log);
-   return {ok:false,status:'failed',codes_found:found,codes_added:added,queue_added:queued,redemption_enabled:false,error:errors.join(' | ')}}
+   return {ok:false,status:'failed',codes_found:found,codes_added:added,queue_added:queued,redemption_enabled:false,error:errors.join(' | ')};
+  }
  }
  for(const log of sourceLogs)await logSource(log);
  return {ok:healthy>0,status:healthy===SOURCES.length?'success':healthy>0?'partial':'failed',sources_checked:SOURCES.length,sources_available:healthy,codes_found:found,codes_added:added,queue_added:queued,redemption_enabled:false,...(errors.length?{warnings:errors}:{}),...(healthy===0?{error:errors.join(' | ')}:{})};

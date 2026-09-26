@@ -141,6 +141,23 @@ textarea{min-height:146px;line-height:1.55;resize:vertical}
 .gift-code-list{display:grid;gap:9px}.gift-code-item{padding:12px 14px;background:#10182e;border:1px solid #3a4873;border-radius:14px;overflow-wrap:anywhere}
 .gift-code-item strong{font-size:16px;color:#b9eafb}.gift-code-item small{display:block;margin-top:5px;line-height:1.5}
 </style>
+<style id="nexa-gift-history-status-v2">
+/* Keep compact member controls on the same line, including narrow iPhones. */
+.member-row{display:flex!important;align-items:center!important;gap:7px!important;padding:7px 8px!important;margin:5px 0!important;border:1px solid #303e67!important;border-radius:10px!important;min-width:0!important;grid-template-columns:none!important}
+.member-row .member-info{flex:1 1 auto;min-width:0}
+.member-row .member-tools{display:flex;flex:0 0 auto;gap:4px;align-items:center}
+.member-row .member-tools button{grid-column:auto!important;justify-self:auto!important;padding:5px 7px!important;min-width:29px!important;min-height:29px!important}
+.member-row input[type="checkbox"]{appearance:auto!important;-webkit-appearance:checkbox!important;display:block!important;flex:0 0 17px!important;width:17px!important;height:17px!important;min-height:17px!important;max-width:17px!important;margin:0!important;padding:0!important;accent-color:#52cfff}
+.gift-history-tabs{display:flex;gap:7px;overflow-x:auto;margin:12px 0 14px}
+.gift-history-tabs button{flex:0 0 auto;min-height:36px;padding:7px 12px;font-size:12px;border-radius:999px;background:#10182e;border:1px solid #485782;color:#c6d5f2}
+.gift-history-tabs button[aria-selected="true"]{background:#28365d;border-color:#69dfff;color:#fff}
+.gift-code-item .gift-code-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.gift-code-item .gift-status{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:4px 9px;font-size:11px;font-weight:900;white-space:nowrap}
+.gift-status.active{background:#123b31;color:#82f5bd;border:1px solid #399d76}
+.gift-status.expired{background:#4a202d;color:#ffafbf;border:1px solid #ba586f}
+.gift-status.unverified{background:#48371b;color:#ffdc91;border:1px solid #ad8342}
+.gift-code-item .gift-code-source{overflow-wrap:anywhere}
+</style>
 </head>
 <body class="gift-auth"><main><header id="workspaceHeader"><div class="brand-area"><div class="kicker">NEXA · STATE OPERATIONS</div><h1>Gift Code Workspace</h1><span class="hidden" id="role" aria-hidden="true">STAFF</span></div><div class="header-actions"><select id="moduleSwitch" aria-label="Switch authorized Workspace"></select><button class="ghost" id="logout" type="button">Log Out</button></div></header>
 <section id="login">
@@ -189,7 +206,7 @@ textarea{min-height:146px;line-height:1.55;resize:vertical}
  <p class="info-line">NEXA stores discovered codes and prepares a local queue for eligible enabled members. No Game IDs or code claims are sent to a redemption provider in this phase.</p>
  <div class="flex"><button id="scanGiftCodes" type="button">Check for Codes Now</button><button class="ghost" id="refreshGiftCodes" type="button">Refresh</button><button class="ghost" id="addGiftCode" type="button">+ Add Gift Code</button></div>
  <p id="giftCodeStatus" class="status" role="status"></p><p id="giftQueueCount" class="info-line"></p></div>
- <div class="card"><h2>Code History</h2><p class="muted">Detected codes are shown here; redemption results appear after a separately approved provider integration.</p><div id="giftCodeList" class="gift-code-list"></div></div>
+ <div class="card"><h2>Code History</h2><p class="muted">Active means listed by a checked public source, not guaranteed redeemable for every account. Expired requires an explicit stored status or an elapsed known expiry. Codes without verification stay separate.</p><nav id="giftHistoryTabs" class="gift-history-tabs" aria-label="Code history status"><button type="button" data-code-filter="active" aria-selected="true">Active Codes</button><button type="button" data-code-filter="expired" aria-selected="false">Expired Codes</button><button type="button" data-code-filter="unverified" aria-selected="false">Unverified</button></nav><div id="giftCodeList" class="gift-code-list"></div></div>
  <div id="giftRunsCard" class="card hidden"><h2>Discovery Activity</h2><div id="giftRunList" class="info-line"></div></div>
  </section>
   <section class="hidden" data-panel="staff">
@@ -253,7 +270,7 @@ async function openRoster(a,card){ let panel=card.querySelector('.roster-shell')
  panel=document.createElement('div');panel.className='roster-shell';panel.textContent='Loading members…';card.append(panel);
  try{
   const r=await api('members',{id:a.id});roster=r.members||[];activeAlliance=a.id;chosen.clear();panel.replaceChildren();
-  const header=document.createElement('p');header.className='info-line';header.textContent=`${roster.length} members · State ${a.state_number} · ${a.tag}`;panel.append(header);
+  const header=document.createElement('p');header.className='info-line';header.textContent=`${roster.length} ${roster.length===1?'member':'members'} · State ${a.state_number} · ${a.tag}`;panel.append(header);
   for(const m of roster){
    const row=document.createElement('div');row.className='member-row';
    const check=document.createElement('input');check.type='checkbox';check.setAttribute('aria-label',`Select ${m.game_name} for move`);
@@ -317,16 +334,49 @@ $('giftCopyLink').onclick=async()=>{
 $('staffState').onchange=staffSelectors;
 
 // NEXA Discovery phase 1: view public codes and owner-only actions; no redemption provider is connected.
+let giftHistoryFilter='active';
+let giftHistoryCodes=[];
+function giftCodeCategory(c){
+ const status=String(c.status||'').toLowerCase();
+ const expiry=c.expires_at?Date.parse(c.expires_at):NaN;
+ if(status==='expired'||Number.isFinite(expiry)&&expiry<=Date.now())return 'expired';
+ if(status==='available'||status==='active')return 'active';
+ return 'unverified';
+}
+function renderGiftCodeHistory(){
+ const box=$('giftCodeList');box.replaceChildren();
+ const counts={active:0,expired:0,unverified:0};
+ for(const c of giftHistoryCodes)counts[giftCodeCategory(c)]++;
+ for(const button of document.querySelectorAll('[data-code-filter]')){
+  const filter=button.dataset.codeFilter;
+  button.setAttribute('aria-selected',String(filter===giftHistoryFilter));
+  button.textContent=({active:'Active Codes',expired:'Expired Codes',unverified:'Unverified'})[filter]+` (${counts[filter]})`;
+ }
+ const shown=giftHistoryCodes.filter(c=>giftCodeCategory(c)===giftHistoryFilter);
+ for(const c of shown){
+  const category=giftCodeCategory(c),div=document.createElement('article');div.className='gift-code-item';
+  const head=document.createElement('div');head.className='gift-code-head';
+  const strong=document.createElement('strong');strong.textContent=c.code;
+  const pill=document.createElement('span');pill.className=`gift-status ${category}`;
+  pill.textContent=({active:'● Active',expired:'● Expired',unverified:'● Unverified'})[category];
+  head.append(strong,pill);div.append(head);
+  const detail=document.createElement('small');detail.className='gift-code-source';
+  const source=c.source||'Unknown source';
+  const found=c.discovered_at?new Date(c.discovered_at).toLocaleDateString():'Unknown date';
+  detail.textContent=`Source: ${source} · Found ${found}`;div.append(detail);
+  if(c.expires_at){const expiry=document.createElement('small');expiry.textContent=`Recorded expiry: ${new Date(c.expires_at).toLocaleString()}`;div.append(expiry)}
+  box.append(div);
+ }
+ if(!shown.length){const empty=document.createElement('p');empty.className='muted';empty.textContent=giftHistoryCodes.length?'No codes in this category.':'No codes discovered yet. Owner can run Check for Codes Now.';box.append(empty)}
+}
+for(const button of document.querySelectorAll('[data-code-filter]'))button.onclick=()=>{giftHistoryFilter=button.dataset.codeFilter;renderGiftCodeHistory()};
 async function loadGiftCodes(){
  const box=$('giftCodeList'),status=$('giftCodeStatus');
  box.textContent='Loading discovered codes…';try{
-  const r=await api('codes');box.replaceChildren();$('scanGiftCodes').hidden=data.role!=='owner';$('addGiftCode').hidden=data.role!=='owner';
+  const r=await api('codes');giftHistoryCodes=r.codes||[];
+  $('scanGiftCodes').hidden=data.role!=='owner';$('addGiftCode').hidden=data.role!=='owner';
   $('giftQueueCount').textContent=data.role==='owner'?`${r.pending} local pending entries (not sent to game).`:'Actual redemption is not enabled.';
-  for(const c of r.codes||[]){const div=document.createElement('article');div.className='gift-code-item';
-   const strong=document.createElement('strong');strong.textContent=c.code;const detail=document.createElement('small');
-   detail.textContent=`${c.status.toUpperCase()} · ${c.source||'Unknown source'} · Found ${new Date(c.discovered_at).toLocaleDateString()}`;
-   div.append(strong,detail);box.append(div)}
-  if(!box.children.length)box.textContent='No codes discovered yet. Owner can run Check for Codes Now.';
+  renderGiftCodeHistory();
   $('giftRunsCard').classList.toggle('hidden',data.role!=='owner');const runs=$('giftRunList');runs.replaceChildren();
   for(const job of r.runs||[]){const line=document.createElement('p');line.textContent=`${new Date(job.finished_at).toLocaleString()} · ${job.status} · ${job.codes_found} found · ${job.codes_added} new · ${job.queue_added} queued${job.error_detail?' · '+job.error_detail:''}`;runs.append(line)}
   if(!runs.children.length)runs.textContent='No discovery runs yet.';

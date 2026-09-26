@@ -218,7 +218,7 @@ async function api(action,body){
 }
 async function rpc(name,body){const r=await sb.rpc(name,body);if(r.error)throw Error(r.error.message);return r.data}
 function modal(title,html,{ok='Save',onOk,showCancel=true}={}){
- return new Promise(resolve=>{const root=$('nexaModal');$('modalTitle').textContent=title;$('modalBody').innerHTML=html;$('modalError').textContent='';$('modalOk').textContent=ok;$('modalCancel').hidden=!showCancel;root.classList.remove('hidden');
+ return new Promise(resolve=>{const root=$('nexaModal');$('modalTitle').textContent=title;$('modalBody').innerHTML=html;$('modalError').textContent='';$('modalOk').textContent=ok;$('modalOk').disabled=false;$('modalCancel').hidden=!showCancel;root.classList.remove('hidden');
  const done=v=>{root.classList.add('hidden');$('modalBody').replaceChildren();resolve(v)};$('modalCancel').onclick=()=>done(null);
  $('modalOk').onclick=async()=>{const b=$('modalOk');b.disabled=true;try{const result=onOk?await onOk($('modalBody')):true;if(result===false)return;done(result)}catch(e){$('modalError').textContent=e.message||String(e)}finally{b.disabled=false}};
  root.onclick=e=>{if(e.target===root)done(null)};
@@ -288,12 +288,12 @@ async function openRoster(a,card){ let panel=card.querySelector('.roster-shell')
  }catch(e){panel.textContent=e.message}
 }
 async function openAdd(a){const html=`<p>State ${a.state_number} · ${a.tag}. Add one or several players. Write <b>Game Name + space + Game ID</b> (or ID first). Separate different players with a comma or Enter. Never put a comma between the name and ID of one person.</p><label>Paste Member List<textarea id="memberList" placeholder="John Doe 123456789, Jane Doe 987654321&#10;Player Three 111222333"></textarea></label><p class="info-line">Existing Game IDs are skipped; use Move Members to switch their alliance.</p>`;
- await modal('Add Members · '+a.tag,html,{ok:'Prepare Preview',onOk:async body=>{const list=parseMembers(body.querySelector('#memberList').value);if(!list.length)throw Error('Paste at least one player.');if(list.some(x=>x.error))throw Error('Check every player: '+list.filter(x=>x.error).map(x=>`#${x.index}: ${x.error}`).join(' '));await showPreview(a,list);return true}})
+ const list=await modal('Add Members · '+a.tag,html,{ok:'Prepare Preview',onOk:body=>{const list=parseMembers(body.querySelector('#memberList').value);if(!list.length)throw Error('Paste at least one player.');if(list.some(x=>x.error))throw Error('Check every player: '+list.filter(x=>x.error).map(x=>`#${x.index}: ${x.error}`).join(' '));return list}});if(list)await showPreview(a,list)
 }
 async function showPreview(a,list){const old=await api('lookup',{ids:list.map(x=>x.game_id)});const exists=new Set((old.existing||[]).map(x=>x.game_id));const ready=list.filter(x=>!exists.has(x.game_id));let lines=`<p>${list.length} detected • ${ready.length} new • ${list.length-ready.length} already registered</p><div id="memberPreview">`;
  for(const x of list)lines+=`<div class="preview-row"><b>${escapeText(x.game_name)}</b> · ${escapeText(x.game_id)}<br><small class="${exists.has(x.game_id)?'bad':'good'}">${exists.has(x.game_id)?'Existing Game ID — skipped':'Ready to add'}</small></div>`;
  lines+='</div><p class="info-line">This only registers code recipients; it does not give Staff Access.</p>';
- await modal('Review Members · '+a.tag,lines,{ok:`Add ${ready.length} Members`,onOk:async()=>{if(!ready.length)throw Error('No new players to add.');const r=await api('register',{alliance_id:a.id,rows:ready.map(x=>({game_id:x.game_id,game_name:x.game_name})),method:ready.length>1?'bulk':'manual',source_name:'Paste Member List'});message(`${r.result?.added??ready.length} members added to ${a.tag}.`);return true}})
+ await modal('Review Members · '+a.tag,lines,{ok:`Add ${ready.length} ${ready.length===1?'Member':'Members'}`,onOk:async()=>{if(!ready.length)throw Error('No new players to add.');const r=await api('register',{alliance_id:a.id,rows:ready.map(x=>({game_id:x.game_id,game_name:x.game_name})),method:ready.length>1?'bulk':'manual',source_name:'Paste Member List'});message(`${r.result?.added??ready.length} members added to ${a.tag}.`);return true}})
 }
 function escapeText(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&quot;'}[c]))}
 async function openMove(a,ids,card){if(!ids.size){message('Select at least one member from the alliance roster.');return}

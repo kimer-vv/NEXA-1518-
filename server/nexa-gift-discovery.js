@@ -1,6 +1,6 @@
-/* NEXA Gift Code Discovery v1.2 | REPLACE EXISTING: server/nexa-gift-discovery.js
- * Public-source discovery ONLY. No redemption requests or player IDs are sent to sources.
- * Sources are independent: a WSCO 403 does not prevent the secondary catalog from working.
+/* NEXA Gift Discovery v1.3 — REPLACE EXISTING: server/nexa-gift-discovery.js
+ * Source discovery and local queue only. NO game redemption or player IDs sent to sources.
+ * Only verified fresh active sections are parsed; unrecognized pages are rejected.
  */
 const SB_URL=process.env.SUPABASE_URL||'https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||'';
@@ -20,7 +20,7 @@ async function db(path,{method='GET',body}={}){
  return out;
 }
 const rpc=(name,body)=>db('rpc/'+name,{method:'POST',body});
-function stripHtml(html){return html.replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi,' ').replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;|&#160;/gi,' ').replace(/&amp;/gi,'&').replace(/&#39;|&apos;/gi,"'").replace(/\s+/g,' ').trim()}
+function stripHtml(html){return html.replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi,' ').replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;|&#160;/gi,' ').replace(/&amp;/gi,'&').replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/\s+/g,' ').trim()}
 function validateDocument(html){if(typeof html!=='string'||html.length>3000000)throw Error('Invalid or oversized source document');return stripHtml(html)}
 function distinctCodes(codes){const seen=new Set(),out=[];for(const value of codes){const code=String(value||'').trim();if(!/^[A-Za-z0-9_-]{4,120}$/.test(code))continue;const key=code.toLowerCase();if(!seen.has(key)){out.push(code);seen.add(key)}if(out.length>150)throw Error('Too many codes; source structure may have changed')}return out}
 export function extractWscoActiveCodes(html){
@@ -32,54 +32,65 @@ export function extractWscoActiveCodes(html){
  if(!codes.length&&!/\b0 active\b/i.test(block))throw Error('WSCO code layout changed');
  return distinctCodes(codes);
 }
+function parseBoostBotRow(row,index){
+ // The publisher varies markup: numbering and copy controls may be separate HTML spans.
+ // Parse the FIRST clearly delimited token of each row, never reward descriptions.
+ let text=stripHtml(row).trim();
+ if(index===0){
+  const instruction=text.match(/Tap a code to copy it\.[\s\S]*?paste rather than type\./i);
+  if(instruction)text=text.slice(instruction.index+instruction[0].length).trim();
+ }
+ text=text.replace(/^\s*\d{1,3}\s*[.)]\s*/,'').trim();
+ const match=text.match(/^([A-Za-z0-9_-]{4,120})(?=\s|$)/);
+ if(!match||/^(Copy|Copied|Not|Code|Active|Tap|Verified|Gift|Current|Published)$/i.test(match[1]))return null;
+ return {code:match[1],notPublished:/\bNot published\b/i.test(text)};
+}
 export function extractBoostBotActiveCodes(html,now=new Date()){
  const text=validateDocument(html);
  const start=text.indexOf('Current Active Whiteout Survival Gift Codes');
  if(start<0)throw Error('BoostBot active-code heading missing');
- // Do not queue a page that may be months old merely because it says "active".
  const nearby=text.slice(Math.max(0,start-1000),start+1100);
- const dated=nearby.match(/Updated\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),?\s+(20\d{2})/i)
-  ||nearby.match(/Verified\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),?\s+(20\d{2})/i);
- if(!dated)throw Error('BoostBot update date unavailable; refusing to import possibly stale codes');
+ const months='January|February|March|April|May|June|July|August|September|October|November|December';
+ const dateRegex=new RegExp(`(?:Updated|Verified)\\s+(${months})\\s+(\\d{1,2}),?\\s+(20\\d{2})`,'i');
+ const dated=nearby.match(dateRegex);
+ if(!dated)throw Error('BoostBot update date unavailable; refusing stale codes');
  const stamp=new Date(`${dated[1]} ${dated[2]}, ${dated[3]} 12:00:00 GMT`);
  const age=now.getTime()-stamp.getTime();
- if(!Number.isFinite(age)||age< -2*86400000||age>14*86400000)throw Error('BoostBot active-code list is older than 14 days');
+ if(!Number.isFinite(age)||age< -2*86400000||age>14*86400000)throw Error('BoostBot list older than 14 days');
  const after=text.slice(start+'Current Active Whiteout Survival Gift Codes'.length);
  const end=after.search(/Want something better than a code\?|How to Redeem|Expired (?:Gift )?Codes|Frequently Asked Questions/i);
  if(end<0)throw Error('BoostBot section end missing');
- const section=after.slice(0,end);
+ const section=after.slice(0,end),expected=section.match(/\b(\d{1,3})\s+active codes\b/i);
  const marker=section.match(/\bCopy\s+all\b/i);
  if(!marker)throw Error('BoostBot copy-all marker missing');
  const list=section.slice(marker.index+marker[0].length);
- const parts=list.split(/\bCopy\s+Copied\b/i);
- if(parts.length<2)throw Error('BoostBot code rows missing');
- const expected=section.match(/\b(\d{1,3})\s+active codes\b/i);
- // Source markup may render an ordered list as "1. CODE" or hide numbering in CSS.
- // Only take the first token of each distinctly delimited Copy/Copied row.
- const codes=[];
- for(let i=0;i<parts.length-1;i++){
-  let item=parts[i].trim();
-  if(i===0){
-   // The first row follows the introductory "Tap a code ... paste rather than type" text.
-   const intro=item.match(/\bTap a code to copy it\.[\s\S]*?\bpaste rather than type\.\s*/i);
-   if(intro)item=item.slice(intro.index+intro[0].length).trim();
-   else {
-    // First source row has no reward-description text: capture the trailing token only.
-    const last=item.match(/(?:^|\s)([A-Za-z0-9_-]{4,120})(?:\s+Not published)?\s*$/i);
-    if(!last)throw Error('BoostBot first code row changed; refusing to guess');
-    item=last[1];
-   }
+ // Copy/Copied controls can be separated by tags; rendered lists may or may not number items.
+ const rawRows=list.split(/\bCopy\s+Copied\b/i);
+ let rows=rawRows.slice(0,-1);
+ if(rows.length<1)throw Error('BoostBot code rows missing');
+ let parsed=rows.map((r,i)=>parseBoostBotRow(r,i));
+ // If the list appears to have lost separators in text extraction, prefer explicit
+ // ordered-list item boundaries, not a free-form scan across the whole article.
+ if(parsed.some(x=>!x)||expected&&rows.length!==Number(expected[1])){
+  const activeHeading=html.search(/Current Active Whiteout Survival Gift Codes/i);
+  const tail=html.slice(Math.max(0,activeHeading));
+  const cutoff=tail.search(/Want something better than a code\?|How to Redeem|Recently Expired Whiteout Survival Codes/i);
+  const activeHtml=cutoff>=0?tail.slice(0,cutoff):tail.slice(0,180000);
+  const listItems=[...activeHtml.matchAll(/<li\b[^>]*>([\s\S]*?)<\/li\s*>/gi)].map(m=>m[1]);
+  if(listItems.length>=1&&(!expected||listItems.length===Number(expected[1]))){
+   const itemRows=listItems.map((v,i)=>parseBoostBotRow(v,i));
+   if(itemRows.every(Boolean))parsed=itemRows;
   }
-  item=item.replace(/^\d{1,3}[.)]\s*/, '');
-  const token=item.match(/^([A-Za-z0-9_-]{4,120})(?=\s|$)/);
-  if(!token||/^(Copy|Not|Code|Active|Tap|Verified)$/i.test(token[1]))throw Error('BoostBot code row changed; refusing to guess');
-  if(/\bNot published\b/i.test(item))continue;
-  codes.push(token[1]);
  }
- // Guard against inadvertently accepting article prose as gift codes.
- if(expected&&parts.length-1!==Number(expected[1]))throw Error('BoostBot listed code count changed; refusing partial import');
+ if(parsed.some(x=>!x)||expected&&parsed.length!==Number(expected[1])){
+  // Only row length and short sanitized prefix are logged to diagnose source changes.
+  const bad=parsed.findIndex(x=>!x);
+  const sample=bad>=0?stripHtml(rows[bad]||'').slice(0,70).replace(/[^A-Za-z0-9 ._-]/g,''):'';
+  throw Error(`BoostBot row layout changed (rows ${rows.length}, expected ${expected?.[1]||'unknown'}, bad row ${bad+1}, sample ${sample||'none'}); refusing to guess`);
+ }
+ const codes=distinctCodes(parsed.filter(x=>!x.notPublished).map(x=>x.code));
  if(!codes.length)throw Error('BoostBot has no published code rows');
- return distinctCodes(codes);
+ return codes;
 }
 async function logSource(entry){try{await db('gift_discovery_runs',{method:'POST',body:entry})}catch(e){console.error('[NEXA Gift Discovery logging]',String(e?.message||e))}}
 export async function discoverAndPrepare(){
@@ -88,7 +99,7 @@ export async function discoverAndPrepare(){
  for(const source of SOURCES){
   let count=0,status='success',error='';
   try{
-   const response=await fetch(source.url,{signal:AbortSignal.timeout(TIMEOUT_MS),headers:{Accept:'text/html','User-Agent':'NEXA-Gift-Discovery/1.1'}});
+   const response=await fetch(source.url,{signal:AbortSignal.timeout(TIMEOUT_MS),headers:{Accept:'text/html','User-Agent':'NEXA-Gift-Discovery/1.3'}});
    if(!response.ok)throw Error(`Source unavailable (${response.status})`);
    const html=await response.text();const codes=source.parse(html);count=codes.length;healthy++;
    for(const code of codes){const key=code.toLowerCase();if(!discovered.has(key))discovered.set(key,{code,source:source.url});}

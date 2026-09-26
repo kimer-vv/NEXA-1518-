@@ -30,6 +30,15 @@ body.gift-auth #messagePanel{max-width:760px;margin:0 auto 22px}
 #recoveryPanel{border-top:1px solid #344061;margin-top:19px;padding-top:16px}
 #recoveryPanel h3{margin:0 0 8px}
 @media(max-width:590px){#login{padding:55px 16px 25px}.loginShell{padding:20px}.authTabs button{font-size:14px}}
+.member-row{display:flex;align-items:center;gap:8px;padding:7px 9px;margin:5px 0;border:1px solid #303e67;border-radius:10px;min-width:0}
+.member-row .member-info{flex:1;min-width:0;line-height:1.15}
+.member-row .member-info strong{display:block;font-size:13px;overflow-wrap:anywhere}
+.member-row .member-info small{display:block;font-size:11px;margin-top:3px;color:var(--muted)}
+.member-row .member-tools{display:flex;gap:4px;flex:0 0 auto;align-items:center}
+.member-row .member-tools button{grid-column:auto!important;padding:5px 7px;min-height:29px;min-width:29px;font-size:14px;border-radius:8px}
+.member-row .member-alert{color:#ffc06b!important;border-color:#a36a28!important}
+.member-row input[type=checkbox]{flex:0 0 17px;width:17px;height:17px;min-height:17px;margin:0}
+@media(max-width:650px){.member-row{display:flex;grid-template-columns:none}.member-row button{grid-column:auto;justify-self:auto}}
 </style>
 <style>
 :root{--bg:#050713;--line:rgba(149,167,255,.25);--muted:#abb7d4}
@@ -240,12 +249,45 @@ async function renderDirectory(){staffSelectors();const dir=$('directory');dir.r
  const toggle=document.createElement('button');toggle.className='ghost tiny';toggle.style.marginTop='10px';toggle.textContent=a.auto_redeem?'Auto-Redeem: ON':'Auto-Redeem: OFF';toggle.onclick=async()=>{if(!await confirmation('Alliance Auto-Redeem',`${a.auto_redeem?'Pause':'Enable'} automatic redemption preference for ${a.tag}? Actual code redemption is not enabled in this version.`,a.auto_redeem?'Pause':'Enable'))return;try{await api('alliance_auto',{alliance_id:a.id,enabled:!a.auto_redeem});message('Alliance preference updated.');await load()}catch(e){message(e.message)}};card.append(toggle);
  cards.append(card)}group.append(cards);if(!cards.childElementCount){const p=document.createElement('p');p.className='muted';p.textContent='No alliances yet. Add an alliance in this state.';group.append(p)}dir.append(group)}
 }
-async function openRoster(a,card){let panel=card.querySelector('.roster-shell');if(panel){panel.remove();return}panel=document.createElement('div');panel.className='roster-shell';panel.textContent='Loading members…';card.append(panel);
- try{const r=await api('members',{id:a.id});roster=r.members||[];activeAlliance=a.id;chosen.clear();panel.replaceChildren();const header=document.createElement('p');header.className='info-line';header.textContent=`${roster.length} registered members • Select players to move between alliances.`;panel.append(header);
- for(const m of roster){const row=document.createElement('div');row.className='member-row';const check=document.createElement('input');check.type='checkbox';check.onchange=()=>check.checked?chosen.add(m.game_id):chosen.delete(m.game_id);const inf=document.createElement('div');const name=document.createElement('strong');name.textContent=m.game_name;const info=document.createElement('small');info.textContent=`ID ${m.game_id} • Auto ${m.auto_redeem_enabled?'ON':'OFF'}`;inf.append(name,document.createElement('br'),info);const btn=document.createElement('button');btn.className='ghost tiny';btn.textContent=m.auto_redeem_enabled?'Pause Auto':'Enable Auto';btn.onclick=async()=>{if(!await confirmation('Member Auto-Redeem',`${m.auto_redeem_enabled?'Pause':'Enable'} ${m.game_name}?`))return;try{await api('member_auto',{game_id:m.game_id,enabled:!m.auto_redeem_enabled});panel.remove();await openRoster(a,card)}catch(e){message(e.message)}};row.append(check,inf,btn);panel.append(row)}
- const move=document.createElement('button');move.className='ghost tiny';move.style.marginTop='13px';move.textContent='Move Selected Members ↗';move.onclick=()=>openMove(a,chosen,card);panel.append(move);
- }catch(e){panel.textContent=e.message}}
-async function openAdd(a){const html=`<p>State ${a.state_number} · ${a.tag}. Add one or several players. Write <b>Game Name + space + Game ID</b> (or ID first). Separate different players with a comma or Enter. Never put a comma between the name and ID of one person.</p><label>Paste Member List<textarea id="memberList" placeholder="Kimer 238342952, Jenny 123456789&#10;Şengül 456789123"></textarea></label><p class="info-line">Existing Game IDs are skipped; use Move Members to switch their alliance.</p>`;
+async function openRoster(a,card){ let panel=card.querySelector('.roster-shell');if(panel){panel.remove();return}
+ panel=document.createElement('div');panel.className='roster-shell';panel.textContent='Loading members…';card.append(panel);
+ try{
+  const r=await api('members',{id:a.id});roster=r.members||[];activeAlliance=a.id;chosen.clear();panel.replaceChildren();
+  const header=document.createElement('p');header.className='info-line';header.textContent=`${roster.length} members · State ${a.state_number} · ${a.tag}`;panel.append(header);
+  for(const m of roster){
+   const row=document.createElement('div');row.className='member-row';
+   const check=document.createElement('input');check.type='checkbox';check.setAttribute('aria-label',`Select ${m.game_name} for move`);
+   check.onchange=()=>check.checked?chosen.add(m.game_id):chosen.delete(m.game_id);
+   const info=document.createElement('div');info.className='member-info';
+   const name=document.createElement('strong');name.textContent=m.game_name;
+   const id=document.createElement('small');id.textContent=`Game ID: ${m.game_id}`;info.append(name,id);
+   const tools=document.createElement('div');tools.className='member-tools';
+   if(m.redemption_issue){
+    const alert=document.createElement('button');alert.type='button';alert.className='ghost tiny member-alert';alert.textContent='⚠';alert.title='Redemption issue';alert.setAttribute('aria-label','View redemption issue');
+    alert.onclick=()=>modal('Redemption issue',`<p><b>${escapeText(m.game_name)}</b> · ${escapeText(m.game_id)}</p><p>Status: ${escapeText(m.redemption_issue.status)}</p><p>Provider message: ${escapeText(m.redemption_issue.last_error_code||'No details returned')}</p><p class="info-line">NEXA currently queues codes; these alerts only reflect actual stored results, not assumed delivery.</p>`,{ok:'Close',showCancel:false});
+    tools.append(alert);
+   }
+   const edit=document.createElement('button');edit.type='button';edit.className='ghost tiny';edit.textContent='✎';edit.title='Edit name or Game ID';edit.setAttribute('aria-label',`Edit ${m.game_name}`);
+   edit.onclick=async()=>{
+    const form=`<p class="info-line">Correct the name or Game ID. Game IDs must be unique. State and alliance are managed separately.</p><label>Game Name<input id="editMemberName" maxlength="80" value="${escapeText(m.game_name)}"></label><label>Game ID<input id="editMemberId" inputmode="numeric" pattern="[0-9]*" maxlength="30" value="${escapeText(m.game_id)}"></label>`;
+    const saved=await modal('Edit Member',form,{ok:'Save Changes',onOk:async body=>{
+     const newName=clean(body.querySelector('#editMemberName').value),newId=clean(body.querySelector('#editMemberId').value);
+     if(!newName||newName.length>80||!digits(newId))throw Error('Enter a name and a valid numeric Game ID.');
+     await api('edit_member',{old_game_id:m.game_id,game_id:newId,game_name:newName});message('Member updated.');return true;
+    }});
+    if(saved){panel.remove();await openRoster(a,card)}
+   };tools.append(edit);
+   const del=document.createElement('button');del.type='button';del.className='ghost tiny';del.textContent='×';del.title='Remove member';del.setAttribute('aria-label',`Remove ${m.game_name}`);
+   del.onclick=async()=>{
+    if(!await confirmation('Remove Member',`Remove ${escapeText(m.game_name)} (${escapeText(m.game_id)}) from this active roster? Their past redemption and movement history will be retained.`, 'Remove Member'))return;
+    try{await api('delete_member',{game_id:m.game_id});message('Member removed from active roster.');panel.remove();await openRoster(a,card)}catch(e){message(e.message)}
+   };tools.append(del);
+   row.append(check,info,tools);panel.append(row);
+  }
+  const move=document.createElement('button');move.className='ghost tiny';move.style.marginTop='13px';move.textContent='Move Selected Members ↗';move.onclick=()=>openMove(a,chosen,card);panel.append(move);
+ }catch(e){panel.textContent=e.message}
+}
+async function openAdd(a){const html=`<p>State ${a.state_number} · ${a.tag}. Add one or several players. Write <b>Game Name + space + Game ID</b> (or ID first). Separate different players with a comma or Enter. Never put a comma between the name and ID of one person.</p><label>Paste Member List<textarea id="memberList" placeholder="John Doe 123456789, Jane Doe 987654321&#10;Player Three 111222333"></textarea></label><p class="info-line">Existing Game IDs are skipped; use Move Members to switch their alliance.</p>`;
  await modal('Add Members · '+a.tag,html,{ok:'Prepare Preview',onOk:async body=>{const list=parseMembers(body.querySelector('#memberList').value);if(!list.length)throw Error('Paste at least one player.');if(list.some(x=>x.error))throw Error('Check every player: '+list.filter(x=>x.error).map(x=>`#${x.index}: ${x.error}`).join(' '));await showPreview(a,list);return true}})
 }
 async function showPreview(a,list){const old=await api('lookup',{ids:list.map(x=>x.game_id)});const exists=new Set((old.existing||[]).map(x=>x.game_id));const ready=list.filter(x=>!exists.has(x.game_id));let lines=`<p>${list.length} detected • ${ready.length} new • ${list.length-ready.length} already registered</p><div id="memberPreview">`;

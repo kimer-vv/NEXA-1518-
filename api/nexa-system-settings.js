@@ -6,6 +6,7 @@ import {
 } from '../server/_nexa-maintenance-common-new.js';
 import giftWorkspaceHandler from '../server/nexa-gift-workspace.js';
 import { giftCron } from '../server/nexa-gift-discovery.js';
+import { redeemSingleTest } from '../server/nexa-gift-redeemer.js';
 
 const HERO_IMAGE_HOSTS = new Set([
   'www.whiteoutsurvival-community.com',
@@ -110,6 +111,8 @@ async function setSetting(service, enabled) {
 
 export default async function handler(req, res) {
   try {
+    // Controlled test: existing Vercel function, no extra api/ slot.
+    if (req.query?.mode === 'gift-test-redeem') return await redeemSingleTest(req, res);
     // Gift Codes shares this existing Vercel Function; dedicated module stays in /server.
     // Each branch enforces its own authorization independently.
     if (req.query?.mode === 'giftcron') return await giftCron(req, res);

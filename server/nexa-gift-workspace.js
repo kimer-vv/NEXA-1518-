@@ -32,7 +32,7 @@ async function staff(req){
 const owner=s=>s.access.some(a=>a.role==='owner');
 const allowed=(s,state,alliance)=>owner(s)||s.access.some(a=>a.role==='redeemer_admin'&&a.state_number===Number(state))||s.access.some(a=>a.role==='alliance_manager'&&alliance&&a.alliance_id===alliance);
 const stateAllowed=(s,state)=>owner(s)||s.access.some(a=>a.role==='redeemer_admin'&&a.state_number===Number(state))||s.access.some(a=>a.role==='alliance_manager'&&a.alliance_id);
-function idCheck(v){const x=String(v??'').trim();if(!/^\d{1,30}$/.test(x))throw fail('Game ID must contain 1â30 digits.');return x;}
+function idCheck(v){const x=String(v??'').trim();if(!/^\d{1,30}$/.test(x))throw fail('Game ID must contain 1Ã¢ÂÂ30 digits.');return x;}
 function nameCheck(v){const x=String(v??'').trim();if(!x||x.length>80)throw fail('Game Name is required (maximum 80 characters).');return x;}
 function stateCheck(v){const n=Number(v);if(!Number.isSafeInteger(n)||n<=0)throw fail('Invalid state number.');return n;}
 function allianceCheck(v){const x=String(v??'');if(!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(x))throw fail('Invalid alliance.');return x;}
@@ -44,7 +44,15 @@ async function snapshot(s){
  const visibleStates=states.filter(x=>owner(s)||alliances.some(a=>a.state_number===x.state_number)||s.access.some(a=>a.role==='redeemer_admin'&&a.state_number===x.state_number));
  return {states:visibleStates,alliances,role:owner(s)?'owner':s.access.some(a=>a.role==='redeemer_admin')?'redeemer_admin':'alliance_manager'};
 }
-async function members(s,a){if(!allowed(s,a.state_number,a.id))throw fail('Access denied for alliance.',403);return db(`gift_members?alliance_id=eq.${enc(a.id)}&select=game_id,game_name,state_number,alliance_id,is_active,auto_redeem_enabled,registration_method&order=game_name.asc&limit=1000`);}
+async function members(s,a){ if(!allowed(s,a.state_number,a.id))throw fail('Access denied for alliance.',403);
+ const list=await db(`gift_members?alliance_id=eq.${enc(a.id)}&is_active=eq.true&select=game_id,game_name,state_number,alliance_id,is_active,auto_redeem_enabled,registration_method&order=game_name.asc&limit=1000`);
+ if(!list.length)return list;
+ const ids=list.map(m=>enc(m.game_id)).join(',');
+ const results=await db(`gift_redemptions?game_id=in.(${ids})&select=game_id,status,last_error_code,updated_at&order=updated_at.desc&limit=10000`);
+ const recent=new Map();
+ for(const r of results){if(!recent.has(r.game_id))recent.set(r.game_id,r)}
+ return list.map(m=>({...m,redemption_issue:recent.has(m.game_id)&&['failed','error','retry','retry_needed'].includes(String(recent.get(m.game_id).status).toLowerCase())?recent.get(m.game_id):null}));
+}
 async function exists(s,ids){if(ids.length>1000)throw fail('Import limit is 1000 rows.');if(!ids.length)return [];const gameIds=[...new Set(ids.map(idCheck))];const rows=await db(`gift_members?game_id=in.(${gameIds.map(enc).join(',')})&select=game_id,game_name,state_number,alliance_id`);return rows.filter(x=>owner(s)||allowed(s,x.state_number,x.alliance_id)).map(x=>({game_id:x.game_id,game_name:x.game_name,state_number:x.state_number,alliance_id:x.alliance_id}));}
 export default async function handler(req,res){
  res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');
@@ -86,13 +94,13 @@ export default async function handler(req,res){
    }
    case 'create_alliance':{
     const n=stateCheck(b.state_number);if(!owner(s)&&!s.access.some(a=>a.role==='redeemer_admin'&&a.state_number===n))throw fail('State administrator or Owner access required.',403);
-    const tag=String(b.tag||'').trim().toUpperCase();if(!/^[^\s]{1,24}$/.test(tag))throw fail('Alliance tag must contain 1â24 characters without spaces.');
+    const tag=String(b.tag||'').trim().toUpperCase();if(!/^[^\s]{1,24}$/.test(tag))throw fail('Alliance tag must contain 1Ã¢ÂÂ24 characters without spaces.');
     const rows=await db('gift_alliances',{method:'POST',body:{state_number:n,tag,name:String(b.name||tag).trim().slice(0,80),auto_redeem:false}});
     return json(res,200,{ok:true,alliance:rows?.[0]});
    }
    case 'register':{
     const a=await alliance(allianceCheck(b.alliance_id));if(!allowed(s,a.state_number,a.id))throw fail('Access denied.',403);
-    const rows=Array.isArray(b.rows)?b.rows:[];if(!rows.length||rows.length>1000)throw fail('Enter 1â1000 members.');
+    const rows=Array.isArray(b.rows)?b.rows:[];if(!rows.length||rows.length>1000)throw fail('Enter 1Ã¢ÂÂ1000 members.');
     const clean=rows.map(x=>({game_id:idCheck(x.game_id),game_name:nameCheck(x.game_name)}));
     const ids=clean.map(x=>x.game_id);if(new Set(ids).size!==ids.length)throw fail('Duplicate Game IDs in this import.');
     const bulk=b.method==='bulk';let batch=null;
@@ -115,6 +123,29 @@ export default async function handler(req,res){
     const id=idCheck(b.game_id);const rows=await db(`gift_members?game_id=eq.${id}&select=alliance_id,state_number&limit=1`);if(!rows.length||!allowed(s,rows[0].state_number,rows[0].alliance_id))throw fail('Access denied.',403);
     const result=await rpc('gift_v1_set_member_auto_redeem',{p_staff_token:s.token,p_game_id:id,p_enabled:b.enabled===true});return json(res,200,{ok:true,result});
    }
+    case 'edit_member':{
+     const oldId=idCheck(b.old_game_id),newId=idCheck(b.game_id),newName=nameCheck(b.game_name);
+     const rows=await db(`gift_members?game_id=eq.${enc(oldId)}&select=game_id,state_number,alliance_id,is_active&limit=1`);
+     if(!rows.length||!rows[0].is_active)throw fail('Active member not found.',404);
+     if(!allowed(s,rows[0].state_number,rows[0].alliance_id))throw fail('Access denied.',403);
+     if(oldId!==newId){
+      const duplicate=await db(`gift_members?game_id=eq.${enc(newId)}&select=game_id&limit=1`);
+      if(duplicate.length)throw fail('Game ID already registered.');
+     }
+     const result=await rpc('gift_v2_correct_member_id',{p_old_id:oldId,p_new_id:newId,p_name:newName});
+     return json(res,200,{ok:true,result});
+    }
+    case 'delete_member':{
+     const id=idCheck(b.game_id);
+     const rows=await db(`gift_members?game_id=eq.${enc(id)}&select=game_id,state_number,alliance_id,is_active&limit=1`);
+     if(!rows.length||!rows[0].is_active)throw fail('Active member not found.',404);
+     if(!allowed(s,rows[0].state_number,rows[0].alliance_id))throw fail('Access denied.',403);
+     const result=await db(`gift_members?game_id=eq.${enc(id)}&is_active=eq.true`,{method:'PATCH',body:{is_active:false,auto_redeem_enabled:false,updated_at:new Date().toISOString()}});
+     if(result.length!==1)throw fail('Member was not updated; refresh and retry.',409);
+     // Preserve gift_redemptions and gift_member_movements as historical records.
+     const pending=await db(`gift_redemptions?game_id=eq.${enc(id)}&status=eq.pending`,{method:'PATCH',body:{status:'skipped',last_error_code:'member_removed',updated_at:new Date().toISOString()}});
+     return json(res,200,{ok:true,removed:id,pending_cancelled:pending.length});
+    }
    case 'grant_staff':{
     const gameId=idCheck(b.game_id),role=String(b.role||'');
     if(!['redeemer_admin','alliance_manager'].includes(role))throw fail('Invalid Gift staff role.');

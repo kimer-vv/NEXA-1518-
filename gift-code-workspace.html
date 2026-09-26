@@ -159,6 +159,33 @@ textarea{min-height:146px;line-height:1.55;resize:vertical}
 .gift-code-item .gift-code-source{overflow-wrap:anywhere}
 .gift-delete-list{max-height:30vh;overflow:auto;border:1px solid #34436d;border-radius:12px;padding:5px 10px}.gift-delete-member{display:flex;align-items:center;gap:10px;padding:7px 0;margin:0!important;border-bottom:1px solid #283555}.gift-delete-member input{width:17px;height:17px;min-height:17px;flex:0 0 17px}.gift-delete-member span{font-size:13px}.gift-delete-member small{display:block;font-size:11px}
 </style>
+<style id="nexa-gift-alliance-card-layout-v3">
+/* Mobile-first compact alliance layout; member roster styling remains unchanged. */
+#messagePanel:has(#message:empty){display:none}
+.alliance-card{padding:18px!important;border-radius:20px!important}
+.gift-alliance-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;min-width:0}
+.gift-alliance-identity{min-width:0;flex:1}
+.gift-alliance-heading h4{font-size:clamp(22px,5vw,27px)!important;line-height:1.1;margin:0 0 4px!important}
+.gift-alliance-name{font-size:13px;color:#d4ddf4;overflow-wrap:anywhere;line-height:1.4}
+.gift-alliance-state{font-size:11px;color:#9badd1;margin-top:3px}
+.gift-alliance-badge{flex:0 0 auto;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:800;border:1px solid}
+.gift-alliance-badge.is-active{background:#103b30;border-color:#3c9878;color:#91f4c5}
+.gift-alliance-badge.is-inactive{background:#49311e;border-color:#9c7048;color:#f7d3a4}
+.gift-alliance-redeem{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:14px 0 12px;padding:11px 0;border-top:1px solid #34436a;border-bottom:1px solid #34436a}
+.gift-alliance-redeem-label{display:grid;gap:3px;min-width:0}
+.gift-alliance-redeem-label span{font-size:10px;letter-spacing:.07em;color:#94a9d0}
+.gift-alliance-redeem-label strong{font-size:13px;color:#e5edff}
+.gift-alliance-redeem-toggle{min-height:32px!important;padding:5px 13px!important;font-size:12px!important;border-radius:999px!important;min-width:54px}
+.gift-alliance-redeem-toggle.is-on{background:#103b30;border:1px solid #399d76;color:#91f4c5}
+.gift-alliance-redeem-toggle.is-off{background:#3c2b22;border:1px solid #987253;color:#f8d6b1}
+.gift-alliance-primary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.gift-alliance-primary button{min-width:0;min-height:42px;padding:9px 5px;font-size:clamp(11px,2.9vw,13px);white-space:nowrap;border-radius:11px}
+.gift-alliance-manage{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-top:13px;padding-top:12px;border-top:1px solid #34436a}
+.gift-alliance-manage-button{background:transparent!important;border:1px solid transparent!important;min-width:0;min-height:35px!important;padding:6px 2px!important;border-radius:8px!important;font-size:clamp(10px,2.6vw,12px)!important;color:#c2d5f6;white-space:nowrap}
+.gift-alliance-manage-button:focus-visible{outline:2px solid #59e4ff;outline-offset:2px}
+.gift-alliance-delete{color:#ff9fbb!important}
+@media(max-width:360px){.alliance-card{padding:13px!important}.gift-alliance-primary button{font-size:11px}.gift-alliance-manage-button{font-size:10px!important}}
+</style>
 </head>
 <body class="gift-auth"><main><header id="workspaceHeader"><div class="brand-area"><div class="kicker">NEXA · STATE OPERATIONS</div><h1>Gift Code Workspace</h1><span class="hidden" id="role" aria-hidden="true">STAFF</span></div><div class="header-actions"><select id="moduleSwitch" aria-label="Switch authorized Workspace"></select><button class="ghost" id="logout" type="button">Log Out</button></div></header>
 <section id="login">
@@ -261,16 +288,32 @@ async function renderDirectory(){staffSelectors();const dir=$('directory');dir.r
  if(!data.states.length){const e=document.createElement('div');e.className='card';e.innerHTML='<h2>No states yet</h2><p class="muted">Add your first state to begin building the alliance directory.</p>';dir.append(e);return}
  for(const state of data.states){const group=document.createElement('section');group.className='directory-group';const title=document.createElement('h3');title.textContent='State '+state.state_number;group.append(title);
  const cards=document.createElement('div');cards.className='alliance-grid';for(const a of data.alliances.filter(x=>x.state_number===state.state_number)){
- const card=document.createElement('article');card.className='alliance-card';const head=document.createElement('h4');head.textContent=a.tag;const sub=document.createElement('small');sub.textContent=`State ${a.state_number} • ${a.name||a.tag}`;card.append(head,sub);
- const actions=document.createElement('div');actions.className='flex';
- const add=document.createElement('button');add.textContent='+ Add Members';add.onclick=()=>openAdd(a);const view=document.createElement('button');view.className='ghost tiny';view.textContent='View Members';view.onclick=()=>openRoster(a,card);actions.append(add,view);card.append(actions);
- const toggle=document.createElement('button');toggle.className='ghost tiny';toggle.style.marginTop='10px';toggle.textContent=a.auto_redeem?'Auto-Redeem: ON':'Auto-Redeem: OFF';toggle.onclick=async()=>{if(!await confirmation('Alliance Auto-Redeem',`${a.auto_redeem?'Pause':'Enable'} automatic redemption preference for ${a.tag}? Actual code redemption is not enabled in this version.`,a.auto_redeem?'Pause':'Enable'))return;try{await api('alliance_auto',{alliance_id:a.id,enabled:!a.auto_redeem});message('Alliance preference updated.');await load()}catch(e){message(e.message)}};card.append(toggle);
- const manage=document.createElement('div');manage.className='flex';manage.style.marginTop='10px';
- const editAlliance=document.createElement('button');editAlliance.className='ghost tiny';editAlliance.textContent='✎ Edit Alliance';editAlliance.onclick=()=>openEditAlliance(a);
- const activation=document.createElement('button');activation.className='ghost tiny';activation.textContent=a.is_active?'Deactivate':'Reactivate';activation.onclick=()=>changeAllianceActive(a);
- const deleteAlliance=document.createElement('button');deleteAlliance.className='danger tiny';deleteAlliance.textContent='× Delete Alliance';deleteAlliance.onclick=()=>openDeleteAlliance(a);
+ const card=document.createElement('article');card.className='alliance-card';
+ const heading=document.createElement('div');heading.className='gift-alliance-heading';
+ const identity=document.createElement('div');identity.className='gift-alliance-identity';
+ const head=document.createElement('h4');head.textContent=a.tag;
+ const name=document.createElement('div');name.className='gift-alliance-name';name.textContent=a.name||a.tag;
+ const stateLabel=document.createElement('div');stateLabel.className='gift-alliance-state';stateLabel.textContent='State '+a.state_number;
+ identity.append(head,name,stateLabel);
+ const active=document.createElement('span');active.className='gift-alliance-badge '+(a.is_active?'is-active':'is-inactive');active.textContent=a.is_active?'Active':'Inactive';
+ heading.append(identity,active);card.append(heading);
+ const redeem=document.createElement('div');redeem.className='gift-alliance-redeem';
+ const redeemLabel=document.createElement('div');redeemLabel.className='gift-alliance-redeem-label';
+ const overline=document.createElement('span');overline.textContent='GIFT CODE REDEMPTION';
+ const title=document.createElement('strong');title.textContent='Auto-Redeem';redeemLabel.append(overline,title);
+ const toggle=document.createElement('button');toggle.type='button';toggle.className='gift-alliance-redeem-toggle '+(a.auto_redeem?'is-on':'is-off');toggle.textContent=a.auto_redeem?'ON':'OFF';toggle.setAttribute('aria-label',`Auto-Redeem ${a.auto_redeem?'ON':'OFF'} for ${a.tag}. Change preference`);
+ toggle.onclick=async()=>{if(!await confirmation('Alliance Auto-Redeem',`${a.auto_redeem?'Pause':'Enable'} automatic redemption preference for ${a.tag}? Actual code redemption is not enabled in this version.`,a.auto_redeem?'Pause':'Enable'))return;try{await api('alliance_auto',{alliance_id:a.id,enabled:!a.auto_redeem});message('Alliance preference updated.');await load()}catch(e){message(e.message)}};
+ redeem.append(redeemLabel,toggle);card.append(redeem);
+ const actions=document.createElement('div');actions.className='gift-alliance-primary';
+ const add=document.createElement('button');add.type='button';add.textContent='+ Add Members';add.onclick=()=>openAdd(a);
+ const view=document.createElement('button');view.type='button';view.className='ghost';view.textContent='View Members';view.onclick=()=>openRoster(a,card);
+ actions.append(add,view);card.append(actions);
+ const manage=document.createElement('div');manage.className='gift-alliance-manage';
+ const editAlliance=document.createElement('button');editAlliance.type='button';editAlliance.className='gift-alliance-manage-button';editAlliance.textContent='✎ Edit';editAlliance.setAttribute('aria-label',`Edit alliance ${a.tag}`);editAlliance.onclick=()=>openEditAlliance(a);
+ const activation=document.createElement('button');activation.type='button';activation.className='gift-alliance-manage-button';activation.textContent=a.is_active?'⏻ Deactivate':'⏻ Reactivate';activation.onclick=()=>changeAllianceActive(a);
+ const deleteAlliance=document.createElement('button');deleteAlliance.type='button';deleteAlliance.className='gift-alliance-manage-button gift-alliance-delete';deleteAlliance.textContent='× Delete';deleteAlliance.setAttribute('aria-label',`Delete alliance ${a.tag}`);deleteAlliance.onclick=()=>openDeleteAlliance(a);
  manage.append(editAlliance,activation,deleteAlliance);card.append(manage);
- if(!a.is_active){const paused=document.createElement('small');paused.textContent='Inactive · automatic redemption paused';card.append(paused);add.disabled=true;toggle.disabled=true}
+ if(!a.is_active){add.disabled=true;toggle.disabled=true}
  cards.append(card)}group.append(cards);if(!cards.childElementCount){const p=document.createElement('p');p.className='muted';p.textContent='No alliances yet. Add an alliance in this state.';group.append(p)}dir.append(group)}
 }
 async function openEditAlliance(a){

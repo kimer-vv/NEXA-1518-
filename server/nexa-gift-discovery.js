@@ -1,4 +1,4 @@
-/* NEXA Gift Discovery v1.3 — REPLACE EXISTING: server/nexa-gift-discovery.js
+/* NEXA Gift Discovery v1.4 — REPLACE EXISTING: server/nexa-gift-discovery.js
  * Source discovery and local queue only. NO game redemption or player IDs sent to sources.
  * Only verified fresh active sections are parsed; unrecognized pages are rejected.
  */
@@ -41,6 +41,9 @@ function parseBoostBotRow(row,index){
   if(instruction)text=text.slice(instruction.index+instruction[0].length).trim();
  }
  text=text.replace(/^\s*\d{1,3}\s*[.)]\s*/,'').trim();
+ // Unpublished entries may contain spaced placeholders (e.g. WOS 0919).
+ // They are NOT codes: ignore them before attempting to validate a code token.
+ if(/\bNot published\b/i.test(text))return {code:null,notPublished:true};
  const match=text.match(/^([A-Za-z0-9_-]{4,120})(?=\s|$)/);
  if(!match||/^(Copy|Copied|Not|Code|Active|Tap|Verified|Gift|Current|Published)$/i.test(match[1]))return null;
  return {code:match[1],notPublished:/\bNot published\b/i.test(text)};
@@ -99,7 +102,7 @@ export async function discoverAndPrepare(){
  for(const source of SOURCES){
   let count=0,status='success',error='';
   try{
-   const response=await fetch(source.url,{signal:AbortSignal.timeout(TIMEOUT_MS),headers:{Accept:'text/html','User-Agent':'NEXA-Gift-Discovery/1.3'}});
+   const response=await fetch(source.url,{signal:AbortSignal.timeout(TIMEOUT_MS),headers:{Accept:'text/html','User-Agent':'NEXA-Gift-Discovery/1.4'}});
    if(!response.ok)throw Error(`Source unavailable (${response.status})`);
    const html=await response.text();const codes=source.parse(html);count=codes.length;healthy++;
    for(const code of codes){const key=code.toLowerCase();if(!discovered.has(key))discovered.set(key,{code,source:source.url});}

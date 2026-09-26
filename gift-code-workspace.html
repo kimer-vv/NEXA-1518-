@@ -157,6 +157,7 @@ textarea{min-height:146px;line-height:1.55;resize:vertical}
 .gift-status.expired{background:#4a202d;color:#ffafbf;border:1px solid #ba586f}
 .gift-status.unverified{background:#48371b;color:#ffdc91;border:1px solid #ad8342}
 .gift-code-item .gift-code-source{overflow-wrap:anywhere}
+.gift-delete-list{max-height:30vh;overflow:auto;border:1px solid #34436d;border-radius:12px;padding:5px 10px}.gift-delete-member{display:flex;align-items:center;gap:10px;padding:7px 0;margin:0!important;border-bottom:1px solid #283555}.gift-delete-member input{width:17px;height:17px;min-height:17px;flex:0 0 17px}.gift-delete-member span{font-size:13px}.gift-delete-member small{display:block;font-size:11px}
 </style>
 </head>
 <body class="gift-auth"><main><header id="workspaceHeader"><div class="brand-area"><div class="kicker">NEXA · STATE OPERATIONS</div><h1>Gift Code Workspace</h1><span class="hidden" id="role" aria-hidden="true">STAFF</span></div><div class="header-actions"><select id="moduleSwitch" aria-label="Switch authorized Workspace"></select><button class="ghost" id="logout" type="button">Log Out</button></div></header>
@@ -207,7 +208,7 @@ textarea{min-height:146px;line-height:1.55;resize:vertical}
  <div class="flex"><button id="scanGiftCodes" type="button">Check for Codes Now</button><button class="ghost" id="refreshGiftCodes" type="button">Refresh</button><button class="ghost" id="addGiftCode" type="button">+ Add Gift Code</button></div>
  <p id="giftCodeStatus" class="status" role="status"></p><p id="giftQueueCount" class="info-line"></p></div>
  <div class="card"><h2>Code History</h2><p class="muted">Active means listed by a checked public source, not guaranteed redeemable for every account. Expired requires an explicit stored status or an elapsed known expiry. Codes without verification stay separate.</p><nav id="giftHistoryTabs" class="gift-history-tabs" aria-label="Code history status"><button type="button" data-code-filter="active" aria-selected="true">Active Codes</button><button type="button" data-code-filter="expired" aria-selected="false">Expired Codes</button><button type="button" data-code-filter="unverified" aria-selected="false">Unverified</button></nav><div id="giftCodeList" class="gift-code-list"></div></div>
- <div id="giftRunsCard" class="card hidden"><h2>Discovery Activity</h2><div id="giftRunList" class="info-line"></div></div>
+ 
  </section>
   <section class="hidden" data-panel="staff">
    <div class="card gift-share-card"><h2>Workspace Link</h2><p class="muted">Share this link with authorized alliance leaders and staff. Access still requires permission for their Game ID.</p><label for="giftShareUrl">Gift Code Workspace URL<input id="giftShareUrl" type="url" readonly spellcheck="false" autocomplete="off" aria-label="Gift Code Workspace link"></label><div class="flex" style="margin-top:12px"><button id="giftCopyLink" type="button">Copy Workspace Link</button></div><p class="status" id="giftCopyStatus" role="status" aria-live="polite"></p></div>
@@ -264,7 +265,43 @@ async function renderDirectory(){staffSelectors();const dir=$('directory');dir.r
  const actions=document.createElement('div');actions.className='flex';
  const add=document.createElement('button');add.textContent='+ Add Members';add.onclick=()=>openAdd(a);const view=document.createElement('button');view.className='ghost tiny';view.textContent='View Members';view.onclick=()=>openRoster(a,card);actions.append(add,view);card.append(actions);
  const toggle=document.createElement('button');toggle.className='ghost tiny';toggle.style.marginTop='10px';toggle.textContent=a.auto_redeem?'Auto-Redeem: ON':'Auto-Redeem: OFF';toggle.onclick=async()=>{if(!await confirmation('Alliance Auto-Redeem',`${a.auto_redeem?'Pause':'Enable'} automatic redemption preference for ${a.tag}? Actual code redemption is not enabled in this version.`,a.auto_redeem?'Pause':'Enable'))return;try{await api('alliance_auto',{alliance_id:a.id,enabled:!a.auto_redeem});message('Alliance preference updated.');await load()}catch(e){message(e.message)}};card.append(toggle);
+ const manage=document.createElement('div');manage.className='flex';manage.style.marginTop='10px';
+ const editAlliance=document.createElement('button');editAlliance.className='ghost tiny';editAlliance.textContent='✎ Edit Alliance';editAlliance.onclick=()=>openEditAlliance(a);
+ const activation=document.createElement('button');activation.className='ghost tiny';activation.textContent=a.is_active?'Deactivate':'Reactivate';activation.onclick=()=>changeAllianceActive(a);
+ const deleteAlliance=document.createElement('button');deleteAlliance.className='danger tiny';deleteAlliance.textContent='× Delete Alliance';deleteAlliance.onclick=()=>openDeleteAlliance(a);
+ manage.append(editAlliance,activation,deleteAlliance);card.append(manage);
+ if(!a.is_active){const paused=document.createElement('small');paused.textContent='Inactive · automatic redemption paused';card.append(paused);add.disabled=true;toggle.disabled=true}
  cards.append(card)}group.append(cards);if(!cards.childElementCount){const p=document.createElement('p');p.className='muted';p.textContent='No alliances yet. Add an alliance in this state.';group.append(p)}dir.append(group)}
+}
+async function openEditAlliance(a){
+ const options=data.states.map(s=>`<option value="${s.state_number}" ${s.state_number===a.state_number?'selected':''}>State ${s.state_number}</option>`).join('');
+ const saved=await modal('Edit Alliance',`<p class="info-line">Changing the state moves this alliance and its members together. Existing redemption history remains associated with the original state. A duplicate tag in the destination state will be rejected.</p><label>State<select id="editAllianceState">${options}</select></label><label>Alliance Tag<input id="editAllianceTag" maxlength="24" value="${escapeText(a.tag)}"></label><label>Alliance Name<input id="editAllianceName" maxlength="80" value="${escapeText(a.name||a.tag)}"></label>`,{ok:'Save Alliance',onOk:async body=>{
+ const state=Number(body.querySelector('#editAllianceState').value),tag=clean(body.querySelector('#editAllianceTag').value).toUpperCase(),name=clean(body.querySelector('#editAllianceName').value);
+ if(!Number.isSafeInteger(state)||state<1||!/^[^\s]{1,24}$/.test(tag)||name.length>80)throw Error('Check state, tag and name.');
+ await api('manage_alliance',{operation:'edit',alliance_id:a.id,state_number:state,tag,name});return true;
+ }});
+ if(saved){message('Alliance updated; existing redemption history preserved.');await load()}
+}
+async function changeAllianceActive(a){
+ const operation=a.is_active?'deactivate':'reactivate';
+ if(!await confirmation(a.is_active?'Deactivate Alliance':'Reactivate Alliance',a.is_active?`Pause ${escapeText(a.tag)} and cancel its pending queue entries? Members and history stay in place.`:`Reactivate ${escapeText(a.tag)}? Auto-Redeem remains OFF until separately enabled.`,a.is_active?'Deactivate':'Reactivate'))return;
+ try{await api('manage_alliance',{operation,alliance_id:a.id});message(`Alliance ${a.is_active?'deactivated':'reactivated'}.`);await load()}catch(e){message(e.message)}
+}
+async function openDeleteAlliance(a){
+ // Fetch fresh roster: selections made here are verified again in the atomic SQL function.
+ let members;try{members=(await api('members',{id:a.id})).members||[]}catch(e){message(e.message);return}
+ const destinations=data.alliances.filter(x=>x.id!==a.id&&x.is_active);
+ const options=destinations.map(x=>`<option value="${x.id}">State ${x.state_number} · ${escapeText(x.tag)}</option>`).join('');
+ const rows=members.map(m=>`<label class="gift-delete-member"><input type="checkbox" class="deleteMoveMember" value="${escapeText(m.game_id)}"><span>${escapeText(m.game_name)}<small>Game ID: ${escapeText(m.game_id)}</small></span></label>`).join('');
+ const html=`<p>Remove <b>${escapeText(a.tag)}</b> from Manage Alliances. Redemption and movement history will remain stored. Members not moved will be removed from the active roster.</p><p class="info-line">Optional: select members to move first. Leave all unchecked to remove all members from the active roster.</p><div class="gift-delete-list">${rows||'<p>No active members.</p>'}</div><label>Destination for selected members<select id="deleteDestination"><option value="">Do not move members</option>${options}</select></label><label>Type ${escapeText(a.tag)} to confirm<input id="deleteConfirm" autocomplete="off" spellcheck="false"></label>`;
+ const result=await modal('Delete Alliance',html,{ok:'Delete Alliance',onOk:async body=>{
+  const ids=[...body.querySelectorAll('.deleteMoveMember:checked')].map(x=>x.value),dest=body.querySelector('#deleteDestination').value,confirm=clean(body.querySelector('#deleteConfirm').value);
+  if(confirm!==a.tag)throw Error('Type the exact alliance tag to confirm.');
+  if(ids.length&&!dest)throw Error('Choose a destination for selected members, or uncheck them.');
+  if(!ids.length&&dest)throw Error('Select members to move, or choose Do not move members.');
+  return await api('manage_alliance',{operation:'delete',alliance_id:a.id,game_ids:ids,destination_alliance_id:dest||null,confirm});
+ }});
+ if(result){message(`Alliance removed from directory. ${result.result?.moved||0} moved; ${result.result?.members_deactivated||0} members removed from active roster. History retained.`);await load()}
 }
 async function openRoster(a,card){ let panel=card.querySelector('.roster-shell');if(panel){panel.remove();return}
  panel=document.createElement('div');panel.className='roster-shell';panel.textContent='Loading members…';card.append(panel);
@@ -360,11 +397,6 @@ function renderGiftCodeHistory(){
   const pill=document.createElement('span');pill.className=`gift-status ${category}`;
   pill.textContent=({active:'● Active',expired:'● Expired',unverified:'● Unverified'})[category];
   head.append(strong,pill);div.append(head);
-  const detail=document.createElement('small');detail.className='gift-code-source';
-  const source=c.source||'Unknown source';
-  const found=c.discovered_at?new Date(c.discovered_at).toLocaleDateString():'Unknown date';
-  detail.textContent=`Source: ${source} · Found ${found}`;div.append(detail);
-  if(c.expires_at){const expiry=document.createElement('small');expiry.textContent=`Recorded expiry: ${new Date(c.expires_at).toLocaleString()}`;div.append(expiry)}
   box.append(div);
  }
  if(!shown.length){const empty=document.createElement('p');empty.className='muted';empty.textContent=giftHistoryCodes.length?'No codes in this category.':'No codes discovered yet. Owner can run Check for Codes Now.';box.append(empty)}
@@ -377,9 +409,6 @@ async function loadGiftCodes(){
   $('scanGiftCodes').hidden=data.role!=='owner';$('addGiftCode').hidden=data.role!=='owner';
   $('giftQueueCount').textContent=data.role==='owner'?`${r.pending} local pending entries (not sent to game).`:'Actual redemption is not enabled.';
   renderGiftCodeHistory();
-  $('giftRunsCard').classList.toggle('hidden',data.role!=='owner');const runs=$('giftRunList');runs.replaceChildren();
-  for(const job of r.runs||[]){const line=document.createElement('p');line.textContent=`${new Date(job.finished_at).toLocaleString()} · ${job.status} · ${job.codes_found} found · ${job.codes_added} new · ${job.queue_added} queued${job.error_detail?' · '+job.error_detail:''}`;runs.append(line)}
-  if(!runs.children.length)runs.textContent='No discovery runs yet.';
   status.textContent='';
  }catch(e){box.textContent='Unable to load code history.';status.textContent=e.message||String(e)}
 }

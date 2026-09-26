@@ -36,10 +36,10 @@ function idCheck(v){const x=String(v??'').trim();if(!/^\d{1,30}$/.test(x))throw 
 function nameCheck(v){const x=String(v??'').trim();if(!x||x.length>80)throw fail('Game Name is required (maximum 80 characters).');return x;}
 function stateCheck(v){const n=Number(v);if(!Number.isSafeInteger(n)||n<=0)throw fail('Invalid state number.');return n;}
 function allianceCheck(v){const x=String(v??'');if(!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(x))throw fail('Invalid alliance.');return x;}
-async function alliance(id){const a=await db(`gift_alliances?id=eq.${enc(id)}&select=id,state_number,tag,is_active,auto_redeem&limit=1`);if(!a.length)throw fail('Alliance not found.',404);return a[0]}
+async function alliance(id){const a=await db(`gift_alliances?id=eq.${enc(id)}&deleted_at=is.null&select=id,state_number,tag,is_active,auto_redeem&limit=1`);if(!a.length)throw fail('Alliance not found.',404);return a[0]}
 async function snapshot(s){
  const states=await db('gift_states?select=state_number,display_name,is_active&order=state_number.asc');
- const all=await db('gift_alliances?select=id,state_number,tag,name,is_active,auto_redeem&order=state_number.asc,tag.asc');
+ const all=await db('gift_alliances?deleted_at=is.null&select=id,state_number,tag,name,is_active,auto_redeem&order=state_number.asc,tag.asc');
  const alliances=owner(s)?all:all.filter(a=>allowed(s,a.state_number,a.id));
  const visibleStates=states.filter(x=>owner(s)||alliances.some(a=>a.state_number===x.state_number)||s.access.some(a=>a.role==='redeemer_admin'&&a.state_number===x.state_number));
  return {states:visibleStates,alliances,role:owner(s)?'owner':s.access.some(a=>a.role==='redeemer_admin')?'redeemer_admin':'alliance_manager'};
@@ -97,6 +97,27 @@ export default async function handler(req,res){
     const tag=String(b.tag||'').trim().toUpperCase();if(!/^[^\s]{1,24}$/.test(tag))throw fail('Alliance tag must contain 1Ã¢ÂÂ24 characters without spaces.');
     const rows=await db('gift_alliances',{method:'POST',body:{state_number:n,tag,name:String(b.name||tag).trim().slice(0,80),auto_redeem:false}});
     return json(res,200,{ok:true,alliance:rows?.[0]});
+   }
+   case 'manage_alliance':{
+    const a=await alliance(allianceCheck(b.alliance_id));
+    if(!allowed(s,a.state_number,a.id))throw fail('Access denied.',403);
+    const action=String(b.operation||'');
+    if(!['edit','deactivate','reactivate','delete'].includes(action))throw fail('Unknown alliance operation.');
+    if(action==='delete'&&String(b.confirm||'')!==a.tag)throw fail('Type the exact alliance tag to confirm.');
+    if(action==='reactivate'&&a.is_active)throw fail('Alliance is already active.');
+    if(action==='deactivate'&&!a.is_active)throw fail('Alliance is already inactive.');
+    const ids=action==='delete'&&Array.isArray(b.game_ids)?b.game_ids.map(idCheck):[];
+    if(ids.length>1000||new Set(ids).size!==ids.length)throw fail('Invalid member selection.');
+    const dest=action==='delete'&&ids.length?await alliance(allianceCheck(b.destination_alliance_id)):null;
+    if(dest&&(!dest.is_active||!allowed(s,dest.state_number,dest.id)))throw fail('Destination alliance unavailable or access denied.',403);
+    const result=await rpc('gift_v2_manage_alliance',{
+      p_staff_token:s.token,p_action:action,p_alliance:a.id,
+      p_state:action==='edit'?stateCheck(b.state_number):null,
+      p_tag:action==='edit'?String(b.tag||'').trim().toUpperCase():null,
+      p_name:action==='edit'?String(b.name||'').trim():null,
+      p_destination:dest?.id||null,p_game_ids:ids,p_confirm:action==='delete'?String(b.confirm):null
+    });
+    return json(res,200,{ok:true,result});
    }
    case 'register':{
     const a=await alliance(allianceCheck(b.alliance_id));if(!allowed(s,a.state_number,a.id))throw fail('Access denied.',403);

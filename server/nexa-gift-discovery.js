@@ -1,4 +1,4 @@
-/* NEXA Gift Code Discovery v1.1 | REPLACE EXISTING: server/nexa-gift-discovery.js
+/* NEXA Gift Code Discovery v1.2 | REPLACE EXISTING: server/nexa-gift-discovery.js
  * Public-source discovery ONLY. No redemption requests or player IDs are sent to sources.
  * Sources are independent: a WSCO 403 does not prevent the secondary catalog from working.
  */
@@ -53,15 +53,32 @@ export function extractBoostBotActiveCodes(html,now=new Date()){
  const list=section.slice(marker.index+marker[0].length);
  const parts=list.split(/\bCopy\s+Copied\b/i);
  if(parts.length<2)throw Error('BoostBot code rows missing');
+ const expected=section.match(/\b(\d{1,3})\s+active codes\b/i);
+ // Source markup may render an ordered list as "1. CODE" or hide numbering in CSS.
+ // Only take the first token of each distinctly delimited Copy/Copied row.
  const codes=[];
- for(const part of parts.slice(0,-1)){
-  const token=part.trim().match(/^([A-Za-z0-9_-]{4,120})(?=\s|$)/);
-  if(!token)throw Error('BoostBot code row changed; refusing to guess');
-  if(/^(Copy|Not|Code|Active)$/i.test(token[1]))throw Error('BoostBot non-code detected');
-  // The publisher marks some not-yet-released entries as Not published. Never queue those.
-  if(/\bNot published\b/i.test(part))continue;
+ for(let i=0;i<parts.length-1;i++){
+  let item=parts[i].trim();
+  if(i===0){
+   // The first row follows the introductory "Tap a code ... paste rather than type" text.
+   const intro=item.match(/\bTap a code to copy it\.[\s\S]*?\bpaste rather than type\.\s*/i);
+   if(intro)item=item.slice(intro.index+intro[0].length).trim();
+   else {
+    // First source row has no reward-description text: capture the trailing token only.
+    const last=item.match(/(?:^|\s)([A-Za-z0-9_-]{4,120})(?:\s+Not published)?\s*$/i);
+    if(!last)throw Error('BoostBot first code row changed; refusing to guess');
+    item=last[1];
+   }
+  }
+  item=item.replace(/^\d{1,3}[.)]\s*/, '');
+  const token=item.match(/^([A-Za-z0-9_-]{4,120})(?=\s|$)/);
+  if(!token||/^(Copy|Not|Code|Active|Tap|Verified)$/i.test(token[1]))throw Error('BoostBot code row changed; refusing to guess');
+  if(/\bNot published\b/i.test(item))continue;
   codes.push(token[1]);
  }
+ // Guard against inadvertently accepting article prose as gift codes.
+ if(expected&&parts.length-1!==Number(expected[1]))throw Error('BoostBot listed code count changed; refusing partial import');
+ if(!codes.length)throw Error('BoostBot has no published code rows');
  return distinctCodes(codes);
 }
 async function logSource(entry){try{await db('gift_discovery_runs',{method:'POST',body:entry})}catch(e){console.error('[NEXA Gift Discovery logging]',String(e?.message||e))}}

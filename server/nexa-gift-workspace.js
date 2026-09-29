@@ -1,10 +1,11 @@
 /* NEXA Gift Code Workspace | Server API v1
  * CREATE: server/nexa-gift-workspace.js (imported from existing API route)
  * Requires reviewed Gift Workspace SQL and an explicitly assigned gift_staff_access owner.
- * Phase 1 discovers and queues; NO redemption calls are made by this module.
+ * Discovery still queues locally. One Owner-only controlled worker action may send exactly one hard-locked provider request.
  */
 import { createHash } from 'node:crypto';
 import { discoverAndPrepare } from './nexa-gift-discovery.js';
+import { runGiftControlledTest } from './nexa-gift-auto-worker.js';
 const URL = process.env.SUPABASE_URL || 'https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const json=(res,status,data)=>res.status(status).json(data);
@@ -32,7 +33,7 @@ async function staff(req){
 const owner=s=>s.access.some(a=>a.role==='owner');
 const allowed=(s,state,alliance)=>owner(s)||s.access.some(a=>a.role==='redeemer_admin'&&a.state_number===Number(state))||s.access.some(a=>a.role==='alliance_manager'&&alliance&&a.alliance_id===alliance);
 const stateAllowed=(s,state)=>owner(s)||s.access.some(a=>a.role==='redeemer_admin'&&a.state_number===Number(state))||s.access.some(a=>a.role==='alliance_manager'&&a.alliance_id);
-function idCheck(v){const x=String(v??'').trim();if(!/^\d{1,30}$/.test(x))throw fail('Game ID must contain 1Ã¢ÂÂ30 digits.');return x;}
+function idCheck(v){const x=String(v??'').trim();if(!/^\d{1,30}$/.test(x))throw fail('Game ID must contain 1ÃÂ¢ÃÂÃÂ30 digits.');return x;}
 function nameCheck(v){const x=String(v??'').trim();if(!x||x.length>80)throw fail('Game Name is required (maximum 80 characters).');return x;}
 function stateCheck(v){const n=Number(v);if(!Number.isSafeInteger(n)||n<=0)throw fail('Invalid state number.');return n;}
 function allianceCheck(v){const x=String(v??'');if(!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(x))throw fail('Invalid alliance.');return x;}
@@ -74,6 +75,15 @@ export default async function handler(req,res){
   }
   const b=req.body||{};
   switch(b.action){
+   case 'controlled_worker_test':{
+    if(!owner(s))throw fail('Owner access required.',403);
+    const game_id=String(b.game_id||'').trim();
+    const state_number=Number(b.state_number);
+    const code=String(b.code||'').trim();
+    if(game_id!=='439740340'||state_number!==2800||code!=='1stYoutubeKR')throw fail('Controlled test target is not authorized.',403);
+    const result=await runGiftControlledTest({game_id,state_number,code});
+    return json(res,200,{ok:result.status==='redeemed'||result.status==='already_redeemed',controlled:true,...result});
+   }
    case 'scan_codes':{
     if(!owner(s))throw fail('Owner access required.',403);
     const result=await discoverAndPrepare();return json(res,result.ok?200:502,result);
@@ -94,7 +104,7 @@ export default async function handler(req,res){
    }
    case 'create_alliance':{
     const n=stateCheck(b.state_number);if(!owner(s)&&!s.access.some(a=>a.role==='redeemer_admin'&&a.state_number===n))throw fail('State administrator or Owner access required.',403);
-    const tag=String(b.tag||'').trim().toUpperCase();if(!/^[^\s]{1,24}$/.test(tag))throw fail('Alliance tag must contain 1Ã¢ÂÂ24 characters without spaces.');
+    const tag=String(b.tag||'').trim().toUpperCase();if(!/^[^\s]{1,24}$/.test(tag))throw fail('Alliance tag must contain 1ÃÂ¢ÃÂÃÂ24 characters without spaces.');
     const rows=await db('gift_alliances',{method:'POST',body:{state_number:n,tag,name:String(b.name||tag).trim().slice(0,80),auto_redeem:false}});
     return json(res,200,{ok:true,alliance:rows?.[0]});
    }
@@ -121,7 +131,7 @@ export default async function handler(req,res){
    }
    case 'register':{
     const a=await alliance(allianceCheck(b.alliance_id));if(!allowed(s,a.state_number,a.id))throw fail('Access denied.',403);
-    const rows=Array.isArray(b.rows)?b.rows:[];if(!rows.length||rows.length>1000)throw fail('Enter 1Ã¢ÂÂ1000 members.');
+    const rows=Array.isArray(b.rows)?b.rows:[];if(!rows.length||rows.length>1000)throw fail('Enter 1ÃÂ¢ÃÂÃÂ1000 members.');
     const clean=rows.map(x=>({game_id:idCheck(x.game_id),game_name:nameCheck(x.game_name)}));
     const ids=clean.map(x=>x.game_id);if(new Set(ids).size!==ids.length)throw fail('Duplicate Game IDs in this import.');
     const bulk=b.method==='bulk';let batch=null;

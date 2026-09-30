@@ -33,7 +33,7 @@ function openPicker(){
    <button class="nexa-workspace-picker-close" type="button" aria-label="Close">×</button></div>
    <button class="nexa-workspace-choice" data-go="transfer" type="button">Transfer Workspace<small>Transfer cycles, applicants, integrations and access</small></button>
    <button class="nexa-workspace-choice" data-go="ministry" type="button">Ministry Workspace<small>Requests, appointment scheduling and access</small></button>
-   <button class="nexa-workspace-choice" data-go="gift" type="button">Gift Code Workspace<small>Multi-state alliance rosters, imports and gift codes</small></button>
+   <button class="nexa-workspace-choice" data-go="gift" type="button">WOS Utilities<small>Gift codes, event reminders and alliance utilities</small></button>
  </div>`;
  root.querySelector('.nexa-workspace-picker-close').onclick=closePicker;
  root.addEventListener('click',e=>{if(e.target===root)closePicker();});

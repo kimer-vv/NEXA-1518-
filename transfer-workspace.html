@@ -955,7 +955,9 @@ function renderHistory(){
  $('historyList').innerHTML=history.length?history.map(h=>`<div class="historyCycleCard clickable ${cycleToneClass(h)}" data-open-history="${h.id}"><div class="appTop"><div><b>${esc(h.title||`State ${workspace.state_number} Transfer Cycle`)}</b><div class="meta">${h.starts_at?new Date(h.starts_at).toLocaleDateString():'—'} - ${h.ends_at?new Date(h.ends_at).toLocaleDateString():'—'} · ${esc(classificationLabel(h.leadership_status))}</div></div>${canManage()?`<button class="round" data-delete-history="${h.id}" type="button" aria-label="Delete Transfer Cycle" style="width:34px;height:34px;font-size:20px;color:#ff9aad;border-color:rgba(255,90,120,.34)">×</button>`:''}</div><div class="readHint">Tap to open applicants from this cycle</div></div>`).join(''):'<div class="empty">No completed Transfer Cycles yet.</div>';
  document.querySelectorAll('[data-open-history]').forEach(c=>c.onclick=e=>{if(e.target.closest('[data-delete-history]'))return;const h=history.find(x=>String(x.id)===String(c.dataset.openHistory));if(h)openHistory(h)});
  document.querySelectorAll('[data-delete-history]').forEach(b=>b.onclick=e=>{e.stopPropagation();const h=history.find(x=>String(x.id)===String(b.dataset.deleteHistory));if(h)confirmGalaxy('Delete Transfer Cycle',`Delete ${h.title||'this Transfer Cycle'} from History? This is only allowed when no archived applicants are attached to it.`,'Delete Cycle',()=>deleteHistoryCycle(h))});
- if(!cycles)async function loadApplicantArchive(){
+ if(!cycles)loadApplicantArchive();
+}
+async function loadApplicantArchive(){
  const box=$('applicantArchiveList');
  if(!box)return;
 
@@ -1109,7 +1111,6 @@ function renderHistory(){
    }
   );
  };
-};
 }
 async function deleteHistoryCycle(h){
  const r=await SB.rpc('transfer_workspace_delete_history',{p_workspace_id:workspaceId,p_token:token,p_event_id:h.id});
@@ -1119,15 +1120,6 @@ async function deleteHistoryCycle(h){
    return;
  }
  await loadWorkspace();
-}
-async function loadApplicantArchive(){
- $('applicantArchiveList').innerHTML='<div class="status">Loading Applicant Archive…</div>';
- const r=await SB.rpc('transfer_workspace_applicant_archive',{p_workspace_id:workspaceId,p_token:token});
- if(r.error||r.data?.ok!==true){$('applicantArchiveList').innerHTML='<div class="empty">Unable to load Applicant Archive.</div>';return}
- applicantArchive=r.data.applications||[];$('archiveCount').textContent=String(applicantArchive.length);
- $('applicantArchiveList').innerHTML=applicantArchive.length?`<div class="historyApplicantGrid">${applicantArchive.map(a=>`<div class="archiveCardWrap" data-archive-wrap="${a.id}">${historyApplicantCard(a,true)}${canManage()?`<div class="actions"><button class="btn secondary mini" data-restore-archive="${a.id}" type="button">Restore</button><button class="btn danger mini" data-delete-archive="${a.id}" type="button">Delete</button></div>`:''}</div>`).join('')}</div>`:'<div class="empty">Applicant Archive is empty.</div>';
- document.querySelectorAll('[data-restore-archive]').forEach(x=>x.onclick=()=>restoreArchivedApplicant(x.dataset.restoreArchive));
- document.querySelectorAll('[data-delete-archive]').forEach(x=>x.onclick=()=>{const a=applicantArchive.find(v=>String(v.id)===String(x.dataset.deleteArchive));if(a)confirmGalaxy('Delete Archived Applicant',`Permanently delete ${a.in_game_name||'this archived applicant'}? This cannot be undone.`,'Delete Permanently',()=>deleteArchivedApplicant(a.id))});
 }
 async function deleteArchivedApplicant(id){
  const r=await SB.rpc('transfer_workspace_delete_archived_application',{p_workspace_id:workspaceId,p_token:token,p_application_id:id});

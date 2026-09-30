@@ -1,4 +1,4 @@
-// NEXA DISCORD BOT V1.9.1 — /NEXA COMMAND HUB / ACTIVE APPLICANTS ONLY
+// NEXA DISCORD BOT V1.9.2 — /NEXA COMMAND HUB / ACTIVE APPLICANTS ONLY
 import {
   rawBody,verifyDiscord,db,getConfigByGuild,
   getCurrentEvent,currentApps,selectedApps,recruitingAlliances,inviteCounts,
@@ -166,7 +166,7 @@ function inviteFields(counts,pendingOps){
   fields.push(field('📋 Pending Operations',String(pendingOps),true));
   return fields;
 }
-function chunkRows(rows,size=15){const out=[];for(let i=0;i<rows.length;i+=size)out.push(rows.slice(i,i+size));return out}
+function chunkRows(rows,size=25){const out=[];for(let i=0;i<rows.length;i+=size)out.push(rows.slice(i,i+size));return out}
 function compactApplicantLine(a){
   const name=a.in_game_name||'Applicant',id=a.player_id||'—';
   const furnace=String(a.furnace_level||'—').toUpperCase();
@@ -177,7 +177,7 @@ function compactApplicantLine(a){
 }
 function categoryEmbeds(cfg,rows,{title,color}){
   if(!rows.length)return[];
-  return chunkRows(rows,10).map((part,i)=>embed(cfg,{title:`${title} · ${rows.length}${rows.length>10?` · ${i+1}/${Math.ceil(rows.length/10)}`:''}`,description:part.map(a=>compactApplicantLine(a)).join('\n\n'),color,footer:'⭐ Special Invite'}));
+  return chunkRows(rows,25).map((part,i)=>embed(cfg,{title:`${title} · ${rows.length}${rows.length>25?` · ${i+1}/${Math.ceil(rows.length/25)}`:''}`,description:part.map(a=>compactApplicantLine(a)).join('\n\n'),color,footer:'⭐ Special Invite'}));
 }
 function compactListEmbeds(cfg,apps,placement='all'){
   const active=(apps||[]).filter(a=>a.archived_at==null&&a.application_cycle!=='next');

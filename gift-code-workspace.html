@@ -1,7 +1,5 @@
 <!doctype html>
-<!-- NEXA Gift Code Workspace V1.7 — FINAL AUTO-REDEEM UI
-     Manual codes enter Needs Verification. Public discovery promotes confirmed source-listed codes.
-     Controlled Worker Test removed after successful validation. -->
+<!-- NEXA Gift Code Workspace V1.8 — CLEAN CODE HISTORY + OWNER VERIFICATION FALLBACK -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NEXA • Gift Code Workspace</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -230,11 +228,10 @@ textarea{min-height:146px;line-height:1.55;resize:vertical}
    <div id="directory"></div>
   </section>
   <section class="hidden" data-panel="codes">
- <div class="card"><div class="flex" style="justify-content:space-between;align-items:flex-start"><div><h2>Automatic Code Discovery</h2><p class="muted">Public codes are checked on a server schedule. Source-listed does not mean every account can redeem them.</p></div><span class="pill">AUTO-REDEEM</span></div>
- <p class="info-line">NEXA stores confirmed codes and prepares redemptions only for eligible enabled members. Needs Verification codes stay out of the redemption queue until confirmed.</p>
+ <div class="card"><div class="flex" style="justify-content:space-between;align-items:flex-start"><div><h2>Automatic Code Discovery</h2><p class="muted">NEXA automatically checks and redeems active gift codes for eligible members.</p></div><span class="pill">AUTO-REDEEM</span></div>
  <div class="flex"><button id="scanGiftCodes" type="button">Check for Codes Now</button><button class="ghost" id="refreshGiftCodes" type="button">Refresh</button><button class="ghost" id="addGiftCode" type="button">+ Add Gift Code</button></div>
- <p id="giftCodeStatus" class="status" role="status"></p><p id="giftQueueCount" class="info-line"></p></div>
- <div class="card"><h2>Code History</h2><p class="muted">Active means listed by a checked public source, not guaranteed redeemable for every account. Expired requires an explicit stored status or an elapsed known expiry. Codes that cannot yet be confirmed stay in Needs Verification and are never auto-redeemed.</p><nav id="giftHistoryTabs" class="gift-history-tabs" aria-label="Code history status"><button type="button" data-code-filter="active" aria-selected="true">Active Codes</button><button type="button" data-code-filter="expired" aria-selected="false">Expired Codes</button><button type="button" data-code-filter="unverified" aria-selected="false">Needs Verification</button></nav><div id="giftCodeList" class="gift-code-list"></div></div>
+ <p id="giftCodeStatus" class="status" role="status"></p></div>
+ <div class="card"><h2>Code History</h2><p class="muted">Gift codes are organized by status: Active or Expired.</p><nav id="giftHistoryTabs" class="gift-history-tabs" aria-label="Gift code view"><button type="button" data-code-filter="all" aria-selected="true">Gift Codes</button><button type="button" data-code-filter="unverified" aria-selected="false">Needs Verification</button></nav><div id="giftCodeList" class="gift-code-list"></div></div>
 
  </section>
   <section class="hidden" data-panel="staff">
@@ -414,7 +411,7 @@ $('giftCopyLink').onclick=async()=>{
 $('staffState').onchange=staffSelectors;
 
 // NEXA Discovery phase 1: view public codes and owner-only actions; no redemption provider is connected.
-let giftHistoryFilter='active';
+let giftHistoryFilter='all';
 let giftHistoryCodes=[];
 function giftCodeCategory(c){
  const status=String(c.status||'').toLowerCase();
@@ -425,14 +422,19 @@ function giftCodeCategory(c){
 }
 function renderGiftCodeHistory(){
  const box=$('giftCodeList');box.replaceChildren();
- const counts={active:0,expired:0,unverified:0};
- for(const c of giftHistoryCodes)counts[giftCodeCategory(c)]++;
- for(const button of document.querySelectorAll('[data-code-filter]')){
-  const filter=button.dataset.codeFilter;
-  button.setAttribute('aria-selected',String(filter===giftHistoryFilter));
-  button.textContent=({active:'Active Codes',expired:'Expired Codes',unverified:'Needs Verification'})[filter]+` (${counts[filter]})`;
- }
- const shown=giftHistoryCodes.filter(c=>giftCodeCategory(c)===giftHistoryFilter);
+ const ownerView=data.role==='owner';
+ const needsButton=document.querySelector('[data-code-filter="unverified"]');
+ if(needsButton)needsButton.hidden=!ownerView;
+ if(!ownerView&&giftHistoryFilter==='unverified')giftHistoryFilter='all';
+ for(const button of document.querySelectorAll('[data-code-filter]'))button.setAttribute('aria-selected',String(button.dataset.codeFilter===giftHistoryFilter));
+ let shown=giftHistoryFilter==='unverified'
+  ? giftHistoryCodes.filter(c=>giftCodeCategory(c)==='unverified')
+  : giftHistoryCodes.filter(c=>giftCodeCategory(c)!=='unverified').sort((a,b)=>{
+      const rank={active:0,expired:1};
+      const diff=rank[giftCodeCategory(a)]-rank[giftCodeCategory(b)];
+      if(diff)return diff;
+      return new Date(b.discovered_at||0)-new Date(a.discovered_at||0);
+    });
  for(const c of shown){
   const category=giftCodeCategory(c),div=document.createElement('article');div.className='gift-code-item';
   const head=document.createElement('div');head.className='gift-code-head';
@@ -440,32 +442,31 @@ function renderGiftCodeHistory(){
   const pill=document.createElement('span');pill.className=`gift-status ${category}`;
   pill.textContent=({active:'● Active',expired:'● Expired',unverified:'● Needs Verification'})[category];
   head.append(strong,pill);div.append(head);
-  if(category==='unverified'&&data.role==='owner'){
+  if(category==='unverified'&&ownerView){
    const actions=document.createElement('div');actions.className='flex';actions.style.marginTop='10px';
    const retry=document.createElement('button');retry.type='button';retry.className='ghost tiny';retry.textContent='Retry Verification';
-   retry.onclick=async()=>{retry.disabled=true;try{const r=await api('retry_code_verification',{code_id:c.id});await loadGiftCodes();$('giftCodeStatus').textContent=r.code?.status==='available'?`${c.code} verified and moved to Active.`:`${c.code} is still waiting for verification.`}catch(e){$('giftCodeStatus').textContent=e.message||String(e)}finally{retry.disabled=false}};
+   retry.onclick=async()=>{retry.disabled=true;try{const r=await api('retry_code_verification',{code_id:c.id});await loadGiftCodes();$('giftCodeStatus').textContent=r.status==='active'?`${c.code} verified and activated.`:r.status==='invalid'?`${c.code} was not found and was removed.`:`${c.code} could not be verified right now.`}catch(e){$('giftCodeStatus').textContent=e.message||String(e)}finally{retry.disabled=false}};
    const del=document.createElement('button');del.type='button';del.className='danger tiny';del.textContent='Delete';
-   del.onclick=async()=>{if(!await confirmation('Delete Code',`Delete ${escapeText(c.code)} from Needs Verification? This is only allowed when it has no successful redemption history.`,'Delete Code'))return;try{await api('delete_unverified_code',{code_id:c.id});await loadGiftCodes();$('giftCodeStatus').textContent=`${c.code} deleted.`}catch(e){$('giftCodeStatus').textContent=e.message||String(e)}};
+   del.onclick=async()=>{if(!await confirmation('Delete Code',`Delete ${escapeText(c.code)} from Needs Verification?`,'Delete Code'))return;try{await api('delete_unverified_code',{code_id:c.id});await loadGiftCodes();$('giftCodeStatus').textContent=`${c.code} deleted.`}catch(e){$('giftCodeStatus').textContent=e.message||String(e)}};
    actions.append(retry,del);div.append(actions);
   }
   box.append(div);
  }
- if(!shown.length){const empty=document.createElement('p');empty.className='muted';empty.textContent=giftHistoryCodes.length?'No codes in this category.':'No codes discovered yet. Owner can run Check for Codes Now.';box.append(empty)}
+ if(!shown.length){const empty=document.createElement('p');empty.className='muted';empty.textContent=giftHistoryFilter==='unverified'?'No codes are waiting for verification.':'No gift codes available yet.';box.append(empty)}
 }
 for(const button of document.querySelectorAll('[data-code-filter]'))button.onclick=()=>{giftHistoryFilter=button.dataset.codeFilter;renderGiftCodeHistory()};
 async function loadGiftCodes(){
  const box=$('giftCodeList'),status=$('giftCodeStatus');
- box.textContent='Loading discovered codes…';try{
+ box.textContent='Loading gift codes…';try{
   const r=await api('codes');giftHistoryCodes=r.codes||[];
   $('scanGiftCodes').hidden=data.role!=='owner';$('addGiftCode').hidden=data.role!=='owner';
-  $('giftQueueCount').textContent=data.role==='owner'?`${r.pending} pending redemption entries.`:'';
   renderGiftCodeHistory();
   status.textContent='';
- }catch(e){box.textContent='Unable to load code history.';status.textContent=e.message||String(e)}
+ }catch(e){box.textContent='Unable to load gift codes.';status.textContent=e.message||String(e)}
 }
-$('refreshGiftCodes').onclick=loadGiftCodes;
-$('scanGiftCodes').onclick=async()=>{const b=$('scanGiftCodes');b.disabled=true;$('giftCodeStatus').textContent='Checking public source…';try{const r=await api('scan_codes');await loadGiftCodes();$('giftCodeStatus').textContent=`Found ${r.codes_found}, added ${r.codes_added}, queued ${r.queue_added}. Needs Verification codes were rechecked too.`}catch(e){$('giftCodeStatus').textContent=e.message||String(e)}finally{b.disabled=false}};
-$('addGiftCode').onclick=async()=>{await modal('Add Gift Code',field('manualGiftCode','Gift Code'),{ok:'Add Code',onOk:async body=>{const code=body.querySelector('#manualGiftCode').value.trim();const r=await api('manual_code',{code});await loadGiftCodes();$('giftCodeStatus').textContent=r.saved?.added?`Code ${code} added to Needs Verification. It will not redeem until confirmed.`:`Code ${code} is already recorded.`;return true}})};
+$('refreshGiftCodes').onclick=async()=>{const b=$('refreshGiftCodes');b.disabled=true;try{if(data.role==='owner')await api('scan_codes');await loadGiftCodes()}catch(e){$('giftCodeStatus').textContent=e.message||String(e)}finally{b.disabled=false}};
+$('scanGiftCodes').onclick=async()=>{const b=$('scanGiftCodes');b.disabled=true;$('giftCodeStatus').textContent='Checking gift codes…';try{await api('scan_codes');await loadGiftCodes();$('giftCodeStatus').textContent='Gift codes updated.'}catch(e){$('giftCodeStatus').textContent=e.message||String(e)}finally{b.disabled=false}};
+$('addGiftCode').onclick=async()=>{await modal('Add Gift Code',field('manualGiftCode','Gift Code'),{ok:'Verify & Add',onOk:async body=>{const code=body.querySelector('#manualGiftCode').value.trim();const r=await api('manual_code',{code});await loadGiftCodes();if(r.status==='active')$('giftCodeStatus').textContent=`${code} verified and activated.`;else if(r.status==='expired')$('giftCodeStatus').textContent=`${code} is expired.`;else if(r.status==='needs_verification')$('giftCodeStatus').textContent=`${code} was saved to Needs Verification because verification is temporarily unavailable.`;return true}})};
 
 $('grantStaff').onclick=async()=>{const btn=$('grantStaff');btn.disabled=true;try{const role=$('staffRole').value,state=$('staffState').value,alliance=$('staffAlliance').value;const r=await api('grant_staff',{game_id:clean($('staffGameId').value),role,state_number:role==='redeemer_admin'?Number(state):null,alliance_id:role==='alliance_manager'?alliance:null});$('staffStatus').textContent=r.result?.status==='active_existing_account'?'Existing staff account activated.':'Game ID authorized for first-time registration.';$('staffGameId').value=''}catch(e){$('staffStatus').textContent=e.message}finally{btn.disabled=false}};
 $('logout').onclick=async()=>{try{await rpc('transfer_staff_logout',{p_token:token})}catch{}localStorage.removeItem('nexa_transfer_staff_token');sessionStorage.removeItem('nexa_transfer_staff_token');location.reload()};

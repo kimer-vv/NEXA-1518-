@@ -1,4 +1,4 @@
-// NEXA DISCORD BOT V1.9.0 — /NEXA COMMAND HUB
+// NEXA DISCORD BOT V1.9.1 — /NEXA COMMAND HUB / ACTIVE APPLICANTS ONLY
 import {
   rawBody,verifyDiscord,db,getConfigByGuild,
   getCurrentEvent,currentApps,selectedApps,recruitingAlliances,inviteCounts,
@@ -137,7 +137,7 @@ async function saveStart(cfg,date){
 async function clearTransferStart(cfg){await db.update('transfer_discord_integrations',`workspace_id=eq.${cfg.workspace_id}`,{event_start_at:null,last_sent:{},updated_at:nowIso()})}
 
 async function applicantByGameId(cfg,event,gameId){
-  const rows=await db.select('transfer_applications',`workspace_id=eq.${cfg.workspace_id}&transfer_event_id=eq.${event.id}&player_id=eq.${encodeURIComponent(gameId)}&select=*&limit=2`);
+  const rows=await db.select('transfer_applications',`workspace_id=eq.${cfg.workspace_id}&transfer_event_id=eq.${event.id}&archived_at=is.null&player_id=eq.${encodeURIComponent(gameId)}&select=*&limit=2`);
   return rows?.[0]||null;
 }
 async function validateAlliance(cfg,tag){
@@ -180,7 +180,7 @@ function categoryEmbeds(cfg,rows,{title,color}){
   return chunkRows(rows,10).map((part,i)=>embed(cfg,{title:`${title} · ${rows.length}${rows.length>10?` · ${i+1}/${Math.ceil(rows.length/10)}`:''}`,description:part.map(a=>compactApplicantLine(a)).join('\n\n'),color,footer:'⭐ Special Invite'}));
 }
 function compactListEmbeds(cfg,apps,placement='all'){
-  const active=(apps||[]).filter(a=>a.application_cycle!=='next');
+  const active=(apps||[]).filter(a=>a.archived_at==null&&a.application_cycle!=='next');
   const groups=active.filter(a=>a.group_id);
   const ordinary=active.filter(a=>!a.group_id&&a.application_bucket==='ordinary');
   const special=active.filter(a=>!a.group_id&&a.application_bucket==='special');
@@ -206,9 +206,9 @@ async function sendNewApplications(cfg){
   const rows=await db.select('transfer_discord_outbox',`workspace_id=eq.${cfg.workspace_id}&status=eq.pending&event_type=eq.new_application&available_at=lte.${encodeURIComponent(nowIso())}&order=created_at.asc&limit=10&select=*`);
   for(const item of rows||[]){
     try{
-      const found=await db.select('transfer_applications',`id=eq.${item.application_id}&select=id,in_game_name,player_id,current_state,current_alliance,furnace_level,current_power,discord_username,transferring_with_group,group_id,group_name,group_leader&limit=1`);
+      const found=await db.select('transfer_applications',`id=eq.${item.application_id}&archived_at=is.null&select=id,in_game_name,player_id,current_state,current_alliance,furnace_level,current_power,discord_username,transferring_with_group,group_id,group_name,group_leader&limit=1`);
       let a=found?.[0];
-      if(!a){await db.update('transfer_discord_outbox',`id=eq.${item.id}`,{status:'failed',last_error:'application_not_found'});continue}
+      if(!a){await db.update('transfer_discord_outbox',`id=eq.${item.id}`,{status:'failed',last_error:'application_not_found_or_archived'});continue}
       [a]=await hydrateGroupMeta(cfg.workspace_id,[a]);
       const g=groupLine(a);
       const e=embed(cfg,{title:'📥 New Transfer Application',description:`**${a.in_game_name||'Applicant'}** submitted a new Transfer application.`,color:COLORS.applicant,fields:[field('🎮 Game ID',`\`${a.player_id||'—'}\``,true),field('🏰 Current State',a.current_state?`State ${a.current_state}`:'—',true),field('🛡️ Alliance',a.current_alliance||'—',true),field('🔥 Furnace',a.furnace_level||'—',true),field('⚡ Power',fmtPower(a.current_power),true),field('👥 Group',g||'Individual applicant',false),...(a.discord_username?[field('💬 Discord',`\`${a.discord_username}\``,false)]:[])],timestamp:true});

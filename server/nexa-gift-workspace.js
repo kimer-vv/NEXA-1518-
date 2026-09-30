@@ -1,7 +1,7 @@
 /* NEXA Gift Code Workspace | Server API v1.7
  * REPLACE: server/nexa-gift-workspace.js
- * Manual codes begin as unverified. Public discovery can promote them to available.
- * Automatic redemption only queues confirmed available codes.
+ * Manual codes are verified before activation. Needs Verification is only a temporary
+ * owner fallback when public verification sources are unavailable or incomplete.
  */
 import { createHash } from 'node:crypto';
 import { discoverAndPrepare } from './nexa-gift-discovery.js';
@@ -33,7 +33,7 @@ async function staff(req){
 const owner=s=>s.access.some(a=>a.role==='owner');
 const allowed=(s,state,alliance)=>owner(s)||s.access.some(a=>a.role==='redeemer_admin'&&a.state_number===Number(state))||s.access.some(a=>a.role==='alliance_manager'&&alliance&&a.alliance_id===alliance);
 const stateAllowed=(s,state)=>owner(s)||s.access.some(a=>a.role==='redeemer_admin'&&a.state_number===Number(state))||s.access.some(a=>a.role==='alliance_manager'&&a.alliance_id);
-function idCheck(v){const x=String(v??'').trim();if(!/^\d{1,30}$/.test(x))throw fail('Game ID must contain 1ÃÂ¢ÃÂÃÂ30 digits.');return x;}
+function idCheck(v){const x=String(v??'').trim();if(!/^\d{1,30}$/.test(x))throw fail('Game ID must contain 1â30 digits.');return x;}
 function nameCheck(v){const x=String(v??'').trim();if(!x||x.length>80)throw fail('Game Name is required (maximum 80 characters).');return x;}
 function stateCheck(v){const n=Number(v);if(!Number.isSafeInteger(n)||n<=0)throw fail('Invalid state number.');return n;}
 function allianceCheck(v){const x=String(v??'');if(!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(x))throw fail('Invalid alliance.');return x;}
@@ -79,14 +79,37 @@ export default async function handler(req,res){
     if(!owner(s))throw fail('Owner access required.',403);
     const result=await discoverAndPrepare();
     if(!result.ok)return json(res,502,result);
+    let invalid_removed=0;
+    if(result.status==='success'){
+      const waiting=await db('gift_codes?status=eq.unverified&select=id&limit=500');
+      for(const item of waiting){try{await rpc('gift_v3_delete_unverified_code',{p_code_id:item.id});invalid_removed++}catch{}}
+    }
     const auto=await runGiftAutoWorker();
-    return json(res,200,{...result,auto});
+    return json(res,200,{...result,invalid_removed,auto});
    }
    case 'manual_code':{
     if(!owner(s))throw fail('Owner access required.',403);
     const code=String(b.code||'').trim();if(!/^[A-Za-z0-9_-]{4,120}$/.test(code))throw fail('Enter a valid code (4-120 letters, digits, hyphen or underscore).');
-    const saved=await rpc('gift_v1_record_discovered_code',{p_code:code,p_source:'NEXA Staff (manual)',p_reward_type:'unknown'});
-    return json(res,200,{ok:true,saved,queued:0,status:'unverified'});
+    const existing=await db(`gift_codes?code=eq.${enc(code)}&select=id,code,status,source,expires_at&limit=1`);
+    if(String(existing?.[0]?.status||'').toLowerCase()==='expired')return json(res,200,{ok:true,status:'expired',code:existing[0]});
+    const discovery=await discoverAndPrepare();
+    const after=await db(`gift_codes?code=eq.${enc(code)}&select=id,code,status,source,expires_at&limit=1`);
+    const current=after?.[0]||null;
+    if(current&&['available','active'].includes(String(current.status||'').toLowerCase())){
+      const auto=await runGiftAutoWorker();
+      return json(res,200,{ok:true,status:'active',code:current,auto});
+    }
+    if(current&&String(current.status||'').toLowerCase()==='expired')return json(res,200,{ok:true,status:'expired',code:current});
+    if(discovery.status==='success'){
+      if(current&&String(current.status||'').toLowerCase()==='unverified'){try{await rpc('gift_v3_delete_unverified_code',{p_code_id:current.id})}catch{}}
+      throw fail('Gift code not found. Check the code and try again.',400);
+    }
+    let saved=current;
+    if(!saved){
+      await rpc('gift_v1_record_discovered_code',{p_code:code,p_source:'NEXA Staff (manual)',p_reward_type:'unknown'});
+      const rows=await db(`gift_codes?code=eq.${enc(code)}&select=id,code,status,source,expires_at&limit=1`);saved=rows?.[0]||null;
+    }
+    return json(res,200,{ok:true,status:'needs_verification',code:saved,verification_status:discovery.status});
    }
    case 'retry_code_verification':{
     if(!owner(s))throw fail('Owner access required.',403);
@@ -95,7 +118,14 @@ export default async function handler(req,res){
     if(!before.length)throw fail('Needs Verification code not found.',404);
     const discovery=await discoverAndPrepare();
     const after=await db(`gift_codes?id=eq.${enc(codeId)}&select=id,code,status,source,expires_at&limit=1`);
-    return json(res,200,{ok:true,code:after?.[0]||null,discovery});
+    const current=after?.[0]||null;
+    if(current&&['available','active'].includes(String(current.status||'').toLowerCase())){const auto=await runGiftAutoWorker();return json(res,200,{ok:true,status:'active',code:current,auto});}
+    if(current&&String(current.status||'').toLowerCase()==='expired')return json(res,200,{ok:true,status:'expired',code:current});
+    if(discovery.status==='success'){
+      await rpc('gift_v3_delete_unverified_code',{p_code_id:codeId});
+      return json(res,200,{ok:true,status:'invalid',code:null});
+    }
+    return json(res,200,{ok:true,status:'needs_verification',code:current,verification_status:discovery.status});
    }
    case 'delete_unverified_code':{
     if(!owner(s))throw fail('Owner access required.',403);
@@ -113,7 +143,7 @@ export default async function handler(req,res){
    }
    case 'create_alliance':{
     const n=stateCheck(b.state_number);if(!owner(s)&&!s.access.some(a=>a.role==='redeemer_admin'&&a.state_number===n))throw fail('State administrator or Owner access required.',403);
-    const tag=String(b.tag||'').trim().toUpperCase();if(!/^[^\s]{1,24}$/.test(tag))throw fail('Alliance tag must contain 1ÃÂ¢ÃÂÃÂ24 characters without spaces.');
+    const tag=String(b.tag||'').trim().toUpperCase();if(!/^[^\s]{1,24}$/.test(tag))throw fail('Alliance tag must contain 1â24 characters without spaces.');
     const rows=await db('gift_alliances',{method:'POST',body:{state_number:n,tag,name:String(b.name||tag).trim().slice(0,80),auto_redeem:true}});
     return json(res,200,{ok:true,alliance:rows?.[0]});
    }
@@ -140,7 +170,7 @@ export default async function handler(req,res){
    }
    case 'register':{
     const a=await alliance(allianceCheck(b.alliance_id));if(!allowed(s,a.state_number,a.id))throw fail('Access denied.',403);
-    const rows=Array.isArray(b.rows)?b.rows:[];if(!rows.length||rows.length>1000)throw fail('Enter 1ÃÂ¢ÃÂÃÂ1000 members.');
+    const rows=Array.isArray(b.rows)?b.rows:[];if(!rows.length||rows.length>1000)throw fail('Enter 1â1000 members.');
     const clean=rows.map(x=>({game_id:idCheck(x.game_id),game_name:nameCheck(x.game_name)}));
     const ids=clean.map(x=>x.game_id);if(new Set(ids).size!==ids.length)throw fail('Duplicate Game IDs in this import.');
     const bulk=b.method==='bulk';let batch=null;

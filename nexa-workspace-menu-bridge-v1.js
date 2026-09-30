@@ -1,15 +1,19 @@
-/* NEXA WORKSPACE MENU BRIDGE V1.4 — REPLACE EXISTING FILE
-   Adds Gift Code Workspace as a third item, without changing Transfer/Ministry modules.
-   Planning Workspace is intentionally NOT listed.
-   Preserves native state-hub menu behavior and avoids intercepting inner workspace links.
+/* NEXA WORKSPACE MENU BRIDGE V1.5 — WOS UTILITIES HUB
+   Complete replacement file.
+   Keeps Transfer / Ministry intact and routes WOS Utilities to the shared utilities hub.
 */
 (()=>{'use strict';
-if(window.__NEXA_WORKSPACE_MENU_BRIDGE_V14__)return;
-window.__NEXA_WORKSPACE_MENU_BRIDGE_V14__=true;
+if(window.__NEXA_WORKSPACE_MENU_BRIDGE_V15__)return;
+window.__NEXA_WORKSPACE_MENU_BRIDGE_V15__=true;
+
 const LABEL_TRANSFERS='Transfers';
 const LABEL_WORKSPACE='Workspace';
+const LABEL_WOS='WOS Utilities';
+const WOS_URL='wos-utilities.html';
+
 function textOf(el){return String(el?.textContent||'').replace(/\s+/g,' ').trim();}
 function actionable(el){return el?.closest?.('button,a,[role="button"]')||null;}
+
 function ensureStyle(){
  if(document.getElementById('nexa-workspace-picker-style'))return;
  const s=document.createElement('style');s.id='nexa-workspace-picker-style';
@@ -24,7 +28,9 @@ function ensureStyle(){
  .nexa-workspace-choice small{display:block;margin-top:4px;color:#aebbd7;font-size:10px;font-weight:700}`;
  document.head.appendChild(s);
 }
+
 function closePicker(){document.getElementById('nexa-workspace-picker')?.remove();}
+
 function openPicker(){
  ensureStyle();closePicker();
  const root=document.createElement('div');root.id='nexa-workspace-picker';root.className='nexa-workspace-picker';
@@ -33,15 +39,16 @@ function openPicker(){
    <button class="nexa-workspace-picker-close" type="button" aria-label="Close">×</button></div>
    <button class="nexa-workspace-choice" data-go="transfer" type="button">Transfer Workspace<small>Transfer cycles, applicants, integrations and access</small></button>
    <button class="nexa-workspace-choice" data-go="ministry" type="button">Ministry Workspace<small>Requests, appointment scheduling and access</small></button>
-   <button class="nexa-workspace-choice" data-go="gift" type="button">WOS Utilities<small>Gift codes, event reminders and alliance utilities</small></button>
+   <button class="nexa-workspace-choice" data-go="wos" type="button">WOS Utilities<small>Gift codes, event reminders and alliance utilities</small></button>
  </div>`;
  root.querySelector('.nexa-workspace-picker-close').onclick=closePicker;
  root.addEventListener('click',e=>{if(e.target===root)closePicker();});
  root.querySelector('[data-go="transfer"]').onclick=()=>{location.href='transfer-workspace.html';};
  root.querySelector('[data-go="ministry"]').onclick=()=>{location.href='ministry-workspace.html';};
- root.querySelector('[data-go="gift"]').onclick=()=>{location.href='gift-code-workspace.html';};
+ root.querySelector('[data-go="wos"]').onclick=()=>{location.href=WOS_URL;};
  document.body.appendChild(root);
 }
+
 function installWorkspaceEntry(){
  const nodes=[...document.querySelectorAll('button,a,[role="button"]')];
  for(const el of nodes){
@@ -51,19 +58,36 @@ function installWorkspaceEntry(){
   el.removeAttribute('href');
  }
 }
+
 function refreshAfterMenuAction(){requestAnimationFrame(()=>requestAnimationFrame(installWorkspaceEntry));}
+
 document.addEventListener('click',e=>{
  const hit=actionable(e.target);if(!hit)return;
  const label=textOf(hit);
+
+ if(label===LABEL_WOS){
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  location.href=WOS_URL;
+  return;
+ }
+
  if(label===LABEL_WORKSPACE||hit.dataset.nexaWorkspaceBridge==='workspace'){
   e.preventDefault();e.stopImmediatePropagation();openPicker();return;
  }
+
  if(label===LABEL_TRANSFERS){
-  e.preventDefault();e.stopImmediatePropagation();hit.textContent=LABEL_WORKSPACE;
-  hit.dataset.nexaWorkspaceBridge='workspace';hit.removeAttribute('href');openPicker();return;
+  e.preventDefault();e.stopImmediatePropagation();
+  hit.textContent=LABEL_WORKSPACE;
+  hit.dataset.nexaWorkspaceBridge='workspace';
+  hit.removeAttribute('href');
+  openPicker();
+  return;
  }
+
  refreshAfterMenuAction();
 },true);
+
 document.addEventListener('DOMContentLoaded',()=>{installWorkspaceEntry();refreshAfterMenuAction();});
 window.addEventListener('pageshow',installWorkspaceEntry);
 })();

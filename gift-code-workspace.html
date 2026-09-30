@@ -1,7 +1,7 @@
 <!doctype html>
-<!-- NEXA Gift Code Workspace V1.6 — UNIFORM HEADER + MANAGE ALLIANCES | REPLACE EXISTING FILE: gift-code-workspace.html
-     Requires reviewed SQL migration and Gift Owner access. API reuses api/nexa-system-settings.js.
-     Automatic redemption remains off; an Owner-only controlled test can send one hard-locked provider request. -->
+<!-- NEXA Gift Code Workspace V1.7 — FINAL AUTO-REDEEM UI
+     Manual codes enter Needs Verification. Public discovery promotes confirmed source-listed codes.
+     Controlled Worker Test removed after successful validation. -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NEXA • Gift Code Workspace</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -230,17 +230,11 @@ textarea{min-height:146px;line-height:1.55;resize:vertical}
    <div id="directory"></div>
   </section>
   <section class="hidden" data-panel="codes">
- <div class="card"><div class="flex" style="justify-content:space-between;align-items:flex-start"><div><h2>Automatic Code Discovery</h2><p class="muted">Public codes are checked on a server schedule. Source-listed does not mean every account can redeem them.</p></div><span class="pill">REDEMPTION OFF</span></div>
- <p class="info-line">NEXA stores discovered codes and prepares a local queue for eligible enabled members. No Game IDs or code claims are sent to a redemption provider in this phase.</p>
+ <div class="card"><div class="flex" style="justify-content:space-between;align-items:flex-start"><div><h2>Automatic Code Discovery</h2><p class="muted">Public codes are checked on a server schedule. Source-listed does not mean every account can redeem them.</p></div><span class="pill">AUTO-REDEEM</span></div>
+ <p class="info-line">NEXA stores confirmed codes and prepares redemptions only for eligible enabled members. Needs Verification codes stay out of the redemption queue until confirmed.</p>
  <div class="flex"><button id="scanGiftCodes" type="button">Check for Codes Now</button><button class="ghost" id="refreshGiftCodes" type="button">Refresh</button><button class="ghost" id="addGiftCode" type="button">+ Add Gift Code</button></div>
  <p id="giftCodeStatus" class="status" role="status"></p><p id="giftQueueCount" class="info-line"></p></div>
- <div class="card hidden" id="controlledWorkerTestCard">
-  <div class="flex" style="justify-content:space-between;align-items:flex-start"><div><h2>Controlled Worker Test</h2><p class="muted">Owner-only one-time provider test. This does not process the normal redemption queue.</p></div><span class="pill">ISOLATED TEST</span></div>
-  <p class="info-line">Locked target: Game ID <b>439740340</b> · State <b>2800</b> · Code <b>1stYoutubeKR</b>. The server rejects every other account, state, or code.</p>
-  <div class="flex"><button id="runControlledWorkerTest" type="button">Run Controlled Test</button></div>
-  <p id="controlledWorkerTestStatus" class="status" role="status"></p>
- </div>
- <div class="card"><h2>Code History</h2><p class="muted">Active means listed by a checked public source, not guaranteed redeemable for every account. Expired requires an explicit stored status or an elapsed known expiry. Codes without verification stay separate.</p><nav id="giftHistoryTabs" class="gift-history-tabs" aria-label="Code history status"><button type="button" data-code-filter="active" aria-selected="true">Active Codes</button><button type="button" data-code-filter="expired" aria-selected="false">Expired Codes</button><button type="button" data-code-filter="unverified" aria-selected="false">Unverified</button></nav><div id="giftCodeList" class="gift-code-list"></div></div>
+ <div class="card"><h2>Code History</h2><p class="muted">Active means listed by a checked public source, not guaranteed redeemable for every account. Expired requires an explicit stored status or an elapsed known expiry. Codes that cannot yet be confirmed stay in Needs Verification and are never auto-redeemed.</p><nav id="giftHistoryTabs" class="gift-history-tabs" aria-label="Code history status"><button type="button" data-code-filter="active" aria-selected="true">Active Codes</button><button type="button" data-code-filter="expired" aria-selected="false">Expired Codes</button><button type="button" data-code-filter="unverified" aria-selected="false">Needs Verification</button></nav><div id="giftCodeList" class="gift-code-list"></div></div>
 
  </section>
   <section class="hidden" data-panel="staff">
@@ -436,7 +430,7 @@ function renderGiftCodeHistory(){
  for(const button of document.querySelectorAll('[data-code-filter]')){
   const filter=button.dataset.codeFilter;
   button.setAttribute('aria-selected',String(filter===giftHistoryFilter));
-  button.textContent=({active:'Active Codes',expired:'Expired Codes',unverified:'Unverified'})[filter]+` (${counts[filter]})`;
+  button.textContent=({active:'Active Codes',expired:'Expired Codes',unverified:'Needs Verification'})[filter]+` (${counts[filter]})`;
  }
  const shown=giftHistoryCodes.filter(c=>giftCodeCategory(c)===giftHistoryFilter);
  for(const c of shown){
@@ -444,8 +438,16 @@ function renderGiftCodeHistory(){
   const head=document.createElement('div');head.className='gift-code-head';
   const strong=document.createElement('strong');strong.textContent=c.code;
   const pill=document.createElement('span');pill.className=`gift-status ${category}`;
-  pill.textContent=({active:'● Active',expired:'● Expired',unverified:'● Unverified'})[category];
+  pill.textContent=({active:'● Active',expired:'● Expired',unverified:'● Needs Verification'})[category];
   head.append(strong,pill);div.append(head);
+  if(category==='unverified'&&data.role==='owner'){
+   const actions=document.createElement('div');actions.className='flex';actions.style.marginTop='10px';
+   const retry=document.createElement('button');retry.type='button';retry.className='ghost tiny';retry.textContent='Retry Verification';
+   retry.onclick=async()=>{retry.disabled=true;try{const r=await api('retry_code_verification',{code_id:c.id});await loadGiftCodes();$('giftCodeStatus').textContent=r.code?.status==='available'?`${c.code} verified and moved to Active.`:`${c.code} is still waiting for verification.`}catch(e){$('giftCodeStatus').textContent=e.message||String(e)}finally{retry.disabled=false}};
+   const del=document.createElement('button');del.type='button';del.className='danger tiny';del.textContent='Delete';
+   del.onclick=async()=>{if(!await confirmation('Delete Code',`Delete ${escapeText(c.code)} from Needs Verification? This is only allowed when it has no successful redemption history.`,'Delete Code'))return;try{await api('delete_unverified_code',{code_id:c.id});await loadGiftCodes();$('giftCodeStatus').textContent=`${c.code} deleted.`}catch(e){$('giftCodeStatus').textContent=e.message||String(e)}};
+   actions.append(retry,del);div.append(actions);
+  }
   box.append(div);
  }
  if(!shown.length){const empty=document.createElement('p');empty.className='muted';empty.textContent=giftHistoryCodes.length?'No codes in this category.':'No codes discovered yet. Owner can run Check for Codes Now.';box.append(empty)}
@@ -456,30 +458,14 @@ async function loadGiftCodes(){
  box.textContent='Loading discovered codes…';try{
   const r=await api('codes');giftHistoryCodes=r.codes||[];
   $('scanGiftCodes').hidden=data.role!=='owner';$('addGiftCode').hidden=data.role!=='owner';
-  $('controlledWorkerTestCard').classList.toggle('hidden',data.role!=='owner');
-  $('giftQueueCount').textContent=data.role==='owner'?`${r.pending} local pending entries (not sent to game).`:'Actual redemption is not enabled.';
+  $('giftQueueCount').textContent=data.role==='owner'?`${r.pending} pending redemption entries.`:'';
   renderGiftCodeHistory();
   status.textContent='';
  }catch(e){box.textContent='Unable to load code history.';status.textContent=e.message||String(e)}
 }
 $('refreshGiftCodes').onclick=loadGiftCodes;
-$('scanGiftCodes').onclick=async()=>{const b=$('scanGiftCodes');b.disabled=true;$('giftCodeStatus').textContent='Checking public source…';try{const r=await api('scan_codes');await loadGiftCodes();$('giftCodeStatus').textContent=`Found ${r.codes_found}, added ${r.codes_added}, queued ${r.queue_added}. No redemptions sent.`}catch(e){$('giftCodeStatus').textContent=e.message||String(e)}finally{b.disabled=false}};
-$('addGiftCode').onclick=async()=>{await modal('Add Gift Code',field('manualGiftCode','Gift Code'),{ok:'Add Code',onOk:async body=>{const code=body.querySelector('#manualGiftCode').value.trim();const r=await api('manual_code',{code});await loadGiftCodes();$('giftCodeStatus').textContent=`Code ${r.saved?.added?'added':'already recorded'}. ${r.queued||0} new queue entries. Redemption remains OFF.`;return true}})};
-$('runControlledWorkerTest').onclick=async()=>{
- const btn=$('runControlledWorkerTest'),status=$('controlledWorkerTestStatus');
- const confirmed=await confirmation('Run Controlled Worker Test','This sends ONE real redemption request only for Game ID 439740340 · State 2800 · code 1stYoutubeKR. It does not claim or process the normal pending queue.','Run One Test');
- if(!confirmed)return;
- btn.disabled=true;status.textContent='Sending one isolated worker request…';
- try{
-  const r=await api('controlled_worker_test',{game_id:'439740340',state_number:2800,code:'1stYoutubeKR'});
-  const provider=r.provider_code?` · Provider: ${r.provider_code}`:'';
-  status.textContent=`Result: ${r.status||'unknown'}${provider}`;
-  if(r.status==='redeemed')message('Controlled worker test succeeded: 1stYoutubeKR was accepted for Game ID 439740340.');
-  else if(r.status==='already_redeemed')message('Controlled worker test reached the provider: 1stYoutubeKR was already redeemed for Game ID 439740340.');
-  else message(`Controlled worker test returned: ${r.status||'unknown'}.`);
- }catch(e){status.textContent=e.message||String(e);message('Controlled worker test did not report a successful redemption.')}
- finally{btn.disabled=false}
-};
+$('scanGiftCodes').onclick=async()=>{const b=$('scanGiftCodes');b.disabled=true;$('giftCodeStatus').textContent='Checking public source…';try{const r=await api('scan_codes');await loadGiftCodes();$('giftCodeStatus').textContent=`Found ${r.codes_found}, added ${r.codes_added}, queued ${r.queue_added}. Needs Verification codes were rechecked too.`}catch(e){$('giftCodeStatus').textContent=e.message||String(e)}finally{b.disabled=false}};
+$('addGiftCode').onclick=async()=>{await modal('Add Gift Code',field('manualGiftCode','Gift Code'),{ok:'Add Code',onOk:async body=>{const code=body.querySelector('#manualGiftCode').value.trim();const r=await api('manual_code',{code});await loadGiftCodes();$('giftCodeStatus').textContent=r.saved?.added?`Code ${code} added to Needs Verification. It will not redeem until confirmed.`:`Code ${code} is already recorded.`;return true}})};
 
 $('grantStaff').onclick=async()=>{const btn=$('grantStaff');btn.disabled=true;try{const role=$('staffRole').value,state=$('staffState').value,alliance=$('staffAlliance').value;const r=await api('grant_staff',{game_id:clean($('staffGameId').value),role,state_number:role==='redeemer_admin'?Number(state):null,alliance_id:role==='alliance_manager'?alliance:null});$('staffStatus').textContent=r.result?.status==='active_existing_account'?'Existing staff account activated.':'Game ID authorized for first-time registration.';$('staffGameId').value=''}catch(e){$('staffStatus').textContent=e.message}finally{btn.disabled=false}};
 $('logout').onclick=async()=>{try{await rpc('transfer_staff_logout',{p_token:token})}catch{}localStorage.removeItem('nexa_transfer_staff_token');sessionStorage.removeItem('nexa_transfer_staff_token');location.reload()};

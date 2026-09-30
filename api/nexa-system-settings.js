@@ -7,7 +7,7 @@ import {
 import giftWorkspaceHandler from '../server/nexa-gift-workspace.js';
 import { giftCron } from '../server/nexa-gift-discovery.js';
 import { redeemSingleTest } from '../server/nexa-gift-redeemer.js';
-import { runGiftAutoWorker, runGiftControlledTest } from '../server/nexa-gift-auto-worker.js';
+import { runGiftAutoWorker } from '../server/nexa-gift-auto-worker.js';
 
 const HERO_IMAGE_HOSTS = new Set([
   'www.whiteoutsurvival-community.com',
@@ -80,18 +80,6 @@ async function setSetting(service, enabled) {
 export default async function handler(req, res) {
   try {
     if (req.query?.mode === 'gift-test-redeem') return await redeemSingleTest(req, res);
-
-    // One-shot controlled worker test. Uses the existing API file and the same
-    // test secret. The worker itself hard-rejects any other account/state/code.
-    if (req.query?.mode === 'gift-worker-controlled-test') {
-      if (req.method !== 'POST') return json(res, 405, {ok:false,error:'POST required'});
-      const secret = process.env.NEXA_GIFT_TEST_SECRET || '';
-      const auth = String(req.headers.authorization || '');
-      if (secret.length < 24 || auth !== `Bearer ${secret}`) return json(res, 401, {ok:false,error:'Unauthorized'});
-      if (process.env.NEXA_GIFT_TEST_ENABLED !== 'true') return json(res, 503, {ok:false,error:'Single-account test is disabled'});
-      const result = await runGiftControlledTest(req.body || {});
-      return json(res, 200, {ok:result.status==='redeemed'||result.status==='already_redeemed',...result});
-    }
 
     // Existing CRON_SECRET protects discovery AND the auto worker.
     if (req.query?.mode === 'giftcron') {

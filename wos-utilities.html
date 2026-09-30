@@ -1,0 +1,226 @@
+<!doctype html>
+<!-- NEXA WOS Utilities V1.0 — MODULE HUB -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#050713">
+<title>NEXA • WOS Utilities</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+ color-scheme:dark;
+ --bg:#050713;--card:#10172f;--card2:#0b1126;--line:rgba(149,167,255,.25);
+ --muted:#abb7d4;--cyan:#59e4ff;--violet:#a779ff;--pink:#f06dbb;--green:#6cf1b2;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:radial-gradient(circle at 7% 5%,#20234a,#070b1b 50%,#050713);color:#f5f6ff;font:15px system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,input,select{font:inherit}
+button{cursor:pointer}
+.hidden{display:none!important}
+.shell{width:min(1100px,100%);margin:auto;padding:20px 14px 80px}
+.top{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:18px}
+.brand{min-width:0}
+.kicker{color:#92a2c8;font-size:10px;letter-spacing:.18em;font-weight:950}
+h1{margin:5px 0 4px;font-size:clamp(1.9rem,7vw,3.2rem);line-height:1.02;background:linear-gradient(90deg,#a779ff,#7b82ff,#55bfff,#59efff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.muted{color:var(--muted)}
+.top-actions{display:flex;flex-direction:column;gap:8px;flex:0 0 min(235px,47%)}
+select,.top-actions button,.copy-row input{
+ width:100%;min-height:44px;border-radius:13px;border:1px solid #515f8b;background:#101831;color:#f5f7ff;padding:10px 12px
+}
+.top-actions button{background:#141b30;font-weight:850}
+.hero{border:1px solid var(--line);border-radius:24px;padding:20px;background:linear-gradient(145deg,rgba(19,27,54,.95),rgba(10,15,31,.97));margin-bottom:15px}
+.hero h2{margin:0 0 7px;font-size:clamp(22px,5vw,31px)}
+.module-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.module-card{
+ position:relative;min-height:175px;border:1px solid rgba(150,169,255,.27);border-radius:22px;padding:18px;
+ background:linear-gradient(145deg,rgba(18,27,55,.96),rgba(9,14,30,.98));display:flex;flex-direction:column;justify-content:space-between
+}
+.module-card h3{font-size:22px;margin:8px 0 7px}
+.module-card p{margin:0;color:#adb9d5;line-height:1.5}
+.module-icon{font-size:28px}
+.module-card button{margin-top:17px;min-height:43px;border-radius:13px;border:1px solid #736dc3;background:linear-gradient(120deg,#5143a7,#198aac);color:#fff;font-weight:900}
+.module-card .tag{position:absolute;top:14px;right:14px;border:1px solid #48618d;border-radius:999px;padding:4px 8px;font-size:10px;color:#bdefff;background:#0a1530}
+.utility-row{display:grid;grid-template-columns:1.25fr .75fr;gap:13px;margin-top:13px}
+.card{border:1px solid var(--line);border-radius:22px;padding:18px;background:linear-gradient(145deg,rgba(18,27,55,.94),rgba(9,14,30,.97))}
+.card h3{margin:0 0 7px}
+.copy-row{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:12px}
+.copy-row button{min-width:110px;border:1px solid #6f77b6;border-radius:13px;background:#172544;color:#fff;font-weight:850;padding:10px}
+.status{min-height:18px;margin:8px 0 0;color:#85e8c7;font-size:13px}
+.backbar{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.backbar button{border:1px solid #53618b;border-radius:12px;background:#121b35;color:#fff;padding:9px 12px;font-weight:850}
+.frame-wrap{border:1px solid var(--line);border-radius:22px;overflow:hidden;background:#080d1f;min-height:75vh}
+iframe{display:block;width:100%;min-height:78vh;border:0;background:#080d1f}
+.reminder-shell{border:1px solid var(--line);border-radius:22px;padding:18px;background:linear-gradient(145deg,rgba(18,27,55,.94),rgba(9,14,30,.97))}
+.reminder-shell h2{margin-top:0}
+.reminder-preview{display:grid;gap:10px;margin-top:14px}
+.reminder-preview article{border:1px solid #34446e;border-radius:15px;padding:14px;background:#0b132b}
+.reminder-preview b{display:block;margin-bottom:5px}
+@media(max-width:700px){
+ .module-grid,.utility-row{grid-template-columns:1fr}
+ .top{gap:10px}.top-actions{flex-basis:min(185px,48%)}
+ .copy-row{grid-template-columns:1fr}
+ .copy-row button{width:100%}
+}
+</style>
+</head>
+<body>
+<main class="shell">
+ <header class="top">
+  <div class="brand">
+   <div class="kicker">NEXA · STATE OPERATIONS</div>
+   <h1>WOS Utilities</h1>
+   <div class="muted">Alliance tools in one place.</div>
+  </div>
+  <div class="top-actions">
+   <select id="workspaceSwitch" aria-label="Switch workspace"><option value="wos-utilities.html">WOS Utilities</option></select>
+   <button id="logoutBtn" type="button">Log Out</button>
+  </div>
+ </header>
+
+ <section id="homeView">
+  <section class="hero">
+   <h2>Utilities</h2>
+   <p class="muted">Choose a module. Gift Codes and Event Reminders stay separate, while sharing the same WOS Utilities access and alliance directory.</p>
+  </section>
+
+  <section class="module-grid">
+   <article class="module-card">
+    <span class="tag">ACTIVE</span>
+    <div>
+     <div class="module-icon">🎁</div>
+     <h3>Gift Codes</h3>
+     <p>Manage states, alliances, members, automatic redemption and code history.</p>
+    </div>
+    <button type="button" data-open="gift">Open Gift Codes</button>
+   </article>
+
+   <article class="module-card">
+    <span class="tag">MODULE</span>
+    <div>
+     <div class="module-icon">⏰</div>
+     <h3>Event Reminders</h3>
+     <p>Create alliance event reminders, Discord notifications and reusable event rules.</p>
+    </div>
+    <button type="button" data-open="reminders">Open Event Reminders</button>
+   </article>
+  </section>
+
+  <section class="utility-row">
+   <article class="card">
+    <h3>Workspace Link</h3>
+    <p class="muted">Share this WOS Utilities link with authorized alliance leaders and staff. Access permissions still control what each person can manage.</p>
+    <div class="copy-row">
+     <input id="workspaceUrl" readonly aria-label="WOS Utilities link">
+     <button id="copyWorkspace" type="button">Copy Link</button>
+    </div>
+    <p id="copyStatus" class="status" role="status"></p>
+   </article>
+   <article class="card">
+    <h3>Shared Setup</h3>
+    <p class="muted">Alliance records are shared across WOS Utilities. Module permissions can be separated as we add Event Reminders access.</p>
+   </article>
+  </section>
+ </section>
+
+ <section id="giftView" class="hidden">
+  <div class="backbar"><button type="button" data-home>← WOS Utilities</button><b>Gift Codes</b></div>
+  <div class="frame-wrap"><iframe id="giftFrame" title="NEXA Gift Codes"></iframe></div>
+ </section>
+
+ <section id="remindersView" class="hidden">
+  <div class="backbar"><button type="button" data-home>← WOS Utilities</button><b>Event Reminders</b></div>
+  <section class="reminder-shell">
+   <h2>Event Reminders</h2>
+   <p class="muted">This is the new reminder module shell. The scheduler and Bear Trap / Foundry configuration will connect here next.</p>
+   <div class="reminder-preview">
+    <article><b>🐻 Bear Trap</b><span class="muted">Flexible reminders, event-time notification, optional Bear Trap Rules and Copy Rules.</span></article>
+    <article><b>🏭 Foundry</b><span class="muted">Anchor the next Foundry date once; NEXA will use the event cycle automatically.</span></article>
+    <article><b>⚔️ Canyon / Other Events</b><span class="muted">Event-specific schedules and reusable alliance settings.</span></article>
+   </div>
+  </section>
+ </section>
+</main>
+
+<script type="module">
+const SUPA='https://dfxcxboxrkfmrnsgpyin.supabase.co';
+const PUB='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
+const sb=window.supabase.createClient(SUPA,PUB);
+const $=id=>document.getElementById(id);
+let token=localStorage.getItem('nexa_transfer_staff_token')||sessionStorage.getItem('nexa_transfer_staff_token')||'';
+
+const home=$('homeView'),gift=$('giftView'),reminders=$('remindersView');
+
+function show(which){
+ home.classList.toggle('hidden',which!=='home');
+ gift.classList.toggle('hidden',which!=='gift');
+ reminders.classList.toggle('hidden',which!=='reminders');
+ if(which==='gift'&&!$('giftFrame').src){
+  $('giftFrame').src='gift-code-workspace.html?embedded=wos-utilities';
+ }
+ history.replaceState(null,'',which==='home'?'wos-utilities.html':`wos-utilities.html?module=${which}`);
+ window.scrollTo({top:0,behavior:'instant'});
+}
+
+async function loadWorkspaceSwitch(){
+ if(!token)return;
+ try{
+  const {data,error}=await sb.rpc('nexa_staff_workspace_access_v1',{p_token:token});
+  if(error||!data?.ok)return;
+  const sel=$('workspaceSwitch');
+  sel.replaceChildren();
+  for(const m of data.modules||[])sel.add(new Option(m.label,m.url));
+  if([...[...sel.options]].some(o=>o.value==='wos-utilities.html'))sel.value='wos-utilities.html';
+  sel.onchange=()=>{if(sel.value&&sel.value!=='wos-utilities.html')location.href=sel.value};
+ }catch(_){}
+}
+
+function cleanGiftFrame(){
+ const frame=$('giftFrame');
+ try{
+  const doc=frame.contentDocument;
+  if(!doc)return;
+  const style=doc.createElement('style');
+  style.textContent=`
+   #workspaceHeader{display:none!important}
+   .gift-share-card{display:none!important}
+   body{padding-top:0!important}
+   main{padding-top:8px!important}
+  `;
+  doc.head.appendChild(style);
+ }catch(_){}
+}
+
+$('giftFrame').addEventListener('load',cleanGiftFrame);
+document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>show(b.dataset.open));
+document.querySelectorAll('[data-home]').forEach(b=>b.onclick=()=>show('home'));
+
+const url=new URL(location.href);
+$('workspaceUrl').value=new URL('wos-utilities.html',location.href).href;
+$('copyWorkspace').onclick=async()=>{
+ const value=$('workspaceUrl').value;
+ try{
+  await navigator.clipboard.writeText(value);
+  $('copyStatus').textContent='WOS Utilities link copied.';
+ }catch{
+  $('workspaceUrl').focus();$('workspaceUrl').select();
+  $('copyStatus').textContent='Select and copy the link above.';
+ }
+};
+
+$('workspaceSwitch').onchange=()=>{if($('workspaceSwitch').value&&$('workspaceSwitch').value!=='wos-utilities.html')location.href=$('workspaceSwitch').value};
+
+$('logoutBtn').onclick=async()=>{
+ try{if(token)await sb.rpc('transfer_staff_logout',{p_token:token})}catch(_){}
+ localStorage.removeItem('nexa_transfer_staff_token');
+ sessionStorage.removeItem('nexa_transfer_staff_token');
+ token='';
+ location.href='gift-code-workspace.html';
+};
+
+loadWorkspaceSwitch();
+const startModule=url.searchParams.get('module');
+show(startModule==='gift'?'gift':startModule==='reminders'?'reminders':'home');
+</script>
+</body>
+</html>

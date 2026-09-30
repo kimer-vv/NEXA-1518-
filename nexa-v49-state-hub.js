@@ -1550,7 +1550,7 @@ async function openOwnedWorkspaceMenu(){
   const items=[
     ['Transfer Workspace',()=>ownedMenuGo('transfer-workspace.html')],
     ['Ministry Workspace',()=>ownedMenuGo('ministry-workspace.html')],
-    ['Gift Code Workspace',()=>ownedMenuGo('gift-code-workspace.html')]
+   ['WOS Utilities',()=>ownedMenuGo('gift-code-workspace.html')]
   ];
   ownedMenuSubview('WORKSPACE',items);
 }

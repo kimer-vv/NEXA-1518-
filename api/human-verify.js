@@ -1,7 +1,6 @@
 import crypto from 'node:crypto';
 
 const COOKIE = 'nexa_human_session';
-const HOSTNAME = 'nexa-1518.vercel.app';
 const ACTION = 'nexa_site_access';
 
 function sign(value, secret) {
@@ -9,6 +8,19 @@ function sign(value, secret) {
     .createHmac('sha256', secret)
     .update(value)
     .digest('base64url');
+}
+
+function requestHostname(req) {
+  const forwardedHost = req.headers['x-forwarded-host'];
+  const raw = Array.isArray(forwardedHost)
+    ? forwardedHost[0]
+    : forwardedHost || req.headers.host || '';
+
+  return String(raw)
+    .split(',')[0]
+    .trim()
+    .toLowerCase()
+    .replace(/:\d+$/, '');
 }
 
 export default async function handler(req, res) {
@@ -63,10 +75,12 @@ export default async function handler(req, res) {
     );
 
     const result = await cf.json();
+    const hostname = requestHostname(req);
 
     if (
       !result.success ||
-      result.hostname !== HOSTNAME ||
+      !hostname ||
+      String(result.hostname || '').toLowerCase() !== hostname ||
       result.action !== ACTION
     ) {
       return res.status(403).json({

@@ -1,6 +1,6 @@
 /* NEXA Gift Auto Worker v3. New file: server/nexa-gift-auto-worker.js
  * Requires SQL migration 01_gift_auto_redeem.sql.
- * Deliberately disabled unless NEXA_GIFT_AUTO_ENABLED=true.
+ * Production auto-redemption enabled after Owner authorization.
  * Uses the same provider protocol validated in the single-account test.
  */
 import {createHash} from 'node:crypto';
@@ -8,7 +8,7 @@ const SB_URL=process.env.SUPABASE_URL||'https://dfxcxboxrkfmrnsgpyin.supabase.co
 const ENDPOINT='https://wos-giftcode-api.centurygame.com/api/gift_code';
 const ORIGIN='https://wos-giftcode.centurygame.com';
 const SALT='tB87#kPtkxqOS2';
-const MAX_PER_RUN=4;
+const MAX_PER_RUN=50;
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function rpc(name,body){
  const key=process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -54,7 +54,6 @@ async function redeem(job){
  return classify(data);
 }
 export async function runGiftAutoWorker(){
- if(process.env.NEXA_GIFT_AUTO_ENABLED!=='true')return {enabled:false,processed:0};
  const expiry=await rpc('gift_v3_expire_due_codes',{});
  const stale=await rpc('gift_v3_mark_stale_unknown',{});
  let processed=0,redeemed=0,already_redeemed=0,failed=0,unknown=0,retry_scheduled=0;

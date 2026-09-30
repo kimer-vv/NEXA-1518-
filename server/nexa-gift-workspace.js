@@ -5,6 +5,7 @@
  */
 import { createHash } from 'node:crypto';
 import { discoverAndPrepare } from './nexa-gift-discovery.js';
+import { runGiftAutoWorker } from './nexa-gift-auto-worker.js';
 const URL = process.env.SUPABASE_URL || 'https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const json=(res,status,data)=>res.status(status).json(data);
@@ -68,7 +69,7 @@ export default async function handler(req,res){
     if(owner(s)){
       const items=await db('gift_redemptions?status=eq.pending&select=id&limit=10000');pending=items.length;
     }
-    return json(res,200,{ok:true,codes,runs,pending,redemption_enabled:false,discovery_sources:['WSCO public active gift codes'],note:'Codes are source-listed; individual game eligibility has NOT been confirmed.'});
+    return json(res,200,{ok:true,codes,runs,pending,redemption_enabled:true,discovery_sources:['WSCO public active gift codes'],note:'Codes are source-listed; individual game eligibility has NOT been confirmed.'});
    }
    return json(res,200,{ok:true,...await snapshot(s)});
   }
@@ -76,7 +77,10 @@ export default async function handler(req,res){
   switch(b.action){
    case 'scan_codes':{
     if(!owner(s))throw fail('Owner access required.',403);
-    const result=await discoverAndPrepare();return json(res,result.ok?200:502,result);
+    const result=await discoverAndPrepare();
+    if(!result.ok)return json(res,502,result);
+    const auto=await runGiftAutoWorker();
+    return json(res,200,{...result,auto});
    }
    case 'manual_code':{
     if(!owner(s))throw fail('Owner access required.',403);

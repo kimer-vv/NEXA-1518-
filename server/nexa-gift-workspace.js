@@ -176,7 +176,14 @@ export default async function handler(req,res){
     const bulk=b.method==='bulk';let batch=null;
     if(bulk){const inserted=await db('gift_import_batches',{method:'POST',body:{state_number:a.state_number,alliance_id:a.id,uploaded_by_staff_id:s.id,source_name:String(b.source_name||'Pasted text').slice(0,160),preview_rows:clean}});batch=inserted?.[0]?.id;}
     const result=await rpc('gift_v1_register_members',{p_staff_token:s.token,p_state:a.state_number,p_alliance:a.id,p_rows:clean,p_method:bulk?'bulk':'manual',p_import_batch:batch});
-    return json(res,200,{ok:true,result});
+    // If this alliance already has Auto-Redeem ON, process the newly queued catch-up immediately.
+    // The worker is idempotent: already redeemed/already_redeemed rows are not retried.
+    let auto=null;
+    if(a.is_active&&a.auto_redeem){
+      try{auto=await runGiftAutoWorker();}
+      catch(e){console.error('[NEXA Gift Register Auto]',e);auto={error:String(e?.message||e).slice(0,180)};}
+    }
+    return json(res,200,{ok:true,result,auto});
    }
    case 'move':{
     const src=await alliance(allianceCheck(b.source_alliance_id)),dest=await alliance(allianceCheck(b.destination_alliance_id));

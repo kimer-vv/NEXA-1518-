@@ -39,7 +39,7 @@ function stateCheck(v){const n=Number(v);if(!Number.isSafeInteger(n)||n<=0)throw
 function allianceCheck(v){const x=String(v??'');if(!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(x))throw fail('Invalid alliance.');return x;}
 async function alliance(id){const a=await db(`gift_alliances?id=eq.${enc(id)}&deleted_at=is.null&select=id,state_number,tag,is_active,auto_redeem&limit=1`);if(!a.length)throw fail('Alliance not found.',404);return a[0]}
 async function snapshot(s){
- const states=await db('gift_states?select=state_number,display_name,is_active&order=state_number.asc');
+ const states=await db('gift_states?is_active=eq.true&select=state_number,display_name,is_active&order=state_number.asc');
  const all=await db('gift_alliances?deleted_at=is.null&select=id,state_number,tag,name,is_active,auto_redeem&order=state_number.asc,tag.asc');
  const alliances=owner(s)?all:all.filter(a=>allowed(s,a.state_number,a.id));
  const visibleStates=states.filter(x=>owner(s)||alliances.some(a=>a.state_number===x.state_number)||s.access.some(a=>a.role==='redeemer_admin'&&a.state_number===x.state_number));
@@ -110,7 +110,11 @@ export default async function handler(req,res){
    case 'lookup':return json(res,200,{ok:true,existing:await exists(s,Array.isArray(b.ids)?b.ids:[])});
    case 'create_state':{
     if(!owner(s))throw fail('Owner access required.',403);
-    const n=stateCheck(b.state_number);const rows=await db('gift_states',{method:'POST',body:{state_number:n,display_name:`State ${n}`}});
+    const n=stateCheck(b.state_number);
+    const existing=await db(`gift_states?state_number=eq.${n}&select=state_number,display_name,is_active&limit=1`);
+    const rows=existing.length
+      ?await db(`gift_states?state_number=eq.${n}`,{method:'PATCH',body:{display_name:`State ${n}`,is_active:true}})
+      :await db('gift_states',{method:'POST',body:{state_number:n,display_name:`State ${n}`,is_active:true}});
     return json(res,200,{ok:true,state:rows?.[0]});
    }
    case 'delete_state':{
@@ -119,7 +123,7 @@ export default async function handler(req,res){
     if(String(b.confirm||'')!==String(n))throw fail('Type the exact state number to confirm.');
     const active=await db(`gift_alliances?state_number=eq.${n}&deleted_at=is.null&select=id,tag&limit=2`);
     if(active.length)throw fail(`State ${n} still has active alliances. Delete or move those alliances first.`);
-    await db(`gift_states?state_number=eq.${n}`,{method:'DELETE'});
+    await db(`gift_states?state_number=eq.${n}`,{method:'PATCH',body:{is_active:false}});
     return json(res,200,{ok:true,deleted_state:n});
    }
    case 'create_alliance':{

@@ -5,6 +5,7 @@ import {
   bypassCookie,
 } from '../server/_nexa-maintenance-common-new.js';
 import giftWorkspaceHandler from '../server/nexa-gift-workspace.js';
+import wosUtilitiesHandler from '../server/nexa-wos-utilities.js';
 import { giftCron } from '../server/nexa-gift-discovery.js';
 import { redeemSingleTest } from '../server/nexa-gift-redeemer.js';
 import { runGiftAutoWorker } from '../server/nexa-gift-auto-worker.js';
@@ -101,6 +102,7 @@ export default async function handler(req, res) {
       return res.status(status).json({...payload, auto});
     }
     if (req.query?.mode === 'gift') return await giftWorkspaceHandler(req, res);
+    if (req.query?.mode === 'wos') return await wosUtilitiesHandler(req, res);
     if (req.method === 'GET' && req.query?.mode === 'hero-image') return await serveHeroImage(req, res);
     const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
     const role = await userRole(token);

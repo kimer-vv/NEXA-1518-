@@ -39,6 +39,7 @@ body.gift-auth #messagePanel{max-width:760px;margin:0 auto 22px}
 .member-row .member-alert{color:#ffc06b!important;border-color:#a36a28!important}
 .member-row input[type=checkbox]{flex:0 0 17px;width:17px;height:17px;min-height:17px;margin:0}
 @media(max-width:650px){.member-row{display:flex;grid-template-columns:none}.member-row button{grid-column:auto;justify-self:auto}}
+.gift-code-columns{display:grid;grid-template-columns:1fr 1fr;gap:14px}.gift-code-columns>section{min-width:0;border:1px solid var(--line);border-radius:18px;padding:14px;background:rgba(5,9,24,.28)}@media(max-width:720px){.gift-code-columns{grid-template-columns:1fr}}
 </style>
 <style>
 :root{--bg:#050713;--line:rgba(149,167,255,.25);--muted:#abb7d4}
@@ -223,32 +224,18 @@ textarea{min-height:146px;line-height:1.55;resize:vertical}
   <nav class="tabs" aria-label="Gift Code Workspace sections">
    <button data-tab="directory" aria-selected="true">Manage Alliances</button>
    <button data-tab="codes" aria-selected="false">Gift Codes</button>
-   <button data-tab="staff" aria-selected="false">Staff Access</button>
   </nav>
   <section data-panel="directory">
    <div class="card"><div class="flex" style="justify-content:space-between"><div><h2>Manage Alliances</h2><p class="muted">Organize each state, its alliances and their members in one place.</p></div><div class="flex"><button id="addState" type="button">+ Add State</button><button id="addAlliance" type="button">+ Add Alliance</button></div></div></div>
    <div id="directory"></div>
   </section>
   <section class="hidden" data-panel="codes">
- <div class="card"><div class="flex" style="justify-content:space-between;align-items:flex-start"><div><h2>Automatic Code Discovery</h2><p class="muted">Public codes are checked on a server schedule. Source-listed does not mean every account can redeem them.</p></div><span class="pill">REDEMPTION OFF</span></div>
- <p class="info-line">NEXA stores discovered codes and prepares a local queue for eligible enabled members. No Game IDs or code claims are sent to a redemption provider in this phase.</p>
- <div class="flex"><button id="scanGiftCodes" type="button">Check for Codes Now</button><button class="ghost" id="refreshGiftCodes" type="button">Refresh</button><button class="ghost" id="addGiftCode" type="button">+ Add Gift Code</button></div>
- <p id="giftCodeStatus" class="status" role="status"></p><p id="giftQueueCount" class="info-line"></p></div>
- <div class="card hidden" id="controlledWorkerTestCard">
-  <div class="flex" style="justify-content:space-between;align-items:flex-start"><div><h2>Controlled Worker Test</h2><p class="muted">Owner-only one-time provider test. This does not process the normal redemption queue.</p></div><span class="pill">ISOLATED TEST</span></div>
-  <p class="info-line">Locked target: Game ID <b>439740340</b> · State <b>2800</b> · Code <b>1stYoutubeKR</b>. The server rejects every other account, state, or code.</p>
-  <div class="flex"><button id="runControlledWorkerTest" type="button">Run Controlled Test</button></div>
-  <p id="controlledWorkerTestStatus" class="status" role="status"></p>
- </div>
- <div class="card"><h2>Code History</h2><p class="muted">Active means listed by a checked public source, not guaranteed redeemable for every account. Expired requires an explicit stored status or an elapsed known expiry. Codes without verification stay separate.</p><nav id="giftHistoryTabs" class="gift-history-tabs" aria-label="Code history status"><button type="button" data-code-filter="active" aria-selected="true">Active Codes</button><button type="button" data-code-filter="expired" aria-selected="false">Expired Codes</button><button type="button" data-code-filter="unverified" aria-selected="false">Unverified</button></nav><div id="giftCodeList" class="gift-code-list"></div></div>
-
- </section>
-  <section class="hidden" data-panel="staff">
-   <div class="card gift-share-card"><h2>Workspace Link</h2><p class="muted">Share this link with authorized alliance leaders and staff. Access still requires permission for their Game ID.</p><label for="giftShareUrl">Gift Code Workspace URL<input id="giftShareUrl" type="url" readonly spellcheck="false" autocomplete="off" aria-label="Gift Code Workspace link"></label><div class="flex" style="margin-top:12px"><button id="giftCopyLink" type="button">Copy Workspace Link</button></div><p class="status" id="giftCopyStatus" role="status" aria-live="polite"></p></div>
-   <div class="card"><h2>Manage Staff Access</h2><p class="muted">Authorize a Game ID to manage this Workspace. An existing staff account uses the same username and password; a first-time staff member registers here. Adding a code recipient does not grant staff access.</p>
-   <div class="split"><label>Game ID<input id="staffGameId" inputmode="numeric" placeholder="238342952"></label><label>Access Level<select id="staffRole"><option value="alliance_manager">Alliance Manager</option><option value="redeemer_admin">State Admin</option></select></label><label>State<select id="staffState"></select></label><label>Alliance<select id="staffAlliance"></select></label></div>
-   <p><button id="grantStaff" type="button">Add Staff Access</button></p><p id="staffStatus" class="status" role="status"></p>
-  </div></section>
+   <div class="card"><div class="flex" style="justify-content:space-between;align-items:flex-start"><div><h2>Automatic Code Discovery</h2><p class="muted">NEXA checks public gift codes automatically and processes eligible enabled members through the redemption worker.</p></div><span class="pill">AUTOMATIC</span></div>
+    <div class="flex"><button id="scanGiftCodes" type="button">Check for Codes Now</button><button class="ghost" id="refreshGiftCodes" type="button">Refresh</button><button class="ghost" id="addGiftCode" type="button">+ Add Gift Code</button></div>
+    <p id="giftCodeStatus" class="status" role="status"></p><p id="giftQueueCount" class="info-line"></p>
+   </div>
+   <div class="card"><h2>Code History</h2><p class="muted">Current verified codes stay under Active. Expired codes remain available as history.</p><div class="gift-code-columns"><section><h3>Active Codes</h3><div id="giftActiveList" class="gift-code-list"></div></section><section><h3>Expired Codes</h3><div id="giftExpiredList" class="gift-code-list"></div></section></div></div>
+  </section>
 </section>
 <section id="messagePanel" class="card"><p id="message" class="status" role="status"></p></section>
 </main>
@@ -288,9 +275,7 @@ function parseMembers(value){const bits=value.split(/[,\r\n]+/).map(clean).filte
 function current(){return data.alliances.find(a=>a.id===activeAlliance)}
 async function load(){data=await api('snapshot');$('role').textContent=(data.role||'staff').replaceAll('_',' ').toUpperCase();$('login').classList.add('hidden');document.body.classList.remove('gift-auth');$('app').classList.remove('hidden');await renderDirectory();await renderWorkspaceSwitch()}
 async function renderWorkspaceSwitch(){const d=await rpc('nexa_staff_workspace_access_v1',{p_token:token});if(!d?.ok)return;const sel=$('moduleSwitch');sel.replaceChildren();for(const m of d.modules||[])sel.add(new Option(m.label,m.url));sel.value='gift-code-workspace.html';sel.onchange=()=>{if(sel.value)location.href=sel.value}}
-function staffSelectors(){const st=$('staffState');let x=st.value;st.replaceChildren(...data.states.map(s=>new Option('State '+s.state_number,s.state_number)));if(x&&[...st.options].some(o=>o.value===x))st.value=x;
- const a=$('staffAlliance'),v=a.value;const list=data.alliances.filter(t=>t.state_number===Number(st.value));a.replaceChildren(...list.map(t=>new Option(t.tag,t.id)));if(v&&list.some(y=>y.id===v))a.value=v}
-async function renderDirectory(){staffSelectors();const dir=$('directory');dir.replaceChildren();$('addState').hidden=data.role!=='owner';$('addAlliance').hidden=data.role==='alliance_manager';
+async function renderDirectory(){const dir=$('directory');dir.replaceChildren();$('addState').hidden=data.role!=='owner';$('addAlliance').hidden=data.role==='alliance_manager';
  if(!data.states.length){const e=document.createElement('div');e.className='card';e.innerHTML='<h2>No states yet</h2><p class="muted">Add your first state to begin building the alliance directory.</p>';dir.append(e);return}
  for(const state of data.states){const group=document.createElement('section');group.className='directory-group';const stateHead=document.createElement('div');stateHead.className='flex';stateHead.style.justifyContent='space-between';const title=document.createElement('h3');title.textContent='State '+state.state_number;stateHead.append(title);if(data.role==='owner'){const del=document.createElement('button');del.className='danger tiny';del.textContent='Delete State';del.onclick=async()=>{const typed=prompt(`Type ${state.state_number} to delete State ${state.state_number}. The state must have no active alliances.`);if(String(typed||'')!==String(state.state_number))return;try{await api('delete_state',{state_number:state.state_number,confirm:String(typed)});message(`State ${state.state_number} deleted.`);await load()}catch(e){message(e.message)}};stateHead.append(del)}group.append(stateHead);
  const cards=document.createElement('div');cards.className='alliance-grid';for(const a of data.alliances.filter(x=>x.state_number===state.state_number)){
@@ -417,10 +402,8 @@ $('giftCopyLink').onclick=async()=>{
   status.textContent='Link copied! Share it with authorized staff.';
  }catch{field.focus();field.select();field.setSelectionRange(0,field.value.length);status.textContent='Select and copy the highlighted link above.'}
 };
-$('staffState').onchange=staffSelectors;
 
-// NEXA Discovery phase 1: view public codes and owner-only actions; no redemption provider is connected.
-let giftHistoryFilter='active';
+// NEXA Gift Codes — verified Active / Expired history. Unverified discovery rows stay internal.
 let giftHistoryCodes=[];
 function giftCodeCategory(c){
  const status=String(c.status||'').toLowerCase();
@@ -429,59 +412,31 @@ function giftCodeCategory(c){
  if(status==='available'||status==='active')return 'active';
  return 'unverified';
 }
-function renderGiftCodeHistory(){
- const box=$('giftCodeList');box.replaceChildren();
- const counts={active:0,expired:0,unverified:0};
- for(const c of giftHistoryCodes)counts[giftCodeCategory(c)]++;
- for(const button of document.querySelectorAll('[data-code-filter]')){
-  const filter=button.dataset.codeFilter;
-  button.setAttribute('aria-selected',String(filter===giftHistoryFilter));
-  button.textContent=({active:'Active Codes',expired:'Expired Codes',unverified:'Unverified'})[filter]+` (${counts[filter]})`;
- }
- const shown=giftHistoryCodes.filter(c=>giftCodeCategory(c)===giftHistoryFilter);
- for(const c of shown){
-  const category=giftCodeCategory(c),div=document.createElement('article');div.className='gift-code-item';
-  const head=document.createElement('div');head.className='gift-code-head';
-  const strong=document.createElement('strong');strong.textContent=c.code;
-  const pill=document.createElement('span');pill.className=`gift-status ${category}`;
-  pill.textContent=({active:'● Active',expired:'● Expired',unverified:'● Unverified'})[category];
-  head.append(strong,pill);div.append(head);
-  box.append(div);
- }
- if(!shown.length){const empty=document.createElement('p');empty.className='muted';empty.textContent=giftHistoryCodes.length?'No codes in this category.':'No codes discovered yet. Owner can run Check for Codes Now.';box.append(empty)}
+function giftCodeCard(c,category){
+ const div=document.createElement('article');div.className='gift-code-item';
+ const head=document.createElement('div');head.className='gift-code-head';
+ const strong=document.createElement('strong');strong.textContent=c.code;
+ const pill=document.createElement('span');pill.className=`gift-status ${category}`;pill.textContent=category==='active'?'● Active':'● Expired';
+ head.append(strong,pill);div.append(head);return div;
 }
-for(const button of document.querySelectorAll('[data-code-filter]'))button.onclick=()=>{giftHistoryFilter=button.dataset.codeFilter;renderGiftCodeHistory()};
+function renderGiftCodeHistory(){
+ const active=$('giftActiveList'),expired=$('giftExpiredList');active.replaceChildren();expired.replaceChildren();
+ const a=giftHistoryCodes.filter(c=>giftCodeCategory(c)==='active'),x=giftHistoryCodes.filter(c=>giftCodeCategory(c)==='expired');
+ for(const c of a)active.append(giftCodeCard(c,'active'));for(const c of x)expired.append(giftCodeCard(c,'expired'));
+ if(!a.length){const p=document.createElement('p');p.className='muted';p.textContent='No active codes.';active.append(p)}
+ if(!x.length){const p=document.createElement('p');p.className='muted';p.textContent='No expired codes.';expired.append(p)}
+}
 async function loadGiftCodes(){
- const box=$('giftCodeList'),status=$('giftCodeStatus');
- box.textContent='Loading discovered codes…';try{
+ const status=$('giftCodeStatus');try{
   const r=await api('codes');giftHistoryCodes=r.codes||[];
   $('scanGiftCodes').hidden=data.role!=='owner';$('addGiftCode').hidden=data.role!=='owner';
-  $('controlledWorkerTestCard').classList.toggle('hidden',data.role!=='owner');
-  $('giftQueueCount').textContent=data.role==='owner'?`${r.pending} local pending entries (not sent to game).`:'Actual redemption is not enabled.';
-  renderGiftCodeHistory();
-  status.textContent='';
- }catch(e){box.textContent='Unable to load code history.';status.textContent=e.message||String(e)}
+  $('giftQueueCount').textContent=data.role==='owner'&&r.pending?`${r.pending} redemption ${r.pending===1?'entry':'entries'} pending.`:'';
+  renderGiftCodeHistory();status.textContent='';
+ }catch(e){status.textContent=e.message||String(e)}
 }
 $('refreshGiftCodes').onclick=loadGiftCodes;
 $('scanGiftCodes').onclick=async()=>{const b=$('scanGiftCodes');b.disabled=true;$('giftCodeStatus').textContent='Checking public source…';try{const r=await api('scan_codes');await loadGiftCodes();$('giftCodeStatus').textContent=`Found ${r.codes_found}, added ${r.codes_added}, queued ${r.queue_added}. No redemptions sent.`}catch(e){$('giftCodeStatus').textContent=e.message||String(e)}finally{b.disabled=false}};
 $('addGiftCode').onclick=async()=>{await modal('Add Gift Code',field('manualGiftCode','Gift Code'),{ok:'Add Code',onOk:async body=>{const code=body.querySelector('#manualGiftCode').value.trim();const r=await api('manual_code',{code});await loadGiftCodes();$('giftCodeStatus').textContent=`Code ${r.saved?.added?'added':'already recorded'}. ${r.queued||0} new queue entries. Redemption remains OFF.`;return true}})};
-$('runControlledWorkerTest').onclick=async()=>{
- const btn=$('runControlledWorkerTest'),status=$('controlledWorkerTestStatus');
- const confirmed=await confirmation('Run Controlled Worker Test','This sends ONE real redemption request only for Game ID 439740340 · State 2800 · code 1stYoutubeKR. It does not claim or process the normal pending queue.','Run One Test');
- if(!confirmed)return;
- btn.disabled=true;status.textContent='Sending one isolated worker request…';
- try{
-  const r=await api('controlled_worker_test',{game_id:'439740340',state_number:2800,code:'1stYoutubeKR'});
-  const provider=r.provider_code?` · Provider: ${r.provider_code}`:'';
-  status.textContent=`Result: ${r.status||'unknown'}${provider}`;
-  if(r.status==='redeemed')message('Controlled worker test succeeded: 1stYoutubeKR was accepted for Game ID 439740340.');
-  else if(r.status==='already_redeemed')message('Controlled worker test reached the provider: 1stYoutubeKR was already redeemed for Game ID 439740340.');
-  else message(`Controlled worker test returned: ${r.status||'unknown'}.`);
- }catch(e){status.textContent=e.message||String(e);message('Controlled worker test did not report a successful redemption.')}
- finally{btn.disabled=false}
-};
-
-$('grantStaff').onclick=async()=>{const btn=$('grantStaff');btn.disabled=true;try{const role=$('staffRole').value,state=$('staffState').value,alliance=$('staffAlliance').value;const r=await api('grant_staff',{game_id:clean($('staffGameId').value),role,state_number:role==='redeemer_admin'?Number(state):null,alliance_id:role==='alliance_manager'?alliance:null});$('staffStatus').textContent=r.result?.status==='active_existing_account'?'Existing staff account activated.':'Game ID authorized for first-time registration.';$('staffGameId').value=''}catch(e){$('staffStatus').textContent=e.message}finally{btn.disabled=false}};
 $('logout').onclick=async()=>{try{await rpc('transfer_staff_logout',{p_token:token})}catch{}localStorage.removeItem('nexa_transfer_staff_token');sessionStorage.removeItem('nexa_transfer_staff_token');location.reload()};
 for(const b of document.querySelectorAll('[data-tab]'))b.onclick=()=>{for(const t of document.querySelectorAll('[data-tab]'))t.setAttribute('aria-selected',String(t===b));for(const p of document.querySelectorAll('[data-panel]'))p.classList.toggle('hidden',p.dataset.panel!==b.dataset.tab);if(b.dataset.tab==='codes')loadGiftCodes()};
 function authTab(reg){$('registerPane').classList.toggle('hidden',!reg);$('loginPane').classList.toggle('hidden',reg);$('loginTab').classList.toggle('active',!reg);$('registerTab').classList.toggle('active',reg);$('recoveryPanel').classList.add('hidden');message('')}

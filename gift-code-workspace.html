@@ -187,7 +187,19 @@ textarea{min-height:146px;line-height:1.55;resize:vertical}
 .gift-alliance-delete{color:#ff9fbb!important}
 @media(max-width:360px){.alliance-card{padding:13px!important}.gift-alliance-primary button{font-size:11px}.gift-alliance-manage-button{font-size:10px!important}}
 </style>
-</head>
+<style id="wos-module-mode">
+body.wos-module #login{display:none!important}
+body.wos-module #workspaceHeader{display:flex!important}
+body.wos-module #workspaceHeader .kicker{font-size:0}
+body.wos-module #workspaceHeader .kicker:after{content:"NEXA · STATE OPERATIONS";font-size:10px}
+body.wos-module #workspaceHeader h1{font-size:0}
+body.wos-module #workspaceHeader h1:after{content:"WOS Utilities";font-size:clamp(1.9rem,6vw,3.1rem)}
+#wosGiftBack{display:none}
+body.wos-module #wosGiftBack{display:flex;align-items:center;gap:12px;margin:4px 0 14px}
+body.wos-module #wosGiftBack button{background:#141b30;border:1px solid #52618d}
+body.wos-module #wosGiftBack b{font-size:18px}
+body.wos-module .gift-share-card{display:none!important}
+</style></head>
 <body class="gift-auth"><main><header id="workspaceHeader"><div class="brand-area"><div class="kicker">NEXA · STATE OPERATIONS</div><h1>Gift Code Workspace</h1><span class="hidden" id="role" aria-hidden="true">STAFF</span></div><div class="header-actions"><select id="moduleSwitch" aria-label="Switch authorized Workspace"></select><button class="ghost" id="logout" type="button">Log Out</button></div></header>
 <section id="login">
   <div class="loginBrand"><div class="kicker">GIFT CODE WORKSPACE</div><h1>Staff Access</h1><p class="muted">NEXA Gift Code Workspace</p></div>
@@ -220,7 +232,7 @@ textarea{min-height:146px;line-height:1.55;resize:vertical}
   </div>
 </section>
 
-<section id="app" class="hidden">
+<section id="app" class="hidden"><div id="wosGiftBack"><button type="button" id="backWos">← WOS Utilities</button><b>Gift Codes</b></div>
   <nav class="tabs" aria-label="Gift Code Workspace sections">
    <button data-tab="directory" aria-selected="true">Manage Alliances</button>
    <button data-tab="codes" aria-selected="false">Gift Codes</button>
@@ -245,6 +257,8 @@ const SUPA='https://dfxcxboxrkfmrnsgpyin.supabase.co',PUB='sb_publishable_HTd6T3
 const sb=window.supabase.createClient(SUPA,PUB);
 const $=id=>document.getElementById(id);
 let token=localStorage.getItem('nexa_transfer_staff_token')||sessionStorage.getItem('nexa_transfer_staff_token')||'';
+const wosModule=new URLSearchParams(location.search).get('module')==='wos';
+if(wosModule)document.body.classList.add('wos-module');
 let data={states:[],alliances:[],role:'staff'},activeAlliance=null,roster=[],chosen=new Set();
 const clean=s=>String(s??'').trim();
 function message(t){$('message').textContent=t||''}
@@ -446,5 +460,6 @@ $('forgotPass').onclick=()=>{$('recoveryPanel').classList.remove('hidden');messa
 $('recoverBtn').onclick=async()=>{const p=$('recoverPassword').value;if(p!==$('recoverConfirm').value){$('recoveryStatus').textContent='Passwords do not match.';return}try{const d=await rpc('transfer_staff_reset_password',{p_identifier:clean($('recoverIdentifier').value),p_code:clean($('recoverCode').value),p_new_password:p});$('recoveryStatus').textContent=d?.ok?'Password changed. Log in now.':d?.error||'Invalid recovery code.'}catch(e){$('recoveryStatus').textContent=e.message}};
 $('registerBtn').onclick=async()=>{const b=$('registerBtn');b.disabled=true;try{if($('regPassword').value!==$('regConfirm').value)throw Error('Passwords do not match.');const d=await rpc('nexa_staff_register_module_v1',{p_module:'gift',p_username:clean($('regUsername').value),p_game_name:clean($('regGameName').value),p_game_id:clean($('regGameId').value),p_password:$('regPassword').value,p_remember:$('rememberRegister').checked});if(!d?.ok)throw Error(d?.error||'Registration failed');storeToken(d.token,$('rememberRegister').checked);await load()}catch(e){message(e.message)}finally{b.disabled=false}};
 $('signin').onclick=async()=>{const b=$('signin');b.disabled=true;try{const d=await rpc('nexa_staff_login_v1',{p_identifier:clean($('identifier').value),p_password:$('password').value,p_remember:$('rememberLogin').checked});if(!d?.ok)throw Error(d?.error||'Login failed');storeToken(d.token,$('rememberLogin').checked);await load()}catch(e){message(e.message)}finally{b.disabled=false}};
-if(token)load().catch(e=>{message(e.message);$('login').classList.remove('hidden');document.body.classList.add('gift-auth');$('app').classList.add('hidden')});
+$('backWos')?.addEventListener('click',()=>location.href='wos-utilities.html');
+if(token)load().catch(e=>{message(e.message);if(wosModule){location.replace('wos-utilities.html');return}$('login').classList.remove('hidden');document.body.classList.add('gift-auth');$('app').classList.add('hidden')});
 </script></body></html>

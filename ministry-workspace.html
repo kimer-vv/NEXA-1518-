@@ -207,7 +207,7 @@ async function modulesRender(){
  if(!list.length){
    list=(modules||[]).map(m=>({
      ...m,
-     label:m.label||`${m.module==='transfer'?'Transfer':m.module==='ministry'?'Ministry':m.module==='gift'?'WOS Utilities':m.module||'Workspace'} • ${m.access_level==='admin'?'Admin':'Regular'}`,
+     label:m.label||`${m.module==='transfer'?'Transfer':m.module==='ministry'?'Ministry':m.module==='gift'?'Gift Code':m.module||'Workspace'} • ${m.access_level==='admin'?'Admin':'Regular'}`,
      url:m.url||(m.module==='transfer'
        ?`transfer-workspace.html?workspace=${encodeURIComponent(m.workspace_id||'')}`
        :m.module==='ministry'
@@ -366,6 +366,9 @@ async function loadAccess(){
    $('accessList').querySelectorAll('[data-view-staff]').forEach(b=>b.onclick=()=>openStaffDetail(members.find(x=>x.game_id===b.dataset.viewStaff),d.can_manage));
  }catch(e){setMsg(e.message||String(e))}
 }
+async function copyStaffValue(value,button){
+ try{await navigator.clipboard.writeText(String(value||''));const old=button?.textContent;if(button){button.textContent='Copied ✓';setTimeout(()=>button.textContent=old,1200)}}catch(e){setMsg('Unable to copy.',false)}
+}
 function openStaffDetail(a,canManage){
  if(!a)return;
  $('accessModalTitle').textContent=a.game_name||'Ministry Staff';
@@ -375,14 +378,35 @@ function openStaffDetail(a,canManage){
  <div class="access-detail-row"><small>USERNAME</small><b>${esc(a.username||'—')}</b></div>
  <div class="access-detail-row"><small>STAFF LOGIN</small><b>${a.registered?'Registered':'Pending registration'}</b></div>`;
  const actions=$('accessModalActions');actions.innerHTML='';
+ const add=(label,cls,fn)=>{const b=document.createElement('button');b.className=`btn ${cls||'secondary'}`;b.textContent=label;b.onclick=fn;actions.append(b);return b};
+ if(a.username)add('Copy Username','secondary',e=>copyStaffValue(a.username,e.currentTarget));
+ add('Copy Game ID','secondary',e=>copyStaffValue(a.game_id,e.currentTarget));
+ if(a.is_self){
+   add('Change Username','secondary',()=>openMinistryAccountForm('username',a,canManage));
+   add('Change Password','secondary',()=>openMinistryAccountForm('password',a,canManage));
+ }
+ if(canManage&&a.registered&&!a.is_self&&!a.is_owner){
+   add('Generate Recovery Code','secondary',async()=>{try{const d=await rpc('ministry_staff_generate_recovery_v1',{p_workspace_id:workspaceId,p_token:token,p_game_id:a.game_id});if(!d?.ok)throw new Error(d?.error||'Unable to generate recovery code');$('accessModalTitle').textContent='Temporary Recovery Code';$('accessModalBody').innerHTML=`<div class="access-detail-row"><small>RECOVERY CODE</small><b id="ministryRecoveryCode">${esc(d.code)}</b></div><p class="muted">Valid for 30 minutes and one password reset.</p>`;actions.innerHTML='';add('Copy Recovery Code','secondary',e=>copyStaffValue(d.code,e.currentTarget))}catch(e){setMsg(e.message||String(e))}});
+ }
  if(canManage&&!a.is_owner){
-   const level=document.createElement('button');level.className='btn secondary';level.textContent=a.access_level==='admin'?'Make Regular':'Make Admin';
-   level.onclick=async()=>{await rpc('ministry_staff_set_level_v2',{p_workspace_id:workspaceId,p_token:token,p_game_id:a.game_id,p_access_level:a.access_level==='admin'?'regular':'admin'});$('accessModal').classList.add('hidden');await loadAccess();setMsg('Ministry access updated.',true)};
-   const remove=document.createElement('button');remove.className='btn danger';remove.textContent='Remove Access';
-   remove.onclick=async()=>{if(!confirm(`Remove Ministry access for ${a.game_name||a.game_id}?`))return;await rpc('ministry_staff_remove_access_v2',{p_workspace_id:workspaceId,p_token:token,p_game_id:a.game_id});$('accessModal').classList.add('hidden');await loadAccess();setMsg('Ministry access removed.',true)};
-   actions.append(level,remove);
+   add(a.access_level==='admin'?'Make Regular':'Make Admin','secondary',async()=>{await rpc('ministry_staff_set_level_v2',{p_workspace_id:workspaceId,p_token:token,p_game_id:a.game_id,p_access_level:a.access_level==='admin'?'regular':'admin'});$('accessModal').classList.add('hidden');await loadAccess();setMsg('Ministry access updated.',true)});
+   add('Remove Access','danger',async()=>{if(!confirm(`Remove Ministry access for ${a.game_name||a.game_id}?`))return;await rpc('ministry_staff_remove_access_v2',{p_workspace_id:workspaceId,p_token:token,p_game_id:a.game_id});$('accessModal').classList.add('hidden');await loadAccess();setMsg('Ministry access removed.',true)});
  }
  $('accessModal').classList.remove('hidden');
+}
+function openMinistryAccountForm(kind,a,canManage){
+ const username=kind==='username';
+ $('accessModalTitle').textContent=username?'Change Username':'Change Password';
+ $('accessModalBody').innerHTML=username
+ ?`<label>New Username<input id="ministryNewUsername" value="${esc(a.username||'')}"></label><label>Current Password<input id="ministryCurrentPassword" type="password" autocomplete="current-password"></label><p id="ministryAccountStatus" class="status"></p>`
+ :`<label>Current Password<input id="ministryCurrentPassword" type="password" autocomplete="current-password"></label><label>New Password<input id="ministryNewPassword" type="password" autocomplete="new-password"></label><label>Confirm New Password<input id="ministryConfirmPassword" type="password" autocomplete="new-password"></label><p id="ministryAccountStatus" class="status"></p>`;
+ const actions=$('accessModalActions');actions.innerHTML='';
+ const save=document.createElement('button');save.className='btn';save.textContent='Save';save.onclick=async()=>{const status=$('ministryAccountStatus');try{
+   let d;if(username){d=await rpc('transfer_staff_change_username',{p_token:token,p_current_password:$('ministryCurrentPassword').value,p_new_username:$('ministryNewUsername').value.trim()})}
+   else{if($('ministryNewPassword').value!==$('ministryConfirmPassword').value)throw new Error('Passwords do not match.');d=await rpc('transfer_staff_change_password',{p_token:token,p_current_password:$('ministryCurrentPassword').value,p_new_password:$('ministryNewPassword').value})}
+   if(!d?.ok){const map={wrong_password:'Current password is incorrect.',username_taken:'That username is already in use.',invalid_username_length:'Username must be 3–32 characters.',invalid_username_format:'Use letters, numbers, dot, dash or underscore only.',password_too_short:'Password must be at least 8 characters.'};throw new Error(map[d?.error]||d?.error||'Unable to save.')}
+   await loadAccess();$('accessModal').classList.add('hidden');setMsg(username?'Username changed ✓':'Password changed ✓',true)
+ }catch(e){status.textContent=e.message||String(e)}};actions.append(save);
 }
 async function addAccess(){
  try{const d=await rpc('ministry_staff_add_access_v2',{p_workspace_id:workspaceId,p_token:token,p_game_id:$('accessGameId').value.trim(),p_access_level:$('accessLevel').value});if(!d?.ok)throw new Error(d?.error||'Unable to add access');$('accessGameId').value='';await loadAccess();setMsg(d.existing_account?'Access added. Existing NEXA staff login will work here.':'Access added. This Game ID can register a staff login.',true)}catch(e){setMsg(e.message||String(e))}

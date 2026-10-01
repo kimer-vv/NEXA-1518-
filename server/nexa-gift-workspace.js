@@ -26,11 +26,20 @@ async function staff(req){
  const sessions=await db(`transfer_staff_sessions?token_hash=eq.${hash}&expires_at=gt.${enc(new Date().toISOString())}&select=account_id&limit=1`);
  if(!sessions?.length)throw fail('Staff session expired. Sign in again.',401);
  const id=sessions[0].account_id;
- const access=await db(`gift_staff_access?staff_account_id=eq.${enc(id)}&is_active=eq.true&select=role,state_number,alliance_id`);
- if(!access?.length)throw fail('No Gift Code Workspace access has been assigned.',403);
+ let access=await db(`gift_staff_access?staff_account_id=eq.${enc(id)}&is_active=eq.true&select=role,state_number,alliance_id`);
+ // WOS Utilities is the parent workspace. If this account has no legacy Gift-specific row,
+ // inherit its global WOS Utilities access instead of asking for a second login/registration.
+ if(!access?.length){
+   const acct=(await db(`transfer_staff_accounts?id=eq.${enc(id)}&select=game_id&limit=1`))[0];
+   const wos=acct?(await db(`wos_utility_staff_access?game_id=eq.${enc(acct.game_id)}&status=eq.active&select=role,main_alliance_id,module_access&limit=1`))[0]:null;
+   if(!wos||wos.module_access?.gift===false)throw fail('Gift Codes access is not enabled for this WOS Utilities account.',403);
+   if(wos.role==='owner')access=[{role:'owner',state_number:null,alliance_id:null}];
+   else if(wos.role==='administrative')access=[{role:'wos_admin',state_number:null,alliance_id:null}];
+   else access=[{role:'alliance_manager',state_number:null,alliance_id:wos.main_alliance_id||null}];
+ }
  return {id,token,access};
 }
-const owner=s=>s.access.some(a=>a.role==='owner');
+const owner=s=>s.access.some(a=>a.role==='owner'||a.role==='wos_admin');
 const allowed=(s,state,alliance)=>owner(s)||s.access.some(a=>a.role==='redeemer_admin'&&a.state_number===Number(state))||s.access.some(a=>a.role==='alliance_manager'&&alliance&&a.alliance_id===alliance);
 const stateAllowed=(s,state)=>owner(s)||s.access.some(a=>a.role==='redeemer_admin'&&a.state_number===Number(state))||s.access.some(a=>a.role==='alliance_manager'&&a.alliance_id);
 function idCheck(v){const x=String(v??'').trim();if(!/^\d{1,30}$/.test(x))throw fail('Game ID must contain 1â30 digits.');return x;}

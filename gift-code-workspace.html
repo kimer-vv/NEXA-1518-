@@ -1,6 +1,8 @@
 <!doctype html>
-<!-- NEXA Gift Code Workspace V1.8 — CLEAN CODE HISTORY + OWNER VERIFICATION FALLBACK -->
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NEXA • WOS Utilities</title>
+<!-- NEXA Gift Code Workspace V1.6 — UNIFORM HEADER + MANAGE ALLIANCES | REPLACE EXISTING FILE: gift-code-workspace.html
+     Requires reviewed SQL migration and Gift Owner access. API reuses api/nexa-system-settings.js.
+     Automatic redemption remains off; an Owner-only controlled test can send one hard-locked provider request. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NEXA • Gift Code Workspace</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{color-scheme:dark;--bg:#080c1e;--card:#111a34;--line:#34446e;--muted:#b0bee0;--cyan:#59e4ff;--violet:#ac89ff;--pink:#f06dbb;--green:#6cf1b2}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 10% 0%,#242052,transparent 36%),var(--bg);color:#f5f6ff;font:15px system-ui,-apple-system,sans-serif}main{width:min(1100px,100%);margin:auto;padding:22px 14px 90px}h1{font-size:clamp(27px,6vw,46px);margin:4px 0}h2{font-size:19px;margin:0 0 12px}.kicker{font-size:11px;letter-spacing:.17em;color:var(--cyan);font-weight:900}.muted,small{color:var(--muted)}.card{border:1px solid var(--line);border-radius:19px;padding:17px;background:#10172fdb;margin:13px 0}.flex{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.split{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.wide{grid-column:1/-1}label{display:grid;gap:6px;font-size:13px;font-weight:700}input,select,textarea,button{font:inherit}input,select,textarea{width:100%;min-height:42px;background:#060c20;border:1px solid #53618b;color:white;border-radius:11px;padding:10px}textarea{min-height:150px;resize:vertical}button,.btn{background:linear-gradient(120deg,#5547bb,#1a8da6);color:white;border:1px solid #8078dc;border-radius:12px;padding:11px 15px;font-weight:800;cursor:pointer}button:disabled{opacity:.48;cursor:not-allowed}button.secondary{background:#172345}button.danger{background:#522239;border-color:#ad5577}.tabs{display:flex;gap:7px;overflow:auto;margin:15px 0}.tabs button{flex:0 0 auto}.tabs button[aria-selected=true]{border-color:var(--cyan);color:var(--cyan)}.hidden{display:none!important}.status{min-height:18px;color:#f9cb85;white-space:pre-wrap}.pill{display:inline-block;border:1px solid #50628d;border-radius:40px;padding:5px 9px;color:var(--cyan);font-size:12px}.member{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:9px;padding:12px 2px;border-bottom:1px solid #273657}.member b{display:block;overflow-wrap:anywhere}.member small{display:block}.member input[type=checkbox]{width:19px;min-height:19px}.member button{font-size:12px;padding:7px 9px}#roster{max-height:65vh;overflow:auto}.preview{display:grid;grid-template-columns:1fr 1fr auto;gap:6px;align-items:center;border-bottom:1px solid #303c5e;padding:8px 0}.preview input{min-width:0}a{color:#9cecff}@media(max-width:590px){.split{grid-template-columns:1fr}.preview{grid-template-columns:1fr 1fr}.preview small{grid-column:1/-1}.member{grid-template-columns:auto 1fr}.member button{grid-column:2;justify-self:start}} 
@@ -185,9 +187,9 @@ textarea{min-height:146px;line-height:1.55;resize:vertical}
 @media(max-width:360px){.alliance-card{padding:13px!important}.gift-alliance-primary button{font-size:11px}.gift-alliance-manage-button{font-size:10px!important}}
 </style>
 </head>
-<body class="gift-auth"><main><header id="workspaceHeader"><div class="brand-area"><div class="kicker">NEXA · STATE OPERATIONS</div><h1>WOS Utilities</h1><span class="hidden" id="role" aria-hidden="true">STAFF</span></div><div class="header-actions"><select id="moduleSwitch" aria-label="Switch authorized Workspace"></select><button class="ghost" id="logout" type="button">Log Out</button></div></header>
+<body class="gift-auth"><main><header id="workspaceHeader"><div class="brand-area"><div class="kicker">NEXA · STATE OPERATIONS</div><h1>Gift Code Workspace</h1><span class="hidden" id="role" aria-hidden="true">STAFF</span></div><div class="header-actions"><select id="moduleSwitch" aria-label="Switch authorized Workspace"></select><button class="ghost" id="logout" type="button">Log Out</button></div></header>
 <section id="login">
-  <div class="loginBrand"><div class="kicker">WOS UTILITIES</div><h1>Staff Access</h1><p class="muted">NEXA WOS Utilities</p></div>
+  <div class="loginBrand"><div class="kicker">GIFT CODE WORKSPACE</div><h1>Staff Access</h1><p class="muted">NEXA Gift Code Workspace</p></div>
   <div class="loginShell">
     <div class="authTabs"><button type="button" id="loginTab" class="active" aria-selected="true">Log In</button><button type="button" id="registerTab" aria-selected="false">First Time? Register</button></div>
     <div id="loginPane">
@@ -218,7 +220,7 @@ textarea{min-height:146px;line-height:1.55;resize:vertical}
 </section>
 
 <section id="app" class="hidden">
- <nav class="tabs" aria-label="WOS Utilities sections">
+  <nav class="tabs" aria-label="Gift Code Workspace sections">
    <button data-tab="directory" aria-selected="true">Manage Alliances</button>
    <button data-tab="codes" aria-selected="false">Gift Codes</button>
    <button data-tab="staff" aria-selected="false">Staff Access</button>
@@ -228,14 +230,21 @@ textarea{min-height:146px;line-height:1.55;resize:vertical}
    <div id="directory"></div>
   </section>
   <section class="hidden" data-panel="codes">
- <div class="card"><div class="flex" style="justify-content:space-between;align-items:flex-start"><div><h2>Automatic Code Discovery</h2><p class="muted">NEXA automatically checks and redeems active gift codes for eligible members.</p></div><span class="pill">AUTO-REDEEM</span></div>
+ <div class="card"><div class="flex" style="justify-content:space-between;align-items:flex-start"><div><h2>Automatic Code Discovery</h2><p class="muted">Public codes are checked on a server schedule. Source-listed does not mean every account can redeem them.</p></div><span class="pill">REDEMPTION OFF</span></div>
+ <p class="info-line">NEXA stores discovered codes and prepares a local queue for eligible enabled members. No Game IDs or code claims are sent to a redemption provider in this phase.</p>
  <div class="flex"><button id="scanGiftCodes" type="button">Check for Codes Now</button><button class="ghost" id="refreshGiftCodes" type="button">Refresh</button><button class="ghost" id="addGiftCode" type="button">+ Add Gift Code</button></div>
- <p id="giftCodeStatus" class="status" role="status"></p></div>
- <div class="card"><h2>Code History</h2><p class="muted">Gift codes are organized by status: Active or Expired.</p><nav id="giftHistoryTabs" class="gift-history-tabs" aria-label="Gift code view"><button type="button" data-code-filter="all" aria-selected="true">Gift Codes</button><button type="button" data-code-filter="unverified" aria-selected="false">Needs Verification</button></nav><div id="giftCodeList" class="gift-code-list"></div></div>
+ <p id="giftCodeStatus" class="status" role="status"></p><p id="giftQueueCount" class="info-line"></p></div>
+ <div class="card hidden" id="controlledWorkerTestCard">
+  <div class="flex" style="justify-content:space-between;align-items:flex-start"><div><h2>Controlled Worker Test</h2><p class="muted">Owner-only one-time provider test. This does not process the normal redemption queue.</p></div><span class="pill">ISOLATED TEST</span></div>
+  <p class="info-line">Locked target: Game ID <b>439740340</b> · State <b>2800</b> · Code <b>1stYoutubeKR</b>. The server rejects every other account, state, or code.</p>
+  <div class="flex"><button id="runControlledWorkerTest" type="button">Run Controlled Test</button></div>
+  <p id="controlledWorkerTestStatus" class="status" role="status"></p>
+ </div>
+ <div class="card"><h2>Code History</h2><p class="muted">Active means listed by a checked public source, not guaranteed redeemable for every account. Expired requires an explicit stored status or an elapsed known expiry. Codes without verification stay separate.</p><nav id="giftHistoryTabs" class="gift-history-tabs" aria-label="Code history status"><button type="button" data-code-filter="active" aria-selected="true">Active Codes</button><button type="button" data-code-filter="expired" aria-selected="false">Expired Codes</button><button type="button" data-code-filter="unverified" aria-selected="false">Unverified</button></nav><div id="giftCodeList" class="gift-code-list"></div></div>
 
  </section>
   <section class="hidden" data-panel="staff">
-   <div class="card gift-share-card"><h2>Workspace Link</h2><p class="muted">Share this link with authorized alliance leaders and staff. Access still requires permission for their Game ID.</p><label for="giftShareUrl">WOS Utilities URL<input id="giftShareUrl" type="url" readonly spellcheck="false" autocomplete="off" aria-label="WOS Utilities link"></label><div class="flex" style="margin-top:12px"><button id="giftCopyLink" type="button">Copy Workspace Link</button></div><p class="status" id="giftCopyStatus" role="status" aria-live="polite"></p></div>
+   <div class="card gift-share-card"><h2>Workspace Link</h2><p class="muted">Share this link with authorized alliance leaders and staff. Access still requires permission for their Game ID.</p><label for="giftShareUrl">Gift Code Workspace URL<input id="giftShareUrl" type="url" readonly spellcheck="false" autocomplete="off" aria-label="Gift Code Workspace link"></label><div class="flex" style="margin-top:12px"><button id="giftCopyLink" type="button">Copy Workspace Link</button></div><p class="status" id="giftCopyStatus" role="status" aria-live="polite"></p></div>
    <div class="card"><h2>Manage Staff Access</h2><p class="muted">Authorize a Game ID to manage this Workspace. An existing staff account uses the same username and password; a first-time staff member registers here. Adding a code recipient does not grant staff access.</p>
    <div class="split"><label>Game ID<input id="staffGameId" inputmode="numeric" placeholder="238342952"></label><label>Access Level<select id="staffRole"><option value="alliance_manager">Alliance Manager</option><option value="redeemer_admin">State Admin</option></select></label><label>State<select id="staffState"></select></label><label>Alliance<select id="staffAlliance"></select></label></div>
    <p><button id="grantStaff" type="button">Add Staff Access</button></p><p id="staffStatus" class="status" role="status"></p>
@@ -283,7 +292,7 @@ function staffSelectors(){const st=$('staffState');let x=st.value;st.replaceChil
  const a=$('staffAlliance'),v=a.value;const list=data.alliances.filter(t=>t.state_number===Number(st.value));a.replaceChildren(...list.map(t=>new Option(t.tag,t.id)));if(v&&list.some(y=>y.id===v))a.value=v}
 async function renderDirectory(){staffSelectors();const dir=$('directory');dir.replaceChildren();$('addState').hidden=data.role!=='owner';$('addAlliance').hidden=data.role==='alliance_manager';
  if(!data.states.length){const e=document.createElement('div');e.className='card';e.innerHTML='<h2>No states yet</h2><p class="muted">Add your first state to begin building the alliance directory.</p>';dir.append(e);return}
- for(const state of data.states){const group=document.createElement('section');group.className='directory-group';const title=document.createElement('h3');title.textContent='State '+state.state_number;group.append(title);
+ for(const state of data.states){const group=document.createElement('section');group.className='directory-group';const stateHead=document.createElement('div');stateHead.className='flex';stateHead.style.justifyContent='space-between';const title=document.createElement('h3');title.textContent='State '+state.state_number;stateHead.append(title);if(data.role==='owner'){const del=document.createElement('button');del.className='danger tiny';del.textContent='Delete State';del.onclick=async()=>{const typed=prompt(`Type ${state.state_number} to delete State ${state.state_number}. The state must have no active alliances.`);if(String(typed||'')!==String(state.state_number))return;try{await api('delete_state',{state_number:state.state_number,confirm:String(typed)});message(`State ${state.state_number} deleted.`);await load()}catch(e){message(e.message)}};stateHead.append(del)}group.append(stateHead);
  const cards=document.createElement('div');cards.className='alliance-grid';for(const a of data.alliances.filter(x=>x.state_number===state.state_number)){
  const card=document.createElement('article');card.className='alliance-card';
  const heading=document.createElement('div');heading.className='gift-alliance-heading';
@@ -396,7 +405,7 @@ async function openMove(a,ids,card){if(!ids.size){message('Select at least one m
  await modal('Move Members',`<p>Move ${ids.size} selected members from State ${a.state_number} • ${a.tag}. Game IDs and redemption history are preserved.</p><label>Destination Alliance<select id="moveTarget">${opts}</select></label>`,{ok:'Move Members',onOk:async body=>{const dest=body.querySelector('#moveTarget').value;if(!dest)throw Error('Select a destination.');const r=await api('move',{source_alliance_id:a.id,destination_alliance_id:dest,game_ids:[...ids]});message(`${r.result?.moved||0} members moved.`);card.querySelector('.roster-shell')?.remove();return true}})
 }
 $('addState').onclick=async()=>{await modal('Add State',field('newState','State number','number'),{ok:'Add State',onOk:async body=>{const n=Number(body.querySelector('#newState').value);if(!Number.isSafeInteger(n)||n<1)throw Error('Enter a valid state number.');await api('create_state',{state_number:n});message(`State ${n} added.`);await load();return true}})};
-$('addAlliance').onclick=async()=>{if(!data.states.length){message('Add a state first.');return}const options=data.states.map(x=>`<option value="${x.state_number}">State ${x.state_number}</option>`).join('');await modal('Add Alliance',`<label>State<select id="newAllianceState">${options}</select></label>${field('newAllianceTag','Alliance tag')}${field('newAllianceName','Alliance name (optional)')}`,{ok:'Add Alliance',onOk:async body=>{const n=Number(body.querySelector('#newAllianceState').value),tag=clean(body.querySelector('#newAllianceTag').value).toUpperCase();if(!/^\S{1,24}$/.test(tag))throw Error('Enter an alliance tag of 1–24 characters without spaces.');await api('create_alliance',{state_number:n,tag,name:clean(body.querySelector('#newAllianceName').value)||tag});message(`${tag} added to State ${n}.`);await load();return true}})};
+$('addAlliance').onclick=async()=>{if(!data.states.length){message('Add a state first.');return}const options=data.states.map(x=>`<option value="${x.state_number}">State ${x.state_number}</option>`).join('');await modal('Add Alliance',`<label>State<select id="newAllianceState">${options}</select></label>${field('newAllianceTag','Alliance tag')}<p class="info-line">Enter the Alliance Tag exactly as it appears in-game. Capitalization matters: FSU, fsu and Fsu are different tags.</p>${field('newAllianceName','Alliance name (optional)')}`,{ok:'Add Alliance',onOk:async body=>{const n=Number(body.querySelector('#newAllianceState').value),tag=clean(body.querySelector('#newAllianceTag').value);if(!/^\S{1,24}$/.test(tag))throw Error('Enter an alliance tag of 1–24 characters without spaces.');await api('create_alliance',{state_number:n,tag,name:clean(body.querySelector('#newAllianceName').value)||tag});message(`${tag} added to State ${n}.`);await load();return true}})};
 const giftShareUrl=new URL('gift-code-workspace.html',location.href).href;
 $('giftShareUrl').value=giftShareUrl;
 $('giftShareUrl').onclick=e=>e.currentTarget.select();
@@ -411,7 +420,7 @@ $('giftCopyLink').onclick=async()=>{
 $('staffState').onchange=staffSelectors;
 
 // NEXA Discovery phase 1: view public codes and owner-only actions; no redemption provider is connected.
-let giftHistoryFilter='all';
+let giftHistoryFilter='active';
 let giftHistoryCodes=[];
 function giftCodeCategory(c){
  const status=String(c.status||'').toLowerCase();
@@ -422,51 +431,55 @@ function giftCodeCategory(c){
 }
 function renderGiftCodeHistory(){
  const box=$('giftCodeList');box.replaceChildren();
- const ownerView=data.role==='owner';
- const needsButton=document.querySelector('[data-code-filter="unverified"]');
- if(needsButton)needsButton.hidden=!ownerView;
- if(!ownerView&&giftHistoryFilter==='unverified')giftHistoryFilter='all';
- for(const button of document.querySelectorAll('[data-code-filter]'))button.setAttribute('aria-selected',String(button.dataset.codeFilter===giftHistoryFilter));
- let shown=giftHistoryFilter==='unverified'
-  ? giftHistoryCodes.filter(c=>giftCodeCategory(c)==='unverified')
-  : giftHistoryCodes.filter(c=>giftCodeCategory(c)!=='unverified').sort((a,b)=>{
-      const rank={active:0,expired:1};
-      const diff=rank[giftCodeCategory(a)]-rank[giftCodeCategory(b)];
-      if(diff)return diff;
-      return new Date(b.discovered_at||0)-new Date(a.discovered_at||0);
-    });
+ const counts={active:0,expired:0,unverified:0};
+ for(const c of giftHistoryCodes)counts[giftCodeCategory(c)]++;
+ for(const button of document.querySelectorAll('[data-code-filter]')){
+  const filter=button.dataset.codeFilter;
+  button.setAttribute('aria-selected',String(filter===giftHistoryFilter));
+  button.textContent=({active:'Active Codes',expired:'Expired Codes',unverified:'Unverified'})[filter]+` (${counts[filter]})`;
+ }
+ const shown=giftHistoryCodes.filter(c=>giftCodeCategory(c)===giftHistoryFilter);
  for(const c of shown){
   const category=giftCodeCategory(c),div=document.createElement('article');div.className='gift-code-item';
   const head=document.createElement('div');head.className='gift-code-head';
   const strong=document.createElement('strong');strong.textContent=c.code;
   const pill=document.createElement('span');pill.className=`gift-status ${category}`;
-  pill.textContent=({active:'● Active',expired:'● Expired',unverified:'● Needs Verification'})[category];
+  pill.textContent=({active:'● Active',expired:'● Expired',unverified:'● Unverified'})[category];
   head.append(strong,pill);div.append(head);
-  if(category==='unverified'&&ownerView){
-   const actions=document.createElement('div');actions.className='flex';actions.style.marginTop='10px';
-   const retry=document.createElement('button');retry.type='button';retry.className='ghost tiny';retry.textContent='Retry Verification';
-   retry.onclick=async()=>{retry.disabled=true;try{const r=await api('retry_code_verification',{code_id:c.id});await loadGiftCodes();$('giftCodeStatus').textContent=r.status==='active'?`${c.code} verified and activated.`:r.status==='invalid'?`${c.code} was not found and was removed.`:`${c.code} could not be verified right now.`}catch(e){$('giftCodeStatus').textContent=e.message||String(e)}finally{retry.disabled=false}};
-   const del=document.createElement('button');del.type='button';del.className='danger tiny';del.textContent='Delete';
-   del.onclick=async()=>{if(!await confirmation('Delete Code',`Delete ${escapeText(c.code)} from Needs Verification?`,'Delete Code'))return;try{await api('delete_unverified_code',{code_id:c.id});await loadGiftCodes();$('giftCodeStatus').textContent=`${c.code} deleted.`}catch(e){$('giftCodeStatus').textContent=e.message||String(e)}};
-   actions.append(retry,del);div.append(actions);
-  }
   box.append(div);
  }
- if(!shown.length){const empty=document.createElement('p');empty.className='muted';empty.textContent=giftHistoryFilter==='unverified'?'No codes are waiting for verification.':'No gift codes available yet.';box.append(empty)}
+ if(!shown.length){const empty=document.createElement('p');empty.className='muted';empty.textContent=giftHistoryCodes.length?'No codes in this category.':'No codes discovered yet. Owner can run Check for Codes Now.';box.append(empty)}
 }
 for(const button of document.querySelectorAll('[data-code-filter]'))button.onclick=()=>{giftHistoryFilter=button.dataset.codeFilter;renderGiftCodeHistory()};
 async function loadGiftCodes(){
  const box=$('giftCodeList'),status=$('giftCodeStatus');
- box.textContent='Loading gift codes…';try{
+ box.textContent='Loading discovered codes…';try{
   const r=await api('codes');giftHistoryCodes=r.codes||[];
   $('scanGiftCodes').hidden=data.role!=='owner';$('addGiftCode').hidden=data.role!=='owner';
+  $('controlledWorkerTestCard').classList.toggle('hidden',data.role!=='owner');
+  $('giftQueueCount').textContent=data.role==='owner'?`${r.pending} local pending entries (not sent to game).`:'Actual redemption is not enabled.';
   renderGiftCodeHistory();
   status.textContent='';
- }catch(e){box.textContent='Unable to load gift codes.';status.textContent=e.message||String(e)}
+ }catch(e){box.textContent='Unable to load code history.';status.textContent=e.message||String(e)}
 }
-$('refreshGiftCodes').onclick=async()=>{const b=$('refreshGiftCodes');b.disabled=true;try{if(data.role==='owner')await api('scan_codes');await loadGiftCodes()}catch(e){$('giftCodeStatus').textContent=e.message||String(e)}finally{b.disabled=false}};
-$('scanGiftCodes').onclick=async()=>{const b=$('scanGiftCodes');b.disabled=true;$('giftCodeStatus').textContent='Checking gift codes…';try{await api('scan_codes');await loadGiftCodes();$('giftCodeStatus').textContent='Gift codes updated.'}catch(e){$('giftCodeStatus').textContent=e.message||String(e)}finally{b.disabled=false}};
-$('addGiftCode').onclick=async()=>{await modal('Add Gift Code',field('manualGiftCode','Gift Code'),{ok:'Verify & Add',onOk:async body=>{const code=body.querySelector('#manualGiftCode').value.trim();const r=await api('manual_code',{code});await loadGiftCodes();if(r.status==='active')$('giftCodeStatus').textContent=`${code} verified and activated.`;else if(r.status==='expired')$('giftCodeStatus').textContent=`${code} is expired.`;else if(r.status==='needs_verification')$('giftCodeStatus').textContent=`${code} was saved to Needs Verification because verification is temporarily unavailable.`;return true}})};
+$('refreshGiftCodes').onclick=loadGiftCodes;
+$('scanGiftCodes').onclick=async()=>{const b=$('scanGiftCodes');b.disabled=true;$('giftCodeStatus').textContent='Checking public source…';try{const r=await api('scan_codes');await loadGiftCodes();$('giftCodeStatus').textContent=`Found ${r.codes_found}, added ${r.codes_added}, queued ${r.queue_added}. No redemptions sent.`}catch(e){$('giftCodeStatus').textContent=e.message||String(e)}finally{b.disabled=false}};
+$('addGiftCode').onclick=async()=>{await modal('Add Gift Code',field('manualGiftCode','Gift Code'),{ok:'Add Code',onOk:async body=>{const code=body.querySelector('#manualGiftCode').value.trim();const r=await api('manual_code',{code});await loadGiftCodes();$('giftCodeStatus').textContent=`Code ${r.saved?.added?'added':'already recorded'}. ${r.queued||0} new queue entries. Redemption remains OFF.`;return true}})};
+$('runControlledWorkerTest').onclick=async()=>{
+ const btn=$('runControlledWorkerTest'),status=$('controlledWorkerTestStatus');
+ const confirmed=await confirmation('Run Controlled Worker Test','This sends ONE real redemption request only for Game ID 439740340 · State 2800 · code 1stYoutubeKR. It does not claim or process the normal pending queue.','Run One Test');
+ if(!confirmed)return;
+ btn.disabled=true;status.textContent='Sending one isolated worker request…';
+ try{
+  const r=await api('controlled_worker_test',{game_id:'439740340',state_number:2800,code:'1stYoutubeKR'});
+  const provider=r.provider_code?` · Provider: ${r.provider_code}`:'';
+  status.textContent=`Result: ${r.status||'unknown'}${provider}`;
+  if(r.status==='redeemed')message('Controlled worker test succeeded: 1stYoutubeKR was accepted for Game ID 439740340.');
+  else if(r.status==='already_redeemed')message('Controlled worker test reached the provider: 1stYoutubeKR was already redeemed for Game ID 439740340.');
+  else message(`Controlled worker test returned: ${r.status||'unknown'}.`);
+ }catch(e){status.textContent=e.message||String(e);message('Controlled worker test did not report a successful redemption.')}
+ finally{btn.disabled=false}
+};
 
 $('grantStaff').onclick=async()=>{const btn=$('grantStaff');btn.disabled=true;try{const role=$('staffRole').value,state=$('staffState').value,alliance=$('staffAlliance').value;const r=await api('grant_staff',{game_id:clean($('staffGameId').value),role,state_number:role==='redeemer_admin'?Number(state):null,alliance_id:role==='alliance_manager'?alliance:null});$('staffStatus').textContent=r.result?.status==='active_existing_account'?'Existing staff account activated.':'Game ID authorized for first-time registration.';$('staffGameId').value=''}catch(e){$('staffStatus').textContent=e.message}finally{btn.disabled=false}};
 $('logout').onclick=async()=>{try{await rpc('transfer_staff_logout',{p_token:token})}catch{}localStorage.removeItem('nexa_transfer_staff_token');sessionStorage.removeItem('nexa_transfer_staff_token');location.reload()};

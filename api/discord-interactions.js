@@ -1,4 +1,4 @@
-// NEXA DISCORD BOT V1.9.2 — /NEXA COMMAND HUB / ACTIVE APPLICANTS ONLY
+// NEXA DISCORD BOT V1.10.0 — TRANSFER LIST FIX + EVENT SCHEDULE CHANNEL
 import {
   rawBody,verifyDiscord,db,getConfigByGuild,
   getCurrentEvent,currentApps,selectedApps,recruitingAlliances,inviteCounts,
@@ -43,6 +43,12 @@ const commands=[
     {type:1,name:'invite-pending',description:'Mark a Transfer invite as pending',options:[
      {type:3,name:'game_id',description:'Whiteout Survival Game ID',required:true}
     ]}
+   ]},
+   {type:2,name:'schedule',description:'Event Schedule tools',options:[
+    {type:1,name:'set-channel',description:'Set the Discord channel for Event Schedule posts',options:[
+     {type:7,name:'channel',description:'Channel for NEXA Event Schedule posts',required:true}
+    ]},
+    {type:1,name:'view',description:'View the configured Event Schedule channel'}
    ]}
   ]
  }
@@ -181,20 +187,16 @@ function categoryEmbeds(cfg,rows,{title,color}){
 }
 function compactListEmbeds(cfg,apps,placement='all'){
   const active=(apps||[]).filter(a=>a.archived_at==null&&a.application_cycle!=='next');
+  // Group membership is an overlay, not a placement. A Group member can also be Ordinary or Special.
   const groups=active.filter(a=>a.group_id);
-  const ordinary=active.filter(a=>!a.group_id&&a.application_bucket==='ordinary');
-  const special=active.filter(a=>!a.group_id&&a.application_bucket==='special');
-  const inbox=active.filter(a=>!a.group_id&&a.application_bucket==='inbox');
+  const ordinary=active.filter(a=>a.application_bucket==='ordinary');
+  const special=active.filter(a=>a.application_bucket==='special');
+  const inbox=active.filter(a=>a.application_bucket==='inbox');
   if(placement==='ordinary')return categoryEmbeds(cfg,ordinary,{title:'🟢 TRANSFER · Ordinary',color:COLORS.ordinary});
   if(placement==='special')return categoryEmbeds(cfg,special,{title:'🟡 TRANSFER · Special',color:COLORS.special});
   if(placement==='group')return categoryEmbeds(cfg,groups,{title:'🔴 TRANSFER · Group Transfer',color:COLORS.group});
   if(placement==='inbox')return categoryEmbeds(cfg,inbox,{title:'🔵 TRANSFER · New Applicants',color:COLORS.newApplicant});
-  return[
-    ...categoryEmbeds(cfg,inbox,{title:'🔵 TRANSFER · New Applicants',color:COLORS.newApplicant}),
-    ...categoryEmbeds(cfg,ordinary,{title:'🟢 TRANSFER · Ordinary',color:COLORS.ordinary}),
-    ...categoryEmbeds(cfg,special,{title:'🟡 TRANSFER · Special',color:COLORS.special}),
-    ...categoryEmbeds(cfg,groups,{title:'🔴 TRANSFER · Group Transfer',color:COLORS.group})
-  ];
+  return categoryEmbeds(cfg,active,{title:'🌌 TRANSFER · All Transfer Applicants',color:COLORS.info});
 }
 async function saveLast(cfg,last){await db.update('transfer_discord_integrations',`workspace_id=eq.${cfg.workspace_id}`,{last_sent:last,updated_at:nowIso()})}
 async function postOnce(cfg,last,key,payload,type='reminders'){
@@ -271,6 +273,36 @@ async function transferList(cfg,options){
   const rawApps=await currentApps(cfg.workspace_id,event.id),apps=await hydrateGroupMeta(cfg.workspace_id,rawApps);
   return responseEmbeds(compactListEmbeds(cfg,apps,String(options.placement||'all')),{ephemeral:false,components:workspaceOnlyComponents(cfg)});
 }
+async function scheduleCommand(cfg,action,options){
+  if(action==='set-channel'){
+    const channelId=String(options.channel||'').trim();
+    if(!channelId)return responseEmbed(errorEmbed(cfg,'Channel Required','Choose the Discord channel where NEXA should post Event Schedule reminders.'));
+    await db.update('transfer_discord_integrations',`workspace_id=eq.${encodeURIComponent(cfg.workspace_id)}`,{
+      event_schedule_channel_id:channelId,
+      updated_at:nowIso()
+    });
+    return responseEmbed(successEmbed(cfg,'Event Schedule Channel Saved',`NEXA Event Schedule posts will use <#${channelId}>.`,[
+      field('Channel',`<#${channelId}>`,false)
+    ]));
+  }
+  if(action==='view'){
+    const channelId=String(cfg.event_schedule_channel_id||'').trim();
+    if(!channelId)return responseEmbed(embed(cfg,{
+      title:'📅 Event Schedule',
+      description:'No Event Schedule channel is configured yet. Use `/nexa schedule set-channel`.',
+      color:COLORS.info,
+      footer:'NEXA Bot'
+    }));
+    return responseEmbed(embed(cfg,{
+      title:'📅 Event Schedule',
+      description:`Configured channel: <#${channelId}>`,
+      color:COLORS.info,
+      footer:'NEXA Bot'
+    }));
+  }
+  return responseEmbed(errorEmbed(cfg,'Command Not Recognized','Choose an Event Schedule command.'));
+}
+
 async function transferView(cfg,options){
   const event=await getCurrentEvent(cfg.workspace_id);if(!event)return responseEmbed(errorEmbed(cfg,'No Active Transfer Cycle','No active Transfer cycle was found.'));
   let a=await applicantByGameId(cfg,event,String(options.game_id||'').trim());if(!a)return responseEmbed(errorEmbed(cfg,'Applicant Not Found',`No current applicant was found with Game ID \`${options.game_id}\`.`));
@@ -315,10 +347,11 @@ async function transferInvite(cfg,action,options){
   await db.update('transfer_applications',`id=eq.${a.id}`,{invite_status:'not_sent',invite_pending_reason:null,invite_sent_at:null,updated_at:nowIso()});return responseEmbed(embed(cfg,{title:'⬜ TRANSFER · Invite Pending',description:`**${a.in_game_name||a.player_id}** is marked Pending.`,color:COLORS.warning,footer:'NEXA Bot'}));
 }
 function helpResponse(cfg){
-  const e=embed(cfg,{title:'🌌 NEXA Bot',description:'One command hub. Choose **Transfer** now; additional NEXA utilities can be added later without cluttering Discord.',color:COLORS.info,fields:[
+  const e=embed(cfg,{title:'🌌 NEXA Bot',description:'One NEXA command hub for Transfer and Event Schedule tools.',color:COLORS.info,fields:[
     field('📋 Transfer List','`/nexa transfer list` → All / New Applicants / Ordinary / Special / Group Transfer',false),
     field('👤 Applicant','`/nexa transfer view` · quick details\n`/nexa transfer move` · Ordinary / Special / Group Transfer',false),
     field('📨 Invites','`/nexa transfer invite-list` · post roster\n`/nexa transfer invite-sent` · mark sent\n`/nexa transfer invite-pending` · mark pending',false),
+    field('📅 Event Schedule','`/nexa schedule set-channel` · choose posting channel\n`/nexa schedule view` · show configured channel',false),
     field('🎨 Transfer Colors','🟢 Ordinary · 🟡 Special · 🔴 Group Transfer',false)
   ],footer:'Full setup stays in NEXA Workspace.'});
   return responseEmbed(e,{components:workspaceOnlyComponents(cfg,'Open Transfer Workspace')});
@@ -394,6 +427,7 @@ export default async function handler(req,res){
     const route=parseNexaCommand(body.data);
     if(body.data.name!=='nexa')return res.status(200).json(responseEmbed(errorEmbed(cfg,'Old Command','This server now uses `/nexa`. Start typing `/nexa` to see the organized command menu.')));
     if(route.action==='help')return res.status(200).json(helpResponse(cfg));
+    if(route.group==='schedule')return res.status(200).json(await scheduleCommand(cfg,route.action,route.options));
     if(route.group!=='transfer')return res.status(200).json(responseEmbed(errorEmbed(cfg,'Command Not Recognized','Choose a NEXA category and command.')));
     if(route.action==='list')return res.status(200).json(await transferList(cfg,route.options));
     if(route.action==='view')return res.status(200).json(await transferView(cfg,route.options));

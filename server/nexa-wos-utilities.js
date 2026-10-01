@@ -3,6 +3,7 @@
  * Uses existing Transfer staff sessions. Server-side service role only.
  */
 import { createHash, randomBytes } from 'node:crypto';
+import { sendChannel } from '../lib/discord-common.js';
 const URL=process.env.SUPABASE_URL||'https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||'';
 const enc=x=>encodeURIComponent(String(x));
@@ -119,6 +120,14 @@ export default async function handler(req,res){
   if(b.action==='request_alliance_deletion'){
    const id=String(b.alliance_id||'');if(!await allianceAllowed(s,id))throw fail('Access denied.',403);if(!['owner','administrative','r5'].includes(s.access.role))throw fail('R5 or Administrative access required.',403);
    const rows=await db('wos_alliance_deletion_requests',{method:'POST',body:{alliance_id:id,requested_by_game_id:s.account.game_id}});return res.status(200).json({ok:true,request:rows[0]});
+  }
+  if(b.action==='test_event'){
+   const id=String(b.id||''),found=(await events(s)).find(x=>x.id===id);if(!found)throw fail('Event not found.',404);
+   const integrations=await db('transfer_discord_integrations?enabled=eq.true&event_schedule_channel_id=not.is.null&select=event_schedule_channel_id,guild_id,updated_at&order=updated_at.desc&limit=1');
+   const channel=integrations?.[0]?.event_schedule_channel_id;if(!channel)throw fail('Set the Event Schedule channel in Discord first with /nexa schedule set-channel.',409);
+   const preview=String(b.preview||found.message||found.event_name||'NEXA Event Reminder').slice(0,1800);
+   await sendChannel(channel,{content:`ð§ª **NEXA TEST â NOT A LIVE REMINDER**\n\n${preview}`,allowed_mentions:{parse:[]}});
+   return res.status(200).json({ok:true,message:'Test sent to the configured Event Schedule channel.'});
   }
   if(b.action==='save_event'){
    const e=b.event||{},type=String(e.event_type||'custom');if(!['bear_trap','foundry','canyon','system_reset','custom'].includes(type))throw fail('Invalid event type.');if(e.alliance_id&&!await allianceAllowed(s,e.alliance_id))throw fail('Access denied for this alliance.',403);

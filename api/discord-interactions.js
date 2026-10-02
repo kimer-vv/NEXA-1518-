@@ -177,9 +177,11 @@ function compactApplicantLine(a){
   const name=a.in_game_name||'Applicant',id=a.player_id||'—';
   const furnace=String(a.furnace_level||'—').toUpperCase();
   const n=Number(a.current_power||0),power=!n?'—':n>=1e9?`${Math.round(n/1e7)/100}B`:n>=1e6?`${Math.round(n/1e6)}M`:fmtPower(n);
-  const alliance=a.assigned_alliance_tag||a._group_destination||'—';
+  const destination=a.assigned_alliance_tag||a._group_destination||'—';
+  const originState=a.current_state?`State ${a.current_state}`:'State —';
+  const originAlliance=String(a.current_alliance||'—').trim()||'—';
   const special=a.application_bucket==='special'?'⭐ ':'';
-  return `${special}${name} · \`${id}\`\n${furnace} │ ${power} │ ${alliance}`;
+  return `${special}${name} · \`${id}\`\n${furnace} │ ${power} │ ${destination}\n${originState} │ ${originAlliance}`;
 }
 function categoryEmbeds(cfg,rows,{title,color}){
   if(!rows.length)return[];

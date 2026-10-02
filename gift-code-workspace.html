@@ -406,10 +406,15 @@ async function openMove(a,ids,card){if(!ids.size){message('Select at least one m
 $('addState').onclick=async()=>{await modal('Add State',field('newState','State number','number'),{ok:'Add State',onOk:async body=>{const n=Number(body.querySelector('#newState').value);if(!Number.isSafeInteger(n)||n<1)throw Error('Enter a valid state number.');await api('create_state',{state_number:n});message(`State ${n} added.`);await load();return true}})};
 $('addAlliance').onclick=async()=>{if(!data.states.length){message('Add a state first.');return}const options=data.states.map(x=>`<option value="${x.state_number}">State ${x.state_number}</option>`).join('');await modal('Add Alliance',`<label>State<select id="newAllianceState">${options}</select></label>${field('newAllianceTag','Alliance tag')}<p class="info-line">Enter the Alliance Tag exactly as it appears in-game. Capitalization matters: FSU, fsu and Fsu are different tags.</p>${field('newAllianceName','Alliance name (optional)')}`,{ok:'Add Alliance',onOk:async body=>{const n=Number(body.querySelector('#newAllianceState').value),tag=clean(body.querySelector('#newAllianceTag').value);if(!/^\S{1,24}$/.test(tag))throw Error('Enter an alliance tag of 1–24 characters without spaces.');await api('create_alliance',{state_number:n,tag,name:clean(body.querySelector('#newAllianceName').value)||tag});message(`${tag} added to State ${n}.`);await load();return true}})};
 const giftShareUrl=new URL('gift-code-workspace.html',location.href).href;
-$('giftShareUrl').value=giftShareUrl;
-$('giftShareUrl').onclick=e=>e.currentTarget.select();
-$('giftCopyLink').onclick=async()=>{
- const field=$('giftShareUrl'),status=$('giftCopyStatus');
+// Legacy Staff Access share controls were removed from the HTML.
+// Guard these optional bindings so missing elements cannot abort Gift Codes before load().
+const giftShareField=$('giftShareUrl'),giftCopyButton=$('giftCopyLink'),giftCopyStatus=$('giftCopyStatus');
+if(giftShareField){
+ giftShareField.value=giftShareUrl;
+ giftShareField.onclick=e=>e.currentTarget.select();
+}
+if(giftCopyButton&&giftShareField&&giftCopyStatus)giftCopyButton.onclick=async()=>{
+ const field=giftShareField,status=giftCopyStatus;
  try{
   if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(giftShareUrl)}
   else{field.focus();field.select();field.setSelectionRange(0,field.value.length);if(!document.execCommand('copy'))throw Error('Copy unavailable')}

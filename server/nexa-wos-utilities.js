@@ -1,4 +1,4 @@
-/* NEXA WOS Utilities Server Handler V2.1
+/* NEXA WOS Utilities Server Handler V2.2
  * Complete replacement: preserves staff/event actions and adds alliance-scoped Discord linking.
  * Requires the companion SQL migration: wos-discord-alliance-links-migration.txt
  */

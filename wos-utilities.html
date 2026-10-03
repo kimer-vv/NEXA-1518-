@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- NEXA WOS Utilities V11 — fixed Bear selectors/formations + alliance-scoped Discord -->
+<!-- NEXA WOS Utilities V12 — fixed Bear selectors/formations + alliance-scoped Discord -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -92,35 +92,38 @@ const REMINDERS=[0,5,10,15,30,60,120,360,1440];
    C/D heroes are excluded. Older approved heroes remain visible when relevant; warnings may become
    generation-dependent instead of silently removing a selectable hero. */
 const BEAR_JOINERS=[
-{name:'Jessie',gen:1,tier:'S+',skill:'Stand of Arms'},
-{name:'Seo-yoon',gen:1,tier:'S+',skill:'Rallying Beat'},
-{name:'Jasser',gen:1,tier:'S+',skill:'Tactical Genius'},
-{name:'Jeronimo',gen:1,tier:'S+',skill:'Battle Manifesto',warning:'Rally Leader Priority: use Jeronimo to start your own rally when available. Only use him as a joiner when he is not being used to lead your own rally.'},
-{name:'Bradley',gen:7,tier:'S+',skill:"Veteran's Might"},
-{name:'Magnus',gen:9,tier:'S+',skill:'Rapacious'},
-{name:'Blanchette',gen:10,tier:'S+',skill:'Armed to the Teeth'},
-{name:'Rufus',gen:11,tier:'S+',skill:'Inferno Regiment'},
-{name:'Hervor',gen:12,tier:'S+',skill:'Call For Blood'},
-{name:'Hank',gen:15,tier:'S+',skill:'Roaring Rage'},
-{name:'Estrella',gen:15,tier:'S+',skill:'Corrosive Color'},
-{name:'Hendrik',gen:8,tier:'S-',skill:"Worm's Ravage",tierWarning:'Only use one hero from this tier per rally.'},
-{name:'Ligeia',gen:12,tier:'S-',skill:'Nerf Poison',tierWarning:'Only use one hero from this tier per rally.'},
-{name:'Viveca',gen:15,tier:'S-',skill:'Nightfall Legion',tierWarning:'Only use one hero from this tier per rally.'},
-{name:'Reina',gen:4,tier:'A',skill:"Assassin's Instinct",warning:'Can be used before you get Rufus. Her skill does not work well with Rufus; avoid pairing her joiner effect with Rufus when Rufus is being used for the rally.'},
-{name:'Sonya',gen:8,tier:'A',skill:'Treasure Hunter',warning:'Conditional Bear joiner. Follow the current rally composition guidance; do not treat her as interchangeable with the S+ joiners.'},
-{name:'Dominic',gen:14,tier:'A',skill:'Mystic Mechanism',warning:'Sonya / Dominic / Aisling are conditional choices. Do not use an incompatible pairing; follow the current Bear rally setup.'},
-{name:'Aisling',gen:16,tier:'A',skill:'Songs of the Ancestors',warning:'Sonya / Dominic / Aisling are conditional choices. Do not use an incompatible pairing; follow the current Bear rally setup.'},
-{name:'Mia',gen:3,tier:'B',skill:'Bad Luck Streak',warning:'RNG hero. Results can vary. Prefer the higher-tier approved Bear joiners when they are available.'},
-{name:'Renee',gen:6,tier:'B',skill:'Nightmare Trace',warning:'RNG/conditional Bear joiner. Prefer higher-tier approved joiners when available.'},
-{name:'Gwen',gen:5,tier:'B',skill:'Eagle Vision',warning:'Lower Bear damage than stronger approved alternatives. Keep selectable when your roster needs it.'},
-{name:'Wayne',gen:6,tier:'B',skill:'Thunder Strike',warningFromGen:9,warning:'Older/conditional Bear option. At later hero generations, prefer the stronger approved joiners when available.'},
-{name:'Philly',gen:2,tier:'B',skill:'Vigor Tactics',warningFromGen:4,warning:'Older Bear option. At later generations she can displace a stronger joiner skill; prefer the higher-tier approved Bear joiners when available.'},
-{name:'Norah',gen:5,tier:'B',skill:'Combined Arms',warning:'Conditional/lower-priority Bear joiner. Prefer higher-tier approved choices when available.'}
+{name:'Jessie',gen:1,tier:'S',skill:'Stand of Arms',recommendedThrough:3},
+{name:'Seo-yoon',gen:1,tier:'S',skill:'Rallying Beat',recommendedThrough:3},
+{name:'Jasser',gen:1,tier:'S',skill:'Tactical Genius',recommendedThrough:3},
+{name:'Jeronimo',gen:1,tier:'S',skill:'Battle Manifesto',warning:'Rally Lead Priority: use Jeronimo to start your own rally when available. If you are not using him to lead your own rally, he can be used as a joiner.'},
+{name:'Flora',gen:3,tier:'Situational',skill:'Bear joiner effect',warning:'Situational: sometimes good, sometimes bad. Prefer a consistent S+ or S joiner when available.'},
+{name:'Mia',gen:3,tier:'Situational',skill:'Bad Luck Streak',warning:'Situational / RNG: sometimes good, sometimes bad. Prefer a consistent S+ or S joiner when available.'},
+{name:'Reina',gen:4,tier:'Situational',skill:"Assassin's Instinct",warning:'Situational: sometimes good, sometimes bad. Keep the Rufus interaction in mind when choosing her.'},
+{name:'Bradley',gen:7,tier:'S',skill:"Veteran's Might",warning:'Rally Lead Priority: if you are using Bradley to start your own rally, keep him for that rally. Otherwise he can be used as a joiner.'},
+{name:'Hendrik',gen:8,tier:'S+',skill:"Worm's Ravage"},
+{name:'Magnus',gen:9,tier:'S',skill:'Rapacious'},
+{name:'Blanchette',gen:10,tier:'S',skill:'Armed to the Teeth',warning:'Rally Lead Priority: if you are using Blanchette to start your own rally, keep her for that rally. Otherwise she can be used as a joiner.'},
+{name:'Rufus',gen:11,tier:'S',skill:'Inferno Regiment',warning:'Rally Lead Priority: if you are using Rufus to start your own rally, keep him for that rally. Otherwise he can be used as a joiner.'},
+{name:'Ligeia',gen:12,tier:'S+',skill:'Bear joiner skill'},
+{name:'Herbert',gen:12,tier:'S',skill:'Bear joiner skill'},
+{name:'Dominic',gen:14,tier:'C',skill:'Legacy / later-generation non-priority joiner',recommendedThrough:14},
+{name:'Estrella',gen:15,tier:'S+',skill:'Bear joiner skill'},
+{name:'Viveca',gen:15,tier:'S',skill:'Bear joiner skill'},
+{name:'Huck',gen:15,tier:'S',skill:'Bear joiner skill'},
+{name:'Aisling',gen:16,tier:'C',skill:'Legacy / later-generation non-priority joiner',recommendedThrough:16}
 ];
-const TIER_ORDER=['S+','S-','A','B'];
+const TIER_ORDER=['S+','S','Situational'];
 
-function joinersForGeneration(g){g=Number(g);return BEAR_JOINERS.filter(h=>h.gen<=g)}
-function heroWarning(h,g){return h.warning&&(!h.warningFromGen||Number(g)>=h.warningFromGen)?h.warning:''}
+function joinersForGeneration(g){
+ g=Number(g);
+ return BEAR_JOINERS.filter(h=>h.gen<=g && h.tier!=='C' && (!h.recommendedThrough || g<=h.recommendedThrough));
+}
+function heroWarning(h,g){
+ const notes=[];
+ if(h.warning)notes.push(h.warning);
+ if(h.recommendedThrough && Number(g)===h.recommendedThrough)notes.push(`Generation Note: recommended through Gen ${h.recommendedThrough}. Not recommended for later generations.`);
+ return notes.join('\n\n');
+}
 function showInfo(title,message){
  let old=document.getElementById('nexaInfoOverlay');if(old)old.remove();
  const d=document.createElement('div');d.id='nexaInfoOverlay';d.className='info-overlay';

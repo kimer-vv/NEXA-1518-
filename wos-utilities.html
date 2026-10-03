@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- NEXA WOS Utilities V10 — Bear joiner tiers + non-destructive warnings + alliance-scoped Discord -->
+<!-- NEXA WOS Utilities V11 — fixed Bear selectors/formations + alliance-scoped Discord -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -118,8 +118,48 @@ const BEAR_JOINERS=[
 {name:'Norah',gen:5,tier:'B',skill:'Combined Arms',warning:'Conditional/lower-priority Bear joiner. Prefer higher-tier approved choices when available.'}
 ];
 const TIER_ORDER=['S+','S-','A','B'];
-function renderFormations(g){const root=$('rallyFormationGrid');if(!root)return;const rows=BEAR_FORMATIONS[Number(g)];root.innerHTML=rows?rows.map(x=>`<article class="formation-card"><h4>${esc(x[0])}</h4><div class="formation-heroes">${esc(x[1])}</div><div class="formation-split">${esc(x[2])}</div></article>`).join(''):'<div class="notice" style="grid-column:1/-1">Verified rally formation recommendations are not available for this generation yet.</div>'}
 
+function joinersForGeneration(g){g=Number(g);return BEAR_JOINERS.filter(h=>h.gen<=g)}
+function heroWarning(h,g){return h.warning&&(!h.warningFromGen||Number(g)>=h.warningFromGen)?h.warning:''}
+function showInfo(title,message){
+ let old=document.getElementById('nexaInfoOverlay');if(old)old.remove();
+ const d=document.createElement('div');d.id='nexaInfoOverlay';d.className='info-overlay';
+ d.innerHTML=`<div class="info-card"><h3>${esc(title)}</h3><p class="muted" style="white-space:pre-wrap">${esc(message)}</p><button id="nexaInfoClose" class="full-btn secondary">Back to Event</button></div>`;
+ document.body.appendChild(d);
+ const close=()=>d.remove();d.onclick=e=>{if(e.target===d)close()};d.querySelector('#nexaInfoClose').onclick=close;
+}
+function renderJoiners(g,selected){
+ const root=$('approvedJoinerGrid');if(!root)return;
+ const rows=joinersForGeneration(g),sel=new Set(selected||[]);
+ root.innerHTML=TIER_ORDER.map(tier=>{
+  const heroes=rows.filter(h=>h.tier===tier);if(!heroes.length)return'';
+  const tw=heroes.find(h=>h.tierWarning)?.tierWarning||'';
+  return `<section class="hero-tier"><div class="hero-tier-head"><div class="hero-tier-title">${esc(tier)}</div>${tw?`<button type="button" class="warn-btn" data-tier-warning="${esc(tier)}">!</button>`:''}</div><div class="hero-tier-cards">${heroes.map(h=>{const w=heroWarning(h,g);return `<label class="hero-card ${sel.has(h.name)?'selected':''}"><input type="checkbox" data-joiner="${esc(h.name)}" ${sel.has(h.name)?'checked':''}><div><div class="hero-name">${esc(h.name)}</div><div class="hero-meta">${esc(h.skill)} · Gen ${h.gen}</div></div>${w?`<button type="button" class="warn-btn" data-warning-name="${esc(h.name)}">!</button>`:'<span></span>'}</label>`}).join('')}</div></section>`;
+ }).join('')||'<div class="notice">Verified Bear joiner data is not available for this generation yet.</div>';
+ root.querySelectorAll('[data-joiner]').forEach(x=>x.onchange=()=>x.closest('.hero-card').classList.toggle('selected',x.checked));
+ root.querySelectorAll('[data-warning-name]').forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();const h=rows.find(x=>x.name===b.dataset.warningName);showInfo(`${h.name} · Bear Joiner Note`,heroWarning(h,g))});
+ root.querySelectorAll('[data-tier-warning]').forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();const h=rows.find(x=>x.tier===b.dataset.tierWarning&&x.tierWarning);showInfo(`${b.dataset.tierWarning} · Bear Joiner Rule`,h?.tierWarning||'')});
+}
+function selectedJoiners(){return [...document.querySelectorAll('[data-joiner]:checked')].map(x=>x.dataset.joiner)}
+
+const BEAR_FORMATIONS={
+1:[['Recommended','Jeronimo · Molly · Bahiti','30 / 30 / 40'],['Alternative','Natalia · Molly · Bahiti','20 / 40 / 40'],['F2P','Sergey · Molly · Bahiti','30 / 30 / 40']],
+2:[['Recommended','Jeronimo · Philly · Alonso','20 / 30 / 50'],['Alternative','Natalia · Molly · Alonso','20 / 30 / 50'],['F2P','Flint · Molly · Bahiti','30 / 30 / 40']],
+3:[['Recommended','Natalia · Mia · Alonso','10 / 20 / 70'],['Alternative','Jeronimo · Mia · Alonso','20 / 30 / 50'],['F2P','Flint · Mia · Bahiti','20 / 40 / 40']],
+4:[['Recommended','Jeronimo · Reina · Alonso','10 / 30 / 60'],['Alternative','Natalia · Mia · Lynn','10 / 10 / 80'],['F2P','Flint · Mia · Lynn','10 / 10 / 80']],
+5:[['Recommended','Jeronimo · Reina · Gwen','10 / 30 / 60'],['Alternative','Hector · Mia · Gwen','10 / 10 / 80'],['F2P','Hector · Mia · Lynn','10 / 10 / 80']],
+6:[['Recommended','Jeronimo · Reina · Wayne','10 / 30 / 60'],['Alternative','Jeronimo · Mia · Wayne','10 / 10 / 80'],['F2P','Hector · Renee · Lynn','10 / 20 / 70']],
+7:[['Recommended','Jeronimo · Mia · Bradley','10 / 10 / 80'],['Alternative','Jeronimo · Reina · Wayne','10 / 30 / 60'],['F2P','Hector · Mia · Bradley','10 / 10 / 80']],
+8:[['Recommended','Jeronimo · Mia · Bradley','10 / 10 / 80'],['Alternative','Jeronimo · Sonya · Wayne','10 / 30 / 60'],['F2P','Hector · Mia · Bradley','10 / 10 / 80']],
+9:[['Recommended','Jeronimo · Mia · Bradley','10 / 10 / 80'],['Alternative','Magnus · Reina · Bradley','10 / 10 / 80'],['F2P','Hector · Mia · Bradley','10 / 10 / 80']],
+10:[['Recommended','Jeronimo · Mia · Blanchette','10 / 10 / 80'],['Alternative','Gregory · Mia · Blanchette','10 / 10 / 80'],['F2P','Hector · Mia · Blanchette','10 / 10 / 80']],
+11:[['Recommended','Jeronimo · Mia · Rufus','10 / 10 / 80'],['Alternative','Gregory · Mia · Blanchette','10 / 10 / 80'],['F2P','Hector · Mia · Blanchette','10 / 10 / 80']],
+12:[['Recommended','Jeronimo · Mia · Rufus','10 / 10 / 80'],['Alternative','Jeronimo · Mia · Ligeia','10 / 10 / 80'],['F2P','Hector · Mia · Blanchette','10 / 10 / 80']]
+};
+function renderFormations(g){
+ const root=$('rallyFormationGrid');if(!root)return;const rows=BEAR_FORMATIONS[Number(g)];
+ root.innerHTML=rows?rows.map(x=>`<article class="formation-card"><h4>${esc(x[0])}</h4><div class="formation-heroes">${esc(x[1])}</div><div class="formation-split">${esc(x[2])}</div></article>`).join(''):'<div class="notice" style="grid-column:1/-1">Verified rally formation recommendations are not available for this generation yet.</div>';
+}
 
 async function loadDiscordServers(selectedServer='',selectedChannel=''){
  const server=$('discordServer'),channel=$('discordChannel');if(!server||!currentAllianceId)return;

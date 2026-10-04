@@ -188,4 +188,4 @@ export default async function handler(req,res){
   if(b.action==='delete_event'){const id=String(b.id||''),found=(await events(s)).find(x=>String(x.id)===id);if(!found)throw fail('Event not found.',404);await db(`wos_event_reminders?id=eq.${enc(id)}`,{method:'DELETE'});return res.status(200).json({ok:true})}
   throw fail('Unknown action.');
  }catch(e){return res.status(e.status||500).json({ok:false,error:e.message||'Unexpected error.'})}
-}
+} 

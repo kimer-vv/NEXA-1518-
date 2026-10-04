@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- NEXA WOS Utilities V12 — fixed Bear selectors/formations + alliance-scoped Discord -->
+<!-- NEXA WOS Utilities V13 — Bear joiner library + reliable alliance-scoped Discord linking -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -92,58 +92,53 @@ const REMINDERS=[0,5,10,15,30,60,120,360,1440];
    C/D heroes are excluded. Older approved heroes remain visible when relevant; warnings may become
    generation-dependent instead of silently removing a selectable hero. */
 const BEAR_JOINERS=[
-{name:'Jessie',gen:1,tier:'S',skill:'Stand of Arms',recommendedThrough:3},
-{name:'Seo-yoon',gen:1,tier:'S',skill:'Rallying Beat',recommendedThrough:3},
-{name:'Jasser',gen:1,tier:'S',skill:'Tactical Genius',recommendedThrough:3},
+{name:'Jessie',gen:1,tier:'S',skill:'Stand of Arms'},
+{name:'Seo-yoon',gen:1,tier:'S',skill:'Rallying Beat'},
+{name:'Jasser',gen:1,tier:'S',skill:'Tactical Genius'},
 {name:'Jeronimo',gen:1,tier:'S',skill:'Battle Manifesto',warning:'Rally Lead Priority: use Jeronimo to start your own rally when available. If you are not using him to lead your own rally, he can be used as a joiner.'},
-{name:'Flora',gen:3,tier:'Situational',skill:'Bear joiner effect',warning:'Situational: sometimes good, sometimes bad. Prefer a consistent S+ or S joiner when available.'},
-{name:'Mia',gen:3,tier:'Situational',skill:'Bad Luck Streak',warning:'Situational / RNG: sometimes good, sometimes bad. Prefer a consistent S+ or S joiner when available.'},
-{name:'Reina',gen:4,tier:'Situational',skill:"Assassin's Instinct",warning:'Situational: sometimes good, sometimes bad. Keep the Rufus interaction in mind when choosing her.'},
+{name:'Philly',gen:2,tier:'Legacy',skill:'Historical Bear joiner',recommendedThrough:3,warning:'Legacy Joiner: useful in early generations, then replaced by stronger Bear joiners.'},
+{name:'Mia',gen:3,tier:'Situational',skill:'Bad Luck Streak',warning:'Situational / RNG — sometimes good, sometimes bad. Prefer using Mia for your own rally rather than as a joiner when applicable.'},
+{name:'Reina',gen:4,tier:'Situational',skill:"Assassin's Instinct",warning:'Situational Bear joiner. Use only when her interaction fits the rally setup.'},
 {name:'Bradley',gen:7,tier:'S',skill:"Veteran's Might",warning:'Rally Lead Priority: if you are using Bradley to start your own rally, keep him for that rally. Otherwise he can be used as a joiner.'},
+{name:'Sonya',gen:8,tier:'Legacy',skill:'Historical / situational Bear joiner',recommendedThrough:8,warning:'Legacy / Situational Joiner: usable in her historical window, but not a modern priority joiner.'},
 {name:'Hendrik',gen:8,tier:'S+',skill:"Worm's Ravage"},
 {name:'Magnus',gen:9,tier:'S',skill:'Rapacious'},
 {name:'Blanchette',gen:10,tier:'S',skill:'Armed to the Teeth',warning:'Rally Lead Priority: if you are using Blanchette to start your own rally, keep her for that rally. Otherwise she can be used as a joiner.'},
 {name:'Rufus',gen:11,tier:'S',skill:'Inferno Regiment',warning:'Rally Lead Priority: if you are using Rufus to start your own rally, keep him for that rally. Otherwise he can be used as a joiner.'},
 {name:'Ligeia',gen:12,tier:'S+',skill:'Bear joiner skill'},
 {name:'Herbert',gen:12,tier:'S',skill:'Bear joiner skill'},
-{name:'Dominic',gen:14,tier:'C',skill:'Legacy / later-generation non-priority joiner',recommendedThrough:14},
+{name:'Flora',gen:13,tier:'Situational',skill:'Bear joiner effect',warning:'Situational Bear joiner. Prefer a consistent S+ or S joiner when available.'},
 {name:'Estrella',gen:15,tier:'S+',skill:'Bear joiner skill'},
 {name:'Viveca',gen:15,tier:'S',skill:'Bear joiner skill'},
-{name:'Huck',gen:15,tier:'S',skill:'Bear joiner skill'},
-{name:'Aisling',gen:16,tier:'C',skill:'Legacy / later-generation non-priority joiner',recommendedThrough:16}
+{name:'Huck',gen:15,tier:'S',skill:'Bear joiner skill'}
 ];
-const TIER_ORDER=['S+','S','Situational'];
-
-function joinersForGeneration(g){
- g=Number(g);
- return BEAR_JOINERS.filter(h=>h.gen<=g && h.tier!=='C' && (!h.recommendedThrough || g<=h.recommendedThrough));
-}
-function heroWarning(h,g){
- const notes=[];
- if(h.warning)notes.push(h.warning);
- if(h.recommendedThrough && Number(g)===h.recommendedThrough)notes.push(`Generation Note: recommended through Gen ${h.recommendedThrough}. Not recommended for later generations.`);
- return notes.join('\n\n');
-}
-function showInfo(title,message){
- let old=document.getElementById('nexaInfoOverlay');if(old)old.remove();
- const d=document.createElement('div');d.id='nexaInfoOverlay';d.className='info-overlay';
- d.innerHTML=`<div class="info-card"><h3>${esc(title)}</h3><p class="muted" style="white-space:pre-wrap">${esc(message)}</p><button id="nexaInfoClose" class="full-btn secondary">Back to Event</button></div>`;
- document.body.appendChild(d);
- const close=()=>d.remove();d.onclick=e=>{if(e.target===d)close()};d.querySelector('#nexaInfoClose').onclick=close;
-}
+const TIER_ORDER=['S+','S','Situational','Legacy'];
+const HERO_LIBRARY=[
+['Jeronimo',1],['Natalia',1],['Molly',1],['Bahiti',1],['Sergey',1],['Jessie',1],['Seo-yoon',1],['Jasser',1],
+['Flint',2],['Philly',2],['Alonso',2],['Mia',3],['Reina',4],['Lynn',4],['Hector',5],['Gwen',5],
+['Wayne',6],['Renee',6],['Bradley',7],['Hendrik',8],['Sonya',8],['Magnus',9],['Blanchette',10],
+['Greg',10],['Gregory',10],['Rufus',11],['Ligeia',12],['Herbert',12],['Flora',13],['Dominic',14],
+['Estrella',15],['Viveca',15],['Huck',15],['Aisling',16],['Norah',16]
+].map(([name,gen])=>({name,gen}));
+function joinersForGeneration(g){g=Number(g);return BEAR_JOINERS.filter(h=>h.gen<=g&&(!h.recommendedThrough||g<=h.recommendedThrough))}
+function heroWarning(h,g){const notes=[];if(h.warning)notes.push(h.warning);if(h.recommendedThrough&&Number(g)===h.recommendedThrough)notes.push(`Generation Note: recommended through Gen ${h.recommendedThrough}. Not recommended for later generations.`);return notes.join('\n\n')}
+function showInfo(title,message){let old=document.getElementById('nexaInfoOverlay');if(old)old.remove();const d=document.createElement('div');d.id='nexaInfoOverlay';d.className='info-overlay';d.innerHTML=`<div class="info-card"><h3>${esc(title)}</h3><p class="muted" style="white-space:pre-wrap">${esc(message)}</p><button id="nexaInfoClose" class="full-btn secondary">Back to Event</button></div>`;document.body.appendChild(d);const close=()=>d.remove();d.onclick=e=>{if(e.target===d)close()};d.querySelector('#nexaInfoClose').onclick=close}
 function renderJoiners(g,selected){
- const root=$('approvedJoinerGrid');if(!root)return;
- const rows=joinersForGeneration(g),sel=new Set(selected||[]);
- root.innerHTML=TIER_ORDER.map(tier=>{
-  const heroes=rows.filter(h=>h.tier===tier);if(!heroes.length)return'';
-  const tw=heroes.find(h=>h.tierWarning)?.tierWarning||'';
-  return `<section class="hero-tier"><div class="hero-tier-head"><div class="hero-tier-title">${esc(tier)}</div>${tw?`<button type="button" class="warn-btn" data-tier-warning="${esc(tier)}">!</button>`:''}</div><div class="hero-tier-cards">${heroes.map(h=>{const w=heroWarning(h,g);return `<label class="hero-card ${sel.has(h.name)?'selected':''}"><input type="checkbox" data-joiner="${esc(h.name)}" ${sel.has(h.name)?'checked':''}><div><div class="hero-name">${esc(h.name)}</div><div class="hero-meta">${esc(h.skill)} · Gen ${h.gen}</div></div>${w?`<button type="button" class="warn-btn" data-warning-name="${esc(h.name)}">!</button>`:'<span></span>'}</label>`}).join('')}</div></section>`;
- }).join('')||'<div class="notice">Verified Bear joiner data is not available for this generation yet.</div>';
+ const root=$('approvedJoinerGrid');if(!root)return;const rows=joinersForGeneration(g),sel=new Set(selected||[]),recommended=new Set(rows.map(h=>h.name));
+ let html=TIER_ORDER.map(tier=>{const heroes=rows.filter(h=>h.tier===tier);if(!heroes.length)return'';return `<section class="hero-tier"><div class="hero-tier-head"><div class="hero-tier-title">${esc(tier)}</div></div><div class="hero-tier-cards">${heroes.map(h=>{const w=heroWarning(h,g);return `<label class="hero-card ${sel.has(h.name)?'selected':''}"><input type="checkbox" data-joiner="${esc(h.name)}" ${sel.has(h.name)?'checked':''}><div><div class="hero-name">${esc(h.name)}</div><div class="hero-meta">${esc(h.skill)} · Gen ${h.gen}</div></div>${w?`<button type="button" class="warn-btn" data-warning-name="${esc(h.name)}">!</button>`:'<span></span>'}</label>`}).join('')}</div></section>`}).join('');
+ const custom=[...sel].filter(n=>!recommended.has(n));if(custom.length)html+=`<section class="hero-tier"><div class="hero-tier-head"><div class="hero-tier-title">Custom</div><div class="hero-tier-note">Manually Added</div></div><div class="hero-tier-cards">${custom.map(n=>`<label class="hero-card selected"><input type="checkbox" data-joiner="${esc(n)}" checked><div><div class="hero-name">${esc(n)}</div><div class="hero-meta">Manually Added · Planner choice</div></div><span class="tier">Custom</span></label>`).join('')}</div></section>`;
+ root.innerHTML=html||'<div class="notice">Verified Bear joiner data is not available for this generation yet.</div>';
  root.querySelectorAll('[data-joiner]').forEach(x=>x.onchange=()=>x.closest('.hero-card').classList.toggle('selected',x.checked));
- root.querySelectorAll('[data-warning-name]').forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();const h=rows.find(x=>x.name===b.dataset.warningName);showInfo(`${h.name} · Bear Joiner Note`,heroWarning(h,g))});
- root.querySelectorAll('[data-tier-warning]').forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();const h=rows.find(x=>x.tier===b.dataset.tierWarning&&x.tierWarning);showInfo(`${b.dataset.tierWarning} · Bear Joiner Rule`,h?.tierWarning||'')});
+ root.querySelectorAll('[data-warning-name]').forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();const h=rows.find(x=>x.name===b.dataset.warningName);showInfo(`${h.name} · Bear Joiner Note`,heroWarning(h,g))})
 }
 function selectedJoiners(){return [...document.querySelectorAll('[data-joiner]:checked')].map(x=>x.dataset.joiner)}
+function openHeroLibrary(){
+ const g=Number($('heroGeneration')?.value||1),selected=new Set(selectedJoiners()),heroes=HERO_LIBRARY.filter(h=>h.gen<=g).sort((a,b)=>a.gen-b.gen||a.name.localeCompare(b.name));
+ let old=document.getElementById('nexaHeroLibrary');if(old)old.remove();const d=document.createElement('div');d.id='nexaHeroLibrary';d.className='info-overlay';
+ d.innerHTML=`<div class="info-card" style="width:min(720px,100%);max-height:88vh;overflow:auto"><h3>Add Hero</h3><p class="muted">Hero Library · available through Gen ${g}. Manually added heroes are planner choices, not NEXA recommendations.</p><input id="heroLibrarySearch" class="full-btn" placeholder="Search hero…"><div id="heroLibraryRows" class="hero-tier-cards" style="margin-top:10px"></div><button id="heroLibraryDone" class="full-btn">Add Selected Heroes</button><button id="heroLibraryCancel" class="full-btn secondary">Cancel</button></div>`;document.body.appendChild(d);
+ const rows=d.querySelector('#heroLibraryRows'),paint=()=>{const q=d.querySelector('#heroLibrarySearch').value.trim().toLowerCase();rows.innerHTML=heroes.filter(h=>!q||h.name.toLowerCase().includes(q)).map(h=>`<label class="hero-card ${selected.has(h.name)?'selected':''}"><input type="checkbox" data-library-hero="${esc(h.name)}" ${selected.has(h.name)?'checked':''}><div><div class="hero-name">${esc(h.name)}</div><div class="hero-meta">Gen ${h.gen}</div></div><span></span></label>`).join('');rows.querySelectorAll('[data-library-hero]').forEach(x=>x.onchange=()=>{x.checked?selected.add(x.dataset.libraryHero):selected.delete(x.dataset.libraryHero);x.closest('.hero-card').classList.toggle('selected',x.checked)})};
+ d.querySelector('#heroLibrarySearch').oninput=paint;paint();d.querySelector('#heroLibraryCancel').onclick=()=>d.remove();d.querySelector('#heroLibraryDone').onclick=()=>{renderJoiners(g,[...selected]);d.remove();toast('Hero selection updated.')};d.onclick=e=>{if(e.target===d)d.remove()}
+}
 
 const BEAR_FORMATIONS={
 1:[['Recommended','Jeronimo · Molly · Bahiti','30 / 30 / 40'],['Alternative','Natalia · Molly · Bahiti','20 / 40 / 40'],['F2P','Sergey · Molly · Bahiti','30 / 30 / 40']],
@@ -184,22 +179,8 @@ async function loadDiscordChannels(guildId,selected=''){
   if(selected&&rows.some(x=>String(x.id)===String(selected)))channel.value=selected;
  }catch(e){channel.innerHTML='<option value="">Channels unavailable</option>';toast(e.message,true)}
 }
-function openDiscordLinker(){
- showInfo('Link Discord Server','Enter the Discord Server ID for the CURRENT alliance. NEXA will verify that the bot is installed and can see the server.');
- const card=document.querySelector('#nexaInfoOverlay .info-card'); if(!card)return;
- card.innerHTML=`<h3>Link Discord Server</h3><p class="muted">Current Alliance: <b>${esc(allianceName(currentAllianceId))}</b></p><label>Discord Server ID<input id="guildIdOverlay" inputmode="numeric" placeholder="123456789012345678"></label><button id="verifyGuildOverlay" class="full-btn">Verify & Link</button><button id="cancelGuildOverlay" class="full-btn secondary">Back to Event</button><p id="guildLinkStatus" class="status"></p>`;
- card.querySelector('#cancelGuildOverlay').onclick=()=>document.getElementById('nexaInfoOverlay')?.remove();
- card.querySelector('#verifyGuildOverlay').onclick=async()=>{
-  const status=card.querySelector('#guildLinkStatus');status.textContent='Verifying…';
-  try{
-   const guild_id=card.querySelector('#guildIdOverlay').value.trim();
-   const d=await api('link_discord_server',{alliance_id:currentAllianceId,guild_id});
-   status.textContent=`Linked: ${d.server?.guild_name||guild_id}`;
-   await loadDiscordServers(guild_id,'');
-   setTimeout(()=>document.getElementById('nexaInfoOverlay')?.remove(),650);
-  }catch(e){status.textContent=e.message;status.classList.add('error')}
- };
-}
+function openDiscordLinker(){const panel=$('discordLinkPanel');if(!panel)return;panel.classList.toggle('hidden');if(!panel.classList.contains('hidden'))setTimeout(()=>$('guildIdInline')?.focus(),0)}
+async function verifyAndLinkDiscord(){const status=$('guildLinkStatusInline'),input=$('guildIdInline'),btn=$('verifyGuildInline');if(!status||!input||!currentAllianceId)return;const guild_id=input.value.trim();status.classList.remove('error');status.textContent='Verifying NEXA Bot access…';if(btn)btn.disabled=true;try{const d=await api('link_discord_server',{alliance_id:String(currentAllianceId),guild_id});status.textContent=`Linked ✓ ${d.server?.guild_name||guild_id}`;await loadDiscordServers(guild_id,'');input.value='';setTimeout(()=>{const p=$('discordLinkPanel');if(p)p.classList.add('hidden')},700)}catch(e){status.textContent=e.message;status.classList.add('error')}finally{if(btn)btn.disabled=false}}
 
 function openEvent(existing=null){
 window.__nexaEditingEvent=existing?structuredClone(existing):null;
@@ -211,7 +192,7 @@ modal(existing?'Edit Event':'Add New Event',`
 <div id="svsSubtypeWrap" class="${e.event_type==='svs'?'':'hidden'}"><label>SVS Type<select id="svsSubtype"><option value="battle_phase">Battle Phase</option><option value="castle_battle">Castle Battle</option></select></label></div>
 <label>Discord Server<select id="discordServer"><option value="">Select alliance-linked server</option></select></label>
 <label>Discord Channel<select id="discordChannel"><option value="">Select channel</option></select></label>
-<div class="wide"><button id="linkDiscord" type="button" class="secondary">＋ Link Discord Server</button></div>
+<div class="wide"><button id="linkDiscord" type="button" class="secondary">＋ Link Discord Server</button><div id="discordLinkPanel" class="setup-section hidden" style="margin:10px 0 0"><p class="muted">Link a Discord server to the CURRENT alliance only. NEXA verifies that the bot can see the server before saving it.</p><label>Discord Server ID<input id="guildIdInline" inputmode="numeric" placeholder="123456789012345678"></label><div class="event-actions"><button id="verifyGuildInline" type="button">Verify & Link</button><button id="cancelGuildInline" type="button" class="secondary">Cancel</button></div><p id="guildLinkStatusInline" class="status"></p></div></div>
 <label>Mention<select id="mentionType"><option value="none">No Mention</option><option value="role">Role</option><option value="user">User</option><option value="everyone">@everyone</option><option value="here">@here</option></select></label>
 <label id="mentionTargetWrap" class="hidden">Mention Target<select id="mentionTarget"><option value="">Select</option></select></label>
 </div></div>
@@ -227,7 +208,7 @@ modal(existing?'Edit Event':'Add New Event',`
 <div class="setup-section"><h3>Bear Trap</h3><label>Reminder Type<select id="bearReminderType"><option value="simple">Simple Reminder</option><option value="details">Bear Trap Details / Planning + Reminder</option></select></label></div>
 <div id="bearDetails" class="${s.reminder_type==='details'?'':'hidden'}">
 <div class="setup-section"><h3>Bear Trap Details</h3><div class="form-grid"><label>Current Hero Generation<select id="heroGeneration">${Array.from({length:17},(_,i)=>i+1).map(g=>`<option value="${g}" ${Number(s.hero_generation||1)===g?'selected':''}>Generation ${g}</option>`).join('')}</select></label><label>Max Joiner Troops<input id="maxTroops" placeholder="125K" value="${esc(shortTroops(s.max_joiner_troops)||'')}"></label></div>
-<h3 style="margin-top:14px">Approved Joiner Heroes</h3><p class="muted">Select heroes; NEXA stores the checked names in <code>approved_joiners</code>. Rally-lead recommendations are a separate system.</p><div id="approvedJoinerGrid" class="hero-grid"></div>
+<h3 style="margin-top:14px">Approved Joiner Heroes</h3><p class="muted">NEXA recommends heroes by generation, but the planner can add any available hero manually.</p><button id="addJoinerHero" type="button" class="secondary">＋ Add Hero</button><div id="approvedJoinerGrid" class="hero-grid"></div>
 <h3 style="margin-top:14px">Bear Trap Rules</h3><div class="check-grid">
 <label class="check"><input id="ruleCherry" type="checkbox" ${s.rules?.no_cherry?'checked':''}> No Cherry Picking</label>
 <label class="check"><input id="ruleTop" type="checkbox" ${s.rules?.top_bottom?'checked':''}> Join Top → Bottom</label>
@@ -254,6 +235,9 @@ $('mentionType').onchange=()=> $('mentionTargetWrap').classList.toggle('hidden',
 const initialGen=Number(s.hero_generation||1);renderJoiners(initialGen,s.approved_joiners||[]);renderFormations(initialGen);
 $('heroGeneration')?.addEventListener('change',()=>{const keep=selectedJoiners();renderJoiners(Number($('heroGeneration').value),keep);renderFormations(Number($('heroGeneration').value))});
 $('linkDiscord').onclick=openDiscordLinker;
+$('verifyGuildInline').onclick=verifyAndLinkDiscord;
+$('cancelGuildInline').onclick=()=>$('discordLinkPanel').classList.add('hidden');
+$('addJoinerHero')?.addEventListener('click',openHeroLibrary);
 $('discordServer').onchange=()=>loadDiscordChannels($('discordServer').value,'');
 loadDiscordServers(s.discord_server_id||'',s.discord_channel_id||'');
 $('previewDraft').onclick=()=>previewDraft(e,offsets);$('copyWos')?.addEventListener('click',()=>copyText(buildWosDraft()));$('testDraft').onclick=async()=>{try{const guild_id=$('discordServer').value,channel_id=$('discordChannel').value;if(!guild_id||!channel_id)throw Error('Select a linked Discord Server and Channel first.');const d=await api('test_event_draft',{alliance_id:currentAllianceId,guild_id,channel_id,preview:draftPreviewText()});toast(d.message||'Discord test sent.')}catch(e){toast(e.message,true)}};

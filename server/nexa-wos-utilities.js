@@ -1,4 +1,4 @@
-/* NEXA WOS Utilities Server Handler V2.7
+/* NEXA WOS Utilities Server Handler V2.8
  * Complete replacement: preserves staff/event actions and adds alliance-scoped Discord linking.
  * Requires the companion SQL migration: wos-discord-alliance-links-migration.txt
  */
@@ -81,7 +81,7 @@ function previewToEmbed(preview,{test=false,compact=false,offsetMinutes=null}={}
  let current=null,description=[];
  for(const line of lines){if(/^Time:\s*/i.test(line))continue;const m=line.match(/^([^:]+):\s*(.*)$/);if(m&&sectionNames.has(m[1])){current={name:m[1],value:m[2]||''};fields.push(current);continue}if(current&&line.trim())current.value+=(current.value?'\n':'')+line.trim();else if(line.trim())description.push(line.trim())}
  const countdown=offsetMinutes===0?`${fireEmoji} **Starting now!**`:Number(offsetMinutes)>0?`${hourglassEmoji} **${offsetMinutes} minute${Number(offsetMinutes)===1?'':'s'} until Bear Trap starts**`:`${testEmoji} **Full reminder preview**`;
- const embed={title:cleanTitle,color:0x59e4ff,description:[eventTime?`${clockEmoji} **${eventTime}**`:'',countdown,...description].filter(Boolean).join('\n\n'),footer:{text:test?'NEXA TEST â¢ Not a live reminder':'NEXA â¢ WOS Utilities'},timestamp:new Date().toISOString()};
+ const embed={title:cleanTitle,color:0x59e4ff,description:[eventTime?`${clockEmoji} **${eventTime}**`:'',countdown,...description].filter(Boolean).join('\n\n'),footer:{text:test?`NEXA TEST ${String.fromCodePoint(0x2022)} Not a live reminder`:`NEXA ${String.fromCodePoint(0x2022)} WOS Utilities`},timestamp:new Date().toISOString()};
  if(!compact){
   const visible=fields.filter(f=>f.value).slice(0,12),spaced=[];
   visible.forEach((f,i)=>{

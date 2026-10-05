@@ -1,4 +1,4 @@
-/* NEXA WOS Utilities Server Handler V3.0
+/* NEXA WOS Utilities Server Handler V3.1
  * Complete replacement: preserves staff/event actions and adds alliance-scoped Discord linking.
  * Requires the companion SQL migration: wos-discord-alliance-links-migration.txt
  */
@@ -127,6 +127,14 @@ export default async function handler(req,res){
    const payload={alliance_id:aid,guild_id:gid,guild_name:String(guild?.name||gid).slice(0,120),enabled:true,linked_by_game_id:String(s.account.game_id),updated_at:new Date().toISOString()};
    const rows=await db('wos_discord_alliance_links?on_conflict=alliance_id,guild_id',{method:'POST',body:payload,prefer:'resolution=merge-duplicates,return=representation'});
    return res.status(200).json({ok:true,server:rows?.[0]||payload});
+  }
+  if(b.action==='unlink_discord_server'){
+   const aid=await requireAlliance(s,b.alliance_id),gid=String(b.guild_id||'').trim();
+   if(!/^\d{10,30}$/.test(gid))throw fail('Invalid Discord Server ID.');
+   const found=await db(`wos_discord_alliance_links?alliance_id=eq.${enc(aid)}&guild_id=eq.${enc(gid)}&select=alliance_id,guild_id&limit=1`);
+   if(!found.length)throw fail('Discord server link not found.',404);
+   await db(`wos_discord_alliance_links?alliance_id=eq.${enc(aid)}&guild_id=eq.${enc(gid)}`,{method:'PATCH',body:{enabled:false,updated_at:new Date().toISOString()}});
+   return res.status(200).json({ok:true});
   }
   if(b.action==='discord_channels'){
    await linkedServer(s,b.alliance_id,b.guild_id);

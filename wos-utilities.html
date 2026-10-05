@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- NEXA WOS Utilities V21 — Foundry Legion reminders -->
+<!-- NEXA WOS Utilities V22 — Complete event scheduling UX -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -246,17 +246,35 @@ modal(existing?'Edit Event':'Add New Event',`
 <div class="setup-section"><h3>Event</h3><div class="form-grid">
 <label>Event Type<select id="eventType">${PRESETS.map(([v,l])=>`<option value="${v}" ${e.event_type===v?'selected':''}>${l}</option>`).join('')}</select></label>
 <label id="eventNameWrap">Event Name<input id="eventName" value="${esc(e.event_name||'')}"></label>
-<div id="foundryLegionWrap" class="${e.event_type==='foundry'?'':'hidden'}"><label>Legion<select id="foundryLegion"><option value="1">Legion 1</option><option value="2">Legion 2</option></select></label></div>
-<div id="svsSubtypeWrap" class="${e.event_type==='svs'?'':'hidden'}"><label>SVS Type<select id="svsSubtype"><option value="battle_phase">Battle Phase</option><option value="castle_battle">Castle Battle</option></select></label></div>
+<div id="legionWrap" class="${['foundry','canyon'].includes(e.event_type)?'':'hidden'}"><label>Legion<select id="eventLegion"><option value="1">Legion 1</option><option value="2">Legion 2</option></select></label></div>
+<div id="customLegionToggleWrap" class="${e.event_type==='custom'?'':'hidden'}"><label>Use Legions?<select id="customUseLegions"><option value="no">No</option><option value="yes">Yes</option></select></label></div>
+<div id="customLegionWrap" class="hidden"><label>Legion<select id="customLegion"><option value="1">Legion 1</option><option value="2">Legion 2</option></select></label></div>
 <label class="wide">Discord Channel<select id="discordChannel"><option value="">Loading alliance channels…</option></select><span class="muted" style="font-size:11px">Channels come from Discord servers already linked to this alliance on the Event Reminders screen.</span></label>
 <label>Mention<select id="mentionType"><option value="none">No Mention</option><option value="role">Role</option><option value="user">User</option><option value="everyone">@everyone</option><option value="here">@here</option></select></label>
 <label id="mentionTargetWrap" class="hidden">Mention Target<select id="mentionTarget"><option value="">Select</option></select></label>
 </div></div>
-<div class="setup-section"><h3>Schedule</h3><div class="form-grid">
-<label>Repeat<select id="eventRepeat"><option value="one_time">One Time</option><option value="daily">Daily</option><option value="every_other_day">Every Other Day</option><option value="weekly">Weekly</option><option value="every_2_weeks">Every 2 Weeks</option><option value="every_4_weeks">Every 4 Weeks</option><option value="monthly">Monthly</option><option value="custom">Custom</option></select></label>
+<div class="setup-section"><h3>Schedule</h3>
+<div id="genericSchedule" class="form-grid">
+<label id="repeatWrap">Repeat<select id="eventRepeat"><option value="one_time">One Time</option><option value="daily">Daily</option><option value="every_other_day">Every Other Day</option><option value="weekly">Weekly</option><option value="every_2_weeks">Every 2 Weeks</option><option value="every_4_weeks">Every 4 Weeks</option><option value="monthly">Monthly</option><option value="custom">Custom</option></select></label>
 <div id="customRepeatWrap" class="wide hidden"><div class="form-grid"><label>Every<input id="repeatEvery" type="number" min="1" value="${esc(s.repeat_every||1)}"></label><label>Unit<select id="repeatUnit"><option value="days">Days</option><option value="weeks">Weeks</option><option value="months">Months</option></select></label></div></div>
-<label>Event Time (UTC)<div class="server-row"><select id="eventHour" aria-label="UTC hour">${Array.from({length:24},(_,h)=>{const v=String(h).padStart(2,'0');return `<option value="${v}" ${(e.event_at?new Date(e.event_at).toISOString().slice(11,13):'')===v?'selected':''}>${v}</option>`}).join('')}</select><span style="font-weight:950">:</span><select id="eventMinute" aria-label="UTC minute">${Array.from({length:60},(_,m)=>{const v=String(m).padStart(2,'0');return `<option value="${v}" ${(e.event_at?new Date(e.event_at).toISOString().slice(14,16):'')===v?'selected':''}>${v}</option>`}).join('')}</select><span class="muted" style="align-self:center;font-weight:900">UTC</span></div></label>
-<label>Start Date (UTC)<input id="startDate" type="date" value="${e.event_at?new Date(e.event_at).toISOString().slice(0,10):''}"></label></div>
+<label>Event Time (UTC)<div class="server-row"><select id="eventHour" aria-label="UTC hour">${Array.from({length:24},(_,h)=>{const v=String(h).padStart(2,'0');return `<option value="${v}" ${(e.event_at?new Date(e.event_at).toISOString().slice(11,13):'')===v?'selected':''}>${v}</option>`}).join('')}</select><span style="font-weight:950">:</span><select id="eventMinute" aria-label="UTC minute">${Array.from({length:12},(_,i)=>i*5).map(m=>{const v=String(m).padStart(2,'0');return `<option value="${v}" ${(e.event_at?new Date(e.event_at).toISOString().slice(14,16):'')===v?'selected':''}>${v}</option>`}).join('')}</select><span class="muted" style="align-self:center;font-weight:900">UTC</span></div></label>
+<label>Start Date (UTC)<input id="startDate" type="date" value="${e.event_at?new Date(e.event_at).toISOString().slice(0,10):''}"></label>
+<div id="localTimePreview" class="wide notice">Choose a date and time to see WOS UTC → your device time.</div></div>
+
+<div id="crazyJoeSchedule" class="hidden">
+<p class="muted">Crazy Joe runs Tuesday + Thursday on a 2-week cycle. Choose the first Tuesday; NEXA calculates Thursday automatically. You can override either date if WOS changes the schedule.</p>
+<div class="form-grid">
+<label>Tuesday Start Date (UTC)<input id="joeTuesdayDate" type="date"></label>
+<label>Tuesday UTC Time<div class="server-row"><select id="joeTuesdayHour"></select><span>:</span><select id="joeTuesdayMinute"></select><span class="muted">UTC</span></div></label>
+<label>Thursday Date (UTC)<input id="joeThursdayDate" type="date"></label>
+<label>Thursday UTC Time<div class="server-row"><select id="joeThursdayHour"></select><span>:</span><select id="joeThursdayMinute"></select><span class="muted">UTC</span></div></label>
+<div id="joeLocalPreview" class="wide notice"></div></div></div>
+
+<div id="svsSchedule" class="hidden">
+<p class="muted">SVS uses one Saturday anchor. Battle Phase is fixed at 10:00 UTC and Castle Battle at 12:00 UTC.</p>
+<div class="form-grid"><label>SVS Saturday (UTC)<input id="svsDate" type="date"></label>
+<div class="detail"><small>BATTLE PHASE</small><b>10:00 UTC</b></div><div class="detail"><small>CASTLE BATTLE</small><b>12:00 UTC</b></div>
+<div id="svsLocalPreview" class="wide notice"></div></div></div>
 <h3 style="margin-top:14px">Send Reminders</h3><div id="reminderChips" class="chips">${REMINDERS.map(n=>`<button type="button" class="chip ${(s.offsets||[]).includes(n)?'active':''}" data-offset="${n}">${offsetLabel(n)}</button>`).join('')}<button type="button" id="customOffsetBtn" class="chip">Custom</button></div>
 <div id="customOffsetWrap" class="hidden form-grid"><label>Custom minutes before<input id="customOffset" type="number" min="0"></label><div style="align-self:end"><button id="addCustomOffset" type="button" class="secondary">Add Reminder</button></div></div><div id="selectedOffsets" class="muted"></div></div>
 <div class="setup-section"><h3>Message</h3><textarea id="eventMessage" placeholder="Optional custom reminder message">${esc(e.message||'')}</textarea></div>
@@ -278,15 +296,53 @@ modal(existing?'Edit Event':'Add New Event',`
 <label class="check"><input id="includeBearDetails" type="checkbox" ${s.include_bear_details?'checked':''}> Include Bear Details in Reminder</label>
 <button id="copyWos" type="button" class="secondary full-btn">Copy for WOS</button></div></div></div>
 <div class="event-actions"><button id="previewDraft" type="button" class="secondary">Preview</button><button id="testDraft" type="button" class="secondary">Test</button><button id="saveEvent" type="button">${existing?'Save Changes':'Create Event'}</button></div><p id="eventStatus" class="status"></p>`);
-$('eventRepeat').value=e.repeat_type||'one_time';$('bearReminderType')&&($('bearReminderType').value=s.reminder_type||'simple');$('svsSubtype')&&($('svsSubtype').value=s.svs_subtype||'battle_phase');$('mentionType').value=s.mention_type||'none';
-if($('foundryLegion'))$('foundryLegion').value=String(s.foundry_legion||(/Legion\s*2/i.test(e.event_name||'')?2:1));
-if($('eventNameWrap'))$('eventNameWrap').classList.toggle('hidden',e.event_type==='foundry');
+$('eventRepeat').value=e.repeat_type||'one_time';$('bearReminderType')&&($('bearReminderType').value=s.reminder_type||'simple');$('mentionType').value=s.mention_type||'none';
+if($('eventLegion'))$('eventLegion').value=String(s.legion||s.foundry_legion||(/Legion\s*2/i.test(e.event_name||'')?2:1));
+if($('customUseLegions'))$('customUseLegions').value=s.use_legions?'yes':'no';
+if($('customLegion'))$('customLegion').value=String(s.legion||1);
 let offsets=new Set((e.notifications?.length?e.notifications.map(n=>Number(n.offset_minutes)):s.offsets)||[60,15,5,0]);
 function renderOffsets(){document.querySelectorAll('[data-offset]').forEach(b=>b.classList.toggle('active',offsets.has(Number(b.dataset.offset))));$('selectedOffsets').textContent=[...offsets].sort((a,b)=>b-a).map(offsetLabel).join(' · ')||'No reminders selected'}
 document.querySelectorAll('[data-offset]').forEach(b=>b.onclick=()=>{const n=Number(b.dataset.offset);offsets.has(n)?offsets.delete(n):offsets.add(n);renderOffsets()});renderOffsets();
 $('customOffsetBtn').onclick=()=> $('customOffsetWrap').classList.toggle('hidden');$('addCustomOffset').onclick=()=>{const n=Number($('customOffset').value);if(Number.isFinite(n)&&n>=0){offsets.add(n);renderOffsets();$('customOffsetWrap').classList.add('hidden')}};
 function toggleRepeat(){$('customRepeatWrap').classList.toggle('hidden',$('eventRepeat').value!=='custom')}$('eventRepeat').onchange=toggleRepeat;toggleRepeat();
-$('eventType').onchange=()=>{const t=$('eventType').value;$('bearBuild').classList.toggle('hidden',t!=='bear_trap');$('svsSubtypeWrap').classList.toggle('hidden',t!=='svs');$('foundryLegionWrap')?.classList.toggle('hidden',t!=='foundry');$('eventNameWrap')?.classList.toggle('hidden',t==='foundry');if(!existing){const p=PRESETS.find(x=>x[0]===t);$('eventName').value=p?p[1]:'';$('eventRepeat').value=t==='bear_trap'?'every_other_day':t==='foundry'?'every_2_weeks':t==='canyon'?'every_4_weeks':'one_time';toggleRepeat()}};
+function applyEventTypeUI(reset=false){
+ const t=$('eventType').value,special=['crazy_joe','svs'].includes(t),locked=['foundry','canyon','brothers_in_arms'].includes(t);
+ $('bearBuild').classList.toggle('hidden',t!=='bear_trap');
+ $('legionWrap').classList.toggle('hidden',!['foundry','canyon'].includes(t));
+ $('customLegionToggleWrap').classList.toggle('hidden',t!=='custom');
+ $('customLegionWrap').classList.toggle('hidden',t!=='custom'||$('customUseLegions').value!=='yes');
+ $('eventNameWrap').classList.toggle('hidden',['foundry','canyon','crazy_joe','brothers_in_arms','svs'].includes(t));
+ $('genericSchedule').classList.toggle('hidden',special);
+ $('crazyJoeSchedule').classList.toggle('hidden',t!=='crazy_joe');
+ $('svsSchedule').classList.toggle('hidden',t!=='svs');
+ $('repeatWrap').classList.toggle('hidden',locked);
+ if(reset){
+  const p=PRESETS.find(x=>x[0]===t);$('eventName').value=p?p[1]:'';
+  $('eventRepeat').value=t==='bear_trap'?'every_other_day':t==='foundry'||t==='brothers_in_arms'?'every_2_weeks':t==='canyon'?'every_4_weeks':t==='arena_reset'?'daily':'one_time';
+ }
+ toggleRepeat();updateTimePreviews();
+}
+$('eventType').onchange=()=>applyEventTypeUI(!existing);
+$('customUseLegions').onchange=()=>applyEventTypeUI(false);
+function hourOptions(v='00'){return Array.from({length:24},(_,h)=>{const x=String(h).padStart(2,'0');return `<option value="${x}" ${x===v?'selected':''}>${x}</option>`}).join('')}
+function minuteOptions(v='00'){return Array.from({length:12},(_,i)=>i*5).map(m=>{const x=String(m).padStart(2,'0');return `<option value="${x}" ${x===v?'selected':''}>${x}</option>`}).join('')}
+function plusDays(date,n){if(!date)return'';const d=new Date(`${date}T00:00:00Z`);d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)}
+function localLine(date,time,label='Event'){if(!date||!time)return`${label}: choose date/time`;const d=new Date(`${date}T${time}:00Z`);return `${label} — WOS: ${d.toLocaleString('en-US',{timeZone:'UTC',weekday:'short',month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})} UTC\nYour device: ${d.toLocaleString(undefined,{weekday:'short',month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit',timeZoneName:'short'})}`}
+function updateTimePreviews(){
+ const t=$('eventType').value;
+ if(!['crazy_joe','svs'].includes(t))$('localTimePreview').textContent=localLine($('startDate').value,eventTimeValue());
+ if(t==='crazy_joe')$('joeLocalPreview').textContent=[localLine($('joeTuesdayDate').value,`${$('joeTuesdayHour').value}:${$('joeTuesdayMinute').value}`,'Tuesday'),localLine($('joeThursdayDate').value,`${$('joeThursdayHour').value}:${$('joeThursdayMinute').value}`,'Thursday')].join('\n\n');
+ if(t==='svs')$('svsLocalPreview').textContent=[localLine($('svsDate').value,'10:00','Battle Phase'),localLine($('svsDate').value,'12:00','Castle Battle')].join('\n\n');
+}
+const baseTime=e.event_at?new Date(e.event_at).toISOString().slice(11,16):'19:00',baseH=baseTime.slice(0,2),baseM=String(Math.round(Number(baseTime.slice(3,5))/5)*5%60).padStart(2,'0');
+$('joeTuesdayHour').innerHTML=hourOptions(s.joe_tuesday_time?.slice(0,2)||baseH);$('joeTuesdayMinute').innerHTML=minuteOptions(s.joe_tuesday_time?.slice(3,5)||baseM);
+$('joeThursdayHour').innerHTML=hourOptions(s.joe_thursday_time?.slice(0,2)||baseH);$('joeThursdayMinute').innerHTML=minuteOptions(s.joe_thursday_time?.slice(3,5)||baseM);
+$('joeTuesdayDate').value=s.joe_tuesday_date||(e.event_type==='crazy_joe'&&e.event_at?new Date(e.event_at).toISOString().slice(0,10):'');
+$('joeThursdayDate').value=s.joe_thursday_date||plusDays($('joeTuesdayDate').value,2);
+$('svsDate').value=s.svs_date||(e.event_type==='svs'&&e.event_at?new Date(e.event_at).toISOString().slice(0,10):'');
+$('joeTuesdayDate').addEventListener('change',()=>{$('joeThursdayDate').value=plusDays($('joeTuesdayDate').value,2);updateTimePreviews()});
+['eventHour','eventMinute','startDate','joeTuesdayHour','joeTuesdayMinute','joeThursdayHour','joeThursdayMinute','joeThursdayDate','svsDate'].forEach(id=>$(id)?.addEventListener('change',updateTimePreviews));
+applyEventTypeUI(false);
 $('bearReminderType')?.addEventListener('change',()=> $('bearDetails').classList.toggle('hidden',$('bearReminderType').value!=='details'));
 $('ruleStagger')?.addEventListener('change',()=> $('rallyTiming').classList.toggle('hidden',!$('ruleStagger').checked));
 $('mentionType').onchange=()=> $('mentionTargetWrap').classList.toggle('hidden',!['role','user'].includes($('mentionType').value));
@@ -295,18 +351,52 @@ $('heroGeneration')?.addEventListener('change',()=>{const g=Number($('heroGenera
 $('addJoinerHero')?.addEventListener('click',openHeroLibrary);
 loadDiscordDestinations(s.discord_server_id||'',s.discord_channel_id||'');
 $('previewDraft').onclick=()=>previewDraft(e,offsets);$('copyWos')?.addEventListener('click',()=>copyText(buildWosDraft()));$('testDraft').onclick=async()=>{try{const {guild_id,channel_id}=selectedDiscordDestination();if(!guild_id||!channel_id)throw Error('Select a Discord channel first. If none appear, link a server from the Event Reminders screen.');const d=await api('test_event_draft',{alliance_id:currentAllianceId,guild_id,channel_id,preview:draftPreviewText()});toast(d.message||'Discord test sent.')}catch(e){toast(e.message,true)}};
-$('saveEvent').onclick=async()=>{try{const date=$('startDate').value,time=eventTimeValue();if(!date||!time)throw Error('Choose Start Date and Event Time in UTC.');if(!offsets.size)throw Error('Select at least one reminder.');const type=$('eventType').value;
-if(type==='foundry'){
- const d=new Date(`${date}T${time}:00Z`);
- if(d.getUTCDay()!==0)throw Error('Foundry Battle must be scheduled on Sunday UTC.');
- if($('eventRepeat').value!=='every_2_weeks')throw Error('Foundry Battle recurrence must be Every 2 Weeks.');
+$('saveEvent').onclick=async()=>{try{
+ const type=$('eventType').value;if(!offsets.size)throw Error('Select at least one reminder.');
+ let date=$('startDate').value,time=eventTimeValue(),repeat=$('eventRepeat').value,eventName=$('eventName').value.trim()||'Event';
+ const settings={...(e.settings||{}),offsets:[...offsets],full_details_offset:Math.min(...[...offsets].filter(n=>Number(n)>0).map(Number),Infinity),repeat_every:Number($('repeatEvery')?.value||1),repeat_unit:$('repeatUnit')?.value||'days',discord_server_id:selectedDiscordDestination().guild_id||null,discord_channel_id:selectedDiscordDestination().channel_id||null,mention_type:$('mentionType').value,mention_target_id:$('mentionTarget')?.value||null};
+ if(!Number.isFinite(settings.full_details_offset))settings.full_details_offset=null;
+
+ if(type==='foundry'||type==='canyon'){
+  if(!date)throw Error('Choose Start Date in UTC.');
+  const legion=Number($('eventLegion').value||1);settings.legion=legion;
+  eventName=`${type==='foundry'?'Foundry':'Canyon'} Legion ${legion}`;
+  repeat=type==='foundry'?'every_2_weeks':'every_4_weeks';
+  const expected=type==='foundry'?0:6;
+  if(new Date(`${date}T${time}:00Z`).getUTCDay()!==expected)throw Error(`${type==='foundry'?'Foundry Battle':'Canyon Clash'} must be scheduled on ${type==='foundry'?'Sunday':'Saturday'} UTC.`);
+ }else if(type==='brothers_in_arms'){
+  if(!date)throw Error('Choose the first Brothers in Arms date.');repeat='every_2_weeks';eventName='Brothers in Arms';
+ }else if(type==='crazy_joe'){
+  const tue=$('joeTuesdayDate').value,thu=$('joeThursdayDate').value,tt=`${$('joeTuesdayHour').value}:${$('joeTuesdayMinute').value}`,tht=`${$('joeThursdayHour').value}:${$('joeThursdayMinute').value}`;
+  if(!tue||!thu)throw Error('Choose the Crazy Joe Tuesday and Thursday dates.');
+  if(new Date(`${tue}T${tt}:00Z`).getUTCDay()!==2)throw Error('Crazy Joe anchor must be Tuesday UTC.');
+  settings.joe_tuesday_date=tue;settings.joe_thursday_date=thu;settings.joe_tuesday_time=tt;settings.joe_thursday_time=tht;settings.cycle_days=14;settings.thursday_manual_override=thu!==plusDays(tue,2);
+  date=tue;time=tt;repeat='every_2_weeks';eventName='Crazy Joe';
+ }else if(type==='svs'){
+  date=$('svsDate').value;if(!date)throw Error('Choose the SVS Saturday date.');
+  if(new Date(`${date}T10:00:00Z`).getUTCDay()!==6)throw Error('SVS anchor must be Saturday UTC.');
+  time='10:00';repeat='every_4_weeks';eventName='SVS';settings.svs_date=date;settings.svs_battle_time='10:00';settings.svs_castle_time='12:00';settings.cycle_days=28;
+ }else{
+  if(!date||!time)throw Error('Choose Start Date and Event Time in UTC.');
+  if(type==='arena_reset'&&!existing&&repeat==='one_time')repeat='daily';
+  if(type==='custom'){
+   settings.use_legions=$('customUseLegions').value==='yes';
+   if(settings.use_legions){settings.legion=Number($('customLegion').value||1);eventName=`${eventName.replace(/\s+Legion\s+[12]$/i,'')} Legion ${settings.legion}`}
+  }
+ }
+ if(type==='bear_trap'){settings.reminder_type=$('bearReminderType').value;settings.include_bear_details=$('includeBearDetails')?.checked||false;if(settings.reminder_type==='details'){settings.hero_generation=Number($('heroGeneration').value);settings.approved_joiners=selectedJoiners();settings.max_joiner_troops=parseTroops($('maxTroops').value);settings.rules={no_cherry:$('ruleCherry').checked,top_bottom:$('ruleTop').checked,troops_only_no_hero:$('ruleTroopsOnly').checked};settings.staggered=$('ruleStagger').checked;settings.second_row_minutes=Number($('secondRow').value||1);settings.third_row_minutes=Number($('thirdRow').value||2);settings.buffs={pet_attack:$('petAttack').checked,pet_lethality:$('petLethality').checked,city_attack:$('cityAttack').checked,city_lethality:$('cityLethality').checked,deployment_capacity:$('deploymentCapacity').checked};delete settings.own_formations;settings.rally_formations_generation=settings.hero_generation}}
+
+ let confirmText='';
+ if(type==='crazy_joe')confirmText=`${localLine(settings.joe_tuesday_date,settings.joe_tuesday_time,'Crazy Joe Tuesday')}\n\n${localLine(settings.joe_thursday_date,settings.joe_thursday_time,'Crazy Joe Thursday')}`;
+ else if(type==='svs')confirmText=`${localLine(date,'10:00','SVS Battle Phase')}\n\n${localLine(date,'12:00','SVS Castle Battle')}`;
+ else confirmText=localLine(date,time,eventName);
+ if(!await confirmNexa('Confirm Event Schedule',confirmText,'Save Schedule'))return;
+
+ const notifications=[...offsets].map(n=>({offset_minutes:n,label:offsetLabel(n),message_override:'',enabled:true}));
+ await api('save_event',{event:{...e,event_type:type,event_name:eventName,alliance_id:currentAllianceId,event_at:new Date(`${date}T${time}:00Z`).toISOString(),repeat_type:repeat,status:e.status||'active',message:$('eventMessage').value,notes:$('bearNotes')?.value||e.notes||'',settings,notifications}});
+ closeModal();await loadEvents();toast(existing?'Event saved.':'Event created.');
+}catch(err){$('eventStatus').textContent=err.message;$('eventStatus').classList.add('error')}};
 }
-if(type==='canyon'){
- const d=new Date(`${date}T${time}:00Z`);
- if(d.getUTCDay()!==6)throw Error('Canyon Clash must be scheduled on Saturday UTC.');
- if($('eventRepeat').value!=='every_4_weeks')throw Error('Canyon Clash recurrence must be Every 4 Weeks.');
-}
-const positiveOffsets=[...offsets].filter(n=>Number(n)>0).map(Number);const settings={...(e.settings||{}),offsets:[...offsets],full_details_offset:positiveOffsets.length?Math.min(...positiveOffsets):null,repeat_every:Number($('repeatEvery')?.value||1),repeat_unit:$('repeatUnit')?.value||'days',svs_subtype:$('svsSubtype')?.value||null,foundry_legion:type==='foundry'?Number($('foundryLegion')?.value||1):null,discord_server_id:selectedDiscordDestination().guild_id||null,discord_channel_id:selectedDiscordDestination().channel_id||null,mention_type:$('mentionType').value,mention_target_id:$('mentionTarget')?.value||null};if(type==='bear_trap'){settings.reminder_type=$('bearReminderType').value;settings.include_bear_details=$('includeBearDetails')?.checked||false;if(settings.reminder_type==='details'){settings.hero_generation=Number($('heroGeneration').value);settings.approved_joiners=selectedJoiners();settings.max_joiner_troops=parseTroops($('maxTroops').value);settings.rules={no_cherry:$('ruleCherry').checked,top_bottom:$('ruleTop').checked,troops_only_no_hero:$('ruleTroopsOnly').checked};settings.staggered=$('ruleStagger').checked;settings.second_row_minutes=Number($('secondRow').value||1);settings.third_row_minutes=Number($('thirdRow').value||2);settings.buffs={pet_attack:$('petAttack').checked,pet_lethality:$('petLethality').checked,city_attack:$('cityAttack').checked,city_lethality:$('cityLethality').checked,deployment_capacity:$('deploymentCapacity').checked};delete settings.own_formations;settings.rally_formations_generation=settings.hero_generation}}const notifications=[...offsets].map(n=>({offset_minutes:n,label:offsetLabel(n),message_override:'',enabled:true}));await api('save_event',{event:{...e,event_type:type,event_name:type==='foundry'?`Foundry Legion ${Number($('foundryLegion')?.value||1)}`:($('eventName').value.trim()||'Event'),alliance_id:currentAllianceId,event_at:new Date(`${date}T${time}:00Z`).toISOString(),repeat_type:$('eventRepeat').value,status:e.status||'active',message:$('eventMessage').value,notes:$('bearNotes')?.value||e.notes||'',settings,notifications}});closeModal();await loadEvents();toast(existing?'Event saved.':'Event created.')}catch(err){$('eventStatus').textContent=err.message;$('eventStatus').classList.add('error')}}}
 function parseTroops(v){const raw=String(v||'').trim().toUpperCase();if(!raw)return'';const m=raw.match(/^(\d+(?:\.\d+)?)\s*([KM])?$/);if(!m)throw Error('Use a troop amount like 125K, 195K or 1M.');return String(Math.round(Number(m[1])*(m[2]==='M'?1000000:m[2]==='K'?1000:1)))}
 function eventTimeValue(){return `${$('eventHour')?.value||'00'}:${$('eventMinute')?.value||'00'}`}
 function buildWosDraft(){
@@ -321,7 +411,7 @@ function buildWosDraft(){
 }
 function formationPreview(g){const rows=BEAR_FORMATIONS[Number(g)];return rows?rows.map(x=>`${x[0]}\n${x[1]}\n${x[2]}`).join('\n\n'):''}
 function draftPreviewText(){
- const name=$('eventName')?.value.trim()||'Event',time=eventTimeValue(),msg=$('eventMessage')?.value.trim(),type=$('eventType')?.value;
+ const type=$('eventType')?.value,msg=$('eventMessage')?.value.trim();let name=$('eventName')?.value.trim()||'Event',time=eventTimeValue();if(type==='foundry'||type==='canyon')name=`${type==='foundry'?'Foundry':'Canyon'} Legion ${$('eventLegion')?.value||1}`;if(type==='crazy_joe')name='Crazy Joe';if(type==='brothers_in_arms')name='Brothers in Arms';if(type==='svs'){name='SVS Battle Phase';time='10:00'};
  let out=`${type==='bear_trap'?'🐻 ':''}${name}\nTime: ${time} UTC`;if(msg)out+=`\n\n${msg}`;
  if(type==='bear_trap'&&$('bearReminderType')?.value==='details'&&$('includeBearDetails')?.checked){
   const max=$('maxTroops').value.trim(),heroes=selectedJoiners(),rules=[];

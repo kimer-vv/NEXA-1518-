@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- NEXA WOS Utilities V18 — WOS copy spacing -->
+<!-- NEXA WOS Utilities V19 — WOS copy spacing fix -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -304,6 +304,21 @@ function buildWosDraft(){
  if($('ruleTroopsOnly')?.checked)lines.push('\u{1F6AB} No approved hero \u2192 Troops Only');
  if($('ruleStagger')?.checked)lines.push('\u23F3 Stagger Rallies');
  return lines.join('\n')
+}
+function formationPreview(g){const rows=BEAR_FORMATIONS[Number(g)];return rows?rows.map(x=>`${x[0]}\n${x[1]}\n${x[2]}`).join('\n\n'):''}
+function draftPreviewText(){
+ const name=$('eventName')?.value.trim()||'Event',time=eventTimeValue(),msg=$('eventMessage')?.value.trim(),type=$('eventType')?.value;
+ let out=`${type==='bear_trap'?'🐻 ':''}${name}\nTime: ${time} UTC`;if(msg)out+=`\n\n${msg}`;
+ if(type==='bear_trap'&&$('bearReminderType')?.value==='details'&&$('includeBearDetails')?.checked){
+  const max=$('maxTroops').value.trim(),heroes=selectedJoiners(),rules=[];
+  if(max)out+=`\n\nMax Joiner Troops:\n${max}`;if(heroes.length)out+=`\n\nApproved Joiners:\n${heroes.join(' · ')}`;
+  if($('ruleCherry').checked)rules.push('\u{1F6AB} No Cherry Picking');if($('ruleTop').checked)rules.push('\u2B06\uFE0F Join Top → Bottom');if($('ruleTroopsOnly').checked)rules.push('\u{1F6AB} No approved hero → Troops Only');if($('ruleStagger').checked)rules.push('\u23F3 Stagger Rallies');
+  if(rules.length)out+=`\n\nBear Trap Rules:\n${rules.join('\n')}`;
+  if($('ruleStagger').checked)out+=`\n\nRally Timing:\nFirst Row → Start Immediately\nRow 2 → +${$('secondRow').value||1}m\nRow 3+ → +${$('thirdRow').value||2}m`;
+  const buffs=[];if($('petAttack').checked)buffs.push('Pet Attack');if($('petLethality').checked)buffs.push('Pet Lethality');if($('cityAttack').checked)buffs.push('City Attack');if($('cityLethality').checked)buffs.push('City Lethality');if($('deploymentCapacity').checked)buffs.push('Deployment Capacity');
+  if(buffs.length)out+=`\n\nBuff Preparation:\n${buffs.join('\n')}`;if($('bearNotes').value.trim())out+=`\n\nNotes:\n${$('bearNotes').value.trim()}`;
+  const fp=formationPreview($('heroGeneration').value);if(fp)out+=`\n\nOwn Rally Formations:\n${fp}`;
+ }return out
 }
 
 function previewSectionsHtml(text){

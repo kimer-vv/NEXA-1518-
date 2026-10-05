@@ -117,7 +117,7 @@ export default async function handler(req,res){
   }
   if(b.action==='discord_servers'){
    const aid=await requireAlliance(s,b.alliance_id);
-   const servers=await db(`wos_discord_alliance_links?alliance_id=eq.${enc(aid)}&enabled=eq.true&select=guild_id,guild_name,updated_at&order=guild_name.asc`);
+   const servers=await db(`wos_discord_alliance_links?alliance_id=eq.${enc(aid)}&enabled=eq.true&select=guild_id,guild_name,reminder_channel_id,updated_at&order=guild_name.asc`);
    return res.status(200).json({ok:true,servers});
   }
   if(b.action==='link_discord_server'){
@@ -139,6 +139,13 @@ export default async function handler(req,res){
   if(b.action==='discord_channels'){
    await linkedServer(s,b.alliance_id,b.guild_id);
    return res.status(200).json({ok:true,channels:await visibleTextChannels(String(b.guild_id))});
+  }
+  if(b.action==='set_default_reminder_channel'){
+   const aid=await requireAlliance(s,b.alliance_id),gid=String(b.guild_id||'').trim(),cid=String(b.channel_id||'').trim();
+   await linkedServer(s,aid,gid);
+   const ch=await verifyChannelInGuild(gid,cid);
+   await db(`wos_discord_alliance_links?guild_id=eq.${enc(gid)}&enabled=eq.true`,{method:'PATCH',body:{reminder_channel_id:cid,updated_at:new Date().toISOString()}});
+   return res.status(200).json({ok:true,guild_id:gid,channel:{id:cid,name:ch.name}});
   }
   if(b.action==='test_event_draft')return res.status(200).json(await sendSafeTest({s,...b}));
   if(b.action==='change_username'){

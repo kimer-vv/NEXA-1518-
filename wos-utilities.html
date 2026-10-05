@@ -19,7 +19,7 @@ button{cursor:pointer;font-weight:850;background:linear-gradient(120deg,#5143a7,
 .copy-row,.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.wide{grid-column:1/-1}label{display:grid;gap:6px;color:#c9d4ee;font-size:13px;font-weight:800}textarea{min-height:105px;resize:vertical}.full-btn{width:100%;margin-top:12px}
 .backbar{display:flex;gap:10px;align-items:center;margin-bottom:12px}.alliance-portal{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.alliance-card{border:1px solid #3d4f7f;border-radius:18px;padding:16px;background:#0b132b}.alliance-card h3{margin:0 0 5px}
 .event-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:12px 0}.event-groups{display:grid;gap:16px}.event-group{border:1px solid #2f3d65;border-radius:20px;padding:14px;background:#091126}.event-group-title{font-size:12px;letter-spacing:.12em;color:#b9c8ef;font-weight:950;margin:0 0 10px}
-.event-list{display:grid;gap:10px}.event-card{border:1px solid #34446e;border-radius:17px;padding:14px;background:#0b132b}.event-title{display:flex;justify-content:space-between;gap:10px}.event-title h3{margin:0 0 4px}.event-sub{color:var(--muted);font-size:12px}.event-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}.event-actions button{flex:1 1 120px}.pill{border:1px solid #53618b;border-radius:999px;padding:4px 8px;font-size:10px;color:#bdefff}.pill.paused{color:#ffd39b}
+.event-list{display:grid;gap:10px}.event-card{border:1px solid #34446e;border-radius:17px;padding:14px;background:#0b132b}.event-title{display:flex;justify-content:space-between;gap:10px}.event-title h3{margin:0 0 4px}.event-sub{color:var(--muted);font-size:12px}.event-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}.event-actions button{flex:1 1 120px}.pill{border:1px solid #53618b;border-radius:999px;padding:4px 8px;font-size:10px;color:#bdefff}.pill.active{color:#08150f;background:var(--green);border-color:var(--green);font-weight:950}.pill.paused{color:#2a1b00;background:var(--gold);border-color:var(--gold);font-weight:950}
 .modal{position:fixed;inset:0;z-index:9999;background:#030719dc;display:grid;place-items:center;padding:14px}.modal-box{width:min(820px,100%);max-height:92vh;overflow:auto;border:1px solid #59699a;border-radius:22px;background:#0d142b;padding:18px}.item-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
 .setup-section{border:1px solid #2d3a62;border-radius:18px;padding:15px;margin:14px 0;background:#0a1125}.setup-section h3{margin-bottom:6px}.check-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.check{display:flex;align-items:center;gap:9px;border:1px solid #33416a;border-radius:13px;padding:10px;background:#101831}.check input{width:18px;height:18px;min-height:auto}
 .chips{display:flex;gap:7px;flex-wrap:wrap}.chip{background:#121a33;border-color:#3f4e78}.chip.active{background:#273c66;border-color:#59e4ff;color:#dffaff}.preview-box{white-space:pre-wrap;line-height:1.55;border:1px solid #34446e;border-radius:16px;padding:14px;background:#080f22}
@@ -62,7 +62,7 @@ button{cursor:pointer;font-weight:850;background:linear-gradient(120deg,#5143a7,
 const SUPA='https://dfxcxboxrkfmrnsgpyin.supabase.co',PUB='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
 const sb=window.supabase.createClient(SUPA,PUB),$=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-let token=localStorage.getItem('nexa_transfer_staff_token')||sessionStorage.getItem('nexa_transfer_staff_token')||'',snap=null,events=[],currentAllianceId=null;
+let token=localStorage.getItem('nexa_transfer_staff_token')||sessionStorage.getItem('nexa_transfer_staff_token')||'',snap=null,events=[],currentAllianceId=null,discordServerCache=[];
 const views=['homeView','remindersView','staffView'];
 function show(v){views.forEach(x=>$(x).classList.toggle('hidden',x!==v));scrollTo(0,0)}
 function toast(msg,bad=false){const t=$('toast');t.textContent=msg;t.classList.remove('hidden');t.style.borderColor=bad?'#ad5577':'#5f73a7';clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.add('hidden'),2200)}
@@ -210,8 +210,10 @@ async function loadAllianceDiscordHub(){
  const root=$('allianceDiscordServers');if(!root||!currentAllianceId)return;
  root.innerHTML='<span class="muted">Loading linked servers…</span>';
  try{
-  const d=await api('discord_servers',{alliance_id:currentAllianceId}),rows=d.servers||[];
-  root.innerHTML=rows.length?rows.map(x=>`<span class="discord-server-chip">✓ ${esc(x.guild_name||x.guild_id)} <button type="button" class="danger" data-unlink-guild="${esc(x.guild_id)}" style="min-height:28px;padding:2px 8px;margin-left:5px">×</button></span>`).join(''):'<span class="muted">No Discord server linked yet.</span>';
+  const d=await api('discord_servers',{alliance_id:currentAllianceId}),rows=d.servers||[];discordServerCache=rows;
+  if(!rows.length){root.innerHTML='<span class="muted">No Discord server linked yet.</span>';return}
+  root.innerHTML=rows.map(x=>`<div class="discord-server-chip" style="display:grid;gap:8px;width:100%"><div><b>✓ ${esc(x.guild_name||x.guild_id)}</b> <button type="button" class="danger" data-unlink-guild="${esc(x.guild_id)}" style="min-height:28px;padding:2px 8px;margin-left:5px">×</button></div><label style="font-size:11px">Default Reminder Channel<select data-default-channel="${esc(x.guild_id)}"><option value="">Loading channels…</option></select></label></div>`).join('');
+  for(const srv of rows){const sel=root.querySelector(`[data-default-channel="${srv.guild_id}"]`);try{const c=await api('discord_channels',{alliance_id:currentAllianceId,guild_id:srv.guild_id}),chs=c.channels||[];sel.innerHTML='<option value="">No default channel</option>'+chs.map(ch=>`<option value="${esc(ch.id)}"># ${esc(ch.name)}</option>`).join('');if(srv.reminder_channel_id&&chs.some(ch=>String(ch.id)===String(srv.reminder_channel_id)))sel.value=srv.reminder_channel_id;sel.onchange=async()=>{if(!sel.value)return toast('Choose a channel to set as the default.');try{const out=await api('set_default_reminder_channel',{alliance_id:currentAllianceId,guild_id:srv.guild_id,channel_id:sel.value});srv.reminder_channel_id=sel.value;toast(`Default reminder channel set to #${out.channel?.name||'channel'}.`)}catch(err){toast(err.message,true);await loadAllianceDiscordHub()}}}catch{sel.innerHTML='<option value="">Channels unavailable</option>'}}
   root.querySelectorAll('[data-unlink-guild]').forEach(btn=>btn.onclick=async()=>{const server=rows.find(x=>String(x.guild_id)===String(btn.dataset.unlinkGuild));if(!await confirmNexa('Unlink Discord Server',`Remove ${server?.guild_name||btn.dataset.unlinkGuild} from this alliance?`,'Unlink'))return;try{await api('unlink_discord_server',{alliance_id:currentAllianceId,guild_id:btn.dataset.unlinkGuild});await loadAllianceDiscordHub();toast('Discord server unlinked.')}catch(err){toast(err.message,true)}});
  }catch(e){root.innerHTML=`<span class="error">${esc(e.message)}</span>`}
 }
@@ -226,18 +228,21 @@ async function loadDiscordDestinations(selectedServer='',selectedChannel=''){
  const channel=$('discordChannel');if(!channel||!currentAllianceId)return;
  channel.innerHTML='<option value="">Loading alliance channels…</option>';
  try{
-  const d=await api('discord_servers',{alliance_id:currentAllianceId}),servers=d.servers||[],dest=[];
+  const d=await api('discord_servers',{alliance_id:currentAllianceId}),servers=d.servers||[],dest=[];discordServerCache=servers;
   for(const srv of servers){
-   try{const c=await api('discord_channels',{alliance_id:currentAllianceId,guild_id:srv.guild_id});for(const ch of (c.channels||[]))dest.push({guild_id:srv.guild_id,guild_name:srv.guild_name||srv.guild_id,id:ch.id,name:ch.name})}catch{}
+   dest.push({guild_id:srv.guild_id,guild_name:srv.guild_name||srv.guild_id,id:'DEFAULT',name:srv.reminder_channel_id?'Use Server Default':'Use Server Default — NOT SET',isDefault:true});
+   try{const c=await api('discord_channels',{alliance_id:currentAllianceId,guild_id:srv.guild_id});for(const ch of (c.channels||[]))dest.push({guild_id:srv.guild_id,guild_name:srv.guild_name||srv.guild_id,id:ch.id,name:'#'+ch.name})}catch{}
   }
-  channel.innerHTML='<option value="">Select Discord channel</option>'+dest.map(x=>`<option value="${esc(x.guild_id)}|${esc(x.id)}">${esc(x.guild_name)} · #${esc(x.name)}</option>`).join('');
-  const wanted=selectedServer&&selectedChannel?`${selectedServer}|${selectedChannel}`:'';
+  channel.innerHTML='<option value="">Select Discord destination</option>'+dest.map(x=>`<option value="${esc(x.guild_id)}|${esc(x.id)}">${esc(x.guild_name)} · ${esc(x.name)}</option>`).join('');
+  const wanted=selectedServer?(selectedChannel?`${selectedServer}|${selectedChannel}`:`${selectedServer}|DEFAULT`):'';
   if(wanted&&dest.some(x=>`${x.guild_id}|${x.id}`===wanted))channel.value=wanted;
   if(!servers.length)channel.innerHTML='<option value="">No Discord server linked to this alliance</option>';
  }catch(e){channel.innerHTML='<option value="">Discord channels unavailable</option>';toast(e.message,true)}
 }
 function selectedDiscordDestination(){
- const raw=$('discordChannel')?.value||'',i=raw.indexOf('|');return i>0?{guild_id:raw.slice(0,i),channel_id:raw.slice(i+1)}:{guild_id:'',channel_id:''}
+ const raw=$('discordChannel')?.value||'',i=raw.indexOf('|');if(i<=0)return{guild_id:'',channel_id:'',resolved_channel_id:''};
+ const guild_id=raw.slice(0,i),v=raw.slice(i+1),srv=discordServerCache.find(x=>String(x.guild_id)===String(guild_id));
+ return{guild_id,channel_id:v==='DEFAULT'?'':v,resolved_channel_id:v==='DEFAULT'?(srv?.reminder_channel_id||''):v};
 }
 
 function openEvent(existing=null){
@@ -250,7 +255,7 @@ modal(existing?'Edit Event':'Add New Event',`
 <div id="legionWrap" class="${['foundry','canyon'].includes(e.event_type)?'':'hidden'}"><label>Legion<select id="eventLegion"><option value="1">Legion 1</option><option value="2">Legion 2</option></select></label></div>
 <div id="customLegionToggleWrap" class="${e.event_type==='custom'?'':'hidden'}"><label>Use Legions?<select id="customUseLegions"><option value="no">No</option><option value="yes">Yes</option></select></label></div>
 <div id="customLegionWrap" class="hidden"><label>Legion<select id="customLegion"><option value="1">Legion 1</option><option value="2">Legion 2</option></select></label></div>
-<label class="wide">Discord Channel<select id="discordChannel"><option value="">Loading alliance channels…</option></select><span class="muted" style="font-size:11px">Channels come from Discord servers already linked to this alliance on the Event Reminders screen.</span></label>
+<label class="wide">Discord Destination<select id="discordChannel"><option value="">Loading alliance channels…</option></select><span class="muted" style="font-size:11px">Use Server Default unless this event needs its own channel override.</span></label>
 <label>Mention<select id="mentionType"><option value="none">No Mention</option><option value="role">Role</option><option value="user">User</option><option value="everyone">@everyone</option><option value="here">@here</option></select></label>
 <label id="mentionTargetWrap" class="hidden">Mention Target<select id="mentionTarget"><option value="">Select</option></select></label>
 </div></div>
@@ -351,7 +356,7 @@ const initialGen=Number(s.hero_generation||1);renderJoiners(initialGen,s.approve
 $('heroGeneration')?.addEventListener('change',()=>{const g=Number($('heroGeneration').value),allowed=new Set(HERO_LIBRARY.filter(h=>h.gen<=g).map(h=>h.name)),keep=selectedJoiners().filter(n=>allowed.has(n));renderJoiners(g,keep);renderFormations(g)});
 $('addJoinerHero')?.addEventListener('click',openHeroLibrary);
 loadDiscordDestinations(s.discord_server_id||'',s.discord_channel_id||'');
-$('previewDraft').onclick=()=>previewDraft(e,offsets);$('copyWos')?.addEventListener('click',()=>copyText(buildWosDraft()));$('testDraft').onclick=async()=>{try{const {guild_id,channel_id}=selectedDiscordDestination();if(!guild_id||!channel_id)throw Error('Select a Discord channel first. If none appear, link a server from the Event Reminders screen.');const d=await api('test_event_draft',{alliance_id:currentAllianceId,guild_id,channel_id,preview:draftPreviewText()});toast(d.message||'Discord test sent.')}catch(e){toast(e.message,true)}};
+$('previewDraft').onclick=()=>previewDraft(e,offsets);$('copyWos')?.addEventListener('click',()=>copyText(buildWosDraft()));$('testDraft').onclick=async()=>{try{const {guild_id,resolved_channel_id}=selectedDiscordDestination();if(!guild_id||!resolved_channel_id)throw Error('Select a Discord destination. If using Server Default, set its Default Reminder Channel first.');const d=await api('test_event_draft',{alliance_id:currentAllianceId,guild_id,channel_id:resolved_channel_id,preview:draftPreviewText()});toast(d.message||'Discord test sent.')}catch(e){toast(e.message,true)}};
 $('saveEvent').onclick=async()=>{try{
  const type=$('eventType').value;if(!offsets.size)throw Error('Select at least one reminder.');
  let date=$('startDate').value,time=eventTimeValue(),repeat=$('eventRepeat').value,eventName=$('eventName').value.trim()||'Event';

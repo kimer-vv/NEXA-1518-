@@ -1,4 +1,4 @@
-/* NEXA WOS Utilities Server Handler V2.4
+/* NEXA WOS Utilities Server Handler V2.5
  * Complete replacement: preserves staff/event actions and adds alliance-scoped Discord linking.
  * Requires the companion SQL migration: wos-discord-alliance-links-migration.txt
  */
@@ -70,12 +70,23 @@ async function verifyChannelInGuild(guildId,channelId){
  const channel=channels.find(c=>c.id===cid);if(!channel)throw fail('That channel does not belong to the selected linked Discord server, or the bot cannot see it.',409);
  return channel;
 }
+function previewToEmbed(preview,{test=false,compact=false,offsetMinutes=null}={}){
+ const raw=String(preview||'NEXA Event Reminder').slice(0,5000),lines=raw.split('\n');
+ const first=String(lines.shift()||'Event Reminder').trim(),title=first.replace(/^ð»\s*/,'').trim().toUpperCase();
+ const timeLine=lines.find(x=>/^Time:\s*/i.test(x))||'',eventTime=timeLine.replace(/^Time:\s*/i,'').trim();
+ const cleanTitle=title.includes('BEAR')?`ð» ${title.includes('REMINDER')?title:`${title} REMINDER`}`:`â° ${title.includes('REMINDER')?title:`${title} REMINDER`}`;
+ const fields=[],sectionNames=new Set(['Max Joiner Troops','Approved Joiners','Bear Trap Rules','Rally Timing','Buff Preparation','Notes','Own Rally Formations']);
+ let current=null,description=[];
+ for(const line of lines){if(/^Time:\s*/i.test(line))continue;const m=line.match(/^([^:]+):\s*(.*)$/);if(m&&sectionNames.has(m[1])){current={name:m[1],value:m[2]||''};fields.push(current);continue}if(current&&line.trim())current.value+=(current.value?'\n':'')+line.trim();else if(line.trim())description.push(line.trim())}
+ const countdown=offsetMinutes===0?'ð¥ **Starting now!**':Number(offsetMinutes)>0?`â³ **${offsetMinutes} minute${Number(offsetMinutes)===1?'':'s'} until Bear Trap starts**`:'ð§ª **Full reminder preview**';
+ const embed={title:cleanTitle,color:0x59e4ff,description:[eventTime?`ð **${eventTime}**`:'',countdown,...description].filter(Boolean).join('\n'),footer:{text:test?'NEXA TEST â¢ Not a live reminder':'NEXA â¢ WOS Utilities'},timestamp:new Date().toISOString()};
+ if(!compact)embed.fields=fields.filter(f=>f.value).map(f=>({name:f.name,value:String(f.value).slice(0,1024),inline:false})).slice(0,25);
+ return embed;
+}
 async function sendSafeTest({s,alliance_id,guild_id,channel_id,preview}){
- await linkedServer(s,alliance_id,guild_id);
- await verifyChannelInGuild(guild_id,channel_id);
- const text=String(preview||'NEXA Event Reminder').slice(0,1800);
- await sendChannel(channel_id,{content:`ð§ª **NEXA TEST â NOT A LIVE REMINDER**\n\n${text}`,allowed_mentions:{parse:[]}});
- return {ok:true,message:'Test sent to the selected alliance Discord channel.'};
+ await linkedServer(s,alliance_id,guild_id);await verifyChannelInGuild(guild_id,channel_id);
+ await sendChannel(channel_id,{embeds:[previewToEmbed(preview,{test:true})],allowed_mentions:{parse:[]}});
+ return {ok:true,message:'Full Bear Trap embed test sent.'};
 }
 
 export default async function handler(req,res){

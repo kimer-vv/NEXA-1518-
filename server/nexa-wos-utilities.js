@@ -1,4 +1,4 @@
-/* NEXA WOS Utilities Server Handler V2.8
+/* NEXA WOS Utilities Server Handler V3.0
  * Complete replacement: preserves staff/event actions and adds alliance-scoped Discord linking.
  * Requires the companion SQL migration: wos-discord-alliance-links-migration.txt
  */
@@ -80,7 +80,7 @@ function previewToEmbed(preview,{test=false,compact=false,offsetMinutes=null}={}
  const fields=[],sectionNames=new Set(['Max Joiner Troops','Approved Joiners','Bear Trap Rules','Rally Timing','Buff Preparation','Notes','Own Rally Formations']);
  let current=null,description=[];
  for(const line of lines){if(/^Time:\s*/i.test(line))continue;const m=line.match(/^([^:]+):\s*(.*)$/);if(m&&sectionNames.has(m[1])){current={name:m[1],value:m[2]||''};fields.push(current);continue}if(current&&line.trim())current.value+=(current.value?'\n':'')+line.trim();else if(line.trim())description.push(line.trim())}
- const countdown=offsetMinutes===0?`${fireEmoji} **Starting now!**`:Number(offsetMinutes)>0?`${hourglassEmoji} **${offsetMinutes} minute${Number(offsetMinutes)===1?'':'s'} until Bear Trap starts**`:`${testEmoji} **Full reminder preview**`;
+ const countdown=offsetMinutes===0?`${fireEmoji} **IS STARTING NOW**`:Number(offsetMinutes)>0?`${hourglassEmoji} **Starts in ${Number(offsetMinutes)>=60&&Number(offsetMinutes)%60===0?`${Number(offsetMinutes)/60} hour${Number(offsetMinutes)===60?'':'s'}`:`${offsetMinutes} minute${Number(offsetMinutes)===1?'':'s'}`}**`:`${testEmoji} **Full reminder preview**`;
  const embed={title:cleanTitle,color:0x59e4ff,description:[eventTime?`${clockEmoji} **${eventTime}**`:'',countdown,...description].filter(Boolean).join('\n\n'),footer:{text:test?`NEXA TEST ${String.fromCodePoint(0x2022)} Not a live reminder`:`NEXA ${String.fromCodePoint(0x2022)} WOS Utilities`},timestamp:new Date().toISOString()};
  if(!compact){
   const visible=fields.filter(f=>f.value).slice(0,12),spaced=[];
@@ -97,7 +97,7 @@ function previewToEmbed(preview,{test=false,compact=false,offsetMinutes=null}={}
 async function sendSafeTest({s,alliance_id,guild_id,channel_id,preview}){
  await linkedServer(s,alliance_id,guild_id);await verifyChannelInGuild(guild_id,channel_id);
  await sendChannel(channel_id,{embeds:[previewToEmbed(preview,{test:true})],allowed_mentions:{parse:[]}});
- return {ok:true,message:'Full Bear Trap embed test sent.'};
+ return {ok:true,message:'Full event reminder test sent.'};
 }
 
 export default async function handler(req,res){
@@ -200,7 +200,7 @@ export default async function handler(req,res){
     if(!settings.discord_server_id||!settings.discord_channel_id)throw fail('Choose both a Discord Server and Channel.');
     await linkedServer(s,e.alliance_id,settings.discord_server_id);await verifyChannelInGuild(settings.discord_server_id,settings.discord_channel_id);
    }
-   const repeats=['one_time','daily','every_other_day','weekly','every_2_weeks','monthly','custom'];
+   const repeats=['one_time','daily','every_other_day','weekly','every_2_weeks','every_4_weeks','monthly','custom'];
    const row={alliance_id:e.alliance_id||null,event_type:type,event_name:String(e.event_name||'').trim().slice(0,120)||'Custom Event',status:e.status==='paused'?'paused':'active',repeat_type:repeats.includes(e.repeat_type)?e.repeat_type:'one_time',event_at:e.event_at||null,timezone:'UTC',message:String(e.message||'').slice(0,2000),notes:String(e.notes||'').slice(0,2000),settings,created_by_game_id:s.account.game_id,updated_at:new Date().toISOString()};
    let saved;if(e.id){const found=(await events(s)).find(x=>String(x.id)===String(e.id));if(!found)throw fail('Event not found.',404);await db(`wos_event_reminders?id=eq.${enc(e.id)}`,{method:'PATCH',body:row});saved={...row,id:e.id}}else saved=(await db('wos_event_reminders',{method:'POST',body:row}))[0];
    if(Array.isArray(e.notifications)){await db(`wos_event_notifications?event_id=eq.${enc(saved.id)}`,{method:'DELETE'});if(e.notifications.length)await db('wos_event_notifications',{method:'POST',body:e.notifications.map(n=>({event_id:saved.id,offset_minutes:Number(n.offset_minutes)||0,label:String(n.label||''),message_override:String(n.message_override||''),enabled:n.enabled!==false}))})}

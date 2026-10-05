@@ -1,4 +1,4 @@
-/* NEXA WOS Utilities Server Handler V2.6
+/* NEXA WOS Utilities Server Handler V2.7
  * Complete replacement: preserves staff/event actions and adds alliance-scoped Discord linking.
  * Requires the companion SQL migration: wos-discord-alliance-links-migration.txt
  */
@@ -72,22 +72,24 @@ async function verifyChannelInGuild(guildId,channelId){
 }
 function previewToEmbed(preview,{test=false,compact=false,offsetMinutes=null}={}){
  const raw=String(preview||'NEXA Event Reminder').slice(0,5000),lines=raw.split('\n');
- const first=String(lines.shift()||'Event Reminder').trim(),title=first.replace(/^ð»\s*/u,'').trim().toUpperCase();
+ const first=String(lines.shift()||'Event Reminder').trim();
+ const bearEmoji=String.fromCodePoint(0x1F43B),clockEmoji=String.fromCodePoint(0x1F552),testEmoji=String.fromCodePoint(0x1F9EA),fireEmoji=String.fromCodePoint(0x1F525),hourglassEmoji=String.fromCodePoint(0x23F3);
+ const title=first.replace(/^[^A-Za-z0-9]*BEAR/i,'BEAR').trim().toUpperCase();
  const timeLine=lines.find(x=>/^Time:\s*/i.test(x))||'',eventTime=timeLine.replace(/^Time:\s*/i,'').trim();
- const cleanTitle=title.includes('BEAR')?`ð» ${title.includes('REMINDER')?title:`${title} REMINDER`}`:`â° ${title.includes('REMINDER')?title:`${title} REMINDER`}`;
+ const cleanTitle=title.includes('BEAR')?`${bearEmoji} ${title.includes('REMINDER')?title:`${title} REMINDER`}`:`${clockEmoji} ${title.includes('REMINDER')?title:`${title} REMINDER`}`;
  const fields=[],sectionNames=new Set(['Max Joiner Troops','Approved Joiners','Bear Trap Rules','Rally Timing','Buff Preparation','Notes','Own Rally Formations']);
  let current=null,description=[];
  for(const line of lines){if(/^Time:\s*/i.test(line))continue;const m=line.match(/^([^:]+):\s*(.*)$/);if(m&&sectionNames.has(m[1])){current={name:m[1],value:m[2]||''};fields.push(current);continue}if(current&&line.trim())current.value+=(current.value?'\n':'')+line.trim();else if(line.trim())description.push(line.trim())}
- const countdown=offsetMinutes===0?'ð¥ **Starting now!**':Number(offsetMinutes)>0?`â³ **${offsetMinutes} minute${Number(offsetMinutes)===1?'':'s'} until Bear Trap starts**`:'ð§ª **Full reminder preview**';
- const embed={title:cleanTitle,color:0x59e4ff,description:[eventTime?`ð **${eventTime}**`:'',countdown,...description].filter(Boolean).join('\n\n'),footer:{text:test?'NEXA TEST â¢ Not a live reminder':'NEXA â¢ WOS Utilities'},timestamp:new Date().toISOString()};
+ const countdown=offsetMinutes===0?`${fireEmoji} **Starting now!**`:Number(offsetMinutes)>0?`${hourglassEmoji} **${offsetMinutes} minute${Number(offsetMinutes)===1?'':'s'} until Bear Trap starts**`:`${testEmoji} **Full reminder preview**`;
+ const embed={title:cleanTitle,color:0x59e4ff,description:[eventTime?`${clockEmoji} **${eventTime}**`:'',countdown,...description].filter(Boolean).join('\n\n'),footer:{text:test?'NEXA TEST â¢ Not a live reminder':'NEXA â¢ WOS Utilities'},timestamp:new Date().toISOString()};
  if(!compact){
-  const spaced=[];
-  for(const f of fields.filter(f=>f.value).slice(0,12)){
-   if(spaced.length)spaced.push({name:'\u200B',value:'\u200B',inline:false});
+  const visible=fields.filter(f=>f.value).slice(0,12),spaced=[];
+  visible.forEach((f,i)=>{
    let value=String(f.value).slice(0,1024);
    if(f.name==='Own Rally Formations')value=value.replace(/(10 \/ 10 \/ 80)\n(?=(Alternative|F2P))/g,'$1\n\n');
    spaced.push({name:f.name,value,inline:false});
-  }
+   if(i<visible.length-1)spaced.push({name:'\u200B',value:'\u200B\n\u200B',inline:false});
+  });
   embed.fields=spaced.slice(0,25);
  }
  return embed;

@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- NEXA WOS Utilities V22 — Complete event scheduling UX -->
+<!-- NEXA WOS Utilities V23 — Save persistence + Discord unlink -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -211,7 +211,8 @@ async function loadAllianceDiscordHub(){
  root.innerHTML='<span class="muted">Loading linked servers…</span>';
  try{
   const d=await api('discord_servers',{alliance_id:currentAllianceId}),rows=d.servers||[];
-  root.innerHTML=rows.length?rows.map(x=>`<span class="discord-server-chip">✓ ${esc(x.guild_name||x.guild_id)}</span>`).join(''):'<span class="muted">No Discord server linked yet.</span>';
+  root.innerHTML=rows.length?rows.map(x=>`<span class="discord-server-chip">✓ ${esc(x.guild_name||x.guild_id)} <button type="button" class="danger" data-unlink-guild="${esc(x.guild_id)}" style="min-height:28px;padding:2px 8px;margin-left:5px">×</button></span>`).join(''):'<span class="muted">No Discord server linked yet.</span>';
+  root.querySelectorAll('[data-unlink-guild]').forEach(btn=>btn.onclick=async()=>{const server=rows.find(x=>String(x.guild_id)===String(btn.dataset.unlinkGuild));if(!await confirmNexa('Unlink Discord Server',`Remove ${server?.guild_name||btn.dataset.unlinkGuild} from this alliance?`,'Unlink'))return;try{await api('unlink_discord_server',{alliance_id:currentAllianceId,guild_id:btn.dataset.unlinkGuild});await loadAllianceDiscordHub();toast('Discord server unlinked.')}catch(err){toast(err.message,true)}});
  }catch(e){root.innerHTML=`<span class="error">${esc(e.message)}</span>`}
 }
 async function linkAllianceDiscord(){
@@ -386,6 +387,8 @@ $('saveEvent').onclick=async()=>{try{
  }
  if(type==='bear_trap'){settings.reminder_type=$('bearReminderType').value;settings.include_bear_details=$('includeBearDetails')?.checked||false;if(settings.reminder_type==='details'){settings.hero_generation=Number($('heroGeneration').value);settings.approved_joiners=selectedJoiners();settings.max_joiner_troops=parseTroops($('maxTroops').value);settings.rules={no_cherry:$('ruleCherry').checked,top_bottom:$('ruleTop').checked,troops_only_no_hero:$('ruleTroopsOnly').checked};settings.staggered=$('ruleStagger').checked;settings.second_row_minutes=Number($('secondRow').value||1);settings.third_row_minutes=Number($('thirdRow').value||2);settings.buffs={pet_attack:$('petAttack').checked,pet_lethality:$('petLethality').checked,city_attack:$('cityAttack').checked,city_lethality:$('cityLethality').checked,deployment_capacity:$('deploymentCapacity').checked};delete settings.own_formations;settings.rally_formations_generation=settings.hero_generation}}
 
+ const savedMessage=$('eventMessage')?.value||'';
+ const savedNotes=$('bearNotes')?.value||e.notes||'';
  let confirmText='';
  if(type==='crazy_joe')confirmText=`${localLine(settings.joe_tuesday_date,settings.joe_tuesday_time,'Crazy Joe Tuesday')}\n\n${localLine(settings.joe_thursday_date,settings.joe_thursday_time,'Crazy Joe Thursday')}`;
  else if(type==='svs')confirmText=`${localLine(date,'10:00','SVS Battle Phase')}\n\n${localLine(date,'12:00','SVS Castle Battle')}`;
@@ -393,7 +396,7 @@ $('saveEvent').onclick=async()=>{try{
  if(!await confirmNexa('Confirm Event Schedule',confirmText,'Save Schedule'))return;
 
  const notifications=[...offsets].map(n=>({offset_minutes:n,label:offsetLabel(n),message_override:'',enabled:true}));
- await api('save_event',{event:{...e,event_type:type,event_name:eventName,alliance_id:currentAllianceId,event_at:new Date(`${date}T${time}:00Z`).toISOString(),repeat_type:repeat,status:e.status||'active',message:$('eventMessage').value,notes:$('bearNotes')?.value||e.notes||'',settings,notifications}});
+ await api('save_event',{event:{...e,event_type:type,event_name:eventName,alliance_id:currentAllianceId,event_at:new Date(`${date}T${time}:00Z`).toISOString(),repeat_type:repeat,status:e.status||'active',message:savedMessage,notes:savedNotes,settings,notifications}});
  closeModal();await loadEvents();toast(existing?'Event saved.':'Event created.');
 }catch(err){$('eventStatus').textContent=err.message;$('eventStatus').classList.add('error')}};
 }

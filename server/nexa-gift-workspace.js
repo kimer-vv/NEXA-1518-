@@ -1,4 +1,4 @@
-/* NEXA Gift Code Workspace | Server API v1.9
+/* NEXA Gift Code Workspace | Server API v1.9.1
  * Complete replacement: server/nexa-gift-workspace.js
  * Adds secure per-alliance public Member Registration while preserving staff flows.
  */
@@ -13,7 +13,7 @@ async function staff(req){const token=getToken(req);if(!token)throw fail('Sign i
 const owner=s=>s.access.some(a=>a.role==='owner'||a.role==='wos_admin');
 const allowed=(s,state,alliance)=>owner(s)||s.access.some(a=>a.role==='redeemer_admin'&&a.state_number===Number(state))||s.access.some(a=>a.role==='alliance_manager'&&alliance&&a.alliance_id===alliance);
 /* Registration links are intentionally narrower than general Gift admin access: alliance-scoped managers only. */
-const canRegistration=s=>alliance=>s.access.some(a=>a.role==='alliance_manager'&&a.alliance_id===alliance);
+const canRegistration=s=>alliance=>owner(s)||s.access.some(a=>a.role==='alliance_manager'&&a.alliance_id===alliance);
 function idCheck(v){const x=String(v??'').trim();if(!/^\d{1,30}$/.test(x))throw fail('Game ID must contain 1â30 digits.');return x}function nameCheck(v){const x=String(v??'').trim();if(!x||x.length>80)throw fail('Game Name is required (maximum 80 characters).');return x}function stateCheck(v){const n=Number(v);if(!Number.isSafeInteger(n)||n<=0)throw fail('Invalid state number.');return n}function allianceCheck(v){const x=String(v??'');if(!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(x))throw fail('Invalid alliance.');return x}function inviteCheck(v){const x=String(v??'').trim();if(!/^[A-Za-z0-9_-]{32,160}$/.test(x))throw fail('Invalid registration invitation.',404);return x}
 async function alliance(id){const a=await db(`gift_alliances?id=eq.${enc(id)}&deleted_at=is.null&select=id,state_number,tag,name,is_active,auto_redeem&limit=1`);if(!a.length)throw fail('Alliance not found.',404);return a[0]}
 async function resolveInvite(raw){const token=inviteCheck(raw),rows=await db(`gift_member_registration_invites?token_hash=eq.${hash(token)}&revoked_at=is.null&select=alliance_id&limit=1`);if(!rows.length)throw fail('This registration link is invalid or has expired.',404);const a=await alliance(rows[0].alliance_id);if(!a.is_active)throw fail('This alliance registration is currently unavailable.',410);return{token,a}}

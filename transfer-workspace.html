@@ -1,6 +1,6 @@
 <!doctype html> 
 <!-- TARGET GITHUB FILE: transfer-workspace.html -->
-<!-- NEXA TRANSFER WORKSPACE V5.26 — PRIORITY ORDERING + MODAL FIX -->
+<!-- NEXA TRANSFER WORKSPACE V5.27 — PRIORITY ORDERING + MODAL FIX -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -132,6 +132,14 @@ button,input,select,textarea{font:inherit}.hidden{display:none!important}.shell{
 .dragging524{opacity:.58!important;transform:scale(.99)}
 .dropBefore524{box-shadow:inset 0 3px 0 #59e4ff!important}
 .dropAfter524{box-shadow:inset 0 -3px 0 #59e4ff!important}
+
+
+/* V5.27 — whole-card long-press drag, no extra handle */
+.drag524,[data-gdrag],[data-order-drag]{display:none!important}
+.dragging527{opacity:.62!important;transform:scale(.985)!important;z-index:20!important}
+.dropBefore527{box-shadow:inset 0 4px 0 #59e4ff!important}
+.dropAfter527{box-shadow:inset 0 -4px 0 #59e4ff!important}
+.dragHelp527{font-size:8.5px;color:#91a0c0;margin:5px 0 9px;font-weight:800;letter-spacing:.02em}
 
 </style>
 </head>
@@ -564,7 +572,7 @@ function openQuick(title,tag,items){$('quickInfoTitle').textContent=title;$('qui
 function cardHtml(a){
  const current=bucketOf(a),rc=current==='special'?'rangeGold':current==='ordinary'?'rangeBlue':overCap(a)?'rangeGold':withinCap(a)?'rangeBlue':'',t12=t12Types(a),furnace=String(a.furnace_level||'—').toUpperCase(),identity=[`State ${a.current_state||'—'}`,furnace,fmt(a.current_power)].filter(Boolean).join(' • '),group=isGroupApplicant(a),assigned=String(a.assigned_alliance_tag||'');
  return `<article class="app ${rc}" data-app="${a.id}">
-  <div class="appTop"><div class="nexaIdentity524"><div class="nexaNameRow524">${folder==='new'?`<span class="rank524">#${orderedNew524().findIndex(x=>String(x.id)===String(a.id))+1}</span>`:''}<b class="playerName">${esc(a.in_game_name||'Applicant')}</b></div><div class="identityLine nexaStatsLine524">${esc(identity)}</div>${group?`<span class="groupBadge">GROUP${a.group_name?' • '+esc(a.group_name):''}</span>`:''}</div><div class="nexaHeaderActions524">${folder==='new'&&appOrderMode524()==='priority'&&!$('appSearch').value.trim()?`<div class="orderTools524"><button type="button" class="drag524" data-order-drag="${a.id}" title="Drag to reorder" aria-label="Drag to reorder">↕</button><button type="button" data-order-up="${a.id}" title="Move up">↑</button><button type="button" data-order-down="${a.id}" title="Move down">↓</button></div>`:''}<button class="answerPeek" data-view-answers type="button">View</button></div></div>
+  <div class="appTop"><div class="nexaIdentity524"><div class="nexaNameRow524">${folder==='new'?`<span class="rank524">#${orderedNew524().findIndex(x=>String(x.id)===String(a.id))+1}</span>`:''}<b class="playerName">${esc(a.in_game_name||'Applicant')}</b></div><div class="identityLine nexaStatsLine524">${esc(identity)}</div>${group?`<span class="groupBadge">GROUP${a.group_name?' • '+esc(a.group_name):''}</span>`:''}</div><div class="nexaHeaderActions524">${folder==='new'&&appOrderMode524()==='priority'&&!$('appSearch').value.trim()?`<div class="orderTools524"><button type="button" data-order-up="${a.id}" title="Move up">↑</button><button type="button" data-order-down="${a.id}" title="Move down">↓</button></div>`:''}<button class="answerPeek" data-view-answers type="button">View</button></div></div>
   <div class="appCopyGrid">
     <button class="copyField" data-copy-game-id type="button">Game ID • <b>${esc(a.player_id||'—')}</b></button>
     <button class="copyField" data-copy-discord type="button" ${a.discord_username?'':'aria-disabled="true"'}>Discord • <b>${esc(a.discord_username||'—')}</b></button>
@@ -1100,7 +1108,7 @@ function groupHeading(){const v=$15('nexaGroupView');if(!v?.classList.contains('
 async function currentGroup15(){const name=groupHeading();if(!name)return null;const r=await SB15.rpc('transfer_workspace_groups_get',{p_workspace_id:workspace15(),p_token:token15()});return r.data?.ok?(r.data.groups||[]).find(g=>String(g.group_name||'').trim()===name)||null:null}
 function hasT1215(a){return !!(a.has_t12_general||a.t12_infantry||a.t12_lancer||a.t12_marksman)}
 function route15(a){return a.application_cycle==='next'?'inbox':String(a.application_bucket||'inbox')}
-function modernMemberCard15(a,tags,rank,total){const current=route15(a),rc=current==='special'?'rangeGold':current==='ordinary'?'rangeBlue':'',assigned=String(a.assigned_alliance_tag||''),known=tags.some(t=>String(t).toUpperCase()===assigned.toUpperCase()),custom=assigned&&!known?`<option value="${esc15(assigned)}" selected>${esc15(assigned)} • Group Alliance</option>`:'';return `<article class="app ${rc}" data-v515-app="${a.id}"><div class="appTop"><div class="nexaIdentity524"><div class="nexaNameRow524"><span class="groupRank524">#${rank}</span><b class="playerName">${esc15(a.in_game_name||'Applicant')}</b></div><div class="identityLine nexaStatsLine524"><span>State ${esc15(a.current_state||'—')}</span><span class="statSep524">•</span><span>${esc15(String(a.furnace_level||'—').toUpperCase())}</span><span class="statSep524">•</span><span>${fmt15(a.current_power)}</span></div><span class="groupBadge">GROUP${a.group_name?' • '+esc15(a.group_name):''}</span></div><div class="nexaHeaderActions524"><div class="groupTools524"><button type="button" class="drag524" data-gdrag title="Drag to reorder" aria-label="Drag to reorder">↕</button><button type="button" data-gup title="Move up">↑</button><button type="button" data-gdown title="Move down">↓</button></div><button class="answerPeek" data-v515-view type="button">View</button></div></div><div class="appCopyGrid"><button class="copyField" data-v515-copy-id type="button">Game ID • <b>${esc15(a.player_id||'—')}</b></button><button class="copyField" data-v515-copy-discord type="button">Discord • <b>${esc15(a.discord_username||'—')}</b></button></div><div class="appMiniData"><span class="miniPill">T12 • ${hasT1215(a)?'Yes':'No'}</span>${a.current_alliance?`<span class="miniPill">From • ${esc15(String(a.current_alliance).toUpperCase())}</span>`:''}</div><div class="babyControls"><div><span class="babyLabel">ASSIGNED ALLIANCE</span><select class="allianceSelect" data-v515-assign><option value="">Unassigned</option>${custom}${tags.map(t=>`<option value="${esc15(t)}" ${assigned.toUpperCase()===String(t).toUpperCase()?'selected':''}>${esc15(t)}</option>`).join('')}</select></div><div><span class="babyLabel">ROUTE</span><div class="babySeg ${assigned?'':'routeLocked'}"><button class="ordinary ${current==='ordinary'?'active':''}" data-v515-route="ordinary" type="button">Ordinary</button><button class="special ${current==='special'?'active':''}" data-v515-route="special" type="button">Special</button></div>${assigned?'':'<div class="routeHint">Choose an alliance first</div>'}</div><div><span class="babyLabel">INVITE</span><div class="babySeg"><button class="pending ${a.invite_status==='sent'?'':'active'}" data-v515-invite="pending" type="button">Pending</button><button class="sent ${a.invite_status==='sent'?'active':''}" data-v515-invite="sent" type="button">Sent</button></div></div></div><div class="cardFooter"><div class="readHint">Same controls as Applicants</div><button class="archiveMini" data-v515-archive type="button">Archive</button></div><button class="nexa-v515-move" data-v515-individual type="button">Move to Applicants</button></article>`}
+function modernMemberCard15(a,tags,rank,total){const current=route15(a),rc=current==='special'?'rangeGold':current==='ordinary'?'rangeBlue':'',assigned=String(a.assigned_alliance_tag||''),known=tags.some(t=>String(t).toUpperCase()===assigned.toUpperCase()),custom=assigned&&!known?`<option value="${esc15(assigned)}" selected>${esc15(assigned)} • Group Alliance</option>`:'';return `<article class="app ${rc}" data-v515-app="${a.id}"><div class="appTop"><div class="nexaIdentity524"><div class="nexaNameRow524"><span class="groupRank524">#${rank}</span><b class="playerName">${esc15(a.in_game_name||'Applicant')}</b></div><div class="identityLine nexaStatsLine524"><span>State ${esc15(a.current_state||'—')}</span><span class="statSep524">•</span><span>${esc15(String(a.furnace_level||'—').toUpperCase())}</span><span class="statSep524">•</span><span>${fmt15(a.current_power)}</span></div><span class="groupBadge">GROUP${a.group_name?' • '+esc15(a.group_name):''}</span></div><div class="nexaHeaderActions524"><div class="groupTools524"><button type="button" data-gup title="Move up">↑</button><button type="button" data-gdown title="Move down">↓</button></div><button class="answerPeek" data-v515-view type="button">View</button></div></div><div class="appCopyGrid"><button class="copyField" data-v515-copy-id type="button">Game ID • <b>${esc15(a.player_id||'—')}</b></button><button class="copyField" data-v515-copy-discord type="button">Discord • <b>${esc15(a.discord_username||'—')}</b></button></div><div class="appMiniData"><span class="miniPill">T12 • ${hasT1215(a)?'Yes':'No'}</span>${a.current_alliance?`<span class="miniPill">From • ${esc15(String(a.current_alliance).toUpperCase())}</span>`:''}</div><div class="babyControls"><div><span class="babyLabel">ASSIGNED ALLIANCE</span><select class="allianceSelect" data-v515-assign><option value="">Unassigned</option>${custom}${tags.map(t=>`<option value="${esc15(t)}" ${assigned.toUpperCase()===String(t).toUpperCase()?'selected':''}>${esc15(t)}</option>`).join('')}</select></div><div><span class="babyLabel">ROUTE</span><div class="babySeg ${assigned?'':'routeLocked'}"><button class="ordinary ${current==='ordinary'?'active':''}" data-v515-route="ordinary" type="button">Ordinary</button><button class="special ${current==='special'?'active':''}" data-v515-route="special" type="button">Special</button></div>${assigned?'':'<div class="routeHint">Choose an alliance first</div>'}</div><div><span class="babyLabel">INVITE</span><div class="babySeg"><button class="pending ${a.invite_status==='sent'?'':'active'}" data-v515-invite="pending" type="button">Pending</button><button class="sent ${a.invite_status==='sent'?'active':''}" data-v515-invite="sent" type="button">Sent</button></div></div></div><div class="cardFooter"><div class="readHint">Same controls as Applicants</div><button class="archiveMini" data-v515-archive type="button">Archive</button></div><button class="nexa-v515-move" data-v515-individual type="button">Move to Applicants</button></article>`}
 async function patch15(id,patch){const r=await SB15.rpc('transfer_workspace_update_application',{p_workspace_id:workspace15(),p_token:token15(),p_application_id:id,p_patch:patch});if(r.error||r.data?.ok!==true){status15(r.data?.error||r.error?.message||'Unable to update applicant.');return false}return true}
 function moveG524(ids,id,d){const out=[...ids],i=out.findIndex(x=>String(x)===String(id)),j=i+d;if(i<0||j<0||j>=out.length)return out;[out[i],out[j]]=[out[j],out[i]];return out}
 function gp524(a){const n=Number(a?.group_priority_order);return Number.isFinite(n)&&n>0?n:Number.MAX_SAFE_INTEGER}
@@ -1121,5 +1129,156 @@ function tick15(){if(groupHeading())renderModernGroup15()}
 setTimeout(tick15,900);
 })();
 </script>
+
+<script id="nexaCardDragV527">
+(()=>{
+'use strict';
+let drag=null,armed=null,timer=null,moved=false;
+
+const $=s=>document.querySelector(s);
+const all=s=>[...document.querySelectorAll(s)];
+const clearMarks=()=>all('.dropBefore527,.dropAfter527').forEach(x=>x.classList.remove('dropBefore527','dropAfter527'));
+const appId=c=>c?.dataset?.app||c?.dataset?.v515App||'';
+
+function ignoreStart(el){
+  return !!el.closest('button,select,input,textarea,a,.copyField,.seg,.orderTools524,.groupTools524');
+}
+function rows(scope,groupId){
+  if(scope==='new'){
+    return all('#appList .app[data-app]').filter(c=>c.offsetParent!==null).map(appId);
+  }
+  return all('#nexaGroupView .app[data-v515-app]').filter(c=>c.offsetParent!==null).map(appId);
+}
+async function save(scope,ids,groupId){
+  const sb=window.supabase?.createClient?.(
+    'https://dfxcxboxrkfmrnsgpyin.supabase.co',
+    'sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-'
+  );
+  if(!sb)return false;
+  const q=new URLSearchParams(location.search);
+  let wid=q.get('workspace')||'';
+  if(!wid){
+    try{wid=new URL($('#workspaceLink')?.value||'',location.href).searchParams.get('workspace')||''}catch(_){}
+  }
+  const tok=localStorage.getItem('nexa_transfer_staff_token')||sessionStorage.getItem('nexa_transfer_staff_token')||'';
+  if(!wid||!tok)return false;
+  const r=await sb.rpc('transfer_workspace_reorder_applicants',{
+    p_workspace_id:wid,p_token:tok,p_scope:scope,p_application_ids:ids,
+    p_group_id:scope==='group'?groupId:null
+  });
+  return !r.error&&r.data?.ok===true;
+}
+async function groupId(){
+  const view=$('#nexaGroupView');
+  const name=String(view?.querySelector('.nexa-group-head h3')?.textContent||'').trim();
+  if(!name||name==='Transfer Groups')return null;
+  const sb=window.supabase?.createClient?.(
+    'https://dfxcxboxrkfmrnsgpyin.supabase.co',
+    'sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-'
+  );
+  const q=new URLSearchParams(location.search);
+  let wid=q.get('workspace')||'';
+  if(!wid){try{wid=new URL($('#workspaceLink')?.value||'',location.href).searchParams.get('workspace')||''}catch(_){}}
+  const tok=localStorage.getItem('nexa_transfer_staff_token')||sessionStorage.getItem('nexa_transfer_staff_token')||'';
+  if(!sb||!wid||!tok)return null;
+  const r=await sb.rpc('transfer_workspace_groups_get',{p_workspace_id:wid,p_token:tok});
+  return r.data?.ok?(r.data.groups||[]).find(g=>String(g.group_name||'').trim()===name)?.id||null:null;
+}
+function modeIsPriority(){
+  const p=all('[data-order-mode524].active,[data-mode524].active').map(x=>x.dataset.orderMode524||x.dataset.mode524);
+  return p.includes('priority');
+}
+function candidateCard(e){
+  const c=e.target.closest?.('.app[data-app],.app[data-v515-app]');
+  if(!c||ignoreStart(e.target))return null;
+  if(c.dataset.app){
+    if(!modeIsPriority())return null;
+    if(String($('#appSearch')?.value||'').trim())return null;
+    return {card:c,scope:'new',groupId:null};
+  }
+  if(c.dataset.v515App&&$('#nexaGroupView')?.classList.contains('open'))return {card:c,scope:'group',groupId:null};
+  return null;
+}
+document.addEventListener('pointerdown',e=>{
+  if(e.pointerType==='mouse'&&e.button!==0)return;
+  const c=candidateCard(e); if(!c)return;
+  armed={...c,pointerId:e.pointerId,startX:e.clientX,startY:e.clientY};
+  moved=false;
+  clearTimeout(timer);
+  timer=setTimeout(async()=>{
+    if(!armed)return;
+    if(armed.scope==='group')armed.groupId=await groupId();
+    if(armed.scope==='group'&&!armed.groupId){armed=null;return}
+    drag=armed;armed=null;
+    drag.card.classList.add('dragging527');
+    try{drag.card.setPointerCapture(drag.pointerId)}catch(_){}
+    if(navigator.vibrate)navigator.vibrate(15);
+  },260);
+},{capture:true});
+
+document.addEventListener('pointermove',e=>{
+  if(armed&&armed.pointerId===e.pointerId){
+    if(Math.hypot(e.clientX-armed.startX,e.clientY-armed.startY)>9){
+      clearTimeout(timer);armed=null;
+    }
+    return;
+  }
+  if(!drag||drag.pointerId!==e.pointerId)return;
+  e.preventDefault();moved=true;clearMarks();
+  const target=document.elementFromPoint(e.clientX,e.clientY)?.closest?.(
+    drag.scope==='new'?'#appList .app[data-app]':'#nexaGroupView .app[data-v515-app]'
+  );
+  if(!target||target===drag.card)return;
+  const r=target.getBoundingClientRect();
+  drag.target=target;drag.after=e.clientY>r.top+r.height/2;
+  target.classList.add(drag.after?'dropAfter527':'dropBefore527');
+},{capture:true,passive:false});
+
+async function finish(e){
+  if(armed&&armed.pointerId===e.pointerId){clearTimeout(timer);armed=null;return}
+  if(!drag||drag.pointerId!==e.pointerId)return;
+  const d=drag;drag=null;clearTimeout(timer);clearMarks();d.card.classList.remove('dragging527');
+  try{d.card.releasePointerCapture(e.pointerId)}catch(_){}
+  if(!d.target)return;
+  const id=appId(d.card),targetId=appId(d.target);
+  let ids=rows(d.scope,d.groupId).filter(x=>String(x)!==String(id));
+  let pos=ids.findIndex(x=>String(x)===String(targetId)); if(pos<0)return;
+  if(d.after)pos++;ids.splice(pos,0,id);
+  const ok=await save(d.scope,ids,d.groupId);
+  if(ok){
+    const host=d.card.parentElement;
+    if(d.after)d.target.after(d.card);else d.target.before(d.card);
+    [...host.querySelectorAll('.app')].forEach((c,i)=>{
+      const badge=c.querySelector('.rank524,.groupRank524');if(badge)badge.textContent='#'+(i+1);
+    });
+  }
+}
+document.addEventListener('pointerup',finish,{capture:true});
+document.addEventListener('pointercancel',e=>{
+  if(armed?.pointerId===e.pointerId){clearTimeout(timer);armed=null}
+  if(drag?.pointerId===e.pointerId){drag.card.classList.remove('dragging527');drag=null;clearMarks()}
+},{capture:true});
+})();
+</script>
+
+
+<script id="nexaDragHelpV527">
+(()=>{
+function add(){
+ const gv=document.getElementById('nexaGroupView'); if(!gv)return;
+ if(!gv.querySelector('.dragHelp527')){
+   const grid=gv.querySelector('.nexa-v515-grid,.nexa-group-members');
+   if(grid){const x=document.createElement('div');x.className='dragHelp527';x.textContent='Press and hold a card, then drag and drop to reorder. You can also use ↑ ↓.';grid.before(x)}
+ }
+ const bar=document.getElementById('applicantOrderBar524');
+ if(bar&&document.querySelector('[data-order-mode524="priority"].active')&&!document.getElementById('dragHelpApplicants527')){
+   const x=document.createElement('div');x.id='dragHelpApplicants527';x.className='dragHelp527';x.textContent='Press and hold a card, then drag and drop to reorder. You can also use ↑ ↓.';bar.after(x)
+ }
+}
+new MutationObserver(()=>setTimeout(add,30)).observe(document.body,{childList:true,subtree:true});
+document.addEventListener('click',()=>setTimeout(add,120),true);setTimeout(add,500);
+})();
+</script>
+
 </body>
 </html>

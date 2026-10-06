@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- NEXA WOS Utilities V26 — Discord role mentions + everyone/here -->
+<!-- NEXA WOS Utilities V28 — mention-aware Discord tests -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -490,7 +490,7 @@ const initialGen=Number(s.hero_generation||1);renderJoiners(initialGen,s.approve
 $('heroGeneration')?.addEventListener('change',()=>{const g=Number($('heroGeneration').value),allowed=new Set(HERO_LIBRARY.filter(h=>h.gen<=g).map(h=>h.name)),keep=selectedJoiners().filter(n=>allowed.has(n));renderJoiners(g,keep);renderFormations(g)});
 $('addJoinerHero')?.addEventListener('click',openHeroLibrary);
 loadDiscordDestinations(s.discord_server_id||'',s.discord_channel_id||'').then(()=>refreshMentionUI(s.mention_target_id||''));
-$('previewDraft').onclick=()=>previewDraft(e,offsets);$('copyWos')?.addEventListener('click',()=>copyText(buildWosDraft()));$('testDraft').onclick=async()=>{try{const {guild_id,resolved_channel_id}=selectedDiscordDestination();if(!guild_id||!resolved_channel_id)throw Error('Select a Discord destination. If using Server Default, set its Default Reminder Channel first.');const d=await api('test_event_draft',{alliance_id:currentAllianceId,guild_id,channel_id:resolved_channel_id,preview:draftPreviewText()});toast(d.message||'Discord test sent.')}catch(e){toast(e.message,true)}};
+$('previewDraft').onclick=()=>previewDraft(e,offsets);$('copyWos')?.addEventListener('click',()=>copyText(buildWosDraft()));$('testDraft').onclick=async()=>{try{const {guild_id,resolved_channel_id}=selectedDiscordDestination();if(!guild_id||!resolved_channel_id)throw Error('Select a Discord destination. If using Server Default, set its Default Reminder Channel first.');const mention_type=$('mentionType')?.value||'none',mention_target_id=mention_type==='role'?($('mentionTarget')?.value||null):null;if(mention_type==='role'&&!mention_target_id)throw Error('Select a Discord role to mention.');const d=await api('test_event_draft',{alliance_id:currentAllianceId,guild_id,channel_id:resolved_channel_id,preview:draftPreviewText(),mention_type,mention_target_id});toast(d.message||'Discord test sent.')}catch(e){toast(e.message,true)}};
 $('saveEvent').onclick=async()=>{try{
  const type=$('eventType').value;if(!offsets.size)throw Error('Select at least one reminder.');
  let date=$('startDate').value,time=eventTimeValue(),repeat=$('eventRepeat').value,eventName=$('eventName').value.trim()||'Event';
@@ -591,7 +591,7 @@ function buildSavedPreview(e){
  }return out
 }
 function previewEvent(e){modal('Preview',`${previewSectionsHtml(buildSavedPreview(e))}<p class="muted">Empty optional Bear sections are omitted.</p>`)}
-async function safeTest(e){const s=e.settings||{};if(!s.discord_server_id||!s.discord_channel_id){toast('Select and save an alliance-linked Discord Server and Channel before testing.',true);return}try{const d=await api('test_event',{id:e.id,alliance_id:e.alliance_id,guild_id:s.discord_server_id,channel_id:s.discord_channel_id,preview:buildSavedPreview(e)});toast(d.message||'Discord test sent.')}catch(err){toast(err.message,true)}}
+async function safeTest(e){const s=e.settings||{};if(!s.discord_server_id){toast('Select and save an alliance-linked Discord destination before testing.',true);return}try{const d=await api('test_event',{id:e.id,alliance_id:e.alliance_id,guild_id:s.discord_server_id,channel_id:s.discord_channel_id||'',preview:buildSavedPreview(e)});toast(d.message||'Discord test sent.')}catch(err){toast(err.message,true)}}
 $('closeModal').onclick=closeModal;
 $('openReminders').onclick=()=>{show('remindersView');openAlliancePortal()};
 document.querySelectorAll('[data-home]').forEach(b=>b.onclick=()=>show('homeView'));

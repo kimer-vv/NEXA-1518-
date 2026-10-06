@@ -1,4 +1,4 @@
-/* NEXA WOS Utilities Server Handler V3.2
+/* NEXA WOS Utilities Server Handler V3.4
  * Complete replacement: preserves staff/event actions, alliance-scoped Discord linking,
  * default reminder channels, and adds Discord role discovery for reminder mentions.
  */
@@ -107,10 +107,19 @@ function previewToEmbed(preview,{test=false,compact=false,offsetMinutes=null}={}
  }
  return embed;
 }
-async function sendSafeTest({s,alliance_id,guild_id,channel_id,preview}){
+async function sendSafeTest({s,alliance_id,guild_id,channel_id,preview,mention_type='none',mention_target_id=null}){
  await linkedServer(s,alliance_id,guild_id);await verifyChannelInGuild(guild_id,channel_id);
- await sendChannel(channel_id,{embeds:[previewToEmbed(preview,{test:true})],allowed_mentions:{parse:[]}});
- return {ok:true,message:'Full event reminder test sent.'};
+ const mt=['none','role','everyone','here'].includes(String(mention_type))?String(mention_type):'none';
+ const rid=String(mention_target_id||'').trim();
+ let content='',allowed={parse:[]};
+ if(mt==='role'){
+  if(!rid)throw fail('Select a Discord role to mention.');
+  await verifyRoleInGuild(guild_id,rid);
+  content=`<@&${rid}>`;allowed={parse:[],roles:[rid]};
+ }else if(mt==='everyone'){content='@everyone';allowed={parse:['everyone']};}
+ else if(mt==='here'){content='@here';allowed={parse:['everyone']};}
+ await sendChannel(channel_id,{...(content?{content}:{}),embeds:[previewToEmbed(preview,{test:true})],allowed_mentions:allowed});
+ return {ok:true,message:mt==='none'?'Full event reminder test sent.':'Full event reminder test sent with mention.'};
 }
 
 export default async function handler(req,res){
@@ -220,8 +229,12 @@ export default async function handler(req,res){
    const id=String(b.id||''),found=(await events(s)).find(x=>String(x.id)===id);if(!found)throw fail('Event not found.',404);
    const settings=found.settings||{},aid=String(found.alliance_id||'');
    if(String(b.alliance_id||aid)!==aid)throw fail('Alliance mismatch. Test blocked.',409);
-   if(String(b.guild_id||'')!==String(settings.discord_server_id||'')||String(b.channel_id||'')!==String(settings.discord_channel_id||''))throw fail('Saved Discord destination mismatch. Test blocked.',409);
-   return res.status(200).json(await sendSafeTest({s,alliance_id:aid,guild_id:settings.discord_server_id,channel_id:settings.discord_channel_id,preview:b.preview||found.message||found.event_name}));
+   const gid=String(settings.discord_server_id||b.guild_id||'').trim();if(!gid)throw fail('This event does not have a Discord server selected.',409);
+   await linkedServer(s,aid,gid);
+   let cid=String(settings.discord_channel_id||'').trim();
+   if(!cid){const link=(await db(`wos_discord_alliance_links?alliance_id=eq.${enc(aid)}&guild_id=eq.${enc(gid)}&enabled=eq.true&select=reminder_channel_id&limit=1`))[0];cid=String(link?.reminder_channel_id||'').trim();}
+   if(!cid)throw fail('Set a Default Reminder Channel for this Discord server before testing.',409);
+   return res.status(200).json(await sendSafeTest({s,alliance_id:aid,guild_id:gid,channel_id:cid,preview:b.preview||found.message||found.event_name,mention_type:settings.mention_type||'none',mention_target_id:settings.mention_target_id||null}));
   }
   if(b.action==='save_event'){
    const e=b.event||{},type=String(e.event_type||'custom');
@@ -233,13 +246,13 @@ export default async function handler(req,res){
     await linkedServer(s,e.alliance_id,settings.discord_server_id);
     if(settings.discord_channel_id)await verifyChannelInGuild(settings.discord_server_id,settings.discord_channel_id);
    }
-   const mentionTypes=['none','role','user','everyone','here'];
+   const mentionTypes=['none','role','everyone','here'];
    settings.mention_type=mentionTypes.includes(String(settings.mention_type))?String(settings.mention_type):'none';
    if(settings.mention_type==='role'){
     if(!settings.discord_server_id)throw fail('Choose a Discord destination before selecting a role.');
     const role=await verifyRoleInGuild(settings.discord_server_id,settings.mention_target_id);
     settings.mention_target_id=role.id;
-   }else if(settings.mention_type!=='user')settings.mention_target_id=null;
+   }else settings.mention_target_id=null;
    const repeats=['one_time','daily','every_other_day','weekly','every_2_weeks','every_4_weeks','monthly','custom'];
    const row={alliance_id:e.alliance_id||null,event_type:type,event_name:String(e.event_name||'').trim().slice(0,120)||'Custom Event',status:e.status==='paused'?'paused':'active',repeat_type:repeats.includes(e.repeat_type)?e.repeat_type:'one_time',event_at:e.event_at||null,timezone:'UTC',message:String(e.message||'').slice(0,2000),notes:String(e.notes||'').slice(0,2000),settings,created_by_game_id:s.account.game_id,updated_at:new Date().toISOString()};
    let saved;if(e.id){const found=(await events(s)).find(x=>String(x.id)===String(e.id));if(!found)throw fail('Event not found.',404);await db(`wos_event_reminders?id=eq.${enc(e.id)}`,{method:'PATCH',body:row});saved={...row,id:e.id}}else saved=(await db('wos_event_reminders',{method:'POST',body:row}))[0];

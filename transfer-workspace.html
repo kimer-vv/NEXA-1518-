@@ -1,6 +1,6 @@
 <!doctype html> 
 <!-- TARGET GITHUB FILE: transfer-workspace.html -->
-<!-- NEXA TRANSFER WORKSPACE V5.27 — PRIORITY ORDERING + MODAL FIX -->
+<!-- NEXA TRANSFER WORKSPACE V5.28 — PRIORITY ORDERING + MODAL FIX -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -140,6 +140,22 @@ button,input,select,textarea{font:inherit}.hidden{display:none!important}.shell{
 .dropBefore527{box-shadow:inset 0 4px 0 #59e4ff!important}
 .dropAfter527{box-shadow:inset 0 -4px 0 #59e4ff!important}
 .dragHelp527{font-size:8.5px;color:#91a0c0;margin:5px 0 9px;font-weight:800;letter-spacing:.02em}
+
+
+/* V5.28 — mobile-safe card header */
+.appTop{display:flex!important;flex-direction:column!important;gap:5px!important;align-items:stretch!important}
+.nexaIdentity524{width:100%!important;min-width:0!important}
+.nexaNameRow524{display:flex!important;align-items:center!important;gap:6px!important;width:100%!important;min-width:0!important}
+.nexaNameRow524 .playerName{display:block!important;visibility:visible!important;opacity:1!important;flex:1 1 auto!important;min-width:0!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.nexaStatsLine524{display:flex!important;width:100%!important;align-items:center!important;gap:5px!important;white-space:nowrap!important;overflow:visible!important;font-size:8.5px!important;line-height:1.25!important;margin-top:3px!important}
+.nexaHeaderActions524{display:flex!important;width:100%!important;align-items:center!important;justify-content:flex-end!important;gap:5px!important;min-width:0!important}
+.nexaHeaderActions524 .answerPeek{display:inline-flex!important;visibility:visible!important;opacity:1!important;min-width:48px!important;flex:0 0 auto!important}
+.orderTools524,.groupTools524{display:flex!important;gap:4px!important;align-items:center!important;flex:0 0 auto!important}
+.dragHelp527{margin:6px 0 10px!important}
+.app.dragReady528{outline:2px solid rgba(89,228,255,.55)!important;outline-offset:-2px!important}
+.app.dragging528{opacity:.64!important;transform:scale(.985)!important;z-index:50!important}
+.dropBefore528{box-shadow:inset 0 4px 0 #59e4ff!important}
+.dropAfter528{box-shadow:inset 0 -4px 0 #59e4ff!important}
 
 </style>
 </head>
@@ -1130,7 +1146,7 @@ setTimeout(tick15,900);
 })();
 </script>
 
-<script id="nexaCardDragV527">
+<script id="nexaCardDragV527" type="text/plain">
 (()=>{
 'use strict';
 let drag=null,armed=null,timer=null,moved=false;
@@ -1277,6 +1293,113 @@ function add(){
 }
 new MutationObserver(()=>setTimeout(add,30)).observe(document.body,{childList:true,subtree:true});
 document.addEventListener('click',()=>setTimeout(add,120),true);setTimeout(add,500);
+})();
+</script>
+
+
+<script id="nexaTouchDragV528">
+(()=>{
+'use strict';
+let hold=null,drag=null,holdTimer=null;
+const qs=s=>document.querySelector(s), qsa=s=>[...document.querySelectorAll(s)];
+const clear=()=>qsa('.dropBefore528,.dropAfter528').forEach(x=>x.classList.remove('dropBefore528','dropAfter528'));
+const idOf=c=>c?.dataset?.app||c?.dataset?.v515App||'';
+const interactive=el=>!!el.closest('button,select,input,textarea,a,.copyField,.seg');
+
+function priorityOn(){
+ return qsa('[data-order-mode524].active,[data-mode524].active').some(x=>(x.dataset.orderMode524||x.dataset.mode524)==='priority');
+}
+function cardInfo(target){
+ const c=target.closest?.('.app[data-app],.app[data-v515-app]');
+ if(!c||interactive(target))return null;
+ if(c.dataset.app){
+   if(!priorityOn()||String(qs('#appSearch')?.value||'').trim())return null;
+   return {card:c,scope:'new'};
+ }
+ if(c.dataset.v515App&&qs('#nexaGroupView')?.classList.contains('open'))return {card:c,scope:'group'};
+ return null;
+}
+function workspace(){
+ let w=new URLSearchParams(location.search).get('workspace')||'';
+ if(!w){try{w=new URL(qs('#workspaceLink')?.value||'',location.href).searchParams.get('workspace')||''}catch(_){}}
+ return w;
+}
+function token(){return localStorage.getItem('nexa_transfer_staff_token')||sessionStorage.getItem('nexa_transfer_staff_token')||''}
+function client(){return window.supabase.createClient('https://dfxcxboxrkfmrnsgpyin.supabase.co','sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-')}
+async function groupId(){
+ const name=String(qs('#nexaGroupView .nexa-group-head h3')?.textContent||'').trim();
+ if(!name||name==='Transfer Groups')return null;
+ const r=await client().rpc('transfer_workspace_groups_get',{p_workspace_id:workspace(),p_token:token()});
+ return r.data?.ok?(r.data.groups||[]).find(g=>String(g.group_name||'').trim()===name)?.id||null:null;
+}
+function visibleIds(scope){
+ const sel=scope==='new'?'#appList .app[data-app]':'#nexaGroupView .app[data-v515-app]';
+ return qsa(sel).filter(c=>c.offsetParent!==null).map(idOf);
+}
+async function persist(scope,ids,gid){
+ const r=await client().rpc('transfer_workspace_reorder_applicants',{
+   p_workspace_id:workspace(),p_token:token(),p_scope:scope,p_application_ids:ids,
+   p_group_id:scope==='group'?gid:null
+ });
+ return !r.error&&r.data?.ok===true;
+}
+function begin(info,touch){
+ hold={...info,startX:touch.clientX,startY:touch.clientY};
+ clearTimeout(holdTimer);
+ holdTimer=setTimeout(async()=>{
+   if(!hold)return;
+   const x=hold;hold=null;
+   x.groupId=x.scope==='group'?await groupId():null;
+   if(x.scope==='group'&&!x.groupId)return;
+   drag=x;x.card.classList.add('dragReady528','dragging528');
+   if(navigator.vibrate)navigator.vibrate(20);
+ },320);
+}
+document.addEventListener('touchstart',e=>{
+ if(e.touches.length!==1)return;
+ const info=cardInfo(e.target);if(!info)return;
+ begin(info,e.touches[0]);
+},{capture:true,passive:true});
+
+document.addEventListener('touchmove',e=>{
+ const t=e.touches[0];if(!t)return;
+ if(hold){
+   if(Math.hypot(t.clientX-hold.startX,t.clientY-hold.startY)>10){clearTimeout(holdTimer);hold=null}
+   return;
+ }
+ if(!drag)return;
+ e.preventDefault();clear();
+ const sel=drag.scope==='new'?'#appList .app[data-app]':'#nexaGroupView .app[data-v515-app]';
+ const target=document.elementFromPoint(t.clientX,t.clientY)?.closest?.(sel);
+ if(!target||target===drag.card){drag.target=null;return}
+ const r=target.getBoundingClientRect();
+ drag.target=target;drag.after=t.clientY>r.top+r.height/2;
+ target.classList.add(drag.after?'dropAfter528':'dropBefore528');
+},{capture:true,passive:false});
+
+document.addEventListener('touchend',async()=>{
+ clearTimeout(holdTimer);hold=null;
+ if(!drag)return;
+ const d=drag;drag=null;clear();d.card.classList.remove('dragReady528','dragging528');
+ if(!d.target)return;
+ const moving=idOf(d.card),target=idOf(d.target);
+ let ids=visibleIds(d.scope).filter(x=>String(x)!==String(moving));
+ let pos=ids.findIndex(x=>String(x)===String(target));if(pos<0)return;
+ if(d.after)pos++;ids.splice(pos,0,moving);
+ if(await persist(d.scope,ids,d.groupId)){
+   if(d.after)d.target.after(d.card);else d.target.before(d.card);
+   const sel=d.scope==='new'?'#appList .app[data-app]':'#nexaGroupView .app[data-v515-app]';
+   qsa(sel).filter(c=>c.offsetParent!==null).forEach((c,i)=>{
+     const b=c.querySelector('.rank524,.groupRank524');if(b)b.textContent='#'+(i+1);
+   });
+ }
+},{capture:true});
+
+document.addEventListener('touchcancel',()=>{
+ clearTimeout(holdTimer);hold=null;
+ if(drag)drag.card.classList.remove('dragReady528','dragging528');
+ drag=null;clear();
+},{capture:true});
 })();
 </script>
 

@@ -1,6 +1,6 @@
 <!doctype html> 
 <!-- TARGET GITHUB FILE: transfer-workspace.html -->
-<!-- NEXA TRANSFER WORKSPACE V5.22 — SHARED WORKSPACE SWITCH / COMPACT HEADER -->
+<!-- NEXA TRANSFER WORKSPACE V5.23 - APPLICANT + GROUP PRIORITY ORDERING -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -218,7 +218,7 @@ button,input,select,textarea{font:inherit}.hidden{display:none!important}.shell{
       </article>
       <article class="card full"><div class="tag">FUTURE INTEGRATION</div><h3>Discord Notifications</h3><p class="muted">Placeholder for future Transfer notifications. No Discord connection is required for current operations.</p></article>
     </div>
-  </section>
+      </section>
 
   <section class="panel" data-panel="access">
     <div class="grid">
@@ -311,7 +311,7 @@ function builder(){return intake?new URL(`transfer-form-settings.html?workspace=
 async function copyText(text,b){try{await navigator.clipboard.writeText(text);if(b){const o=b.textContent;b.textContent='Copied ✓';setTimeout(()=>b.textContent=o,1100)}}catch(_){if(b)b.textContent='Copy failed'}}
 function cleanTimes(arr,max){return (arr||[]).map(x=>String(x||'').trim()).filter(x=>timeOptions.includes(x)).slice(0,max)}
 function readable(v){if(v===null||v===undefined||v==='')return '—';if(Array.isArray(v))return v.length?v.join(' • '):'—';if(typeof v==='boolean')return v?'Yes':'No';if(typeof v==='object')return JSON.stringify(v);return String(v)}
-function prettyKey(k){return String(k).replace(/_/g,' ').replace(/\w/g,c=>c.toUpperCase())}
+function prettyKey(k){return String(k).replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}
 function confirmGalaxy(title,text,yesLabel,fn){confirmAction=fn;$('confirmTitle').textContent=title;$('confirmText').textContent=text;$('confirmYes').textContent=yesLabel||'Confirm';$('confirmModal').classList.add('open')}
 $('confirmCancel').onclick=()=>{$('confirmModal').classList.remove('open');confirmAction=null};
 $('confirmYes').onclick=async()=>{const fn=confirmAction;$('confirmModal').classList.remove('open');confirmAction=null;if(fn)await fn()};
@@ -455,7 +455,7 @@ async function endTransferCycle(){
 }
 $('endCycleConfirm').onclick=endTransferCycle;
 function renderAll(){
-$('workspaceTitle').textContent=`State ${event?.destination_state||intake?.destination_state||workspace.state_number||'—'}`;
+ $('workspaceTitle').textContent=`State ${event?.destination_state||intake?.destination_state||workspace.state_number||'—'}`;
  $('heroCycle').textContent=event?classificationLabel(event.leadership_status):'No active cycle';$('heroApps').textContent=apps.length;$('heroPublic').textContent=intake?.public_access_enabled?'OPEN':'CLOSED';$('heroActive').textContent=workspace.is_active?'ACTIVE':'INACTIVE';
  document.querySelectorAll('[data-public]').forEach(b=>b.classList.toggle('active',(b.dataset.public==='yes')===!!intake?.public_access_enabled));$('publicQuick').style.opacity=canManage()?1:.68;
  fillCycleEditor(true);renderCycleState();renderFolders();renderApps();renderCounts();renderProfiles();renderAccess();renderHistory();$('workspaceLink').value=workspaceUrl();$('formIntegration').classList.toggle('hidden',!canManage());$('workspaceLinkIntegration')?.classList.toggle('hidden',!canManage());$('addAlliance').classList.toggle('hidden',!canManage());$('appArchiveCurrent')?.classList.toggle('hidden',!canManage());
@@ -758,7 +758,7 @@ function drawManifestTableHeader(pdf,x,y,widths){
   pdf.setFont('helvetica','bold');pdf.setFontSize(7.6);pdf.setTextColor(88,102,127);
   const pad=i===5?4:7;
   pdf.text(label,cx+pad,y+18,{maxWidth:widths[i]-pad*2});
-  cx+=widths[i];
+    cx+=widths[i];
  });
  pdf.setDrawColor(219,225,234);pdf.line(x,y+27,cx,y+27);
 }

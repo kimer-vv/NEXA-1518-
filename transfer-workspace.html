@@ -1,6 +1,6 @@
 <!doctype html> 
 <!-- TARGET GITHUB FILE: transfer-workspace.html -->
-<!-- NEXA TRANSFER WORKSPACE V5.30 — SAFARI FREEZE FIX + BADGE DRAG -->
+<!-- NEXA TRANSFER WORKSPACE V5.31 — STABLE GROUPS CARD + PRIORITY -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -547,7 +547,13 @@ function bucketOf(a){
 function isGroupApplicant(a){return !!(a.transferring_with_group||a.group_id||a.group_name)}
 function folderName(k){return folders.find(x=>x[0]===k)?.[1]||'New Applicants'}
 function renderFolders(){
- $('folderGrid').innerHTML=folders.map(([k,n])=>{const count=apps.filter(a=>bucketOf(a)===k).length;return `<button class="folderBox ${k} ${folder===k?'active':''}" data-folder="${k}"><strong>${n}</strong><span>${count}</span></button>`}).join('');
+ const grid=$('folderGrid');
+ /* V5.31: Groups is injected by the shared Group Transfer UI.
+    Preserve that live node while Ordinary/Special counters rerender so it never flashes/disappears. */
+ const groupCard=grid?.querySelector('[data-nexa-groups-folder]');
+ if(groupCard)groupCard.remove();
+ grid.innerHTML=folders.map(([k,n])=>{const count=apps.filter(a=>bucketOf(a)===k).length;return `<button class="folderBox ${k} ${folder===k?'active':''}" data-folder="${k}"><strong>${n}</strong><span>${count}</span></button>`}).join('');
+ if(groupCard)grid.appendChild(groupCard);
  document.querySelectorAll('[data-folder]').forEach(b=>b.onclick=()=>{folder=folder===b.dataset.folder?'new':b.dataset.folder;renderFolders();renderApps()});
 }
 $('appSearch').oninput=renderApps;

@@ -1085,3 +1085,904 @@ setTimeout(tick15,900);
 </script>
 </body>
 </html>
+<!-- V5.23 — APPLICANT + GROUP PRIORITY ORDERING -->
+<style id="nexaPriorityV523Styles">
+.orderBar523{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:9px;
+  flex-wrap:wrap;
+  margin:0 0 11px;
+  padding:9px 10px;
+  border:1px solid rgba(89,228,255,.16);
+  border-radius:14px;
+  background:rgba(89,228,255,.035)
+}
+.orderBar523.hidden{display:none!important}
+.orderLabel523{
+  color:#8f9dbd;
+  font-size:8px;
+  font-weight:1000;
+  letter-spacing:.12em
+}
+.orderSeg523{
+  display:flex;
+  gap:4px;
+  padding:3px;
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:999px;
+  background:rgba(3,8,20,.62)
+}
+.orderSeg523 button{
+  border:0;
+  border-radius:999px;
+  padding:7px 10px;
+  background:transparent;
+  color:#8795b2;
+  font-size:9px;
+  font-weight:1000
+}
+.orderSeg523 button.active{
+  background:linear-gradient(135deg,rgba(38,112,148,.86),rgba(75,54,153,.9));
+  color:#fff
+}
+.rank523{
+  display:inline-grid;
+  place-items:center;
+  flex:0 0 auto;
+  min-width:29px;
+  height:25px;
+  margin-right:7px;
+  padding:0 7px;
+  border-radius:999px;
+  border:1px solid rgba(89,228,255,.32);
+  background:rgba(89,228,255,.09);
+  color:#a9f5ff;
+  font-size:9px;
+  line-height:1;
+  font-weight:1000;
+  vertical-align:middle;
+  box-shadow:0 0 13px rgba(89,228,255,.06)
+}
+.orderTools523{
+  display:flex;
+  gap:4px;
+  align-items:center;
+  flex:0 0 auto;
+  margin-right:4px
+}
+.orderTools523 button{
+  width:28px;
+  height:28px;
+  display:grid;
+  place-items:center;
+  border-radius:9px;
+  border:1px solid rgba(89,228,255,.18);
+  background:rgba(89,228,255,.045);
+  color:#bdf7ff;
+  padding:0;
+  font-size:12px;
+  font-weight:1000
+}
+.orderTools523 .drag523{
+  cursor:grab;
+  touch-action:none;
+  font-size:15px;
+  letter-spacing:-2px
+}
+.orderTools523 .drag523:active{cursor:grabbing}
+.app.dragging523{
+  opacity:.54;
+  border-color:rgba(89,228,255,.68)!important;
+  box-shadow:0 0 0 2px rgba(89,228,255,.12)!important
+}
+.app.dropBefore523{box-shadow:inset 0 3px 0 #59e4ff!important}
+.app.dropAfter523{box-shadow:inset 0 -3px 0 #59e4ff!important}
+.prioritySearchNote523{
+  margin:-4px 0 10px;
+  color:#ffd98a;
+  font-size:9px;
+  font-weight:850
+}
+@media(max-width:560px){
+  .orderBar523{align-items:flex-start}
+  .orderSeg523{width:100%}
+  .orderSeg523 button{flex:1;padding:8px 5px}
+  .rank523{min-width:27px;height:24px;margin-right:5px;padding:0 6px}
+  .orderTools523 button{width:30px;height:30px}
+}
+</style>
+
+<script>
+(()=>{
+'use strict';
+
+let priorityBusy523=false;
+let dragState523=null;
+
+function rawBucket523(a){
+  return a?.application_cycle==='next'
+    ? 'next_cycle'
+    : String(a?.application_bucket||'inbox');
+}
+
+function isNew523(a){
+  if(!a || a.archived_at)return false;
+  if(String(a.application_cycle||'current')==='next')return false;
+
+  const bucket=rawBucket523(a);
+  if(bucket!=='inbox' && bucket!=='not_selected')return false;
+
+  if(a.group_id)return false;
+  if(a.transferring_with_group===true)return false;
+
+  const invite=String(a.invite_type||'').toLowerCase();
+  if(invite==='ordinary' || invite==='special' || invite==='group')return false;
+
+  return true;
+}
+
+function createdTime523(a){
+  const t=new Date(a?.created_at||0).getTime();
+  return Number.isFinite(t)?t:0;
+}
+
+function priorityNumber523(a,key){
+  const n=Number(a?.[key]);
+  return Number.isFinite(n) && n>0 ? n : Number.MAX_SAFE_INTEGER;
+}
+
+function applicantMode523(){
+  return workspace?.applicant_order_mode==='priority'
+    ? 'priority'
+    : 'first_come';
+}
+
+function sortedNew523(list){
+  const rows=[...(list||[])].filter(isNew523);
+
+  if(applicantMode523()==='priority'){
+    return rows.sort((a,b)=>
+      priorityNumber523(a,'applicant_priority_order')-
+      priorityNumber523(b,'applicant_priority_order') ||
+      createdTime523(a)-createdTime523(b) ||
+      String(a.id).localeCompare(String(b.id))
+    );
+  }
+
+  return rows.sort((a,b)=>
+    createdTime523(a)-createdTime523(b) ||
+    String(a.id).localeCompare(String(b.id))
+  );
+}
+
+function sortedGroup523(list){
+  return [...(list||[])].sort((a,b)=>
+    priorityNumber523(a,'group_priority_order')-
+    priorityNumber523(b,'group_priority_order') ||
+    createdTime523(a)-createdTime523(b) ||
+    String(a.id).localeCompare(String(b.id))
+  );
+}
+
+function searchActive523(){
+  return !!String($('appSearch')?.value||'').trim();
+}
+
+function applicantIds523(){
+  return sortedNew523(apps).map(a=>a.id);
+}
+
+function groupRows523(groupId){
+  return sortedGroup523(
+    apps.filter(a=>
+      !a.archived_at &&
+      String(a.group_id||'')===String(groupId||'')
+    )
+  );
+}
+
+function groupIds523(groupId){
+  return groupRows523(groupId).map(a=>a.id);
+}
+
+async function saveOrder523(scope,ids,groupId=null){
+  if(priorityBusy523)return false;
+  priorityBusy523=true;
+
+  try{
+    const r=await SB.rpc('transfer_workspace_reorder_applicants',{
+      p_workspace_id:workspaceId,
+      p_token:token,
+      p_scope:scope,
+      p_application_ids:ids,
+      p_group_id:scope==='group'?groupId:null
+    });
+
+    if(r.error || r.data?.ok!==true){
+      $('cycleStatus').textContent=
+        r.data?.error ||
+        r.error?.message ||
+        'Unable to save applicant order.';
+      return false;
+    }
+
+    if(scope==='new'){
+      ids.forEach((id,index)=>{
+        const a=apps.find(x=>String(x.id)===String(id));
+        if(a)a.applicant_priority_order=index+1;
+      });
+    }else{
+      ids.forEach((id,index)=>{
+        const a=apps.find(x=>String(x.id)===String(id));
+        if(a)a.group_priority_order=index+1;
+      });
+    }
+
+    return true;
+  }finally{
+    priorityBusy523=false;
+  }
+}
+
+async function setApplicantMode523(mode){
+  if(mode!=='first_come' && mode!=='priority')return;
+  if(priorityBusy523 || applicantMode523()===mode)return;
+
+  priorityBusy523=true;
+  try{
+    const r=await SB.rpc('transfer_workspace_set_applicant_order_mode',{
+      p_workspace_id:workspaceId,
+      p_token:token,
+      p_mode:mode
+    });
+
+    if(r.error || r.data?.ok!==true){
+      $('cycleStatus').textContent=
+        r.data?.error ||
+        r.error?.message ||
+        'Unable to change Applicant Order.';
+      return;
+    }
+
+    workspace.applicant_order_mode=mode;
+
+    if(mode==='priority'){
+      const ids=sortedNew523(apps).map(a=>a.id);
+
+      if(ids.length){
+        const rr=await SB.rpc('transfer_workspace_reorder_applicants',{
+          p_workspace_id:workspaceId,
+          p_token:token,
+          p_scope:'new',
+          p_application_ids:ids,
+          p_group_id:null
+        });
+
+        if(rr.error || rr.data?.ok!==true){
+          $('cycleStatus').textContent=
+            rr.data?.error ||
+            rr.error?.message ||
+            'Priority mode was saved, but the initial order could not be saved.';
+        }else{
+          ids.forEach((id,index)=>{
+            const a=apps.find(x=>String(x.id)===String(id));
+            if(a)a.applicant_priority_order=index+1;
+          });
+        }
+      }
+    }
+
+    renderFolders();
+    renderApps();
+  }finally{
+    priorityBusy523=false;
+  }
+}
+
+function ensureOrderBar523(){
+  const searchRow=document.querySelector('.searchRow');
+  if(!searchRow)return null;
+
+  let bar=$('applicantOrderBar523');
+  if(!bar){
+    bar=document.createElement('div');
+    bar.id='applicantOrderBar523';
+    bar.className='orderBar523';
+    bar.innerHTML=`
+      <div>
+        <div class="orderLabel523">APPLICANT ORDER</div>
+      </div>
+      <div class="orderSeg523">
+        <button type="button" data-order-mode523="first_come">
+          First Come, First Served
+        </button>
+        <button type="button" data-order-mode523="priority">
+          Priority
+        </button>
+      </div>
+    `;
+    searchRow.insertAdjacentElement('afterend',bar);
+
+    bar.querySelectorAll('[data-order-mode523]').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        setApplicantMode523(btn.dataset.orderMode523);
+      });
+    });
+  }
+
+  const visible=folder==='new';
+  bar.classList.toggle('hidden',!visible);
+
+  bar.querySelectorAll('[data-order-mode523]').forEach(btn=>{
+    btn.classList.toggle(
+      'active',
+      btn.dataset.orderMode523===applicantMode523()
+    );
+  });
+
+  return bar;
+}
+
+function ensureSearchNote523(){
+  let note=$('prioritySearchNote523');
+
+  if(folder!=='new' ||
+     applicantMode523()!=='priority' ||
+     !searchActive523()){
+    note?.remove();
+    return;
+  }
+
+  if(!note){
+    note=document.createElement('div');
+    note.id='prioritySearchNote523';
+    note.className='prioritySearchNote523';
+    note.textContent='Clear Search to reorder Priority.';
+    $('applicantOrderBar523')?.insertAdjacentElement('afterend',note);
+  }
+}
+
+function rankBadge523(rank){
+  const badge=document.createElement('span');
+  badge.className='rank523';
+  badge.textContent=`#${rank}`;
+  return badge;
+}
+
+function moveIds523(ids,id,direction){
+  const out=[...ids];
+  const i=out.findIndex(x=>String(x)===String(id));
+  if(i<0)return out;
+
+  const target=i+direction;
+  if(target<0 || target>=out.length)return out;
+
+  [out[i],out[target]]=[out[target],out[i]];
+  return out;
+}
+
+function reorderByDrop523(ids,dragId,targetId,after){
+  const out=ids.filter(id=>String(id)!==String(dragId));
+  let target=out.findIndex(id=>String(id)===String(targetId));
+
+  if(target<0)return ids;
+  if(after)target++;
+
+  out.splice(target,0,dragId);
+  return out;
+}
+
+function clearDropMarks523(){
+  document.querySelectorAll('.dropBefore523,.dropAfter523')
+    .forEach(el=>el.classList.remove('dropBefore523','dropAfter523'));
+}
+
+async function arrowNew523(id,direction){
+  if(searchActive523())return;
+
+  const ids=applicantIds523();
+  const next=moveIds523(ids,id,direction);
+
+  if(next.join('|')===ids.join('|'))return;
+
+  if(await saveOrder523('new',next,null)){
+    renderApps();
+  }
+}
+
+async function arrowGroup523(groupId,id,direction){
+  const ids=groupIds523(groupId);
+  const next=moveIds523(ids,id,direction);
+
+  if(next.join('|')===ids.join('|'))return;
+
+  if(await saveOrder523('group',next,groupId)){
+    await renderModernGroup15();
+  }
+}
+
+function tools523({scope,id,groupId=null,index,total}){
+  const wrap=document.createElement('div');
+  wrap.className='orderTools523';
+
+  const up=document.createElement('button');
+  up.type='button';
+  up.textContent='↑';
+  up.title='Move up';
+  up.disabled=index===0;
+
+  const down=document.createElement('button');
+  down.type='button';
+  down.textContent='↓';
+  down.title='Move down';
+  down.disabled=index===total-1;
+
+  const drag=document.createElement('button');
+  drag.type='button';
+  drag.className='drag523';
+  drag.textContent='⋮⋮';
+  drag.title='Drag to reorder';
+  drag.setAttribute('aria-label','Drag to reorder');
+
+  if(scope==='new'){
+    up.onclick=e=>{
+      e.stopPropagation();
+      arrowNew523(id,-1);
+    };
+    down.onclick=e=>{
+      e.stopPropagation();
+      arrowNew523(id,1);
+    };
+  }else{
+    up.onclick=e=>{
+      e.stopPropagation();
+      arrowGroup523(groupId,id,-1);
+    };
+    down.onclick=e=>{
+      e.stopPropagation();
+      arrowGroup523(groupId,id,1);
+    };
+  }
+
+  drag.addEventListener('pointerdown',e=>{
+    if(priorityBusy523)return;
+    if(scope==='new' && searchActive523())return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    try{drag.setPointerCapture(e.pointerId)}catch(_){}
+
+    const card=drag.closest('.app');
+    if(!card)return;
+
+    dragState523={
+      scope,
+      id,
+      groupId,
+      pointerId:e.pointerId,
+      card,
+      drag
+    };
+
+    card.classList.add('dragging523');
+  });
+
+  drag.addEventListener('pointermove',e=>{
+    if(!dragState523 ||
+       dragState523.pointerId!==e.pointerId)return;
+
+    e.preventDefault();
+
+    clearDropMarks523();
+
+    const el=document.elementFromPoint(e.clientX,e.clientY);
+    const target=el?.closest?.('.app');
+
+    if(!target ||
+       target===dragState523.card)return;
+
+    const targetId=
+      scope==='new'
+        ? target.dataset.app
+        : target.dataset.v515App;
+
+    if(!targetId)return;
+
+    const rect=target.getBoundingClientRect();
+    const after=e.clientY>rect.top+(rect.height/2);
+
+    target.classList.add(after?'dropAfter523':'dropBefore523');
+
+    dragState523.targetId=targetId;
+    dragState523.after=after;
+  });
+
+  const finish=async e=>{
+    if(!dragState523 ||
+       dragState523.pointerId!==e.pointerId)return;
+
+    const state=dragState523;
+    dragState523=null;
+
+    try{drag.releasePointerCapture(e.pointerId)}catch(_){}
+
+    state.card.classList.remove('dragging523');
+    clearDropMarks523();
+
+    if(!state.targetId ||
+       String(state.targetId)===String(state.id))return;
+
+    if(state.scope==='new'){
+      const ids=applicantIds523();
+      const next=reorderByDrop523(
+        ids,
+        state.id,
+        state.targetId,
+        state.after
+      );
+
+      if(await saveOrder523('new',next,null)){
+        renderApps();
+      }
+    }else{
+      const ids=groupIds523(state.groupId);
+      const next=reorderByDrop523(
+        ids,
+        state.id,
+        state.targetId,
+        state.after
+      );
+
+      if(await saveOrder523('group',next,state.groupId)){
+        await renderModernGroup15();
+      }
+    }
+  };
+
+  drag.addEventListener('pointerup',finish);
+  drag.addEventListener('pointercancel',e=>{
+    if(!dragState523 ||
+       dragState523.pointerId!==e.pointerId)return;
+
+    dragState523.card?.classList.remove('dragging523');
+    dragState523=null;
+    clearDropMarks523();
+  });
+
+  wrap.append(up,drag,down);
+  return wrap;
+}
+
+function decorateNew523(){
+  ensureOrderBar523();
+  ensureSearchNote523();
+
+  if(folder!=='new')return;
+
+  const allRows=sortedNew523(apps);
+  const rankMap=new Map(
+    allRows.map((a,index)=>[String(a.id),index+1])
+  );
+
+  const visibleIds=new Set(
+    cardRows().map(a=>String(a.id))
+  );
+
+  document.querySelectorAll('#appList .app[data-app]').forEach(card=>{
+    const id=String(card.dataset.app||'');
+
+    if(!visibleIds.has(id) || !rankMap.has(id)){
+      card.remove();
+      return;
+    }
+
+    const name=card.querySelector('.playerName');
+    if(name && !name.parentElement.querySelector('.rank523')){
+      name.parentElement.insertBefore(
+        rankBadge523(rankMap.get(id)),
+        name
+      );
+    }
+
+    if(applicantMode523()==='priority' &&
+       !searchActive523() &&
+       !card.querySelector('.orderTools523')){
+      const top=card.querySelector('.appTop');
+      const rank=rankMap.get(id);
+
+      top?.insertBefore(
+        tools523({
+          scope:'new',
+          id,
+          index:rank-1,
+          total:allRows.length
+        }),
+        top.firstChild
+      );
+    }
+  });
+
+  const host=$('appList');
+  if(!host)return;
+
+  const cards=new Map(
+    [...host.querySelectorAll('.app[data-app]')]
+      .map(card=>[String(card.dataset.app),card])
+  );
+
+  cardRows().forEach(a=>{
+    const card=cards.get(String(a.id));
+    if(card)host.appendChild(card);
+  });
+}
+
+function decorateGroup523(groupId,rows){
+  const host=$('nexaGroupView')?.querySelector('.nexa-v515-grid');
+  if(!host)return;
+
+  const ordered=sortedGroup523(rows);
+  const rankMap=new Map(
+    ordered.map((a,index)=>[String(a.id),index+1])
+  );
+
+  ordered.forEach((a,index)=>{
+    const card=host.querySelector(
+      `.app[data-v515-app="${CSS.escape(String(a.id))}"]`
+    );
+    if(!card)return;
+
+    const name=card.querySelector('.playerName');
+
+    if(name && !name.parentElement.querySelector('.rank523')){
+      name.parentElement.insertBefore(
+        rankBadge523(index+1),
+        name
+      );
+    }
+
+    if(!card.querySelector('.orderTools523')){
+      const top=card.querySelector('.appTop');
+      top?.insertBefore(
+        tools523({
+          scope:'group',
+          id:a.id,
+          groupId,
+          index,
+          total:ordered.length
+        }),
+        top.firstChild
+      );
+    }
+
+    host.appendChild(card);
+  });
+}
+
+const originalCardRows523=cardRows;
+cardRows=function(){
+  const s=String($('appSearch')?.value||'')
+    .trim()
+    .toLowerCase();
+
+  if(folder==='new'){
+    return sortedNew523(apps).filter(a=>
+      !s ||
+      String(a.in_game_name||'').toLowerCase().includes(s) ||
+      String(a.player_id||'').toLowerCase().includes(s) ||
+      String(a.discord_username||'').toLowerCase().includes(s)
+    );
+  }
+
+  return originalCardRows523();
+};
+
+const originalRenderFolders523=renderFolders;
+renderFolders=function(){
+  originalRenderFolders523();
+
+  const newButton=document.querySelector(
+    '.folderBox[data-folder="new"]'
+  );
+
+  if(newButton){
+    const count=newButton.querySelector('span');
+    if(count)count.textContent=String(
+      apps.filter(isNew523).length
+    );
+  }
+};
+
+const originalRenderApps523=renderApps;
+renderApps=function(){
+  originalRenderApps523();
+  ensureOrderBar523();
+
+  if(folder==='new'){
+    requestAnimationFrame(decorateNew523);
+  }else{
+    $('prioritySearchNote523')?.remove();
+  }
+};
+
+const originalModernGroup523=renderModernGroup15;
+renderModernGroup15=async function(){
+  ensure15Styles();
+
+  const g=await currentGroup15();
+  const host=$15('nexaGroupView')?.querySelector('.nexa-group-members');
+
+  if(!g || !host)return;
+
+  const snap=await SB15.rpc('transfer_workspace_snapshot',{
+    p_workspace_id:workspace15(),
+    p_token:token15()
+  });
+
+  if(!snap.data?.ok)return;
+
+  const rows=sortedGroup523(
+    (snap.data.applications||[]).filter(a=>
+      String(a.group_id||'')===String(g.id)
+    )
+  );
+
+  rows.forEach(row=>{
+    const local=apps.find(x=>String(x.id)===String(row.id));
+    if(local)Object.assign(local,row);
+    else apps.push(row);
+  });
+
+  const tags=(snap.data.alliances||[])
+    .filter(x=>x.is_active!==false)
+    .map(x=>x.tag)
+    .filter(Boolean);
+
+  host.className='nexa-v515-grid';
+  host.innerHTML=rows.length
+    ? rows.map(a=>modernMemberCard15(a,tags)).join('')
+    : '<div class="empty" style="grid-column:1/-1">No active members in this group.</div>';
+
+  host.querySelectorAll('[data-v515-app]').forEach(card=>{
+    const a=rows.find(
+      x=>String(x.id)===String(card.dataset.v515App)
+    );
+
+    if(!a)return;
+
+    card.querySelector('[data-v515-copy-id]').onclick=async e=>{
+      try{
+        await navigator.clipboard.writeText(
+          String(a.player_id||'')
+        );
+        const o=e.currentTarget.textContent;
+        e.currentTarget.textContent='Copied ✓';
+        setTimeout(
+          ()=>e.currentTarget.textContent=o,
+          900
+        );
+      }catch(_){}
+    };
+
+    card.querySelector('[data-v515-copy-discord]').onclick=async()=>{
+      if(!a.discord_username)return;
+      try{
+        await navigator.clipboard.writeText(
+          a.discord_username
+        );
+      }catch(_){}
+    };
+
+    card.querySelector('[data-v515-view]').onclick=()=>{
+      const original=document.querySelector(
+        `.app[data-app="${CSS.escape(String(a.id))}"] [data-view-answers]`
+      );
+
+      if(original)original.click();
+      else status15(
+        'Open this applicant from the main Applicants view to see full answers.'
+      );
+    };
+
+    card.querySelector('[data-v515-assign]').onchange=async e=>{
+      if(await patch15(a.id,{
+        assigned_alliance_tag:e.target.value
+      })){
+        renderModernGroup15();
+      }
+    };
+
+    card.querySelectorAll('[data-v515-route]').forEach(b=>{
+      b.onclick=async()=>{
+        const target=b.dataset.v515Route;
+
+        if(!card.querySelector('[data-v515-assign]').value){
+          status15(
+            'Assign an alliance before choosing Ordinary or Special.'
+          );
+          return;
+        }
+
+        if(await patch15(a.id,{
+          application_bucket:target,
+          application_cycle:'current',
+          invite_type:target
+        })){
+          renderModernGroup15();
+        }
+      };
+    });
+
+    card.querySelectorAll('[data-v515-invite]').forEach(b=>{
+      b.onclick=async()=>{
+        const sent=b.dataset.v515Invite==='sent';
+
+        if(await patch15(a.id,{
+          invite_status:sent?'sent':'not_sent',
+          invite_pending_reason:null
+        })){
+          renderModernGroup15();
+        }
+      };
+    });
+
+    card.querySelector('[data-v515-individual]').onclick=async()=>{
+      if(await patch15(a.id,{group_id:null})){
+        location.reload();
+      }
+    };
+
+    card.querySelector('[data-v515-archive]').onclick=async()=>{
+      if(!confirm(
+        `Archive ${a.in_game_name||'this applicant'}?`
+      ))return;
+
+      const r=await SB15.rpc(
+        'transfer_workspace_delete_application',
+        {
+          p_workspace_id:workspace15(),
+          p_token:token15(),
+          p_application_id:a.id
+        }
+      );
+
+      if(r.data?.ok)location.reload();
+      else status15(
+        r.data?.error ||
+        r.error?.message ||
+        'Unable to archive applicant.'
+      );
+    };
+  });
+
+  decorateGroup523(g.id,rows);
+};
+
+const originalPdfCategoryRows523=pdfCategoryRows;
+pdfCategoryRows=function(mode,value){
+  if(mode==='category' && value==='new'){
+    return sortedNew523(apps);
+  }
+
+  return originalPdfCategoryRows523(mode,value);
+};
+
+const search523=$('appSearch');
+if(search523){
+  const oldSearch523=search523.oninput;
+  search523.oninput=function(e){
+    if(typeof oldSearch523==='function'){
+      oldSearch523.call(this,e);
+    }else{
+      renderApps();
+    }
+  };
+}
+
+ensureOrderBar523();
+if(folder==='new')requestAnimationFrame(decorateNew523);
+
+})();
+</script>

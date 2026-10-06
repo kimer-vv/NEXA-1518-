@@ -872,76 +872,58 @@ async function timeline(cfg){
   }
 
   if(
-    cfg.reminders_enabled &&
-    n>=t.phase2.getTime() &&
-    n<t.phase3.getTime()
-  ){
-    const wanted=(cfg.invite_reminder_times||[]).map(String);
-    const current=hmUtc(now);
-    const key=
-      `invite_${dayKey(now)}_${current.replace(':','')}`;
-
-    if(wanted.includes(current)&&!last[key]){
-      const apps=await selectedApps(
-        cfg.workspace_id,
-        event.id
-      );
-
-      const counts=inviteCounts(event,apps);
-
-      const pendingOps=apps.filter(
-        a=>a.invite_status!=='sent'
-      ).length;
-
-      if(
-  counts.ordinaryLeft>0 ||
-  counts.specialLeft>0
+  cfg.reminders_enabled &&
+  n>=t.phase2.getTime() &&
+  n<t.phase3.getTime()
 ){
-  await sendChannel(
-    channelFor(cfg,'reminders'),
-    {
-      embeds:[
-        embed(cfg,{
-          title:'📋 Invite Check',
-          description:
-            'Current invitation status during the Invitational Phase.',
-          color:COLORS.invite,
-          fields:inviteFields(
-            counts,
-            pendingOps
-          ),
-          timestamp:true
-        })
-      ],
-      components:announcementComponents(cfg,event),
-      allowed_mentions:{parse:[]}
-    }
-  );
-            embeds:[
-              embed(cfg,{
-                title:'📋 Invite Check',
-                description:
-                  'Current invitation status during the Invitational Phase.',
-                color:COLORS.invite,
-                fields:inviteFields(
-                  counts,
-                  pendingOps
-                ),
-                timestamp:true
-              })
-            ],
-            components:announcementComponents(cfg,event),
-            allowed_mentions:{parse:[]}
-          }
-        );
-      }
+  const wanted=(cfg.invite_reminder_times||[]).map(String);
+  const current=hmUtc(now);
+  const key=
+    `invite_${dayKey(now)}_${current.replace(':','')}`;
 
-      last[key]=nowIso();
-      await saveLast(cfg,last);
+  if(wanted.includes(current)&&!last[key]){
+    const apps=await selectedApps(
+      cfg.workspace_id,
+      event.id
+    );
+
+    const counts=inviteCounts(event,apps);
+
+    const pendingOps=apps.filter(
+      a=>a.invite_status!=='sent'
+    ).length;
+
+    if(
+      counts.ordinaryLeft>0 ||
+      counts.specialLeft>0
+    ){
+      await sendChannel(
+        channelFor(cfg,'reminders'),
+        {
+          embeds:[
+            embed(cfg,{
+              title:'📋 Invite Check',
+              description:
+                'Current invitation status during the Invitational Phase.',
+              color:COLORS.invite,
+              fields:inviteFields(
+                counts,
+                pendingOps
+              ),
+              timestamp:true
+            })
+          ],
+          components:announcementComponents(cfg,event),
+          allowed_mentions:{parse:[]}
+        }
+      );
     }
+
+    last[key]=nowIso();
+    await saveLast(cfg,last);
   }
 }
-
+}
 async function runTick(){
   const cfgs=await db.select(
     'transfer_discord_integrations',

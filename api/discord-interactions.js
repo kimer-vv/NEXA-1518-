@@ -1,4 +1,4 @@
-// NEXA DISCORD BOT V1.10.0 — TRANSFER LIST FIX + EVENT SCHEDULE CHANNEL
+// NEXA DISCORD BOT V1.11.0 — WOS DEFAULT REMINDER CHANNEL
 import {
   rawBody,verifyDiscord,db,getConfigByGuild,
   getCurrentEvent,currentApps,selectedApps,recruitingAlliances,inviteCounts,
@@ -49,6 +49,9 @@ const commands=[
      {type:7,name:'channel',description:'Channel for NEXA Event Schedule posts',required:true}
     ]},
     {type:1,name:'view',description:'View the configured Event Schedule channel'}
+   ]},
+   {type:2,name:'reminder',description:'WOS Reminder tools',options:[
+    {type:1,name:'set-channel',description:'Use this channel as the default WOS Reminder channel'}
    ]}
   ]
  }
@@ -270,6 +273,24 @@ async function sendWorkspaceTest(workspaceId,staffToken,kind){
   const channelId=channelFor(cfg,type);if(!channelId)throw new Error(`No ${type} channel is configured`);const sent=await sendChannel(channelId,payload);return{ok:true,kind,type,channel_id:channelId,message_id:sent?.id||null};
 }
 
+const ADMINISTRATOR=8n,MANAGE_CHANNELS=16n,MANAGE_GUILD=32n;
+function canSetReminderChannel(body){
+  try{const p=BigInt(String(body.member?.permissions||'0'));return (p&ADMINISTRATOR)!==0n||(p&MANAGE_CHANNELS)!==0n||(p&MANAGE_GUILD)!==0n}catch{return false}
+}
+async function reminderCommand(body,action){
+  const guildId=String(body.guild_id||'').trim(),channelId=String(body.channel_id||'').trim();
+  if(!guildId)return {type:4,data:{content:'Use this command inside a Discord server.',flags:64}};
+  const links=await db.select('wos_discord_alliance_links',`guild_id=eq.${encodeURIComponent(guildId)}&enabled=eq.true&select=id,guild_id,guild_name,reminder_channel_id`);
+  if(!links?.length)return {type:4,data:{content:'This Discord server is not linked to NEXA WOS Utilities yet.',flags:64}};
+  if(action!=='set-channel')return {type:4,data:{content:'Use `/nexa reminder set-channel` in the channel you want NEXA to use.',flags:64}};
+  if(!canSetReminderChannel(body))return {type:4,data:{content:'You need Administrator, Manage Server, or Manage Channels permission to change the default Reminder channel.',flags:64}};
+  if(!channelId)return {type:4,data:{content:'NEXA could not identify this Discord channel.',flags:64}};
+  const channel=await discord(`/channels/${channelId}`);
+  if(String(channel?.guild_id||'')!==guildId||![0,5].includes(Number(channel?.type)))return {type:4,data:{content:'Run this command in a text or announcement channel in this server.',flags:64}};
+  await db.update('wos_discord_alliance_links',`guild_id=eq.${encodeURIComponent(guildId)}&enabled=eq.true`,{reminder_channel_id:channelId,updated_at:nowIso()});
+  return {type:4,data:{embeds:[{title:'✅ Default Reminder Channel Saved',description:`NEXA WOS reminders for this server will use <#${channelId}> unless an event has its own channel override.`,color:COLORS.success,fields:[field('Channel',`<#${channelId}>`,false)],footer:{text:'NEXA Bot'}}],allowed_mentions:{parse:[]},flags:64}};
+}
+
 async function transferList(cfg,options){
   const event=await getCurrentEvent(cfg.workspace_id);if(!event)return responseEmbed(errorEmbed(cfg,'No Active Transfer Cycle','No active Transfer cycle was found.'));
   const rawApps=await currentApps(cfg.workspace_id,event.id),apps=await hydrateGroupMeta(cfg.workspace_id,rawApps);
@@ -349,11 +370,12 @@ async function transferInvite(cfg,action,options){
   await db.update('transfer_applications',`id=eq.${a.id}`,{invite_status:'not_sent',invite_pending_reason:null,invite_sent_at:null,updated_at:nowIso()});return responseEmbed(embed(cfg,{title:'⬜ TRANSFER · Invite Pending',description:`**${a.in_game_name||a.player_id}** is marked Pending.`,color:COLORS.warning,footer:'NEXA Bot'}));
 }
 function helpResponse(cfg){
-  const e=embed(cfg,{title:'🌌 NEXA Bot',description:'One NEXA command hub for Transfer and Event Schedule tools.',color:COLORS.info,fields:[
+  const e=embed(cfg,{title:'🌌 NEXA Bot',description:'One NEXA command hub for Transfer, Event Schedule, and WOS Reminder tools.',color:COLORS.info,fields:[
     field('📋 Transfer List','`/nexa transfer list` → All / New Applicants / Ordinary / Special / Group Transfer',false),
     field('👤 Applicant','`/nexa transfer view` · quick details\n`/nexa transfer move` · Ordinary / Special / Group Transfer',false),
     field('📨 Invites','`/nexa transfer invite-list` · post roster\n`/nexa transfer invite-sent` · mark sent\n`/nexa transfer invite-pending` · mark pending',false),
     field('📅 Event Schedule','`/nexa schedule set-channel` · choose posting channel\n`/nexa schedule view` · show configured channel',false),
+    field('⏰ WOS Reminders','`/nexa reminder set-channel` · run it in the channel you want as this server’s default',false),
     field('🎨 Transfer Colors','🟢 Ordinary · 🟡 Special · 🔴 Group Transfer',false)
   ],footer:'Full setup stays in NEXA Workspace.'});
   return responseEmbed(e,{components:workspaceOnlyComponents(cfg,'Open Transfer Workspace')});
@@ -388,6 +410,10 @@ export default async function handler(req,res){
     const raw=await rawBody(req),sig=req.headers['x-signature-ed25519'],ts=req.headers['x-signature-timestamp'];
     if(!verifyDiscord(raw,Array.isArray(sig)?sig[0]:sig,Array.isArray(ts)?ts[0]:ts))return res.status(401).send('invalid request signature');
     const body=JSON.parse(raw.toString('utf8'));if(body.type===1)return res.status(200).json({type:1});
+    if(body.type===2&&body.data?.name==='nexa'){
+      const earlyRoute=parseNexaCommand(body.data);
+      if(earlyRoute.group==='reminder')return res.status(200).json(await reminderCommand(body,earlyRoute.action));
+    }
     const cfg=await getConfigByGuild(body.guild_id);if(!cfg)return res.status(200).json({type:4,data:{content:'This Discord server is not connected to a NEXA Transfer Workspace yet.',flags:64}});
 
     if(body.type===3){

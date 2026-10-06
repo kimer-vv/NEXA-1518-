@@ -1,6 +1,6 @@
 <!doctype html> 
 <!-- TARGET GITHUB FILE: transfer-workspace.html -->
-<!-- NEXA TRANSFER WORKSPACE V5.29 — BADGE DRAG + PRIORITY SYNC -->
+<!-- NEXA TRANSFER WORKSPACE V5.30 — SAFARI FREEZE FIX + BADGE DRAG -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -1411,7 +1411,7 @@ body.nexa-reordering-529,body.nexa-reordering-529 *{-webkit-user-select:none!imp
 .dragging529{opacity:.68!important;outline:1px solid rgba(89,228,255,.55)!important}
 .dropBefore529{box-shadow:inset 0 3px 0 #59e4ff!important}.dropAfter529{box-shadow:inset 0 -3px 0 #59e4ff!important}
 </style>
-<script id="nexaPriorityV529">
+<script id="nexaPriorityV529" type="text/plain">
 (()=>{
 'use strict';
 const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
@@ -1444,6 +1444,137 @@ document.addEventListener('pointermove',e=>{if(!drag||drag.pointerId!==e.pointer
 document.addEventListener('pointerup',e=>{if(!drag||drag.pointerId!==e.pointerId)return;e.preventDefault();finish()},{capture:true});
 function help(){qa('.dragHelp527').forEach(x=>x.textContent='Drag the # number to reorder. You can also use ↑ ↓.')}
 new MutationObserver(()=>help()).observe(document.body,{childList:true,subtree:true});setTimeout(help,300);
+})();
+</script>
+
+
+<style id="nexaPriorityV530Styles">
+.rank524,.groupRank524{
+  touch-action:none!important;
+  -webkit-user-select:none!important;
+  user-select:none!important;
+  -webkit-touch-callout:none!important;
+  cursor:grab!important;
+}
+body.nexa-drag530{-webkit-user-select:none!important;user-select:none!important}
+body.nexa-drag530 .rank524,body.nexa-drag530 .groupRank524{cursor:grabbing!important}
+.nexaDrag530{opacity:.72!important;outline:1px solid rgba(89,228,255,.55)!important}
+.nexaDropBefore530{box-shadow:inset 0 3px 0 #59e4ff!important}
+.nexaDropAfter530{box-shadow:inset 0 -3px 0 #59e4ff!important}
+</style>
+<script id="nexaPriorityV530">
+(()=>{
+'use strict';
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const sb=window.supabase?.createClient?.('https://dfxcxboxrkfmrnsgpyin.supabase.co','sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-');
+const workspace=()=>{let w=new URLSearchParams(location.search).get('workspace')||'';if(!w){try{w=new URL($('#workspaceLink')?.value||'',location.href).searchParams.get('workspace')||''}catch(_){}}return w};
+const token=()=>localStorage.getItem('nexa_transfer_staff_token')||sessionStorage.getItem('nexa_transfer_staff_token')||'';
+const cardId=c=>c?.dataset?.app||c?.dataset?.v515App||'';
+const listCards=scope=>$$(scope==='new'?'#appList .app[data-app]':'#nexaGroupView .app[data-v515-app]').filter(c=>c.offsetParent!==null);
+const modePriority=()=>$$('[data-order-mode524].active,[data-mode524].active').some(b=>(b.dataset.orderMode524||b.dataset.mode524)==='priority');
+function scopeFor(card){
+  if(card?.matches('.app[data-app]')) return modePriority()&&!String($('#appSearch')?.value||'').trim()?'new':null;
+  if(card?.matches('.app[data-v515-app]') && $('#nexaGroupView')?.classList.contains('open')) return 'group';
+  return null;
+}
+async function groupId(){
+  const name=String($('#nexaGroupView .nexa-group-head h3')?.textContent||'').trim();
+  if(!name||name==='Transfer Groups'||!sb)return null;
+  const r=await sb.rpc('transfer_workspace_groups_get',{p_workspace_id:workspace(),p_token:token()});
+  return r.data?.ok?(r.data.groups||[]).find(g=>String(g.group_name||'').trim()===name)?.id||null:null;
+}
+async function persist(scope,ids,gid){
+  if(!sb)return false;
+  const r=await sb.rpc('transfer_workspace_reorder_applicants',{
+    p_workspace_id:workspace(),p_token:token(),p_scope:scope,
+    p_application_ids:ids,p_group_id:scope==='group'?gid:null
+  });
+  if(r.error||r.data?.ok!==true){
+    const s=$('#cycleStatus'); if(s)s.textContent=r.data?.error||r.error?.message||'Unable to save Priority order.';
+    return false;
+  }
+  return true;
+}
+function renumber(scope){listCards(scope).forEach((c,i)=>{const b=c.querySelector('.rank524,.groupRank524');if(b)b.textContent='#'+(i+1)})}
+async function step(card,delta){
+  const scope=scopeFor(card); if(!scope)return;
+  const cards=listCards(scope), ids=cards.map(cardId), i=cards.indexOf(card), j=i+delta;
+  if(i<0||j<0||j>=cards.length)return;
+  [ids[i],ids[j]]=[ids[j],ids[i]];
+  const gid=scope==='group'?await groupId():null; if(scope==='group'&&!gid)return;
+  if(await persist(scope,ids,gid)){
+    if(delta<0)cards[j].before(card); else cards[j].after(card);
+    renumber(scope);
+  }
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest?.('[data-order-up],[data-order-down],[data-gup],[data-gdown]');
+  if(!b)return;
+  const card=b.closest('.app[data-app],.app[data-v515-app]'); if(!card)return;
+  e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+  step(card,(b.hasAttribute('data-order-up')||b.hasAttribute('data-gup'))?-1:1);
+},true);
+
+let d=null, scrollRAF=0;
+function clearMarks(){$$('.nexaDropBefore530,.nexaDropAfter530').forEach(x=>x.classList.remove('nexaDropBefore530','nexaDropAfter530'))}
+function cleanup(){
+  if(d?.card)d.card.classList.remove('nexaDrag530');
+  d=null; clearMarks(); document.body.classList.remove('nexa-drag530');
+  if(scrollRAF){cancelAnimationFrame(scrollRAF);scrollRAF=0}
+}
+function autoScroll(){
+  if(!d){scrollRAF=0;return}
+  const edge=84,y=d.y;
+  if(y<edge)window.scrollBy(0,-10);
+  else if(y>innerHeight-edge)window.scrollBy(0,10);
+  scrollRAF=requestAnimationFrame(autoScroll);
+}
+function begin(e,badge,p){
+  const card=badge.closest('.app[data-app],.app[data-v515-app]'), scope=scopeFor(card);
+  if(!scope)return;
+  e.preventDefault(); e.stopPropagation();
+  cleanup();
+  d={card,scope,target:null,after:false,y:p.clientY};
+  card.classList.add('nexaDrag530');document.body.classList.add('nexa-drag530');
+  scrollRAF=requestAnimationFrame(autoScroll);
+}
+function dragMove(e,p){
+  if(!d)return;
+  e.preventDefault();e.stopPropagation();d.y=p.clientY;clearMarks();
+  const selector=d.scope==='new'?'#appList .app[data-app]':'#nexaGroupView .app[data-v515-app]';
+  const t=document.elementFromPoint(p.clientX,p.clientY)?.closest?.(selector);
+  if(!t||t===d.card){d.target=null;return}
+  const r=t.getBoundingClientRect();d.target=t;d.after=p.clientY>r.top+r.height/2;
+  t.classList.add(d.after?'nexaDropAfter530':'nexaDropBefore530');
+}
+async function end(e){
+  if(!d)return;
+  e?.preventDefault?.();e?.stopPropagation?.();
+  const x=d; const target=x.target, after=x.after, moving=cardId(x.card);
+  cleanup();
+  if(!target)return;
+  const ids=listCards(x.scope).map(cardId).filter(id=>String(id)!==String(moving));
+  let at=ids.findIndex(id=>String(id)===String(cardId(target)));if(at<0)return;if(after)at++;ids.splice(at,0,moving);
+  const gid=x.scope==='group'?await groupId():null;if(x.scope==='group'&&!gid)return;
+  if(await persist(x.scope,ids,gid)){if(after)target.after(x.card);else target.before(x.card);renumber(x.scope)}
+}
+document.addEventListener('touchstart',e=>{const b=e.target.closest?.('.rank524,.groupRank524');if(b&&e.touches.length===1)begin(e,b,e.touches[0])},{capture:true,passive:false});
+document.addEventListener('touchmove',e=>{if(d&&e.touches[0])dragMove(e,e.touches[0])},{capture:true,passive:false});
+document.addEventListener('touchend',e=>{if(d)end(e)},{capture:true,passive:false});
+document.addEventListener('touchcancel',cleanup,{capture:true});
+document.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'||e.button!==0)return;const b=e.target.closest?.('.rank524,.groupRank524');if(b)begin(e,b,e)},{capture:true});
+document.addEventListener('pointermove',e=>{if(d&&e.pointerType!=='touch')dragMove(e,e)},{capture:true});
+document.addEventListener('pointerup',e=>{if(d&&e.pointerType!=='touch')end(e)},{capture:true});
+
+/* Critical Safari recovery: navigation/modals/groups must never inherit drag state. */
+document.addEventListener('click',e=>{
+  if(e.target.closest?.('.tab,.folderBox,[data-nexa-groups-folder],.nexa-group-row,[data-v515-view],.answerPeek,#appModal .btn,#confirmModal .btn')) cleanup();
+},true);
+window.addEventListener('pagehide',cleanup);
+window.addEventListener('blur',cleanup);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)cleanup()});
+document.addEventListener('scroll',()=>{if(!d)document.body.classList.remove('nexa-drag530')},{passive:true});
+setTimeout(cleanup,50);
 })();
 </script>
 

@@ -325,8 +325,7 @@ async function transferOrderMode(workspaceId){
   }catch{
     return 'first_come';
   }
-}
-
+} 
 function activeCurrentApplicant(a){
   return !!a &&
     a.archived_at==null &&

@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- NEXA WOS Utilities V23 — Save persistence + Discord unlink -->
+<!-- NEXA WOS Utilities V26 — Discord role mentions + everyone/here -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -360,6 +360,25 @@ function selectedDiscordDestination(){
  return{guild_id,channel_id:v==='DEFAULT'?'':v,resolved_channel_id:v==='DEFAULT'?(srv?.reminder_channel_id||''):v};
 }
 
+async function loadDiscordRoles(guildId,selected=''){
+ const target=$('mentionTarget');if(!target)return;
+ if(!guildId){target.innerHTML='<option value="">Select Discord destination first</option>';return}
+ target.innerHTML='<option value="">Loading roles…</option>';
+ try{
+  const d=await api('discord_roles',{alliance_id:currentAllianceId,guild_id:guildId}),roles=d.roles||[];
+  target.innerHTML='<option value="">Select Discord role</option>'+roles.map(r=>`<option value="${esc(r.id)}">@${esc(r.name)}${r.mentionable?'':' · not mentionable'}</option>`).join('');
+  if(selected&&roles.some(r=>String(r.id)===String(selected)))target.value=selected;
+  if(!roles.length)target.innerHTML='<option value="">No selectable roles found</option>';
+ }catch(e){target.innerHTML='<option value="">Roles unavailable</option>';toast(e.message,true)}
+}
+async function refreshMentionUI(selected=''){
+ const roleMode=$('mentionType')?.value==='role';
+ $('mentionTargetWrap')?.classList.toggle('hidden',!roleMode);
+ if(!roleMode)return;
+ const {guild_id}=selectedDiscordDestination();
+ await loadDiscordRoles(guild_id,selected);
+}
+
 function openEvent(existing=null){
 window.__nexaEditingEvent=existing?structuredClone(existing):null;
 const e=existing?structuredClone(existing):{event_type:'bear_trap',event_name:'Bear Trap',status:'active',repeat_type:'every_other_day',settings:{reminder_type:'simple',include_bear_details:false,offsets:[60,15,5,0],rules:{},buffs:{}}},s=e.settings||{};
@@ -371,8 +390,8 @@ modal(existing?'Edit Event':'Add New Event',`
 <div id="customLegionToggleWrap" class="${e.event_type==='custom'?'':'hidden'}"><label>Use Legions?<select id="customUseLegions"><option value="no">No</option><option value="yes">Yes</option></select></label></div>
 <div id="customLegionWrap" class="hidden"><label>Legion<select id="customLegion"><option value="1">Legion 1</option><option value="2">Legion 2</option></select></label></div>
 <label class="wide">Discord Destination<select id="discordChannel"><option value="">Loading alliance channels…</option></select><span class="muted" style="font-size:11px">Use Server Default unless this event needs its own channel override.</span></label>
-<label>Mention<select id="mentionType"><option value="none">No Mention</option><option value="role">Role</option><option value="user">User</option><option value="everyone">@everyone</option><option value="here">@here</option></select></label>
-<label id="mentionTargetWrap" class="hidden">Mention Target<select id="mentionTarget"><option value="">Select</option></select></label>
+<label>Mention<select id="mentionType"><option value="none">No Mention</option><option value="role">Role</option><option value="everyone">@everyone</option><option value="here">@here</option></select></label>
+<label id="mentionTargetWrap" class="hidden">Discord Role<select id="mentionTarget"><option value="">Select Discord role</option></select></label>
 </div></div>
 <div class="setup-section"><h3>Schedule</h3>
 <div id="genericSchedule" class="form-grid">
@@ -417,7 +436,7 @@ modal(existing?'Edit Event':'Add New Event',`
 <label class="check"><input id="includeBearDetails" type="checkbox" ${s.include_bear_details?'checked':''}> Include Bear Details in Reminder</label>
 <button id="copyWos" type="button" class="secondary full-btn">Copy for WOS</button></div></div></div>
 <div class="event-actions"><button id="previewDraft" type="button" class="secondary">Preview</button><button id="testDraft" type="button" class="secondary">Test</button><button id="saveEvent" type="button">${existing?'Save Changes':'Create Event'}</button></div><p id="eventStatus" class="status"></p>`);
-$('eventRepeat').value=e.repeat_type||'one_time';$('bearReminderType')&&($('bearReminderType').value=s.reminder_type||'simple');$('mentionType').value=s.mention_type||'none';
+$('eventRepeat').value=e.repeat_type||'one_time';$('bearReminderType')&&($('bearReminderType').value=s.reminder_type||'simple');const initialMentionType=['none','role','everyone','here'].includes(s.mention_type)?s.mention_type:'none';$('mentionType').value=initialMentionType;
 if($('eventLegion'))$('eventLegion').value=String(s.legion||s.foundry_legion||(/Legion\s*2/i.test(e.event_name||'')?2:1));
 if($('customUseLegions'))$('customUseLegions').value=s.use_legions?'yes':'no';
 if($('customLegion'))$('customLegion').value=String(s.legion||1);
@@ -466,16 +485,18 @@ $('joeTuesdayDate').addEventListener('change',()=>{$('joeThursdayDate').value=pl
 applyEventTypeUI(false);
 $('bearReminderType')?.addEventListener('change',()=> $('bearDetails').classList.toggle('hidden',$('bearReminderType').value!=='details'));
 $('ruleStagger')?.addEventListener('change',()=> $('rallyTiming').classList.toggle('hidden',!$('ruleStagger').checked));
-$('mentionType').onchange=()=> $('mentionTargetWrap').classList.toggle('hidden',!['role','user'].includes($('mentionType').value));
+$('mentionType').onchange=()=>refreshMentionUI('');$('discordChannel').addEventListener('change',()=>{if($('mentionType').value==='role')refreshMentionUI('')});
 const initialGen=Number(s.hero_generation||1);renderJoiners(initialGen,s.approved_joiners||[]);renderFormations(initialGen);
 $('heroGeneration')?.addEventListener('change',()=>{const g=Number($('heroGeneration').value),allowed=new Set(HERO_LIBRARY.filter(h=>h.gen<=g).map(h=>h.name)),keep=selectedJoiners().filter(n=>allowed.has(n));renderJoiners(g,keep);renderFormations(g)});
 $('addJoinerHero')?.addEventListener('click',openHeroLibrary);
-loadDiscordDestinations(s.discord_server_id||'',s.discord_channel_id||'');
+loadDiscordDestinations(s.discord_server_id||'',s.discord_channel_id||'').then(()=>refreshMentionUI(s.mention_target_id||''));
 $('previewDraft').onclick=()=>previewDraft(e,offsets);$('copyWos')?.addEventListener('click',()=>copyText(buildWosDraft()));$('testDraft').onclick=async()=>{try{const {guild_id,resolved_channel_id}=selectedDiscordDestination();if(!guild_id||!resolved_channel_id)throw Error('Select a Discord destination. If using Server Default, set its Default Reminder Channel first.');const d=await api('test_event_draft',{alliance_id:currentAllianceId,guild_id,channel_id:resolved_channel_id,preview:draftPreviewText()});toast(d.message||'Discord test sent.')}catch(e){toast(e.message,true)}};
 $('saveEvent').onclick=async()=>{try{
  const type=$('eventType').value;if(!offsets.size)throw Error('Select at least one reminder.');
  let date=$('startDate').value,time=eventTimeValue(),repeat=$('eventRepeat').value,eventName=$('eventName').value.trim()||'Event';
- const settings={...(e.settings||{}),offsets:[...offsets],full_details_offset:Math.min(...[...offsets].filter(n=>Number(n)>0).map(Number),Infinity),repeat_every:Number($('repeatEvery')?.value||1),repeat_unit:$('repeatUnit')?.value||'days',discord_server_id:selectedDiscordDestination().guild_id||null,discord_channel_id:selectedDiscordDestination().channel_id||null,mention_type:$('mentionType').value,mention_target_id:$('mentionTarget')?.value||null};
+ const mentionType=$('mentionType').value;if(mentionType==='role'&&!$('mentionTarget')?.value)throw Error('Select a Discord role to mention.');
+ const destination=selectedDiscordDestination();
+ const settings={...(e.settings||{}),offsets:[...offsets],full_details_offset:Math.min(...[...offsets].filter(n=>Number(n)>0).map(Number),Infinity),repeat_every:Number($('repeatEvery')?.value||1),repeat_unit:$('repeatUnit')?.value||'days',discord_server_id:destination.guild_id||null,discord_channel_id:destination.channel_id||null,mention_type:mentionType,mention_target_id:mentionType==='role'?($('mentionTarget')?.value||null):null};
  if(!Number.isFinite(settings.full_details_offset))settings.full_details_offset=null;
 
  if(type==='foundry'||type==='canyon'){

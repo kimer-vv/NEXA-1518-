@@ -1,6 +1,6 @@
 <!doctype html> 
 <!-- TARGET GITHUB FILE: transfer-workspace.html -->
-<!-- NEXA TRANSFER WORKSPACE V5.28 — PRIORITY ORDERING + MODAL FIX -->
+<!-- NEXA TRANSFER WORKSPACE V5.29 — BADGE DRAG + PRIORITY SYNC -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -1297,7 +1297,7 @@ document.addEventListener('click',()=>setTimeout(add,120),true);setTimeout(add,5
 </script>
 
 
-<script id="nexaTouchDragV528">
+<script id="nexaTouchDragV528" type="text/plain">
 (()=>{
 'use strict';
 let hold=null,drag=null,holdTimer=null;
@@ -1400,6 +1400,50 @@ document.addEventListener('touchcancel',()=>{
  if(drag)drag.card.classList.remove('dragReady528','dragging528');
  drag=null;clear();
 },{capture:true});
+})();
+</script>
+
+
+<style id="nexaPriorityV529Styles">
+.rank524,.groupRank524{touch-action:none!important;-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important;cursor:grab!important;position:relative;z-index:5}
+.rank524:active,.groupRank524:active{cursor:grabbing!important;transform:scale(1.06)}
+body.nexa-reordering-529,body.nexa-reordering-529 *{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important}
+.dragging529{opacity:.68!important;outline:1px solid rgba(89,228,255,.55)!important}
+.dropBefore529{box-shadow:inset 0 3px 0 #59e4ff!important}.dropAfter529{box-shadow:inset 0 -3px 0 #59e4ff!important}
+</style>
+<script id="nexaPriorityV529">
+(()=>{
+'use strict';
+const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
+const SB=()=>window.supabase.createClient('https://dfxcxboxrkfmrnsgpyin.supabase.co','sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-');
+const wid=()=>{let w=new URLSearchParams(location.search).get('workspace')||'';if(!w){try{w=new URL(q('#workspaceLink')?.value||'',location.href).searchParams.get('workspace')||''}catch(_){}}return w};
+const tok=()=>localStorage.getItem('nexa_transfer_staff_token')||sessionStorage.getItem('nexa_transfer_staff_token')||'';
+const idOf=c=>c?.dataset?.app||c?.dataset?.v515App||'';
+const cards=scope=>qa(scope==='new'?'#appList .app[data-app]':'#nexaGroupView .app[data-v515-app]').filter(x=>x.offsetParent!==null);
+const ids=scope=>cards(scope).map(idOf);
+const clear=()=>qa('.dropBefore529,.dropAfter529').forEach(x=>x.classList.remove('dropBefore529','dropAfter529'));
+const renumber=scope=>cards(scope).forEach((c,i)=>{const b=c.querySelector('.rank524,.groupRank524');if(b)b.textContent='#'+(i+1)});
+function priorityOn(){return qa('[data-order-mode524].active,[data-mode524].active').some(x=>(x.dataset.orderMode524||x.dataset.mode524)==='priority')}
+async function gid(){const name=String(q('#nexaGroupView .nexa-group-head h3')?.textContent||'').trim();if(!name||name==='Transfer Groups')return null;const r=await SB().rpc('transfer_workspace_groups_get',{p_workspace_id:wid(),p_token:tok()});return r.data?.ok?(r.data.groups||[]).find(g=>String(g.group_name||'').trim()===name)?.id||null:null}
+async function save(scope,list,groupId){const r=await SB().rpc('transfer_workspace_reorder_applicants',{p_workspace_id:wid(),p_token:tok(),p_scope:scope,p_application_ids:list,p_group_id:scope==='group'?groupId:null});if(r.error||r.data?.ok!==true){const s=q('#cycleStatus');if(s)s.textContent=r.data?.error||r.error?.message||'Unable to save Priority order.';return false}return true}
+function scopeOf(card){if(card?.dataset?.app)return priorityOn()&&!String(q('#appSearch')?.value||'').trim()?'new':null;if(card?.dataset?.v515App&&q('#nexaGroupView')?.classList.contains('open'))return'group';return null}
+function place(scope,card,target,after){if(after)target.after(card);else target.before(card);renumber(scope)}
+async function moveOne(card,delta){const scope=scopeOf(card);if(!scope)return;const list=ids(scope),id=idOf(card),i=list.findIndex(x=>String(x)===String(id)),j=i+delta;if(i<0||j<0||j>=list.length)return;[list[i],list[j]]=[list[j],list[i]];const groupId=scope==='group'?await gid():null;if(scope==='group'&&!groupId)return;if(await save(scope,list,groupId)){const all=cards(scope),target=all[j];if(delta<0)target.before(card);else target.after(card);renumber(scope)}}
+document.addEventListener('click',e=>{const b=e.target.closest?.('[data-order-up],[data-order-down],[data-gup],[data-gdown]');if(!b)return;const card=b.closest('.app[data-app],.app[data-v515-app]');if(!card)return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();moveOne(card,(b.hasAttribute('data-order-up')||b.hasAttribute('data-gup'))?-1:1)},true);
+let drag=null,raf=0;
+function scrollTick(){if(!drag){raf=0;return}const y=drag.y,h=innerHeight,edge=92;if(y<edge)scrollBy(0,-Math.max(7,(edge-y)*.20));else if(y>h-edge)scrollBy(0,Math.max(7,(y-(h-edge))*.20));raf=requestAnimationFrame(scrollTick)}
+function start(e,badge,point,pointerId=null){const card=badge.closest('.app[data-app],.app[data-v515-app]'),scope=scopeOf(card);if(!scope)return;e.preventDefault();e.stopPropagation();drag={card,scope,target:null,after:false,y:point.clientY,pointerId};document.body.classList.add('nexa-reordering-529');card.classList.add('dragging529');if(pointerId!=null){try{badge.setPointerCapture(pointerId)}catch(_){}}if(!raf)raf=requestAnimationFrame(scrollTick)}
+function move(point){if(!drag)return;drag.y=point.clientY;clear();const sel=drag.scope==='new'?'#appList .app[data-app]':'#nexaGroupView .app[data-v515-app]';const t=document.elementFromPoint(point.clientX,point.clientY)?.closest?.(sel);if(!t||t===drag.card){drag.target=null;return}const r=t.getBoundingClientRect();drag.target=t;drag.after=point.clientY>r.top+r.height/2;t.classList.add(drag.after?'dropAfter529':'dropBefore529')}
+async function finish(){if(!drag)return;const d=drag;drag=null;clear();document.body.classList.remove('nexa-reordering-529');d.card.classList.remove('dragging529');if(raf){cancelAnimationFrame(raf);raf=0}if(!d.target)return;const moving=idOf(d.card),target=idOf(d.target),list=ids(d.scope).filter(x=>String(x)!==String(moving));let pos=list.findIndex(x=>String(x)===String(target));if(pos<0)return;if(d.after)pos++;list.splice(pos,0,moving);const groupId=d.scope==='group'?await gid():null;if(d.scope==='group'&&!groupId)return;if(await save(d.scope,list,groupId))place(d.scope,d.card,d.target,d.after)}
+document.addEventListener('touchstart',e=>{const b=e.target.closest?.('.rank524,.groupRank524');if(!b||e.touches.length!==1)return;start(e,b,e.touches[0])},{capture:true,passive:false});
+document.addEventListener('touchmove',e=>{if(!drag)return;e.preventDefault();e.stopPropagation();if(e.touches[0])move(e.touches[0])},{capture:true,passive:false});
+document.addEventListener('touchend',e=>{if(!drag)return;e.preventDefault();e.stopPropagation();finish()},{capture:true,passive:false});
+document.addEventListener('touchcancel',()=>{if(drag){drag.card.classList.remove('dragging529');drag=null}clear();document.body.classList.remove('nexa-reordering-529')},{capture:true});
+document.addEventListener('pointerdown',e=>{if(e.pointerType==='touch')return;const b=e.target.closest?.('.rank524,.groupRank524');if(!b||e.button!==0)return;start(e,b,e,e.pointerId)},{capture:true});
+document.addEventListener('pointermove',e=>{if(!drag||drag.pointerId!==e.pointerId)return;e.preventDefault();move(e)},{capture:true});
+document.addEventListener('pointerup',e=>{if(!drag||drag.pointerId!==e.pointerId)return;e.preventDefault();finish()},{capture:true});
+function help(){qa('.dragHelp527').forEach(x=>x.textContent='Drag the # number to reorder. You can also use ↑ ↓.')}
+new MutationObserver(()=>help()).observe(document.body,{childList:true,subtree:true});setTimeout(help,300);
 })();
 </script>
 

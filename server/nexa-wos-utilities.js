@@ -1,6 +1,6 @@
-/* NEXA WOS Utilities Server Handler V3.1
- * Complete replacement: preserves staff/event actions and adds alliance-scoped Discord linking.
- * Requires the companion SQL migration: wos-discord-alliance-links-migration.txt
+/* NEXA WOS Utilities Server Handler V3.2
+ * Complete replacement: preserves staff/event actions, alliance-scoped Discord linking,
+ * default reminder channels, and adds Discord role discovery for reminder mentions.
  */
 import { createHash, randomBytes } from 'node:crypto';
 import { sendChannel, discord } from '../lib/discord-common.js';
@@ -64,11 +64,24 @@ async function visibleTextChannels(guildId){
  const channels=await discord(`/guilds/${guildId}/channels`);
  return (channels||[]).filter(c=>[0,5].includes(Number(c.type))).sort((a,b)=>(Number(a.position)||0)-(Number(b.position)||0)).map(c=>({id:String(c.id),name:String(c.name||c.id),type:Number(c.type)}));
 }
+async function visibleRoles(guildId){
+ const roles=await discord(`/guilds/${guildId}/roles`);
+ return (roles||[])
+  .filter(r=>String(r.id)!==String(guildId)&&!r.managed)
+  .sort((a,b)=>(Number(b.position)||0)-(Number(a.position)||0))
+  .map(r=>({id:String(r.id),name:String(r.name||r.id),position:Number(r.position)||0,mentionable:!!r.mentionable}));
+}
 async function verifyChannelInGuild(guildId,channelId){
  const cid=String(channelId||'').trim();if(!/^\d{10,30}$/.test(cid))throw fail('Select a valid Discord channel.');
  const channels=await visibleTextChannels(guildId);
  const channel=channels.find(c=>c.id===cid);if(!channel)throw fail('That channel does not belong to the selected linked Discord server, or the bot cannot see it.',409);
  return channel;
+}
+async function verifyRoleInGuild(guildId,roleId){
+ const rid=String(roleId||'').trim();if(!/^\d{10,30}$/.test(rid))throw fail('Select a valid Discord role.');
+ const roles=await visibleRoles(guildId),role=roles.find(r=>r.id===rid);
+ if(!role)throw fail('That role does not belong to the selected linked Discord server, is managed by an integration, or the bot cannot see it.',409);
+ return role;
 }
 function previewToEmbed(preview,{test=false,compact=false,offsetMinutes=null}={}){
  const raw=String(preview||'NEXA Event Reminder').slice(0,5000),lines=raw.split('\n');
@@ -140,6 +153,10 @@ export default async function handler(req,res){
    await linkedServer(s,b.alliance_id,b.guild_id);
    return res.status(200).json({ok:true,channels:await visibleTextChannels(String(b.guild_id))});
   }
+  if(b.action==='discord_roles'){
+   await linkedServer(s,b.alliance_id,b.guild_id);
+   return res.status(200).json({ok:true,roles:await visibleRoles(String(b.guild_id))});
+  }
   if(b.action==='set_default_reminder_channel'){
    const aid=await requireAlliance(s,b.alliance_id),gid=String(b.guild_id||'').trim(),cid=String(b.channel_id||'').trim();
    await linkedServer(s,aid,gid);
@@ -210,11 +227,19 @@ export default async function handler(req,res){
    const e=b.event||{},type=String(e.event_type||'custom');
    if(!['bear_trap','foundry','canyon','arena_reset','crazy_joe','brothers_in_arms','svs','custom'].includes(type))throw fail('Invalid event type.');
    if(e.alliance_id)await requireAlliance(s,e.alliance_id);
-   const settings=e.settings||{};
+   const settings={...(e.settings||{})};
    if(settings.discord_server_id||settings.discord_channel_id){
-    if(!settings.discord_server_id||!settings.discord_channel_id)throw fail('Choose both a Discord Server and Channel.');
-    await linkedServer(s,e.alliance_id,settings.discord_server_id);await verifyChannelInGuild(settings.discord_server_id,settings.discord_channel_id);
+    if(!settings.discord_server_id)throw fail('Choose a linked Discord Server.');
+    await linkedServer(s,e.alliance_id,settings.discord_server_id);
+    if(settings.discord_channel_id)await verifyChannelInGuild(settings.discord_server_id,settings.discord_channel_id);
    }
+   const mentionTypes=['none','role','user','everyone','here'];
+   settings.mention_type=mentionTypes.includes(String(settings.mention_type))?String(settings.mention_type):'none';
+   if(settings.mention_type==='role'){
+    if(!settings.discord_server_id)throw fail('Choose a Discord destination before selecting a role.');
+    const role=await verifyRoleInGuild(settings.discord_server_id,settings.mention_target_id);
+    settings.mention_target_id=role.id;
+   }else if(settings.mention_type!=='user')settings.mention_target_id=null;
    const repeats=['one_time','daily','every_other_day','weekly','every_2_weeks','every_4_weeks','monthly','custom'];
    const row={alliance_id:e.alliance_id||null,event_type:type,event_name:String(e.event_name||'').trim().slice(0,120)||'Custom Event',status:e.status==='paused'?'paused':'active',repeat_type:repeats.includes(e.repeat_type)?e.repeat_type:'one_time',event_at:e.event_at||null,timezone:'UTC',message:String(e.message||'').slice(0,2000),notes:String(e.notes||'').slice(0,2000),settings,created_by_game_id:s.account.game_id,updated_at:new Date().toISOString()};
    let saved;if(e.id){const found=(await events(s)).find(x=>String(x.id)===String(e.id));if(!found)throw fail('Event not found.',404);await db(`wos_event_reminders?id=eq.${enc(e.id)}`,{method:'PATCH',body:row});saved={...row,id:e.id}}else saved=(await db('wos_event_reminders',{method:'POST',body:row}))[0];

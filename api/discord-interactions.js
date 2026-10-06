@@ -894,12 +894,29 @@ async function timeline(cfg){
       ).length;
 
       if(
-        counts.ordinaryLeft>0 ||
-        counts.specialLeft>0
-      ){
-        await sendChannel(
-          channelFor(cfg,'reminders'),
-          {
+  counts.ordinaryLeft>0 ||
+  counts.specialLeft>0
+){
+  await sendChannel(
+    channelFor(cfg,'reminders'),
+    {
+      embeds:[
+        embed(cfg,{
+          title:'📋 Invite Check',
+          description:
+            'Current invitation status during the Invitational Phase.',
+          color:COLORS.invite,
+          fields:inviteFields(
+            counts,
+            pendingOps
+          ),
+          timestamp:true
+        })
+      ],
+      components:announcementComponents(cfg,event),
+      allowed_mentions:{parse:[]}
+    }
+  );
             embeds:[
               embed(cfg,{
                 title:'📋 Invite Check',

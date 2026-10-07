@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- NEXA STAFF WORKSPACES V1.0 — SHARED LOGIN / MODULE SELECTOR -->
+<!-- NEXA STAFF WORKSPACES V2.0 — GLOBAL STATE + GAME ID LOGIN -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>NEXA • Staff Workspaces</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -10,8 +10,9 @@
 <main class="shell">
 <section id="login" class="card login">
 <div class="k">NEXA STAFF</div><h1>Workspace Login</h1><p class="muted">One login for every staff workspace you are authorized to use.</p>
-<label>Game ID or Username<input id="id" class="input"></label>
-<label>Password<input id="pw" class="input" type="password"></label>
+<label>State / Server<input id="state" class="input" inputmode="numeric" autocomplete="off" placeholder="e.g. 1518"></label>
+<label>Game ID<input id="id" class="input" inputmode="numeric" autocomplete="username" placeholder="Game ID"></label>
+<label>Password<input id="pw" class="input" type="password" autocomplete="current-password"></label>
 <label style="display:flex;grid-template-columns:auto 1fr;align-items:center"><input id="remember" type="checkbox" checked> Remember me</label>
 <button id="go" class="btn">Sign In</button><div id="msg" class="status"></div>
 </section>
@@ -21,12 +22,15 @@
 </section>
 </main>
 <script>
-(()=>{'use strict';const sb=window.supabase.createClient('https://dfxcxboxrkfmrnsgpyin.supabase.co','sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-'),$=x=>document.getElementById(x);let token=localStorage.getItem('nexa_transfer_staff_token')||sessionStorage.getItem('nexa_transfer_staff_token')||'';
+(()=>{'use strict';
+const sb=window.supabase.createClient('https://dfxcxboxrkfmrnsgpyin.supabase.co','sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-'),$=x=>document.getElementById(x);
+let token=localStorage.getItem('nexa_transfer_staff_token')||sessionStorage.getItem('nexa_transfer_staff_token')||'';
+let activeState=Number(localStorage.getItem('nexa_active_state')||sessionStorage.getItem('nexa_active_state')||0);
 const rpc=async(fn,args)=>{const {data,error}=await sb.rpc(fn,args);if(error)throw error;return data};
-function save(t,remember){localStorage.removeItem('nexa_transfer_staff_token');sessionStorage.removeItem('nexa_transfer_staff_token');(remember?localStorage:sessionStorage).setItem('nexa_transfer_staff_token',t);token=t}
-function render(s){$('login').classList.add('hidden');$('app').classList.remove('hidden');$('who').textContent=`Signed in as ${s.game_name||s.username||s.game_id||'Staff'}`;const mods=s.modules||[];$('grid').innerHTML=mods.length?mods.map(m=>`<a class="card module" href="${m.url}"><div class="k">${m.module==='transfer'?'TRANSFER':'MINISTRY'}</div><h2>${m.module==='transfer'?'Transfer Workspace':'Ministry Workspace'}</h2><p class="muted">State ${m.state_number||'—'} • ${m.access_level==='admin'?'Administrative Access':'Regular Access'}</p><span class="badge">Open Workspace</span></a>`).join(''):'<div class="card muted">No active staff workspaces.</div>'}
-async function start(){if(!token)return;try{const s=await rpc('transfer_staff_session',{p_token:token});if(s?.ok)render(s)}catch{}}
-$('go').onclick=async()=>{try{$('msg').textContent='Signing in…';const d=await rpc('transfer_staff_login',{p_identifier:$('id').value.trim(),p_password:$('pw').value,p_remember:$('remember').checked});if(!d?.ok)throw new Error(d?.error||'Unable to sign in');save(d.token,$('remember').checked);render(d)}catch(e){$('msg').textContent=e.message||String(e)}};
-$('out').onclick=async()=>{try{await rpc('transfer_staff_logout',{p_token:token})}catch{}localStorage.removeItem('nexa_transfer_staff_token');sessionStorage.removeItem('nexa_transfer_staff_token');location.reload()};start();
+function save(t,remember,state){localStorage.removeItem('nexa_transfer_staff_token');sessionStorage.removeItem('nexa_transfer_staff_token');localStorage.removeItem('nexa_active_state');sessionStorage.removeItem('nexa_active_state');const s=remember?localStorage:sessionStorage;s.setItem('nexa_transfer_staff_token',t);s.setItem('nexa_active_state',String(state));token=t;activeState=state}
+function render(s){$('login').classList.add('hidden');$('app').classList.remove('hidden');$('who').textContent=`${s.game_name||s.game_id||'Staff'} • State ${activeState||s.state_number||'—'}`;const mods=(s.modules||[]).filter(m=>!activeState||Number(m.state_number)===Number(activeState));$('grid').innerHTML=mods.length?mods.map(m=>`<a class="card module" href="${m.url}"><div class="k">${m.module==='transfer'?'TRANSFER':m.module==='ministry'?'MINISTRY':String(m.module||'WORKSPACE').toUpperCase()}</div><h2>${m.label||'Workspace'}</h2><p class="muted">State ${m.state_number||activeState||'—'} • ${m.access_level==='admin'?'Administrative Access':'Regular Access'}</p><span class="badge">Open Workspace</span></a>`).join(''):'<div class="card muted">No active staff workspaces for this State.</div>'}
+async function start(){if(!token)return;try{const s=await rpc('transfer_staff_session',{p_token:token});if(s?.ok){if(!activeState&&s.state_number)activeState=Number(s.state_number);render(s)}}catch{}}
+$('go').onclick=async()=>{try{$('msg').textContent='Signing in…';const state=Number($('state').value.trim()),gameId=$('id').value.trim();if(!Number.isInteger(state)||state<1)throw new Error('Enter your State / Server.');if(!/^\d{4,24}$/.test(gameId))throw new Error('Enter a valid Game ID.');const d=await rpc('nexa_staff_login_v2',{p_state_number:state,p_game_id:gameId,p_password:$('pw').value,p_remember:$('remember').checked});if(!d?.ok)throw new Error(d?.error||'Unable to sign in');save(d.token,$('remember').checked,state);const access=await rpc('nexa_staff_workspace_access_v1',{p_token:d.token});render({...d,...access})}catch(e){$('msg').textContent=e.message||String(e)}};
+$('out').onclick=async()=>{try{await rpc('transfer_staff_logout',{p_token:token})}catch{}localStorage.removeItem('nexa_transfer_staff_token');sessionStorage.removeItem('nexa_transfer_staff_token');localStorage.removeItem('nexa_active_state');sessionStorage.removeItem('nexa_active_state');location.reload()};start();
 })();
 </script></body></html>

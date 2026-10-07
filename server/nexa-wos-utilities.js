@@ -1,4 +1,4 @@
- /* NEXA WOS Utilities Server Handler V4.1 — Global Owner identity fix
+    /* NEXA WOS Utilities Server Handler V4.1 — Global Owner identity fix
      * Multi-State / Multi-Server alliance-scoped permissions.
      * Preserves existing route and event/reminder/Discord flows.
      * R4/R5 are scoped to State + Alliance. Global Owner is explicit.

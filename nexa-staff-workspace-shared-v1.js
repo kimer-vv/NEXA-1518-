@@ -37,4 +37,4 @@ let navBusy=false;
 async function refreshNav(){const token=getToken(),sel=$('workspaceSwitch');if(!token||!sel||navBusy)return;navBusy=true;try{const d=await rpc('nexa_staff_workspace_access_v1',{p_token:token});if(!d?.ok)return;const state=getState(),mine=(d.modules||[]).filter(m=>!state||Number(m.state_number)===state),current=sel.value,local=[...sel.options].filter(o=>MODULE==='transfer'?o.value.includes('transfer-workspace.html'):o.value.includes('ministry-workspace.html'));sel.replaceChildren(...local);for(const m of mine){if(m.module===MODULE)continue;sel.add(new Option(m.label,m.url))}if([...sel.options].some(o=>o.value===current))sel.value=current;sel.onchange=()=>{if(sel.value)location.href=sel.value}}catch(e){console.warn('Workspace navigation',e)}finally{navBusy=false}}
 function init(){installStyle();if(MODULE==='ministry'){$('loginScreen')?.classList.add('nexa-staff-shared-login');installMinistryLogin()}setTimeout(refreshNav,50);window.addEventListener('pageshow',refreshNav)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
-})();
+})(); 

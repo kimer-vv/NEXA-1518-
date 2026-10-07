@@ -1,4 +1,4 @@
-/* NEXA Staff Workspace Shared UI V2.0 — STATE + GAME ID ONLY */
+/* NEXA Staff Workspace Shared UI V2.1 — STATE + GAME ID ONLY */
 (()=>{'use strict';
 if(window.__NEXA_STAFF_SHARED_V2__)return;
 window.__NEXA_STAFF_SHARED_V2__=true;
@@ -35,6 +35,68 @@ function installStyle(){if($('nexa-staff-shared-css'))return;const s=document.cr
 `;document.head.appendChild(s)}
 let navBusy=false;
 async function refreshNav(){const token=getToken(),sel=$('workspaceSwitch');if(!token||!sel||navBusy)return;navBusy=true;try{const d=await rpc('nexa_staff_workspace_access_v1',{p_token:token});if(!d?.ok)return;const state=getState(),mine=(d.modules||[]).filter(m=>!state||Number(m.state_number)===state),current=sel.value,local=[...sel.options].filter(o=>MODULE==='transfer'?o.value.includes('transfer-workspace.html'):o.value.includes('ministry-workspace.html'));sel.replaceChildren(...local);for(const m of mine){if(m.module===MODULE)continue;sel.add(new Option(m.label,m.url))}if([...sel.options].some(o=>o.value===current))sel.value=current;sel.onchange=()=>{if(sel.value)location.href=sel.value}}catch(e){console.warn('Workspace navigation',e)}finally{navBusy=false}}
-function init(){installStyle();if(MODULE==='ministry'){$('loginScreen')?.classList.add('nexa-staff-shared-login');installMinistryLogin()}setTimeout(refreshNav,50);window.addEventListener('pageshow',refreshNav)}
+
+function installTransferLogin(){
+ const root=$('authRoot');if(!root||root.dataset.sharedAuthV2)return;root.dataset.sharedAuthV2='yes';
+ root.classList.remove('hidden');
+ root.innerHTML=`<div class="authLogo"><small>TRANSFER WORKSPACE</small><h1>Staff Access</h1><div class="muted" id="authDestination">Private transfer operations</div></div>
+ <section class="card">
+  <div class="authTabs"><button class="authTab active" id="nexaTransferLoginTab" type="button">Log In</button><button class="authTab" id="nexaTransferRegisterTab" type="button">First Time? Register</button></div>
+  <div id="nexaTransferLoginPane">
+   <label class="field">State / Server<input id="nexaTransferState" inputmode="numeric" placeholder="e.g. 1518" autocomplete="off"></label>
+   <label class="field">Game ID<input id="nexaTransferGameId" inputmode="numeric" autocomplete="username"></label>
+   <label class="field">Password<input id="nexaTransferPassword" type="password" autocomplete="current-password"></label>
+   <label class="check" style="margin-top:12px"><input id="nexaTransferRemember" type="checkbox" checked> Remember me on this device</label>
+   <div class="actions"><button class="btn" id="nexaTransferLoginBtn" type="button">Log In</button></div>
+   <div class="actions"><button class="linkBtn" id="nexaTransferForgotPass" type="button">Forgot password?</button></div>
+  </div>
+  <div id="nexaTransferRegisterPane" class="hidden">
+   <label class="field">State / Server<input id="nexaTransferRegState" inputmode="numeric" placeholder="e.g. 1518"></label>
+   <label class="field">Game Name / IGN<input id="nexaTransferRegName"></label>
+   <label class="field">Game ID<input id="nexaTransferRegId" inputmode="numeric"></label>
+   <label class="field">Create Password<input id="nexaTransferRegPassword" type="password" autocomplete="new-password"></label>
+   <label class="field">Confirm Password<input id="nexaTransferRegConfirm" type="password" autocomplete="new-password"></label>
+   <label class="check" style="margin-top:12px"><input id="nexaTransferRegRemember" type="checkbox" checked> Remember me on this device</label>
+   <div class="actions"><button class="btn" id="nexaTransferRegisterBtn" type="button">Register</button></div>
+  </div>
+  <div id="nexaTransferRecoveryPane" class="hidden">
+   <h3>Use Recovery Code</h3>
+   <label class="field">Game ID<input id="nexaTransferRecoverId" inputmode="numeric"></label>
+   <label class="field">Recovery Code<input id="nexaTransferRecoverCode"></label>
+   <label class="field">New Password<input id="nexaTransferRecoverPw" type="password" autocomplete="new-password"></label>
+   <label class="field">Confirm New Password<input id="nexaTransferRecoverConfirm" type="password" autocomplete="new-password"></label>
+   <div class="actions"><button class="btn" id="nexaTransferRecoverBtn" type="button">Change Password</button><button class="btn secondary" id="nexaTransferRecoverCancel" type="button">Cancel</button></div>
+  </div>
+  <div class="status" id="nexaTransferAuthStatus"></div>
+ </section>`;
+ const status=$('nexaTransferAuthStatus');
+ const show=pane=>{for(const id of ['nexaTransferLoginPane','nexaTransferRegisterPane','nexaTransferRecoveryPane'])$(id)?.classList.toggle('hidden',id!==pane);$('nexaTransferLoginTab')?.classList.toggle('active',pane==='nexaTransferLoginPane');$('nexaTransferRegisterTab')?.classList.toggle('active',pane==='nexaTransferRegisterPane');status.textContent=''};
+ $('nexaTransferLoginTab').onclick=()=>show('nexaTransferLoginPane');
+ $('nexaTransferRegisterTab').onclick=()=>show('nexaTransferRegisterPane');
+ $('nexaTransferForgotPass').onclick=()=>show('nexaTransferRecoveryPane');
+ $('nexaTransferRecoverCancel').onclick=()=>show('nexaTransferLoginPane');
+ $('nexaTransferLoginBtn').onclick=async()=>{const b=$('nexaTransferLoginBtn');b.disabled=true;status.textContent='Signing in…';try{const state=Number($('nexaTransferState').value.trim()),gid=$('nexaTransferGameId').value.trim();if(!Number.isInteger(state)||state<1)throw Error('Enter your State / Server.');if(!/^\d{4,24}$/.test(gid))throw Error('Enter a valid Game ID.');const d=await rpc('transfer_staff_login_v2',{p_state_number:state,p_game_id:gid,p_password:$('nexaTransferPassword').value,p_remember:$('nexaTransferRemember').checked});if(!d?.ok)throw Error(humanError(d?.error));saveAuth(d.token,$('nexaTransferRemember').checked,state);location.href=`transfer-workspace.html?state=${encodeURIComponent(state)}`}catch(e){status.textContent=humanError(e.message);b.disabled=false}};
+ $('nexaTransferRegisterBtn').onclick=async()=>{const b=$('nexaTransferRegisterBtn');b.disabled=true;status.textContent='Registering…';try{const state=Number($('nexaTransferRegState').value.trim()),gid=$('nexaTransferRegId').value.trim(),pw=$('nexaTransferRegPassword').value;if(pw!==$('nexaTransferRegConfirm').value)throw Error('Passwords do not match.');const resolved=await rpc('transfer_workspace_resolve',{p_state:state});if(!resolved?.ok||!resolved.workspace_id)throw Error('No active Transfer Workspace was found for this State.');const d=await rpc('transfer_staff_register_v2',{p_workspace_id:resolved.workspace_id,p_state_number:state,p_game_name:$('nexaTransferRegName').value.trim(),p_game_id:gid,p_password:pw,p_remember:$('nexaTransferRegRemember').checked});if(!d?.ok)throw Error(humanError(d?.error));saveAuth(d.token,$('nexaTransferRegRemember').checked,state);location.href=`transfer-workspace.html?workspace=${encodeURIComponent(resolved.workspace_id)}&state=${encodeURIComponent(state)}`}catch(e){status.textContent=humanError(e.message);b.disabled=false}};
+ $('nexaTransferRecoverBtn').onclick=async()=>{const b=$('nexaTransferRecoverBtn');b.disabled=true;status.textContent='Checking recovery code…';try{if($('nexaTransferRecoverPw').value!==$('nexaTransferRecoverConfirm').value)throw Error('Passwords do not match.');const d=await rpc('transfer_staff_reset_password',{p_identifier:$('nexaTransferRecoverId').value.trim(),p_code:$('nexaTransferRecoverCode').value.trim(),p_new_password:$('nexaTransferRecoverPw').value});if(!d?.ok)throw Error('Recovery code is invalid or expired.');show('nexaTransferLoginPane');status.textContent='Password changed. You can now log in.'}catch(e){status.textContent=e.message}finally{b.disabled=false}};
+}
+function installUsernameFirewall(){
+ if($('nexa-no-username-css'))return;
+ const st=document.createElement('style');st.id='nexa-no-username-css';st.textContent=`
+ .staffUser,[data-access-copy-user],[data-access-change-user],#changeUsernameModal,#forgotUserModal{display:none!important}
+ `;document.head.appendChild(st);
+ const clean=()=>{
+   document.querySelectorAll('.detailItem').forEach(el=>{const t=(el.querySelector('small')?.textContent||'').trim().toUpperCase();if(t==='USERNAME')el.remove()});
+   document.querySelectorAll('button,a,label,small,b,div,p,span').forEach(el=>{
+     if(el.children.length===0 && /\busername\b/i.test(el.textContent||'')) {
+       const txt=(el.textContent||'').trim();
+       if(/^(username|copy username|change username|forgot username)/i.test(txt)) el.style.display='none';
+     }
+   });
+ };
+ clean();new MutationObserver(clean).observe(document.body,{childList:true,subtree:true});
+}
+
+function init(){installStyle();if(MODULE==='ministry'){$('loginScreen')?.classList.add('nexa-staff-shared-login');installMinistryLogin()}
+if(MODULE==='transfer'){installTransferLogin();installUsernameFirewall()}setTimeout(refreshNav,50);window.addEventListener('pageshow',refreshNav)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
-})(); 
+})();

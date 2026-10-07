@@ -1,4 +1,4 @@
-/* NEXA Staff Workspace Shared UI V2.1 — STATE + GAME ID ONLY */
+/* NEXA Staff Workspace Shared UI V2.2 — TRANSFER SESSION FIX — STATE + GAME ID ONLY */
 (()=>{'use strict';
 if(window.__NEXA_STAFF_SHARED_V2__)return;
 window.__NEXA_STAFF_SHARED_V2__=true;
@@ -38,7 +38,6 @@ async function refreshNav(){const token=getToken(),sel=$('workspaceSwitch');if(!
 
 function installTransferLogin(){
  const root=$('authRoot');if(!root||root.dataset.sharedAuthV2)return;root.dataset.sharedAuthV2='yes';
- root.classList.remove('hidden');
  root.innerHTML=`<div class="authLogo"><small>TRANSFER WORKSPACE</small><h1>Staff Access</h1><div class="muted" id="authDestination">Private transfer operations</div></div>
  <section class="card">
   <div class="authTabs"><button class="authTab active" id="nexaTransferLoginTab" type="button">Log In</button><button class="authTab" id="nexaTransferRegisterTab" type="button">First Time? Register</button></div>

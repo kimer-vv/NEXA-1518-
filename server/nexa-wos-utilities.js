@@ -1,4 +1,4 @@
-  /* NEXA WOS Utilities Server Handler V4.0
+ /* NEXA WOS Utilities Server Handler V4.1 — Global Owner identity fix
      * Multi-State / Multi-Server alliance-scoped permissions.
      * Preserves existing route and event/reminder/Discord flows.
      * R4/R5 are scoped to State + Alliance. Global Owner is explicit.
@@ -28,7 +28,7 @@
     function hashToken(v){return createHash('sha256').update(String(v)).digest('hex')}
 
     async function resolveNexaIdentity(gameId){
-     const rows=await db(`player_accounts?game_id=eq.${enc(gameId)}&select=id,user_id,game_id,in_game_name,state_number,alliance_id,alliance_tag,alliance_role&limit=1`);
+     const rows=await db(`player_accounts?player_id=eq.${enc(gameId)}&select=id,user_id,player_id,in_game_name,state_number,alliance_id,alliance_role&limit=1`);
      return rows?.[0]||null;
     }
     async function globalOwnerFor(identity){

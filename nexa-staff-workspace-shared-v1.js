@@ -1,4 +1,4 @@
-/* NEXA Staff Workspace Shared UI V2.3 — TRANSFER LOAD FIX — STATE + GAME ID ONLY */
+/* NEXA Staff Workspace Shared UI V2.4 — SUPABASE CLIENT LOGIN FIX — STATE + GAME ID ONLY */
 (()=>{'use strict';
 if(window.__NEXA_STAFF_SHARED_V2__)return;
 window.__NEXA_STAFF_SHARED_V2__=true;
@@ -9,7 +9,13 @@ const $=id=>document.getElementById(id);
 const getToken=()=>localStorage.getItem('nexa_transfer_staff_token')||sessionStorage.getItem('nexa_transfer_staff_token')||'';
 const getState=()=>Number(localStorage.getItem('nexa_active_state')||sessionStorage.getItem('nexa_active_state')||0);
 const saveAuth=(token,remember,state)=>{for(const s of [localStorage,sessionStorage]){s.removeItem('nexa_transfer_staff_token');s.removeItem('nexa_active_state');s.removeItem('nexa_active_state_v49')}const s=remember?localStorage:sessionStorage;s.setItem('nexa_transfer_staff_token',token);s.setItem('nexa_active_state',String(state));s.setItem('nexa_active_state_v49',String(state));window.NEXA_ACTIVE_STATE=state;};
-async function rpc(name,body){const r=await fetch(`${URL}/rest/v1/rpc/${name}`,{method:'POST',headers:{apikey:KEY,Authorization:`Bearer ${KEY}`,'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json().catch(()=>null);if(!r.ok)throw Error(d?.message||'Workspace request failed.');return d;}
+async function rpc(name,body){
+ const client=window.supabase?.createClient?.(URL,KEY);
+ if(!client)throw Error('Supabase client is not available.');
+ const timeout=new Promise((_,reject)=>setTimeout(()=>reject(Error('The workspace server did not respond. Please try again.')),12000));
+ const call=client.rpc(name,body).then(({data,error})=>{if(error)throw Error(error.message||'Workspace request failed.');return data});
+ return await Promise.race([call,timeout]);
+}
 const humanError=x=>({invalid_credentials:'Incorrect State, Game ID, or password.',no_active_workspace_for_state:'Your Game ID does not have access to an active workspace in this State.',game_id_not_authorized:'Your Game ID has not been authorized for this Workspace.',existing_account_password_mismatch:'This Game ID already has an account. Use its existing password.',invalid_state:'Enter a valid State / Server.',invalid_game_name:'Enter a valid Game Name.',invalid_game_id:'Enter a valid Game ID.',password_too_short:'Use a password with at least 8 characters.'}[x]||x||'Request failed.');
 function installMinistryLogin(){
  const root=$('loginScreen');if(!root||root.dataset.sharedAuth)return;root.dataset.sharedAuth='yes';

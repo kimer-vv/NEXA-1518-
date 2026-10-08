@@ -49,11 +49,16 @@ export default async function middleware(request: Request) {
   const url = new URL(request.url);
   const path = url.pathname;
 
-  // Transfer Workspace is intentionally independent from NEXA Maintenance Mode.
-  // All transfer pages and transfer API routes stay available while the main NEXA app is offline.
+  // Private staff workspaces stay available during Maintenance Mode.
+  // Each workspace still validates the shared NEXA staff session before exposing private data.
+  // Public NEXA pages remain protected by Maintenance Mode.
   if (
     path === '/maintenance.html' ||
     path === '/owner-access.html' ||
+    path === '/staff-workspaces.html' ||
+    path === '/wos-utilities.html' ||
+    path === '/ministry-workspace.html' ||
+    path === '/gift-code-workspace.html' ||
     path.startsWith('/transfer-') ||
     path.startsWith('/api/transfer-') ||
     path.startsWith('/owner-recovery-') ||

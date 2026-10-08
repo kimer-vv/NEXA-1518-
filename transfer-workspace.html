@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#03050e">
 <title>NEXA • Transfer Workspace</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="nexa-staff-workspace-shared-v1.js?v=2-20260925" defer></script>
+<script src="nexa-staff-workspace-shared-v1.js?v=4-20261008-authfix1" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <style>
 :root{--c:#59e4ff;--v:#8d76ff;--m:#aab4d0;--p:rgba(8,15,34,.94);--good:#7df1be;--warn:#ffd56d;--bad:#ff8ca8;--blue:#73cfff;--gold:#ffd56d}
@@ -357,7 +357,8 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const fmt=n=>{n=Number(n||0);return !n?'—':n>=1e9?(n/1e9).toFixed(2).replace(/\.00$/,'').replace(/(\.\d)0$/,'$1')+'B':n>=1e6?(n/1e6).toFixed(1).replace(/\.0$/,'')+'M':n>=1e3?(n/1e3).toFixed(1).replace(/\.0$/,'')+'K':n.toLocaleString()};
 const canManage=()=>accessInfo?.can_manage===true;
 function saveToken(raw,remember){localStorage.removeItem('nexa_transfer_staff_token');sessionStorage.removeItem('nexa_transfer_staff_token');(remember?localStorage:sessionStorage).setItem('nexa_transfer_staff_token',raw);token=raw}
-function clearToken(){localStorage.removeItem('nexa_transfer_staff_token');sessionStorage.removeItem('nexa_transfer_staff_token');token=''}
+function clearToken(){for(const st of [localStorage,sessionStorage]){st.removeItem('nexa_transfer_staff_token');st.removeItem('nexa_active_state');st.removeItem('nexa_active_state_v49')}token=''}
+function staffHub(reason=''){const u=new URL('staff-workspaces.html',location.href);u.searchParams.set('next',(location.pathname.split('/').pop()||'')+location.search);if(reason)u.searchParams.set('reason',reason);return u.href}
 function workspaceUrl(){return workspace?new URL(`transfer-workspace.html?workspace=${encodeURIComponent(workspace.id)}`,location.href).href:location.href}
 function publicForm(){return workspace?new URL(`transfer-form-v2.html?public=1&workspace=${encodeURIComponent(workspace.id)}`,location.href).href:'#'}
 function directForm(){return intake?new URL(`transfer-form-v2.html?direct=1&event=${encodeURIComponent(intake.id)}`,location.href).href:'#'}
@@ -397,7 +398,7 @@ $('loginBtn').onclick=async()=>{const r=await SB.rpc('transfer_staff_login',{p_i
 $('registerBtn').onclick=async()=>{if(!workspaceId&&!await resolveWorkspace())return;const p=$('regPassword').value;if(p!==$('regConfirm').value){$('authStatus').textContent='Passwords do not match.';return}const r=await SB.rpc('transfer_staff_register',{p_workspace_id:workspaceId,p_username:$('regUsername').value.trim(),p_game_name:$('regGameName').value.trim(),p_game_id:$('regGameId').value.trim(),p_password:p,p_remember:$('rememberRegister').checked});if(r.error||r.data?.ok!==true){const map={game_id_not_authorized:'This Game ID has not been authorized for this Transfer Workspace.',username_taken:'That username is already in use.',already_registered:'This Game ID is already registered. Use Log In.'};$('authStatus').textContent=map[r.data?.error]||r.error?.message||'Unable to register.';return}saveToken(r.data.token,$('rememberRegister').checked);await restoreSession();await loadWorkspace()};
 $('recoverBtn').onclick=async()=>{if($('recoverPassword').value!==$('recoverConfirm').value){$('recoverStatus').textContent='Passwords do not match.';return}const r=await SB.rpc('transfer_staff_reset_password',{p_identifier:$('recoverIdentifier').value.trim(),p_code:$('recoverCode').value.trim(),p_new_password:$('recoverPassword').value});$('recoverStatus').textContent=r.error||r.data?.ok!==true?(r.error?.message||'Code is invalid or expired.'):'Password changed ✓'};
 async function restoreSession(){if(!token)return false;const r=await SB.rpc('transfer_staff_session',{p_token:token});if(r.error||r.data?.ok!==true){clearToken();return false}session=r.data;return true}
-async function chooseWorkspaceAndLoad(){if(!session&&!(await restoreSession()))return showAuth();const list=session.workspaces||[];if(!workspaceId){if(list.length===1)workspaceId=list[0].workspace_id;else if(wantedState)workspaceId=list.find(x=>Number(x.state_number)===wantedState)?.workspace_id||'';if(!workspaceId&&list.length>1){$('authStatus').innerHTML=`<div class="notice">Your Transfer Workspaces</div><div class="actions">${list.map(w=>`<button class="btn secondary" data-pick="${w.workspace_id}">State ${w.state_number}</button>`).join('')}</div>`;document.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{workspaceId=b.dataset.pick;loadWorkspace()});return}}await loadWorkspace()}
+async function chooseWorkspaceAndLoad(){if(!session&&!(await restoreSession())){location.replace(staffHub('sign_in_required'));return}const list=session.workspaces||[];if(!workspaceId){if(list.length===1)workspaceId=list[0].workspace_id;else if(wantedState)workspaceId=list.find(x=>Number(x.state_number)===wantedState)?.workspace_id||'';if(!workspaceId&&list.length>1){$('authStatus').innerHTML=`<div class="notice">Your Transfer Workspaces</div><div class="actions">${list.map(w=>`<button class="btn secondary" data-pick="${w.workspace_id}">State ${w.state_number}</button>`).join('')}</div>`;document.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{workspaceId=b.dataset.pick;loadWorkspace()});return}}await loadWorkspace()}
 
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function snapshotWithRetry(maxAttempts=3){
@@ -418,7 +419,7 @@ async function snapshotWithRetry(maxAttempts=3){
 async function loadWorkspace(){
  $('authStatus').textContent='Loading Transfer Workspace…';
  const r=await snapshotWithRetry();
- if(r.error||r.data?.ok!==true){$('authStatus').textContent=r.data?.error==='forbidden'?'This workspace is currently inactive.':'Unable to load Transfer Workspace. Please try again.';return showAuth()}
+ if(r.error||r.data?.ok!==true){$('authStatus').textContent=r.data?.error==='forbidden'?'This workspace is currently inactive.':'Unable to load Transfer Workspace. Please try again.';location.replace(staffHub(r.data?.error==='forbidden'?'no_access':'workspace_error'));return}
  workspace=r.data.workspace;intake=r.data.intake;event=r.data.event;recruiting=r.data.recruiting||[];apps=r.data.applications||[];history=r.data.history||[];cleanup=r.data.cleanup||{};$('archiveCount').textContent=String(r.data.applicant_archive_count||0);
  let ar={data:null},pr={data:null};
  try{ar=await SB.rpc('transfer_staff_access_list',{p_workspace_id:workspaceId,p_token:token})}catch(_){ }
@@ -1078,9 +1079,9 @@ $('clearWorkspaceConfirm').onclick=async()=>{
 }
 
 $('copyWorkspaceLink').onclick=e=>copyText(workspaceUrl(),e.currentTarget);
-$('logoutBtn').onclick=async()=>{if(token)await SB.rpc('transfer_staff_logout',{p_token:token});clearToken();location.reload()};
+$('logoutBtn').onclick=async()=>{try{if(token)await SB.rpc('transfer_staff_logout',{p_token:token})}catch{}clearToken();location.replace('staff-workspaces.html?logged_out=1')};
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.panel').forEach(x=>x.classList.toggle('active',x.dataset.panel===b.dataset.tab))});
-(async()=>{await resolveWorkspace();if(token&&await restoreSession())await chooseWorkspaceAndLoad();else showAuth()})();
+(async()=>{await resolveWorkspace();if(token&&await restoreSession())await chooseWorkspaceAndLoad();else if(new URLSearchParams(location.search).get('auth')==='register')showAuth();else location.replace(staffHub(token?'session_expired':'sign_in_required'))})();
 })();
 </script>
 <script>window.NEXA_TRANSFER_PERSISTENT_ARCHIVE_V1=true;</script>

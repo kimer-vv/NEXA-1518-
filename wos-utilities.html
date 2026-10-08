@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- NEXA WOS Utilities V29 — GLOBAL SESSION/NAV + OWNER REMINDERS FIX -->
+<!-- NEXA WOS Utilities V31 — GLOBAL SSO + SNAPSHOT FALLBACK + GAME-ID IDENTITY -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -190,11 +190,20 @@ function allianceName(id){const a=(snap?.all_alliances||snap?.alliances||[]).fin
 function utcStamp(v){if(!v)return'No date set';const d=new Date(v);return `${d.toLocaleDateString('en-US',{timeZone:'UTC',month:'short',day:'numeric',year:'numeric'})} · ${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')} UTC`}
 function shortTroops(v){const n=Number(String(v||'').replace(/[^\d]/g,''));if(!n)return'';if(n>=1000000)return`${Math.round(n/100000)/10}M`;if(n>=1000)return`${Math.round(n/1000)}K`;return String(n)}
 function offsetLabel(n){n=Number(n);if(n===0)return'At Start';if(n<60)return`${n}m`;if(n===60)return'1h';if(n===120)return'2h';if(n===360)return'6h';if(n===1440)return'1d';return n%60===0?`${n/60}h`:`${n}m`}
-async function refresh(){snap=await api();renderStaff()}
+async function refresh(){
+ try{snap=await api()}
+ catch(primaryError){
+  console.warn('WOS API snapshot failed; using Supabase fallback.',primaryError);
+  const fb=await sb.rpc('nexa_wos_snapshot_v1',{p_token:token});
+  if(fb.error||!fb.data?.ok)throw Error(primaryError?.message||fb.error?.message||fb.data?.error||'Unable to load WOS Utilities.');
+  snap=fb.data;
+ }
+ renderStaff()
+}
 async function loadEvents(){try{events=(await api('events')).events||[];renderEvents()}catch(e){$('eventGroups').innerHTML=`<section class="card"><p class="error">${esc(e.message)}</p></section>`}}
 async function boot(){if(!token){location.replace('staff-workspaces.html');return}let sessionOk=false;try{const s=await sb.rpc('transfer_staff_session',{p_token:token});if(s.error||!s.data?.ok)throw Error(s.error?.message||s.data?.error||'session_expired');sessionOk=true;await refresh();if(!activeState&&snap?.me?.state_number){activeState=Number(snap.me.state_number);sessionStorage.setItem('nexa_active_state',String(activeState));sessionStorage.setItem('nexa_active_state_v49',String(activeState));window.NEXA_ACTIVE_STATE=activeState}await loadEvents()}catch(e){if(!sessionOk||String(e.message||'').includes('session_expired')){for(const st of [localStorage,sessionStorage]){st.removeItem('nexa_transfer_staff_token');st.removeItem('nexa_active_state');st.removeItem('nexa_active_state_v49')}location.replace('staff-workspaces.html');return}console.error('WOS Utilities load error',e);const home=$('homeView');if(home)home.classList.remove('hidden');toast('WOS Utilities could not finish loading. Your NEXA session is still active.',true)}}
 function roleLabel(r){return r==='administrative'?'Access Management':r==='owner'?'Owner':String(r||'').toUpperCase()}
-function renderStaff(){const can=!!snap?.can_manage_staff;$('staffAdmin').classList.toggle('hidden',!can);const list=snap?.staff||[];$('staffList').innerHTML=list.map(a=>`<article class="staff-tile"><h3>${esc(a.game_name||a.game_id)}</h3><div class="staff-meta">${esc(roleLabel(a.role))} · ${esc(String(a.status||'active').toUpperCase())}</div><div class="staff-meta">Game ID ${esc(a.game_id)}</div><div class="staff-user">Username · ${esc(a.username||'Pending registration')}</div></article>`).join('')||'<p class="muted">No staff yet.</p>'}
+function renderStaff(){const can=!!snap?.can_manage_staff;$('staffAdmin').classList.toggle('hidden',!can);const list=snap?.staff||[];$('staffList').innerHTML=list.map(a=>`<article class="staff-tile"><h3>${esc(a.game_name||a.game_id)}</h3><div class="staff-meta">${esc(roleLabel(a.role))} · ${esc(String(a.status||'active').toUpperCase())}</div><div class="staff-meta">Game ID ${esc(a.game_id)}</div></article>`).join('')||'<p class="muted">No staff yet.</p>'}
 function openAlliancePortal(){currentAllianceId=null;$('alliancePortal').classList.remove('hidden');$('allianceEvents').classList.add('hidden');const rows=snap?.is_owner?(snap?.all_alliances||snap?.alliances||[]):(snap?.alliances||[]);$('alliancePortalList').innerHTML=rows.map(a=>`<article class="alliance-card"><h3>${esc(a.tag)}</h3><div class="muted">State ${esc(a.state_number)}</div><button class="full-btn" data-alliance-open="${a.id}">Open Events</button></article>`).join('')||'<p class="muted">No alliance is assigned to your WOS Utilities access.</p>';$('alliancePortalList').querySelectorAll('[data-alliance-open]').forEach(b=>b.onclick=()=>openAllianceEvents(b.dataset.allianceOpen))}
 function openAllianceEvents(id){currentAllianceId=String(id);$('currentAllianceLabel').textContent=allianceName(id);$('alliancePortal').classList.add('hidden');$('allianceEvents').classList.remove('hidden');renderEvents();loadAllianceDiscordHub()}
 const TYPE_LABEL={bear_trap:'🐻 BEAR TRAP',foundry:'🏭 FOUNDRY',canyon:'⚔️ CANYON CLASH',arena_reset:'🔄 ARENA / DAILY RESET',crazy_joe:'🔥 CRAZY JOE',brothers_in_arms:'🎯 BROTHERS IN ARMS',svs:'🛡️ SVS',custom:'⚙️ CUSTOM EVENT'};

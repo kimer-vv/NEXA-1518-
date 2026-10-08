@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- NEXA STAFF WORKSPACES V4.4 — GALAXY V3 / ACCESS HERO + CONTACT -->
+<!-- NEXA STAFF WORKSPACES V4.5 — GALAXY V3.3 / SELF-SERVE CREATE + LEGAL FOOTER -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -28,7 +28,7 @@ label{display:grid;gap:7px;margin:12px 0;font-size:13px;font-weight:850;color:#c
 .modal{position:fixed;inset:0;z-index:50000;display:none;place-items:center;padding:14px;background:rgba(0,0,0,.78);backdrop-filter:blur(7px)}.modal.open{display:grid}.dialog{width:min(650px,100%);max-height:90dvh;overflow:auto;border:1px solid rgba(151,170,255,.34);border-radius:24px;background:#0b1125;padding:19px}.dialogTop{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.x{width:42px;height:42px;border-radius:50%;border:1px solid rgba(89,228,255,.3);background:#091429;color:#ddfbff;font-size:22px}.moduleAccess{border:1px solid rgba(151,170,255,.18);border-radius:18px;padding:14px;margin:11px 0;background:#0c142b}.moduleAccess.disabledByAdmin{opacity:.55}.moduleRow{display:flex;justify-content:space-between;align-items:center;gap:10px}.toggle{width:22px;height:22px}.form2{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.actions .btn{flex:1 1 150px}.recoveryCode{font-size:21px;font-weight:950;text-align:center;padding:14px;border:1px solid rgba(89,228,255,.28);border-radius:15px;background:rgba(89,228,255,.06);letter-spacing:.05em}
 @media(max-width:850px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:620px){.grid,.peopleGrid,.form2{grid-template-columns:1fr}.module{min-height:126px}.hubTop{align-items:flex-start}.shell{padding-top:23px}.accessHead{align-items:flex-start;flex-direction:column}.accessHead .btn{width:100%}}
 </style>
-<link rel="stylesheet" href="nexa-galaxy-ui-v3.css?v=3-20261008-icons">
+<link rel="stylesheet" href="nexa-galaxy-ui-v3.css?v=33-20261008-eventcards">
 </head>
 <body class="nexa-galaxy page-staff">
 <main class="shell">
@@ -77,7 +77,8 @@ label{display:grid;gap:7px;margin:12px 0;font-size:13px;font-weight:850;color:#c
     <button id="ownershipHelp" type="button" class="textHelp">Contact Us / Ownership Help</button>
   </div>
 </section>
-<div class="legalFooter loginLegal"><span>Privacy Policy</span><span>•</span><span>Terms</span><span>•</span><span>Contact</span><span>•</span><span>Support</span></div>
+<div class="legalFooter loginLegal"><button type="button" data-legal="privacy">Privacy Policy</button><span>•</span><button type="button" data-legal="terms">Terms</button><span>•</span><button type="button" data-legal="contact">Contact</button><span>•</span><button type="button" data-legal="support">Support</button><span>•</span><button type="button" data-legal="cookies">Cookie Preferences</button></div>
+<div class="legalNotice">NEXA is an independent fan-made management and coordination tool for Whiteout Survival communities. NEXA is not affiliated with Century Games or the official Whiteout Survival team. Game names, images and trademarks belong to their respective owners. NEXA is intended for community organization, planning and staff coordination only.</div>
 </section>
 
 <section id="app" class="hidden">
@@ -103,7 +104,8 @@ label{display:grid;gap:7px;margin:12px 0;font-size:13px;font-weight:850;color:#c
       <div id="people" class="peopleGrid"></div><div id="accessStatus" class="status"></div>
     </div>
   </section>
-  <div class="legalFooter hubLegal"><span>Privacy Policy</span><span>•</span><span>Terms</span><span>•</span><span>Contact</span><span>•</span><span>Support</span></div>
+  <div class="legalFooter hubLegal"><button type="button" data-legal="privacy">Privacy Policy</button><span>•</span><button type="button" data-legal="terms">Terms</button><span>•</span><button type="button" data-legal="contact">Contact</button><span>•</span><button type="button" data-legal="support">Support</button><span>•</span><button type="button" data-legal="cookies">Cookie Preferences</button></div>
+<div class="legalNotice hubNotice">NEXA is an independent fan-made management and coordination tool for Whiteout Survival communities. NEXA is not affiliated with Century Games or the official Whiteout Survival team. Game names, images and trademarks belong to their respective owners. NEXA is intended for community organization, planning and staff coordination only.</div>
 </section>
 </main>
 
@@ -208,6 +210,95 @@ async function removePerson(){
  }catch(e){out.style.color='var(--bad)';out.textContent=String(e.message||e).replaceAll('_',' ')}
 }
 
+
+function openCreateWorkspace(){
+ $('modalTitle').textContent='Create Workspace for New Server';
+ $('modalSub').textContent='Create the first NEXA workspace for a server that does not already have one.';
+ $('modalBody').innerHTML=`
+  <div class="createServerGrid">
+   <label>State / Server<input id="cwState" class="input" inputmode="numeric" placeholder="e.g. 1518"></label>
+   <label>Game Name / IGN<input id="cwName" class="input" maxlength="80" placeholder="Your in-game name"></label>
+   <label>Game ID<input id="cwGameId" class="input" inputmode="numeric" placeholder="Numbers only"></label>
+   <label>Alliance Tag<input id="cwTag" class="input" maxlength="8" placeholder="e.g. FSU"></label>
+   <label>Alliance Name <small class="muted">optional</small><input id="cwAllianceName" class="input" maxlength="80" placeholder="Alliance name"></label>
+   <label>Workspace Name <small class="muted">optional</small><input id="cwWorkspaceName" class="input" maxlength="80" placeholder="State workspace name"></label>
+   <label>NEXA Password<input id="cwPassword" class="input" type="password" minlength="8" autocomplete="new-password" placeholder="At least 8 characters"></label>
+   <label>Confirm Password<input id="cwPassword2" class="input" type="password" autocomplete="new-password"></label>
+  </div>
+  <label class="createAgree"><input id="cwRemember" type="checkbox" checked> Remember me on this device</label>
+  <label class="createAgree"><input id="cwTerms" type="checkbox"> I agree to NEXA Terms and Privacy Policy.</label>
+  <div class="createServerNote">If this State already has a NEXA workspace, creation is blocked. Use <b>Ownership Help</b> instead; an existing server cannot be claimed automatically.</div>
+  <div class="actions"><button id="cwCreate" class="btn">Create Workspace</button><button id="cwCancel" class="btn secondary">Cancel</button></div>
+  <div id="cwStatus" class="status"></div>`;
+ $('modal').classList.add('open');
+ $('cwCancel').onclick=closeModal;
+ $('cwCreate').onclick=async()=>{
+   const out=$('cwStatus');
+   const st=Number(String($('cwState').value||'').replace(/\D/g,''));
+   const gid=$('cwGameId').value.trim(), name=$('cwName').value.trim(), tag=$('cwTag').value.trim().toUpperCase();
+   const pw=$('cwPassword').value, pw2=$('cwPassword2').value;
+   if(!st||!name||!gid||!tag){out.textContent='State, Game Name, Game ID and Alliance Tag are required.';return}
+   if(!/^\d{4,24}$/.test(gid)){out.textContent='Enter a valid Game ID.';return}
+   if(pw.length<8){out.textContent='Password must be at least 8 characters.';return}
+   if(pw!==pw2){out.textContent='Passwords do not match.';return}
+   if(!$('cwTerms').checked){out.textContent='Please accept the Terms and Privacy Policy to continue.';return}
+   $('cwCreate').disabled=true;out.textContent='Creating your server workspace…';
+   try{
+     const d=await rpc('nexa_create_server_workspace_v1',{
+       p_state_number:st,p_game_name:name,p_game_id:gid,p_password:pw,p_alliance_tag:tag,
+       p_alliance_name:$('cwAllianceName').value.trim()||null,
+       p_workspace_name:$('cwWorkspaceName').value.trim()||null,
+       p_remember:$('cwRemember').checked
+     });
+     if(!d?.ok){
+       if(d?.error==='workspace_exists'){
+         out.innerHTML='This State already has a NEXA workspace. <button id="cwOwnership" class="inlineHelp" type="button">Open Ownership Help</button>';
+         $('cwOwnership').onclick=()=>openContactForm('ownership');
+         $('cwCreate').disabled=false;
+         return
+       }
+       throw Error(d?.error||'Unable to create workspace.')
+     }
+     saveSession(d.token,$('cwRemember').checked,st);
+     out.style.color='var(--green)';out.textContent='Workspace created ✓';
+     setTimeout(()=>{closeModal();loadHub().catch(e=>openInfo('Workspace Created',String(e.message||e)))},500)
+   }catch(e){
+     out.style.color='var(--bad)';out.textContent=String(e.message||e).replaceAll('_',' ');
+     $('cwCreate').disabled=false
+   }
+ };
+}
+function openLegal(kind){
+ const legal={
+  privacy:{
+   title:'Privacy Policy',
+   html:`<h3>What NEXA stores</h3><p>NEXA stores only the information needed to provide workspace access and features. This may include Game ID, IGN, State / Server, alliance and workspace permissions, reminders, forms, schedules, planning data, support requests and session information needed to keep you signed in.</p>
+   <h3>How it is used</h3><p>This information is used to operate NEXA, protect workspace access, save your settings and provide the tools you choose to use. NEXA does not sell personal data or use it for advertising.</p>
+   <h3>Passwords & access</h3><p>Passwords are stored as protected hashes and are not displayed to workspace staff. Access is limited by the permissions assigned to each account.</p>`
+  },
+  terms:{
+   title:'Terms of Service',
+   html:`<p>NEXA is a fan-made community management tool. Use NEXA only for lawful organization and coordination of communities you are authorized to manage.</p>
+   <p>Do not attempt to bypass permissions, impersonate another user, misuse recovery or ownership systems, or access a State, alliance or workspace without authorization.</p>
+   <p>Workspace access may be disabled when necessary to protect the platform, a workspace or its members.</p>
+   <p>NEXA is not affiliated with Century Games or the official Whiteout Survival team.</p>`
+  },
+  cookies:{
+   title:'Cookie Preferences',
+   html:`<p><b>Cookie Preferences</b> controls browser storage used by a website.</p>
+   <div class="cookieState"><b>Essential session storage</b><span>Required · On</span></div>
+   <p class="muted">Used to keep you signed in, remember the active State / Server and preserve required workspace preferences.</p>
+   <div class="cookieState"><b>Advertising cookies</b><span>Not used</span></div>
+   <div class="cookieState"><b>Optional analytics cookies</b><span>Not enabled</span></div>`
+  }
+ };
+ if(kind==='contact'||kind==='support'){openContactForm('support');return}
+ const x=legal[kind]||legal.privacy;
+ $('modalTitle').textContent=x.title;$('modalSub').textContent='';
+ $('modalBody').innerHTML=`<div class="legalModalText">${x.html}</div><div class="actions"><button id="legalOk" class="btn">Done</button></div>`;
+ $('modal').classList.add('open');$('legalOk').onclick=closeModal;
+}
+
 function openContactForm(category='support'){const stateGuess=String(activeState||$('state')?.value||$('regState')?.value||''),idGuess=String(model?.game_id||$('id')?.value||$('regId')?.value||'');$('modalTitle').textContent=category==='ownership'?'Ownership Help':'Contact NEXA';$('modalSub').textContent='Send a message to NEXA support.';$('modalBody').innerHTML=`<div class="contactGrid"><label>State / Server<input id="contactState" class="input" inputmode="numeric" value="${esc(stateGuess)}" placeholder="1518"></label><label>Game ID<input id="contactGameId" class="input" inputmode="numeric" value="${esc(idGuess)}" placeholder="Game ID"></label><label>Display Name<input id="contactName" class="input" value="${esc(model?.game_name||'')}" placeholder="Optional"></label><label>Reason<select id="contactCategory" class="select"><option value="support">Support</option><option value="access">Access Help</option><option value="ownership">Ownership Help</option><option value="new_workspace">Create a New Server Workspace</option></select></label></div><label>Message<textarea id="contactMessage" class="input contactMessage" maxlength="4000" placeholder="Tell us what happened and what you need help with."></textarea></label><div class="actions"><button id="sendContact" class="btn">Send Message</button><button id="cancelContact" class="btn secondary">Cancel</button></div><div id="contactStatus" class="status"></div>`;$('contactCategory').value=category;$('modal').classList.add('open');$('cancelContact').onclick=closeModal;$('sendContact').onclick=async()=>{const out=$('contactStatus'),st=Number(String($('contactState').value||'').replace(/\D/g,'')),gid=$('contactGameId').value.trim(),msg=$('contactMessage').value.trim();if(!msg||msg.length<10){out.textContent='Please enter a little more detail before sending.';return}$('sendContact').disabled=true;out.textContent='Sending…';try{const {data,error}=await SB.rpc('nexa_workspace_contact_submit_v1',{p_state_number:st||null,p_game_id:gid||null,p_display_name:$('contactName').value.trim()||null,p_category:$('contactCategory').value,p_message:msg});if(error)throw error;if(!data?.ok)throw Error(data?.error||'Unable to send message.');out.style.color='var(--green)';out.textContent='Message sent ✓ NEXA can review this request.'}catch(e){out.style.color='var(--bad)';out.textContent=String(e.message||e).replaceAll('_',' ');$('sendContact').disabled=false}}}
 
 async function makeRecovery(){
@@ -233,12 +324,13 @@ $('registerGo').onclick=async()=>{
 $('recoverGo').onclick=async()=>{
  try{if($('recoverPw').value!==$('recoverPw2').value)throw Error('Passwords do not match.');const d=await rpc('transfer_staff_reset_password',{p_identifier:$('recoverId').value.trim(),p_code:$('recoverCode').value.trim(),p_new_password:$('recoverPw').value});if(!d?.ok)throw Error(d?.error||'Invalid recovery code.');$('msg').style.color='var(--green)';$('msg').textContent='Password changed. You can log in now.';authTab(false)}catch(e){$('msg').style.color='var(--bad)';$('msg').textContent=String(e.message||e).replaceAll('_',' ')}
 };
+document.querySelectorAll('[data-legal]').forEach(b=>b.onclick=()=>openLegal(b.dataset.legal));
 $('copyHubLink').onclick=async()=>{
  const url=`${location.origin}/staff-workspaces.html`;
  try{await navigator.clipboard.writeText(url);$('hubLinkStatus').style.color='var(--green)';$('hubLinkStatus').textContent='Workspace Hub link copied ✓'}
  catch{$('hubLinkStatus').textContent=url}
 };
-$('createWorkspaceInfo').onclick=()=>openContactForm('new_workspace');
+$('createWorkspaceInfo').onclick=openCreateWorkspace;
 $('ownershipHelp').onclick=()=>openContactForm('ownership');
 $('out').onclick=async()=>{try{if(token)await rpc('transfer_staff_logout',{p_token:token})}catch{}clearSession();location.reload()};
 async function start(){if(!token){const reason=new URLSearchParams(location.search).get('reason');if(reason==='session_expired')$('msg').textContent='Your staff session expired. Sign in again.';return}try{await loadHub()}catch(e){clearSession();$('loginWrap').classList.remove('hidden');$('app').classList.add('hidden');document.body.classList.remove('hub-mode');$('msg').textContent='Your staff session could not be restored. Sign in again.'}}

@@ -162,7 +162,7 @@ button{cursor:pointer;font-weight:850;background:linear-gradient(120deg,#5143a7,
 }
 
 </style>
-<link rel="stylesheet" href="nexa-galaxy-ui-v3.css?v=32-20261008-runtime">
+<link rel="stylesheet" href="nexa-galaxy-ui-v3.css?v=33-20261008-eventcards">
 </head>
 <body class="nexa-galaxy page-wos">
 <main class="shell">
@@ -181,7 +181,14 @@ button{cursor:pointer;font-weight:850;background:linear-gradient(120deg,#5143a7,
 <section id="remindersView" class="hidden">
 <div class="backbar"><button data-home class="secondary">← WOS Utilities</button><b>Event Reminders</b></div>
 <section id="alliancePortal"><h2>Choose Alliance</h2><p class="muted">Events and Discord destinations stay isolated by alliance.</p><div id="alliancePortalList" class="alliance-portal"></div></section>
-<section id="allianceEvents" class="hidden"><div class="backbar"><button id="backAlliances" class="secondary">← Alliances</button><b id="currentAllianceLabel">Alliance</b></div><div class="event-head"><div><h2 style="margin:0">Event Reminders</h2><div class="muted">All scheduling uses UTC.</div></div><button id="addEvent">＋ Add New Event</button></div>
+<section id="allianceEvents" class="hidden"><div class="backbar"><button id="backAlliances" class="secondary">← Alliances</button><b id="currentAllianceLabel">Alliance</b></div><div class="event-head"><div><h2 style="margin:0">Event Reminders</h2><div class="muted">Choose an event card to create or manage its reminders. All scheduling uses UTC.</div></div><button id="addEvent">＋ Add New Event</button></div>
+<section class="eventCatalog">
+  <div class="eventCatalogHead">
+    <div><div class="kicker">EVENT TYPES</div><h3>Choose an Event</h3></div>
+    <span class="muted">Two cards per row · tap any card to manage it.</span>
+  </div>
+  <div id="eventTypeCards" class="eventTypeCards"></div>
+</section>
 <div class="discord-hub"><div class="discord-hub-head"><div><b>Discord Servers</b><div class="muted" style="font-size:12px;margin-top:3px">Link Discord servers to this alliance once. The same server can be linked to multiple alliances, and there is no fixed server limit.</div></div><button id="allianceLinkDiscord" type="button" class="secondary">＋ Link Server</button></div><div id="allianceDiscordLinkPanel" class="hidden" style="margin-top:10px"><label>Discord Server ID<input id="allianceGuildId" inputmode="numeric" placeholder="123456789012345678"></label><p class="muted" style="font-size:12px">First time? Install NEXA Bot in the server, enable Discord Developer Mode, then press/hold the server and choose <b>Copy Server ID</b>. NEXA will verify bot access and link it to this alliance.</p><div class="event-actions"><button id="allianceVerifyGuild" type="button">Verify & Link</button><button id="allianceCancelGuild" type="button" class="secondary">Cancel</button></div><p id="allianceGuildStatus" class="status"></p></div><div id="allianceDiscordServers" class="discord-server-list"></div></div>
 <div id="eventGroups" class="event-groups"></div></section>
 </section>
@@ -225,19 +232,87 @@ async function refresh(){
  }
  renderStaff()
 }
-async function loadEvents(){try{events=(await api('events')).events||[];renderEvents()}catch(e){$('eventGroups').innerHTML=`<section class="card"><p class="error">${esc(e.message)}</p></section>`}}
+async function loadEvents(){try{events=(await api('events')).events||[];renderEventTypeCards();renderEvents()}catch(e){$('eventGroups').innerHTML=`<section class="card"><p class="error">${esc(e.message)}</p></section>`}}
 async function boot(){if(!token){location.replace('staff-workspaces.html?next='+encodeURIComponent((location.pathname.split('/').pop()||'')+location.search)+'&reason=sign_in_required');return}let sessionOk=false;try{const s=await sb.rpc('transfer_staff_session',{p_token:token});if(s.error||!s.data?.ok)throw Error(s.error?.message||s.data?.error||'session_expired');sessionOk=true;await refresh();if(!activeState&&snap?.me?.state_number){activeState=Number(snap.me.state_number);sessionStorage.setItem('nexa_active_state',String(activeState));sessionStorage.setItem('nexa_active_state_v49',String(activeState));window.NEXA_ACTIVE_STATE=activeState}await loadEvents()}catch(e){if(!sessionOk||String(e.message||'').includes('session_expired')){for(const st of [localStorage,sessionStorage]){st.removeItem('nexa_transfer_staff_token');st.removeItem('nexa_active_state');st.removeItem('nexa_active_state_v49')}location.replace('staff-workspaces.html?next='+encodeURIComponent((location.pathname.split('/').pop()||'')+location.search)+'&reason=session_expired');return}console.error('WOS Utilities load error',e);const home=$('homeView');if(home)home.classList.remove('hidden');toast('WOS Utilities could not finish loading. Your NEXA session is still active.',true)}}
 function roleLabel(r){return r==='administrative'?'Access Management':r==='owner'?'Owner':String(r||'').toUpperCase()}
 function renderStaff(){const can=!!snap?.can_manage_staff;$('staffAdmin').classList.toggle('hidden',!can);const list=snap?.staff||[];$('staffList').innerHTML=list.map(a=>`<article class="staff-tile"><h3>${esc(a.game_name||a.game_id)}</h3><div class="staff-meta">${esc(roleLabel(a.role))} · ${esc(String(a.status||'active').toUpperCase())}</div><div class="staff-meta">Game ID ${esc(a.game_id)}</div></article>`).join('')||'<p class="muted">No staff yet.</p>'}
-function openAlliancePortal(){currentAllianceId=null;$('alliancePortal').classList.remove('hidden');$('allianceEvents').classList.add('hidden');const rows=snap?.is_owner?(snap?.all_alliances||snap?.alliances||[]):(snap?.alliances||[]);$('alliancePortalList').innerHTML=rows.map(a=>`<article class="alliance-card"><h3>${esc(a.tag)}</h3><div class="muted">State ${esc(a.state_number)}</div><button class="full-btn" data-alliance-open="${a.id}">Open Events</button></article>`).join('')||'<p class="muted">No alliance is assigned to your WOS Utilities access.</p>';$('alliancePortalList').querySelectorAll('[data-alliance-open]').forEach(b=>b.onclick=()=>openAllianceEvents(b.dataset.allianceOpen))}
-function openAllianceEvents(id){currentAllianceId=String(id);$('currentAllianceLabel').textContent=allianceName(id);$('alliancePortal').classList.add('hidden');$('allianceEvents').classList.remove('hidden');renderEvents();loadAllianceDiscordHub()}
-const TYPE_LABEL={bear_trap:'🐻 BEAR TRAP',foundry:'🏭 FOUNDRY',canyon:'⚔️ CANYON CLASH',arena_reset:'🔄 ARENA / DAILY RESET',crazy_joe:'🔥 CRAZY JOE',brothers_in_arms:'🎯 BROTHERS IN ARMS',svs:'🛡️ SVS',custom:'⚙️ CUSTOM EVENT'};
+function openAlliancePortal(){
+ currentAllianceId=null;
+ $('alliancePortal').classList.remove('hidden');
+ $('allianceEvents').classList.add('hidden');
+ const rows=snap?.is_owner?(snap?.all_alliances||snap?.alliances||[]):(snap?.alliances||[]);
+ $('alliancePortalList').innerHTML=rows.map(a=>`<article class="alliance-card alliance-choice-card">
+   <div class="alliance-choice-icon"><img src="/assets/nexa-ui/icons/event-reminders.png" alt=""></div>
+   <div><div class="kicker">EVENT INSTANCE</div><h3>${esc(a.tag)}</h3><div class="muted">State ${esc(a.state_number)}${a.name?` · ${esc(a.name)}`:''}</div></div>
+   <button class="full-btn" data-alliance-open="${a.id}">Open Events →</button>
+ </article>`).join('')||'<p class="muted">No alliance is assigned to your WOS Utilities access.</p>';
+ $('alliancePortalList').querySelectorAll('[data-alliance-open]').forEach(b=>b.onclick=()=>openAllianceEvents(b.dataset.allianceOpen))
+}
+function openAllianceEvents(id){
+ currentAllianceId=String(id);
+ $('currentAllianceLabel').textContent=allianceName(id);
+ $('alliancePortal').classList.add('hidden');
+ $('allianceEvents').classList.remove('hidden');
+ renderEventTypeCards();
+ renderEvents();
+ loadAllianceDiscordHub()
+}
+const TYPE_LABEL={bear_trap:'BEAR TRAP',foundry:'FOUNDRY BATTLE',canyon:'CANYON CLASH',arena_reset:'ARENA / DAILY RESET',crazy_joe:'CRAZY JOE',brothers_in_arms:'BROTHERS IN ARMS',svs:'SVS',custom:'CUSTOM EVENT'};
 function renderEvents(){if(!$('eventGroups'))return;const visible=events.filter(e=>!currentAllianceId||String(e.alliance_id)===String(currentAllianceId));if(!visible.length){$('eventGroups').innerHTML='<section class="card"><p class="muted">No saved events for this alliance yet.</p></section>';return}const groups={};visible.forEach(e=>(groups[e.event_type||'custom']??=[]).push(e));$('eventGroups').innerHTML=Object.entries(groups).map(([type,rows])=>`<section class="event-group"><div class="event-group-title">${esc(TYPE_LABEL[type]||type.toUpperCase())}</div><div class="event-list">${rows.map(e=>`<article class="event-card"><div class="event-title"><div><h3>${esc(e.event_name||'Event')}</h3><div class="event-sub">${esc(utcStamp(e.event_at))} · ${esc(repeatLabel(e))}</div></div><span class="pill ${esc(e.status||'active')}">${esc(String(e.status||'active').toUpperCase())}</span></div><div class="event-actions"><button class="secondary" data-edit="${e.id}">Edit</button><button class="secondary" data-preview="${e.id}">Preview</button><button class="secondary" data-test="${e.id}">Test</button><button class="secondary" data-toggle="${e.id}">${e.status==='active'?'Pause':'Activate'}</button><button class="danger" data-delete="${e.id}">Delete</button></div></article>`).join('')}</div></section>`).join('');
 document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openEvent(events.find(e=>String(e.id)===b.dataset.edit)));
 document.querySelectorAll('[data-preview]').forEach(b=>b.onclick=()=>previewEvent(events.find(e=>String(e.id)===b.dataset.preview)));
 document.querySelectorAll('[data-toggle]').forEach(b=>b.onclick=async()=>{const e=events.find(x=>String(x.id)===b.dataset.toggle);try{await api('set_event_status',{id:e.id,status:e.status==='active'?'paused':'active'});await loadEvents();toast('Event updated.')}catch(err){toast(err.message,true)}});
 document.querySelectorAll('[data-delete]').forEach(b=>b.onclick=async()=>{const e=events.find(x=>String(x.id)===b.dataset.delete);if(!await confirmNexa('Delete Event',`Delete ${e.event_name}?`,'Delete'))return;try{await api('delete_event',{id:e.id});await loadEvents();toast('Event deleted.')}catch(err){toast(err.message,true)}});
 document.querySelectorAll('[data-test]').forEach(b=>b.onclick=()=>safeTest(events.find(x=>String(x.id)===b.dataset.test)))}
+
+const EVENT_CARD_CONFIG=[
+ {type:'bear_trap',label:'Bear Trap',desc:'Bear schedules, planning and reminders.',img:'bear-trap.png',tone:'bear'},
+ {type:'foundry',label:'Foundry Battle',desc:'Foundry schedules, legions and reminders.',img:'foundry-battle.png',tone:'foundry'},
+ {type:'canyon',label:'Canyon Clash',desc:'Canyon schedules and team reminders.',img:'canyon-clash.png',tone:'canyon'},
+ {type:'arena_reset',label:'Arena / Daily Reset',desc:'Daily reset and arena reminders.',img:'arena-reset.png',tone:'arena'},
+ {type:'crazy_joe',label:'Crazy Joe',desc:'Alliance defense waves and timing.',img:'crazy-joe.png',tone:'joe'},
+ {type:'brothers_in_arms',label:'Brothers in Arms',desc:'Combat event schedules and reminders.',img:'brothers-in-arms.png',tone:'brothers'},
+ {type:'svs',label:'SVS',desc:'State-versus-State schedules and alerts.',img:'svs.png',tone:'svs'},
+ {type:'custom',label:'Custom Event',desc:'Build a reminder for anything else.',img:'custom-event.png',tone:'custom'}
+];
+function eventRowsForType(type){
+ return events.filter(e=>String(e.alliance_id)===String(currentAllianceId)&&String(e.event_type||'custom')===String(type));
+}
+function renderEventTypeCards(){
+ const host=$('eventTypeCards'); if(!host)return;
+ host.innerHTML=EVENT_CARD_CONFIG.map(c=>{
+   const rows=eventRowsForType(c.type);
+   const active=rows.filter(x=>(x.status||'active')==='active').length;
+   const status=rows.length?`${rows.length} saved${active?` · ${active} active`:''}`:'Create reminder';
+   return `<button type="button" class="eventTypeCard tone-${c.tone}" data-event-card="${c.type}">
+     <span class="eventTypeImage"><img src="/assets/nexa-ui/events/${c.img}" alt=""></span>
+     <span class="eventTypeName">${esc(c.label)}</span>
+     <span class="eventTypeDesc">${esc(c.desc)}</span>
+     <span class="eventTypeStatus">${esc(status)} →</span>
+   </button>`;
+ }).join('');
+ host.querySelectorAll('[data-event-card]').forEach(b=>b.onclick=()=>openEventTypeManager(b.dataset.eventCard));
+}
+function openEventTypeManager(type){
+ const cfg=EVENT_CARD_CONFIG.find(x=>x.type===type)||EVENT_CARD_CONFIG.at(-1);
+ const rows=eventRowsForType(type);
+ modal(cfg.label,`
+   <div class="eventManagerHero tone-${cfg.tone}">
+     <img src="/assets/nexa-ui/events/${cfg.img}" alt="">
+     <div><div class="kicker">EVENT MANAGER</div><h3>${esc(cfg.label)}</h3><p class="muted">${esc(cfg.desc)}</p></div>
+   </div>
+   <div class="eventManagerActions"><button id="eventManagerNew">＋ Add ${esc(cfg.label)}</button></div>
+   <div class="eventManagerList">${rows.length?rows.map(e=>`
+     <article class="eventManagerRow">
+       <div><b>${esc(e.event_name||cfg.label)}</b><small>${esc(utcStamp(e.event_at))} · ${esc(repeatLabel(e))}</small></div>
+       <span class="pill ${esc(e.status||'active')}">${esc(String(e.status||'active').toUpperCase())}</span>
+       <button class="secondary" data-manager-edit="${e.id}">Edit</button>
+     </article>`).join(''):'<p class="muted">No reminders have been created for this event yet.</p>'}</div>
+ `);
+ $('eventManagerNew').onclick=()=>{closeModal();openEvent(null,type)};
+ document.querySelectorAll('[data-manager-edit]').forEach(b=>b.onclick=()=>{const e=events.find(x=>String(x.id)===String(b.dataset.managerEdit));closeModal();openEvent(e,type)});
+}
+
 function repeatLabel(e){const r=e.repeat_type||'one_time',s=e.settings||{};return r==='daily'?'Daily':r==='every_other_day'?'Every Other Day':r==='weekly'?'Weekly':r==='every_2_weeks'?'Every 2 Weeks':r==='every_4_weeks'?'Every 4 Weeks':r==='monthly'?'Monthly':r==='custom'?`Every ${s.repeat_every||1} ${s.repeat_unit||'days'}`:'One Time'}
 const PRESETS=[['bear_trap','Bear Trap'],['foundry','Foundry Battle'],['canyon','Canyon Clash'],['arena_reset','Arena / Daily Reset'],['crazy_joe','Crazy Joe'],['brothers_in_arms','Brothers in Arms'],['svs','SVS'],['custom','Custom Event']];
 const REMINDERS=[0,5,10,15,30,60,120,360,1440];
@@ -412,9 +487,10 @@ async function refreshMentionUI(selected=''){
  await loadDiscordRoles(guild_id,selected);
 }
 
-function openEvent(existing=null){
+function openEvent(existing=null,presetType=null){
 window.__nexaEditingEvent=existing?structuredClone(existing):null;
-const e=existing?structuredClone(existing):{event_type:'bear_trap',event_name:'Bear Trap',status:'active',repeat_type:'every_other_day',settings:{reminder_type:'simple',include_bear_details:false,offsets:[60,15,5,0],rules:{},buffs:{}}},s=e.settings||{};
+const presetLabel=PRESETS.find(x=>x[0]===presetType)?.[1]||'Bear Trap';
+const e=existing?structuredClone(existing):{event_type:presetType||'bear_trap',event_name:presetLabel,status:'active',repeat_type:(presetType==='arena_reset'?'daily':presetType==='foundry'||presetType==='brothers_in_arms'?'every_2_weeks':presetType==='canyon'?'every_4_weeks':presetType==='bear_trap'?'every_other_day':'one_time'),settings:{reminder_type:'simple',include_bear_details:false,offsets:[60,15,5,0],rules:{},buffs:{}}},s=e.settings||{};
 modal(existing?'Edit Event':'Add New Event',`
 <div class="setup-section"><h3>Event</h3><div class="form-grid">
 <label>Event Type<select id="eventType">${PRESETS.map(([v,l])=>`<option value="${v}" ${e.event_type===v?'selected':''}>${l}</option>`).join('')}</select></label>
@@ -632,7 +708,7 @@ $('backAlliances').onclick=openAlliancePortal;$('addEvent').onclick=()=>openEven
 $('allianceLinkDiscord').onclick=()=>{$('allianceDiscordLinkPanel').classList.toggle('hidden');if(!$('allianceDiscordLinkPanel').classList.contains('hidden'))setTimeout(()=>$('allianceGuildId')?.focus(),0)};
 $('allianceVerifyGuild').onclick=linkAllianceDiscord;
 $('allianceCancelGuild').onclick=()=>$('allianceDiscordLinkPanel').classList.add('hidden');
-$('openGift').onclick=()=>{const u=new URL('gift-code-workspace.html',location.href);u.searchParams.set('module','wos');u.searchParams.set('from','wos-utilities');location.assign(u.href)};
+$('openGift').onclick=()=>{const st=Number(activeState||snap?.me?.state_number||0);if(token){sessionStorage.setItem('nexa_transfer_staff_token',token);localStorage.setItem('nexa_transfer_staff_token',token)}if(st){sessionStorage.setItem('nexa_active_state',String(st));sessionStorage.setItem('nexa_active_state_v49',String(st));localStorage.setItem('nexa_active_state',String(st));localStorage.setItem('nexa_active_state_v49',String(st))}const u=new URL('gift-code-workspace.html',location.href);u.searchParams.set('module','wos');u.searchParams.set('from','wos-utilities');if(st)u.searchParams.set('state',String(st));location.assign(u.href)};
 $('openStaff')?.addEventListener('click',()=>show('staffView'));
 $('addStaff')?.addEventListener('click',async()=>{try{await api('add_staff',{game_id:$('staffGameId')?.value?.trim()||'',role:$('staffRole')?.value||'r4'});if($('staffGameId'))$('staffGameId').value='';await refresh();toast('Staff access added.')}catch(e){if($('staffStatus'))$('staffStatus').textContent=e.message}});
 $('addDiscordBot').onclick=async()=>{const pop=window.open('about:blank','_blank');try{const d=await api('discord_invite',{});if(!d.url)throw Error('Discord install link is unavailable.');if(pop){pop.opener=null;pop.location.href=d.url}else{location.href=d.url}}catch(e){try{pop?.close()}catch{}toast(e.message,true)}};

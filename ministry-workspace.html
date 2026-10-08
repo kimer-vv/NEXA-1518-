@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- NEXA MINISTRY WORKSPACE V1.8.2 — GLOBAL SSO ROUTING FIX -->
+<!-- NEXA MINISTRY WORKSPACE V1.8.3 — OWNER LINK + GLOBAL NAV FIX -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -17,7 +17,7 @@
 })();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="nexa-staff-workspace-shared-v1.js?v=4-20261008-authfix3" defer></script>
+<script src="nexa-staff-workspace-shared-v1.js?v=4-20261008-authfix6" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <style>
 :root{
@@ -213,34 +213,67 @@ async function modulesRender(){
  if(!sel)return;
  let list=[];
  try{
-   const d=await rpc('nexa_staff_workspace_access_v1',{p_token:token});
-   if(d?.ok&&Array.isArray(d.modules))list=d.modules;
+   const [access,session]=await Promise.all([
+     rpc('nexa_staff_workspace_access_v1',{p_token:token}),
+     rpc('transfer_staff_session',{p_token:token})
+   ]);
+   const rows=[
+     ...(access?.ok&&Array.isArray(access.modules)?access.modules:[]),
+     ...(session?.ok&&Array.isArray(session.modules)?session.modules:[])
+   ];
+   const activeState=Number(
+     new URLSearchParams(location.search).get('state')||
+     localStorage.getItem('nexa_active_state')||
+     sessionStorage.getItem('nexa_active_state')||
+     0
+   );
+   const seen=new Set();
+   for(const m of rows){
+     if(!m?.url)continue;
+     if(activeState&&m.state_number&&Number(m.state_number)!==activeState)continue;
+     let key=m.module||'';
+     if(!key){
+       const p=new URL(m.url,location.href).pathname;
+       key=p.includes('transfer-workspace')?'transfer':
+           p.includes('ministry-workspace')?'ministry':
+           p.includes('wos-utilities')?'gift':m.url;
+     }
+     if(key==='wos')key='gift';
+     if(seen.has(key))continue;
+     seen.add(key);
+     list.push({...m,module:key});
+   }
  }catch(_){}
- if(!list.length){
-   list=(modules||[]).map(m=>({
-     ...m,
-     label:m.label||`${m.module==='transfer'?'Transfer':m.module==='ministry'?'Ministry':m.module==='gift'?'Gift Code':m.module||'Workspace'} • ${m.access_level==='admin'?'Admin':'Regular'}`,
-     url:m.url||(m.module==='transfer'
-       ?`transfer-workspace.html?workspace=${encodeURIComponent(m.workspace_id||'')}`
-       :m.module==='ministry'
-         ?`ministry-workspace.html?workspace=${encodeURIComponent(m.workspace_id||'')}`
-         :m.module==='gift'
-           ?'gift-code-workspace.html'
-           :'')
-   })).filter(m=>m.url);
+
+ if(!list.some(m=>m.module==='ministry')){
+   list.push({
+     module:'ministry',
+     label:'Ministry Workspace',
+     workspace_id:workspaceId,
+     url:`ministry-workspace.html?workspace=${encodeURIComponent(workspaceId)}`
+   });
  }
+ const order={transfer:1,ministry:2,gift:3};
+ list.sort((a,b)=>(order[a.module]||9)-(order[b.module]||9));
+
  sel.replaceChildren();
  for(const m of list){
-   const option=new Option(m.label||'NEXA Workspace',m.url||'');
-   const isCurrent=
-     m.module==='ministry'&&String(m.workspace_id||'')===String(workspaceId) ||
-     String(m.url||'').includes('ministry-workspace.html')&&
-       (!m.workspace_id||String(m.workspace_id)===String(workspaceId));
+   const label=m.module==='transfer'?'Transfer Workspace':
+               m.module==='ministry'?'Ministry Workspace':
+               m.module==='gift'?'WOS Utilities':
+               (m.label||'NEXA Workspace');
+   const option=new Option(label,m.url||'');
+   const isCurrent=m.module==='ministry'&&(
+     String(m.workspace_id||'')===String(workspaceId)||
+     String(m.url||'').includes('ministry-workspace.html')
+   );
    if(isCurrent)option.selected=true;
    sel.add(option);
  }
- if(!sel.options.length)sel.add(new Option('Ministry Workspace',ministryWorkspaceUrl()));
- sel.onchange=()=>{const u=sel.value;if(u)location.href=u};
+ sel.onchange=()=>{
+   const u=sel.value;
+   if(u&&!new URL(u,location.href).pathname.endsWith('/ministry-workspace.html'))location.href=u;
+ };
 }
 async function login(){
  $('loginMsg').textContent='Signing in…';
@@ -367,9 +400,10 @@ async function refresh(msg=''){
 async function loadAccess(){
  try{
    const d=await rpc('ministry_staff_access_list_v2',{p_workspace_id:workspaceId,p_token:token});if(!d?.ok)throw new Error(d?.error||'Unable to load access');
-   $('accessAdmin').classList.toggle('hidden',!d.can_manage);
-   $('ministryWorkspaceLinkCard').classList.toggle('hidden',!d.can_manage);
-   if(d.can_manage)renderMinistryWorkspaceLink();
+   const canManageMinistry=d.can_manage===true||snap?.is_owner===true;
+   $('accessAdmin').classList.toggle('hidden',!canManageMinistry);
+   $('ministryWorkspaceLinkCard').classList.toggle('hidden',!canManageMinistry);
+   if(canManageMinistry)renderMinistryWorkspaceLink();
    const members=d.members||[];
    $('accessList').innerHTML=members.length?members.map(a=>`<article class="access-card ${a.is_owner||a.access_level==='admin'?'adminTone':''}">
       <div class="staffName">${esc(a.game_name||a.game_id)}</div>

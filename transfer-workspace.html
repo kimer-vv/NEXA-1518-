@@ -1,6 +1,6 @@
 <!doctype html> 
 <!-- TARGET GITHUB FILE: transfer-workspace.html -->
-<!-- NEXA TRANSFER WORKSPACE V5.33 — GLOBAL SSO STATE ROUTING FIX -->
+<!-- NEXA TRANSFER WORKSPACE V5.34 — GLOBAL SSO BLACK-SCREEN FIX -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -19,7 +19,7 @@
 })();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="nexa-staff-workspace-shared-v1.js?v=4-20261008-authfix3" defer></script>
+<script src="nexa-staff-workspace-shared-v1.js?v=4-20261008-authfix4" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <style>
 :root{--c:#59e4ff;--v:#8d76ff;--m:#aab4d0;--p:rgba(8,15,34,.94);--good:#7df1be;--warn:#ffd56d;--bad:#ff8ca8;--blue:#73cfff;--gold:#ffd56d}
@@ -412,7 +412,20 @@ $('loginBtn').onclick=async()=>{const r=await SB.rpc('transfer_staff_login',{p_i
 $('registerBtn').onclick=async()=>{if(!workspaceId&&!await resolveWorkspace())return;const p=$('regPassword').value;if(p!==$('regConfirm').value){$('authStatus').textContent='Passwords do not match.';return}const r=await SB.rpc('transfer_staff_register',{p_workspace_id:workspaceId,p_username:$('regUsername').value.trim(),p_game_name:$('regGameName').value.trim(),p_game_id:$('regGameId').value.trim(),p_password:p,p_remember:$('rememberRegister').checked});if(r.error||r.data?.ok!==true){const map={game_id_not_authorized:'This Game ID has not been authorized for this Transfer Workspace.',username_taken:'That username is already in use.',already_registered:'This Game ID is already registered. Use Log In.'};$('authStatus').textContent=map[r.data?.error]||r.error?.message||'Unable to register.';return}saveToken(r.data.token,$('rememberRegister').checked);await restoreSession();await loadWorkspace()};
 $('recoverBtn').onclick=async()=>{if($('recoverPassword').value!==$('recoverConfirm').value){$('recoverStatus').textContent='Passwords do not match.';return}const r=await SB.rpc('transfer_staff_reset_password',{p_identifier:$('recoverIdentifier').value.trim(),p_code:$('recoverCode').value.trim(),p_new_password:$('recoverPassword').value});$('recoverStatus').textContent=r.error||r.data?.ok!==true?(r.error?.message||'Code is invalid or expired.'):'Password changed ✓'};
 async function restoreSession(){if(!token)return false;const r=await SB.rpc('transfer_staff_session',{p_token:token});if(r.error||r.data?.ok!==true){clearToken();return false}session=r.data;return true}
-async function chooseWorkspaceAndLoad(){if(!session&&!(await restoreSession())){location.replace(staffHub('sign_in_required'));return}const list=session.workspaces||[];if(!workspaceId){if(list.length===1)workspaceId=list[0].workspace_id;else if(wantedState)workspaceId=list.find(x=>Number(x.state_number)===wantedState)?.workspace_id||'';if(!workspaceId&&list.length>1){$('authStatus').innerHTML=`<div class="notice">Your Transfer Workspaces</div><div class="actions">${list.map(w=>`<button class="btn secondary" data-pick="${w.workspace_id}">State ${w.state_number}</button>`).join('')}</div>`;document.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{workspaceId=b.dataset.pick;loadWorkspace()});return}}await loadWorkspace()}
+async function chooseWorkspaceAndLoad(){
+ if(!session&&!(await restoreSession())){location.replace(staffHub('sign_in_required'));return}
+ const list=session.workspaces||[];
+
+ /* Global SSO already chose the State. Never fall back to the hidden legacy
+    workspace-picker, because that produces a black screen on mobile. */
+ if(!workspaceId&&wantedState)workspaceId=list.find(x=>Number(x.state_number)===wantedState)?.workspace_id||'';
+ if(!workspaceId&&list.length)workspaceId=list[0].workspace_id||'';
+ if(!workspaceId){location.replace(staffHub('no_access'));return}
+
+ $('authRoot').classList.add('hidden');
+ $('workspaceRoot').classList.remove('hidden');
+ await loadWorkspace()
+}
 
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function snapshotWithRetry(maxAttempts=3){
@@ -1095,7 +1108,20 @@ $('clearWorkspaceConfirm').onclick=async()=>{
 $('copyWorkspaceLink').onclick=e=>copyText(workspaceUrl(),e.currentTarget);
 $('logoutBtn').onclick=async()=>{try{if(token)await SB.rpc('transfer_staff_logout',{p_token:token})}catch{}clearToken();location.replace('staff-workspaces.html?logged_out=1')};
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.panel').forEach(x=>x.classList.toggle('active',x.dataset.panel===b.dataset.tab))});
-(async()=>{await resolveWorkspace();if(token&&await restoreSession())await chooseWorkspaceAndLoad();else if(new URLSearchParams(location.search).get('auth')==='register')showAuth();else location.replace(staffHub(token?'session_expired':'sign_in_required'))})();
+(async()=>{
+ await resolveWorkspace();
+ if(token&&await restoreSession()){
+  /* Session is valid: show the workspace shell immediately while data loads.
+     This prevents the auth flash -> black-screen sequence on Safari. */
+  $('authRoot').classList.add('hidden');
+  $('workspaceRoot').classList.remove('hidden');
+  await chooseWorkspaceAndLoad();
+ }else if(new URLSearchParams(location.search).get('auth')==='register'){
+  showAuth();
+ }else{
+  location.replace(staffHub(token?'session_expired':'sign_in_required'));
+ }
+})();
 })();
 </script>
 <script>window.NEXA_TRANSFER_PERSISTENT_ARCHIVE_V1=true;</script>

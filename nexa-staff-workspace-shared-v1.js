@@ -40,6 +40,13 @@ function clearSession(){
   s.removeItem('nexa_active_state_v49');
  }
 }
+function hubUrl(reason=''){
+ const u=new URL('staff-workspaces.html',location.href);
+ const here=(location.pathname.split('/').pop()||'')+location.search;
+ if(here&&!here.toLowerCase().startsWith('staff-workspaces.html'))u.searchParams.set('next',here);
+ if(reason)u.searchParams.set('reason',reason);
+ return u.href;
+}
 function moduleLabel(m){return m.module==='transfer'?'Transfer':m.module==='ministry'?'Ministry':'WOS Utilities'}
 function sameState(m){return !getState()||!m?.state_number||Number(m.state_number)===getState()}
 function normalizeModules(rows){
@@ -336,16 +343,16 @@ async function recoveryCode(){
 async function boot(){
  if(!MODULE)return;
  installCss();stateSync();
- const token=getToken();if(!token){location.replace('staff-workspaces.html');return}
+ const token=getToken();if(!token){location.replace(hubUrl('sign_in_required'));return}
  try{
   const [session,access]=await Promise.all([
    rpc('transfer_staff_session',{p_token:token}),
    rpc('nexa_staff_workspace_access_v1',{p_token:token})
   ]);
-  if(!session?.ok||!access?.ok){clearSession();location.replace('staff-workspaces.html');return}
+  if(!session?.ok||!access?.ok){clearSession();location.replace(hubUrl('session_expired'));return}
   modules=normalizeModules(access.modules||session.modules||[]);
   const mine=exactCurrent();
-  if(!mine&&MODULE!=='gift'){location.replace('staff-workspaces.html');return}
+  if(!mine&&MODULE!=='gift'){location.replace(hubUrl('no_access'));return}
   if((MODULE==='transfer'||MODULE==='ministry')&&!getWorkspace()&&mine?.workspace_id){
    const u=new URL(mine.url,location.href);location.replace(u.href);return;
   }
@@ -355,7 +362,12 @@ async function boot(){
   [100,350,800,1600,3000].forEach(ms=>setTimeout(enforceNav,ms));
   setTimeout(loadAccess,500);
   window.addEventListener('pageshow',()=>{setTimeout(enforceNav,0);setTimeout(loadAccess,250)});
- }catch(e){console.warn('NEXA shared boot failed',e)}
+ }catch(e){
+  console.warn('NEXA shared boot failed',e);
+  const msg=String(e?.message||e||'').toLowerCase();
+  if(/session|token|jwt|unauthoriz/.test(msg))clearSession();
+  location.replace(hubUrl(/session|token|jwt|unauthoriz/.test(msg)?'session_expired':'workspace_error'));
+ }
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();

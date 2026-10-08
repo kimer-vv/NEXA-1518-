@@ -1,14 +1,25 @@
 <!doctype html> 
 <!-- TARGET GITHUB FILE: transfer-workspace.html -->
-<!-- NEXA TRANSFER WORKSPACE V5.31 — STABLE GROUPS CARD + PRIORITY -->
+<!-- NEXA TRANSFER WORKSPACE V5.32 — GLOBAL SSO GATE + SHARED ACCESS -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#03050e">
 <title>NEXA • Transfer Workspace</title>
+<style id="nexa-auth-gate">html.nexa-auth-pending body{visibility:hidden!important}</style>
+<script>
+(()=>{
+ document.documentElement.classList.add('nexa-auth-pending');
+ const t=localStorage.getItem('nexa_transfer_staff_token')||sessionStorage.getItem('nexa_transfer_staff_token')||'';
+ if(!t){
+  const here=(location.pathname.split('/').pop()||'')+location.search;
+  location.replace('staff-workspaces.html?next='+encodeURIComponent(here)+'&reason=sign_in_required');
+ }
+})();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="nexa-staff-workspace-shared-v1.js?v=4-20261008-authfix1" defer></script>
+<script src="nexa-staff-workspace-shared-v1.js?v=4-20261008-authfix2" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <style>
 :root{--c:#59e4ff;--v:#8d76ff;--m:#aab4d0;--p:rgba(8,15,34,.94);--good:#7df1be;--warn:#ffd56d;--bad:#ff8ca8;--blue:#73cfff;--gold:#ffd56d}
@@ -392,7 +403,10 @@ function renderWorkspaceSwitch(){
  if(!options.length)sel.innerHTML='<option>Transfer Workspace</option>';
  sel.onchange=()=>{const u=sel.value;if(u)location.href=u};
 }
-function showAuth(){$('authRoot').classList.remove('hidden');$('workspaceRoot').classList.add('hidden')}
+function showAuth(){
+ const here=(location.pathname.split('/').pop()||'')+location.search;
+ location.replace('staff-workspaces.html?next='+encodeURIComponent(here)+'&reason=workspace_error')
+}
 function showWorkspace(){$('authRoot').classList.add('hidden');$('workspaceRoot').classList.remove('hidden');renderWorkspaceSwitch()}
 $('loginBtn').onclick=async()=>{const r=await SB.rpc('transfer_staff_login',{p_identifier:$('loginId').value.trim(),p_password:$('loginPassword').value,p_remember:$('rememberLogin').checked});if(r.error||r.data?.ok!==true){$('authStatus').textContent=r.error?.message||'Username/Game ID or password is incorrect.';return}saveToken(r.data.token,$('rememberLogin').checked);session=r.data;await chooseWorkspaceAndLoad()};
 $('registerBtn').onclick=async()=>{if(!workspaceId&&!await resolveWorkspace())return;const p=$('regPassword').value;if(p!==$('regConfirm').value){$('authStatus').textContent='Passwords do not match.';return}const r=await SB.rpc('transfer_staff_register',{p_workspace_id:workspaceId,p_username:$('regUsername').value.trim(),p_game_name:$('regGameName').value.trim(),p_game_id:$('regGameId').value.trim(),p_password:p,p_remember:$('rememberRegister').checked});if(r.error||r.data?.ok!==true){const map={game_id_not_authorized:'This Game ID has not been authorized for this Transfer Workspace.',username_taken:'That username is already in use.',already_registered:'This Game ID is already registered. Use Log In.'};$('authStatus').textContent=map[r.data?.error]||r.error?.message||'Unable to register.';return}saveToken(r.data.token,$('rememberRegister').checked);await restoreSession();await loadWorkspace()};

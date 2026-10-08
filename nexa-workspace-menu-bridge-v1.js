@@ -1,93 +1,45 @@
-/* NEXA WORKSPACE MENU BRIDGE V1.5 — WOS UTILITIES HUB
+/* NEXA WORKSPACE MENU BRIDGE V1.6 — DIRECT WORKSPACE HUB
    Complete replacement file.
-   Keeps Transfer / Ministry intact and routes WOS Utilities to the shared utilities hub.
+   Converts the legacy Transfers entry to Workspace and routes it directly
+   to the canonical Staff Workspace Hub. No intermediate workspace picker.
 */
 (()=>{'use strict';
-if(window.__NEXA_WORKSPACE_MENU_BRIDGE_V15__)return;
-window.__NEXA_WORKSPACE_MENU_BRIDGE_V15__=true;
+if(window.__NEXA_WORKSPACE_MENU_BRIDGE_V16__)return;
+window.__NEXA_WORKSPACE_MENU_BRIDGE_V16__=true;
 
-const LABEL_TRANSFERS='Transfers';
-const LABEL_WORKSPACE='Workspace';
-const LABEL_WOS='WOS Utilities';
-const WOS_URL='wos-utilities.html';
+const HUB_URL='staff-workspaces.html';
+const LEGACY_LABEL='Transfers';
+const HUB_LABEL='Workspace';
 
-function textOf(el){return String(el?.textContent||'').replace(/\s+/g,' ').trim();}
-function actionable(el){return el?.closest?.('button,a,[role="button"]')||null;}
+const textOf=el=>String(el?.textContent||'').replace(/\s+/g,' ').trim();
+const actionable=el=>el?.closest?.('button,a,[role="button"]')||null;
 
-function ensureStyle(){
- if(document.getElementById('nexa-workspace-picker-style'))return;
- const s=document.createElement('style');s.id='nexa-workspace-picker-style';
- s.textContent=`
- .nexa-workspace-picker{position:fixed;inset:0;z-index:2147483647;display:grid;place-items:center;padding:16px;background:rgba(0,2,13,.84);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
- .nexa-workspace-picker-card{width:min(430px,100%);padding:18px;border-radius:23px;border:1px solid rgba(118,106,255,.40);background:linear-gradient(155deg,#0b1531,#050817);box-shadow:0 28px 80px rgba(0,0,0,.55);color:#fff}
- .nexa-workspace-picker-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
- .nexa-workspace-picker-head small{display:block;color:#9baadb;font-size:10px;letter-spacing:.15em;font-weight:950}
- .nexa-workspace-picker-head h3{margin:5px 0 0;font-size:1.35rem}
- .nexa-workspace-picker-close{width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:#0b1430;color:#fff;font-size:17px;font-weight:900}
- .nexa-workspace-choice{width:100%;margin-top:10px;padding:13px 14px;border-radius:15px;border:1px solid rgba(89,228,255,.28);background:linear-gradient(135deg,rgba(25,76,112,.72),rgba(36,30,97,.8));color:#fff;text-align:left;font-weight:950;cursor:pointer}
- .nexa-workspace-choice small{display:block;margin-top:4px;color:#aebbd7;font-size:10px;font-weight:700}`;
- document.head.appendChild(s);
+function install(){
+  const nodes=[...document.querySelectorAll('button,a,[role="button"]')];
+  for(const el of nodes){
+    const label=textOf(el);
+    if(label!==LEGACY_LABEL && label!==HUB_LABEL)continue;
+    el.textContent=HUB_LABEL;
+    el.dataset.nexaWorkspaceHub='1';
+    if(el.tagName==='A')el.setAttribute('href',HUB_URL);
+  }
 }
-
-function closePicker(){document.getElementById('nexa-workspace-picker')?.remove();}
-
-function openPicker(){
- ensureStyle();closePicker();
- const root=document.createElement('div');root.id='nexa-workspace-picker';root.className='nexa-workspace-picker';
- root.innerHTML=`<div class="nexa-workspace-picker-card">
-   <div class="nexa-workspace-picker-head"><div><small>NEXA · STATE OPERATIONS</small><h3>Workspace</h3></div>
-   <button class="nexa-workspace-picker-close" type="button" aria-label="Close">×</button></div>
-   <button class="nexa-workspace-choice" data-go="transfer" type="button">Transfer Workspace<small>Transfer cycles, applicants, integrations and access</small></button>
-   <button class="nexa-workspace-choice" data-go="ministry" type="button">Ministry Workspace<small>Requests, appointment scheduling and access</small></button>
-   <button class="nexa-workspace-choice" data-go="wos" type="button">WOS Utilities<small>Gift codes, event reminders and alliance utilities</small></button>
- </div>`;
- root.querySelector('.nexa-workspace-picker-close').onclick=closePicker;
- root.addEventListener('click',e=>{if(e.target===root)closePicker();});
- root.querySelector('[data-go="transfer"]').onclick=()=>{location.href='transfer-workspace.html';};
- root.querySelector('[data-go="ministry"]').onclick=()=>{location.href='ministry-workspace.html';};
- root.querySelector('[data-go="wos"]').onclick=()=>{location.href=WOS_URL;};
- document.body.appendChild(root);
+function go(){
+  location.href=HUB_URL;
 }
-
-function installWorkspaceEntry(){
- const nodes=[...document.querySelectorAll('button,a,[role="button"]')];
- for(const el of nodes){
-  if(textOf(el)!==LABEL_TRANSFERS)continue;
-  el.textContent=LABEL_WORKSPACE;
-  el.dataset.nexaWorkspaceBridge='workspace';
-  el.removeAttribute('href');
- }
-}
-
-function refreshAfterMenuAction(){requestAnimationFrame(()=>requestAnimationFrame(installWorkspaceEntry));}
-
 document.addEventListener('click',e=>{
- const hit=actionable(e.target);if(!hit)return;
- const label=textOf(hit);
-
- if(label===LABEL_WOS){
-  e.preventDefault();
-  e.stopImmediatePropagation();
-  location.href=WOS_URL;
-  return;
- }
-
- if(label===LABEL_WORKSPACE||hit.dataset.nexaWorkspaceBridge==='workspace'){
-  e.preventDefault();e.stopImmediatePropagation();openPicker();return;
- }
-
- if(label===LABEL_TRANSFERS){
-  e.preventDefault();e.stopImmediatePropagation();
-  hit.textContent=LABEL_WORKSPACE;
-  hit.dataset.nexaWorkspaceBridge='workspace';
-  hit.removeAttribute('href');
-  openPicker();
-  return;
- }
-
- refreshAfterMenuAction();
+  const hit=actionable(e.target);
+  if(!hit)return;
+  const label=textOf(hit);
+  if(hit.dataset.nexaWorkspaceHub==='1'||label===HUB_LABEL||label===LEGACY_LABEL){
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    go();
+  }
 },true);
 
-document.addEventListener('DOMContentLoaded',()=>{installWorkspaceEntry();refreshAfterMenuAction();});
-window.addEventListener('pageshow',installWorkspaceEntry);
+install();
+const observer=new MutationObserver(()=>install());
+observer.observe(document.documentElement,{subtree:true,childList:true});
+setTimeout(()=>{try{observer.disconnect()}catch{}},15000);
 })();

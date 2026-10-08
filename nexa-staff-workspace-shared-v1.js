@@ -1,4 +1,4 @@
-/* NEXA Shared Workspace UI V4.3
+/* NEXA Shared Workspace UI V4.4
  * One global navigation + one Access Management visual system.
  * Transfer / Ministry / WOS Utilities share the same cards, modal, roles and 7-day restore flow.
  */
@@ -178,7 +178,7 @@ function host(){
 }
 function ensureAccessRoot(){
  const h=host();if(!h)return null;
- h.classList.add('nexaAccessHost');
+ if(!h.classList.contains('nexaAccessHost'))h.classList.add('nexaAccessHost');
  let root=$('nexaUnifiedAccessRoot');
  if(!root){root=document.createElement('section');root.id='nexaUnifiedAccessRoot';h.appendChild(root)}
  return root;
@@ -367,26 +367,51 @@ async function recoveryCode(){
 async function boot(){
  if(!MODULE)return;
  installCss();stateSync();
- const token=getToken();if(!token){location.replace(hubUrl('sign_in_required'));return}
+ const token=getToken();
+ if(!token){location.replace(hubUrl('sign_in_required'));return}
+
  try{
-  const [session,access]=await Promise.all([
-   rpc('transfer_staff_session',{p_token:token}),
-   rpc('nexa_staff_workspace_access_v1',{p_token:token})
-  ]);
-  if(!session?.ok||!access?.ok){clearSession();location.replace(hubUrl('session_expired'));return}
-  modules=normalizeModules(access.modules||session.modules||[]);
-  const mine=exactCurrent();
-  if(!mine&&MODULE!=='gift'){location.replace(hubUrl('no_access'));return}
-  if((MODULE==='transfer'||MODULE==='ministry')&&!getWorkspace()&&mine?.workspace_id){
-   const u=new URL(mine.url,location.href);location.replace(u.href);return;
+  /* Mobile-safe boot: workspace_access already validates the global staff token.
+     Do not run a second session RPC here; each workspace keeps its own normal
+     session/snapshot validation. */
+  const access=await rpc('nexa_staff_workspace_access_v1',{p_token:token});
+  if(!access?.ok){
+   clearSession();
+   location.replace(hubUrl('session_expired'));
+   return;
   }
+
+  modules=normalizeModules(access.modules||[]);
+  const mine=exactCurrent();
+
+  if(!mine&&MODULE!=='gift'){
+   location.replace(hubUrl('no_access'));
+   return;
+  }
+
+  if((MODULE==='transfer'||MODULE==='ministry')&&!getWorkspace()&&mine?.workspace_id){
+   const u=new URL(mine.url,location.href);
+   location.replace(u.href);
+   return;
+  }
+
+  /* Show the module immediately once access is confirmed. */
   enforceNav();
   revealModuleShell();
-  const obs=new MutationObserver(()=>{enforceNav();ensureAccessRoot()});
-  obs.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
-  [100,350,800,1600,3000].forEach(ms=>setTimeout(enforceNav,ms));
-  setTimeout(loadAccess,500);
-  window.addEventListener('pageshow',()=>{setTimeout(enforceNav,0);setTimeout(loadAccess,250)});
+
+  /* No global MutationObserver on iPhone/Safari. Re-check navigation only a few
+     times while legacy page scripts finish drawing their header. */
+  [120,450,1000].forEach(ms=>setTimeout(enforceNav,ms));
+
+  /* Access Management is lazy. It is expensive and should not participate in
+     the initial module boot. */
+  const accessTrigger='[data-tab="access"],[data-view="access"],[data-panel-target="access"],#staffTab,[data-section="staff"]';
+  document.addEventListener('click',e=>{
+   if(e.target.closest?.(accessTrigger))setTimeout(loadAccess,0);
+  },{capture:true});
+
+  /* If the page is restored from Safari BFCache, only repair the selector. */
+  window.addEventListener('pageshow',()=>setTimeout(enforceNav,0));
  }catch(e){
   console.warn('NEXA shared boot failed',e);
   const msg=String(e?.message||e||'').toLowerCase();
@@ -396,7 +421,7 @@ async function boot(){
    location.replace(hubUrl('session_expired'));
    return;
   }
-  /* A navigation/data error must never trap an authenticated user behind the auth gate. */
+  /* Non-auth navigation/UI errors must never leave a valid staff page black. */
   revealModuleShell();
  }
 }

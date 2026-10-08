@@ -1,4 +1,4 @@
-/* NEXA Shared Workspace UI V4.2
+/* NEXA Shared Workspace UI V4.3
  * One global navigation + one Access Management visual system.
  * Transfer / Ministry / WOS Utilities share the same cards, modal, roles and 7-day restore flow.
  */
@@ -43,6 +43,21 @@ function clearSession(){
 function revealWorkspace(){
  document.documentElement.classList.remove('nexa-auth-pending');
  document.documentElement.classList.add('nexa-auth-ready');
+}
+function revealModuleShell(){
+ revealWorkspace();
+
+ /* The global session is already valid here. Never leave a module with both
+    its auth screen and its workspace screen hidden. */
+ if(MODULE==='transfer'){
+  $('authRoot')?.classList.add('hidden');
+  $('workspaceRoot')?.classList.remove('hidden');
+ }
+ if(MODULE==='gift'){
+  document.body.classList.remove('gift-auth');
+  $('login')?.classList.add('hidden');
+  $('app')?.classList.remove('hidden');
+ }
 }
 function hubUrl(reason=''){
  const u=new URL('staff-workspaces.html',location.href);
@@ -366,7 +381,7 @@ async function boot(){
    const u=new URL(mine.url,location.href);location.replace(u.href);return;
   }
   enforceNav();
-  revealWorkspace();
+  revealModuleShell();
   const obs=new MutationObserver(()=>{enforceNav();ensureAccessRoot()});
   obs.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
   [100,350,800,1600,3000].forEach(ms=>setTimeout(enforceNav,ms));
@@ -382,7 +397,7 @@ async function boot(){
    return;
   }
   /* A navigation/data error must never trap an authenticated user behind the auth gate. */
-  revealWorkspace();
+  revealModuleShell();
  }
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();

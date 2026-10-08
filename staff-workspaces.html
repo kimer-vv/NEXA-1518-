@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- NEXA STAFF WORKSPACES V3.0 — ONE LOGIN / GLOBAL MODULE HUB -->
+<!-- NEXA STAFF WORKSPACES V3.1 — ONE LOGIN / GLOBAL MODULE HUB + RETURN ROUTE -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -131,6 +131,8 @@ const sb=window.supabase.createClient(
 
 let token=localStorage.getItem('nexa_transfer_staff_token')||sessionStorage.getItem('nexa_transfer_staff_token')||'';
 let activeState=Number(localStorage.getItem('nexa_active_state')||sessionStorage.getItem('nexa_active_state')||localStorage.getItem('nexa_active_state_v49')||0);
+const query=new URLSearchParams(location.search);
+const requestedNext=(query.get('next')||'').trim();
 
 const rpc=async(fn,args)=>{const {data,error}=await sb.rpc(fn,args);if(error)throw error;return data};
 
@@ -150,6 +152,30 @@ function saveSession(t,remember,state){
  s.setItem('nexa_active_state_v49',String(state));
  token=t;activeState=Number(state)||0;window.NEXA_ACTIVE_STATE=activeState;
 }
+
+function safePath(value){
+ try{return new URL(value,location.href).pathname.split('/').pop()?.toLowerCase()||''}catch{return''}
+}
+function continueRequested(model){
+ if(!requestedNext)return false;
+ const wanted=safePath(requestedNext);
+ if(!wanted||wanted==='staff-workspaces.html')return false;
+ const allowed=(model.modules||[]).find(m=>safePath(m.url)===wanted);
+ if(!allowed?.url)return false;
+ location.replace(new URL(allowed.url,location.href).href);
+ return true;
+}
+function initialMessage(){
+ const reason=query.get('reason')||'';
+ const copy={
+  session_expired:'Your staff session expired. Sign in again.',
+  sign_in_required:'Sign in to open that workspace.',
+  no_access:'That workspace is not assigned to this staff account.',
+  workspace_error:'The workspace could not finish loading. Sign in again or choose another authorized module.'
+ };
+ if(copy[reason])$('msg').textContent=copy[reason];
+}
+
 function moduleClass(m){return m.module==='transfer'?'transfer':m.module==='ministry'?'ministry':'wos'}
 function shortLabel(m){return m.module==='transfer'?'Transfer':m.module==='ministry'?'Ministry':'WOS Utilities'}
 function description(m){
@@ -192,12 +218,16 @@ function render(model){
   </a>`).join(''):`<div class="card empty muted">No active staff workspaces are available for State ${activeState||'—'}.</div>`;
 }
 async function start(){
- if(!token)return;
- try{render(await getModel())}
+ if(query.has('logged_out'))clearSession();
+ if(!token){initialMessage();return}
+ try{const model=await getModel();if(!continueRequested(model))render(model)}
  catch(e){
-  if(String(e?.message||'').includes('session'))clearSession();
+  clearSession();
+  $('login').classList.remove('hidden');$('app').classList.add('hidden');
+  $('msg').textContent='Your staff session could not be restored. Sign in again.';
  }
 }
+
 $('go').onclick=async()=>{
  try{
   $('msg').textContent='Signing in…';
@@ -207,7 +237,8 @@ $('go').onclick=async()=>{
   const d=await rpc('nexa_staff_login_v2',{p_state_number:state,p_game_id:gameId,p_password:$('pw').value,p_remember:$('remember').checked});
   if(!d?.ok)throw Error(d?.error||'Unable to sign in');
   saveSession(d.token,$('remember').checked,state);
-  render(await getModel());
+  const model=await getModel();
+  if(!continueRequested(model))render(model);
   $('msg').textContent='';
  }catch(e){$('msg').textContent=e.message||String(e)}
 };

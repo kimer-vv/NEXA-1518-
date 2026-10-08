@@ -1,9 +1,8 @@
-/* NEXA Shared Workspace UI V4.9 — CLICKABLE HUB TITLE / NO SWITCHER
- * Global token only. No local Access Management. No duplicate login.
- * Workspace authorization is resolved through nexa_staff_hub_v2.
+/* NEXA Shared Workspace UI V5.0 — SINGLE HUB TITLE / GLOBAL SSO
+ * One global Staff token. No local access management. No duplicate workspace switcher.
  */
 (()=>{'use strict';
-if(window.__NEXA_SHARED_V49__)return;window.__NEXA_SHARED_V49__=true;
+if(window.__NEXA_SHARED_V50__)return;window.__NEXA_SHARED_V50__=true;
 const SUPA='https://dfxcxboxrkfmrnsgpyin.supabase.co',PUB='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
 const sb=window.supabase?.createClient?.(SUPA,PUB);if(!sb)return;
 const file=(location.pathname.split('/').pop()||'').toLowerCase();
@@ -15,26 +14,20 @@ async function rpc(n,a){const {data,error}=await sb.rpc(n,a);if(error)throw Erro
 function clear(){for(const s of [localStorage,sessionStorage]){s.removeItem('nexa_transfer_staff_token');s.removeItem('nexa_active_state');s.removeItem('nexa_active_state_v49')}}
 function hub(reason=''){const u=new URL('staff-workspaces.html',location.href);if(reason)u.searchParams.set('reason',reason);return u.href}
 function reveal(){document.documentElement.classList.remove('nexa-auth-pending');document.documentElement.classList.add('nexa-auth-ready');if(MODULE==='transfer'){$('authRoot')?.classList.add('hidden');$('workspaceRoot')?.classList.remove('hidden')}if(MODULE==='gift'){document.body.classList.remove('gift-auth');$('login')?.classList.add('hidden');$('app')?.classList.remove('hidden')}}
-function installCss(){if($('nexaSharedV47Css'))return;const s=document.createElement('style');s.id='nexaSharedV47Css';s.textContent=`
-#workspaceSwitch,#moduleSwitch{display:none!important}
-.nexaHubButton{min-height:42px!important;border-radius:13px!important;border:1px solid rgba(141,118,255,.34)!important;background:#10172c!important;color:#fff!important;padding:9px 14px!important;font-weight:900!important;text-decoration:none!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;white-space:nowrap!important}
+function installCss(){if($('nexaSharedV50Css'))return;const s=document.createElement('style');s.id='nexaSharedV50Css';s.textContent=`
+#workspaceSwitch,#moduleSwitch,#nexaHubButton{display:none!important}
 button[data-tab="access"],button[data-view="access"],#openStaff,[data-tab="staff"],[data-view="staff"]{display:none!important}
 section[data-panel="access"],#view-access,#staffView,#staffAccess,#staffAccessView,.staff-access,.staffAccess{display:none!important}
+.nexaClickableHubTitle{cursor:pointer!important}
 `;document.head.appendChild(s)}
 function currentCard(cards){const key=MODULE==='gift'?'wos':MODULE;return cards.find(x=>x.module===key)}
-function nav(cards){
- const old=$('workspaceSwitch')||$('moduleSwitch');
- if(!old)return;
- let b=$('nexaHubButton');
- if(!b){
-   b=document.createElement('a');b.id='nexaHubButton';b.className='nexaHubButton';b.href='staff-workspaces.html';b.textContent='Workspace Hub';
-   old.insertAdjacentElement('afterend',b);
- }
- b.href='staff-workspaces.html';
+function installHubTitle(){
+ document.querySelectorAll('#workspaceSwitch,#moduleSwitch,#nexaHubButton').forEach(el=>el.remove?.());
+ const brand=document.querySelector('.top .brand h1,.top h1');if(!brand)return;
+ brand.textContent='Workspace Hub';brand.setAttribute('role','button');brand.setAttribute('tabindex','0');brand.setAttribute('aria-label','Return to Workspace Hub');brand.classList.add('nexaClickableHubTitle');
+ brand.onclick=()=>location.href='staff-workspaces.html';
+ brand.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();location.href='staff-workspaces.html'}};
 }
-async function boot(){if(!MODULE)return;installCss();const t=token(),st=state();if(!t){location.replace(hub('sign_in_required'));return}if(!st){location.replace(hub('sign_in_required'));return}try{const d=await rpc('nexa_staff_hub_v2',{p_token:t,p_state_number:st});if(!d?.ok)throw Error(d?.error||'session_expired');const card=currentCard(d.cards||[]);if(!card?.enabled){location.replace(hub('no_access'));return}nav(d.cards||[]);reveal();[150,500,1100].forEach(ms=>setTimeout(()=>nav(d.cards||[]),ms))}catch(e){const m=String(e?.message||e).toLowerCase();if(/session|token|jwt|unauthoriz/.test(m)){clear();location.replace(hub('session_expired'));return}reveal()}}
+async function boot(){if(!MODULE)return;installCss();const t=token(),st=state();if(!t){location.replace(hub('sign_in_required'));return}if(!st){location.replace(hub('sign_in_required'));return}try{const d=await rpc('nexa_staff_hub_v2',{p_token:t,p_state_number:st});if(!d?.ok)throw Error(d?.error||'session_expired');const card=currentCard(d.cards||[]);if(!card?.enabled){location.replace(hub('no_access'));return}reveal();installHubTitle();[100,350,900,1600].forEach(ms=>setTimeout(installHubTitle,ms))}catch(e){const m=String(e?.message||e).toLowerCase();if(/session|token|jwt|unauthoriz/.test(m)){clear();location.replace(hub('session_expired'));return}reveal();installHubTitle()}}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
-
-/* V4.9 — canonical return navigation */
-(()=>{const HUB='staff-workspaces.html';function installHubTitle(){document.querySelectorAll('#workspaceSwitch,#moduleSwitch,#nexaHubButton').forEach(el=>el.style.setProperty('display','none','important'));const brand=document.querySelector('.top .brand h1,.top h1');if(!brand)return;brand.textContent='Workspace Hub';brand.setAttribute('role','button');brand.setAttribute('tabindex','0');brand.setAttribute('aria-label','Return to Workspace Hub');brand.classList.add('nexaClickableHubTitle');brand.onclick=()=>location.href=HUB;brand.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();location.href=HUB}}}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installHubTitle,{once:true});else installHubTitle()})();

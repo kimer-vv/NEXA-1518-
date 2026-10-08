@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- NEXA WOS Utilities V32.8 — GALAXY V3 / CUSTOM ICONS -->
+<!-- NEXA WOS Utilities V32.9 — GALAXY V3.1 / WOS ACTION FIXES -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -20,7 +20,7 @@
 </script>
 <title>NEXA • WOS Utilities</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="nexa-staff-workspace-shared-v1.js?v=4-20261008-galaxy3" defer></script>
+<script src="nexa-staff-workspace-shared-v1.js?v=5-20261008-fix1" defer></script>
 <style>
 :root{color-scheme:dark;--bg:#050713;--card:#10172f;--line:rgba(149,167,255,.25);--muted:#abb7d4;--cyan:#59e4ff;--violet:#a779ff;--green:#6cf1b2;--danger:#ff7f9f;--gold:#ffd56a}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 7% 5%,#20234a,#070b1b 50%,#050713);color:#f5f6ff;font:15px system-ui,-apple-system,sans-serif}
@@ -162,7 +162,7 @@ button{cursor:pointer;font-weight:850;background:linear-gradient(120deg,#5143a7,
 }
 
 </style>
-<link rel="stylesheet" href="nexa-galaxy-ui-v3.css?v=3-20261008-icons">
+<link rel="stylesheet" href="nexa-galaxy-ui-v3.css?v=32-20261008-runtime">
 </head>
 <body class="nexa-galaxy page-wos">
 <main class="shell">
@@ -207,12 +207,21 @@ function utcStamp(v){if(!v)return'No date set';const d=new Date(v);return `${d.t
 function shortTroops(v){const n=Number(String(v||'').replace(/[^\d]/g,''));if(!n)return'';if(n>=1000000)return`${Math.round(n/100000)/10}M`;if(n>=1000)return`${Math.round(n/1000)}K`;return String(n)}
 function offsetLabel(n){n=Number(n);if(n===0)return'At Start';if(n<60)return`${n}m`;if(n===60)return'1h';if(n===120)return'2h';if(n===360)return'6h';if(n===1440)return'1d';return n%60===0?`${n/60}h`:`${n}m`}
 async function refresh(){
- try{snap=await api()}
- catch(primaryError){
-  console.warn('WOS API snapshot failed; using Supabase fallback.',primaryError);
-  const fb=await sb.rpc('nexa_wos_snapshot_v1',{p_token:token});
-  if(fb.error||!fb.data?.ok)throw Error(primaryError?.message||fb.error?.message||fb.data?.error||'Unable to load WOS Utilities.');
-  snap=fb.data;
+ let primary=null,primaryError=null;
+ try{primary=await api()}catch(e){primaryError=e;console.warn('WOS API snapshot failed; checking Supabase access snapshot.',e)}
+ const fb=await sb.rpc('nexa_wos_snapshot_v1',{p_token:token});
+ const fallback=(!fb.error&&fb.data?.ok)?fb.data:null;
+ if(!primary&&!fallback)throw Error(primaryError?.message||fb.error?.message||fb.data?.error||'Unable to load WOS Utilities.');
+ snap=primary||fallback;
+ if(fallback){
+   snap={...fallback,...snap,
+     me:{...(fallback.me||{}),...(snap?.me||{})},
+     alliances:(snap?.alliances?.length?snap.alliances:fallback.alliances)||[],
+     all_alliances:(snap?.all_alliances?.length?snap.all_alliances:fallback.all_alliances)||[],
+     staff:(snap?.staff?.length?snap.staff:fallback.staff)||[],
+     can_manage_staff:!!(snap?.can_manage_staff||fallback.can_manage_staff),
+     is_owner:!!(snap?.is_owner||fallback.is_owner)
+   };
  }
  renderStaff()
 }
@@ -624,10 +633,10 @@ $('allianceLinkDiscord').onclick=()=>{$('allianceDiscordLinkPanel').classList.to
 $('allianceVerifyGuild').onclick=linkAllianceDiscord;
 $('allianceCancelGuild').onclick=()=>$('allianceDiscordLinkPanel').classList.add('hidden');
 $('openGift').onclick=()=>{const u=new URL('gift-code-workspace.html',location.href);u.searchParams.set('module','wos');u.searchParams.set('from','wos-utilities');location.assign(u.href)};
-$('openStaff').onclick=()=>show('staffView');
-$('addStaff').onclick=async()=>{try{await api('add_staff',{game_id:$('staffGameId').value.trim(),role:$('staffRole').value});$('staffGameId').value='';await refresh();toast('Staff access added.')}catch(e){$('staffStatus').textContent=e.message}};
-$('addDiscordBot').onclick=async()=>{try{const d=await api('discord_invite',{});if(!d.url)throw Error('Discord install link is unavailable.');window.open(d.url,'_blank','noopener')}catch(e){toast(e.message,true)}};
-$('workspaceUrl').value=new URL('wos-utilities.html',location.href).href;$('copyWorkspace').onclick=()=>copyText($('workspaceUrl').value);
+$('openStaff')?.addEventListener('click',()=>show('staffView'));
+$('addStaff')?.addEventListener('click',async()=>{try{await api('add_staff',{game_id:$('staffGameId')?.value?.trim()||'',role:$('staffRole')?.value||'r4'});if($('staffGameId'))$('staffGameId').value='';await refresh();toast('Staff access added.')}catch(e){if($('staffStatus'))$('staffStatus').textContent=e.message}});
+$('addDiscordBot').onclick=async()=>{const pop=window.open('about:blank','_blank');try{const d=await api('discord_invite',{});if(!d.url)throw Error('Discord install link is unavailable.');if(pop){pop.opener=null;pop.location.href=d.url}else{location.href=d.url}}catch(e){try{pop?.close()}catch{}toast(e.message,true)}};
+if($('workspaceUrl'))$('workspaceUrl').value=new URL('wos-utilities.html',location.href).href;$('copyWorkspace')?.addEventListener('click',()=>copyText($('workspaceUrl')?.value||new URL('wos-utilities.html',location.href).href));
 async function workspaceSwitch(){
  if(!token)return;
  try{

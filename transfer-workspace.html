@@ -1,6 +1,6 @@
 <!doctype html> 
 <!-- TARGET GITHUB FILE: transfer-workspace.html -->
-<!-- NEXA TRANSFER WORKSPACE V5.40 — GALAXY V3 / ICONS + SELECTION STATES -->
+<!-- NEXA TRANSFER WORKSPACE V5.41 — GALAXY V3.1 / RESTORE TRANSFER RENDER -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -21,7 +21,7 @@ button[data-tab="access"],section[data-panel="access"]{display:none!important}
 })();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="nexa-staff-workspace-shared-v1.js?v=4-20261008-galaxy3" defer></script>
+<script src="nexa-staff-workspace-shared-v1.js?v=5-20261008-fix1" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <style>
 :root{--c:#59e4ff;--v:#8d76ff;--m:#aab4d0;--p:rgba(8,15,34,.94);--good:#7df1be;--warn:#ffd56d;--bad:#ff8ca8;--blue:#73cfff;--gold:#ffd56d}
@@ -171,7 +171,7 @@ button,input,select,textarea{font:inherit}.hidden{display:none!important}.shell{
 .dropAfter528{box-shadow:inset 0 -4px 0 #59e4ff!important}
 
 </style>
-<link rel="stylesheet" href="nexa-galaxy-ui-v3.css?v=3-20261008-icons">
+<link rel="stylesheet" href="nexa-galaxy-ui-v3.css?v=32-20261008-runtime">
 </head>
 <body class="nexa-galaxy page-transfer">
 <div id="authRoot" class="authShell hidden">
@@ -541,7 +541,7 @@ function renderAll(){
 $('workspaceTitle').textContent=`State ${event?.destination_state||intake?.destination_state||workspace.state_number||'—'}`;
  $('heroCycle').textContent=event?classificationLabel(event.leadership_status):'No active cycle';$('heroApps').textContent=apps.length;$('heroPublic').textContent=intake?.public_access_enabled?'OPEN':'CLOSED';$('heroActive').textContent=workspace.is_active?'ACTIVE':'INACTIVE';
  document.querySelectorAll('[data-public]').forEach(b=>b.classList.toggle('active',(b.dataset.public==='yes')===!!intake?.public_access_enabled));$('publicQuick').style.opacity=canManage()?1:.68;
- fillCycleEditor(true);renderCycleState();renderFolders();renderApps();renderCounts();renderProfiles();renderAccess();renderHistory();$('workspaceLink').value=workspaceUrl();$('formIntegration').classList.toggle('hidden',!canManage());$('workspaceLinkIntegration')?.classList.toggle('hidden',!canManage());$('addAlliance').classList.toggle('hidden',!canManage());$('appArchiveCurrent')?.classList.toggle('hidden',!canManage());
+ fillCycleEditor(true);renderCycleState();renderFolders();renderApps();renderCounts();renderProfiles();renderAccess();renderHistory();if($('workspaceLink'))$('workspaceLink').value=workspaceUrl();$('formIntegration').classList.toggle('hidden',!canManage());$('workspaceLinkIntegration')?.classList.toggle('hidden',!canManage());$('addAlliance').classList.toggle('hidden',!canManage());$('appArchiveCurrent')?.classList.toggle('hidden',!canManage());
 }
 document.querySelectorAll('[data-public]').forEach(b=>b.onclick=async()=>{if(!canManage()||!intake)return;const p=b.dataset.public==='yes';const r=await SB.rpc('transfer_workspace_set_visibility',{p_workspace_id:workspaceId,p_token:token,p_public:p,p_listed:p?!!intake.listed_in_transfer_center:false});if(r.data?.ok)await loadWorkspace()});
 $('copyFormLink').onclick=e=>copyText(publicForm(),e.currentTarget);
@@ -1106,7 +1106,7 @@ $('clearWorkspaceConfirm').onclick=async()=>{
  $('clearWorkspaceModal').classList.remove('open');historyView='cycles';await loadWorkspace();
 }
 
-$('copyWorkspaceLink').onclick=e=>copyText(workspaceUrl(),e.currentTarget);
+$('copyWorkspaceLink')?.addEventListener('click',e=>copyText(workspaceUrl(),e.currentTarget));
 $('logoutBtn').onclick=async()=>{try{if(token)await SB.rpc('transfer_staff_logout',{p_token:token})}catch{}clearToken();location.replace('staff-workspaces.html?logged_out=1')};
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.panel').forEach(x=>x.classList.toggle('active',x.dataset.panel===b.dataset.tab))});
 (async()=>{

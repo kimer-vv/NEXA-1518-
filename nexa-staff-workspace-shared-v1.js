@@ -1,4 +1,4 @@
-/* NEXA Shared Workspace UI V4.0
+/* NEXA Shared Workspace UI V4.1
  * One global navigation + one Access Management visual system.
  * Transfer / Ministry / WOS Utilities share the same cards, modal, roles and 7-day restore flow.
  */
@@ -40,6 +40,10 @@ function clearSession(){
   s.removeItem('nexa_active_state_v49');
  }
 }
+function revealWorkspace(){
+ document.documentElement.classList.remove('nexa-auth-pending');
+ document.documentElement.classList.add('nexa-auth-ready');
+}
 function hubUrl(reason=''){
  const u=new URL('staff-workspaces.html',location.href);
  const here=(location.pathname.split('/').pop()||'')+location.search;
@@ -59,8 +63,13 @@ function normalizeModules(rows){
  const order={transfer:1,ministry:2,gift:3,wos:3};
  return out.sort((a,b)=>(order[a.module]||9)-(order[b.module]||9));
 }
+function moduleMatchesCurrent(m){
+ if(!m)return false;
+ if(MODULE==='wos')return m.module==='wos'||m.module==='gift'||currentMatches(m.url);
+ return m.module===MODULE||currentMatches(m.url);
+}
 function exactCurrent(){
- return modules.find(m=>m.module===MODULE&&sameState(m))||modules.find(m=>m.module===MODULE)||null;
+ return modules.find(m=>moduleMatchesCurrent(m)&&sameState(m))||modules.find(moduleMatchesCurrent)||null;
 }
 function currentMatches(url){
  try{
@@ -357,6 +366,7 @@ async function boot(){
    const u=new URL(mine.url,location.href);location.replace(u.href);return;
   }
   enforceNav();
+  revealWorkspace();
   const obs=new MutationObserver(()=>{enforceNav();ensureAccessRoot()});
   obs.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
   [100,350,800,1600,3000].forEach(ms=>setTimeout(enforceNav,ms));

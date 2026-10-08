@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NEXA • Ministry Workspace</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="nexa-staff-workspace-shared-v1.js?v=2-20260925" defer></script>
+<script src="nexa-staff-workspace-shared-v1.js?v=4-20261008-authfix1" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <style>
 :root{
@@ -242,7 +242,7 @@ async function login(){
  }catch(e){$('loginMsg').textContent=e.message||String(e)}
 }
 async function start(){
- if(!token){$('loginScreen').classList.remove('hidden');$('app').classList.add('hidden');return}
+ if(!token){location.replace('staff-workspaces.html?next='+encodeURIComponent((location.pathname.split('/').pop()||'')+location.search));return}
  try{
    const s=await rpc('transfer_staff_session',{p_token:token});if(!s?.ok)throw new Error('session_expired');
    modules=s.modules||[];let ministry=modules.find(m=>m.module==='ministry'&&m.workspace_id===workspaceId)||modules.find(m=>m.module==='ministry');
@@ -256,7 +256,7 @@ async function start(){
    $('eventMeta').textContent=snap.event?.id?`Linked to SvS vs ${snap.event.opponent_state||'—'} • Prep Monday ${snap.event.prep_monday} • UTC`:'No active SvS event linked.';
    $('eventKicker').textContent=`STATE ${snap.workspace?.state_number||1518} • MINISTRY • UTC`;
    renderAll();
- }catch(e){if(String(e.message).includes('session')){token='';localStorage.removeItem('nexa_transfer_staff_token');sessionStorage.removeItem('nexa_transfer_staff_token')} $('loginScreen').classList.remove('hidden');$('app').classList.add('hidden');$('loginMsg').textContent=e.message||String(e)}
+ }catch(e){const msg=String(e?.message||e||'');if(msg.includes('session')){token='';for(const st of [localStorage,sessionStorage]){st.removeItem('nexa_transfer_staff_token');st.removeItem('nexa_active_state');st.removeItem('nexa_active_state_v49')}}location.replace('staff-workspaces.html?next='+encodeURIComponent((location.pathname.split('/').pop()||'')+location.search)+'&reason='+encodeURIComponent(msg.includes('session')?'session_expired':'workspace_error'))}
 }
 function renderAll(){renderRequests();renderAppointments();renderOwnerTools()}
 function renderOwnerTools(){
@@ -524,7 +524,7 @@ function downloadPdf(all=false){
 }
 document.querySelectorAll('.pill').forEach(b=>b.onclick=()=>showView(b.dataset.view));
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>$(b.dataset.close).classList.add('hidden'));
-$('loginBtn').onclick=login;$('logoutBtn').onclick=async()=>{try{await rpc('transfer_staff_logout',{p_token:token})}catch{}localStorage.removeItem('nexa_transfer_staff_token');sessionStorage.removeItem('nexa_transfer_staff_token');token='';location.reload()};
+$('loginBtn').onclick=login;$('logoutBtn').onclick=async()=>{try{await rpc('transfer_staff_logout',{p_token:token})}catch{}for(const st of [localStorage,sessionStorage]){st.removeItem('nexa_transfer_staff_token');st.removeItem('nexa_active_state');st.removeItem('nexa_active_state_v49')}token='';location.replace('staff-workspaces.html?logged_out=1')};
 $('replaceBtn').onclick=()=>resolveConflict('replace');$('swapBtn').onclick=()=>resolveConflict('swap');$('addAccessBtn').onclick=addAccess;$('resetAllBtn').onclick=resetAllMinistryData;$('pdfDay').onclick=()=>downloadPdf(false);$('pdfAll').onclick=()=>downloadPdf(true);$('copyMinistryWorkspaceLink').onclick=copyMinistryWorkspaceLink;
 start();
 })();

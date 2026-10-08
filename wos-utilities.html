@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- NEXA WOS Utilities V32.2 — GLOBAL SSO ROUTING FIX -->
+<!-- NEXA WOS Utilities V32.3 — GLOBAL NAV + WOS ACCESS FIX -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -18,7 +18,7 @@
 </script>
 <title>NEXA • WOS Utilities</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="nexa-staff-workspace-shared-v1.js?v=4-20261008-authfix3" defer></script>
+<script src="nexa-staff-workspace-shared-v1.js?v=4-20261008-authfix6" defer></script>
 <style>
 :root{color-scheme:dark;--bg:#050713;--card:#10172f;--line:rgba(149,167,255,.25);--muted:#abb7d4;--cyan:#59e4ff;--violet:#a779ff;--green:#6cf1b2;--danger:#ff7f9f;--gold:#ffd56a}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 7% 5%,#20234a,#070b1b 50%,#050713);color:#f5f6ff;font:15px system-ui,-apple-system,sans-serif}
@@ -624,7 +624,55 @@ $('openStaff').onclick=()=>show('staffView');
 $('addStaff').onclick=async()=>{try{await api('add_staff',{game_id:$('staffGameId').value.trim(),role:$('staffRole').value});$('staffGameId').value='';await refresh();toast('Staff access added.')}catch(e){$('staffStatus').textContent=e.message}};
 $('addDiscordBot').onclick=async()=>{try{const d=await api('discord_invite',{});if(!d.url)throw Error('Discord install link is unavailable.');window.open(d.url,'_blank','noopener')}catch(e){toast(e.message,true)}};
 $('workspaceUrl').value=new URL('wos-utilities.html',location.href).href;$('copyWorkspace').onclick=()=>copyText($('workspaceUrl').value);
-async function workspaceSwitch(){if(!token)return;try{const r=await sb.rpc('nexa_staff_workspace_access_v1',{p_token:token});if(r.error||!r.data?.ok)return;const seen=new Set(),mods=[];for(const m of r.data.modules||[]){if(activeState&&m.state_number&&Number(m.state_number)!==activeState)continue;const k=m.module||m.url;if(!m.url||seen.has(k))continue;seen.add(k);mods.push(m)}const sel=$('workspaceSwitch');sel.replaceChildren(...mods.map(m=>new Option(m.module==='transfer'?'Transfer':m.module==='ministry'?'Ministry':'WOS Utilities',m.url)));const current=[...sel.options].find(o=>new URL(o.value,location.href).pathname.endsWith('/wos-utilities.html'));if(current)sel.value=current.value;sel.onchange=()=>{if(sel.value&&!new URL(sel.value,location.href).pathname.endsWith('/wos-utilities.html'))location.href=sel.value}}catch(e){console.warn('Workspace navigation',e)}}
+async function workspaceSwitch(){
+ if(!token)return;
+ try{
+   const [access,session]=await Promise.all([
+     sb.rpc('nexa_staff_workspace_access_v1',{p_token:token}),
+     sb.rpc('transfer_staff_session',{p_token:token})
+   ]);
+   const rows=[
+     ...(access.data?.ok&&Array.isArray(access.data.modules)?access.data.modules:[]),
+     ...(session.data?.ok&&Array.isArray(session.data.modules)?session.data.modules:[])
+   ];
+   const seen=new Set(),mods=[];
+   for(const raw of rows){
+     if(!raw?.url)continue;
+     if(activeState&&raw.state_number&&Number(raw.state_number)!==activeState)continue;
+     let key=raw.module||'';
+     if(!key){
+       const p=new URL(raw.url,location.href).pathname;
+       key=p.includes('transfer-workspace')?'transfer':
+           p.includes('ministry-workspace')?'ministry':
+           p.includes('wos-utilities')?'gift':raw.url;
+     }
+     if(key==='wos')key='gift';
+     if(seen.has(key))continue;
+     seen.add(key);
+     mods.push({...raw,module:key});
+   }
+   if(!mods.some(m=>m.module==='gift')){
+     mods.push({module:'gift',url:`wos-utilities.html?state=${activeState||1518}`});
+   }
+   const order={transfer:1,ministry:2,gift:3};
+   mods.sort((a,b)=>(order[a.module]||9)-(order[b.module]||9));
+
+   const sel=$('workspaceSwitch');
+   sel.replaceChildren(...mods.map(m=>new Option(
+     m.module==='transfer'?'Transfer Workspace':
+     m.module==='ministry'?'Ministry Workspace':
+     'WOS Utilities',
+     m.url
+   )));
+   const current=[...sel.options].find(o=>new URL(o.value,location.href).pathname.endsWith('/wos-utilities.html'));
+   if(current)sel.value=current.value;
+   sel.onchange=()=>{
+     if(!sel.value)return;
+     const u=new URL(sel.value,location.href);
+     if(!u.pathname.endsWith('/wos-utilities.html'))location.href=u.href;
+   };
+ }catch(e){console.warn('Workspace navigation',e)}
+}
 $('logoutBtn').onclick=async()=>{try{if(token)await sb.rpc('transfer_staff_logout',{p_token:token})}catch{}localStorage.removeItem('nexa_transfer_staff_token');sessionStorage.removeItem('nexa_transfer_staff_token');localStorage.removeItem('nexa_active_state');sessionStorage.removeItem('nexa_active_state');localStorage.removeItem('nexa_active_state_v49');sessionStorage.removeItem('nexa_active_state_v49');location.href='staff-workspaces.html'};
 workspaceSwitch();boot();
 </script>

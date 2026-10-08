@@ -1,251 +1,175 @@
 <!doctype html>
-<!-- NEXA STAFF WORKSPACES V3.1 — ONE LOGIN / GLOBAL MODULE HUB + RETURN ROUTE -->
+<!-- NEXA STAFF WORKSPACES V4.0 — GLOBAL HUB / ONE LOGIN / GLOBAL ACCESS -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#050713">
-<title>NEXA • Staff Workspaces</title>
+<title>NEXA • Staff Hub</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{
-  color-scheme:dark;
-  --bg:#050713;--panel:#0d1429;--panel2:#101a34;--line:rgba(151,170,255,.20);
-  --muted:#9da9c8;--cyan:#59e4ff;--violet:#9d7cff;--green:#78edbf;--bad:#ff92b2
-}
-*{box-sizing:border-box}
-html,body{min-height:100%;max-width:100%;overflow-x:hidden}
-body{
-  margin:0;color:#f7f8ff;
-  font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-  background:
-    radial-gradient(circle at 9% 0,rgba(112,80,220,.22),transparent 31%),
-    radial-gradient(circle at 94% 9%,rgba(48,168,211,.12),transparent 28%),
-    linear-gradient(180deg,#090d20 0,#050713 72%)
-}
-button,input{font:inherit}
-.hidden{display:none!important}
-.shell{width:min(920px,100%);margin:auto;padding:34px 16px 88px}
-.kicker{font-size:10px;letter-spacing:.19em;color:#99a9d2;font-weight:950}
-.muted{color:var(--muted)}
+:root{color-scheme:dark;--bg:#050713;--panel:#0d1429;--panel2:#101a34;--line:rgba(151,170,255,.20);--muted:#9da9c8;--cyan:#59e4ff;--violet:#9d7cff;--green:#78edbf;--bad:#ff92b2;--gold:#ffd56a}
+*{box-sizing:border-box}html,body{min-height:100%;max-width:100%;overflow-x:hidden}
+body{margin:0;color:#f7f8ff;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(circle at 9% 0,rgba(112,80,220,.22),transparent 31%),radial-gradient(circle at 94% 9%,rgba(48,168,211,.12),transparent 28%),linear-gradient(180deg,#090d20 0,#050713 72%)}
+button,input,select{font:inherit}.hidden{display:none!important}.shell{width:min(980px,100%);margin:auto;padding:30px 16px 90px}.kicker{font-size:10px;letter-spacing:.19em;color:#99a9d2;font-weight:950}.muted{color:var(--muted)}
 .card{border:1px solid var(--line);background:linear-gradient(145deg,rgba(17,25,52,.94),rgba(8,13,30,.96));border-radius:24px}
-.login{width:min(470px,100%);margin:9vh auto 0;padding:24px}
-.login h1{font-size:clamp(2.1rem,8vw,3.45rem);margin:7px 0 4px;line-height:1.02}
-.login p{margin:8px 0 18px}
-.login label{display:grid;gap:7px;margin:13px 0;font-size:13px;font-weight:850;color:#c5cee4}
-.input{
-  width:100%;min-height:48px;border:1px solid rgba(151,170,255,.23);border-radius:14px;
-  background:#0a1125;color:#fff;padding:11px 13px;outline:none
-}
-.input:focus{border-color:rgba(89,228,255,.6);box-shadow:0 0 0 3px rgba(89,228,255,.08)}
-.remember{display:flex!important;grid-template-columns:auto 1fr!important;align-items:center;gap:9px!important}
-.remember input{width:19px;height:19px}
-.btn{
-  min-height:44px;border:1px solid rgba(111,134,255,.38);border-radius:14px;
-  background:linear-gradient(135deg,rgba(90,66,210,.67),rgba(22,129,168,.48));
-  color:#fff;font-weight:900;padding:10px 14px;cursor:pointer
-}
-.login .btn{width:100%;margin-top:8px}
-.status{min-height:21px;margin-top:10px;color:#ffb0c7;font-size:13px}
-.hubTop{display:flex;justify-content:space-between;align-items:flex-start;gap:18px}
-.hubTitle h1{
-  margin:7px 0 4px;font-size:clamp(2.2rem,8vw,4.25rem);line-height:1;
-  background:linear-gradient(90deg,#b38aff,#718bff 38%,#59e4ff);
-  -webkit-background-clip:text;background-clip:text;color:transparent
-}
-.identity{margin-top:9px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.stateChip{
-  display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:999px;
-  border:1px solid rgba(89,228,255,.25);background:rgba(89,228,255,.055);
-  color:#c9f8ff;font-size:11px;font-weight:900
-}
-.logout{background:#11182d;white-space:nowrap}
-.sectionHead{margin:34px 0 12px}
-.sectionHead h2{margin:0;font-size:15px;letter-spacing:.03em}
-.sectionHead p{margin:4px 0 0;font-size:13px}
-.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
-.module{
-  position:relative;overflow:hidden;min-height:150px;padding:17px;text-decoration:none;color:#fff;
-  display:flex;flex-direction:column;justify-content:space-between;transition:.16s ease
-}
-.module:before{
-  content:"";position:absolute;inset:0;pointer-events:none;
-  background:radial-gradient(circle at 90% 0,var(--glow,rgba(89,228,255,.13)),transparent 42%)
-}
-.module:hover{transform:translateY(-2px);border-color:rgba(89,228,255,.35)}
-.module.transfer{--tone:#74d7ff;--glow:rgba(79,183,255,.15)}
-.module.ministry{--tone:#c09cff;--glow:rgba(171,113,255,.16)}
-.module.wos{--tone:#86efd0;--glow:rgba(94,226,185,.13)}
-.moduleTop{position:relative;z-index:1}
-.moduleTag{font-size:9px;letter-spacing:.14em;font-weight:950;color:var(--tone)}
-.module h3{font-size:22px;margin:8px 0 5px}
-.module p{font-size:12px;line-height:1.45;margin:0;color:#aeb9d4}
-.openLine{
-  position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;
-  margin-top:20px;padding-top:12px;border-top:1px solid rgba(255,255,255,.08);
-  color:var(--tone);font-size:11px;font-weight:950
-}
-.arrow{font-size:17px}
-.empty{grid-column:1/-1;padding:24px;text-align:center}
-@media(max-width:760px){.grid{grid-template-columns:1fr}.module{min-height:126px}.hubTop{align-items:flex-start}.logout{padding:8px 11px}.shell{padding-top:25px}}
+.login{width:min(490px,100%);margin:7vh auto 0;padding:24px}.login h1{font-size:clamp(2rem,8vw,3.4rem);margin:7px 0 4px;line-height:1.02}.login p{margin:8px 0 18px}
+.authTabs{display:flex;gap:7px;margin:18px 0}.authTabs button{flex:1;background:#10172c;border:1px solid rgba(151,170,255,.22);color:#aeb9d4;border-radius:999px;min-height:40px}.authTabs button.active{background:linear-gradient(135deg,#49359c,#188cae);color:white}
+label{display:grid;gap:7px;margin:12px 0;font-size:13px;font-weight:850;color:#c5cee4}.input,.select{width:100%;min-height:48px;border:1px solid rgba(151,170,255,.23);border-radius:14px;background:#0a1125;color:#fff;padding:11px 13px;outline:none}.input:focus,.select:focus{border-color:rgba(89,228,255,.6);box-shadow:0 0 0 3px rgba(89,228,255,.08)}
+.remember{display:flex!important;align-items:center;gap:9px!important}.remember input{width:19px;height:19px}.btn{min-height:44px;border:1px solid rgba(111,134,255,.38);border-radius:14px;background:linear-gradient(135deg,rgba(90,66,210,.67),rgba(22,129,168,.48));color:#fff;font-weight:900;padding:10px 14px;cursor:pointer}.btn.secondary{background:#11182d}.btn.danger{background:#4b2039;border-color:#a64f73}.login .btn.primary{width:100%;margin-top:8px}.status{min-height:21px;margin-top:10px;color:#ffb0c7;font-size:13px;white-space:pre-wrap}
+.hubTop{display:flex;justify-content:space-between;align-items:flex-start;gap:18px}.hubTitle h1{margin:7px 0 4px;font-size:clamp(2.2rem,8vw,4.25rem);line-height:1;background:linear-gradient(90deg,#b38aff,#718bff 38%,#59e4ff);-webkit-background-clip:text;background-clip:text;color:transparent}.identity{margin-top:9px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}.stateChip,.ownerChip{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:999px;border:1px solid rgba(89,228,255,.25);background:rgba(89,228,255,.055);color:#c9f8ff;font-size:11px;font-weight:900}.ownerChip{border-color:rgba(192,156,255,.35);color:#e2d3ff;background:rgba(192,156,255,.07)}
+.sectionHead{margin:32px 0 12px}.sectionHead h2{margin:0;font-size:15px}.sectionHead p{margin:4px 0 0;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.module{position:relative;overflow:hidden;min-height:155px;padding:17px;text-decoration:none;color:#fff;display:flex;flex-direction:column;justify-content:space-between;transition:.16s ease}.module:before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 90% 0,var(--glow,rgba(89,228,255,.13)),transparent 42%)}.module.enabled:hover{transform:translateY(-2px);border-color:rgba(89,228,255,.35)}.module.locked{opacity:.48;filter:saturate(.58);cursor:not-allowed}.module.nexa{--tone:#69e5ff;--glow:rgba(89,228,255,.18)}.module.transfer{--tone:#74d7ff;--glow:rgba(79,183,255,.15)}.module.ministry{--tone:#c09cff;--glow:rgba(171,113,255,.16)}.module.wos{--tone:#86efd0;--glow:rgba(94,226,185,.13)}
+.moduleTop{position:relative;z-index:1}.moduleTag{font-size:9px;letter-spacing:.14em;font-weight:950;color:var(--tone)}.module h3{font-size:21px;margin:8px 0 5px}.module p{font-size:12px;line-height:1.45;margin:0;color:#aeb9d4}.openLine{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:12px;border-top:1px solid rgba(255,255,255,.08);color:var(--tone);font-size:11px;font-weight:950}
+.accessCard{padding:18px}.accessHead{display:flex;justify-content:space-between;align-items:center;gap:12px}.peopleGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}.person{border:1px solid rgba(151,170,255,.22);border-radius:18px;padding:13px;background:#0b1228}.person.owner{border-color:rgba(192,156,255,.45);box-shadow:inset 4px 0 0 rgba(192,156,255,.68)}.person.self{box-shadow:inset 4px 0 0 rgba(89,228,255,.68)}.personName{font-size:15px;font-weight:950;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.personMeta{font-size:10px;color:#9da9c8;margin-top:5px}.personTags{display:flex;gap:5px;flex-wrap:wrap;margin:9px 0}.tag{font-size:9px;border:1px solid rgba(151,170,255,.24);border-radius:999px;padding:4px 7px;color:#cdd6ec}.tag.on{border-color:rgba(120,237,191,.36);color:#9af6cf}.tag.off{opacity:.55}.person .btn{width:100%;min-height:36px;padding:7px 10px}
+.modal{position:fixed;inset:0;z-index:50000;display:none;place-items:center;padding:14px;background:rgba(0,0,0,.78);backdrop-filter:blur(7px)}.modal.open{display:grid}.dialog{width:min(650px,100%);max-height:90dvh;overflow:auto;border:1px solid rgba(151,170,255,.34);border-radius:24px;background:#0b1125;padding:19px}.dialogTop{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.x{width:42px;height:42px;border-radius:50%;border:1px solid rgba(89,228,255,.3);background:#091429;color:#ddfbff;font-size:22px}.moduleAccess{border:1px solid rgba(151,170,255,.18);border-radius:18px;padding:14px;margin:11px 0;background:#0c142b}.moduleAccess.disabledByAdmin{opacity:.55}.moduleRow{display:flex;justify-content:space-between;align-items:center;gap:10px}.toggle{width:22px;height:22px}.form2{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.actions .btn{flex:1 1 150px}.recoveryCode{font-size:21px;font-weight:950;text-align:center;padding:14px;border:1px solid rgba(89,228,255,.28);border-radius:15px;background:rgba(89,228,255,.06);letter-spacing:.05em}
+@media(max-width:850px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:620px){.grid,.peopleGrid,.form2{grid-template-columns:1fr}.module{min-height:126px}.hubTop{align-items:flex-start}.shell{padding-top:23px}.accessHead{align-items:flex-start;flex-direction:column}.accessHead .btn{width:100%}}
 </style>
 </head>
 <body>
 <main class="shell">
 <section id="login" class="card login">
-  <div class="kicker">NEXA STAFF</div>
-  <h1>Workspace Login</h1>
-  <p class="muted">One sign-in for every authorized NEXA workspace.</p>
-  <label>State / Server<input id="state" class="input" inputmode="numeric" autocomplete="off" placeholder="e.g. 1518"></label>
-  <label>Game ID<input id="id" class="input" inputmode="numeric" autocomplete="username" placeholder="Game ID"></label>
-  <label>Password<input id="pw" class="input" type="password" autocomplete="current-password"></label>
-  <label class="remember"><input id="remember" type="checkbox" checked><span>Remember me on this device</span></label>
-  <button id="go" class="btn">Sign In</button>
+  <div class="kicker">NEXA STAFF</div><h1>Workspace Login</h1><p class="muted">One account. One sign-in. Every authorized staff workspace.</p>
+  <div class="authTabs"><button id="loginTab" class="active">Log In</button><button id="registerTab">First Time? Register</button></div>
+  <div id="loginPane">
+    <label>State / Server<input id="state" class="input" inputmode="numeric" placeholder="e.g. 1518"></label>
+    <label>Game ID<input id="id" class="input" inputmode="numeric" autocomplete="username" placeholder="Game ID"></label>
+    <label>Password<input id="pw" class="input" type="password" autocomplete="current-password"></label>
+    <label class="remember"><input id="remember" type="checkbox" checked><span>Remember me on this device</span></label>
+    <button id="go" class="btn primary">Sign In</button>
+    <button id="forgot" class="btn secondary" style="width:100%;margin-top:8px">Forgot Password?</button>
+  </div>
+  <div id="registerPane" class="hidden">
+    <label>State / Server<input id="regState" class="input" inputmode="numeric" placeholder="e.g. 1518"></label>
+    <label>Game Name<input id="regName" class="input"></label>
+    <label>Game ID<input id="regId" class="input" inputmode="numeric"></label>
+    <label>Create Password<input id="regPw" class="input" type="password"></label>
+    <label>Confirm Password<input id="regPw2" class="input" type="password"></label>
+    <label class="remember"><input id="regRemember" type="checkbox" checked><span>Remember me</span></label>
+    <button id="registerGo" class="btn primary">Create Staff Login</button>
+  </div>
+  <div id="recoveryPane" class="hidden">
+    <label>Game ID<input id="recoverId" class="input" inputmode="numeric"></label>
+    <label>Recovery Code<input id="recoverCode" class="input"></label>
+    <label>New Password<input id="recoverPw" class="input" type="password"></label>
+    <label>Confirm New Password<input id="recoverPw2" class="input" type="password"></label>
+    <button id="recoverGo" class="btn primary">Change Password</button>
+    <button id="recoverCancel" class="btn secondary" style="width:100%;margin-top:8px">Cancel</button>
+  </div>
   <div id="msg" class="status"></div>
 </section>
 
 <section id="app" class="hidden">
-  <div class="hubTop">
-    <div class="hubTitle">
-      <div class="kicker">NEXA STAFF</div>
-      <h1>Workspaces</h1>
-      <div class="identity"><span id="who" class="muted"></span><span id="stateChip" class="stateChip"></span></div>
-    </div>
-    <button id="out" class="btn logout">Log Out</button>
-  </div>
-
-  <div class="sectionHead">
-    <h2>Authorized Modules</h2>
-    <p class="muted">Choose where you want to work. Your session stays active while you switch modules.</p>
-  </div>
+  <div class="hubTop"><div class="hubTitle"><div class="kicker">NEXA STAFF</div><h1>Workspace Hub</h1><div class="identity"><span id="who" class="muted"></span><span id="stateChip" class="stateChip"></span><span id="ownerChip" class="ownerChip hidden">Global Owner</span></div></div><button id="out" class="btn secondary">Log Out</button></div>
+  <div class="sectionHead"><h2>NEXA + Staff Workspaces</h2><p class="muted">Every workspace is shown. Locked cards are visible but cannot be opened.</p></div>
   <div id="grid" class="grid"></div>
+
+  <section id="accessSection" class="hidden">
+    <div class="sectionHead"><h2>Access Management</h2><p class="muted">One person, one card. Manage workspace access, admin level and WOS role from one place.</p></div>
+    <div class="card accessCard">
+      <div class="accessHead"><div><div class="kicker">GLOBAL STAFF DIRECTORY</div><div class="muted" style="margin-top:5px">Passwords are never displayed. Your own password can be changed from your card.</div></div><button id="addPerson" class="btn">＋ Add Staff</button></div>
+      <div id="people" class="peopleGrid"></div><div id="accessStatus" class="status"></div>
+    </div>
+  </section>
 </section>
 </main>
 
+<div id="modal" class="modal"><div class="dialog"><div class="dialogTop"><div><div class="kicker">GLOBAL STAFF ACCESS</div><h2 id="modalTitle" style="margin:5px 0"></h2><div id="modalSub" class="muted"></div></div><button id="modalClose" class="x">×</button></div><div id="modalBody"></div></div></div>
+
 <script>
 (()=>{'use strict';
-const sb=window.supabase.createClient(
-  'https://dfxcxboxrkfmrnsgpyin.supabase.co',
-  'sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-'
-),$=id=>document.getElementById(id);
+const sb=window.supabase.createClient('https://dfxcxboxrkfmrnsgpyin.supabase.co','sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-'),$=id=>document.getElementById(id);
+let token=localStorage.getItem('nexa_transfer_staff_token')||sessionStorage.getItem('nexa_transfer_staff_token')||'',activeState=Number(localStorage.getItem('nexa_active_state')||sessionStorage.getItem('nexa_active_state')||localStorage.getItem('nexa_active_state_v49')||sessionStorage.getItem('nexa_active_state_v49')||0),model=null,directory=null,currentPerson=null;
+const rpc=async(fn,args)=>{const {data,error}=await sb.rpc(fn,args);if(error)throw Error(error.message||String(error));return data};
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function clearSession(){for(const s of [localStorage,sessionStorage]){s.removeItem('nexa_transfer_staff_token');s.removeItem('nexa_active_state');s.removeItem('nexa_active_state_v49')}token='';activeState=0}
+function saveSession(t,remember,state){clearSession();const s=remember?localStorage:sessionStorage;s.setItem('nexa_transfer_staff_token',t);s.setItem('nexa_active_state',String(state));s.setItem('nexa_active_state_v49',String(state));token=t;activeState=Number(state)||0}
+function authTab(reg){$('loginPane').classList.toggle('hidden',reg);$('registerPane').classList.toggle('hidden',!reg);$('recoveryPane').classList.add('hidden');$('loginTab').classList.toggle('active',!reg);$('registerTab').classList.toggle('active',reg);$('msg').textContent=''}
+$('loginTab').onclick=()=>authTab(false);$('registerTab').onclick=()=>authTab(true);$('forgot').onclick=()=>{$('loginPane').classList.add('hidden');$('registerPane').classList.add('hidden');$('recoveryPane').classList.remove('hidden');$('msg').textContent=''};$('recoverCancel').onclick=()=>authTab(false);
 
-let token=localStorage.getItem('nexa_transfer_staff_token')||sessionStorage.getItem('nexa_transfer_staff_token')||'';
-let activeState=Number(localStorage.getItem('nexa_active_state')||sessionStorage.getItem('nexa_active_state')||localStorage.getItem('nexa_active_state_v49')||0);
-const query=new URLSearchParams(location.search);
-const requestedNext=(query.get('next')||'').trim();
+function cls(m){return m.module==='nexa'?'nexa':m.module==='transfer'?'transfer':m.module==='ministry'?'ministry':'wos'}
+function desc(m){if(m.module==='nexa')return 'Open your main NEXA account and home experience.';if(m.module==='transfer')return 'Transfer operations, applications and planning.';if(m.module==='ministry')return 'Ministry appointments and scheduling.';return 'Gift Codes, Event Reminders, Discord and WOS tools.'}
+function renderCards(){
+ $('grid').innerHTML=(model.cards||[]).map(m=>`<article class="card module ${cls(m)} ${m.enabled?'enabled':'locked'}" data-module="${esc(m.module)}">
+ <div class="moduleTop"><div class="moduleTag">${m.module==='nexa'?'🤖 NEXA HOME':esc(m.label.toUpperCase())}</div><h3>${esc(m.label)}</h3><p>${esc(desc(m))}</p></div>
+ <div class="openLine"><span>${m.enabled?'Open':'🔒 No Access'}</span><span>${m.enabled?'→':'🔒'}</span></div></article>`).join('');
+ document.querySelectorAll('[data-module]').forEach(el=>el.onclick=()=>{const m=model.cards.find(x=>x.module===el.dataset.module);if(!m?.enabled){openInfo('Access Required',m?.reason==='account_required'?'A NEXA account is required to open NEXA Home.':'You do not currently have access to this workspace.');return}location.href=m.url});
+}
+function openInfo(title,text){$('modalTitle').textContent=title;$('modalSub').textContent='';$('modalBody').innerHTML=`<p class="muted">${esc(text)}</p><div class="actions"><button id="infoOk" class="btn">OK</button></div>`;$('modal').classList.add('open');$('infoOk').onclick=closeModal}
+function closeModal(){$('modal').classList.remove('open');currentPerson=null}$('modalClose').onclick=closeModal;$('modal').onclick=e=>{if(e.target===$('modal'))closeModal()};
 
-const rpc=async(fn,args)=>{const {data,error}=await sb.rpc(fn,args);if(error)throw error;return data};
-
-function clearSession(){
- for(const s of [localStorage,sessionStorage]){
-  s.removeItem('nexa_transfer_staff_token');
-  s.removeItem('nexa_active_state');
-  s.removeItem('nexa_active_state_v49');
- }
- token='';activeState=0;
+async function loadHub(){
+ model=await rpc('nexa_staff_hub_v2',{p_token:token,p_state_number:activeState});
+ if(!model?.ok)throw Error(model?.error||'session_expired');
+ $('login').classList.add('hidden');$('app').classList.remove('hidden');$('who').textContent=model.game_name||model.game_id||'Staff';$('stateChip').textContent=`State ${activeState}`;$('ownerChip').classList.toggle('hidden',!model.global_owner);renderCards();
+ $('accessSection').classList.toggle('hidden',!model.can_manage_access);
+ if(model.can_manage_access)await loadDirectory();
 }
-function saveSession(t,remember,state){
- clearSession();
- const s=remember?localStorage:sessionStorage;
- s.setItem('nexa_transfer_staff_token',t);
- s.setItem('nexa_active_state',String(state));
- s.setItem('nexa_active_state_v49',String(state));
- token=t;activeState=Number(state)||0;window.NEXA_ACTIVE_STATE=activeState;
+function statusOf(obj){if(!obj)return'off';return obj.status==='active'?'on':obj.status==='pending'?'pending':'off'}
+function renderPeople(){
+ const rows=directory?.people||[];$('people').innerHTML=rows.length?rows.map(p=>`<article class="person ${p.global_owner?'owner':''} ${p.is_self?'self':''}">
+ <div class="personName">${esc(p.game_name||p.game_id)}</div><div class="personMeta">Game ID ${esc(p.game_id)}${p.is_self?' • YOUR ACCOUNT':''}</div>
+ <div class="personTags"><span class="tag ${statusOf(p.transfer)==='on'?'on':'off'}">Transfer ${statusOf(p.transfer).toUpperCase()}</span><span class="tag ${statusOf(p.ministry)==='on'?'on':'off'}">Ministry ${statusOf(p.ministry).toUpperCase()}</span><span class="tag ${statusOf(p.wos)==='on'?'on':'off'}">WOS ${statusOf(p.wos).toUpperCase()}</span></div>
+ <button class="btn secondary" data-person="${esc(p.game_id)}">View / Edit</button></article>`).join(''):'<div class="muted">No staff records for this State yet.</div>';
+ document.querySelectorAll('[data-person]').forEach(b=>b.onclick=()=>openPerson(rows.find(p=>p.game_id===b.dataset.person)));
 }
-
-function safePath(value){
- try{return new URL(value,location.href).pathname.split('/').pop()?.toLowerCase()||''}catch{return''}
+async function loadDirectory(){const d=await rpc('nexa_global_staff_directory_v1',{p_token:token,p_state_number:activeState});if(!d?.ok)throw Error(d?.error||'Unable to load staff directory.');directory=d;renderPeople()}
+function moduleBox(key,title,p,manage,extra=''){
+ const enabled=p?.status==='active'||p?.status==='pending',level=p?.level==='admin'?'admin':'regular',protectedOwner=!!p?.is_owner;
+ return `<section class="moduleAccess ${manage?'':'disabledByAdmin'}"><div class="moduleRow"><div><b>${title}</b><div class="muted" style="font-size:11px">${protectedOwner?'Owner access is protected.':(enabled?'Enabled':'No active access')}</div></div><input class="toggle" id="${key}Enabled" type="checkbox" ${enabled?'checked':''} ${(!manage||protectedOwner)?'disabled':''}></div>
+ <div class="form2"><label>Access Level<select id="${key}Level" class="select" ${(!manage||protectedOwner)?'disabled':''}><option value="regular" ${level==='regular'?'selected':''}>Regular Staff</option><option value="admin" ${level==='admin'?'selected':''}>Admin Access</option></select></label>${extra}</div></section>`;
 }
-function continueRequested(model){
- if(!requestedNext)return false;
- const wanted=safePath(requestedNext);
- if(!wanted||wanted==='staff-workspaces.html')return false;
- const allowed=(model.modules||[]).find(m=>safePath(m.url)===wanted);
- if(!allowed?.url)return false;
- location.replace(new URL(allowed.url,location.href).href);
- return true;
+function openPerson(p){
+ currentPerson=p||{game_id:'',game_name:'New Staff',registered:false,is_self:false,global_owner:false,transfer:null,ministry:null,wos:null};const isNew=!p;
+ $('modalTitle').textContent=isNew?'Add Staff':(p.game_name||p.game_id);$('modalSub').textContent=isNew?'Enter a Game ID and choose the workspaces to authorize.':`Game ID ${p.game_id}${p.registered?' • Staff login registered':' • Pending registration'}`;
+ const mm=directory.manage_modules||{},alliances=directory.alliances||[],w=p?.wos||null;
+ const allianceSelect=`<label>Alliance<select id="wosAlliance" class="select" ${mm.wos?'':'disabled'}><option value="">Choose Alliance</option>${alliances.map(a=>`<option value="${a.id}" ${String(w?.alliance_id||'')===String(a.id)?'selected':''}>${esc(a.tag)}${a.name?' • '+esc(a.name):''}</option>`).join('')}</select></label>`;
+ const wosExtra=`${allianceSelect}<label>WOS Role<select id="wosRole" class="select" ${mm.wos?'':'disabled'}><option value="r4" ${w?.role!=='r5'?'selected':''}>R4</option><option value="r5" ${w?.role==='r5'?'selected':''}>R5</option></select></label>`;
+ $('modalBody').innerHTML=`${isNew?'<label>Game ID<input id="personGameId" class="input" inputmode="numeric"></label>':''}
+ ${moduleBox('transfer','Transfer Workspace',p?.transfer,mm.transfer)}
+ ${moduleBox('ministry','Ministry Workspace',p?.ministry,mm.ministry)}
+ ${moduleBox('wos','WOS Utilities',p?.wos,mm.wos,wosExtra)}
+ <div class="actions"><button id="savePerson" class="btn">Save Access</button>${(!isNew&&p.registered&&!p.is_self)?'<button id="makeRecovery" class="btn secondary">Generate Recovery Code</button>':''}</div>
+ ${(!isNew&&p.is_self)?`<section class="moduleAccess"><b>My Staff Password</b><div class="form2"><label>Current Password<input id="currentPw" class="input" type="password"></label><label>New Password<input id="newPw" class="input" type="password"></label><label>Confirm New Password<input id="newPw2" class="input" type="password"></label></div><button id="changePw" class="btn secondary">Change Password</button></section>`:''}
+ <div id="modalStatus" class="status"></div>`;
+ $('modal').classList.add('open');$('savePerson').onclick=savePerson;$('makeRecovery')?.addEventListener('click',makeRecovery);$('changePw')?.addEventListener('click',changePassword);
 }
-function initialMessage(){
- const reason=query.get('reason')||'';
- const copy={
-  session_expired:'Your staff session expired. Sign in again.',
-  sign_in_required:'Sign in to open that workspace.',
-  no_access:'That workspace is not assigned to this staff account.',
-  workspace_error:'The workspace could not finish loading. Sign in again or choose another authorized module.'
- };
- if(copy[reason])$('msg').textContent=copy[reason];
+async function savePerson(){
+ const out=$('modalStatus');out.textContent='Saving…';
+ try{
+  const gameId=currentPerson.game_id||$('personGameId').value.trim();
+  if(!/^\d{4,24}$/.test(gameId))throw Error('Enter a valid Game ID.');
+  const args={p_token:token,p_state_number:activeState,p_game_id:gameId,
+   p_transfer_enabled:$('transferEnabled').checked,p_transfer_level:$('transferLevel').value,
+   p_ministry_enabled:$('ministryEnabled').checked,p_ministry_level:$('ministryLevel').value,
+   p_wos_enabled:$('wosEnabled').checked,p_wos_level:$('wosLevel').value,p_wos_role:$('wosRole').value,p_wos_alliance_id:$('wosAlliance').value||null};
+  const d=await rpc('nexa_global_staff_save_v1',args);if(!d?.ok)throw Error(d?.error||'Unable to save access.');
+  out.style.color='var(--green)';out.textContent='Access saved ✓';await loadHub();setTimeout(closeModal,450)
+ }catch(e){out.style.color='var(--bad)';out.textContent=String(e.message||e).replaceAll('_',' ')}
 }
-
-function moduleClass(m){return m.module==='transfer'?'transfer':m.module==='ministry'?'ministry':'wos'}
-function shortLabel(m){return m.module==='transfer'?'Transfer':m.module==='ministry'?'Ministry':'WOS Utilities'}
-function description(m){
- if(m.module==='transfer')return 'Transfer operations, applications and planning.';
- if(m.module==='ministry')return 'Ministry appointments and scheduling.';
- return 'Gift Codes, Event Reminders and WOS tools.';
+async function makeRecovery(){
+ const out=$('modalStatus');out.textContent='Generating recovery code…';
+ try{const d=await rpc('nexa_global_staff_generate_recovery_v1',{p_token:token,p_state_number:activeState,p_game_id:currentPerson.game_id});if(!d?.ok)throw Error(d?.error||'Unable to generate recovery code.');out.innerHTML=`<div class="recoveryCode">${esc(d.code)}</div><div class="muted" style="margin-top:8px">Valid for 30 minutes and one use.</div><button id="copyRecovery" class="btn secondary" style="width:100%;margin-top:8px">Copy Code</button>`;$('copyRecovery').onclick=async()=>{await navigator.clipboard.writeText(d.code);$('copyRecovery').textContent='Copied ✓'}}
+ catch(e){out.textContent=String(e.message||e).replaceAll('_',' ')}
 }
-function normalizeModules(rows){
- const seen=new Set(),out=[];
- for(const m of rows||[]){
-  if(!m?.url)continue;
-  if(activeState&&m.state_number&&Number(m.state_number)!==activeState)continue;
-  const key=m.module||m.url;
-  if(seen.has(key))continue;
-  seen.add(key);out.push(m);
- }
- const order={transfer:1,ministry:2,gift:3,wos:3};
- return out.sort((a,b)=>(order[a.module]||9)-(order[b.module]||9));
+async function changePassword(){
+ const out=$('modalStatus');if($('newPw').value!==$('newPw2').value){out.textContent='New passwords do not match.';return}
+ try{const d=await rpc('transfer_staff_change_password',{p_token:token,p_current_password:$('currentPw').value,p_new_password:$('newPw').value});if(!d?.ok)throw Error(d?.error||'Unable to change password.');out.style.color='var(--green)';out.textContent='Password changed everywhere in NEXA Staff ✓';$('currentPw').value=$('newPw').value=$('newPw2').value=''}
+ catch(e){out.style.color='var(--bad)';out.textContent=String(e.message||e).replaceAll('_',' ')}
 }
-async function getModel(){
- const [session,access]=await Promise.all([
-  rpc('transfer_staff_session',{p_token:token}),
-  rpc('nexa_staff_workspace_access_v1',{p_token:token})
- ]);
- if(!session?.ok)throw Error(session?.error||'session_expired');
- if(!access?.ok)throw Error(access?.error||'session_expired');
- const modules=normalizeModules(access.modules||session.modules||[]);
- return {session,access,modules};
-}
-function render(model){
- $('login').classList.add('hidden');$('app').classList.remove('hidden');
- const person=model.access.game_name||model.session.game_name||model.access.game_id||'Staff';
- $('who').textContent=person;
- $('stateChip').textContent=`State ${activeState||'—'}`;
- const mods=model.modules;
- $('grid').innerHTML=mods.length?mods.map(m=>`
-  <a class="card module ${moduleClass(m)}" href="${m.url}">
-   <div class="moduleTop"><div class="moduleTag">${shortLabel(m).toUpperCase()}</div><h3>${shortLabel(m)}</h3><p>${description(m)}</p></div>
-   <div class="openLine"><span>Open workspace</span><span class="arrow">→</span></div>
-  </a>`).join(''):`<div class="card empty muted">No active staff workspaces are available for State ${activeState||'—'}.</div>`;
-}
-async function start(){
- if(query.has('logged_out'))clearSession();
- if(!token){initialMessage();return}
- try{const model=await getModel();if(!continueRequested(model))render(model)}
- catch(e){
-  clearSession();
-  $('login').classList.remove('hidden');$('app').classList.add('hidden');
-  $('msg').textContent='Your staff session could not be restored. Sign in again.';
- }
-}
+$('addPerson').onclick=()=>openPerson(null);
 
 $('go').onclick=async()=>{
- try{
-  $('msg').textContent='Signing in…';
-  const state=Number($('state').value.trim()),gameId=$('id').value.trim();
-  if(!Number.isInteger(state)||state<1)throw Error('Enter your State / Server.');
-  if(!/^\d{4,24}$/.test(gameId))throw Error('Enter a valid Game ID.');
-  const d=await rpc('nexa_staff_login_v2',{p_state_number:state,p_game_id:gameId,p_password:$('pw').value,p_remember:$('remember').checked});
-  if(!d?.ok)throw Error(d?.error||'Unable to sign in');
-  saveSession(d.token,$('remember').checked,state);
-  const model=await getModel();
-  if(!continueRequested(model))render(model);
-  $('msg').textContent='';
- }catch(e){$('msg').textContent=e.message||String(e)}
+ try{$('msg').textContent='Signing in…';const state=Number($('state').value.trim()),gameId=$('id').value.trim();if(!Number.isInteger(state)||state<1)throw Error('Enter your State / Server.');if(!/^\d{4,24}$/.test(gameId))throw Error('Enter a valid Game ID.');const d=await rpc('nexa_staff_login_v2',{p_state_number:state,p_game_id:gameId,p_password:$('pw').value,p_remember:$('remember').checked});if(!d?.ok)throw Error(d?.error||'Unable to sign in');saveSession(d.token,$('remember').checked,state);await loadHub();$('msg').textContent=''}catch(e){$('msg').textContent=String(e.message||e).replaceAll('_',' ')}
 };
-$('out').onclick=async()=>{
- try{if(token)await rpc('transfer_staff_logout',{p_token:token})}catch{}
- clearSession();location.reload();
+$('registerGo').onclick=async()=>{
+ try{$('msg').textContent='Creating staff login…';const state=Number($('regState').value.trim()),gid=$('regId').value.trim();if($('regPw').value!==$('regPw2').value)throw Error('Passwords do not match.');const d=await rpc('nexa_staff_register_global_v1',{p_state_number:state,p_game_name:$('regName').value.trim(),p_game_id:gid,p_password:$('regPw').value,p_remember:$('regRemember').checked});if(!d?.ok)throw Error(d?.error||'Unable to register');saveSession(d.token,$('regRemember').checked,state);await loadHub()}catch(e){$('msg').textContent=String(e.message||e).replaceAll('_',' ')}
 };
+$('recoverGo').onclick=async()=>{
+ try{if($('recoverPw').value!==$('recoverPw2').value)throw Error('Passwords do not match.');const d=await rpc('transfer_staff_reset_password',{p_identifier:$('recoverId').value.trim(),p_code:$('recoverCode').value.trim(),p_new_password:$('recoverPw').value});if(!d?.ok)throw Error(d?.error||'Invalid recovery code.');$('msg').style.color='var(--green)';$('msg').textContent='Password changed. You can log in now.';authTab(false)}catch(e){$('msg').style.color='var(--bad)';$('msg').textContent=String(e.message||e).replaceAll('_',' ')}
+};
+$('out').onclick=async()=>{try{if(token)await rpc('transfer_staff_logout',{p_token:token})}catch{}clearSession();location.reload()};
+async function start(){if(!token){const reason=new URLSearchParams(location.search).get('reason');if(reason==='session_expired')$('msg').textContent='Your staff session expired. Sign in again.';return}try{await loadHub()}catch(e){clearSession();$('login').classList.remove('hidden');$('app').classList.add('hidden');$('msg').textContent='Your staff session could not be restored. Sign in again.'}}
 start();
 })();
 </script>

@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- NEXA STAFF WORKSPACES V2.0 — GLOBAL STATE + GAME ID LOGIN -->
+<!-- NEXA STAFF WORKSPACES V2.1 — GLOBAL STATE + GAME ID LOGIN + SHARED MODULE ACCESS -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>NEXA • Staff Workspaces</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -28,9 +28,23 @@ let token=localStorage.getItem('nexa_transfer_staff_token')||sessionStorage.getI
 let activeState=Number(localStorage.getItem('nexa_active_state')||sessionStorage.getItem('nexa_active_state')||0);
 const rpc=async(fn,args)=>{const {data,error}=await sb.rpc(fn,args);if(error)throw error;return data};
 function save(t,remember,state){localStorage.removeItem('nexa_transfer_staff_token');sessionStorage.removeItem('nexa_transfer_staff_token');localStorage.removeItem('nexa_active_state');sessionStorage.removeItem('nexa_active_state');const s=remember?localStorage:sessionStorage;s.setItem('nexa_transfer_staff_token',t);s.setItem('nexa_active_state',String(state));token=t;activeState=state}
-function render(s){$('login').classList.add('hidden');$('app').classList.remove('hidden');$('who').textContent=`${s.game_name||s.game_id||'Staff'} • State ${activeState||s.state_number||'—'}`;const mods=(s.modules||[]).filter(m=>!activeState||Number(m.state_number)===Number(activeState));$('grid').innerHTML=mods.length?mods.map(m=>`<a class="card module" href="${m.url}"><div class="k">${m.module==='transfer'?'TRANSFER':m.module==='ministry'?'MINISTRY':String(m.module||'WORKSPACE').toUpperCase()}</div><h2>${m.label||'Workspace'}</h2><p class="muted">State ${m.state_number||activeState||'—'} • ${m.access_level==='admin'?'Administrative Access':'Regular Access'}</p><span class="badge">Open Workspace</span></a>`).join(''):'<div class="card muted">No active staff workspaces for this State.</div>'}
-async function start(){if(!token)return;try{const s=await rpc('transfer_staff_session',{p_token:token});if(s?.ok){if(!activeState&&s.state_number)activeState=Number(s.state_number);render(s)}}catch{}}
-$('go').onclick=async()=>{try{$('msg').textContent='Signing in…';const state=Number($('state').value.trim()),gameId=$('id').value.trim();if(!Number.isInteger(state)||state<1)throw new Error('Enter your State / Server.');if(!/^\d{4,24}$/.test(gameId))throw new Error('Enter a valid Game ID.');const d=await rpc('nexa_staff_login_v2',{p_state_number:state,p_game_id:gameId,p_password:$('pw').value,p_remember:$('remember').checked});if(!d?.ok)throw new Error(d?.error||'Unable to sign in');save(d.token,$('remember').checked,state);const access=await rpc('nexa_staff_workspace_access_v1',{p_token:d.token});render({...d,...access})}catch(e){$('msg').textContent=e.message||String(e)}};
-$('out').onclick=async()=>{try{await rpc('transfer_staff_logout',{p_token:token})}catch{}localStorage.removeItem('nexa_transfer_staff_token');sessionStorage.removeItem('nexa_transfer_staff_token');localStorage.removeItem('nexa_active_state');sessionStorage.removeItem('nexa_active_state');location.reload()};start();
+function clearSession(){localStorage.removeItem('nexa_transfer_staff_token');sessionStorage.removeItem('nexa_transfer_staff_token');localStorage.removeItem('nexa_active_state');sessionStorage.removeItem('nexa_active_state');token='';activeState=0}
+function dedupeModules(rows){const out=[],seen=new Set();for(const m of rows||[]){if(!m||!m.url)continue;const key=`${m.module||''}|${m.workspace_id||''}|${m.url}`;if(seen.has(key))continue;seen.add(key);out.push(m)}return out}
+async function workspaceModel(base={}){
+ const [session,access]=await Promise.all([
+  rpc('transfer_staff_session',{p_token:token}),
+  rpc('nexa_staff_workspace_access_v1',{p_token:token})
+ ]);
+ if(!session?.ok)throw new Error(session?.error||'Session expired.');
+ if(!access?.ok)throw new Error(access?.error||'Unable to load workspace access.');
+ const stateful=(session.modules||[]).filter(m=>!activeState||!m.state_number||Number(m.state_number)===Number(activeState));
+ const shared=(access.modules||[]).filter(m=>m.module==='gift');
+ return {...base,...session,...access,game_name:access.game_name||session.game_name||base.game_name,game_id:access.game_id||session.game_id||base.game_id,modules:dedupeModules([...stateful,...shared])};
+}
+function moduleMeta(m){if(m.module==='gift')return m.global_owner?'Global Owner':'WOS Access';return m.access_level==='admin'?'Administrative Access':'Regular Access'}
+function render(s){$('login').classList.add('hidden');$('app').classList.remove('hidden');$('who').textContent=`${s.game_name||s.game_id||'Staff'} • State ${activeState||s.state_number||'—'}`;const mods=(s.modules||[]).filter(m=>m.module==='gift'||!activeState||!m.state_number||Number(m.state_number)===Number(activeState));$('grid').innerHTML=mods.length?mods.map(m=>`<a class="card module" href="${m.url}"><div class="k">${m.module==='transfer'?'TRANSFER':m.module==='ministry'?'MINISTRY':m.module==='gift'?'WOS UTILITIES':String(m.module||'WORKSPACE').toUpperCase()}</div><h2>${m.label||'Workspace'}</h2><p class="muted">State ${m.state_number||activeState||'—'} • ${m.module==='gift'?(s.global_owner?'Global Owner':'WOS Access'):moduleMeta(m)}</p><span class="badge">Open Workspace</span></a>`).join(''):'<div class="card muted">No active staff workspaces for this State.</div>'}
+async function start(){if(!token)return;try{const s=await workspaceModel();if(s?.ok!==false)render(s)}catch{clearSession()}}
+$('go').onclick=async()=>{try{$('msg').textContent='Signing in…';const state=Number($('state').value.trim()),gameId=$('id').value.trim();if(!Number.isInteger(state)||state<1)throw new Error('Enter your State / Server.');if(!/^\d{4,24}$/.test(gameId))throw new Error('Enter a valid Game ID.');const d=await rpc('nexa_staff_login_v2',{p_state_number:state,p_game_id:gameId,p_password:$('pw').value,p_remember:$('remember').checked});if(!d?.ok)throw new Error(d?.error||'Unable to sign in');save(d.token,$('remember').checked,state);const model=await workspaceModel(d);render(model);$('msg').textContent=''}catch(e){$('msg').textContent=e.message||String(e)}};
+$('out').onclick=async()=>{try{await rpc('transfer_staff_logout',{p_token:token})}catch{}clearSession();location.reload()};start();
 })();
 </script></body></html>

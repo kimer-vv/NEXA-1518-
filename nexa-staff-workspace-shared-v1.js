@@ -1,4 +1,4 @@
-/* NEXA Shared Workspace UI V4.1
+/* NEXA Shared Workspace UI V4.2
  * One global navigation + one Access Management visual system.
  * Transfer / Ministry / WOS Utilities share the same cards, modal, roles and 7-day restore flow.
  */
@@ -17,7 +17,7 @@ const q=new URLSearchParams(location.search);
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const getToken=()=>localStorage.getItem('nexa_transfer_staff_token')||sessionStorage.getItem('nexa_transfer_staff_token')||'';
-const getState=()=>Number(localStorage.getItem('nexa_active_state')||sessionStorage.getItem('nexa_active_state')||localStorage.getItem('nexa_active_state_v49')||sessionStorage.getItem('nexa_active_state_v49')||q.get('state')||0);
+const getState=()=>Number(q.get('state')||localStorage.getItem('nexa_active_state')||sessionStorage.getItem('nexa_active_state')||localStorage.getItem('nexa_active_state_v49')||sessionStorage.getItem('nexa_active_state_v49')||0);
 const getWorkspace=()=>q.get('workspace')||'';
 let modules=[], accessMode=MODULE==='wos'?'wos':MODULE, accessData=null, selectedAlliance='', renderBusy=false, modalMember=null;
 
@@ -375,8 +375,14 @@ async function boot(){
  }catch(e){
   console.warn('NEXA shared boot failed',e);
   const msg=String(e?.message||e||'').toLowerCase();
-  if(/session|token|jwt|unauthoriz/.test(msg))clearSession();
-  location.replace(hubUrl(/session|token|jwt|unauthoriz/.test(msg)?'session_expired':'workspace_error'));
+  const authError=/session|token|jwt|unauthoriz/.test(msg);
+  if(authError){
+   clearSession();
+   location.replace(hubUrl('session_expired'));
+   return;
+  }
+  /* A navigation/data error must never trap an authenticated user behind the auth gate. */
+  revealWorkspace();
  }
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();

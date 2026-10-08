@@ -1,50 +1,222 @@
 <!doctype html>
-<!-- NEXA STAFF WORKSPACES V2.1 — GLOBAL STATE + GAME ID LOGIN + SHARED MODULE ACCESS -->
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- NEXA STAFF WORKSPACES V3.0 — ONE LOGIN / GLOBAL MODULE HUB -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#050713">
 <title>NEXA • Staff Workspaces</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 20% 0,#20174a,#090d20 34%,#050713 70%);color:#fff;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}.shell{width:min(820px,100%);margin:auto;padding:32px 16px 70px}.k{font-size:10px;letter-spacing:.17em;color:#9fb0dd;font-weight:950}.hero h1{font-size:clamp(2.2rem,8vw,4rem);margin:7px 0}.muted{color:#aab4d0}.card{border:1px solid rgba(150,170,255,.18);background:rgba(12,17,37,.84);border-radius:22px;padding:17px}.login{width:min(430px,100%);margin:12vh auto 0}.login label{display:grid;gap:6px;margin:12px 0;font-weight:800}.input{width:100%;min-height:45px;border:1px solid rgba(150,170,255,.2);border-radius:13px;background:#0b1024;color:#fff;padding:10px 12px}.btn{width:100%;min-height:44px;border:1px solid rgba(111,134,255,.4);border-radius:13px;background:linear-gradient(135deg,rgba(91,65,219,.65),rgba(22,129,168,.45));color:#fff;font-weight:900}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:20px}.module{cursor:pointer;text-decoration:none;color:#fff}.module h2{margin:4px 0 6px}.badge{display:inline-flex;padding:5px 8px;border-radius:999px;background:rgba(122,96,255,.24);border:1px solid rgba(143,122,255,.33);font-size:11px;font-weight:850}.top{display:flex;justify-content:space-between;align-items:center;gap:10px}.logout{width:auto;padding:8px 12px;background:#10162c}@media(max-width:560px){.grid{grid-template-columns:1fr}}
-.hidden{display:none!important}.status{min-height:20px;margin-top:9px;color:#ff9fbd}
-</style></head><body>
+:root{
+  color-scheme:dark;
+  --bg:#050713;--panel:#0d1429;--panel2:#101a34;--line:rgba(151,170,255,.20);
+  --muted:#9da9c8;--cyan:#59e4ff;--violet:#9d7cff;--green:#78edbf;--bad:#ff92b2
+}
+*{box-sizing:border-box}
+html,body{min-height:100%;max-width:100%;overflow-x:hidden}
+body{
+  margin:0;color:#f7f8ff;
+  font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:
+    radial-gradient(circle at 9% 0,rgba(112,80,220,.22),transparent 31%),
+    radial-gradient(circle at 94% 9%,rgba(48,168,211,.12),transparent 28%),
+    linear-gradient(180deg,#090d20 0,#050713 72%)
+}
+button,input{font:inherit}
+.hidden{display:none!important}
+.shell{width:min(920px,100%);margin:auto;padding:34px 16px 88px}
+.kicker{font-size:10px;letter-spacing:.19em;color:#99a9d2;font-weight:950}
+.muted{color:var(--muted)}
+.card{border:1px solid var(--line);background:linear-gradient(145deg,rgba(17,25,52,.94),rgba(8,13,30,.96));border-radius:24px}
+.login{width:min(470px,100%);margin:9vh auto 0;padding:24px}
+.login h1{font-size:clamp(2.1rem,8vw,3.45rem);margin:7px 0 4px;line-height:1.02}
+.login p{margin:8px 0 18px}
+.login label{display:grid;gap:7px;margin:13px 0;font-size:13px;font-weight:850;color:#c5cee4}
+.input{
+  width:100%;min-height:48px;border:1px solid rgba(151,170,255,.23);border-radius:14px;
+  background:#0a1125;color:#fff;padding:11px 13px;outline:none
+}
+.input:focus{border-color:rgba(89,228,255,.6);box-shadow:0 0 0 3px rgba(89,228,255,.08)}
+.remember{display:flex!important;grid-template-columns:auto 1fr!important;align-items:center;gap:9px!important}
+.remember input{width:19px;height:19px}
+.btn{
+  min-height:44px;border:1px solid rgba(111,134,255,.38);border-radius:14px;
+  background:linear-gradient(135deg,rgba(90,66,210,.67),rgba(22,129,168,.48));
+  color:#fff;font-weight:900;padding:10px 14px;cursor:pointer
+}
+.login .btn{width:100%;margin-top:8px}
+.status{min-height:21px;margin-top:10px;color:#ffb0c7;font-size:13px}
+.hubTop{display:flex;justify-content:space-between;align-items:flex-start;gap:18px}
+.hubTitle h1{
+  margin:7px 0 4px;font-size:clamp(2.2rem,8vw,4.25rem);line-height:1;
+  background:linear-gradient(90deg,#b38aff,#718bff 38%,#59e4ff);
+  -webkit-background-clip:text;background-clip:text;color:transparent
+}
+.identity{margin-top:9px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.stateChip{
+  display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:999px;
+  border:1px solid rgba(89,228,255,.25);background:rgba(89,228,255,.055);
+  color:#c9f8ff;font-size:11px;font-weight:900
+}
+.logout{background:#11182d;white-space:nowrap}
+.sectionHead{margin:34px 0 12px}
+.sectionHead h2{margin:0;font-size:15px;letter-spacing:.03em}
+.sectionHead p{margin:4px 0 0;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.module{
+  position:relative;overflow:hidden;min-height:150px;padding:17px;text-decoration:none;color:#fff;
+  display:flex;flex-direction:column;justify-content:space-between;transition:.16s ease
+}
+.module:before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(circle at 90% 0,var(--glow,rgba(89,228,255,.13)),transparent 42%)
+}
+.module:hover{transform:translateY(-2px);border-color:rgba(89,228,255,.35)}
+.module.transfer{--tone:#74d7ff;--glow:rgba(79,183,255,.15)}
+.module.ministry{--tone:#c09cff;--glow:rgba(171,113,255,.16)}
+.module.wos{--tone:#86efd0;--glow:rgba(94,226,185,.13)}
+.moduleTop{position:relative;z-index:1}
+.moduleTag{font-size:9px;letter-spacing:.14em;font-weight:950;color:var(--tone)}
+.module h3{font-size:22px;margin:8px 0 5px}
+.module p{font-size:12px;line-height:1.45;margin:0;color:#aeb9d4}
+.openLine{
+  position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;
+  margin-top:20px;padding-top:12px;border-top:1px solid rgba(255,255,255,.08);
+  color:var(--tone);font-size:11px;font-weight:950
+}
+.arrow{font-size:17px}
+.empty{grid-column:1/-1;padding:24px;text-align:center}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.module{min-height:126px}.hubTop{align-items:flex-start}.logout{padding:8px 11px}.shell{padding-top:25px}}
+</style>
+</head>
+<body>
 <main class="shell">
 <section id="login" class="card login">
-<div class="k">NEXA STAFF</div><h1>Workspace Login</h1><p class="muted">One login for every staff workspace you are authorized to use.</p>
-<label>State / Server<input id="state" class="input" inputmode="numeric" autocomplete="off" placeholder="e.g. 1518"></label>
-<label>Game ID<input id="id" class="input" inputmode="numeric" autocomplete="username" placeholder="Game ID"></label>
-<label>Password<input id="pw" class="input" type="password" autocomplete="current-password"></label>
-<label style="display:flex;grid-template-columns:auto 1fr;align-items:center"><input id="remember" type="checkbox" checked> Remember me</label>
-<button id="go" class="btn">Sign In</button><div id="msg" class="status"></div>
+  <div class="kicker">NEXA STAFF</div>
+  <h1>Workspace Login</h1>
+  <p class="muted">One sign-in for every authorized NEXA workspace.</p>
+  <label>State / Server<input id="state" class="input" inputmode="numeric" autocomplete="off" placeholder="e.g. 1518"></label>
+  <label>Game ID<input id="id" class="input" inputmode="numeric" autocomplete="username" placeholder="Game ID"></label>
+  <label>Password<input id="pw" class="input" type="password" autocomplete="current-password"></label>
+  <label class="remember"><input id="remember" type="checkbox" checked><span>Remember me on this device</span></label>
+  <button id="go" class="btn">Sign In</button>
+  <div id="msg" class="status"></div>
 </section>
+
 <section id="app" class="hidden">
-<div class="top"><div class="hero"><div class="k">NEXA STAFF</div><h1>Choose Workspace</h1><p id="who" class="muted"></p></div><button id="out" class="btn logout">Log Out</button></div>
-<div id="grid" class="grid"></div>
+  <div class="hubTop">
+    <div class="hubTitle">
+      <div class="kicker">NEXA STAFF</div>
+      <h1>Workspaces</h1>
+      <div class="identity"><span id="who" class="muted"></span><span id="stateChip" class="stateChip"></span></div>
+    </div>
+    <button id="out" class="btn logout">Log Out</button>
+  </div>
+
+  <div class="sectionHead">
+    <h2>Authorized Modules</h2>
+    <p class="muted">Choose where you want to work. Your session stays active while you switch modules.</p>
+  </div>
+  <div id="grid" class="grid"></div>
 </section>
 </main>
+
 <script>
 (()=>{'use strict';
-const sb=window.supabase.createClient('https://dfxcxboxrkfmrnsgpyin.supabase.co','sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-'),$=x=>document.getElementById(x);
+const sb=window.supabase.createClient(
+  'https://dfxcxboxrkfmrnsgpyin.supabase.co',
+  'sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-'
+),$=id=>document.getElementById(id);
+
 let token=localStorage.getItem('nexa_transfer_staff_token')||sessionStorage.getItem('nexa_transfer_staff_token')||'';
-let activeState=Number(localStorage.getItem('nexa_active_state')||sessionStorage.getItem('nexa_active_state')||0);
+let activeState=Number(localStorage.getItem('nexa_active_state')||sessionStorage.getItem('nexa_active_state')||localStorage.getItem('nexa_active_state_v49')||0);
+
 const rpc=async(fn,args)=>{const {data,error}=await sb.rpc(fn,args);if(error)throw error;return data};
-function save(t,remember,state){localStorage.removeItem('nexa_transfer_staff_token');sessionStorage.removeItem('nexa_transfer_staff_token');localStorage.removeItem('nexa_active_state');sessionStorage.removeItem('nexa_active_state');const s=remember?localStorage:sessionStorage;s.setItem('nexa_transfer_staff_token',t);s.setItem('nexa_active_state',String(state));token=t;activeState=state}
-function clearSession(){localStorage.removeItem('nexa_transfer_staff_token');sessionStorage.removeItem('nexa_transfer_staff_token');localStorage.removeItem('nexa_active_state');sessionStorage.removeItem('nexa_active_state');token='';activeState=0}
-function dedupeModules(rows){const out=[],seen=new Set();for(const m of rows||[]){if(!m||!m.url)continue;const key=`${m.module||''}|${m.workspace_id||''}|${m.url}`;if(seen.has(key))continue;seen.add(key);out.push(m)}return out}
-async function workspaceModel(base={}){
+
+function clearSession(){
+ for(const s of [localStorage,sessionStorage]){
+  s.removeItem('nexa_transfer_staff_token');
+  s.removeItem('nexa_active_state');
+  s.removeItem('nexa_active_state_v49');
+ }
+ token='';activeState=0;
+}
+function saveSession(t,remember,state){
+ clearSession();
+ const s=remember?localStorage:sessionStorage;
+ s.setItem('nexa_transfer_staff_token',t);
+ s.setItem('nexa_active_state',String(state));
+ s.setItem('nexa_active_state_v49',String(state));
+ token=t;activeState=Number(state)||0;window.NEXA_ACTIVE_STATE=activeState;
+}
+function moduleClass(m){return m.module==='transfer'?'transfer':m.module==='ministry'?'ministry':'wos'}
+function shortLabel(m){return m.module==='transfer'?'Transfer':m.module==='ministry'?'Ministry':'WOS Utilities'}
+function description(m){
+ if(m.module==='transfer')return 'Transfer operations, applications and planning.';
+ if(m.module==='ministry')return 'Ministry appointments and scheduling.';
+ return 'Gift Codes, Event Reminders and WOS tools.';
+}
+function normalizeModules(rows){
+ const seen=new Set(),out=[];
+ for(const m of rows||[]){
+  if(!m?.url)continue;
+  if(activeState&&m.state_number&&Number(m.state_number)!==activeState)continue;
+  const key=m.module||m.url;
+  if(seen.has(key))continue;
+  seen.add(key);out.push(m);
+ }
+ const order={transfer:1,ministry:2,gift:3,wos:3};
+ return out.sort((a,b)=>(order[a.module]||9)-(order[b.module]||9));
+}
+async function getModel(){
  const [session,access]=await Promise.all([
   rpc('transfer_staff_session',{p_token:token}),
   rpc('nexa_staff_workspace_access_v1',{p_token:token})
  ]);
- if(!session?.ok)throw new Error(session?.error||'Session expired.');
- if(!access?.ok)throw new Error(access?.error||'Unable to load workspace access.');
- const stateful=(session.modules||[]).filter(m=>!activeState||!m.state_number||Number(m.state_number)===Number(activeState));
- const shared=(access.modules||[]).filter(m=>m.module==='gift');
- return {...base,...session,...access,game_name:access.game_name||session.game_name||base.game_name,game_id:access.game_id||session.game_id||base.game_id,modules:dedupeModules([...stateful,...shared])};
+ if(!session?.ok)throw Error(session?.error||'session_expired');
+ if(!access?.ok)throw Error(access?.error||'session_expired');
+ const modules=normalizeModules(access.modules||session.modules||[]);
+ return {session,access,modules};
 }
-function moduleMeta(m){if(m.module==='gift')return m.global_owner?'Global Owner':'WOS Access';return m.access_level==='admin'?'Administrative Access':'Regular Access'}
-function render(s){$('login').classList.add('hidden');$('app').classList.remove('hidden');$('who').textContent=`${s.game_name||s.game_id||'Staff'} • State ${activeState||s.state_number||'—'}`;const mods=(s.modules||[]).filter(m=>m.module==='gift'||!activeState||!m.state_number||Number(m.state_number)===Number(activeState));$('grid').innerHTML=mods.length?mods.map(m=>`<a class="card module" href="${m.url}"><div class="k">${m.module==='transfer'?'TRANSFER':m.module==='ministry'?'MINISTRY':m.module==='gift'?'WOS UTILITIES':String(m.module||'WORKSPACE').toUpperCase()}</div><h2>${m.label||'Workspace'}</h2><p class="muted">State ${m.state_number||activeState||'—'} • ${m.module==='gift'?(s.global_owner?'Global Owner':'WOS Access'):moduleMeta(m)}</p><span class="badge">Open Workspace</span></a>`).join(''):'<div class="card muted">No active staff workspaces for this State.</div>'}
-async function start(){if(!token)return;try{const s=await workspaceModel();if(s?.ok!==false)render(s)}catch{clearSession()}}
-$('go').onclick=async()=>{try{$('msg').textContent='Signing in…';const state=Number($('state').value.trim()),gameId=$('id').value.trim();if(!Number.isInteger(state)||state<1)throw new Error('Enter your State / Server.');if(!/^\d{4,24}$/.test(gameId))throw new Error('Enter a valid Game ID.');const d=await rpc('nexa_staff_login_v2',{p_state_number:state,p_game_id:gameId,p_password:$('pw').value,p_remember:$('remember').checked});if(!d?.ok)throw new Error(d?.error||'Unable to sign in');save(d.token,$('remember').checked,state);const model=await workspaceModel(d);render(model);$('msg').textContent=''}catch(e){$('msg').textContent=e.message||String(e)}};
-$('out').onclick=async()=>{try{await rpc('transfer_staff_logout',{p_token:token})}catch{}clearSession();location.reload()};start();
+function render(model){
+ $('login').classList.add('hidden');$('app').classList.remove('hidden');
+ const person=model.access.game_name||model.session.game_name||model.access.game_id||'Staff';
+ $('who').textContent=person;
+ $('stateChip').textContent=`State ${activeState||'—'}`;
+ const mods=model.modules;
+ $('grid').innerHTML=mods.length?mods.map(m=>`
+  <a class="card module ${moduleClass(m)}" href="${m.url}">
+   <div class="moduleTop"><div class="moduleTag">${shortLabel(m).toUpperCase()}</div><h3>${shortLabel(m)}</h3><p>${description(m)}</p></div>
+   <div class="openLine"><span>Open workspace</span><span class="arrow">→</span></div>
+  </a>`).join(''):`<div class="card empty muted">No active staff workspaces are available for State ${activeState||'—'}.</div>`;
+}
+async function start(){
+ if(!token)return;
+ try{render(await getModel())}
+ catch(e){
+  if(String(e?.message||'').includes('session'))clearSession();
+ }
+}
+$('go').onclick=async()=>{
+ try{
+  $('msg').textContent='Signing in…';
+  const state=Number($('state').value.trim()),gameId=$('id').value.trim();
+  if(!Number.isInteger(state)||state<1)throw Error('Enter your State / Server.');
+  if(!/^\d{4,24}$/.test(gameId))throw Error('Enter a valid Game ID.');
+  const d=await rpc('nexa_staff_login_v2',{p_state_number:state,p_game_id:gameId,p_password:$('pw').value,p_remember:$('remember').checked});
+  if(!d?.ok)throw Error(d?.error||'Unable to sign in');
+  saveSession(d.token,$('remember').checked,state);
+  render(await getModel());
+  $('msg').textContent='';
+ }catch(e){$('msg').textContent=e.message||String(e)}
+};
+$('out').onclick=async()=>{
+ try{if(token)await rpc('transfer_staff_logout',{p_token:token})}catch{}
+ clearSession();location.reload();
+};
+start();
 })();
-</script></body></html>
+</script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- NEXA TRANSFER FORM STUDIO V2.0 — TEMPLATE LIBRARY / LOCKED CORE / PREVIEW / SCRATCH -->
+<!-- NEXA TRANSFER FORM STUDIO V2.3 — FINAL SIMPLIFIED APPLICATION FORMS -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -77,6 +77,9 @@ button{cursor:pointer}
 .previewCard h2,.previewCard h3{margin:0 0 8px}.previewQuestion{margin-top:9px;padding:11px;border-radius:12px;background:#07152d;border:1px solid rgba(255,255,255,.08)}
 .previewQuestion small{display:block;color:#8ea0c4;margin-top:4px}
 .previewFake{margin-top:7px;min-height:41px;border:1px solid rgba(255,255,255,.14);border-radius:10px;background:#050b18;color:#6f7b95;padding:10px}
+.activeSelector{display:flex;align-items:center;gap:9px;padding:10px 12px;border:1px solid rgba(120,237,191,.28);border-radius:14px;background:rgba(120,237,191,.055);color:#aaf5d3;font-weight:900}
+.activeSelector input{width:20px;height:20px;accent-color:#72e7c1}
+.activeSelector.current{border-color:rgba(120,237,191,.55);background:rgba(120,237,191,.11)}
 .previewCheck{display:flex;gap:8px;align-items:center;color:#aebbd4;margin-top:8px}
 .previewCheck:before{content:"□";font-size:20px;color:#79eaff}
 .previewHero{text-align:center;padding:18px}
@@ -94,18 +97,16 @@ button{cursor:pointer}
     <h1 id="pageTitle">Transfer Forms</h1>
     <p id="subtitle">Loading your workspace form library…</p>
   </div>
-  <a class="btn secondary" id="backForms" href="forms-center.html?section=transfer">‹ Forms</a>
+  <button class="btn secondary" id="backForms" type="button">‹ Back to Transfer Workspace</button>
 </div>
 
 <section id="libraryView">
   <div class="card">
-    <div class="tag">NEXA DEFAULT</div>
-    <h2>Transfer Form Library</h2>
-    <p class="muted">Every Transfer Workspace receives a protected NEXA Template. Customize the State-specific details, preview it, use it as the active form, or create a separate form.</p>
+    <div class="tag">APPLICATION FORMS</div>
+    <h2>Transfer Forms</h2>
+    <p class="muted">View, edit, or choose which saved form applicants receive. Only one form can be active at a time.</p>
     <div class="actions">
-      <a class="btn" id="openActive" href="#">View Active Form</a>
-      <button class="btn secondary" id="newTemplateCopy" type="button">+ From NEXA Template</button>
-      <button class="btn secondary" id="newScratch" type="button">+ From Scratch</button>
+      <button class="btn" id="createNewForm" type="button">+ Create New Form</button>
     </div>
   </div>
   <div id="library" class="library"></div>
@@ -217,15 +218,10 @@ const CORE={
 const SYSTEM_REQUIRED=new Set(['ign','player_id','current_state','power']);
 
 const EVENT_CATALOG=[
- {key:'bear',name:'Bear Trap',eras:['early_mid','advanced','late_game'],description:'Alliance Bear Trap scheduling and coordination.'},
- {key:'crazy_joe',name:'Crazy Joe',eras:['early_mid','advanced','late_game'],description:'Alliance defense-wave coordination and participation expectations.'},
- {key:'foundry',name:'Foundry Battle',eras:['early_mid','advanced','late_game'],description:'Foundry participation, team organization and timing expectations.'},
- {key:'canyon',name:'Canyon Clash',eras:['early_mid','advanced','late_game'],description:'Canyon participation, teams and schedule coordination.'},
- {key:'brothers',name:'Brothers in Arms',eras:['early_mid','advanced','late_game'],description:'State rules and expectations for Brothers in Arms / Kill Event.'},
+ {key:'fdt',name:'Frostdragon Tyrant (FDT)',eras:['early_mid','advanced','late_game'],description:'State / zone Frostdragon roster and battlefield coordination.'},
+ {key:'tal',name:'Tundra Arms League (TAL)',eras:['early_mid','advanced','late_game'],description:'State-level TAL team building, brackets and participation.'},
  {key:'sunfire',name:'Sunfire Castle & Presidency',eras:['early_mid','advanced','late_game'],description:'State-level Sunfire and Presidency organization.'},
- {key:'svs',name:'SvS — Prep & Battle',eras:['early_mid','advanced','late_game'],description:'State-wide coordination from Preparation through Battle.'},
- {key:'tal',name:'Tundra Arms League (TAL)',eras:['advanced','late_game'],description:'State-level TAL team building, brackets and participation.'},
- {key:'fdt',name:'Frostdragon Tyrant (FDT)',eras:['late_game'],description:'State / zone Frostdragon roster and battlefield coordination.'}
+ {key:'svs',name:'SvS — Prep & Battle',eras:['early_mid','advanced','late_game'],description:'State-wide coordination from Preparation through Battle.'}
 ];
 
 let settings=null,currentTemplate=null,libraryState=null,editorKind='';
@@ -238,8 +234,19 @@ async function rpc(name,args){
 function go(params){
  const u=new URL('transfer-form-custom.html',location.href);
  u.search='';
- for(const [k,v] of Object.entries(params))if(v!==null&&v!==undefined&&v!=='')u.searchParams.set(k,String(v));
+ const merged={...params};
+ if(window.parent!==window)merged.workspace='1';
+ for(const [k,v] of Object.entries(merged))if(v!==null&&v!==undefined&&v!=='')u.searchParams.set(k,String(v));
  location.href=u.pathname+u.search;
+}
+function returnToTransferWorkspace(){
+ try{
+   if(window.parent!==window){
+     const close=window.parent.document.getElementById('closeOverlay');
+     if(close){close.click();return}
+   }
+ }catch{}
+ history.back();
 }
 function normalize(raw){
  const s=clone(raw||{});
@@ -379,10 +386,10 @@ function renderEditor(){
    $('save').textContent='Save NEXA Template'
  }else{
    $('identityCard').classList.remove('hidden');$('formName').disabled=false;
-   $('pageTitle').textContent=currentTemplate?.id?'Edit Custom Form':(source==='scratch'?'Create Form From Scratch':'Create From NEXA Template');
-   $('subtitle').textContent=source==='scratch'?'Start with only the minimum system-required Transfer fields.':'Start from the NEXA structure and customize your own copy.';
+   $('pageTitle').textContent=currentTemplate?.id?'Edit Custom Form':(source==='scratch'?'Create New Form':'Create From NEXA Template');
+   $('subtitle').textContent=source==='scratch'?'Start from the NEXA Primary Form and customize your own version.':'Start from the NEXA structure and customize your own copy.';
    $('modeNotice').innerHTML=source==='scratch'
-    ?'<b>From Scratch</b><br>NEXA keeps four system-required Transfer fields so applications can still be saved correctly: In-game Name, Player ID, Current State, and Current Total Power. Everything else is optional and customizable.'
+    ?'<b>Create New Form</b><br>NEXA keeps four system-required Transfer fields so applications can still be saved correctly: In-game Name, Player ID, Current State, and Current Total Power. Everything else is optional and customizable.'
     :'<b>Custom Form</b><br>This is a separate form. The protected NEXA Template remains unchanged.';
    $('questionNotice').textContent='Core wording remains locked for compatibility, but you can show/hide Core questions, make them required/optional, and add Custom Questions. The live Transfer form currently supports Short Text, Long Text, Yes/No, and Dropdown custom fields.';
    $('save').textContent=currentTemplate?.id?'Save Changes':'Create Form'
@@ -422,36 +429,58 @@ function preview(){
 }
 async function renderLibrary(){
  $('builderView').classList.add('hidden');$('libraryView').classList.remove('hidden');
- $('pageTitle').textContent='Transfer Forms';$('subtitle').textContent='NEXA Template + your custom Transfer forms.';
+ $('pageTitle').textContent='Transfer Forms';
+ $('subtitle').textContent='Manage the application forms for this Transfer Workspace.';
  if(!eventId){$('libraryStatus').textContent='Missing Transfer event.';return}
  try{
   libraryState=await rpc('transfer_form_template_list',{p_event_id:eventId,p_token:token||null});
   if(!libraryState?.ok)throw Error(libraryState?.error||'Unable to load Transfer forms.');
-  $('openActive').href=`transfer-form-v2.html?direct=1&event=${encodeURIComponent(eventId)}`;
   const rows=libraryState.templates||[];
   $('library').innerHTML=rows.map(t=>`<article class="formCard" data-template="${t.id}">
-    <div class="formHead"><div><div class="tag">${t.is_primary?'NEXA TEMPLATE':'CUSTOM FORM'}</div><h3>${esc(t.is_primary?'NEXA Transfer Template':t.name)}</h3>
-      <p class="muted">${t.is_primary?'Protected Core template included with every Transfer Workspace.':'Independent editable form.'}</p></div>
-      <div class="formMeta">${t.is_primary?'<span class="badge locked">CORE LOCKED</span>':''}${t.is_active?'<span class="badge active">ACTIVE</span>':''}</div>
+    <div class="formHead">
+      <div>
+        <div class="tag">${t.is_primary?'NEXA PRIMARY FORM':'CUSTOM FORM'}</div>
+        <h3>${esc(t.is_primary?'NEXA Primary Form':t.name)}</h3>
+        <p class="muted">${t.is_primary?'Protected NEXA form. Core question wording stays locked.':'Saved custom Transfer application.'}</p>
+      </div>
+      <div class="formMeta">${t.is_primary?'<span class="badge locked">CORE LOCKED</span>':''}</div>
     </div>
     <div class="actions">
       <button class="btn secondary" data-preview-template="${t.id}" type="button">View / Preview</button>
-      <button class="btn secondary" data-edit-template="${t.id}" type="button">${t.is_primary?'Customize':'Edit Form'}</button>
-      ${t.is_active?'<button class="btn good" type="button" disabled>Currently Active</button>':`<button class="btn good" data-activate-template="${t.id}" type="button">Use This Form</button>`}
+      <button class="btn secondary" data-edit-template="${t.id}" type="button">${t.is_primary?'Customize':'Edit'}</button>
       ${t.is_primary?'':`<button class="btn danger" data-delete-template="${t.id}" type="button">Delete</button>`}
     </div>
+    <label class="activeSelector ${t.is_active?'current':''}">
+      <input type="radio" name="activeTransferForm" value="${t.id}" ${t.is_active?'checked':''}>
+      <span>${t.is_active?'Active — applicants receive this form':'Make this the active form'}</span>
+    </label>
   </article>`).join('')||'<div class="card"><p class="muted">No Transfer forms found.</p></div>';
+
   document.querySelectorAll('[data-preview-template]').forEach(b=>b.onclick=()=>go({event:eventId,template:b.dataset.previewTemplate,mode:'preview'}));
   document.querySelectorAll('[data-edit-template]').forEach(b=>b.onclick=()=>go({event:eventId,template:b.dataset.editTemplate}));
-  document.querySelectorAll('[data-activate-template]').forEach(b=>b.onclick=async()=>{
-    b.disabled=true;
-    try{const d=await rpc('transfer_form_template_activate',{p_event_id:eventId,p_template_id:b.dataset.activateTemplate,p_token:token||null});if(!d?.ok)throw Error(d?.error||'Unable to activate form.');await renderLibrary()}
-    catch(e){$('libraryStatus').textContent=e.message;b.disabled=false}
+  document.querySelectorAll('input[name="activeTransferForm"]').forEach(r=>r.onchange=async()=>{
+    if(!r.checked)return;
+    const previous=libraryState.active_form_template_id;
+    $('libraryStatus').textContent='Activating form…';
+    try{
+      const d=await rpc('transfer_form_template_activate',{p_event_id:eventId,p_template_id:r.value,p_token:token||null});
+      if(!d?.ok)throw Error(d?.error||'Unable to activate form.');
+      $('libraryStatus').textContent='Active form updated ✓';
+      await renderLibrary();
+    }catch(e){
+      $('libraryStatus').textContent=e.message;
+      r.checked=false;
+      const prev=document.querySelector(`input[name="activeTransferForm"][value="${previous||''}"]`);
+      if(prev)prev.checked=true;
+    }
   });
   document.querySelectorAll('[data-delete-template]').forEach(b=>b.onclick=async()=>{
     if(!confirm('Delete this custom form? This cannot be undone.'))return;
-    try{const d=await rpc('transfer_form_template_delete',{p_event_id:eventId,p_template_id:b.dataset.deleteTemplate,p_token:token||null});if(!d?.ok)throw Error(d?.error||'Unable to delete form.');await renderLibrary()}
-    catch(e){$('libraryStatus').textContent=e.message}
+    try{
+      const d=await rpc('transfer_form_template_delete',{p_event_id:eventId,p_template_id:b.dataset.deleteTemplate,p_token:token||null});
+      if(!d?.ok)throw Error(d?.error||'Unable to delete form.');
+      await renderLibrary();
+    }catch(e){$('libraryStatus').textContent=e.message}
   });
  }catch(e){$('libraryStatus').textContent=e.message}
 }
@@ -465,7 +494,7 @@ async function loadEditor(){
      if(!p?.ok)throw Error(p?.error||'Unable to load NEXA Template.');
      currentTemplate=null;
      editorKind='custom';
-     settings=source==='scratch'?scratchSettings():normalize(p.template.settings);
+     settings=normalize(p.template.settings);
      $('formName').value='';
    }else{
      const p=await rpc('transfer_form_template_get',{p_event_id:eventId,p_template_id:templateId||null,p_token:token||null});
@@ -479,36 +508,45 @@ async function loadEditor(){
    renderEditor()
  }catch(e){$('status').textContent=e.message}
 }
-$('newTemplateCopy').onclick=()=>go({event:eventId,new:1,source:'template'});
-$('newScratch').onclick=()=>go({event:eventId,new:1,source:'scratch'});
-$('cancelBuilder').onclick=()=>go({event:eventId,new:1});
+$('createNewForm').onclick=()=>go({event:eventId,new:1,source:'template'});
+$('backForms').onclick=returnToTransferWorkspace;
+$('cancelBuilder').onclick=()=>go({event:eventId});
 $('previewBtn').onclick=preview;$('closePreview').onclick=()=>$('preview').classList.remove('open');
 $('preview').onclick=e=>{if(e.target===$('preview'))$('preview').classList.remove('open')};
 $('era').onchange=()=>{settings.era=ERA[$('era').value]||ERA.late_game;renderEventCatalog()};
 $('save').onclick=async()=>{
  try{
   collect();$('save').disabled=true;$('status').textContent='Saving…';
+  let savedTemplateId=currentTemplate?.id||null;
   if(editorKind==='primary'){
     const d=await rpc('transfer_primary_form_customize',{p_event_id:eventId,p_token:token||null,p_settings:settings});
-    if(!d?.ok)throw Error(d?.error||'Unable to save NEXA Template.');
-    $('status').textContent='NEXA Template saved ✓';
-    setTimeout(()=>go({event:eventId,new:1}),450);
-    return
+    if(!d?.ok)throw Error(d?.error||'Unable to save NEXA Primary Form.');
+    savedTemplateId=d.template_id||currentTemplate?.id||null;
+    $('status').textContent='NEXA Primary Form saved ✓';
+  }else{
+    const name=$('formName').value.trim();if(!name)throw Error('Enter a Form Name.');
+    const rpcName=currentTemplate?.id?'transfer_form_template_update':'transfer_form_template_create';
+    const args=currentTemplate?.id
+      ?{p_event_id:eventId,p_template_id:currentTemplate.id,p_token:token||null,p_name:name,p_settings:settings}
+      :{p_event_id:eventId,p_token:token||null,p_name:name,p_settings:settings};
+    const d=await rpc(rpcName,args);
+    if(!d?.ok){
+      const code=d?.error||'save_failed';
+      if(code==='form_limit_reached')throw Error('Maximum of 3 Custom Forms reached. Delete a Custom Form first.');
+      if(code==='duplicate_name')throw Error('A form with that name already exists.');
+      throw Error(code.replaceAll('_',' '));
+    }
+    savedTemplateId=currentTemplate?.id||d.template_id||null;
+    $('status').textContent='Form saved ✓';
   }
-  const name=$('formName').value.trim();if(!name)throw Error('Enter a Form Name.');
-  const rpcName=currentTemplate?.id?'transfer_form_template_update':'transfer_form_template_create';
-  const args=currentTemplate?.id
-    ?{p_event_id:eventId,p_template_id:currentTemplate.id,p_token:token||null,p_name:name,p_settings:settings}
-    :{p_event_id:eventId,p_token:token||null,p_name:name,p_settings:settings};
-  const d=await rpc(rpcName,args);
-  if(!d?.ok){
-    const code=d?.error||'save_failed';
-    if(code==='form_limit_reached')throw Error('Maximum of 3 Custom Forms reached. Delete a Custom Form first.');
-    if(code==='duplicate_name')throw Error('A form with that name already exists.');
-    throw Error(code.replaceAll('_',' '));
+
+  const alreadyActive=String(libraryState?.active_form_template_id||'')===String(savedTemplateId||'');
+  if(savedTemplateId&&!alreadyActive&&confirm('Form saved. Do you want to use this as the active Transfer Application?')){
+    const a=await rpc('transfer_form_template_activate',{p_event_id:eventId,p_template_id:savedTemplateId,p_token:token||null});
+    if(!a?.ok)throw Error(a?.error||'Form saved, but it could not be activated.');
+    $('status').textContent='Saved and activated ✓';
   }
-  $('status').textContent='Saved ✓';
-  setTimeout(()=>go({event:eventId,new:1}),450)
+  setTimeout(()=>go({event:eventId}),350);
  }catch(e){$('status').textContent=e.message}
  finally{$('save').disabled=false}
 };

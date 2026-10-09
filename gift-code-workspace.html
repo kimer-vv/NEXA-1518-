@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- NEXA Gift Code Workspace V2.2 — MEMBER NAME HEALTH / SCAN FIX -->
+<!-- NEXA Gift Code Workspace V2.3 — SUPABASE GIFT ENGINE / MEMBER HEALTH -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NEXA • Gift Code Workspace</title>
 <style id="nexa-auth-gate">html.nexa-auth-pending body{visibility:hidden!important}#login{display:none!important}
 </style>
@@ -52,7 +52,10 @@ if(token&&!['register','recovery'].includes(explicitAuthMode)){
  $('login').classList.add('hidden');
  $('app').classList.remove('hidden');
 }function message(x){$('message').textContent=x||''}function store(v,r,state){localStorage.removeItem('nexa_transfer_staff_token');sessionStorage.removeItem('nexa_transfer_staff_token');localStorage.removeItem('nexa_active_state');sessionStorage.removeItem('nexa_active_state');const s=r?localStorage:sessionStorage;s.setItem('nexa_transfer_staff_token',v);s.setItem('nexa_active_state',String(state));token=v;activeState=Number(state)||0}
-async function api(action,body={}){let qs='?mode=gift',get=false;if(action==='snapshot'){get=true}else if(action==='members'){get=true;qs+=`&action=members&alliance=${encodeURIComponent(body.id)}`}else if(action==='codes'){get=true;qs+='&action=codes'}const r=await fetch('/api/nexa-system-settings'+qs,{method:get?'GET':'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:get?undefined:JSON.stringify({action,...body})});const j=await r.json().catch(()=>({}));if(!r.ok||!j.ok)throw Error(j.error||'Request failed');return j}async function giftAdminEndpoint(path,body={}){const r=await fetch(path,{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify(body)});const raw=await r.text();let j={};try{j=raw?JSON.parse(raw):{}}catch{}if(!r.ok||!j.ok)throw Error(j.error||`Request failed (${r.status})`);return j}async function giftMemberHealth(allianceId){try{return await giftAdminEndpoint('/api/gift-member-status',{alliance_id:allianceId})}catch{return {ok:false,statuses:{}}}}async function rpc(n,b){const r=await sb.rpc(n,b);if(r.error)throw Error(r.error.message);return r.data}
+async function api(action,body={}){let qs='?mode=gift',get=false;if(action==='snapshot'){get=true}else if(action==='members'){get=true;qs+=`&action=members&alliance=${encodeURIComponent(body.id)}`}else if(action==='codes'){get=true;qs+='&action=codes'}const r=await fetch('/api/nexa-system-settings'+qs,{method:get?'GET':'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:get?undefined:JSON.stringify({action,...body})});const j=await r.json().catch(()=>({}));if(!r.ok||!j.ok)throw Error(j.error||'Request failed');return j}
+async function giftSupabase(mode,body={}){const r=await fetch('https://dfxcxboxrkfmrnsgpyin.supabase.co/functions/v1/nexa-gift-scheduler',{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify({mode,...body})});const raw=await r.text();let j={};try{j=raw?JSON.parse(raw):{}}catch{}if(!r.ok||!j.ok)throw Error(j.error||`Gift service failed (${r.status})`);return j}
+async function giftMemberHealth(allianceId){try{return await rpc('gift_member_health_v1',{p_token:token,p_alliance_id:allianceId})}catch{return {ok:false,statuses:{}}}}
+async function rpc(n,b){const r=await sb.rpc(n,b);if(r.error)throw Error(r.error.message);return r.data}
 function modal(title,html,{ok='Save',onOk}={}){return new Promise(resolve=>{const root=$('nexaModal');$('modalTitle').textContent=title;$('modalBody').innerHTML=html;$('modalError').textContent='';$('modalOk').textContent=ok;root.classList.remove('hidden');const done=v=>{root.classList.add('hidden');resolve(v)};$('modalCancel').onclick=()=>done(null);$('modalOk').onclick=async()=>{try{const v=onOk?await onOk($('modalBody')):true;if(v!==false)done(v)}catch(e){$('modalError').textContent=e.message}}})}const field=(id,label,type='text',v='')=>`<label>${label}<input id="${id}" type="${type}" value="${esc(v)}"></label>`;async function confirmBox(t,d,a='Confirm'){return !!await modal(t,`<p>${d}</p>`,{ok:a})}
 async function buildModuleSwitch(){const s=$('moduleSwitch');if(!s)return; s.replaceChildren();const found=[];try{const [session,access]=await Promise.all([rpc('transfer_staff_session',{p_token:token}),rpc('nexa_staff_workspace_access_v1',{p_token:token})]);for(const m of session?.modules||[]){if(activeState&&m.state_number&&Number(m.state_number)!==activeState)continue;found.push({label:m.label||m.module||'Workspace',url:m.url})}for(const m of access?.modules||[])found.push({label:m.label||m.module||'Workspace',url:m.url})}catch{}const current={label:'Gift Code Workspace',url:'gift-code-workspace.html'};const unique=[current,...found].filter((m,i,a)=>m.url&&a.findIndex(x=>x.url===m.url)===i);for(const m of unique)s.add(new Option(m.label,m.url));s.value='gift-code-workspace.html';s.onchange=()=>{if(s.value&&s.value!=='gift-code-workspace.html')location.href=s.value}}
 async function load(){data=await api('snapshot');$('login').classList.add('hidden');document.body.classList.remove('gift-auth');$('app').classList.remove('hidden');renderDirectory();await buildModuleSwitch()}
@@ -73,7 +76,7 @@ async function openRoster(a,c){
 
   for(const m of list){
    const row=document.createElement('div');row.className='member';
-   const h=health[m.game_id]||{level:m.auto_redeem_enabled===false?'red':'green',label:m.auto_redeem_enabled===false?'Auto-redeem off':'Auto-redeem enabled'};
+   const h=health[m.game_id]||{level:m.auto_redeem_enabled===false?'red':'yellow',label:m.auto_redeem_enabled===false?'Auto-redeem OFF':'Waiting for Gift Code verification'};
    const dot=document.createElement('i');dot.className=`memberHealth ${h.level||'green'}`;dot.title=h.label||'Gift Code status';dot.setAttribute('aria-label',h.label||'Gift Code status');
    const ck=document.createElement('input');ck.type='checkbox';ck.onchange=()=>ck.checked?chosen.add(m.game_id):chosen.delete(m.game_id);
    const info=document.createElement('div');info.className='info';
@@ -120,9 +123,10 @@ $('scanGiftCodes').onclick=async()=>{
  const b=$('scanGiftCodes');
  try{
   b.disabled=true;$('giftCodeStatus').textContent='Checking public sources for Gift Codes…';
-  const r=await giftAdminEndpoint('/api/gift-scan-now',{});
-  const found=Number(r.codes_found||0),added=Number(r.codes_added||0);
-  $('giftCodeStatus').textContent=`Check complete ✓ ${found} found · ${added} new`;
+  const r=await giftSupabase('manual_scan',{});
+  const found=Number(r.discovery?.codes_found||0),added=Number(r.discovery?.codes_added||0);
+  const processed=Number(r.auto?.processed||0),retry=Number(r.auto?.retry_scheduled||0);
+  $('giftCodeStatus').textContent=`Check complete ✓ ${found} found · ${added} new · ${processed} processed${retry?` · ${retry} retrying`:''}`;
   await loadCodes(false);
  }catch(e){$('giftCodeStatus').textContent=e.message}
  finally{b.disabled=false}
@@ -131,10 +135,10 @@ $('addGiftCode').onclick=()=>modal('Add Gift Code',field('gc','Gift Code'),{ok:'
  const code=clean(b.querySelector('#gc').value);
  if(!code)throw Error('Enter a Gift Code.');
  $('giftCodeStatus').textContent='Adding Gift Code and preparing redemption…';
- const r=await giftAdminEndpoint('/api/gift-manual-code',{code});
+ const r=await giftSupabase('manual_code',{code});
  await loadCodes(false);
- const state=String(r.status||'').replaceAll('_',' ');
- $('giftCodeStatus').textContent=`${code}: ${state||'processed'} ✓`;
+ const processed=Number(r.manual?.auto?.processed||0),retry=Number(r.manual?.auto?.retry_scheduled||0);
+ $('giftCodeStatus').textContent=`${code}: queued for every active member ✓${processed?` · ${processed} processed`:''}${retry?` · ${retry} retrying`:''}`;
  return true
 }});
 for(const b of document.querySelectorAll('[data-tab]'))b.onclick=()=>{for(const x of document.querySelectorAll('[data-tab]'))x.setAttribute('aria-selected',String(x===b));for(const p of document.querySelectorAll('[data-panel]'))p.classList.toggle('hidden',p.dataset.panel!==b.dataset.tab);if(b.dataset.tab==='codes')loadCodes()};function auth(reg){$('loginPane').classList.toggle('hidden',reg);$('registerPane').classList.toggle('hidden',!reg);$('loginTab').classList.toggle('active',!reg);$('registerTab').classList.toggle('active',reg)}$('loginTab').onclick=()=>auth(false);$('registerTab').onclick=()=>auth(true);$('forgotPass').onclick=()=>$('recoveryPanel').classList.remove('hidden');$('cancelRecovery').onclick=()=>$('recoveryPanel').classList.add('hidden');$('recoverBtn').onclick=async()=>{if($('recoverPassword').value!==$('recoverConfirm').value)return $('recoveryStatus').textContent='Passwords do not match.';const d=await rpc('transfer_staff_reset_password',{p_identifier:clean($('recoverIdentifier').value),p_code:clean($('recoverCode').value),p_new_password:$('recoverPassword').value});$('recoveryStatus').textContent=d?.ok?'Password changed.':d?.error||'Invalid recovery code.'};$('signin').onclick=async()=>{try{const state=Number(clean($('loginState').value)),gameId=clean($('identifier').value);if(!Number.isInteger(state)||state<1)throw Error('Enter your State / Server.');if(!/^\d{4,24}$/.test(gameId))throw Error('Enter a valid Game ID.');const d=await rpc('nexa_staff_login_v2',{p_state_number:state,p_game_id:gameId,p_password:$('password').value,p_remember:$('rememberLogin').checked});if(!d?.ok)throw Error(d?.error||'Login failed');store(d.token,$('rememberLogin').checked,state);await load()}catch(e){message(e.message)}};$('registerBtn').onclick=async()=>{try{const state=Number(clean($('regState').value)),gameId=clean($('regGameId').value);if(!Number.isInteger(state)||state<1)throw Error('Enter your State / Server.');if(!/^\d{4,24}$/.test(gameId))throw Error('Enter a valid Game ID.');if($('regPassword').value!==$('regConfirm').value)throw Error('Passwords do not match.');const d=await rpc('nexa_staff_register_module_v2',{p_module:'gift',p_state_number:state,p_game_name:clean($('regGameName').value),p_game_id:gameId,p_password:$('regPassword').value,p_remember:$('rememberRegister').checked});if(!d?.ok)throw Error(d?.error||'Registration failed');store(d.token,$('rememberRegister').checked,state);await load()}catch(e){message(e.message)}};$('logout').onclick=async()=>{try{if(token)await rpc('transfer_staff_logout',{p_token:token})}catch{}localStorage.removeItem('nexa_transfer_staff_token');sessionStorage.removeItem('nexa_transfer_staff_token');localStorage.removeItem('nexa_active_state');sessionStorage.removeItem('nexa_active_state');location.href='staff-workspaces.html'};$('backWos').onclick=()=>location.href='wos-utilities.html';async function start(){

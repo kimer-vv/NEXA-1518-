@@ -1,4 +1,4 @@
-/* NEXA Shared Workspace UI V5.2 — GLOBAL SSO / WOS REMINDER + DISCORD DELIVERY QA
+/* NEXA Shared Workspace UI V5.4 — WOS PREVIEW STATE + GIFT MEMBER RETRY
  * One global Staff token. No local access management. No duplicate workspace switcher.
  */
 (()=>{'use strict';
@@ -106,6 +106,7 @@ function installWosEnhancements(){
  if(window.__NEXA_WOS_REMINDER_PATCHED__)return;
  window.__NEXA_WOS_REMINDER_PATCHED__=true;
 
+
  const originalBuild=window.buildSavedPreview;
 
  if(typeof originalBuild==='function'){
@@ -156,6 +157,92 @@ function installWosEnhancements(){
   };
  }
 
+
+ // Draft Preview must be temporary: preserve the actual editor DOM,
+ // let the existing Preview render, then restore the exact editor on Close.
+ if(!window.__NEXA_WOS_PREVIEW_STATE_FIX__){
+  window.__NEXA_WOS_PREVIEW_STATE_FIX__=true;
+  let previewReturn=null;
+
+  const escHtml=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  function captureFormationCards(){
+   return [...document.querySelectorAll('#rallyFormationGrid .formation-card')].map(card=>({
+    label:(card.querySelector('h4')?.textContent||'Formation').trim(),
+    heroes:(card.querySelector('.formation-heroes')?.textContent||'').trim(),
+    ratio:(card.querySelector('.formation-split')?.textContent||'').trim()
+   })).filter(x=>x.label||x.heroes||x.ratio);
+  }
+
+  function renderAllPreviewFormations(rows){
+   if(!rows?.length)return;
+   const title=[...document.querySelectorAll('.preview-section-title')]
+    .find(x=>String(x.textContent||'').trim().toUpperCase()==='OWN RALLY FORMATIONS');
+   const section=title?.closest('.preview-section');
+   if(!section)return;
+   section.innerHTML=
+    '<div class="preview-section-title">OWN RALLY FORMATIONS</div>'+
+    '<div class="preview-formations">'+
+    rows.map(x=>
+      '<div class="preview-formation" style="border-top:0;padding-top:0;margin-top:7px">'+
+       '<b>• '+escHtml(x.label)+'</b>'+
+       '<div>'+escHtml(x.heroes)+'</div>'+
+       '<div style="color:var(--cyan);font-weight:950">'+escHtml(x.ratio)+'</div>'+
+      '</div>'
+    ).join('')+
+    '</div>';
+  }
+
+  function restoreDraftEditor(){
+   if(!previewReturn)return false;
+   const body=document.getElementById('modalBody');
+   const title=document.getElementById('modalTitle');
+   const modal=document.getElementById('modal');
+   if(!body||!previewReturn.stash)return false;
+
+   body.replaceChildren();
+   while(previewReturn.stash.firstChild)body.appendChild(previewReturn.stash.firstChild);
+   if(title)title.textContent=previewReturn.title;
+   previewReturn.stash.remove();
+   previewReturn=null;
+   modal?.classList.remove('hidden');
+   return true;
+  }
+
+  document.addEventListener('click',ev=>{
+   const target=ev.target?.closest?.('#previewDraft');
+   if(target&&!previewReturn){
+    const body=document.getElementById('modalBody');
+    const title=document.getElementById('modalTitle');
+    if(body){
+     const stash=document.createElement('div');
+     stash.id='nexaWosDraftPreviewStash';
+     stash.style.display='none';
+     document.body.appendChild(stash);
+
+     const formations=captureFormationCards();
+     const savedTitle=title?.textContent||'Event Reminder';
+
+     while(body.firstChild)stash.appendChild(body.firstChild);
+     previewReturn={stash,title:savedTitle,formations};
+
+     [0,20,80,180].forEach(ms=>setTimeout(()=>renderAllPreviewFormations(formations),ms));
+    }
+    return;
+   }
+
+   if(previewReturn){
+    const close=ev.target?.closest?.('#closeModal');
+    const backdrop=ev.target===document.getElementById('modal');
+    if(close||backdrop){
+     ev.preventDefault();
+     ev.stopImmediatePropagation();
+     restoreDraftEditor();
+    }
+   }
+  },true);
+ }
+
  // Global Preview cleanup + user-friendly Discord permission diagnostics.
  // This runs independently of event-local functions, so Bear-only helper text
  // cannot leak into SvS, Foundry, Canyon, Crazy Joe, BIA, Custom, etc.
@@ -181,6 +268,145 @@ function installWosEnhancements(){
   cleanUi();
  }
 }
+
+function installGiftRetryEnhancements(){
+ if(MODULE!=='gift')return;
+
+ if(!document.getElementById('nexaGiftRetryCss')){
+  const s=document.createElement('style');
+  s.id='nexaGiftRetryCss';
+  s.textContent=`
+   .nexa-gift-retry{
+    flex:0 0 auto!important;
+    min-width:38px!important;
+    width:auto!important;
+    padding:6px 9px!important;
+    font-size:12px!important;
+    border-color:#d4aa4f!important;
+    color:#ffe39a!important;
+    background:#302713!important
+   }
+   .nexa-gift-retry.retry-red{
+    border-color:#b85b77!important;
+    color:#ffc0cf!important;
+    background:#351925!important
+   }
+  `;
+  document.head.appendChild(s);
+ }
+
+ const showRetryToast=(msg,bad=false)=>{
+  let t=document.getElementById('nexaGiftRetryToast');
+  if(!t){
+   t=document.createElement('div');
+   t.id='nexaGiftRetryToast';
+   Object.assign(t.style,{
+    position:'fixed',left:'50%',bottom:'26px',transform:'translateX(-50%)',
+    zIndex:'25000',maxWidth:'min(560px,92vw)',padding:'12px 16px',
+    borderRadius:'14px',fontWeight:'850',boxShadow:'0 12px 40px #0009'
+   });
+   document.body.appendChild(t);
+  }
+  t.style.background=bad?'#3d1725':'#102d25';
+  t.style.border=bad?'1px solid #c05d7a':'1px solid #4bb98f';
+  t.style.color=bad?'#ffd3df':'#cffff0';
+  t.textContent=msg;
+  t.style.display='block';
+  clearTimeout(t._timer);
+  t._timer=setTimeout(()=>t.style.display='none',5000);
+ };
+
+ async function retryGameId(gameId,row,btn){
+  const currentToken=token();
+  if(!currentToken){showRetryToast('Staff sign-in required.',true);return}
+  const old=btn.textContent;
+  btn.disabled=true;
+  btn.textContent='↻ Retrying…';
+  try{
+   const r=await fetch('https://dfxcxboxrkfmrnsgpyin.supabase.co/functions/v1/nexa-gift-retry',{
+    method:'POST',
+    headers:{Authorization:`Bearer ${currentToken}`,'Content-Type':'application/json'},
+    body:JSON.stringify({game_id:gameId})
+   });
+   const j=await r.json().catch(()=>({}));
+   if(!r.ok||!j.ok)throw Error(j.error||`Retry failed (${r.status})`);
+
+   const h=j.health||{};
+   const level=String(h.level||'yellow');
+   const label=String(h.label||(
+    j.processed>0?'Retry completed. Refreshing member status.':'No active Gift Code needed a retry right now.'
+   ));
+
+   const dot=row.querySelector('.memberHealth');
+   if(dot){
+    dot.classList.remove('green','yellow','red');
+    dot.classList.add(level);
+    dot.title=label;
+    dot.setAttribute('aria-label',label);
+   }
+   const name=row.querySelector('.memberName');
+   if(name){
+    name.classList.remove('health-green','health-yellow','health-red');
+    name.classList.add(`health-${level}`);
+   }
+   const small=row.querySelector('.info small');
+   if(small)small.textContent=`${gameId} · ${label}`;
+
+   if(level==='green'){
+    btn.remove();
+    showRetryToast(`✓ ${gameId}: Gift Codes working.`);
+   }else{
+    btn.disabled=false;
+    btn.textContent=old;
+    btn.classList.toggle('retry-red',level==='red');
+    showRetryToast(j.processed
+      ? `Retry finished for ${gameId}. Current status: ${label}`
+      : `${gameId}: ${label}`);
+   }
+  }catch(err){
+   btn.disabled=false;
+   btn.textContent=old;
+   showRetryToast(err?.message||String(err),true);
+  }
+ }
+
+ function scan(){
+  document.querySelectorAll('.member').forEach(row=>{
+   if(row.querySelector('.nexa-gift-retry'))return;
+   const dot=row.querySelector('.memberHealth');
+   if(!dot)return;
+   const isYellow=dot.classList.contains('yellow');
+   const isRed=dot.classList.contains('red');
+   if(!isYellow&&!isRed)return;
+
+   const small=row.querySelector('.info small');
+   const statusText=String(small?.textContent||'');
+   if(/Auto-Redeem OFF/i.test(statusText))return;
+
+   const id=(statusText.match(/\b\d{5,30}\b/)||[])[0];
+   if(!id)return;
+
+   const tools=row.querySelector('.tools');
+   if(!tools)return;
+
+   const btn=document.createElement('button');
+   btn.type='button';
+   btn.className='ghost tiny nexa-gift-retry'+(isRed?' retry-red':'');
+   btn.textContent='↻ Retry';
+   btn.title='Retry Gift Codes for this member now';
+   btn.setAttribute('aria-label',`Retry Gift Codes for ${id}`);
+   btn.onclick=()=>retryGameId(id,row,btn);
+   tools.prepend(btn);
+  });
+ }
+
+ if(!window.__NEXA_GIFT_RETRY_OBSERVER__){
+  window.__NEXA_GIFT_RETRY_OBSERVER__=new MutationObserver(scan);
+  window.__NEXA_GIFT_RETRY_OBSERVER__.observe(document.documentElement,{subtree:true,childList:true});
+ }
+ scan();
+}
+
 async function boot(){
  if(!MODULE)return;
  installCss();
@@ -205,10 +431,12 @@ async function boot(){
   reveal();
   installHubTitle();
   installWosEnhancements();
+  installGiftRetryEnhancements();
 
   [100,350,900,1600].forEach(ms=>setTimeout(()=>{
    installHubTitle();
    installWosEnhancements();
+   installGiftRetryEnhancements();
   },ms));
  }catch(e){
   const m=String(e?.message||e).toLowerCase();

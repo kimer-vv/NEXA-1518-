@@ -1,4 +1,4 @@
-/* NEXA Shared Workspace UI V5.0 — SINGLE HUB TITLE / GLOBAL SSO
+/* NEXA Shared Workspace UI V5.1 — SINGLE HUB TITLE / GLOBAL SSO / WOS REMINDER UX
  * One global Staff token. No local access management. No duplicate workspace switcher.
  */
 (()=>{'use strict';
@@ -28,6 +28,158 @@ function installHubTitle(){
  brand.onclick=()=>location.href='staff-workspaces.html';
  brand.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();location.href='staff-workspaces.html'}};
 }
-async function boot(){if(!MODULE)return;installCss();const t=token(),st=state();if(!t){location.replace(hub('sign_in_required'));return}if(!st){location.replace(hub('sign_in_required'));return}try{const d=await rpc('nexa_staff_hub_v2',{p_token:t,p_state_number:st});if(!d?.ok)throw Error(d?.error||'session_expired');const card=currentCard(d.cards||[]);if(!card?.enabled){location.replace(hub('no_access'));return}reveal();installHubTitle();[100,350,900,1600].forEach(ms=>setTimeout(installHubTitle,ms))}catch(e){const m=String(e?.message||e).toLowerCase();if(/session|token|jwt|unauthoriz/.test(m)){clear();location.replace(hub('session_expired'));return}reveal();installHubTitle()}}
+function installWosEnhancements(){
+ if(MODULE!=='wos')return;
+
+ if(!$('nexaWosReminderUxCss')){
+  const s=document.createElement('style');
+  s.id='nexaWosReminderUxCss';
+  s.textContent=`
+  #reminderChips .chip{
+    background:#252936!important;
+    border-color:#454b5d!important;
+    color:#9fa8ba!important;
+    box-shadow:none!important;
+    filter:saturate(.45)
+  }
+  #reminderChips .chip.active{
+    background:linear-gradient(120deg,#6f43ff,#00bfe8)!important;
+    border-color:#65e7ff!important;
+    color:#fff!important;
+    box-shadow:0 0 0 1px rgba(101,231,255,.18),0 7px 18px rgba(65,80,255,.20)!important;
+    filter:none
+  }
+  .nexa-discord-note{
+    margin:8px 0 0;
+    padding:9px 11px;
+    border:1px solid rgba(89,228,255,.24);
+    border-radius:12px;
+    background:rgba(89,228,255,.055);
+    color:#b9c9e8;
+    font-size:12px;
+    line-height:1.45
+  }
+  `;
+  document.head.appendChild(s);
+ }
+
+ const botTitle=[...document.querySelectorAll('.module-card h3')]
+   .find(x=>x.textContent.trim()==='Discord Bot');
+ const botCard=botTitle?.closest('.module-card');
+
+ if(botCard&&!botCard.querySelector('.nexa-discord-install-note')){
+  const p=document.createElement('p');
+  p.className='nexa-discord-note nexa-discord-install-note';
+  p.innerHTML='<b>After installing:</b> link the Discord server to this alliance in NEXA. Installing the bot alone does not connect its channels or reminders.';
+  const existing=botCard.querySelector('.muted');
+  existing?.insertAdjacentElement('afterend',p);
+ }
+
+ const discordHub=document.querySelector('.discord-hub');
+
+ if(discordHub&&!discordHub.querySelector('.nexa-discord-link-note')){
+  const p=document.createElement('p');
+  p.className='nexa-discord-note nexa-discord-link-note';
+  p.textContent='Link each Discord server once so NEXA can load its channels, use reminders, and register alliance commands for that server.';
+  const head=discordHub.querySelector('.discord-hub-head');
+  head?.insertAdjacentElement('afterend',p);
+ }
+
+ if(window.__NEXA_WOS_REMINDER_PATCHED__)return;
+ window.__NEXA_WOS_REMINDER_PATCHED__=true;
+
+ const originalBuild=window.buildSavedPreview;
+
+ if(typeof originalBuild==='function'){
+  window.buildSavedPreview=function(e){
+   let text=String(originalBuild(e)||'');
+
+   if(e?.event_type==='svs'){
+    const lines=text.split('\n');
+    if(lines.length)lines[0]='SVS — Battle Phase';
+    text=lines.join('\n');
+   }
+
+   return text;
+  };
+ }
+
+ const originalPreviewEvent=window.previewEvent;
+
+ if(typeof originalPreviewEvent==='function'){
+  window.previewEvent=function(e){
+   const out=originalPreviewEvent(e);
+
+   if(e?.event_type!=='bear_trap'){
+    document.querySelectorAll('.modal-box .muted').forEach(p=>{
+     if(p.textContent.trim()==='Empty optional Bear sections are omitted.')p.remove();
+    });
+   }
+
+   return out;
+  };
+ }
+
+ const originalApi=window.api;
+
+ if(typeof originalApi==='function'){
+  window.api=async function(action,payload,...rest){
+   if(action==='save_event'&&payload?.event?.event_type==='svs'){
+    payload={
+     ...payload,
+     event:{
+      ...payload.event,
+      event_name:'SVS — Battle Phase'
+     }
+    };
+   }
+
+   return originalApi.call(this,action,payload,...rest);
+  };
+ }
+}
+async function boot(){
+ if(!MODULE)return;
+ installCss();
+
+ const t=token(),st=state();
+
+ if(!t){location.replace(hub('sign_in_required'));return}
+ if(!st){location.replace(hub('sign_in_required'));return}
+
+ try{
+  const d=await rpc('nexa_staff_hub_v2',{p_token:t,p_state_number:st});
+
+  if(!d?.ok)throw Error(d?.error||'session_expired');
+
+  const card=currentCard(d.cards||[]);
+
+  if(!card?.enabled){
+   location.replace(hub('no_access'));
+   return;
+  }
+
+  reveal();
+  installHubTitle();
+  installWosEnhancements();
+
+  [100,350,900,1600].forEach(ms=>setTimeout(()=>{
+   installHubTitle();
+   installWosEnhancements();
+  },ms));
+ }catch(e){
+  const m=String(e?.message||e).toLowerCase();
+
+  if(/session|token|jwt|unauthoriz/.test(m)){
+   clear();
+   location.replace(hub('session_expired'));
+   return;
+  }
+
+  reveal();
+  installHubTitle();
+  installWosEnhancements();
+ }
+}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();

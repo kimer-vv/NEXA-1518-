@@ -1,11 +1,11 @@
-/* NEXA Active Context Fix V1
+/* NEXA Active Context Fix V3
    Fixes Fleet State -> Active Account -> Home persistence.
    Main Account remains unchanged; this only controls the currently active account.
 */
 (()=>{
 'use strict';
-if(window.__NEXA_ACTIVE_CONTEXT_FIX_V1__) return;
-window.__NEXA_ACTIVE_CONTEXT_FIX_V1__=true;
+if(window.__NEXA_ACTIVE_CONTEXT_FIX_V3__) return;
+window.__NEXA_ACTIVE_CONTEXT_FIX_V3__=true;
 
 /* Production cleanup: hide/remove legacy V49 runtime proof diagnostics. */
 (function suppressLegacyRuntimeProof(){
@@ -35,6 +35,9 @@ const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
 let localClient=null;
 let syncTimer=0;
 let syncing=false;
+let canonicalHomeLoader=null;
+let lastActiveAccount=null;
+let homeObserver=null;
 
 function db(){
   if(window.supabaseClient?.from) return window.supabaseClient;
@@ -139,28 +142,30 @@ function paintHome(account){
   if(badge) badge.textContent='ACTIVE';
 }
 
-async function syncActiveContext({emit=true}={}){
-  if(syncing) return;
+async function syncActiveContext({emit=true,refreshCanonical=false}={}){
+  if(syncing) return lastActiveAccount;
   syncing=true;
   try{
     const state=getActiveState();
-    if(!state) return;
+    if(!state) return null;
+
+    if(refreshCanonical && canonicalHomeLoader){
+      try{ await canonicalHomeLoader(); }catch(_){}
+    }
 
     const rows=await getAccounts();
     const account=chooseAccount(rows,state);
-    if(!account) return;
+    if(!account) return null;
 
+    lastActiveAccount=account;
     setActiveAccount(account,state,{emit});
     paintHome(account);
 
-    /* Legacy loader currently prefers is_main.
-       Allow it to refresh its own cache, then repaint the true active account. */
-    try{ await window.nexaLoadHomeAccountCards?.(); }catch(_){}
-    paintHome(account);
-
     try{ window.NEXA_HOME_VISUALS_REFRESH?.(); }catch(_){}
+    return account;
   }catch(err){
     console.warn('[NEXA Active Context Fix]',err?.message||err);
+    return null;
   }finally{
     syncing=false;
   }
@@ -171,21 +176,73 @@ function scheduleSync(delay=0){
   syncTimer=setTimeout(()=>syncActiveContext({emit:true}),delay);
 }
 
+function installCanonicalHomeOwnership(){
+  /* ui-i18n-final.js historically treats is_main as the active account.
+     Keep its loader for data refresh, but always finish with the Fleet-selected account. */
+  if(!canonicalHomeLoader && typeof window.nexaLoadHomeAccountCards==='function'){
+    canonicalHomeLoader=window.nexaLoadHomeAccountCards.bind(window);
+    window.nexaLoadHomeAccountCards=async function(...args){
+      let result;
+      try{ result=await canonicalHomeLoader(...args); }catch(err){ throw err; }
+      await syncActiveContext({emit:false,refreshCanonical:false});
+      return result;
+    };
+  }
+
+  const name=document.getElementById('nexa-profile-launcher-name');
+  const photo=document.getElementById('nexa-profile-launcher-photo');
+  const badge=document.getElementById('nexa-profile-launcher-badge');
+
+  if(homeObserver) homeObserver.disconnect();
+  if(name||photo||badge){
+    homeObserver=new MutationObserver(()=>{
+      if(!lastActiveAccount) return;
+      clearTimeout(syncTimer);
+      syncTimer=setTimeout(()=>paintHome(lastActiveAccount),10);
+    });
+    [name,photo,badge].filter(Boolean).forEach(el=>{
+      homeObserver.observe(el,{childList:true,characterData:true,subtree:true,attributes:true});
+    });
+  }
+}
+
 /* State Hub/Fleet changes */
-window.addEventListener('nexa:active-state-changed',()=>scheduleSync(20));
+window.addEventListener('nexa:active-state-changed',()=>{
+  scheduleSync(10);
+  setTimeout(installCanonicalHomeOwnership,40);
+});
+window.addEventListener('nexa:account-changed',()=>scheduleSync(10));
 
 /* Restore selected State/account after navigation or reload */
-window.addEventListener('pageshow',()=>scheduleSync(80));
-window.addEventListener('nexa:home-ready',()=>scheduleSync(40));
-document.addEventListener('DOMContentLoaded',()=>scheduleSync(80));
+window.addEventListener('pageshow',()=>{
+  installCanonicalHomeOwnership();
+  scheduleSync(40);
+});
+window.addEventListener('nexa:home-ready',()=>{
+  installCanonicalHomeOwnership();
+  scheduleSync(20);
+});
+window.addEventListener('nexa:home-profile-ready',()=>{
+  installCanonicalHomeOwnership();
+  scheduleSync(10);
+});
+document.addEventListener('DOMContentLoaded',()=>{
+  installCanonicalHomeOwnership();
+  scheduleSync(40);
+});
 
 /* Closing the constellation must keep the selected State account on Home. */
 document.addEventListener('click',event=>{
   if(event.target.closest?.('[data-close-constellation]')){
     scheduleSync(0);
-    setTimeout(()=>syncActiveContext({emit:true}),140);
+    setTimeout(()=>syncActiveContext({emit:true}),120);
   }
 },true);
+
+/* Late legacy scripts can install/reinstall their loader after initial parse. */
+setTimeout(()=>{installCanonicalHomeOwnership();syncActiveContext({emit:false});},250);
+setTimeout(()=>{installCanonicalHomeOwnership();syncActiveContext({emit:false});},1000);
+setTimeout(()=>{installCanonicalHomeOwnership();syncActiveContext({emit:false});},2500);
 
 /* Public hook for Fleet and the future My Accounts UI. */
 window.NEXA_SYNC_ACTIVE_CONTEXT=syncActiveContext;

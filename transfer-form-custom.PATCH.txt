@@ -1,0 +1,84 @@
+FILE: transfer-form-custom.html
+CURRENT SHA INSPECTED: 7d9509448a09f902858538c9286587af2292d916
+PURPOSE: Finish the agreed Transfer Forms UX without rebuilding the file.
+
+1) VERSION COMMENT
+REPLACE:
+<!-- NEXA TRANSFER APPLICATION FORMS V2.4 — CLEAN MANAGE / PREVIEW / ACTIVE -->
+
+WITH:
+<!-- NEXA TRANSFER APPLICATION FORMS V2.5 — FINAL MANAGE / PREVIEW / ACTIVE PROMPT -->
+
+
+2) ADD THE NEXA SAVED-FORM PROMPT
+Insert this HTML immediately AFTER the closing </div> of #preview and BEFORE <script>:
+
+<div id="savedFormPrompt" class="preview">
+ <div class="previewShell" style="max-width:520px;padding-top:14vh">
+   <div class="previewCard">
+     <div class="tag">TRANSFER APPLICATION</div>
+     <h2>Form saved</h2>
+     <p class="muted">Do you want to use this as your active Transfer Application?</p>
+     <div class="actions">
+       <button id="useSavedForm" class="btn good" type="button">Use This Form</button>
+       <button id="keepSavedInactive" class="btn secondary" type="button">Not Now</button>
+     </div>
+   </div>
+ </div>
+</div>
+
+
+3) ADD THIS FUNCTION immediately after:
+function returnToTransferWorkspace(){ ... }
+
+ADD:
+
+function askUseSavedForm(){
+ return new Promise(resolve=>{
+   const box=$('savedFormPrompt');
+   const yes=$('useSavedForm');
+   const no=$('keepSavedInactive');
+   let done=false;
+   const finish=value=>{
+     if(done)return;
+     done=true;
+     box.classList.remove('open');
+     yes.onclick=null;
+     no.onclick=null;
+     resolve(value);
+   };
+   yes.onclick=()=>finish(true);
+   no.onclick=()=>finish(false);
+   box.classList.add('open');
+ });
+}
+
+
+4) PRIMARY TEMPLATE CARD LABEL
+Inside renderLibrary(), REPLACE this portion:
+
+<div class="tag">${t.is_primary?'NEXA PRIMARY FORM':'CUSTOM FORM'}</div>
+<h3>${esc(t.is_primary?'NEXA Primary Form':t.name)}</h3>
+<p class="muted">${t.is_primary?'Protected NEXA form. Core question wording stays locked.':'Saved custom Transfer application.'}</p>
+
+WITH:
+
+<div class="tag">${t.is_primary?'NEXA TEMPLATE':'YOUR FORM'}</div>
+<h3>${esc(t.is_primary?'NEXA Primary Form':t.name)}</h3>
+<p class="muted">${t.is_primary?'NEXA Template · Core Questions Protected':'Saved custom Transfer application.'}</p>
+
+
+5) SAVED-INACTIVE PROMPT
+REPLACE:
+
+if(savedTemplateId&&!alreadyActive&&confirm('Form saved. Do you want to use this as the active Transfer Application?')){
+
+WITH:
+
+if(savedTemplateId&&!alreadyActive&&await askUseSavedForm()){
+
+This produces the exact two-button NEXA prompt:
+- Use This Form
+- Not Now
+
+No "From Scratch" option is added. Create New Form continues to start from the NEXA structure.

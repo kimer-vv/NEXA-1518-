@@ -6,15 +6,192 @@ import {
 } from '../server/_nexa-maintenance-common-new.js';
 import giftWorkspaceHandler from '../server/nexa-gift-workspace.js';
 import wosUtilitiesHandler from '../server/nexa-wos-utilities.js';
-import { giftCron } from '../server/nexa-gift-discovery.js';
-import { redeemSingleTest } from '../server/nexa-gift-redeemer.js';
-import { runGiftAutoWorker } from '../server/nexa-gift-auto-worker.js';
 
 const HERO_IMAGE_HOSTS = new Set([
   'www.whiteoutsurvival-community.com',
   'whiteoutsurvival-community.com',
   'gom-s3-user-avatar.s3.us-west-2.amazonaws.com',
 ]);
+
+const NEXA_COMMANDS = [
+  {
+    name: 'nexa',
+    description: 'NEXA tools for your connected server',
+    options: [
+      {type: 1, name: 'help', description: 'Show the NEXA Bot command guide'},
+      {
+        type: 2,
+        name: 'transfer',
+        description: 'Transfer tools',
+        options: [
+          {
+            type: 1,
+            name: 'list',
+            description: 'View the current Transfer applicant list',
+            options: [
+              {
+                type: 3,
+                name: 'placement',
+                description: 'Which Transfer list do you want?',
+                required: true,
+                choices: [
+                  {name: 'All Transfer Applicants', value: 'all'},
+                  {name: 'New Applicants', value: 'inbox'},
+                  {name: 'Ordinary', value: 'ordinary'},
+                  {name: 'Special', value: 'special'},
+                  {name: 'Group Transfer', value: 'group'},
+                ],
+              },
+            ],
+          },
+          {
+            type: 1,
+            name: 'view',
+            description: 'View one Transfer applicant by Game ID',
+            options: [
+              {type: 3, name: 'game_id', description: 'Whiteout Survival Game ID', required: true},
+            ],
+          },
+          {
+            type: 1,
+            name: 'move',
+            description: 'Move a Transfer applicant',
+            options: [
+              {type: 3, name: 'game_id', description: 'Whiteout Survival Game ID', required: true},
+              {
+                type: 3,
+                name: 'placement',
+                description: 'Where should this applicant go?',
+                required: true,
+                choices: [
+                  {name: 'Ordinary', value: 'ordinary'},
+                  {name: 'Special', value: 'special'},
+                  {name: 'Group Transfer', value: 'group'},
+                ],
+              },
+              {type: 3, name: 'alliance', description: 'Recruiting Alliance for Ordinary / Special', required: false, autocomplete: true},
+              {type: 3, name: 'group', description: 'Approved Group for Group Transfer', required: false, autocomplete: true},
+            ],
+          },
+          {type: 1, name: 'invite-list', description: 'Post the current Transfer invite list'},
+          {
+            type: 1,
+            name: 'invite-sent',
+            description: 'Mark a Transfer invite as sent',
+            options: [
+              {type: 3, name: 'game_id', description: 'Whiteout Survival Game ID', required: true},
+            ],
+          },
+          {
+            type: 1,
+            name: 'invite-pending',
+            description: 'Mark a Transfer invite as pending',
+            options: [
+              {type: 3, name: 'game_id', description: 'Whiteout Survival Game ID', required: true},
+            ],
+          },
+        ],
+      },
+      {
+        type: 2,
+        name: 'reminder',
+        description: 'WOS Reminder tools',
+        options: [
+          {
+            type: 1,
+            name: 'set-channel',
+            description: 'Use this channel as the default WOS Reminder channel',
+          },
+        ],
+      },
+    ],
+  },
+];
+
+function discordEnv(name) {
+  const value = String(process.env[name] || '').trim();
+  if (!value) throw new Error(`${name} is not configured in Vercel.`);
+  return value;
+}
+
+async function discordRequest(path, {method = 'GET', body} = {}) {
+  const token = discordEnv('DISCORD_BOT_TOKEN');
+  const r = await fetch(`https://discord.com/api/v10${path}`, {
+    method,
+    headers: {
+      Authorization: `Bot ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const raw = await r.text();
+  let data = null;
+  try { data = raw ? JSON.parse(raw) : null; } catch { data = raw; }
+  if (!r.ok) {
+    const detail = typeof data === 'string' ? data : JSON.stringify(data);
+    throw new Error(`Discord ${r.status}: ${detail}`);
+  }
+  return data;
+}
+
+async function registerGuildCommands(guildId) {
+  const guild = String(guildId || '').trim();
+  if (!/^\d{10,30}$/.test(guild)) throw new Error('Invalid Discord Server ID.');
+  const app = discordEnv('DISCORD_APPLICATION_ID');
+
+  // Guild commands appear immediately and keep each NEXA installation isolated
+  // to the Discord server where it was linked.
+  await discordRequest(
+    `/applications/${encodeURIComponent(app)}/guilds/${encodeURIComponent(guild)}/commands`,
+    {method: 'PUT', body: NEXA_COMMANDS},
+  );
+
+  return {ok: true, guild_id: guild};
+}
+
+async function runWosHandler(req, res) {
+  const action = String(req.body?.action || req.query?.action || '').trim();
+
+  if (action !== 'link_discord_server') {
+    return await wosUtilitiesHandler(req, res);
+  }
+
+  const guildId = String(req.body?.guild_id || '').trim();
+  const originalStatus = res.status.bind(res);
+  const originalJson = res.json.bind(res);
+  let statusCode = 200;
+
+  res.status = (code) => {
+    statusCode = Number(code) || 200;
+    originalStatus(code);
+    return res;
+  };
+
+  res.json = async (payload) => {
+    if (statusCode < 400 && payload?.ok !== false) {
+      try {
+        await registerGuildCommands(guildId);
+        payload = {
+          ...payload,
+          slash_commands_registered: true,
+          slash_command: '/nexa',
+        };
+      } catch (error) {
+        // The guild link was valid and already saved. Return a clear error so
+        // linking the same server again retries command registration.
+        return originalStatus(502).json({
+          ok: false,
+          linked: true,
+          server: payload?.server || null,
+          error: `Discord server linked, but /nexa could not be registered: ${error.message || error}`,
+        });
+      }
+    }
+    return originalJson(payload);
+  };
+
+  return await wosUtilitiesHandler(req, res);
+}
 
 function heroImageUrl(raw) {
   try {
@@ -80,42 +257,30 @@ async function setSetting(service, enabled) {
 
 export default async function handler(req, res) {
   try {
-    if (req.query?.mode === 'gift-test-redeem') return await redeemSingleTest(req, res);
-
-    // Existing CRON_SECRET protects discovery AND the auto worker.
-    if (req.query?.mode === 'giftcron') {
-      let status = 200;
-      let payload;
-      const proxy = {
-        setHeader: (...args) => res.setHeader(...args),
-        status: (code) => { status = code; return proxy; },
-        json: (data) => { payload = data; return proxy; },
-      };
-      await giftCron(req, proxy);
-      if (status === 401 || status === 405) return res.status(status).json(payload);
-      let auto;
-      try { auto = await runGiftAutoWorker(); }
-      catch (e) {
-        console.error('[NEXA Gift Auto]', e);
-        auto = {enabled: process.env.NEXA_GIFT_AUTO_ENABLED === 'true', error: String(e?.message || e).slice(0,180)};
-      }
-      return res.status(status).json({...payload, auto});
-    }
+    // Gift Code discovery, queue processing, retries and auto-redemption now
+    // live in Supabase. Vercel no longer runs gift cron/auto-worker modes.
     if (req.query?.mode === 'gift') return await giftWorkspaceHandler(req, res);
-    if (req.query?.mode === 'wos') return await wosUtilitiesHandler(req, res);
+    if (req.query?.mode === 'wos') return await runWosHandler(req, res);
     if (req.method === 'GET' && req.query?.mode === 'hero-image') return await serveHeroImage(req, res);
+
     const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
     const role = await userRole(token);
     if (role !== 'owner') return json(res, 403, {error: 'System Operations is Owner-only.'});
+
     const service = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
     if (!service) return json(res, 503, {error: 'SUPABASE_SERVICE_ROLE_KEY is not configured in Vercel.'});
-    if (req.method === 'GET') return json(res, 200, {maintenance_mode: await getSetting(service)});
+
+    if (req.method === 'GET') {
+      return json(res, 200, {maintenance_mode: await getSetting(service)});
+    }
+
     if (req.method === 'POST') {
       const enabled = !!req.body?.maintenance_mode;
       if (enabled) bypassCookie(res);
       await setSetting(service, enabled);
       return json(res, 200, {maintenance_mode: enabled});
     }
+
     return json(res, 405, {error: 'Method not allowed.'});
   } catch (error) {
     return json(res, error.status || 500, {error: error.message || 'System Operations failed.'});

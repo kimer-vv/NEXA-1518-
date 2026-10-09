@@ -1837,7 +1837,7 @@ html.nexa-home-boot body > header.topbar,
 html.nexa-home-boot body > main.shell,
 html.nexa-home-boot body > #nexa-home-menu-toggle,
 html.nexa-home-boot body > #nexa-home-menu{
-  visibility:hidden!important;
+  visibility:visible!important;
 }
 </style>
 <style id="nexa-v52-auth-boot">
@@ -1909,7 +1909,7 @@ const liveLikeDetails=
       ' id='+(el.id||'NONE')+
       ' class='+(el.className||'NONE')+
       ' visible='+(r.width>0&&r.height>0)+
-      ' text="'+((el.textContent||'').trim().replace(/\s+/g,' ').slice(0,60))+'"')
+      ' text="'+(el.textContent||'').trim().replace(/\s+/g,' ').slice(0,60)+'"'
     );
   }).join(' || ');
 
@@ -1952,7 +1952,7 @@ box.textContent=
 <script src="nexa-v44-8-profile-stability.js?v=46-003-20260825" defer></script>
 <script src="nexa-v50-profile-troops.js?v=50-005-20260829" defer></script>
 <script src="nexa-v47-visual-assets.js?v=47-033-identity-assets-only-20260910" defer></script>
-<script src="nexa-v49-state-hub.js?v=49-032-gift-workspace-20260925" defer></script>
+<script src="nexa-v49-state-hub.js?v=49-031-fdt-direct-route-20260913" defer></script>
 <script src="nexa-workspace-menu-bridge-v1.js?v=1-300-20260913" defer></script>
 <script src="nexa-v49-live-owner-v49-31.js?v=49-047-singleton-canonical-slot-20260912" defer></script>
   
@@ -2280,13 +2280,13 @@ async function renderLiveDetails(){
 
    applyTheme(type);
 
-  const liveOpponent=
-    p.opponent_state||
-    live.opponent_state||
-    '—';
+  const isFdt=type==='fdt';
+  const liveOpponent=p.opponent_state||live.opponent_state||'—';
 
   if(title){
-    title.textContent=`SvS vs State ${liveOpponent}`;
+    title.textContent=isFdt
+      ?(p.event_name||live.title||'Frost Dragon Tyrant')
+      :`SvS vs State ${liveOpponent}`;
   }
 
   if(meta){
@@ -2300,8 +2300,9 @@ async function renderLiveDetails(){
         ?fmtDate(p.battle_date)
         :'—';
 
-    meta.textContent=
-      `State ${st} • Prep ${prepLabel} • Battle ${battleLabel}`;
+    meta.textContent=isFdt
+      ?`State ${st} • Entry ${prepLabel} • Battle ${battleLabel}`
+      :`State ${st} • Prep ${prepLabel} • Battle ${battleLabel}`;
   }
 
   if(count){
@@ -2333,26 +2334,25 @@ async function renderLiveDetails(){
       ?p.schedule
       :[];
 
+  const battleWindow=isFdt
+    ?`${p.battle_start_utc||'12:00'}–${p.battle_end_utc||'17:00'} UTC`
+    :'10:00–22:00 UTC';
+
   host.innerHTML=`
     <div class="nexa-live-event-identity">
-      <div class="nexa-live-event-chip">
-        <small>Opponent State</small>
-        <b>State ${esc(opponent)}</b>
-      </div>
-
-      <div class="nexa-live-event-chip">
-        <small>Going for the Star</small>
-        <b>${esc(star)}</b>
-      </div>
-
-      <div class="nexa-live-event-chip">
-        <small>Up for Presidency</small>
-        <b>${esc(presidency)}</b>
-      </div>
+      ${isFdt?`
+      <div class="nexa-live-event-chip"><small>Event</small><b>FDT</b></div>
+      <div class="nexa-live-event-chip"><small>State</small><b>State ${esc(st)}</b></div>
+      <div class="nexa-live-event-chip"><small>Alliance</small><b>${esc(p.alliance||'State Event')}</b></div>
+      `:`
+      <div class="nexa-live-event-chip"><small>Opponent State</small><b>State ${esc(opponent)}</b></div>
+      <div class="nexa-live-event-chip"><small>Going for the Star</small><b>${esc(star)}</b></div>
+      <div class="nexa-live-event-chip"><small>Up for Presidency</small><b>${esc(presidency)}</b></div>
+      `}
 
       <div class="nexa-live-event-chip">
         <small>Battle Window</small>
-        <b>${esc(fmtDate(p.battle_date))} • 10:00–22:00 UTC</b>
+        <b>${esc(fmtDate(p.battle_date))} • ${esc(battleWindow)}</b>
       </div>
     </div>
 
@@ -6090,4 +6090,85 @@ async function buildTransferHub(){
       const auth = await supabaseClient.auth.getUser();
       const user = auth?.data?.user || null;
       if(user){
-        const sessio
+        const session=document.createElement('div');
+        session.className='nexa-session-block';
+        const sessionName =
+          user.user_metadata?.in_game_name ||
+          user.user_metadata?.name ||
+          user.email ||
+          'NEXA User';
+
+        session.innerHTML='<div class="nexa-session-name">'+esc(sessionName)+'</div>';
+
+        const logout=document.createElement('button');
+        logout.type='button';
+        logout.className='nexa-logout-btn';
+        logout.textContent='LOGOUT';
+        logout.addEventListener('click',async function(){
+          await supabaseClient.auth.signOut();
+          location.reload();
+        });
+        session.appendChild(logout);
+        wrap.appendChild(session);
+      }
+    }catch(_){}
+  }
+
+  toggle?.addEventListener('click',async function(e){
+    e.preventDefault();
+    e.stopPropagation();
+
+    if(menu?.classList.contains('open')){
+      closeMenu();
+      return;
+    }
+
+    await buildRoot();
+    menu?.classList.add('open');
+    toggle?.classList.add('open');
+    menu?.setAttribute('aria-hidden','false');
+    toggle?.setAttribute('aria-expanded','true');
+  });
+
+  document.addEventListener('click',function(e){
+    if(
+      menu?.classList.contains('open') &&
+      !e.target.closest('#nexa-home-menu') &&
+      !e.target.closest('#nexa-home-menu-toggle')
+    ){
+      closeMenu();
+    }
+  });
+
+  // Header clocks
+  function tick(){
+    const now=new Date();
+
+    const ut=$('nexa-v56-utc-time');
+    const ud=$('nexa-v56-utc-date');
+    const lt=$('nexa-v56-local-time');
+    const ld=$('nexa-v56-local-date');
+
+    if(ut) ut.textContent=now.toLocaleTimeString('en-GB',{
+      timeZone:'UTC',hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'
+    });
+    if(ud) ud.textContent=now.toLocaleDateString('en-GB',{
+      timeZone:'UTC',day:'2-digit',month:'short',year:'numeric'
+    }).toUpperCase();
+
+    if(lt) lt.textContent=now.toLocaleTimeString([],{
+      hour:'2-digit',minute:'2-digit',second:'2-digit'
+    });
+    if(ld) ld.textContent=now.toLocaleDateString([],{
+      day:'2-digit',month:'short',year:'numeric'
+    }).toUpperCase();
+  }
+  tick();
+  setInterval(tick,1000);
+})();
+</script>
+
+<!-- NEXA Active State / Account context synchronization -->
+<script src="/nexa-active-context-fix-v1.js?v=1-20261009"></script>
+</body>
+</html>

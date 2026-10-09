@@ -1,4 +1,4 @@
-/* NEXA Shared Workspace UI V5.4 — WOS PREVIEW STATE + GIFT MEMBER RETRY
+/* NEXA Shared Workspace UI V5.5 — WOS DISCORD FORMATION CONSISTENCY
  * One global Staff token. No local access management. No duplicate workspace switcher.
  */
 (()=>{'use strict';
@@ -107,6 +107,23 @@ function installWosEnhancements(){
  window.__NEXA_WOS_REMINDER_PATCHED__=true;
 
 
+ const originalDraftText=window.draftPreviewText;
+ if(typeof originalDraftText==='function'){
+  window.draftPreviewText=function(...args){
+   let text=String(originalDraftText.apply(this,args)||'');
+   if(document.getElementById('eventType')?.value==='bear_trap'){
+    let inFormations=false;
+    text=text.split('\n').map(line=>{
+     const trimmed=String(line||'').trim();
+     if(trimmed==='Own Rally Formations:'){inFormations=true;return line}
+     if(inFormations && /^(Recommended|Alternative|F2P)$/.test(trimmed))return `• ${trimmed}`;
+     return line;
+    }).join('\n');
+   }
+   return text;
+  };
+ }
+
  const originalBuild=window.buildSavedPreview;
 
  if(typeof originalBuild==='function'){
@@ -114,9 +131,32 @@ function installWosEnhancements(){
    let text=String(originalBuild(e)||'');
 
    if(e?.event_type==='svs'){
-    const lines=text.split('\n');
+    const lines=text.split('
+');
     if(lines.length)lines[0]='SVS — Battle Phase';
-    text=lines.join('\n');
+    text=lines.join('
+');
+   }
+
+   if(e?.event_type==='bear_trap'){
+    const lines=text.split('
+');
+    let inFormations=false;
+    text=lines.map(line=>{
+     const trimmed=String(line||'').trim();
+
+     if(trimmed==='Own Rally Formations:'){
+      inFormations=true;
+      return line;
+     }
+
+     if(inFormations && /^(Recommended|Alternative|F2P)$/.test(trimmed)){
+      return `• ${trimmed}`;
+     }
+
+     return line;
+    }).join('
+');
    }
 
    return text;

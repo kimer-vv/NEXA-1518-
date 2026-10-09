@@ -50,8 +50,9 @@ export default async function middleware(request: Request) {
   const path = url.pathname;
 
   // Private staff workspaces stay available during Maintenance Mode.
-  // Each workspace still validates the shared NEXA staff session before exposing private data.
-  // Public NEXA pages remain protected by Maintenance Mode.
+  // The public Gift Member Registration page is also intentionally available:
+  // access still requires a valid per-alliance invitation token, and its API
+  // validates that token before exposing alliance registration context.
   if (
     path === '/maintenance.html' ||
     path === '/owner-access.html' ||
@@ -59,6 +60,8 @@ export default async function middleware(request: Request) {
     path === '/wos-utilities.html' ||
     path === '/ministry-workspace.html' ||
     path === '/gift-code-workspace.html' ||
+    path === '/gift-register.html' ||
+    path === '/gift-register' ||
     path.startsWith('/transfer-') ||
     path.startsWith('/api/transfer-') ||
     path.startsWith('/owner-recovery-') ||

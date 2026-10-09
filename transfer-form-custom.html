@@ -1,43 +1,521 @@
 <!doctype html>
-<!-- NEXA TRANSFER CUSTOM FORM BUILDER V1.0 — PRIMARY COPY / MAX 3 LIBRARY -->
+<!-- NEXA TRANSFER FORM STUDIO V2.0 — TEMPLATE LIBRARY / LOCKED CORE / PREVIEW / SCRATCH -->
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#03050e"><title>NEXA • Create Transfer Form</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#03050e">
+<title>NEXA • Transfer Form Studio</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{--c:#59e4ff;--v:#9078ff;--m:#aab4d0;--good:#78efb9;--bad:#ff8da8}*{box-sizing:border-box}html,body{max-width:100%;overflow-x:hidden}body{margin:0;background:radial-gradient(circle at 8% 4%,rgba(89,228,255,.08),transparent 31%),radial-gradient(circle at 94% 3%,rgba(144,120,255,.12),transparent 34%),#03050e;color:#fff;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}button,input,select,textarea{font:inherit}.shell{width:min(900px,100%);margin:auto;padding:22px 16px 90px}.top{display:flex;justify-content:space-between;gap:12px;align-items:center}.brand small,.tag{display:block;color:#8fefff;font-size:10px;letter-spacing:.16em;font-weight:950}.brand h1{margin:4px 0;font-size:clamp(1.8rem,6vw,2.7rem)}.muted{color:var(--m);line-height:1.45}.card{margin-top:14px;padding:17px;border-radius:22px;border:1px solid rgba(255,255,255,.11);background:rgba(8,15,34,.92)}.card h2,.card h3{margin:5px 0 8px}.row{display:flex;justify-content:space-between;gap:10px;align-items:center}.field{display:grid;gap:6px;margin-top:10px;color:#bec8dd;font-size:12px;font-weight:850}.field input,.field select,.field textarea{width:100%;min-width:0;border-radius:12px;border:1px solid rgba(255,255,255,.13);background:#070d20;color:#fff;padding:11px;font-size:16px}.field textarea{min-height:92px}.toggle{display:flex;align-items:center;gap:8px;color:#dce4f5;font-weight:850}.toggle input{width:20px;height:20px}.btn{border:1px solid rgba(89,228,255,.34);border-radius:13px;min-height:44px;padding:9px 13px;background:linear-gradient(135deg,rgba(25,76,112,.72),rgba(36,30,97,.82));color:#fff;text-decoration:none;font-weight:900}.btn.secondary{background:rgba(255,255,255,.045)}.btn.danger{border-color:rgba(255,90,120,.3);background:rgba(100,25,48,.38)}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.event,.section,.q{margin-top:10px;padding:12px;border-radius:15px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.035)}.eventHead,.sectionHead,.qHead{display:flex;justify-content:space-between;gap:8px;align-items:center}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.status{min-height:20px;margin-top:12px;color:#8ef0ff;font-weight:850}.core{font-size:10px;color:#9fefff;border:1px solid rgba(89,228,255,.18);padding:4px 7px;border-radius:999px}.hidden{display:none!important}.notice{padding:11px;border-radius:14px;border:1px solid rgba(89,228,255,.17);background:rgba(89,228,255,.045);color:#c9d5ec;line-height:1.45;font-size:12px}@media(max-width:650px){.grid{grid-template-columns:1fr}.row,.qHead{align-items:flex-start}}
-</style></head>
-<body><main class="shell">
-<div class="top"><div class="brand"><small>TRANSFER • CUSTOM FORM</small><h1 id="title">Create New Form</h1><div class="muted" id="subtitle">Loading Primary Form…</div></div></div>
-<section class="card"><div class="tag">FORM IDENTITY</div><h2>Form Name</h2><label class="field">Name<input id="formName" maxlength="80" placeholder="Example: September Transfer Form"></label><p class="muted">Primary Form stays protected. This form is saved separately and does not become active until you select it in Integrations.</p></section>
-<section class="card"><div class="tag">PROGRESSION ERA</div><h2>State Progression Era</h2><label class="field">Progression Era<select id="era"><option value="early_mid">Early / Mid Progression</option><option value="advanced">Advanced Progression</option><option value="late_game">Late Game / Advanced</option></select></label></section>
-<section class="card"><div class="tag">ABOUT STATE</div><div class="row"><h2>About State</h2><label class="toggle"><input id="aboutShow" type="checkbox"> Show</label></div><label class="field">State introduction<textarea id="aboutText"></textarea></label><label class="field">Philosophy / message<textarea id="philosophy"></textarea></label></section>
-<section class="card"><div class="tag">MAJOR EVENTS</div><div class="row"><h2>How We Run Major Events</h2><label class="toggle"><input id="majorShow" type="checkbox"> Show</label></div><div id="events"></div><div class="actions"><button id="addEvent" class="btn secondary" type="button">+ Add Event</button></div><label class="toggle" style="margin-top:14px"><input id="ack" type="checkbox"> Require applicant acknowledgement</label><label class="field">Closing line<input id="closing"></label></section>
-<section class="card"><div class="tag">FORM STRUCTURE</div><h2>Sections & Questions</h2><div class="notice">Core question wording stays locked. You can Show/Hide it, make it Required/Optional, and add custom questions.</div><div id="sections"></div></section>
-<div class="actions"><button id="save" class="btn" type="button">Save Form</button></div><div id="status" class="status"></div>
+:root{
+  color-scheme:dark;--bg:#03050e;--panel:#081022;--panel2:#0b142c;--line:rgba(127,155,255,.18);
+  --c:#59e4ff;--v:#9b7cff;--m:#aab4d0;--good:#78efb9;--warn:#ffd56a;--bad:#ff8da8
+}
+*{box-sizing:border-box}html,body{max-width:100%;overflow-x:hidden}
+body{margin:0;min-height:100dvh;background:
+ radial-gradient(circle at 9% 0,rgba(89,228,255,.08),transparent 30%),
+ radial-gradient(circle at 94% 4%,rgba(144,120,255,.14),transparent 34%),var(--bg);
+ color:#fff;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.shell{width:min(940px,100%);margin:auto;padding:20px 14px 90px}
+.top{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:14px}
+.brand small,.tag{display:block;color:#8fefff;font-size:10px;letter-spacing:.16em;font-weight:950}
+.brand h1{margin:5px 0;font-size:clamp(1.85rem,7vw,3rem)}
+.brand p{margin:4px 0;color:var(--m);font-size:13px;line-height:1.45}
+.btn{border:1px solid rgba(89,228,255,.34);border-radius:13px;min-height:44px;padding:9px 13px;
+ background:linear-gradient(135deg,rgba(25,76,112,.78),rgba(36,30,97,.88));color:#fff;text-decoration:none;font-weight:900}
+.btn.secondary{background:rgba(255,255,255,.045)}
+.btn.danger{border-color:rgba(255,90,120,.34);background:rgba(105,27,52,.45)}
+.btn.good{border-color:rgba(120,239,185,.35);background:rgba(30,112,82,.34)}
+.btn:disabled{opacity:.42;cursor:not-allowed}
+.card{margin-top:13px;padding:17px;border:1px solid var(--line);border-radius:22px;
+ background:linear-gradient(145deg,rgba(10,19,43,.95),rgba(5,10,25,.98))}
+.card h2,.card h3{margin:5px 0 8px}.muted{color:var(--m);line-height:1.45}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.actions .btn{flex:1 1 150px;text-align:center}
+.status{min-height:20px;margin-top:11px;color:#8ef0ff;font-size:12px;font-weight:800;white-space:pre-wrap}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field{display:grid;gap:6px;margin-top:10px;color:#bec8dd;font-size:12px;font-weight:850}
+.field input,.field select,.field textarea{width:100%;min-width:0;border-radius:12px;border:1px solid rgba(255,255,255,.13);
+ background:#070d20;color:#fff;padding:11px;font-size:16px}
+.field textarea{min-height:92px;resize:vertical}
+.toggle{display:flex;align-items:center;gap:8px;color:#dce4f5;font-size:12px;font-weight:850}
+.toggle input{width:20px;height:20px}
+.badge{display:inline-flex;align-items:center;gap:5px;border:1px solid rgba(89,228,255,.22);border-radius:999px;
+ padding:5px 8px;color:#bcefff;font-size:9px;font-weight:950;letter-spacing:.05em}
+.badge.active{color:#a3ffd4;border-color:rgba(120,239,185,.35);background:rgba(120,239,185,.06)}
+.badge.locked{color:#ffe3a2;border-color:rgba(255,213,106,.32);background:rgba(255,213,106,.06)}
+.library{display:grid;gap:12px}
+.formCard{border:1px solid rgba(137,163,255,.2);border-radius:19px;background:#08122a;padding:15px}
+.formHead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.formHead h3{margin:5px 0 4px}.formMeta{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.choiceGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.choiceCard{border:1px solid rgba(89,228,255,.24);border-radius:18px;padding:15px;background:
+ linear-gradient(145deg,rgba(12,31,55,.9),rgba(24,17,58,.76));color:#fff;text-align:left;min-height:145px}
+.choiceCard h3{margin:7px 0}.choiceCard p{margin:0;color:#b7c1d8;font-size:12px;line-height:1.45}
+.notice{padding:11px;border-radius:14px;border:1px solid rgba(89,228,255,.17);background:rgba(89,228,255,.045);
+ color:#c9d5ec;line-height:1.45;font-size:12px}
+.lockNotice{border-color:rgba(255,213,106,.25);background:rgba(255,213,106,.055);color:#ffe7aa}
+.section{margin-top:12px;padding:13px;border-radius:17px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.025)}
+.sectionHead,.qHead,.eventHead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.sectionHead b{font-size:15px}.q,.event{margin-top:9px;padding:11px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:#081127}
+.qHead b,.eventHead b{font-size:13px}.core{font-size:9px;color:#9fefff;border:1px solid rgba(89,228,255,.18);padding:4px 7px;border-radius:999px}
+.system{color:#ffd98b;border-color:rgba(255,213,106,.24)}
+.eventCatalog{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.eventPick{min-height:42px;border:1px solid rgba(89,228,255,.2);border-radius:12px;background:#09162f;color:#dfeaff;padding:8px 10px;text-align:left}
+.eventPick small{display:block;color:#8ea0c4;margin-top:2px}.eventPick[disabled]{opacity:.38}
+.sourceNote{font-size:10px;color:#8491ad;margin-top:7px}
+.hidden{display:none!important}
+
+/* Preview */
+.preview{position:fixed;inset:0;z-index:50000;display:none;overflow:auto;background:rgba(0,0,0,.84);padding:16px}
+.preview.open{display:block}.previewShell{width:min(760px,100%);margin:0 auto 40px}
+.previewTop{display:flex;justify-content:space-between;gap:10px;align-items:center;position:sticky;top:0;z-index:2;
+ padding:10px 0;background:linear-gradient(#03050ef5,#03050edc,transparent)}
+.previewCard{margin-top:12px;padding:17px;border:1px solid rgba(255,255,255,.12);border-radius:20px;background:#081022}
+.previewCard h2,.previewCard h3{margin:0 0 8px}.previewQuestion{margin-top:9px;padding:11px;border-radius:12px;background:#07152d;border:1px solid rgba(255,255,255,.08)}
+.previewQuestion small{display:block;color:#8ea0c4;margin-top:4px}
+.previewFake{margin-top:7px;min-height:41px;border:1px solid rgba(255,255,255,.14);border-radius:10px;background:#050b18;color:#6f7b95;padding:10px}
+.previewCheck{display:flex;gap:8px;align-items:center;color:#aebbd4;margin-top:8px}
+.previewCheck:before{content:"□";font-size:20px;color:#79eaff}
+.previewHero{text-align:center;padding:18px}
+.previewHero h1{margin:5px 0;font-size:clamp(1.9rem,7vw,2.8rem)}
+.previewPhilosophy{padding:12px;border-radius:14px;background:rgba(145,120,255,.08);border:1px solid rgba(145,120,255,.24);text-align:center;font-weight:850}
+.previewEvent{padding:10px 0;border-top:1px solid rgba(255,255,255,.08)}.previewEvent:first-child{border-top:0}
+@media(max-width:650px){.grid,.choiceGrid,.eventCatalog{grid-template-columns:1fr}.formHead,.sectionHead{align-items:flex-start}.top{align-items:flex-start}}
+</style>
+</head>
+<body>
+<main class="shell">
+<div class="top">
+  <div class="brand">
+    <small>TRANSFER • FORM STUDIO</small>
+    <h1 id="pageTitle">Transfer Forms</h1>
+    <p id="subtitle">Loading your workspace form library…</p>
+  </div>
+  <a class="btn secondary" id="backForms" href="forms-center.html?section=transfer">‹ Forms</a>
+</div>
+
+<section id="libraryView">
+  <div class="card">
+    <div class="tag">NEXA DEFAULT</div>
+    <h2>Transfer Form Library</h2>
+    <p class="muted">Every Transfer Workspace receives a protected NEXA Template. Customize the State-specific details, preview it, use it as the active form, or create a separate form.</p>
+    <div class="actions">
+      <a class="btn" id="openActive" href="#">View Active Form</a>
+      <button class="btn secondary" id="newTemplateCopy" type="button">+ From NEXA Template</button>
+      <button class="btn secondary" id="newScratch" type="button">+ From Scratch</button>
+    </div>
+  </div>
+  <div id="library" class="library"></div>
+  <div id="libraryStatus" class="status"></div>
+</section>
+
+<section id="builderView" class="hidden">
+  <div id="modeNotice" class="notice lockNotice"></div>
+  <section class="card" id="identityCard">
+    <div class="tag">FORM IDENTITY</div><h2 id="identityTitle">Form Name</h2>
+    <label class="field">Name<input id="formName" maxlength="80"></label>
+  </section>
+
+  <section class="card">
+    <div class="tag">PROGRESSION ERA</div><h2>State Progression Era</h2>
+    <label class="field">Progression Era
+      <select id="era">
+        <option value="early_mid">Early / Mid Progression</option>
+        <option value="advanced">Advanced Progression</option>
+        <option value="late_game">Late Game / Advanced</option>
+      </select>
+    </label>
+    <p class="sourceNote">The era controls the NEXA event-selection preset and progression choices. Your in-game calendar remains the final source for actual event availability.</p>
+  </section>
+
+  <section class="card">
+    <div class="tag">ABOUT STATE</div>
+    <div class="sectionHead"><div><h2>About State</h2><p class="muted">This text belongs to the workspace and can be personalized.</p></div>
+      <label class="toggle"><input id="aboutShow" type="checkbox"> Show</label>
+    </div>
+    <label class="field">State introduction<textarea id="aboutText"></textarea></label>
+    <label class="field">Philosophy / message<textarea id="philosophy"></textarea></label>
+  </section>
+
+  <section class="card">
+    <div class="tag">MAJOR EVENTS</div>
+    <div class="sectionHead"><div><h2>How We Run Major Events</h2><p class="muted">Select the events this State actually uses.</p></div>
+      <label class="toggle"><input id="majorShow" type="checkbox"> Show</label>
+    </div>
+    <div id="eventCatalog" class="eventCatalog"></div>
+    <div id="events"></div>
+    <label class="toggle" style="margin-top:13px"><input id="ack" type="checkbox"> Require applicant acknowledgement</label>
+    <label class="field">Closing line<input id="closing"></label>
+  </section>
+
+  <section class="card">
+    <div class="tag">FORM STRUCTURE</div><h2>Sections & Questions</h2>
+    <div id="questionNotice" class="notice"></div>
+    <div id="sections"></div>
+  </section>
+
+  <div class="actions">
+    <button id="previewBtn" class="btn secondary" type="button">Preview Form</button>
+    <button id="save" class="btn" type="button">Save Form</button>
+    <button id="cancelBuilder" class="btn secondary" type="button">Back to Library</button>
+  </div>
+  <div id="status" class="status"></div>
+</section>
 </main>
+
+<div id="preview" class="preview">
+ <div class="previewShell">
+   <div class="previewTop"><b>FORM PREVIEW</b><button id="closePreview" class="btn secondary" type="button">Close</button></div>
+   <div id="previewBody"></div>
+ </div>
+</div>
+
 <script>
 (()=>{'use strict';
 const SB=window.supabase.createClient('https://dfxcxboxrkfmrnsgpyin.supabase.co','sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-');
-const $=id=>document.getElementById(id),q=new URLSearchParams(location.search),eventId=q.get('event')||'',templateId=q.get('template')||'',isNew=q.get('new')==='1'||!templateId;
+const $=id=>document.getElementById(id),q=new URLSearchParams(location.search);
+const eventId=q.get('event')||'',templateId=q.get('template')||'',mode=q.get('mode')||'',source=q.get('source')||'';
+const explicitNew=q.get('new')==='1';
 const token=localStorage.getItem('nexa_transfer_staff_token')||sessionStorage.getItem('nexa_transfer_staff_token')||'';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clone=x=>structuredClone(x||{});
+
 const ERA={
- early_mid:{key:'early_mid',label:'Early / Mid Progression',furnace_options:[{value:'fc1',label:'Fire Crystal 1 (FC1)'},{value:'fc2',label:'Fire Crystal 2 (FC2)'},{value:'fc3',label:'Fire Crystal 3 (FC3)'},{value:'fc4',label:'Fire Crystal 4 (FC4)'},{value:'fc5',label:'Fire Crystal 5 (FC5)'}],troop_options:[{value:'t9_or_below',label:'T9 or below'},{value:'t10',label:'T10'}],labyrinth_available:false},
- advanced:{key:'advanced',label:'Advanced Progression',furnace_options:[{value:'fc5',label:'Fire Crystal 5 (FC5)'},{value:'fc6',label:'Fire Crystal 6 (FC6)'},{value:'fc7',label:'Fire Crystal 7 (FC7)'},{value:'fc8',label:'Fire Crystal 8 (FC8)'}],troop_options:[{value:'t10_or_below',label:'T10 or below'},{value:'t11_helios',label:'T11 Helios'}],labyrinth_available:true},
- late_game:{key:'late_game',label:'Late Game / Advanced',furnace_options:[{value:'fc8',label:'Fire Crystal 8 (FC8)'},{value:'fc9',label:'Fire Crystal 9 (FC9)'},{value:'fc10',label:'Fire Crystal 10 (FC10)'}],troop_options:[{value:'t10_or_below',label:'T10 or below'},{value:'t11_helios',label:'T11 Helios'},{value:'t12_exalted',label:'T12 Exalted'}],labyrinth_available:true}
+ early_mid:{key:'early_mid',label:'Early / Mid Progression',furnace_options:[
+  {value:'fc1',label:'Fire Crystal 1 (FC1)'},{value:'fc2',label:'Fire Crystal 2 (FC2)'},{value:'fc3',label:'Fire Crystal 3 (FC3)'},{value:'fc4',label:'Fire Crystal 4 (FC4)'},{value:'fc5',label:'Fire Crystal 5 (FC5)'}],
+  troop_options:[{value:'t9_or_below',label:'T9 or below'},{value:'t10',label:'T10'}],labyrinth_available:false},
+ advanced:{key:'advanced',label:'Advanced Progression',furnace_options:[
+  {value:'fc5',label:'Fire Crystal 5 (FC5)'},{value:'fc6',label:'Fire Crystal 6 (FC6)'},{value:'fc7',label:'Fire Crystal 7 (FC7)'},{value:'fc8',label:'Fire Crystal 8 (FC8)'}],
+  troop_options:[{value:'t10_or_below',label:'T10 or below'},{value:'t11_helios',label:'T11 Helios'}],labyrinth_available:true},
+ late_game:{key:'late_game',label:'Late Game / Advanced',furnace_options:[
+  {value:'fc8',label:'Fire Crystal 8 (FC8)'},{value:'fc9',label:'Fire Crystal 9 (FC9)'},{value:'fc10',label:'Fire Crystal 10 (FC10)'}],
+  troop_options:[{value:'t10_or_below',label:'T10 or below'},{value:'t11_helios',label:'T11 Helios'},{value:'t12_exalted',label:'T12 Exalted'}],labyrinth_available:true}
 };
-const SECTIONS=[['applicant','Applicant & Referral'],['player','Player Information'],['strength','Account Strength'],['placement','Placement & Availability'],['group','Group Transfer'],['additional','Additional Information'],['final','Final Confirmation']];
-const CORE={applicant:[['completed_by','Who is completing this form?',true],['referral','Were you referred by someone in this state?',false]],player:[['ign','In-game name',true],['player_id','Player ID',true],['current_state','Current State',true],['current_alliance','Current Alliance',false],['discord','Discord username',false]],strength:[['furnace','Furnace Level',true],['power','Current Total Power',true],['account_progression','Which best describes your account?',true],['labyrinth','Labyrinth Score',false],['advanced_troops','Advanced Troops',false],['passes','Transfer Passes',false],['reduce_power','If needed to meet the Ordinary Power Cap, would you be willing to reduce troop power?',false]],placement:[['alliance_preference','Alliance preference',false],['preferred_utc_ranges','Preferred UTC time range(s)',false],['discord_vc','Discord Voice',false]],group:[['group_toggle','Are you transferring with a group?',false]],additional:[['coordinates','Current city coordinates',false],['additional_info','Anything else you want Transfer Staff to know?',false]],final:[['confirm_info','I confirm the information I provided is accurate.',true],['confirm_no_guarantee','I understand submitting an application does not guarantee acceptance or placement in a specific alliance.',true],['confirm_route','I understand Transfer Staff may determine the appropriate transfer route for my account.',true]]};
-let settings=null,currentTemplate=null;
-function normalize(raw){const s=structuredClone(raw||{});s.sections=s.sections||{};s.questions=s.questions||{};s.questions.custom=Array.isArray(s.questions.custom)?s.questions.custom:[];for(const[k]of SECTIONS)s.sections[k]={show:true,...(s.sections[k]||{})};for(const [sec,defs]of Object.entries(CORE))for(const[key,label,req]of defs)s.questions[key]={section:sec,label,show:true,required:req,...(s.questions[key]||{}),section:sec,label};s.about_state={show:true,text:'',philosophy:'',...(s.about_state||{})};s.major_events={show:true,acknowledgement:true,closing:'In major coordinated events, we play for {state} first.',items:[],...(s.major_events||{})};s.major_events.items=Array.isArray(s.major_events.items)?s.major_events.items:[];s.era=ERA[s.era?.key]||s.era||ERA.late_game;return s}
-function render(){$('era').value=settings.era?.key||'late_game';$('aboutShow').checked=settings.about_state.show!==false;$('aboutText').value=settings.about_state.text||'';$('philosophy').value=settings.about_state.philosophy||'';$('majorShow').checked=settings.major_events.show!==false;$('ack').checked=settings.major_events.acknowledgement===true;$('closing').value=settings.major_events.closing||'';renderEvents();renderSections()}
-function renderEvents(){const items=settings.major_events.items;$('events').innerHTML=items.length?items.map((e,i)=>`<div class="event" data-e="${i}"><div class="eventHead"><label class="toggle"><input data-show type="checkbox" ${e.show!==false?'checked':''}> <b>${esc(e.name||'Major Event')}</b></label><button class="btn danger" data-del type="button">Delete</button></div><label class="field">Event name<input data-name value="${esc(e.name||'')}"></label><label class="field">Description<textarea data-desc>${esc(e.description||'')}</textarea></label></div>`).join(''):'<div class="muted" style="margin-top:10px">No events yet.</div>';document.querySelectorAll('[data-e]').forEach(card=>{const i=+card.dataset.e;card.querySelector('[data-show]').onchange=e=>settings.major_events.items[i].show=e.target.checked;card.querySelector('[data-name]').oninput=e=>settings.major_events.items[i].name=e.target.value;card.querySelector('[data-desc]').oninput=e=>settings.major_events.items[i].description=e.target.value;card.querySelector('[data-del]').onclick=()=>{settings.major_events.items.splice(i,1);renderEvents()}})}
-function renderSections(){const custom=settings.questions.custom;$('sections').innerHTML=SECTIONS.map(([key,name])=>{const core=(CORE[key]||[]).map(([qk,label])=>{const c=settings.questions[qk];return `<div class="q" data-q="${qk}"><div class="qHead"><div><b>${esc(label)}</b><div class="muted" style="font-size:11px">Core wording locked</div></div><span class="core">CORE</span></div><div class="grid" style="margin-top:9px"><label class="toggle"><input data-qs type="checkbox" ${c.show!==false?'checked':''}> Show</label><label class="toggle"><input data-qr type="checkbox" ${c.required===true?'checked':''}> Required</label></div></div>`}).join('');const customs=custom.map((c,i)=>c.section===key?`<div class="q" data-c="${i}"><div class="qHead"><b>Custom Question</b><button class="btn danger" data-cdel type="button">Delete</button></div><label class="field">Question<input data-ct value="${esc(c.text||'')}"></label><div class="grid"><label class="field">Type<select data-cy><option value="text" ${c.type==='text'?'selected':''}>Short Text</option><option value="textarea" ${c.type==='textarea'?'selected':''}>Long Text</option><option value="yes_no" ${c.type==='yes_no'?'selected':''}>Yes / No</option><option value="dropdown" ${c.type==='dropdown'?'selected':''}>Dropdown</option></select></label><label class="toggle" style="margin-top:14px"><input data-cr type="checkbox" ${c.required?'checked':''}> Required</label></div><label class="field">Dropdown options — one per line<textarea data-co>${esc((c.options||[]).join('\n'))}</textarea></label></div>`:'').join('');return `<div class="section"><div class="sectionHead"><b>${esc(name)}</b><label class="toggle"><input data-sec="${key}" type="checkbox" ${settings.sections[key].show!==false?'checked':''}> Show section</label></div>${core}${customs}<div class="actions"><button class="btn secondary" data-add="${key}" type="button">+ Add Question</button></div></div>`}).join('');document.querySelectorAll('[data-sec]').forEach(x=>x.onchange=()=>settings.sections[x.dataset.sec].show=x.checked);document.querySelectorAll('[data-q]').forEach(c=>{const q=settings.questions[c.dataset.q];c.querySelector('[data-qs]').onchange=e=>q.show=e.target.checked;c.querySelector('[data-qr]').onchange=e=>q.required=e.target.checked});document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{settings.questions.custom.push({section:b.dataset.add,text:'',type:'text',required:false,options:[]});renderSections()});document.querySelectorAll('[data-c]').forEach(c=>{const i=+c.dataset.c,q=settings.questions.custom[i];c.querySelector('[data-ct]').oninput=e=>q.text=e.target.value;c.querySelector('[data-cy]').onchange=e=>q.type=e.target.value;c.querySelector('[data-cr]').onchange=e=>q.required=e.target.checked;c.querySelector('[data-co]').oninput=e=>q.options=e.target.value.split('\n').map(x=>x.trim()).filter(Boolean);c.querySelector('[data-cdel]').onclick=()=>{settings.questions.custom.splice(i,1);renderSections()}})}
-$('addEvent').onclick=()=>{settings.major_events.items.push({name:'',description:'',show:true});renderEvents()};
-async function load(){if(!eventId){$('status').textContent='Missing Transfer event.';return}const r=await SB.rpc('transfer_form_template_get',{p_event_id:eventId,p_template_id:templateId||null,p_token:token||null});if(r.error||r.data?.ok!==true){$('status').textContent=r.error?.message||r.data?.error||'Unable to load form.';return}currentTemplate=r.data.template;if(currentTemplate.is_primary&&!isNew){$('status').textContent='Primary Form is protected and cannot be edited.';$('save').disabled=true;return}settings=normalize(currentTemplate.settings);if(isNew){$('formName').value='';$('title').textContent='Create New Form';$('subtitle').textContent='Starting from protected Primary Form'}else{$('formName').value=currentTemplate.name||'';$('title').textContent='Edit Custom Form';$('subtitle').textContent=currentTemplate.name||'Custom Form'}render()}
-$('save').onclick=async()=>{const name=$('formName').value.trim();if(!name){$('status').textContent='Enter a Form Name.';return}$('save').disabled=true;$('status').textContent='Saving…';settings.era=ERA[$('era').value]||ERA.late_game;settings.about_state={show:$('aboutShow').checked,text:$('aboutText').value.trim(),philosophy:$('philosophy').value.trim()};settings.major_events.show=$('majorShow').checked;settings.major_events.acknowledgement=$('ack').checked;settings.major_events.closing=$('closing').value.trim();const rpc=isNew?'transfer_form_template_create':'transfer_form_template_update';const args=isNew?{p_event_id:eventId,p_token:token||null,p_name:name,p_settings:settings}:{p_event_id:eventId,p_template_id:currentTemplate.id,p_token:token||null,p_name:name,p_settings:settings};const r=await SB.rpc(rpc,args);$('save').disabled=false;if(r.error||r.data?.ok!==true){const code=r.data?.error||r.error?.message||'save_failed';$('status').textContent=code==='form_limit_reached'?'Maximum of 3 forms reached. Delete a Custom Form first.':code==='duplicate_name'?'A form with that name already exists.':code;return}$('status').textContent='Saved ✓';window.parent?.postMessage({type:'nexa-transfer-form-saved'},location.origin);if(isNew&&r.data?.template_id){currentTemplate={id:r.data.template_id,name,is_primary:false};history.replaceState(null,'',`transfer-form-custom.html?event=${encodeURIComponent(eventId)}&template=${encodeURIComponent(r.data.template_id)}&workspace=1`);$('title').textContent='Edit Custom Form';$('subtitle').textContent=name}}
-load();
+
+const SECTIONS=[
+ ['applicant','Applicant & Referral'],
+ ['player','Player Information'],
+ ['strength','Account Strength'],
+ ['placement','Placement & Availability'],
+ ['group','Group Transfer'],
+ ['additional','Additional Information'],
+ ['final','Final Confirmation']
+];
+
+const CORE={
+ applicant:[['completed_by','Who is completing this form?',true],['referral','Were you referred by someone in this state?',false]],
+ player:[['ign','In-game name',true],['player_id','Player ID',true],['current_state','Current State',true],['current_alliance','Current Alliance',false],['discord','Discord username',false]],
+ strength:[['furnace','Furnace Level',true],['power','Current Total Power',true],['account_progression','Which best describes your account?',true],['labyrinth','Labyrinth Score',false],['advanced_troops','Advanced Troops',false],['passes','Transfer Passes',false],['reduce_power','If needed to meet the Ordinary Power Cap, would you be willing to reduce troop power?',false]],
+ placement:[['alliance_preference','Alliance preference',false],['preferred_utc_ranges','Preferred UTC time range(s)',false],['discord_vc','Discord Voice',false]],
+ group:[['group_toggle','Are you transferring with a group?',false]],
+ additional:[['coordinates','Current city coordinates',false],['additional_info','Anything else you want Transfer Staff to know?',false]],
+ final:[['confirm_info','I confirm the information I provided is accurate.',true],['confirm_no_guarantee','I understand submitting an application does not guarantee acceptance or placement in a specific alliance.',true],['confirm_route','I understand Transfer Staff may determine the appropriate transfer route for my account.',true]]
+};
+const SYSTEM_REQUIRED=new Set(['ign','player_id','current_state','power']);
+
+const EVENT_CATALOG=[
+ {key:'bear',name:'Bear Trap',eras:['early_mid','advanced','late_game'],description:'Alliance Bear Trap scheduling and coordination.'},
+ {key:'crazy_joe',name:'Crazy Joe',eras:['early_mid','advanced','late_game'],description:'Alliance defense-wave coordination and participation expectations.'},
+ {key:'foundry',name:'Foundry Battle',eras:['early_mid','advanced','late_game'],description:'Foundry participation, team organization and timing expectations.'},
+ {key:'canyon',name:'Canyon Clash',eras:['early_mid','advanced','late_game'],description:'Canyon participation, teams and schedule coordination.'},
+ {key:'brothers',name:'Brothers in Arms',eras:['early_mid','advanced','late_game'],description:'State rules and expectations for Brothers in Arms / Kill Event.'},
+ {key:'sunfire',name:'Sunfire Castle & Presidency',eras:['early_mid','advanced','late_game'],description:'State-level Sunfire and Presidency organization.'},
+ {key:'svs',name:'SvS — Prep & Battle',eras:['early_mid','advanced','late_game'],description:'State-wide coordination from Preparation through Battle.'},
+ {key:'tal',name:'Tundra Arms League (TAL)',eras:['advanced','late_game'],description:'State-level TAL team building, brackets and participation.'},
+ {key:'fdt',name:'Frostdragon Tyrant (FDT)',eras:['late_game'],description:'State / zone Frostdragon roster and battlefield coordination.'}
+];
+
+let settings=null,currentTemplate=null,libraryState=null,editorKind='';
+
+async function rpc(name,args){
+ const r=await SB.rpc(name,args);
+ if(r.error)throw Error(r.error.message);
+ return r.data;
+}
+function go(params){
+ const u=new URL('transfer-form-custom.html',location.href);
+ u.search='';
+ for(const [k,v] of Object.entries(params))if(v!==null&&v!==undefined&&v!=='')u.searchParams.set(k,String(v));
+ location.href=u.pathname+u.search;
+}
+function normalize(raw){
+ const s=clone(raw||{});
+ s.sections=s.sections||{};s.questions=s.questions||{};
+ s.questions.custom=Array.isArray(s.questions.custom)?s.questions.custom:[];
+ for(const [k] of SECTIONS)s.sections[k]={show:true,...(s.sections[k]||{})};
+ for(const [sec,defs] of Object.entries(CORE))for(const [key,label,req] of defs){
+   s.questions[key]={section:sec,label,show:true,required:req,...(s.questions[key]||{}),section:sec,label};
+ }
+ for(const key of SYSTEM_REQUIRED){
+   if(s.questions[key]){s.questions[key].show=true;s.questions[key].required=true}
+ }
+ s.about_state={show:true,text:'',philosophy:'',...(s.about_state||{})};
+ s.major_events={show:true,acknowledgement:true,closing:'In major coordinated events, we play for {state} first.',items:[],...(s.major_events||{})};
+ s.major_events.items=Array.isArray(s.major_events.items)?s.major_events.items:[];
+ const eraKey=s.era?.key&&ERA[s.era.key]?s.era.key:(typeof s.era==='string'&&ERA[s.era]?s.era:'late_game');
+ s.era=ERA[eraKey];
+ s.template_version=5;
+ return s;
+}
+function scratchSettings(){
+ const s=normalize({era:ERA.late_game,about_state:{show:true,text:'',philosophy:''},major_events:{show:false,acknowledgement:false,closing:'',items:[]}});
+ for(const [k] of SECTIONS)s.sections[k].show=['player','strength','additional'].includes(k);
+ for(const [sec,defs] of Object.entries(CORE))for(const [key] of defs){
+   s.questions[key].show=SYSTEM_REQUIRED.has(key);
+   s.questions[key].required=SYSTEM_REQUIRED.has(key);
+ }
+ s.questions.custom=[];
+ s.form_origin='scratch';
+ return s;
+}
+function collect(){
+ settings.era=ERA[$('era').value]||ERA.late_game;
+ settings.about_state={show:$('aboutShow').checked,text:$('aboutText').value.trim(),philosophy:$('philosophy').value.trim()};
+ settings.major_events.show=$('majorShow').checked;
+ settings.major_events.acknowledgement=$('ack').checked;
+ settings.major_events.closing=$('closing').value.trim();
+ settings.template_version=5;
+ return settings;
+}
+function renderEventCatalog(){
+ const era=$('era').value||settings.era?.key||'late_game';
+ $('eventCatalog').innerHTML=EVENT_CATALOG.map(ev=>{
+  const allowed=ev.eras.includes(era),exists=settings.major_events.items.some(x=>String(x.key||'')===ev.key||String(x.name||'').replace(/[^\w]/g,'').toLowerCase()===ev.name.replace(/[^\w]/g,'').toLowerCase());
+  return `<button class="eventPick" data-event-pick="${ev.key}" type="button" ${!allowed||exists?'disabled':''}>
+    <b>${esc(ev.name)}</b><small>${allowed?(exists?'Already added':'Add to this form'):'Not in this NEXA era preset'}</small></button>`
+ }).join('');
+ document.querySelectorAll('[data-event-pick]').forEach(b=>b.onclick=()=>{
+   const ev=EVENT_CATALOG.find(x=>x.key===b.dataset.eventPick);if(!ev)return;
+   settings.major_events.items.push({key:ev.key,name:ev.name,show:true,description:ev.description});
+   settings.major_events.show=true;$('majorShow').checked=true;renderEvents();renderEventCatalog()
+ });
+}
+function renderEvents(){
+ const primary=editorKind==='primary';
+ const items=settings.major_events.items||[];
+ $('events').innerHTML=items.length?items.map((e,i)=>`<div class="event" data-e="${i}">
+  <div class="eventHead">
+    <label class="toggle"><input data-show type="checkbox" ${e.show!==false?'checked':''}> <b>${esc(e.name||'Major Event')}</b></label>
+    <button class="btn danger" data-del type="button">Remove</button>
+  </div>
+  <label class="field">Description<textarea data-desc ${primary?'disabled':''}>${esc(e.description||'')}</textarea></label>
+ </div>`).join(''):'<div class="muted" style="margin-top:10px">No major events selected.</div>';
+ document.querySelectorAll('[data-e]').forEach(card=>{
+   const i=Number(card.dataset.e),row=settings.major_events.items[i];
+   card.querySelector('[data-show]').onchange=e=>row.show=e.target.checked;
+   card.querySelector('[data-desc]').oninput=e=>row.description=e.target.value;
+   card.querySelector('[data-del]').onclick=()=>{settings.major_events.items.splice(i,1);renderEvents();renderEventCatalog()}
+ });
+}
+function renderSections(){
+ const allowCustom=editorKind!=='primary';
+ const custom=settings.questions.custom||[];
+ $('sections').innerHTML=SECTIONS.map(([key,name])=>{
+   const containsSystem=(CORE[key]||[]).some(([qk])=>SYSTEM_REQUIRED.has(qk));
+   if(containsSystem)settings.sections[key].show=true;
+   const core=(CORE[key]||[]).map(([qk,label])=>{
+    const c=settings.questions[qk],sys=SYSTEM_REQUIRED.has(qk);
+    return `<div class="q" data-q="${qk}">
+      <div class="qHead"><div><b>${esc(label)}</b><div class="muted" style="font-size:10px">${sys?'System-required Transfer field':'Core wording locked'}</div></div>
+      <span class="core ${sys?'system':''}">${sys?'SYSTEM':'CORE'}</span></div>
+      <div class="grid" style="margin-top:9px">
+       <label class="toggle"><input data-qs type="checkbox" ${c.show!==false?'checked':''} ${sys?'disabled':''}> Show</label>
+       <label class="toggle"><input data-qr type="checkbox" ${c.required===true?'checked':''} ${sys?'disabled':''}> Required</label>
+      </div>
+    </div>`
+   }).join('');
+   const customs=custom.map((c,i)=>c.section===key?`<div class="q" data-c="${i}">
+    <div class="qHead"><b>${esc(c.text||'Custom Question')}</b><button class="btn danger" data-cdel type="button">Delete</button></div>
+    <label class="field">Question<input data-ct value="${esc(c.text||'')}"></label>
+    <div class="grid">
+      <label class="field">Type<select data-cy>
+       <option value="text" ${c.type==='text'?'selected':''}>Short Text</option>
+       <option value="textarea" ${c.type==='textarea'?'selected':''}>Long Text</option>
+       <option value="yes_no" ${c.type==='yes_no'?'selected':''}>Yes / No</option>
+       <option value="dropdown" ${c.type==='dropdown'?'selected':''}>Dropdown</option>
+      </select></label>
+      <label class="toggle" style="margin-top:15px"><input data-cr type="checkbox" ${c.required?'checked':''}> Required</label>
+    </div>
+    <label class="field ${c.type==='dropdown'?'':'hidden'}" data-options-wrap>Dropdown options — one per line<textarea data-co>${esc((c.options||[]).join('\n'))}</textarea></label>
+   </div>`:'').join('');
+   return `<div class="section">
+    <div class="sectionHead"><b>${esc(name)}</b><label class="toggle"><input data-sec="${key}" type="checkbox" ${settings.sections[key].show!==false?'checked':''} ${containsSystem?'disabled':''}> Show section</label></div>
+    ${core}${customs}
+    ${allowCustom?`<div class="actions"><button class="btn secondary" data-add="${key}" type="button">+ Add Custom Question</button></div>`:''}
+   </div>`
+ }).join('');
+ document.querySelectorAll('[data-sec]').forEach(x=>x.onchange=()=>settings.sections[x.dataset.sec].show=x.checked);
+ document.querySelectorAll('[data-q]').forEach(c=>{
+  const row=settings.questions[c.dataset.q];
+  c.querySelector('[data-qs]').onchange=e=>row.show=e.target.checked;
+  c.querySelector('[data-qr]').onchange=e=>row.required=e.target.checked
+ });
+ document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{
+  settings.questions.custom.push({section:b.dataset.add,text:'',type:'text',required:false,options:[]});renderSections()
+ });
+ document.querySelectorAll('[data-c]').forEach(c=>{
+  const i=Number(c.dataset.c),row=settings.questions.custom[i];
+  c.querySelector('[data-ct]').oninput=e=>row.text=e.target.value;
+  c.querySelector('[data-cy]').onchange=e=>{row.type=e.target.value;renderSections()};
+  c.querySelector('[data-cr]').onchange=e=>row.required=e.target.checked;
+  c.querySelector('[data-co]').oninput=e=>row.options=e.target.value.split('\n').map(x=>x.trim()).filter(Boolean);
+  c.querySelector('[data-cdel]').onclick=()=>{settings.questions.custom.splice(i,1);renderSections()}
+ });
+}
+function renderEditor(){
+ $('libraryView').classList.add('hidden');$('builderView').classList.remove('hidden');
+ $('era').value=settings.era?.key||'late_game';$('aboutShow').checked=settings.about_state.show!==false;
+ $('aboutText').value=settings.about_state.text||'';$('philosophy').value=settings.about_state.philosophy||'';
+ $('majorShow').checked=settings.major_events.show!==false;$('ack').checked=settings.major_events.acknowledgement===true;$('closing').value=settings.major_events.closing||'';
+ const primary=editorKind==='primary';
+ $('formName').disabled=primary;$('identityCard').classList.toggle('hidden',primary);
+ if(primary){
+   $('pageTitle').textContent='Customize NEXA Template';$('subtitle').textContent='Core wording is protected. Customize the State-specific presentation.';
+   $('modeNotice').innerHTML='<b>Protected NEXA Template</b><br>You can change the progression era, About State, major-event selection, section visibility, and whether non-system Core questions are shown or required. Core question wording stays locked.';
+   $('questionNotice').textContent='Core wording stays locked. System-required Transfer fields cannot be hidden. Other Core questions may be shown/hidden or required/optional.';
+   $('save').textContent='Save NEXA Template'
+ }else{
+   $('identityCard').classList.remove('hidden');$('formName').disabled=false;
+   $('pageTitle').textContent=currentTemplate?.id?'Edit Custom Form':(source==='scratch'?'Create Form From Scratch':'Create From NEXA Template');
+   $('subtitle').textContent=source==='scratch'?'Start with only the minimum system-required Transfer fields.':'Start from the NEXA structure and customize your own copy.';
+   $('modeNotice').innerHTML=source==='scratch'
+    ?'<b>From Scratch</b><br>NEXA keeps four system-required Transfer fields so applications can still be saved correctly: In-game Name, Player ID, Current State, and Current Total Power. Everything else is optional and customizable.'
+    :'<b>Custom Form</b><br>This is a separate form. The protected NEXA Template remains unchanged.';
+   $('questionNotice').textContent='Core wording remains locked for compatibility, but you can show/hide Core questions, make them required/optional, and add Custom Questions. The live Transfer form currently supports Short Text, Long Text, Yes/No, and Dropdown custom fields.';
+   $('save').textContent=currentTemplate?.id?'Save Changes':'Create Form'
+ }
+ renderEventCatalog();renderEvents();renderSections()
+}
+function fakeInput(type,options=[]){
+ if(type==='textarea')return'<div class="previewFake" style="min-height:70px">Long answer</div>';
+ if(type==='yes_no')return'<div class="previewFake">Select · Yes / No</div>';
+ if(type==='dropdown')return`<div class="previewFake">Select · ${esc((options||[])[0]||'Option')}</div>`;
+ return'<div class="previewFake">Answer</div>'
+}
+function preview(){
+ collect();
+ const st=libraryState?.state_number||'{state}',about=settings.about_state,major=settings.major_events||{};
+ let html=`<div class="previewCard previewHero"><div class="tag">TRANSFER APPLICATION</div><h1>State ${esc(st)} Transfer Application</h1><p class="muted">Preview only — nothing is submitted.</p></div>`;
+ if(about.show!==false){
+  html+=`<div class="previewCard"><h2>About State ${esc(st)}</h2><p class="muted">${esc(about.text||'No About State text yet.')}</p>${about.philosophy?`<div class="previewPhilosophy">${esc(about.philosophy)}</div>`:''}</div>`
+ }
+ const visibleEvents=(major.items||[]).filter(x=>x.show!==false);
+ if(major.show!==false&&visibleEvents.length){
+  html+=`<div class="previewCard"><h2>How We Run Major Events</h2>${visibleEvents.map(x=>`<div class="previewEvent"><h3>${esc(x.name)}</h3><p class="muted">${esc(x.description||'')}</p></div>`).join('')}${major.closing?`<p><b>${esc(major.closing.replaceAll('{state}',String(st)))}</b></p>`:''}</div>`
+ }
+ for(const [sec,name] of SECTIONS){
+  if(settings.sections?.[sec]?.show===false)continue;
+  const rows=[];
+  for(const [qk,label] of CORE[sec]||[]){
+    const c=settings.questions?.[qk];if(c?.show===false)continue;
+    rows.push(`<div class="previewQuestion"><b>${esc(label)}${c?.required?' *':''}</b><small>${SYSTEM_REQUIRED.has(qk)?'System required':'Core question'}</small>${fakeInput(qk==='additional_info'?'textarea':'text')}</div>`)
+  }
+  for(const c of settings.questions?.custom||[])if(c.section===sec){
+    rows.push(`<div class="previewQuestion"><b>${esc(c.text||'Custom Question')}${c.required?' *':''}</b><small>Custom · ${esc(c.type||'text')}</small>${fakeInput(c.type,c.options)}</div>`)
+  }
+  if(rows.length)html+=`<div class="previewCard"><div class="tag">${esc(name.toUpperCase())}</div><h2>${esc(name)}</h2>${rows.join('')}</div>`
+ }
+ $('previewBody').innerHTML=html;$('preview').classList.add('open')
+}
+async function renderLibrary(){
+ $('builderView').classList.add('hidden');$('libraryView').classList.remove('hidden');
+ $('pageTitle').textContent='Transfer Forms';$('subtitle').textContent='NEXA Template + your custom Transfer forms.';
+ if(!eventId){$('libraryStatus').textContent='Missing Transfer event.';return}
+ try{
+  libraryState=await rpc('transfer_form_template_list',{p_event_id:eventId,p_token:token||null});
+  if(!libraryState?.ok)throw Error(libraryState?.error||'Unable to load Transfer forms.');
+  $('openActive').href=`transfer-form-v2.html?direct=1&event=${encodeURIComponent(eventId)}`;
+  const rows=libraryState.templates||[];
+  $('library').innerHTML=rows.map(t=>`<article class="formCard" data-template="${t.id}">
+    <div class="formHead"><div><div class="tag">${t.is_primary?'NEXA TEMPLATE':'CUSTOM FORM'}</div><h3>${esc(t.is_primary?'NEXA Transfer Template':t.name)}</h3>
+      <p class="muted">${t.is_primary?'Protected Core template included with every Transfer Workspace.':'Independent editable form.'}</p></div>
+      <div class="formMeta">${t.is_primary?'<span class="badge locked">CORE LOCKED</span>':''}${t.is_active?'<span class="badge active">ACTIVE</span>':''}</div>
+    </div>
+    <div class="actions">
+      <button class="btn secondary" data-preview-template="${t.id}" type="button">View / Preview</button>
+      <button class="btn secondary" data-edit-template="${t.id}" type="button">${t.is_primary?'Customize':'Edit Form'}</button>
+      ${t.is_active?'<button class="btn good" type="button" disabled>Currently Active</button>':`<button class="btn good" data-activate-template="${t.id}" type="button">Use This Form</button>`}
+      ${t.is_primary?'':`<button class="btn danger" data-delete-template="${t.id}" type="button">Delete</button>`}
+    </div>
+  </article>`).join('')||'<div class="card"><p class="muted">No Transfer forms found.</p></div>';
+  document.querySelectorAll('[data-preview-template]').forEach(b=>b.onclick=()=>go({event:eventId,template:b.dataset.previewTemplate,mode:'preview'}));
+  document.querySelectorAll('[data-edit-template]').forEach(b=>b.onclick=()=>go({event:eventId,template:b.dataset.editTemplate}));
+  document.querySelectorAll('[data-activate-template]').forEach(b=>b.onclick=async()=>{
+    b.disabled=true;
+    try{const d=await rpc('transfer_form_template_activate',{p_event_id:eventId,p_template_id:b.dataset.activateTemplate,p_token:token||null});if(!d?.ok)throw Error(d?.error||'Unable to activate form.');await renderLibrary()}
+    catch(e){$('libraryStatus').textContent=e.message;b.disabled=false}
+  });
+  document.querySelectorAll('[data-delete-template]').forEach(b=>b.onclick=async()=>{
+    if(!confirm('Delete this custom form? This cannot be undone.'))return;
+    try{const d=await rpc('transfer_form_template_delete',{p_event_id:eventId,p_template_id:b.dataset.deleteTemplate,p_token:token||null});if(!d?.ok)throw Error(d?.error||'Unable to delete form.');await renderLibrary()}
+    catch(e){$('libraryStatus').textContent=e.message}
+  });
+ }catch(e){$('libraryStatus').textContent=e.message}
+}
+async function loadEditor(){
+ if(!eventId){$('status').textContent='Missing Transfer event.';return}
+ try{
+   libraryState=await rpc('transfer_form_template_list',{p_event_id:eventId,p_token:token||null});
+   if(!libraryState?.ok)throw Error(libraryState?.error||'Unable to load workspace.');
+   if(explicitNew){
+     const p=await rpc('transfer_form_template_get',{p_event_id:eventId,p_template_id:null,p_token:token||null});
+     if(!p?.ok)throw Error(p?.error||'Unable to load NEXA Template.');
+     currentTemplate=null;
+     editorKind='custom';
+     settings=source==='scratch'?scratchSettings():normalize(p.template.settings);
+     $('formName').value='';
+   }else{
+     const p=await rpc('transfer_form_template_get',{p_event_id:eventId,p_template_id:templateId||null,p_token:token||null});
+     if(!p?.ok)throw Error(p?.error||'Unable to load form.');
+     currentTemplate=p.template;
+     editorKind=currentTemplate.is_primary?'primary':'custom';
+     settings=normalize(currentTemplate.settings);
+     $('formName').value=currentTemplate.name||'';
+   }
+   if(mode==='preview'){renderEditor();preview();return}
+   renderEditor()
+ }catch(e){$('status').textContent=e.message}
+}
+$('newTemplateCopy').onclick=()=>go({event:eventId,new:1,source:'template'});
+$('newScratch').onclick=()=>go({event:eventId,new:1,source:'scratch'});
+$('cancelBuilder').onclick=()=>go({event:eventId,new:1});
+$('previewBtn').onclick=preview;$('closePreview').onclick=()=>$('preview').classList.remove('open');
+$('preview').onclick=e=>{if(e.target===$('preview'))$('preview').classList.remove('open')};
+$('era').onchange=()=>{settings.era=ERA[$('era').value]||ERA.late_game;renderEventCatalog()};
+$('save').onclick=async()=>{
+ try{
+  collect();$('save').disabled=true;$('status').textContent='Saving…';
+  if(editorKind==='primary'){
+    const d=await rpc('transfer_primary_form_customize',{p_event_id:eventId,p_token:token||null,p_settings:settings});
+    if(!d?.ok)throw Error(d?.error||'Unable to save NEXA Template.');
+    $('status').textContent='NEXA Template saved ✓';
+    setTimeout(()=>go({event:eventId,new:1}),450);
+    return
+  }
+  const name=$('formName').value.trim();if(!name)throw Error('Enter a Form Name.');
+  const rpcName=currentTemplate?.id?'transfer_form_template_update':'transfer_form_template_create';
+  const args=currentTemplate?.id
+    ?{p_event_id:eventId,p_template_id:currentTemplate.id,p_token:token||null,p_name:name,p_settings:settings}
+    :{p_event_id:eventId,p_token:token||null,p_name:name,p_settings:settings};
+  const d=await rpc(rpcName,args);
+  if(!d?.ok){
+    const code=d?.error||'save_failed';
+    if(code==='form_limit_reached')throw Error('Maximum of 3 Custom Forms reached. Delete a Custom Form first.');
+    if(code==='duplicate_name')throw Error('A form with that name already exists.');
+    throw Error(code.replaceAll('_',' '));
+  }
+  $('status').textContent='Saved ✓';
+  setTimeout(()=>go({event:eventId,new:1}),450)
+ }catch(e){$('status').textContent=e.message}
+ finally{$('save').disabled=false}
+};
+
+if(mode==='preview'||templateId||explicitNew&&source)loadEditor();
+else renderLibrary();
 })();
-</script></body></html>
+</script>
+</body>
+</html>

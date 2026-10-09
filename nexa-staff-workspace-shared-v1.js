@@ -1,4 +1,4 @@
-/* NEXA Shared Workspace UI V5.1 — SINGLE HUB TITLE / GLOBAL SSO / WOS REMINDER UX
+/* NEXA Shared Workspace UI V5.2 — GLOBAL SSO / WOS REMINDER + DISCORD DELIVERY QA
  * One global Staff token. No local access management. No duplicate workspace switcher.
  */
 (()=>{'use strict';
@@ -59,6 +59,17 @@ function installWosEnhancements(){
     font-size:12px;
     line-height:1.45
   }
+  .nexa-discord-checklist{
+    margin:8px 0 0;
+    padding:10px 12px;
+    border:1px solid rgba(108,241,178,.25);
+    border-radius:12px;
+    background:rgba(108,241,178,.055);
+    color:#cfe9df;
+    font-size:12px;
+    line-height:1.5
+  }
+  .nexa-discord-checklist b{color:#eafff7}
   `;
   document.head.appendChild(s);
  }
@@ -70,7 +81,7 @@ function installWosEnhancements(){
  if(botCard&&!botCard.querySelector('.nexa-discord-install-note')){
   const p=document.createElement('p');
   p.className='nexa-discord-note nexa-discord-install-note';
-  p.innerHTML='<b>After installing:</b> link the Discord server to this alliance in NEXA. Installing the bot alone does not connect its channels or reminders.';
+  p.innerHTML='<b>After installing:</b> link the Discord server to this alliance in NEXA. Installing the bot alone does not connect its channels or reminders.<br><br><b>Before testing:</b> NEXA needs View Channel, Send Messages, Embed Links, and Read Message History in the selected channel. Channel-specific Deny rules can override the server role.';
   const existing=botCard.querySelector('.muted');
   existing?.insertAdjacentElement('afterend',p);
  }
@@ -83,6 +94,13 @@ function installWosEnhancements(){
   p.textContent='Link each Discord server once so NEXA can load its channels, use reminders, and register alliance commands for that server.';
   const head=discordHub.querySelector('.discord-hub-head');
   head?.insertAdjacentElement('afterend',p);
+ }
+
+ if(discordHub&&!discordHub.querySelector('.nexa-discord-checklist')){
+  const p=document.createElement('div');
+  p.className='nexa-discord-checklist';
+  p.innerHTML='<b>Discord delivery check</b><br>Use <b>Test</b> on a reminder after choosing the destination. Test sends a real Discord message. If it succeeds, NEXA has verified live delivery to that channel.<br>If you use @everyone, @here, or role mentions, also allow the matching mention permission.';
+  discordHub.appendChild(p);
  }
 
  if(window.__NEXA_WOS_REMINDER_PATCHED__)return;
@@ -136,6 +154,31 @@ function installWosEnhancements(){
 
    return originalApi.call(this,action,payload,...rest);
   };
+ }
+
+ // Global Preview cleanup + user-friendly Discord permission diagnostics.
+ // This runs independently of event-local functions, so Bear-only helper text
+ // cannot leak into SvS, Foundry, Canyon, Crazy Joe, BIA, Custom, etc.
+ if(!window.__NEXA_WOS_DOM_QA__){
+  window.__NEXA_WOS_DOM_QA__=true;
+
+  const cleanUi=()=>{
+   document.querySelectorAll('.modal-box .muted,.info-card .muted').forEach(el=>{
+    if(String(el.textContent||'').trim()==='Empty optional Bear sections are omitted.')el.remove();
+   });
+
+   document.querySelectorAll('.toast').forEach(el=>{
+    const raw=String(el.textContent||'');
+    if(/Discord\s*403/i.test(raw)&&(/50013/.test(raw)||/Missing Permissions/i.test(raw))){
+     el.textContent='Discord permission check failed. In the selected channel, allow NEXA: View Channel, Send Messages, Embed Links, and Read Message History. Check channel overrides, then press Test again.';
+     el.classList.add('error');
+    }
+   });
+  };
+
+  const obs=new MutationObserver(cleanUi);
+  obs.observe(document.documentElement,{subtree:true,childList:true,characterData:true});
+  cleanUi();
  }
 }
 async function boot(){

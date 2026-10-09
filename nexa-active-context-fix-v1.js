@@ -7,6 +7,26 @@
 if(window.__NEXA_ACTIVE_CONTEXT_FIX_V1__) return;
 window.__NEXA_ACTIVE_CONTEXT_FIX_V1__=true;
 
+/* Production cleanup: hide/remove legacy V49 runtime proof diagnostics. */
+(function suppressLegacyRuntimeProof(){
+  const style=document.createElement('style');
+  style.id='nexa-hide-v49-runtime-proof';
+  style.textContent='#nexa-v49-runtime-proof-box{display:none!important;visibility:hidden!important;opacity:0!important;pointer-events:none!important}';
+  (document.head||document.documentElement).appendChild(style);
+  const remove=()=>document.getElementById('nexa-v49-runtime-proof-box')?.remove();
+  remove();
+  window.addEventListener('load',()=>{
+    remove();
+    setTimeout(remove,1100);
+    setTimeout(remove,2700);
+  });
+  try{
+    const observer=new MutationObserver(()=>remove());
+    observer.observe(document.documentElement,{childList:true,subtree:true});
+    setTimeout(()=>observer.disconnect(),5000);
+  }catch(_){}
+})();
+
 const STATE_KEY='nexa_active_state_v49';
 const ACCOUNT_KEY='nexa_active_account_v49';
 const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';

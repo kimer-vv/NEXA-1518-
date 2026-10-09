@@ -1,4 +1,4 @@
-/* NEXA Shared Workspace UI V5.5.1 — BLACK SCREEN HOTFIX
+/* NEXA Shared Workspace UI V5.5.2 — SAVED PREVIEW + DISCORD FORMATION FIX
  * One global Staff token. No local access management. No duplicate workspace switcher.
  */
 (()=>{'use strict';
@@ -304,6 +304,144 @@ function installWosEnhancements(){
   cleanUi();
  }
 }
+
+
+ // Saved Preview + Discord Test formation consistency.
+ // Fixes the real formatter path used outside Edit.
+ if(!window.__NEXA_WOS_SAVED_PREVIEW_FIX__){
+  window.__NEXA_WOS_SAVED_PREVIEW_FIX__=true;
+
+  const basePreviewSectionsHtml=window.previewSectionsHtml;
+
+  window.previewSectionsHtml=function(text){
+   const raw=String(text||'');
+   const lines=raw.split('\n');
+   const sections=[],head=[];
+   let current=null;
+
+   const sectionNames=[
+    'Max Joiner Troops',
+    'Approved Joiners',
+    'Bear Trap Rules',
+    'Rally Timing',
+    'Buff Preparation',
+    'Notes',
+    'Own Rally Formations'
+   ];
+
+   for(const line of lines){
+    const title=sectionNames.find(n=>line===`${n}:`||line.startsWith(`${n}:`));
+    if(title){
+     current={title,body:line.slice(title.length+1).trim(),lines:[]};
+     sections.push(current);
+     continue;
+    }
+    if(!current) head.push(line);
+    else current.lines.push(line);
+   }
+
+   const formation=sections.find(s=>s.title==='Own Rally Formations');
+   const normal=sections.filter(s=>s.title!=='Own Rally Formations');
+   const escLocal=s=>String(s??'').replace(/[&<>"']/g,c=>({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+   }[c]));
+
+   let html=
+    `<div class="preview-sections">`+
+    `<div class="preview-section">`+
+    `<div class="preview-section-title">REMINDER</div>`+
+    `<div class="preview-section-body">${escLocal(head.join('\n').trim())}</div>`+
+    `</div>`;
+
+   for(const s of normal){
+    const body=[s.body,...s.lines].filter(v=>String(v).trim()).join('\n').trim();
+    if(!body)continue;
+    html+=
+     `<div class="preview-section">`+
+     `<div class="preview-section-title">${escLocal(s.title.toUpperCase())}</div>`+
+     `<div class="preview-section-body">${escLocal(body)}</div>`+
+     `</div>`;
+   }
+
+   if(formation){
+    const fLines=[formation.body,...formation.lines]
+      .map(x=>String(x||'').trim())
+      .filter(Boolean);
+
+    const groups=[];
+    let g=null;
+
+    for(const line of fLines){
+     const m=line.match(/^[•\-]?\s*(Recommended|Alternative|F2P)$/i);
+     if(m){
+      if(g)groups.push(g);
+      g={label:m[1],heroes:'',ratio:''};
+      continue;
+     }
+     if(!g)continue;
+
+     if(!g.heroes) g.heroes=line;
+     else if(!g.ratio) g.ratio=line;
+     else g.heroes+=` · ${line}`;
+    }
+    if(g)groups.push(g);
+
+    if(groups.length){
+     html+=
+      `<div class="preview-section">`+
+      `<div class="preview-section-title">OWN RALLY FORMATIONS</div>`+
+      `<div class="preview-formations">`+
+      groups.map(x=>
+       `<div class="preview-formation" style="border-top:0;padding-top:0;margin-top:7px">`+
+       `<b>• ${escLocal(x.label)}</b>`+
+       `<div>${escLocal(x.heroes)}</div>`+
+       `<div style="color:var(--cyan);font-weight:950">${escLocal(x.ratio)}</div>`+
+       `</div>`
+      ).join('')+
+      `</div></div>`;
+    }
+   }
+
+   return html+'</div>';
+  };
+
+  // Make both saved Test and draft Test send bullet-delimited formations.
+  function normalizeBearFormationText(raw){
+   let inFormations=false;
+   return String(raw||'').split('\n').map(line=>{
+    const t=String(line||'').trim();
+    if(t==='Own Rally Formations:'){
+     inFormations=true;
+     return line;
+    }
+    if(inFormations && /^(Recommended|Alternative|F2P)$/i.test(t)){
+     return `• ${t}`;
+    }
+    return line;
+   }).join('\n');
+  }
+
+  const savedBuilder=window.buildSavedPreview;
+  if(typeof savedBuilder==='function'){
+   window.buildSavedPreview=function(e){
+    let out=String(savedBuilder(e)||'');
+    if(e?.event_type==='bear_trap')out=normalizeBearFormationText(out);
+    return out;
+   };
+  }
+
+  const draftBuilder=window.draftPreviewText;
+  if(typeof draftBuilder==='function'){
+   window.draftPreviewText=function(...args){
+    let out=String(draftBuilder.apply(this,args)||'');
+    if(document.getElementById('eventType')?.value==='bear_trap'){
+     out=normalizeBearFormationText(out);
+    }
+    return out;
+   };
+  }
+ }
+
 
 function installGiftRetryEnhancements(){
  if(MODULE!=='gift')return;

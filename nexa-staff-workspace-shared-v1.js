@@ -1,4 +1,4 @@
-/* NEXA Shared Workspace UI V5.5 — WOS DISCORD FORMATION CONSISTENCY
+/* NEXA Shared Workspace UI V5.5.1 — BLACK SCREEN HOTFIX
  * One global Staff token. No local access management. No duplicate workspace switcher.
  */
 (()=>{'use strict';
@@ -131,16 +131,13 @@ function installWosEnhancements(){
    let text=String(originalBuild(e)||'');
 
    if(e?.event_type==='svs'){
-    const lines=text.split('
-');
+    const lines=text.split('\n');
     if(lines.length)lines[0]='SVS — Battle Phase';
-    text=lines.join('
-');
+    text=lines.join('\n');
    }
 
    if(e?.event_type==='bear_trap'){
-    const lines=text.split('
-');
+    const lines=text.split('\n');
     let inFormations=false;
     text=lines.map(line=>{
      const trimmed=String(line||'').trim();
@@ -155,8 +152,7 @@ function installWosEnhancements(){
      }
 
      return line;
-    }).join('
-');
+    }).join('\n');
    }
 
    return text;

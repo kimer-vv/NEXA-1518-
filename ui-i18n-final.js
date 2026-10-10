@@ -54,14 +54,14 @@ function markNexaHomeProfileReady(){
     const id=activeAccountId();
     if(id){
       const byId=accounts.find(a=>String(a.id)===id);
-      if(byId)return byId;
+      if(byId && (!activeState()||Number(byId.state_number)===activeState()))return byId;
     }
     const state=activeState();
     if(state){
       const byState=accounts.find(a=>Number(a.state_number)===state);
       if(byState)return byState;
     }
-    return accounts.find(a=>a.is_main===true)||accounts[0]||null;
+    return state?null:(accounts.length===1?accounts[0]:null);
   };
   const accountKind=a=>a?.is_main?'main':String(a?.account_purpose||'full').toLowerCase()==='buff_points'?'points':'full';
   const accountLabel=a=>accountKind(a)==='main'?'MAIN ACCOUNT':accountKind(a)==='points'?'POINTS ACCOUNT':'FULL ACCOUNT';
@@ -147,7 +147,7 @@ function markNexaHomeProfileReady(){
         </header>
         <div class="nexa-passport-pages">
           <div class="nexa-passport-identity">
-            <div class="nexa-passport-seal">NEXA<br><small>1518</small></div>
+            <div class="nexa-passport-seal">NEXA<br><small>${esc(a.state_number||activeState()||'—')}</small></div>
             <img src="${esc(avatar(a))}" alt="">
             <h2>${esc(a.in_game_name||'PLAYER')}</h2>
             <span class="nexa-passport-type">${esc(type)}</span>
@@ -228,16 +228,9 @@ function markNexaHomeProfileReady(){
         event.preventDefault();event.stopImmediatePropagation();
         const a=accounts.find(a=>String(a.id)===String(planet.dataset.accountConstellationId));
         if(!a)return;
+        // Constellation is read-only account exploration. Fleet owns account switching.
         selectedId=a.id;
-        try{
-          localStorage.setItem('nexa_active_account_v49',String(a.id));
-          localStorage.setItem('nexa_active_state_v49',String(a.state_number||activeState()||''));
-          window.NEXA_ACTIVE_ACCOUNT_ID=String(a.id);
-          window.NEXA_ACTIVE_STATE=Number(a.state_number||activeState()||0);
-        }catch(_){}
         openFullProfile(a);
-        try{db()?.rpc?.('nexa_mark_active_account_v1',{p_player_account_id:a.id});}catch(_){}
-        window.dispatchEvent(new CustomEvent('nexa:account-changed',{detail:{accountId:a.id,stateNumber:Number(a.state_number||0),source:'constellation'}}));
       };
     });
     const add=$('nexa-constellation-add-account');

@@ -21,8 +21,7 @@ const TABS=[
  {key:'alliances',letter:'A',label:'Alliances',id:'admin-alliances'},
  {key:'library',letter:'L',label:'Library',href:'library.html?admin=1'},
  {key:'access',letter:'N',label:'NEXA Access',id:'admin-permissions'},
- {key:'roles',letter:'R',label:'Roles',id:'admin-roles'},
- {key:'system',letter:'S',label:'System Operations',id:'admin-system'}
+ {key:'roles',letter:'R',label:'Roles',id:'admin-roles'}
 ];
 const OPS=[
  ['battle_strategist','Battle Strategist'],
@@ -145,7 +144,7 @@ async function confirmV(title,text){
 async function generalGuide(){
  await modal('Administration Quick Guide',`
  <p>Use the letters and arrows to move through Administration.</p>
- <p><b>A</b> = Alliances<br><b>L</b> = Library<br><b>N</b> = NEXA Access<br><b>R</b> = Roles<br><b>S</b> = System Operations</p>
+ <p><b>A</b> = Alliances<br><b>L</b> = Library<br><b>N</b> = NEXA Access<br><b>R</b> = Roles</p>
  <p><b>MENU</b> opens navigation without closing your current screen. The <b>ⓘ</b> beside each page explains that section.</p>`);
 }
 async function sectionGuide(key){

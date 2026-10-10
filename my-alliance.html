@@ -101,7 +101,7 @@ const sb=window.supabase.createClient(SB_URL,SB_KEY);
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 let passport=null,allPassports=[],schedule=null,battleRoles={};
-const activeState=()=>Number(String(localStorage.getItem('nexa_active_state_v49')||window.NEXA_ACTIVE_STATE||1518).replace(/\D/g,''))||1518;
+const activeState=()=>Number(String(window.NEXA_ACTIVE_STATE||localStorage.getItem('nexa_active_state_v49')||0).replace(/\D/g,''))||0;
 const activeAccountId=()=>String(localStorage.getItem('nexa_active_account_v49')||window.NEXA_ACTIVE_ACCOUNT_ID||'');
 async function rpc(name,args={}){const {data,error}=await sb.rpc(name,args);if(error)throw error;return data}
 function modal(html){const ov=document.createElement('div');ov.className='ma-modal';ov.innerHTML='<div class="ma-dialog">'+html+'</div>';document.body.appendChild(ov);ov.addEventListener('click',e=>{if(e.target===ov)ov.remove()});return ov}
@@ -123,7 +123,10 @@ async function boot(){
  allPassports=await rpc('nexa_list_alliance_passports');
  const {data:accounts,error}=await sb.from('player_accounts').select('id,alliance_id,state_number,is_main').eq('user_id',user.id); if(error)throw error;
  const aid=activeAccountId();
- const account=(accounts||[]).find(a=>String(a.id)===aid)||(accounts||[]).find(a=>Number(a.state_number)===activeState()&&a.is_main)||(accounts||[]).find(a=>Number(a.state_number)===activeState())||(accounts||[])[0];
+ const st=activeState();
+ const inState=(accounts||[]).filter(a=>st>0&&Number(a.state_number)===st);
+ const account=inState.find(a=>String(a.id)===aid)||inState.find(a=>a.is_main)||inState[0]||null;
+ if(!account){$('#allianceTitle').textContent='No active account';$('#allianceSub').textContent=st?`No active account for State ${st}. Choose an account in Fleet.`:'Choose an account in Fleet first.';return;}
  if(!account?.alliance_id){$('#allianceTitle').textContent='No Alliance';$('#allianceSub').textContent='Your active WOS Account is not assigned to a NEXA alliance.';return}
  passport=(allPassports||[]).find(a=>Number(a.id)===Number(account.alliance_id));
  if(!passport){$('#allianceTitle').textContent='Alliance unavailable';return}

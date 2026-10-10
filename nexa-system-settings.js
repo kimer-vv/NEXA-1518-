@@ -5,6 +5,24 @@ import {
   bypassCookie,
 } from './_nexa-maintenance-common.js';
 
+
+async function isDeveloper(token) {
+  // Validate the bearer token with Supabase Auth before querying independent Developer permissions.
+  if (!token) return false;
+  const anon = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
+  const auth = await fetch(`${SUPABASE_URL}/auth/v1/user`, {headers:{apikey:anon,Authorization:`Bearer ${token}`},cache:'no-store'});
+  if (!auth.ok) return false;
+  const user = await auth.json().catch(()=>null);
+  if (!user?.id) return false;
+  const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!service) throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured.');
+  const url = `${SUPABASE_URL}/rest/v1/nexa_platform_roles?user_id=eq.${encodeURIComponent(user.id)}&select=developer_mode_allowed&limit=1`;
+  const response = await fetch(url,{headers:{apikey:service,Authorization:`Bearer ${service}`},cache:'no-store'});
+  if (!response.ok) throw new Error('Could not verify Developer permission.');
+  const rows = await response.json();
+  return rows?.[0]?.developer_mode_allowed === true;
+}
+
 async function getSetting(service) {
   const r = await fetch(
     `${SUPABASE_URL}/rest/v1/nexa_system_settings?key=eq.maintenance_mode&select=value&limit=1`,
@@ -52,9 +70,9 @@ export default async function handler(req, res) {
       ''
     );
 
-    const role = await userRole(token);
-    if (role !== 'owner') {
-      return json(res, 403, { error: 'System Operations is Owner-only.' });
+    const developer = await isDeveloper(token);
+    if (!developer) {
+      return json(res, 403, { error: 'Developer access required.' });
     }
 
     const service = process.env.SUPABASE_SERVICE_ROLE_KEY || '';

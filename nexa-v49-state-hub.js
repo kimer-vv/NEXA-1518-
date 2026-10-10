@@ -98,7 +98,7 @@ function activeState(){
     }
   }
 
-  return stateNum(raw||1518)||1518;
+  return stateNum(raw); // Never silently change an active State to 1518.
 }
 function setActiveState(value,{emit=true}={}){
   const n=stateNum(value);if(!n)return 0;
@@ -1483,7 +1483,7 @@ function openOwnedAdministrationMenu(){ownedMenuSubview('ADMINISTRATION',[
   ['Library',()=>{closeOwnedMenu();leaveForLibrary()}],
   ['NEXA Access',()=>ownedMenuGo('index.html?admin=administration&tab=permissions')],
   ['Operational Roles',()=>ownedMenuGo('index.html?admin=administration&tab=roles')],
-  ['System Operations',()=>ownedMenuGo('index.html?admin=administration&tab=system')]
+  // Developer-only System Operations is not part of standard Administration.
 ])}
 function openOwnedEventFormsMenu(){ownedMenuSubview('EVENT FORMS',[
   ['Forms',()=>ownedMenuGo('event-operations.html?tab=forms')],['Responses',()=>ownedMenuGo('event-operations.html?tab=responses')]

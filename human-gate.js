@@ -118,7 +118,7 @@ function installFleetRoutingFix(){
  window.__NEXA_FLEET_ROUTING_FIX_V1__=true;
 
  document.addEventListener('click',e=>{
-   const root=e.target.closest?.('#nexa-account-constellation');
+   const root=null; // Constellation profile clicks must not activate Fleet accounts.
    if(root){
      const account=e.target.closest?.('[data-nexa-profile],[data-account-constellation-id]');
      if(account){

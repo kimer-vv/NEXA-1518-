@@ -97,7 +97,7 @@ async function renderIdentityCenter(){
  body.innerHTML='<div class="nfi-muted">Loading Fleet…</div>';
  try{
   const d=await fleet(true),accounts=d.accounts||[],groups=groupByState(accounts),aid=activeAccountId();
-  body.innerHTML=groups.map(([st,list])=>`<section class="nfi-state"><div class="nfi-state-head"><b>State ${esc(st||'—')}</b><span class="nfi-count">${list.length} ACCOUNT${list.length===1?'':'S'}</span></div>${list.map(a=>`<article class="nfi-account ${String(a.account_id)===aid?'active':''}" data-nfi-account="${esc(a.account_id)}"><img src="${esc(avatar(a))}" alt=""><div><div class="nfi-name">${esc(a.game_name||'Account')}</div><div class="nfi-meta">Game ID ${esc(a.game_id||'—')}</div><div class="nfi-tags">${a.is_main?'<span class="nfi-tag main">MAIN GLOBAL</span>':''}${a.is_state_primary?'<span class="nfi-tag primary">STATE PRIMARY</span>':''}${a.is_last_active?'<span class="nfi-tag">LAST ACTIVE</span>':''}</div></div><div class="nfi-actions"><button class="nfi-btn primary" data-nfi-switch="${esc(a.account_id)}">Use Account</button>${a.is_state_primary?'':`<button class="nfi-btn" data-nfi-primary="${esc(a.account_id)}">Set State Primary</button>`}<button class="nfi-btn warn" data-nfi-move="${esc(a.account_id)}" data-current-state="${esc(st)}">Move State</button></div></article>`).join('')}</section>`).join('')||'<div class="nfi-muted">No linked accounts found.</div>';
+  body.innerHTML=groups.map(([st,list])=>`<section class="nfi-state"><div class="nfi-state-head"><b>State ${esc(st||'—')}</b><span class="nfi-count">${list.length} ACCOUNT${list.length===1?'':'S'}</span></div>${list.map(a=>`<article class="nfi-account ${String(a.account_id)===aid?'active':''}" data-nfi-account="${esc(a.account_id)}"><img src="${esc(avatar(a))}" alt=""><div><div class="nfi-name">${esc(a.game_name||'Account')}</div><div class="nfi-meta">Game ID ${esc(a.game_id||'—')}</div><div class="nfi-tags">${a.is_main?'<span class="nfi-tag main">MAIN GLOBAL</span>':''}${a.is_state_primary?'<span class="nfi-tag primary">STATE PRIMARY</span>':''}${a.is_last_active?'<span class="nfi-tag">LAST ACTIVE</span>':''}</div></div><div class="nfi-actions"><button class="nfi-btn primary" data-nfi-switch="${esc(a.account_id)}">Change to this account</button>${a.is_state_primary?'':`<button class="nfi-btn" data-nfi-primary="${esc(a.account_id)}">Set State Primary</button>`}<button class="nfi-btn warn" data-nfi-move="${esc(a.account_id)}" data-current-state="${esc(st)}">Move State</button></div></article>`).join('')}</section>`).join('')||'<div class="nfi-muted">No linked accounts found.</div>';
   body.querySelectorAll('[data-nfi-switch]').forEach(b=>b.onclick=()=>switchAccount(b.dataset.nfiSwitch));
   body.querySelectorAll('[data-nfi-primary]').forEach(b=>b.onclick=()=>setStatePrimary(b.dataset.nfiPrimary));
   body.querySelectorAll('[data-nfi-move]').forEach(b=>b.onclick=()=>moveState(b.dataset.nfiMove,Number(b.dataset.currentState||0)));
@@ -117,7 +117,8 @@ async function switchAccount(id){
   window.dispatchEvent(new CustomEvent('nexa:active-state-changed',{detail:{stateNumber:Number(a.state_number||0),source:'fleet-identity'}}));
   window.dispatchEvent(new CustomEvent('nexa:account-changed',{detail:{accountId:id,stateNumber:Number(a.state_number||0),source:'fleet-identity'}}));
   closeIdentityCenter();
-  setTimeout(()=>window.NEXA_SYNC_ACTIVE_CONTEXT?.(),30);
+  // One clean navigation prevents stale listeners repainting the old State.
+  window.location.replace('/index.html');
  }catch(e){status(e.message||String(e),true);}
 }
 async function setStatePrimary(id){

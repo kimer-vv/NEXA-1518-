@@ -235,29 +235,18 @@ function normalizeSchedule(data){
 }
 
 async function mainAlliance(){
-  const c=sb();
-  if(!c) return null;
-
+  const c=sb(); if(!c)return null;
   const {data:{user},error:userError}=await c.auth.getUser();
-  if(userError || !user) return null;
-
-  const {data,error}=await c
-    .from('player_accounts')
-    .select('id,is_main,alliance_id,custom_alliance_tag,alliances(id,tag)')
-    .eq('user_id',user.id)
-    .order('is_main',{ascending:false})
-    .order('created_at')
-    .limit(1)
-    .maybeSingle();
-
-  if(error) throw error;
-
-  const allianceId=Number(data?.alliance_id || data?.alliances?.id || 0);
-
-  return {
-    id:allianceId,
-    tag:data?.alliances?.tag || data?.custom_alliance_tag || ''
-  };
+  if(userError||!user)return null;
+  const state=Number(window.NEXA_ACTIVE_STATE||localStorage.getItem('nexa_active_state_v49')||0);
+  const accountId=String(window.NEXA_ACTIVE_ACCOUNT_ID||localStorage.getItem('nexa_active_account_v49')||'');
+  if(!state||!accountId)return null;
+  const {data,error}=await c.from('player_accounts')
+    .select('id,state_number,alliance_id,custom_alliance_tag,alliances(id,tag)')
+    .eq('user_id',user.id).eq('id',accountId).eq('state_number',state).maybeSingle();
+  if(error)throw error;
+  if(!data)return null;
+  return {id:Number(data.alliance_id||data.alliances?.id||0),tag:data.alliances?.tag||data.custom_alliance_tag||''};
 }
 
 async function loadSchedule(allianceId){
@@ -344,7 +333,7 @@ async function render(){
 function finitePasses(){
   const mine=++generation;
 
-  [0,250,800,2000,5000].forEach(ms=>{
+  [0,500].forEach(ms=>{
     setTimeout(()=>{
       if(mine!==generation) return;
       render().catch(()=>{});

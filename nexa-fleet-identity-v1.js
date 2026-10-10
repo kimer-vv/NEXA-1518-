@@ -10,6 +10,7 @@ const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let localSb=null;
 let fleetCache=null;
+let manageState=0;
 
 function db(){
   try{ if(typeof supabaseClient!=='undefined'&&supabaseClient?.from)return supabaseClient; }catch(_){}
@@ -73,6 +74,7 @@ function ensureStyle(){
  .nfi-body{padding:17px}.nfi-state{border:1px solid rgba(151,170,255,.17);border-radius:20px;padding:14px;margin:12px 0;background:rgba(9,15,36,.72)}.nfi-state-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}.nfi-state-head b{font-size:15px}.nfi-count{font-size:10px;color:#8ee8ff}
  .nfi-account{display:grid;grid-template-columns:52px 1fr;gap:11px;align-items:center;padding:11px;border-radius:16px;border:1px solid rgba(151,170,255,.13);background:rgba(13,20,46,.75);margin:8px 0}.nfi-account.active{border-color:rgba(99,232,199,.48);box-shadow:inset 4px 0 0 rgba(99,232,199,.72)}.nfi-account img{width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid rgba(130,116,255,.5)}.nfi-name{font-weight:950}.nfi-meta{font-size:10px;color:#9da9c8;margin-top:3px}.nfi-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}.nfi-tag{font-size:9px;padding:4px 7px;border-radius:999px;border:1px solid rgba(151,170,255,.22);color:#cad4ef}.nfi-tag.main{color:#ff9ee8;border-color:rgba(255,101,220,.34)}.nfi-tag.primary{color:#91f1d3;border-color:rgba(89,222,181,.34)}
  .nfi-actions{grid-column:1/-1;display:flex;gap:7px;flex-wrap:wrap}.nfi-btn{border:1px solid rgba(125,142,255,.30);border-radius:11px;background:#111a38;color:#eef3ff;padding:8px 10px;font-size:10px;font-weight:900}.nfi-btn.primary{background:linear-gradient(135deg,#6648d4,#198db3)}.nfi-btn.warn{border-color:rgba(255,184,102,.32);color:#ffd1a2}.nfi-footer{display:grid;gap:9px;padding:17px;border-top:1px solid rgba(151,170,255,.18)}.nfi-footer .nfi-btn{min-height:42px}
+ .nfi-account .nfi-delete{margin-left:auto;border-color:#e6689c;color:#ff9dbd}
  .nfi-status{min-height:18px;font-size:11px;color:#7ee6ff}
  `;
  document.head.appendChild(s);
@@ -96,14 +98,43 @@ async function renderIdentityCenter(){
  const m=ensureModal(),body=m.querySelector('#nfi-body');
  body.innerHTML='<div class="nfi-muted">Loading Fleet…</div>';
  try{
-  const d=await fleet(true),accounts=d.accounts||[],groups=groupByState(accounts),aid=activeAccountId();
-  body.innerHTML=groups.map(([st,list])=>`<section class="nfi-state"><div class="nfi-state-head"><b>State ${esc(st||'—')}</b><span class="nfi-count">${list.length} ACCOUNT${list.length===1?'':'S'}</span></div>${list.map(a=>`<article class="nfi-account ${String(a.account_id)===aid?'active':''}" data-nfi-account="${esc(a.account_id)}"><img src="${esc(avatar(a))}" alt=""><div><div class="nfi-name">${esc(a.game_name||'Account')}</div><div class="nfi-meta">Game ID ${esc(a.game_id||'—')}</div><div class="nfi-tags">${a.is_main?'<span class="nfi-tag main">MAIN GLOBAL</span>':''}${a.is_state_primary?'<span class="nfi-tag primary">STATE PRIMARY</span>':''}${a.is_last_active?'<span class="nfi-tag">LAST ACTIVE</span>':''}</div></div><div class="nfi-actions"><button class="nfi-btn primary" data-nfi-switch="${esc(a.account_id)}">Change to this account</button>${a.is_state_primary?'':`<button class="nfi-btn" data-nfi-primary="${esc(a.account_id)}">Set State Primary</button>`}<button class="nfi-btn warn" data-nfi-move="${esc(a.account_id)}" data-current-state="${esc(st)}">Move State</button></div></article>`).join('')}</section>`).join('')||'<div class="nfi-muted">No linked accounts found.</div>';
+  const d=await fleet(true),accounts=(d.accounts||[]).filter(a=>Number(a.state_number)===manageState),groups=groupByState(accounts),aid=activeAccountId();
+  body.innerHTML=groups.map(([st,list])=>`<section class="nfi-state"><div class="nfi-state-head"><b>State ${esc(st||'—')}</b><span class="nfi-count">${list.length} ACCOUNT${list.length===1?'':'S'}</span></div>${list.map(a=>`<article class="nfi-account ${String(a.account_id)===aid?'active':''}" data-nfi-account="${esc(a.account_id)}"><img src="${esc(avatar(a))}" alt=""><div><div class="nfi-name">${esc(a.game_name||'Account')}</div><div class="nfi-meta">Game ID ${esc(a.game_id||'—')}</div><div class="nfi-tags">${a.is_main?'<span class="nfi-tag main">MAIN GLOBAL</span>':''}${a.is_state_primary?'<span class="nfi-tag primary">STATE PRIMARY</span>':''}${a.is_last_active?'<span class="nfi-tag">LAST ACTIVE</span>':''}</div></div><div class="nfi-actions"><button class="nfi-btn primary" data-nfi-switch="${esc(a.account_id)}">Change to this account</button>${a.is_state_primary?'':`<button class="nfi-btn" data-nfi-primary="${esc(a.account_id)}">Set State Primary</button>`}<button class="nfi-btn warn" data-nfi-move="${esc(a.account_id)}" data-current-state="${esc(st)}">Move State</button>${a.is_main||String(a.account_id)===aid?'':`<button class="nfi-btn nfi-delete" data-nfi-delete="${esc(a.account_id)}">× Delete Account</button>`}</div></article>`).join('')}</section>`).join('')||'<div class="nfi-muted">No linked accounts found.</div>';
+  body.querySelectorAll('[data-nfi-delete]').forEach(b=>b.onclick=()=>deleteManagedAccount(b.dataset.nfiDelete));
   body.querySelectorAll('[data-nfi-switch]').forEach(b=>b.onclick=()=>switchAccount(b.dataset.nfiSwitch));
   body.querySelectorAll('[data-nfi-primary]').forEach(b=>b.onclick=()=>setStatePrimary(b.dataset.nfiPrimary));
   body.querySelectorAll('[data-nfi-move]').forEach(b=>b.onclick=()=>moveState(b.dataset.nfiMove,Number(b.dataset.currentState||0)));
  }catch(e){body.innerHTML=`<div class="nfi-muted">${esc(e.message||String(e))}</div>`;}
 }
-async function openIdentityCenter(){const m=ensureModal();m.classList.add('open');await renderIdentityCenter();}
+async function openIdentityCenter(state=activeState()){
+  manageState=Number(state||0);
+  if(!manageState){alert('Select a State before managing accounts.');return;}
+  const m=ensureModal();m.querySelector('.nfi-head h2').textContent=`Manage Accounts · State ${manageState}`;
+  m.classList.add('open');await renderIdentityCenter();
+}
+async function deleteManagedAccount(id){
+ try{
+  const d=await fleet(),a=(d.accounts||[]).find(x=>String(x.account_id)===String(id));
+  if(!a||Number(a.state_number)!==manageState)throw new Error('Account does not belong to this State.');
+  if(a.is_main||String(id)===activeAccountId())throw new Error('Switch to another account before deleting this one. Main Global accounts are protected.');
+  if(!confirm(`Permanently delete ${a.game_name||'account'} (Game ID ${a.game_id}) from State ${manageState}? This removes its saved account data and cannot be undone.`))return;
+  status('Deleting account…');await rpc('nexa_delete_player_account',{p_account_id:id});
+  fleetCache=null;await renderIdentityCenter();status('Account deleted.');
+ }catch(e){status(e.message||String(e),true);}
+}
+async function openAccountCard(id){
+ try{
+  const d=await fleet(),a=(d.accounts||[]).find(x=>String(x.account_id)===String(id)&&Number(x.state_number)===activeState());
+  if(!a)return;
+  let modal=$('#nexa-fleet-account-card');if(!modal){modal=document.createElement('div');modal.id='nexa-fleet-account-card';document.body.appendChild(modal);}
+  modal.style.cssText='position:fixed;inset:0;z-index:2147483640;background:rgba(1,3,14,.91);display:flex;align-items:center;justify-content:center;padding:22px;color:white;backdrop-filter:blur(12px)';
+  const current=String(a.account_id)===activeAccountId();
+  modal.innerHTML=`<section style="width:min(410px,100%);background:#101630;border:1px solid #7562d4;border-radius:24px;padding:25px;text-align:center;box-shadow:0 0 60px #38237670"><button data-card-close style="float:right;background:transparent;color:white;border:0;font-size:28px">×</button><img src="${esc(avatar(a))}" alt="" style="width:94px;height:94px;border-radius:50%;object-fit:cover;border:3px solid ${current?'#5dfbd0':'#b37aff'};box-shadow:0 0 25px ${current?'#5dfbd0':'#b37aff'}"><h2>${esc(a.game_name||'Account')}</h2><p>State ${esc(a.state_number)} · Game ID ${esc(a.game_id)}</p><p style="color:#75f6d1">${current?'● CURRENT ACCOUNT':a.is_state_primary?'STATE PRIMARY':''}</p><button data-card-switch ${current?'disabled':''} style="width:100%;padding:14px;border:0;border-radius:12px;background:${current?'#29344d':'linear-gradient(90deg,#7152df,#198cba)'};color:white;font-weight:900">${current?'Current Account':'Change to this account'}</button><button data-card-manage style="display:block;margin:16px auto 0;background:transparent;border:1px solid #7897db;border-radius:12px;color:white;padding:10px 18px">Manage Accounts</button></section>`;
+  modal.querySelector('[data-card-close]').onclick=()=>modal.remove();
+  modal.querySelector('[data-card-switch]').onclick=()=>{if(!current)switchAccount(id)};
+  modal.querySelector('[data-card-manage]').onclick=()=>{modal.remove();openIdentityCenter(Number(a.state_number))};
+ }catch(e){alert(e.message||String(e));}
+}
 function closeIdentityCenter(){ensureModal().classList.remove('open');}
 async function switchAccount(id){
  try{
@@ -169,7 +200,14 @@ async function configureGlobalPassword(){
 /* Make Manage Accounts open the canonical Identity Center instead of another legacy account surface. */
 document.addEventListener('click',e=>{
  const manage=e.target.closest?.('#nexa-constellation-manage-accounts');
- if(manage){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();openIdentityCenter();return;}
+ if(manage){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();openIdentityCenter(activeState());return;}
+},true);
+
+document.addEventListener('click',e=>{
+ const planet=e.target.closest?.('#nexa-constellation-system [data-account-constellation-id],#nexa-constellation-system [data-nexa-profile]');
+ if(!planet)return;
+ e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+ openAccountCard(planet.dataset.accountConstellationId||planet.dataset.nexaProfile);
 },true);
 
 /* Decorate current State constellation after any renderer paints it. */
@@ -189,8 +227,8 @@ async function decorate(){
 }
 window.addEventListener('nexa:active-state-changed',()=>setTimeout(decorate,30));
 window.addEventListener('nexa:account-changed',()=>setTimeout(decorate,30));
-window.addEventListener('nexa:home-profile-ready',()=>setTimeout(decorate,30));
-document.addEventListener('DOMContentLoaded',()=>{setTimeout(decorate,500);setTimeout(decorate,1700);});
+
+document.addEventListener('DOMContentLoaded',()=>{setTimeout(decorate,500);});
 
 window.NEXA_OPEN_IDENTITY_CENTER=openIdentityCenter;
 window.NEXA_FLEET_REFRESH=async()=>{fleetCache=null;return fleet(true);};

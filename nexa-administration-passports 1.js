@@ -1,6 +1,6 @@
 /* NEXA Administration V26 — stable isolated Administration workspace
    No Profile image rewriting. No global attribute MutationObserver.
-   A -> L -> N -> R -> S alphabetical navigation.
+   A -> L -> N -> R navigation.
 */
 (()=>{
 'use strict';

@@ -117,8 +117,10 @@ function markNexaHomeProfileReady(){
     if(name)name.textContent=(a.in_game_name||'PLAYER').toUpperCase()+' • '+tag(a).toUpperCase()+' • ID '+(a.player_id||'');
     if(badge)badge.textContent='ACTIVE';
     if(count){
-      count.textContent=accounts.length+'/5';
-      count.classList.toggle('hidden',accounts.length<2);
+      const state=activeState();
+      const visibleCount=state?accounts.filter(x=>Number(x.state_number)===state).length:accounts.length;
+      count.textContent=visibleCount+'/5';
+      count.classList.toggle('hidden',visibleCount<2);
     }
     markNexaHomeProfileReady();
   }
@@ -208,19 +210,34 @@ function markNexaHomeProfileReady(){
 
   function render(){
     const system=$('nexa-constellation-system');if(!system)return;
-    const main=accounts.find(a=>a.is_main===true)||accounts[0]||null;
-    const others=main?accounts.filter(a=>a.id!==main.id):[];
+    const state=activeState();
+    const visible=state?accounts.filter(a=>Number(a.state_number)===state):accounts.slice();
+    const activeId=activeAccountId();
+    const activeInState=visible.find(a=>String(a.id)===activeId)||null;
+    const main=activeInState||visible.find(a=>a.is_main===true)||visible[0]||null;
+    const others=main?visible.filter(a=>a.id!==main.id):visible;
     const positions=[[82,31],[79,72],[21,72],[18,31]];
     let html='<span class="nexa-space-stars"></span><span class="nexa-space-planet planet-a"></span><span class="nexa-space-planet planet-b"></span><span class="nexa-space-planet planet-c"></span><span class="nexa-constellation-orbit orbit-three"></span><span class="nexa-constellation-orbit one"></span><span class="nexa-constellation-orbit two"></span>';
     if(main)html+=`<button type="button" class="nexa-account-planet main type-main account-color-1" data-account-constellation-id="${esc(main.id)}"><img src="${esc(avatar(main))}" alt=""><span class="nexa-account-planet-name">${esc(main.in_game_name)}</span><span class="nexa-account-planet-type">MAIN ACCOUNT</span></button>`;
     others.forEach((a,i)=>{const p=positions[i%positions.length],kind=accountKind(a);html+=`<button type="button" class="nexa-account-planet alt type-${kind} account-color-${i+2}" style="left:${p[0]}%;top:${p[1]}%" data-account-constellation-id="${esc(a.id)}"><img src="${esc(avatar(a))}" alt=""><span class="nexa-account-planet-name">${esc(a.in_game_name)}</span><span class="nexa-account-planet-type">${accountLabel(a)}</span></button>`;});
-    if(accounts.length<5){const p=positions[Math.min(others.length,positions.length-1)]||[50,14];html+=`<button type="button" id="nexa-constellation-add-account" class="nexa-account-planet alt nexa-add-planet" style="left:${p[0]}%;top:${p[1]}%"><span class="nexa-add-planet-symbol">+</span><span class="nexa-account-planet-name">ADD ACCOUNT</span></button>`;}
+    if(visible.length<5){const p=positions[Math.min(others.length,positions.length-1)]||[50,14];html+=`<button type="button" id="nexa-constellation-add-account" class="nexa-account-planet alt nexa-add-planet" style="left:${p[0]}%;top:${p[1]}%"><span class="nexa-add-planet-symbol">+</span><span class="nexa-account-planet-name">ADD ACCOUNT</span></button>`;}
     html+=`<button type="button" id="nexa-constellation-manage-accounts">MANAGE ACCOUNTS</button>`;
     system.innerHTML=html;
     system.querySelectorAll('[data-account-constellation-id]').forEach(planet=>{
       planet.onclick=event=>{
         event.preventDefault();event.stopImmediatePropagation();
-        passport(accounts.find(a=>String(a.id)===String(planet.dataset.accountConstellationId)));
+        const a=accounts.find(a=>String(a.id)===String(planet.dataset.accountConstellationId));
+        if(!a)return;
+        selectedId=a.id;
+        try{
+          localStorage.setItem('nexa_active_account_v49',String(a.id));
+          localStorage.setItem('nexa_active_state_v49',String(a.state_number||activeState()||''));
+          window.NEXA_ACTIVE_ACCOUNT_ID=String(a.id);
+          window.NEXA_ACTIVE_STATE=Number(a.state_number||activeState()||0);
+        }catch(_){}
+        openFullProfile(a);
+        try{db()?.rpc?.('nexa_mark_active_account_v1',{p_player_account_id:a.id});}catch(_){}
+        window.dispatchEvent(new CustomEvent('nexa:account-changed',{detail:{accountId:a.id,stateNumber:Number(a.state_number||0),source:'constellation'}}));
       };
     });
     const add=$('nexa-constellation-add-account');
@@ -336,6 +353,13 @@ function markNexaHomeProfileReady(){
   document.addEventListener('DOMContentLoaded',async()=>{await load(true);try{db()?.auth?.onAuthStateChange?.(()=>{loaded=false;setTimeout(()=>load(true),100);});}catch(_){}});
   window.NEXA_OPEN_ACCOUNT_CONSTELLATION=openConstellation;
   window.NEXA_OPEN_ACCOUNTS=openAccounts;
+  window.NEXA_OPEN_PLAYER_PROFILE_BY_ID=id=>{
+    const a=accounts.find(x=>String(x.id)===String(id));
+    if(!a)return false;
+    selectedId=a.id;
+    openFullProfile(a);
+    return true;
+  };
   window.nexaLoadHomeAccountCards=async()=>{await load(true);if($('nexa-account-constellation')?.classList.contains('open'))render();return accounts;};
 
   function syncActiveHomeFromContext(){

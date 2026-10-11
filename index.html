@@ -3196,7 +3196,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function loadAlliances() {
     await supabaseClient.rpc('refresh_auto_ended_events');
     const { data, error } = await supabaseClient.from('alliances')
-      .select('id,tag').eq('is_active', true).order('tag');
+      .select('id,tag').eq('is_active', true).eq('state_number',Number(window.NEXA_ACTIVE_STATE||localStorage.getItem('nexa_active_state_v49')||0)).order('tag');
     if (error) throw error;
     allianceRows = data || [];
     allianceSelect.innerHTML = '<option value="">'+tr('selectAlliance')+'</option>' +
@@ -4420,8 +4420,8 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
     const id = document.getElementById('alliance-admin-id').value;
     const tag = document.getElementById('alliance-admin-tag').value.trim();
     const q = id
-      ? supabaseClient.from('alliances').update({ tag }).eq('id', id)
-      : supabaseClient.from('alliances').insert({ tag, is_active:true });
+      ? supabaseClient.from('alliances').update({ tag }).eq('id', id).eq('state_number',Number(window.NEXA_ACTIVE_STATE||localStorage.getItem('nexa_active_state_v49')||0))
+      : supabaseClient.from('alliances').insert({ tag, is_active:true, state_number:Number(window.NEXA_ACTIVE_STATE||localStorage.getItem('nexa_active_state_v49')||0) });
     const { error } = await q;
     const msg = document.getElementById('admin-alliances-message');
     if (error) { msg.textContent = error.message; msg.classList.add('error'); return; }

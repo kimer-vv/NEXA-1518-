@@ -362,7 +362,7 @@ button,input,select,textarea{font:inherit}.hidden{display:none!important}.shell{
 (()=>{'use strict';
 const SB=window.supabase.createClient('https://dfxcxboxrkfmrnsgpyin.supabase.co','sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-');
 const $=id=>document.getElementById(id),q=new URLSearchParams(location.search);
-let token=localStorage.getItem('nexa_transfer_staff_token')||sessionStorage.getItem('nexa_transfer_staff_token')||'',workspaceId=q.get('workspace')||'',wantedState=Number(q.get('state')||window.NEXA_ACTIVE_STATE||localStorage.getItem('nexa_active_state')||sessionStorage.getItem('nexa_active_state')||localStorage.getItem('nexa_active_state_v49')||sessionStorage.getItem('nexa_active_state_v49')||0),session=null,workspace=null,intake=null,event=null,alliances=[],allProfiles=[],recruiting=[],profiles=[],apps=[],history=[],applicantArchive=[],cleanup={},accessInfo=null,folder='new',historyView='cycles',activeApp=null,generatedCode='',confirmAction=null,cycleEditing=false,cycleMode='edit';
+let token=localStorage.getItem('nexa_transfer_staff_token')||sessionStorage.getItem('nexa_transfer_staff_token')||'',workspaceId=q.get('workspace')||'',wantedState=Number(q.get('state')||window.NEXA_ACTIVE_STATE||localStorage.getItem('nexa_active_state_v49')||localStorage.getItem('nexa_active_state')||sessionStorage.getItem('nexa_active_state')||sessionStorage.getItem('nexa_active_state_v49')||0),session=null,workspace=null,intake=null,event=null,alliances=[],allProfiles=[],recruiting=[],profiles=[],apps=[],history=[],applicantArchive=[],cleanup={},accessInfo=null,folder='new',historyView='cycles',activeApp=null,generatedCode='',confirmAction=null,cycleEditing=false,cycleMode='edit';
 const folders=[['ordinary','Ordinary'],['special','Special']];
 const timeOptions=Array.from({length:48},(_,i)=>`${String(Math.floor(i/2)).padStart(2,'0')}:${i%2?'30':'00'}`);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -395,8 +395,8 @@ function renderWorkspaceSwitch(){
  const sel=$('workspaceSwitch');if(!sel)return;
  const mods=(session?.modules||[]).filter(m=>m.module==='transfer'||m.module==='ministry');
  const transferMods=mods.filter(m=>m.module==='transfer');
- const ministryMods=mods.filter(m=>m.module==='ministry');
- const currentTransfer=transferMods.find(m=>m.workspace_id===workspaceId)||transferMods[0];
+ const ministryMods=mods.filter(m=>m.module==='ministry'&&(!wantedState||Number(m.state_number)===wantedState));
+ const currentTransfer=transferMods.find(m=>m.workspace_id===workspaceId&&(!wantedState||Number(m.state_number)===wantedState));
  const options=[];
  if(currentTransfer)options.push({url:`transfer-workspace.html?workspace=${encodeURIComponent(currentTransfer.workspace_id)}`,label:`Transfer • ${currentTransfer.access_level==='admin'?'Admin':'Regular'}`,selected:true});
  for(const m of ministryMods)options.push({url:m.url||`ministry-workspace.html?workspace=${encodeURIComponent(m.workspace_id)}`,label:`Ministry • ${m.access_level==='admin'?'Admin':'Regular'}`,selected:false});
@@ -420,8 +420,9 @@ async function chooseWorkspaceAndLoad(){
  /* Global SSO already chose the State. Never fall back to the hidden legacy
     workspace-picker, because that produces a black screen on mobile. */
  if(!workspaceId&&wantedState)workspaceId=list.find(x=>Number(x.state_number)===wantedState)?.workspace_id||'';
- if(!workspaceId&&list.length)workspaceId=list[0].workspace_id||'';
- if(!workspaceId){location.replace(staffHub('no_access'));return}
+ if(!workspaceId&&!wantedState&&list.length)workspaceId=list[0].workspace_id||'';
+ if(workspaceId&&wantedState){const match=list.find(x=>String(x.workspace_id)===String(workspaceId)&&Number(x.state_number)===wantedState);if(!match){location.replace(staffHub('no_access_state_'+wantedState));return}}
+ if(!workspaceId){location.replace(staffHub('no_access_state_'+wantedState));return}
 
  $('authRoot').classList.add('hidden');
  $('workspaceRoot').classList.remove('hidden');

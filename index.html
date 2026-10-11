@@ -8,9 +8,9 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/nexa-form-runtime-v1.js?v=3" defer></script>
 <script src="/nexa-pulse-forms-v1.js?v=36-robust-content-owner-20260912" defer></script>
-<script src="/nexa-alliance-signal-v1.js?v=state-account-scoped-20261010" defer></script>
+<script src="/nexa-alliance-signal-v1.js?v=1-alliance-schedule-owner-20260912" defer></script>
 <script src="lang.js"></script>
-<script src="ui-i18n-final.js?v=6015-constellation-card-20261010"></script>
+<script src="ui-i18n-final.js?v=6014-fleet-identity-20261010"></script>
 
 <style>
 .module-visibility-card{
@@ -4375,10 +4375,13 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
   });
 
   async function loadAdminAlliances() {
+    // V25/V49 is the canonical alliance administration renderer. Do not race it.
+    if (window.__NEXA_V49_STATE_HUB__ || window.__NEXA_ADMINISTRATION_PASSPORTS_V1__) return;
     const list = document.getElementById('alliances-admin-list');
     const { data, error } = await supabaseClient
       .from('alliances')
-      .select('id,tag,is_active')
+      .select('id,tag,is_active,state_number')
+      .eq('state_number', Number(localStorage.getItem('nexa_active_state_v49') || window.NEXA_ACTIVE_STATE || 0))
       .order('tag');
     if (error) {
       document.getElementById('admin-alliances-message').textContent = error.message;
@@ -5861,7 +5864,7 @@ async function loadEventAllianceSelectors(selectedCastle=null, selectedPresidenc
     addButton(wrap,'Library',()=>go('library.html'));
     addButton(wrap,'Permissions',()=>go('index.html?admin=administration&tab=permissions'));
     addButton(wrap,'Operational Roles',()=>go('index.html?admin=administration&tab=roles'));
-    // System Operations is available only through the Developer Portal.
+    addButton(wrap,'System Operations',()=>go('index.html?admin=administration&tab=system'));
   }
 
   function buildEventForms(){
@@ -6088,6 +6091,6 @@ async function buildTransferHub(){
 
 <!-- NEXA Active State / Account context synchronization -->
 <script src="/nexa-active-context-fix-v1.js?v=3-20261009"></script>
-<script src="/nexa-fleet-identity-v1.js?v=2-state-manage-20261010"></script>
+<script src="/nexa-fleet-identity-v1.js?v=1-20261010"></script>
 </body>
 </html>

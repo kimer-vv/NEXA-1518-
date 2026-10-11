@@ -98,7 +98,7 @@ function activeState(){
     }
   }
 
-  return stateNum(raw); // Never silently change an active State to 1518.
+  return stateNum(raw||1518)||1518;
 }
 function setActiveState(value,{emit=true}={}){
   const n=stateNum(value);if(!n)return 0;
@@ -1016,7 +1016,8 @@ async function enhanceFleet(){
 
 async function selectStateAccount(st){
   const rows=await ownAccounts();
-  const a=rows.find(x=>stateNum(x.state_number)===st&&x.is_main)||rows.find(x=>stateNum(x.state_number)===st);
+  const existing=String(localStorage.getItem(ACTIVE_ACCOUNT_KEY)||window.NEXA_ACTIVE_ACCOUNT_ID||'');
+  const a=rows.find(x=>String(x.id)===existing&&stateNum(x.state_number)===st)||rows.find(x=>stateNum(x.state_number)===st&&x.is_main)||rows.find(x=>stateNum(x.state_number)===st);
   if(a)setActiveAccount(a.id);
 }
 
@@ -1483,7 +1484,7 @@ function openOwnedAdministrationMenu(){ownedMenuSubview('ADMINISTRATION',[
   ['Library',()=>{closeOwnedMenu();leaveForLibrary()}],
   ['NEXA Access',()=>ownedMenuGo('index.html?admin=administration&tab=permissions')],
   ['Operational Roles',()=>ownedMenuGo('index.html?admin=administration&tab=roles')],
-  // Developer-only System Operations is not part of standard Administration.
+  ['System Operations',()=>ownedMenuGo('index.html?admin=administration&tab=system')]
 ])}
 function openOwnedEventFormsMenu(){ownedMenuSubview('EVENT FORMS',[
   ['Forms',()=>ownedMenuGo('event-operations.html?tab=forms')],['Responses',()=>ownedMenuGo('event-operations.html?tab=responses')]
@@ -1731,7 +1732,7 @@ function bind(){
 
 
     const ship=e.target.closest?.('[data-fleet-state]');
-    if(ship&&!e.target.closest('[data-v49-remove-state]')){
+    if(ship&&!e.target.closest('[data-v49-remove-state]')&&!e.target.closest('#nexa-constellation-system')){
       const st=stateNum(ship.dataset.fleetState);
       if(st){setActiveState(st);await selectStateAccount(st);setTimeout(syncStateHome,80)}
     }

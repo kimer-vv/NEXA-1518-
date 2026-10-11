@@ -20,7 +20,7 @@ function db(){
   return localSb;
 }
 function activeState(){
-  const raw=localStorage.getItem('nexa_active_state_v49')||window.NEXA_ACTIVE_STATE||localStorage.getItem('nexa_active_state')||0;
+  const raw=window.NEXA_ACTIVE_STATE||localStorage.getItem('nexa_active_state_v49')||localStorage.getItem('nexa_active_state')||0;
   const n=Number(String(raw||'').replace(/\D/g,''));
   return Number.isFinite(n)&&n>0?n:0;
 }

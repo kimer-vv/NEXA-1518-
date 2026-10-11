@@ -221,6 +221,7 @@ async function refresh(){
  const fallback=(!fb.error&&fb.data?.ok)?fb.data:null;
  if(!primary&&!fallback)throw Error(primaryError?.message||fb.error?.message||fb.data?.error||'Unable to load WOS Utilities.');
  snap=primary||fallback;
+ if(!activeState)throw Error('Select a State before opening WOS Utilities.');
  if(fallback){
    snap={...fallback,...snap,
      me:{...(fallback.me||{}),...(snap?.me||{})},
@@ -241,7 +242,7 @@ function openAlliancePortal(){
  currentAllianceId=null;
  $('alliancePortal').classList.remove('hidden');
  $('allianceEvents').classList.add('hidden');
- const rows=snap?.is_owner?(snap?.all_alliances||snap?.alliances||[]):(snap?.alliances||[]);
+ const rows=(snap?.is_owner?(snap?.all_alliances||snap?.alliances||[]):(snap?.alliances||[])).filter(a=>activeState>0&&Number(a.state_number)===activeState);
  $('alliancePortalList').innerHTML=rows.map(a=>`<article class="alliance-card alliance-choice-card">
    <div class="alliance-choice-icon"><img src="/assets/nexa-ui/icons/event-reminders.png" alt=""></div>
    <div><div class="kicker">EVENT INSTANCE</div><h3>${esc(a.tag)}</h3><div class="muted">State ${esc(a.state_number)}${a.name?` · ${esc(a.name)}`:''}</div></div>

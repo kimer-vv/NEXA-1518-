@@ -37,14 +37,14 @@ function markNexaHomeProfileReady(){
     return number.toLocaleString();
   };
   const activeAccountId=()=>String(
-    window.NEXA_ACTIVE_ACCOUNT_ID ||
     localStorage.getItem('nexa_active_account_v49') ||
+    window.NEXA_ACTIVE_ACCOUNT_ID ||
     ''
   );
   const activeState=()=>{
     const raw=
-      window.NEXA_ACTIVE_STATE ||
       localStorage.getItem('nexa_active_state_v49') ||
+      window.NEXA_ACTIVE_STATE ||
       document.documentElement.dataset.nexaState ||
       0;
     const n=Number(String(raw??'').replace(/\D/g,''));

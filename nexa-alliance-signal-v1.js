@@ -238,8 +238,8 @@ async function mainAlliance(){
   const c=sb(); if(!c)return null;
   const {data:{user},error:userError}=await c.auth.getUser();
   if(userError||!user)return null;
-  const state=Number(window.NEXA_ACTIVE_STATE||localStorage.getItem('nexa_active_state_v49')||0);
-  const accountId=String(window.NEXA_ACTIVE_ACCOUNT_ID||localStorage.getItem('nexa_active_account_v49')||'');
+  const state=Number(localStorage.getItem('nexa_active_state_v49')||window.NEXA_ACTIVE_STATE||0);
+  const accountId=String(localStorage.getItem('nexa_active_account_v49')||window.NEXA_ACTIVE_ACCOUNT_ID||'');
   if(!state||!accountId)return null;
   const {data,error}=await c.from('player_accounts')
     .select('id,state_number,alliance_id,custom_alliance_tag,alliances(id,tag)')

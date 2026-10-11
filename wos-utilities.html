@@ -201,7 +201,7 @@ button{cursor:pointer;font-weight:850;background:linear-gradient(120deg,#5143a7,
 const SUPA='https://dfxcxboxrkfmrnsgpyin.supabase.co',PUB='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
 const sb=window.supabase.createClient(SUPA,PUB),$=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-let token=localStorage.getItem('nexa_transfer_staff_token')||sessionStorage.getItem('nexa_transfer_staff_token')||'',activeState=Number(localStorage.getItem('nexa_active_state')||sessionStorage.getItem('nexa_active_state')||0),snap=null,events=[],currentAllianceId=null,discordServerCache=[];
+let token=localStorage.getItem('nexa_transfer_staff_token')||sessionStorage.getItem('nexa_transfer_staff_token')||'',activeState=Number(new URLSearchParams(location.search).get('state')||localStorage.getItem('nexa_active_state_v49')||sessionStorage.getItem('nexa_active_state_v49')||localStorage.getItem('nexa_active_state')||sessionStorage.getItem('nexa_active_state')||0),snap=null,events=[],currentAllianceId=null,discordServerCache=[];
 const views=['homeView','remindersView','staffView'];
 function show(v){views.forEach(x=>$(x).classList.toggle('hidden',x!==v));scrollTo(0,0)}
 function toast(msg,bad=false){const t=$('toast');t.textContent=msg;t.classList.remove('hidden');t.style.borderColor=bad?'#ad5577':'#5f73a7';clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.add('hidden'),2200)}
@@ -759,7 +759,7 @@ async function workspaceSwitch(){
    const seen=new Set(),mods=[];
    for(const raw of rows){
      if(!raw?.url)continue;
-     if(activeState&&raw.state_number&&Number(raw.state_number)!==activeState)continue;
+     if(!activeState||Number(raw.state_number||0)!==activeState)continue;
      let key=raw.module||'';
      if(!key){
        const p=new URL(raw.url,location.href).pathname;
@@ -773,7 +773,7 @@ async function workspaceSwitch(){
      mods.push({...raw,module:key});
    }
    if(!mods.some(m=>m.module==='gift')){
-     mods.push({module:'gift',url:`wos-utilities.html?state=${activeState||1518}`});
+     mods.push({module:'gift',url:`wos-utilities.html?state=${activeState}`});
    }
    const order={transfer:1,ministry:2,gift:3};
    mods.sort((a,b)=>(order[a.module]||9)-(order[b.module]||9));

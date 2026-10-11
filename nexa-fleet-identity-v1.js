@@ -77,6 +77,7 @@ function ensureStyle(){
  .nfi-account .nfi-delete{margin-left:auto;border-color:#e6689c;color:#ff9dbd}
  .nfi-status{min-height:18px;font-size:11px;color:#7ee6ff}
  `;
+ s.textContent+=`#nexa-constellation-system .nexa-fleet-current-account{filter:drop-shadow(0 0 15px rgba(87,255,208,.9)) drop-shadow(0 0 24px rgba(87,255,208,.45))!important;outline:2px solid #6bffda!important;outline-offset:4px;border-radius:50%}#nexa-constellation-system .nexa-fleet-current-flag{display:block;position:absolute;bottom:-17px;left:50%;transform:translateX(-50%);white-space:nowrap;background:#075e51;color:#d6fff5;border:1px solid #6bffda;border-radius:20px;padding:3px 7px;font-size:9px;font-weight:900;z-index:12;pointer-events:none}`;
  document.head.appendChild(s);
 }
 function ensureModal(){
@@ -220,8 +221,14 @@ async function decorate(){
    const a=list.find(x=>String(x.account_id)===String(id));
    if(!a){el.style.display='none';return;}
    el.style.removeProperty('display');
+   const isCurrent=String(a.account_id)===activeAccountId() && Number(a.state_number)===state;
+   el.classList.toggle('nexa-fleet-current-account',isCurrent);
+   el.setAttribute('aria-label',`${a.game_name||'Account'} · State ${a.state_number} · Game ID ${a.game_id}${isCurrent?' · CURRENT ACCOUNT':''}`);
    const type=el.querySelector('.nexa-account-planet-type');
-   if(type)type.textContent=a.is_state_primary?'STATE PRIMARY':(a.is_main?'MAIN GLOBAL':String(a.account_purpose||'full').toUpperCase()+' ACCOUNT');
+   if(type)type.textContent=isCurrent?'● CURRENT ACCOUNT':(a.is_state_primary?'STATE PRIMARY':(a.is_main?'MAIN GLOBAL':String(a.account_purpose||'full').toUpperCase()+' ACCOUNT'));
+   let flag=el.querySelector('.nexa-fleet-current-flag');
+   if(isCurrent&&!flag){flag=document.createElement('span');flag.className='nexa-fleet-current-flag';flag.textContent='● CURRENT ACCOUNT';el.appendChild(flag);}
+   if(!isCurrent&&flag)flag.remove();
   });
  }catch(_){}
 }

@@ -289,7 +289,7 @@ html.embed-mode body{
 </main>
 <script>
 const sb=window.supabase.createClient("https://dfxcxboxrkfmrnsgpyin.supabase.co","sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-");
-const $=id=>document.getElementById(id);const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const $=id=>document.getElementById(id);const opsQuery=new URLSearchParams(location.search);const activeState=Number(opsQuery.get('state')||window.NEXA_ACTIVE_STATE||localStorage.getItem('nexa_active_state_v49')||sessionStorage.getItem('nexa_active_state_v49')||localStorage.getItem('nexa_active_state')||sessionStorage.getItem('nexa_active_state')||0);const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const DEFAULT_EVENT_TYPES=[{key:'svs',name:'SvS',active:true,system:true,sort_order:0},{key:'tal',name:'TAL',active:true,system:true,sort_order:1},{key:'fdt',name:'FDT',active:true,system:true,sort_order:2}];
 let questions=[],filter='all',optionDraft=[],eventTypes=[];const roleLabel={joiner:'Joiner',rally_lead:'Rally',both:'Joiner + Rally'};
 function eventName(key){return eventTypes.find(x=>x.key===key)?.name||key}
@@ -320,7 +320,7 @@ async function loadEventTypes(){
 }
 function savePreviewTypes(){localStorage.setItem('nexa_event_types_preview',JSON.stringify(eventTypes))}
 function selectedFormEvent(){return $('form-event-select')?.value||eventTypes.find(t=>t.active)?.key||'svs'}
-function selectedFormUrl(){const key=selectedFormEvent();return new URL(`battle-form.html?direct=1&event_type=${encodeURIComponent(key)}`,location.href)}
+function selectedFormUrl(){const key=selectedFormEvent(),u=new URL(`battle-form.html?direct=1&event_type=${encodeURIComponent(key)}`,location.href);if(activeState)u.searchParams.set('state',String(activeState));return u}
 $('open-selected-form').onclick=()=>window.open(selectedFormUrl().href,'_blank');
 $('copy-form-link').onclick=async()=>{const u=selectedFormUrl().href;try{await navigator.clipboard.writeText(u);$('copy-status').textContent=`${eventName(selectedFormEvent())} form link copied ✓`}catch{$('copy-status').textContent=u}};
 $('open-form-settings').onclick=()=>{location.href=`battle-settings.html?event_type=${encodeURIComponent(selectedFormEvent())}`};
@@ -483,7 +483,8 @@ async function loadResponses(){
   if(ev==='svs'){
     async function resolveCurrentSvsForResponses(){
       let q=await sb.from('svs_events')
-        .select('id,opponent_state,prep_monday,status,is_live')
+        .select('id,opponent_state,prep_monday,status,is_live,state_number')
+        .eq('state_number',activeState)
         .eq('is_live',true)
         .order('prep_monday',{ascending:false})
         .limit(1)
@@ -492,7 +493,8 @@ async function loadResponses(){
       if(q.data?.id) return q;
 
       q=await sb.from('svs_events')
-        .select('id,opponent_state,prep_monday,status,is_live')
+        .select('id,opponent_state,prep_monday,status,is_live,state_number')
+        .eq('state_number',activeState)
         .eq('status','live')
         .order('prep_monday',{ascending:false})
         .limit(1)
@@ -501,7 +503,8 @@ async function loadResponses(){
       if(q.data?.id) return q;
 
       return await sb.from('svs_events')
-        .select('id,opponent_state,prep_monday,status,is_live')
+        .select('id,opponent_state,prep_monday,status,is_live,state_number')
+        .eq('state_number',activeState)
         .neq('status','ended')
         .order('prep_monday',{ascending:false})
         .limit(1)
@@ -562,8 +565,9 @@ async function loadResponses(){
 
   const [{data:rows,error},{data:tpl,error:tplError}]=await Promise.all([
     sb.from('event_operation_responses')
-      .select('id,event_type_key,user_id,player_account_id,role,availability,not_available,response_data,submitted_at,updated_at,player_accounts(in_game_name,custom_alliance_tag,alliances(tag))')
+      .select('id,event_type_key,state_number,user_id,player_account_id,role,availability,not_available,response_data,submitted_at,updated_at,player_accounts(in_game_name,custom_alliance_tag,alliances(tag))')
       .eq('event_type_key',ev)
+      .eq('state_number',activeState)
       .order('updated_at',{ascending:false}),
     sb.from('event_form_templates').select('settings').eq('event_type_key',ev).maybeSingle()
   ]);

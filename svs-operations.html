@@ -1051,10 +1051,10 @@ const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>Array.from(r.query
 window.addEventListener('DOMContentLoaded',()=>{$('#svs-back')?.addEventListener('click',()=>{if(history.length>1)history.back();else location.href='index.html'})},{once:true});
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 function nexaSafeActiveState(){
- let raw=window.NEXA_ACTIVE_STATE||null;
+ let raw=new URLSearchParams(location.search).get('state')||window.NEXA_ACTIVE_STATE||null;
  if(!raw){
-   try{raw=window.localStorage?.getItem('nexa_active_state_v49')||null}
-   catch(err){console.warn('[NEXA] localStorage unavailable during SvS boot',err)}
+   try{raw=window.localStorage?.getItem('nexa_active_state_v49')||window.sessionStorage?.getItem('nexa_active_state_v49')||window.localStorage?.getItem('nexa_active_state')||window.sessionStorage?.getItem('nexa_active_state')||null}
+   catch(err){console.warn('[NEXA] storage unavailable during SvS boot',err)}
  }
  return Number(String(raw||1518).replace(/\D/g,''))||1518;
 }
@@ -1679,7 +1679,7 @@ async function base(){
  const assistPrimary=$('#assist-primary-alliance');if(assistPrimary)assistPrimary.innerHTML=opts;
  renderCounterAllianceSelectors();
  await loadStrategies();
- if(!strategy)await loadResponses();
+ if(!strategy){await loadSvsSetup();await loadResponses();}
  appLoading=false;
  renderSvsSetup();
  renderBattlePlanBuilder();
@@ -1823,7 +1823,7 @@ async function healLegacyPetScheduleIfNeeded(){
 
 const strategyPickerEl=$('#strategy-picker');if(strategyPickerEl)strategyPickerEl.onchange=e=>e.target.value&&openStrategy(e.target.value);
 const createStrategyEl=$('#create-strategy');if(createStrategyEl)createStrategyEl.onclick=async()=>{
- const {data,error}=await sb.from('svs_strategies').insert({state_number:state,name:$('#strategy-name').value.trim()||'SvS Strategy',build_flow:$('#build-flow').value}).select().single();
+ const {data,error}=await sb.from('svs_strategies').insert({state_number:state,name:$('#strategy-name').value.trim()||'SvS Strategy',build_flow:$('#build-flow').value,event_id:eventSetup?.id||null}).select().single();
  if(error)return say(error.message,true);strategy=data;await loadStrategies();await openStrategy(data.id);showTab(data.build_flow==='pets_first'?'pets':'strategy');say('Strategy created.');
 };
 async function openStrategy(id){
@@ -1942,19 +1942,22 @@ function setupLiveEventPayload(saved){
 }
 async function loadSvsSetup(){
  eventSetupLoaded=false;renderSvsSetup();
- if(!strategy){eventSetup=null;eventSetupLoaded=true;renderSvsSetup();return}
  let row=null;
- if(strategy.event_id){
-   const q=await sb.from('svs_events').select('*').eq('id',strategy.event_id).maybeSingle();
+ if(strategy?.event_id){
+   const q=await sb.from('svs_events').select('*').eq('id',strategy.event_id).eq('state_number',state).maybeSingle();
    if(q.error)console.warn('[NEXA] SvS Setup load failed',q.error);
+   row=q.data||null;
+ }
+ if(!row){
+   const q=await sb.from('svs_events').select('*').eq('state_number',state).neq('status','ended').order('prep_monday',{ascending:false}).order('updated_at',{ascending:false}).limit(1).maybeSingle();
+   if(q.error)console.warn('[NEXA] SvS Setup state load failed',q.error);
    row=q.data||null;
  }
  eventSetup=row;eventSetupLoaded=true;renderSvsSetup();
 }
 function renderSvsSetup(){
  const host=$('#svs-setup-host'),badge=$('#svs-setup-state');if(!host)return;
- if(appLoading&&!strategy){host.innerHTML='<div class="muted">Loading SvS strategy and event setup…</div>';if(badge){badge.textContent='LOADING';badge.classList.remove('live')}return}
- if(!strategy){host.innerHTML='<div class="muted">Open or create an SvS Strategy to attach the event setup.</div>';if(badge){badge.textContent='NO STRATEGY';badge.classList.remove('live')}return}
+ if(appLoading&&!eventSetupLoaded){host.innerHTML='<div class="muted">Loading SvS event setup…</div>';if(badge){badge.textContent='LOADING';badge.classList.remove('live')}return}
  if(!eventSetupLoaded){host.innerHTML='<div class="muted">Loading SvS Setup…</div>';if(badge){badge.textContent='LOADING';badge.classList.remove('live')}return}
  const e=eventSetup||{},prep=e.prep_monday||'',battle=setupBattleDate(prep),dates=setupDateLabels(prep),isLive=String(e.status||'').toLowerCase()==='live'||e.is_live===true;
  if(badge){badge.textContent=isLive?'LIVE':(e.id?'SAVED':'DRAFT');badge.classList.toggle('live',isLive)}
@@ -1969,13 +1972,13 @@ function renderSvsSetup(){
      <div class="setup-actions">
        <button id="setup-edit" class="btn violet" type="button">Edit</button>
        <button id="setup-publish" class="btn" type="button">${isLive?'Update Live Event':'Publish to Live Event'}</button>
-       <button id="setup-send-plan" class="btn" type="button">Send to Battle Plan</button>
+       ${strategy?'<button id="setup-send-plan" class="btn" type="button">Send to Battle Plan</button>':''}
      </div>
      <div class="tiny muted">${isLive?'This SvS Setup is live. Edit and save whenever leadership needs to update it.':'Setup saved. Publish it when you are ready for the Live Event.'}</div>
    </div>`;
    $('#setup-edit').onclick=()=>{setupEditing=true;renderSvsSetup()};
    $('#setup-publish').onclick=publishSvsSetup;
-   $('#setup-send-plan').onclick=sendSetupToBattlePlan;
+   if($('#setup-send-plan'))$('#setup-send-plan').onclick=sendSetupToBattlePlan;
    return;
  }
  host.innerHTML=`<div class="grid2">
@@ -1990,13 +1993,13 @@ function renderSvsSetup(){
  <div class="setup-actions">
    <button id="setup-save" class="btn violet" type="button">Save</button>
    <button id="setup-publish" class="btn" type="button">${isLive?'Update Live Event':'Publish to Live Event'}</button>
-   <button id="setup-send-plan" class="btn" type="button">Send to Battle Plan</button>
+   ${strategy?'<button id="setup-send-plan" class="btn" type="button">Send to Battle Plan</button>':''}
  </div>
  <div class="tiny muted" style="margin-top:9px">Battle Sign-Up stays in Form Center. Its deadline/open-close behavior is independent from SvS Setup.</div>`;
  const date=$('#setup-prep-date');if(date)date.onchange=()=>{const b=setupBattleDate(date.value),d=setupDateLabels(date.value);$('#setup-battle-date').value=b;$('#setup-date-confirm').innerHTML=`<b>Confirm the SvS start date</b><span><strong>UTC:</strong> ${esc(d.utc)}</span><span><strong>Your local time:</strong> ${esc(d.local||'—')}</span>`};
  $('#setup-save').onclick=()=>saveSvsSetup();
  $('#setup-publish').onclick=publishSvsSetup;
- $('#setup-send-plan').onclick=sendSetupToBattlePlan;
+ if($('#setup-send-plan'))$('#setup-send-plan').onclick=sendSetupToBattlePlan;
 }
 function collectSvsSetup(){
  return{
@@ -2008,7 +2011,6 @@ function collectSvsSetup(){
  };
 }
 async function saveSvsSetup({quiet=false,keepOpen=false}={}){
- if(!strategy){if(!quiet)say('Open or create an SvS Strategy first.',true);return null}
  const form=collectSvsSetup();
  if(!form.opponent_state||!form.prep_monday){if(!quiet)say('Opponent State and SvS Prep Start Date are required.',true);return null}
  setSaveState('saving');
@@ -2023,8 +2025,8 @@ async function saveSvsSetup({quiet=false,keepOpen=false}={}){
    }
    if(result.error){if(!quiet)say(result.error.message,true);return null}
    eventSetup=result.data;
-   if(String(strategy.event_id||'')!==String(eventSetup.id)){
-     const sr=await sb.from('svs_strategies').update({event_id:eventSetup.id,updated_at:now}).eq('id',strategy.id).select().single();
+   if(strategy&&String(strategy.event_id||'')!==String(eventSetup.id)){
+     const sr=await sb.from('svs_strategies').update({event_id:eventSetup.id,updated_at:now}).eq('id',strategy.id).eq('state_number',state).select().single();
      if(sr.error){if(!quiet)say(sr.error.message,true);return null}
      strategy=sr.data;
    }

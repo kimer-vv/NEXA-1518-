@@ -92,6 +92,8 @@ const $=id=>document.getElementById(id);
 const keys=['construction','research','training'];
 const frames=['','00:00–04:00 UTC','04:00–08:00 UTC','08:00–12:00 UTC','12:00–16:00 UTC','16:00–20:00 UTC','20:00–24:00 UTC'];
 const allTimes=Array.from({length:48},(_,i)=>`${String(Math.floor(i/2)).padStart(2,'0')}:${i%2?'30':'00'}`);
+const pageQuery=new URLSearchParams(location.search);
+const requestedState=Number(pageQuery.get('state')||window.NEXA_ACTIVE_STATE||localStorage.getItem('nexa_active_state_v49')||sessionStorage.getItem('nexa_active_state_v49')||localStorage.getItem('nexa_active_state')||sessionStorage.getItem('nexa_active_state')||0);
 let sessionUser=null,ministry=null,sectionOpen={construction:true,research:true,training:true};
 
 function setMsg(text,ok=false){const el=$('message');el.textContent=text;el.className='ms-message '+(ok?'ok':'err')}
@@ -190,11 +192,9 @@ async function load(){
     if(error){$('account').innerHTML='<option value="">Unable to load accounts</option>';$('auth-help').textContent=error.message}
     else if(!accounts?.length){$('account').innerHTML='<option value="">No WOS accounts found</option>';$('auth-help').textContent='Add a WOS Account in NEXA to connect Ministry requests to your profile.'}
     else{
-      const activeState=Number(localStorage.getItem('nexa_active_state_v49')||0);
-      const visible=activeState?accounts.filter(a=>Number(a.state_number||0)===activeState):accounts;
-      const rows=visible.length?visible:accounts;
-      $('account').innerHTML='<option value="">Select WOS Account</option>'+rows.map(a=>`<option value="${a.id}">${a.in_game_name} • ${a.alliances?.tag||a.custom_alliance_tag||'Not Listed'} • ID ${a.player_id}</option>`).join('');
-      $('auth-help').textContent=activeState&&visible.length?'Showing your WOS Accounts for the active State.':'Choose the WOS Account this Ministry request belongs to.';
+      const visible=requestedState?accounts.filter(a=>Number(a.state_number||0)===requestedState):accounts;
+      if(requestedState&&!visible.length){$('account').innerHTML=`<option value="">No WOS Account for State ${requestedState}</option>`;$('auth-help').textContent=`This form belongs to State ${requestedState}. Switch to or add a WOS Account for this State.`;}
+      else{$('account').innerHTML='<option value="">Select WOS Account</option>'+visible.map(a=>`<option value="${a.id}">${a.in_game_name} • ${a.alliances?.tag||a.custom_alliance_tag||'Not Listed'} • ID ${a.player_id}</option>`).join('');$('auth-help').textContent=requestedState?`Showing your WOS Accounts for State ${requestedState}.`:'Choose the WOS Account this Ministry request belongs to.';}
     }
   }else{
     $('account').innerHTML='<option value="">Sign in to NEXA to select an account</option>';
@@ -260,7 +260,7 @@ $('form').addEventListener('submit',async e=>{
   $('message').scrollIntoView({behavior:'smooth',block:'center'});
 });
 $('copy-link').addEventListener('click',async()=>{
-  const url=new URL('ministry-signup.html?direct=1',location.href).href;
+  const u=new URL('ministry-signup.html?direct=1',location.href);if(requestedState)u.searchParams.set('state',String(requestedState));const url=u.href;
   try{await navigator.clipboard.writeText(url);setMsg('Form link copied ✓',true)}catch{setMsg(url,true)}
 });
 load();

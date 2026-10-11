@@ -117,12 +117,13 @@ async function resolveBattleRole(account){
   }catch(_){ }
   return '';
 }
+const pageQuery=new URLSearchParams(location.search);const requestedState=Number(pageQuery.get('state')||window.NEXA_ACTIVE_STATE||localStorage.getItem('nexa_active_state_v49')||sessionStorage.getItem('nexa_active_state_v49')||localStorage.getItem('nexa_active_state')||sessionStorage.getItem('nexa_active_state')||0);
 async function loadMemberAccounts(session){const {data,error}=await sb.from('player_accounts').select('id,in_game_name,player_id,state_number,is_main,custom_alliance_tag,alliances(tag)').eq('user_id',session.user.id).order('is_main',{ascending:false});if(error)throw error;return data||[];}
-function activeAccountFrom(list){const activeId=localStorage.getItem('nexa_active_account_v49')||'';return list.find(a=>String(a.id)===String(activeId))||list.find(a=>a.is_main)||list[0]||null;}
+function activeAccountFrom(list){const scoped=requestedState?list.filter(a=>Number(a.state_number||0)===requestedState):list;const activeId=localStorage.getItem('nexa_active_account_v49')||'';return scoped.find(a=>String(a.id)===String(activeId))||scoped.find(a=>a.is_main)||scoped[0]||null;}
 function bindCheckCards(scope){document.querySelectorAll(scope+' .choice-card').forEach(card=>card.onclick=e=>{if(e.target.tagName!=='INPUT'){const inp=card.querySelector('input');inp.checked=!inp.checked;inp.dispatchEvent(new Event('change'));}});}
 function refreshCheckCards(scope){document.querySelectorAll(scope+' .choice-card').forEach(card=>card.classList.toggle('active',!!card.querySelector('input')?.checked));}
 
-let settings={},questions=[],session=null,account=null,memberAccounts=[],mode='',assignedRole='',profileSnapshot=null; let token=localStorage.getItem('nexa_guest_fdt_token_v2')||crypto.randomUUID(); localStorage.setItem('nexa_guest_fdt_token_v2',token);
+let settings={},questions=[],session=null,account=null,memberAccounts=[],mode='',assignedRole='',profileSnapshot=null; const tokenKey=`nexa_guest_fdt_token_v3_${requestedState||'state'}`;let token=localStorage.getItem(tokenKey)||crypto.randomUUID();localStorage.setItem(tokenKey,token);
 
 function heroReportList(s){
   return (s?.eligible_heroes||[]).map(h=>({
@@ -171,7 +172,7 @@ async function applyMemberAccount(id){
   roleUI();
   updateSummary();
 }
-async function enterMember(){ mode='member'; if(!session){ $('msg').textContent='A NEXA session is required.'; return; } memberAccounts=await loadMemberAccounts(session); if(!memberAccounts.length){ $('msg').textContent='No NEXA WOS Accounts were found.'; return; } await applyMemberAccount(activeAccountFrom(memberAccounts).id); $('gate').classList.add('hidden'); $('form').classList.remove('hidden'); $('memberNote').classList.remove('hidden'); $('guestProfile').classList.add('hidden'); }
+async function enterMember(){ mode='member'; if(!session){ $('msg').textContent='A NEXA session is required.'; return; } memberAccounts=await loadMemberAccounts(session);if(requestedState)memberAccounts=memberAccounts.filter(a=>Number(a.state_number||0)===requestedState);if(!memberAccounts.length){ $('msg').textContent=`No NEXA WOS Account is available for State ${requestedState||'this form'}.`; return; } const chosen=activeAccountFrom(memberAccounts);if(!chosen)return;await applyMemberAccount(chosen.id); $('gate').classList.add('hidden'); $('form').classList.remove('hidden'); $('memberNote').classList.remove('hidden'); $('guestProfile').classList.add('hidden'); }
 function guestIdentity(){ $('identity').innerHTML=`<h3>Guest / Public Identity</h3><label>In-Game Name<input id="gname"></label><label>Game ID<input id="gid" inputmode="numeric"></label><label>Alliance Tag<input id="gtag"></label>`; }
 async function restoreGuest(){ try{ const {data,error}=await sb.rpc('nexa_get_guest_event_response',{p_event_type_key:'fdt',p_guest_token:token}); if(error)return; const r=Array.isArray(data)?data[0]:data; if(!r)return; $('gname').value=r.in_game_name||''; $('gid').value=r.game_id||''; $('gtag').value=r.alliance_tag||''; }catch(_ ){} }
 async function enterGuest(){ mode='guest'; assignedRole=''; guestIdentity(); $('gate').classList.add('hidden'); $('form').classList.remove('hidden'); $('memberNote').classList.add('hidden'); $('guestProfile').classList.remove('hidden'); $('battleRoleSection')?.classList.remove('hidden'); $('roleChoices').classList.remove('hidden'); $('roleAuto').classList.add('hidden'); bindRadioCards('role'); await restoreGuest(); roleUI(); }
@@ -196,6 +197,7 @@ $('form').onsubmit=async e=>{ e.preventDefault(); $('saveMsg').textContent=''; $
     };
     const row={
       event_type_key:'fdt',
+      state_number:requestedState||Number(account?.state_number||0)||null,
       user_id:session.user.id,
       player_account_id:account.id,
       role:x.role,
@@ -207,5 +209,5 @@ $('form').onsubmit=async e=>{ e.preventDefault(); $('saveMsg').textContent=''; $
     const result=await sb.from('event_operation_responses').upsert(row,{onConflict:'event_type_key,player_account_id'}).select();
     $('saveMsg').textContent=result.error?result.error.message:'FDT response saved ✓';
     return;
-  } const name=$('gname').value.trim(),game=$('gid').value.trim(),tag=$('gtag').value.trim(); if(!name||!/^\d+$/.test(game)||!tag){ $('saveMsg').textContent='Enter In-Game Name, numeric Game ID and Alliance Tag.'; return; } const linked=await sb.rpc('nexa_guest_game_id_is_nexa',{p_game_id:game}); if(linked.data){ $('saveMsg').textContent='This Game ID is linked to a NEXA account. Sign in with NEXA to access or edit your response.'; return; } const saved=await sb.rpc('nexa_upsert_guest_event_response',{p_event_type_key:'fdt',p_guest_token:token,p_game_id:game,p_in_game_name:name,p_alliance_tag:tag,p_role:x.role,p_response_data:x}); $('saveMsg').textContent=saved.error?saved.error.message:'FDT response saved ✓'; };
+  } const name=$('gname').value.trim(),game=$('gid').value.trim(),tag=$('gtag').value.trim(); if(!name||!/^\d+$/.test(game)||!tag){ $('saveMsg').textContent='Enter In-Game Name, numeric Game ID and Alliance Tag.'; return; } const linked=await sb.rpc('nexa_guest_game_id_is_nexa',{p_game_id:game}); if(linked.data){ $('saveMsg').textContent='This Game ID is linked to a NEXA account. Sign in with NEXA to access or edit your response.'; return; } const saved=await sb.rpc('nexa_upsert_guest_event_response_v2',{p_event_type_key:'fdt',p_event_id:null,p_state_number:requestedState,p_guest_token:token,p_game_id:game,p_in_game_name:name,p_alliance_tag:tag,p_role:x.role,p_response_data:x}); $('saveMsg').textContent=saved.error?saved.error.message:'FDT response saved ✓'; };
 (async function load(){ try{ const [template,qq,auth]=await Promise.all([sb.from('event_form_templates').select('settings').eq('event_type_key','fdt').maybeSingle(),sb.from('event_form_questions').select('*').eq('is_active',true),sb.auth.getSession()]); settings=template.data?.settings||{}; questions=qq.data||[]; session=auth.data?.session||null; renderAvailability(); renderTroops(); bindRadioCards('healing'); if(session) await enterMember(); else $('gate').classList.remove('hidden'); updateSummary(); }catch(err){ $('msg').textContent=err?.message||'Unable to load FDT Form.'; } })();</script></body></html>

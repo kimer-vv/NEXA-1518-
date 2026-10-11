@@ -371,7 +371,7 @@ const canManage=()=>accessInfo?.can_manage===true;
 function saveToken(raw,remember){localStorage.removeItem('nexa_transfer_staff_token');sessionStorage.removeItem('nexa_transfer_staff_token');(remember?localStorage:sessionStorage).setItem('nexa_transfer_staff_token',raw);token=raw}
 function clearToken(){for(const st of [localStorage,sessionStorage]){st.removeItem('nexa_transfer_staff_token');st.removeItem('nexa_active_state');st.removeItem('nexa_active_state_v49')}token=''}
 function staffHub(reason=''){const u=new URL('staff-workspaces.html',location.href);u.searchParams.set('next',(location.pathname.split('/').pop()||'')+location.search);if(reason)u.searchParams.set('reason',reason);return u.href}
-function workspaceUrl(){return workspace?new URL(`transfer-workspace.html?workspace=${encodeURIComponent(workspace.id)}`,location.href).href:location.href}
+function workspaceUrl(){if(!workspace)return location.href;const u=new URL('transfer-workspace.html',location.href);u.searchParams.set('workspace',workspace.id);if(Number(workspace.state_number||wantedState||0))u.searchParams.set('state',String(Number(workspace.state_number||wantedState)));return u.href}
 function publicForm(){return workspace?new URL(`transfer-form-v2.html?public=1&workspace=${encodeURIComponent(workspace.id)}`,location.href).href:'#'}
 function directForm(){return intake?new URL(`transfer-form-v2.html?direct=1&event=${encodeURIComponent(intake.id)}`,location.href).href:'#'}
 function builder(){return intake?new URL(`transfer-form-settings.html?workspace=1&event=${encodeURIComponent(intake.id)}`,location.href).href:'#'}
@@ -398,8 +398,8 @@ function renderWorkspaceSwitch(){
  const ministryMods=mods.filter(m=>m.module==='ministry'&&(!wantedState||Number(m.state_number)===wantedState));
  const currentTransfer=transferMods.find(m=>m.workspace_id===workspaceId&&(!wantedState||Number(m.state_number)===wantedState));
  const options=[];
- if(currentTransfer)options.push({url:`transfer-workspace.html?workspace=${encodeURIComponent(currentTransfer.workspace_id)}`,label:`Transfer • ${currentTransfer.access_level==='admin'?'Admin':'Regular'}`,selected:true});
- for(const m of ministryMods)options.push({url:m.url||`ministry-workspace.html?workspace=${encodeURIComponent(m.workspace_id)}`,label:`Ministry • ${m.access_level==='admin'?'Admin':'Regular'}`,selected:false});
+ if(currentTransfer)options.push({url:`transfer-workspace.html?workspace=${encodeURIComponent(currentTransfer.workspace_id)}&state=${encodeURIComponent(currentTransfer.state_number||wantedState||'')}`,label:`Transfer • ${currentTransfer.access_level==='admin'?'Admin':'Regular'}`,selected:true});
+ for(const m of ministryMods){let mu=m.url||`ministry-workspace.html?workspace=${encodeURIComponent(m.workspace_id)}`;try{const u=new URL(mu,location.href);u.searchParams.set('state',String(m.state_number||wantedState||workspace?.state_number||''));mu=u.href}catch(_){}options.push({url:mu,label:`Ministry • ${m.access_level==='admin'?'Admin':'Regular'}`,selected:false});}
  sel.innerHTML=options.map(o=>`<option value="${o.url}" ${o.selected?'selected':''}>${o.label}</option>`).join('');
  if(!options.length)sel.innerHTML='<option>Transfer Workspace</option>';
  sel.onchange=()=>{const u=sel.value;if(u)location.href=u};

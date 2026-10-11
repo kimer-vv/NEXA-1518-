@@ -161,7 +161,9 @@ const SB_URL='https://dfxcxboxrkfmrnsgpyin.supabase.co';
 const SB_KEY='sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-';
 const sb=window.supabase.createClient(SB_URL,SB_KEY),$=id=>document.getElementById(id);
 let token=localStorage.getItem('nexa_transfer_staff_token')||sessionStorage.getItem('nexa_transfer_staff_token')||'';
-let workspaceId=new URLSearchParams(location.search).get('workspace')||'';
+const pageQuery=new URLSearchParams(location.search);
+let workspaceId=pageQuery.get('workspace')||'';
+let wantedState=Number(pageQuery.get('state')||window.NEXA_ACTIVE_STATE||localStorage.getItem('nexa_active_state_v49')||sessionStorage.getItem('nexa_active_state_v49')||localStorage.getItem('nexa_active_state')||sessionStorage.getItem('nexa_active_state')||0);
 let snap=null,modules=[],activeView='requests',requestDay='construction',appointmentDay='construction',selectedRequest=null,dragState=null,pendingConflict=null;
 const DAYS=[['construction','Construction'],['research','Research'],['training','Training']];
 const times=Array.from({length:48},(_,i)=>`${String(Math.floor(i/2)).padStart(2,'0')}:${i%2?'30':'00'}`);
@@ -195,7 +197,7 @@ function showView(v){
  if(v==='access')loadAccess();
 }
 function ministryWorkspaceUrl(){
- return `${location.origin}/ministry-workspace.html?workspace=${encodeURIComponent(workspaceId)}`;
+ const u=new URL('/ministry-workspace.html',location.origin);u.searchParams.set('workspace',workspaceId);if(wantedState)u.searchParams.set('state',String(wantedState));return u.href;
 }
 function renderMinistryWorkspaceLink(){
  const input=$('ministryWorkspaceLink');
@@ -252,7 +254,7 @@ async function modulesRender(){
      module:'ministry',
      label:'Ministry Workspace',
      workspace_id:workspaceId,
-     url:`ministry-workspace.html?workspace=${encodeURIComponent(workspaceId)}`
+     url:`ministry-workspace.html?workspace=${encodeURIComponent(workspaceId)}${wantedState?`&state=${wantedState}`:''}`
    });
  }
  const order={transfer:1,ministry:2,gift:3};
@@ -264,7 +266,7 @@ async function modulesRender(){
                m.module==='ministry'?'Ministry Workspace':
                m.module==='gift'?'WOS Utilities':
                (m.label||'NEXA Workspace');
-   const option=new Option(label,m.url||'');
+   let optionUrl=m.url||'';if(optionUrl&&wantedState){try{const ou=new URL(optionUrl,location.href);ou.searchParams.set('state',String(wantedState));optionUrl=ou.href}catch(_){}}const option=new Option(label,optionUrl);
    const isCurrent=m.module==='ministry'&&(
      String(m.workspace_id||'')===String(workspaceId)||
      String(m.url||'').includes('ministry-workspace.html')
@@ -286,25 +288,26 @@ async function login(){
    const d=await rpc('nexa_staff_login_v2',{p_state_number:state,p_game_id:gameId,p_password:$('loginPass').value,p_remember:$('remember').checked});
    if(!d?.ok)throw new Error(d?.error||'Unable to sign in');
    saveToken(d.token,$('remember').checked);modules=d.modules||[];
-   const ministry=modules.find(m=>m.module==='ministry'&&(!workspaceId||m.workspace_id===workspaceId))||modules.find(m=>m.module==='ministry');
+   const ministry=modules.find(m=>m.module==='ministry'&&(!workspaceId||String(m.workspace_id)===String(workspaceId))&&(!wantedState||!m.state_number||Number(m.state_number)===wantedState))||(!workspaceId?modules.find(m=>m.module==='ministry'&&(!wantedState||Number(m.state_number)===wantedState)):null);
    if(!ministry)throw new Error('No Ministry Workspace access.');
-   workspaceId=ministry.workspace_id;history.replaceState(null,'',`ministry-workspace.html?workspace=${workspaceId}`);await start();
+   workspaceId=ministry.workspace_id;wantedState=Number(ministry.state_number||wantedState||0);history.replaceState(null,'',`ministry-workspace.html?workspace=${workspaceId}${wantedState?`&state=${wantedState}`:''}`);await start();
  }catch(e){$('loginMsg').textContent=e.message||String(e)}
 }
 async function start(){
  if(!token){location.replace('staff-workspaces.html?next='+encodeURIComponent((location.pathname.split('/').pop()||'')+location.search));return}
  try{
    const s=await rpc('transfer_staff_session',{p_token:token});if(!s?.ok)throw new Error('session_expired');
-   modules=s.modules||[];let ministry=modules.find(m=>m.module==='ministry'&&m.workspace_id===workspaceId)||modules.find(m=>m.module==='ministry');
+   modules=s.modules||[];let ministry=modules.find(m=>m.module==='ministry'&&String(m.workspace_id)===String(workspaceId)&&(!wantedState||!m.state_number||Number(m.state_number)===wantedState));if(!ministry&&!workspaceId)ministry=modules.find(m=>m.module==='ministry'&&(!wantedState||Number(m.state_number)===wantedState));
    if(!ministry)throw new Error('No Ministry Workspace access.');
    workspaceId=ministry.workspace_id;
-   history.replaceState(null,'',`ministry-workspace.html?workspace=${workspaceId}`);
+   wantedState=Number(ministry.state_number||wantedState||0);
+   history.replaceState(null,'',`ministry-workspace.html?workspace=${workspaceId}${wantedState?`&state=${wantedState}`:''}`);
    await modulesRender();
    renderMinistryWorkspaceLink();
-   snap=await rpc('ministry_workspace_snapshot_v2',{p_workspace_id:workspaceId,p_token:token});if(!snap?.ok)throw new Error(snap?.error||'Unable to open workspace');
+   snap=await rpc('ministry_workspace_snapshot_v2',{p_workspace_id:workspaceId,p_token:token});if(!snap?.ok)throw new Error(snap?.error||'Unable to open workspace');if(wantedState&&Number(snap.workspace?.state_number)!==wantedState)throw new Error('workspace_state_mismatch');wantedState=Number(snap.workspace?.state_number||wantedState||0);
    $('loginScreen').classList.add('hidden');$('app').classList.remove('hidden');
    $('eventMeta').textContent=snap.event?.id?`Linked to SvS vs ${snap.event.opponent_state||'—'} • Prep Monday ${snap.event.prep_monday} • UTC`:'No active SvS event linked.';
-   $('eventKicker').textContent=`STATE ${snap.workspace?.state_number||1518} • MINISTRY • UTC`;
+   $('eventKicker').textContent=`STATE ${snap.workspace?.state_number||wantedState||'—'} • MINISTRY • UTC`;
    renderAll();
  }catch(e){const msg=String(e?.message||e||'');if(msg.includes('session')){token='';for(const st of [localStorage,sessionStorage]){st.removeItem('nexa_transfer_staff_token');st.removeItem('nexa_active_state');st.removeItem('nexa_active_state_v49')}}location.replace('staff-workspaces.html?next='+encodeURIComponent((location.pathname.split('/').pop()||'')+location.search)+'&reason='+encodeURIComponent(msg.includes('session')?'session_expired':'workspace_error'))}
 }

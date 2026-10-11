@@ -57,12 +57,14 @@ const SECTIONS=[
  ]}
 ];
 const $=id=>document.getElementById(id),q=new URLSearchParams(location.search);
-let i=Math.max(0,SECTIONS.findIndex(x=>x.k===(q.get('section')||'svs'))),templates={},transferEvent=null,transferWorkspace=null;
+const activeState=Number(q.get('state')||window.NEXA_ACTIVE_STATE||localStorage.getItem('nexa_active_state_v49')||sessionStorage.getItem('nexa_active_state_v49')||localStorage.getItem('nexa_active_state')||sessionStorage.getItem('nexa_active_state')||0);
+let i=Math.max(0,SECTIONS.findIndex(x=>x.k===(q.get('section')||'svs'))),templates={},transferEvent=null,transferWorkspace=null,currentSvsEvent=null;
+function scopedUrl(raw,{event=false}={}){const u=new URL(raw,location.href);if(activeState)u.searchParams.set('state',String(activeState));if(event&&currentSvsEvent?.id)u.searchParams.set('event',currentSvsEvent.id);return u.pathname.replace(/^\//,'')+u.search+u.hash;}
 
 function deadline(s){if(!s?.deadline_enabled||!s.deadline_at)return'';const ms=new Date(s.deadline_at)-Date.now();if(ms<=0)return'<span class="nexa-deadline-badge closed">CLOSED</span>';const d=Math.floor(ms/86400000),h=Math.floor(ms/3600000)%24,m=Math.floor(ms/60000)%60,t=ms<=86400000?'red':ms<=4*86400000?'yellow':'green';return `<span class="nexa-deadline-badge ${t}">Deadline · ${d?d+'D '+h+'H':h+'H '+m+'M'}</span>`}
 function settingsFor(key){return templates[key]?.settings||{}}
 function accessOpen(s){return s.public_access_removed!==true&&s.public_access_enabled!==false}
-function transferLinks(){if(!transferEvent)return{open:'#',copy:'#',edit:'#'};const id=encodeURIComponent(transferEvent.id);return{open:`transfer-form-v2.html?direct=1&event=${id}`,copy:`transfer-form-v2.html?public=1&event=${id}`,edit:`transfer-form-custom.html?event=${id}&new=1`}}
+function transferLinks(){if(!transferEvent)return{open:'#',copy:'#',edit:'#'};const id=encodeURIComponent(transferEvent.id);return{open:scopedUrl(`transfer-form-v2.html?direct=1&event=${id}`),copy:scopedUrl(`transfer-form-v2.html?public=1&event=${id}`),edit:scopedUrl(`transfer-form-custom.html?event=${id}&new=1`)}}
 function surveyIdFromSettings(s){const u=String(s?.form_url||s?.public_url||'');return u.match(/[?&]id=([0-9a-f-]{36})/i)?.[1]||''}
 function surveyLinks(s){
  const sid=surveyIdFromSettings(s);
@@ -96,12 +98,12 @@ function card(c){
     <button class="${open?'danger':'restore'}" data-access="surveys" ${disabled?'disabled':''}>${open?'Remove Public Access':'Restore Public Access'}</button>
    </div><div class="status"></div></article>`;
  }
- const s=settingsFor(c.key),hasKey=!!c.key,open=accessOpen(s),published=s.published_to_nexa===true,copy=c.copy||c.open||'#';
+ const s=settingsFor(c.key),hasKey=!!c.key,open=accessOpen(s),published=s.published_to_nexa===true;const linkOpen=scopedUrl(c.open||'#',{event:c.key==='svs'||c.key==='ministry'}),linkEdit=c.edit?scopedUrl(c.edit,{event:c.key==='svs'||c.key==='ministry'}):'',copy=scopedUrl(c.copy||c.open||'#',{event:c.key==='svs'||c.key==='ministry'});
  return `<article class="card" data-card-key="${c.key||''}"><div class="tag">${c.tag}</div><h2>${c.title}</h2><p>${c.desc}</p>
  ${hasKey?`<span class="access-state ${open?'':'off'}">${open?'PUBLIC ACCESS OPEN':'PUBLIC ACCESS REMOVED'}</span><div class="deadline">${deadline(s)||'<span style="color:#7e89a9;font-size:12px">No deadline set</span>'}</div>`:''}
- <div class="actions"><a href="${c.open}">Open Form</a><button data-copy="${copy}" ${hasKey&&!open?'disabled':''}>Copy Link</button>
+ <div class="actions"><a href="${linkOpen}">Open Form</a><button data-copy="${copy}" ${hasKey&&!open?'disabled':''}>Copy Link</button>
  ${hasKey?`<button data-publish="${c.key}" ${!open?'disabled':''}>${published?'Unpublish from NEXA':'Publish to NEXA'}</button>`:'<button disabled>Publish to NEXA</button>'}
- ${c.edit?`<a href="${c.edit}">Edit Form</a>`:'<button disabled>Edit Form</button>'}
+ ${c.edit?`<a href="${linkEdit}">Edit Form</a>`:'<button disabled>Edit Form</button>'}
  ${hasKey?`<button class="${open?'danger':'restore'}" data-access="${c.key}">${open?'Remove Public Access':'Restore Public Access'}</button>`:'<button disabled>Remove Public Access</button>'}
  </div><div class="status"></div></article>`;
 }
@@ -110,12 +112,14 @@ function render(){
  $('title').textContent=s.t;$('desc').textContent=s.d;$('prev').disabled=i===0;$('next').disabled=false;
  $('sectionTools').classList.toggle('show',s.k==='surveys');
  $('list').innerHTML=s.c.length?s.c.map(card).join(''):'<div class="desc">No forms in this section yet.</div>';
- history.replaceState(null,'',`forms-center.html?section=${s.k}`);
+ history.replaceState(null,'',`forms-center.html?section=${s.k}${activeState?`&state=${activeState}`:''}`);
 }
 async function reload(){
  const r=await SB.from('event_form_templates').select('event_type_key,settings').in('event_type_key',['svs','fdt','tal','ministry','surveys']);if(!r.error)for(const x of r.data||[])templates[x.event_type_key]=x;
+ currentSvsEvent=null;
+ if(activeState){const ev=await SB.from('svs_events').select('id,state_number,opponent_state,status,prep_monday').eq('state_number',activeState).neq('status','ended').order('prep_monday',{ascending:false}).order('updated_at',{ascending:false}).limit(1).maybeSingle();if(!ev.error)currentSvsEvent=ev.data||null;}
  transferWorkspace=null;transferEvent=null;
- const tr=await SB.rpc('get_transfer_form_admin_state');
+ const tr=activeState?await SB.rpc('get_transfer_form_admin_state_v2',{p_state_number:activeState}):{data:null,error:{message:'State required'}};
  const st=tr.data||null;
  if(!tr.error&&st?.ok===true){
    transferWorkspace={id:st.workspace_id,state_number:st.state_number,display_name:st.display_name};

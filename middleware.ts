@@ -50,15 +50,14 @@ export default async function middleware(request: Request) {
   const path = url.pathname;
 
   // Private staff workspaces stay available during Maintenance Mode.
-  // The public Gift Member Registration page is also intentionally available:
-  // access still requires a valid per-alliance invitation token, and its API
-  // validates that token before exposing alliance registration context.
+  // Ministry uses versioned workspace filenames too, so allow the whole
+  // ministry-workspace family instead of only the original exact path.
   if (
     path === '/maintenance.html' ||
     path === '/owner-access.html' ||
     path === '/staff-workspaces.html' ||
     path === '/wos-utilities.html' ||
-    path === '/ministry-workspace.html' ||
+    path.startsWith('/ministry-workspace') ||
     path === '/gift-code-workspace.html' ||
     path === '/gift-register.html' ||
     path === '/gift-register' ||

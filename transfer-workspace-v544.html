@@ -11,107 +11,102 @@ html,body{margin:0;min-height:100%;background:#03050e;color:#fff;font-family:sys
 </style>
 </head>
 <body>
-<div id="loader"><div><b>Loading Transfer Workspace…</b><span>Applying instant selector contrast</span></div></div>
+<div id="loader"><div><b>Loading Transfer Workspace…</b><span>Applying modern Groups + selector contrast</span></div></div>
 <script>
 (async()=>{
  try{
+   /* IMPORTANT: keep the exact V5.44 base used by the modern Groups renderer */
    const source=new URL('/transfer-workspace.html',location.origin);
    source.search=location.search;
-   source.searchParams.set('_nexa_base','544c');
+   source.searchParams.set('_nexa_base','544');
+
    const res=await fetch(source.href,{cache:'no-store'});
    if(!res.ok)throw new Error('Unable to load Transfer Workspace');
    let html=await res.text();
 
-   const contrast=`<style id="nexaTransferSelectorContrastFinal">
-/* TRUE neutral state — old purple/cyan gradients cannot bleed through */
-.babySeg button[data-v515-route],
-.babySeg button[data-route-card],
-.babySeg button[data-v515-invite],
-.babySeg button[data-invite-toggle],
-.orderSeg524 button[data-app-order]{
-  background:linear-gradient(180deg,#343a46,#282d37)!important;
-  color:#9da6b5!important;
+   /* Existing instant-save / Groups behavior stays intact */
+   const patch='<scr'+'ipt src="/nexa-transfer-live-sync-v3.js?v=3-20261012-1"></scr'+'ipt>';
+
+   /* Visual-only override: never changes renderer, events, RPCs, reorder or buttons */
+   const contrast=`<style id="nexaTransferModernPillContrast">
+/* Neutral/inactive modern pills */
+.babySeg [data-v515-route],
+.babySeg [data-route-card],
+.babySeg [data-v515-invite],
+.babySeg [data-invite-toggle],
+.orderSeg524 [data-app-order]{
+  background:linear-gradient(180deg,#343a46,#292e38)!important;
+  color:#9fa8b8!important;
   border:1px solid rgba(255,255,255,.09)!important;
   box-shadow:none!important;
   text-shadow:none!important;
   filter:none!important;
-  opacity:1!important;
-  font-weight:850!important;
-  transform:none!important;
 }
 
-/* Unselected ALWAYS gray */
-.babySeg button[data-v515-route]:not(.active),
-.babySeg button[data-route-card]:not(.active),
-.babySeg button[data-v515-invite]:not(.active),
-.babySeg button[data-invite-toggle]:not(.active),
-.orderSeg524 button[data-app-order]:not(.active){
-  background:linear-gradient(180deg,#343a46,#282d37)!important;
-  color:#9da6b5!important;
+/* ONLY active selection receives color */
+.babySeg [data-v515-route="ordinary"].active,
+.babySeg [data-route-card="ordinary"].active{
+  background:linear-gradient(135deg,#16835c,#42c28e)!important;
+  color:#fff!important;
+  border-color:rgba(122,239,188,.76)!important;
+  box-shadow:0 3px 12px rgba(31,156,109,.28)!important;
+}
+
+.babySeg [data-v515-route="special"].active,
+.babySeg [data-route-card="special"].active{
+  background:linear-gradient(135deg,#9b6618,#e2b54b)!important;
+  color:#fff!important;
+  border-color:rgba(255,214,109,.78)!important;
+  box-shadow:0 3px 12px rgba(181,126,27,.28)!important;
+}
+
+.babySeg [data-v515-invite="pending"].active,
+.babySeg [data-invite-toggle="pending"].active{
+  background:linear-gradient(135deg,#6652d7,#3d8ed4)!important;
+  color:#fff!important;
+  border-color:rgba(159,172,255,.76)!important;
+  box-shadow:0 3px 12px rgba(77,91,195,.27)!important;
+}
+
+.babySeg [data-v515-invite="sent"].active,
+.babySeg [data-invite-toggle="sent"].active{
+  background:linear-gradient(135deg,#16835c,#42c28e)!important;
+  color:#fff!important;
+  border-color:rgba(122,239,188,.76)!important;
+  box-shadow:0 3px 12px rgba(31,156,109,.28)!important;
+}
+
+.orderSeg524 [data-app-order].active{
+  background:linear-gradient(135deg,#6c52d9,#358dc9)!important;
+  color:#fff!important;
+  border-color:rgba(151,143,255,.78)!important;
+  box-shadow:0 3px 12px rgba(72,88,202,.27)!important;
+}
+
+/* Explicitly force every sibling that is NOT selected to neutral gray */
+.babySeg [data-v515-route]:not(.active),
+.babySeg [data-route-card]:not(.active),
+.babySeg [data-v515-invite]:not(.active),
+.babySeg [data-invite-toggle]:not(.active),
+.orderSeg524 [data-app-order]:not(.active){
+  background:linear-gradient(180deg,#343a46,#292e38)!important;
+  color:#9fa8b8!important;
   border-color:rgba(255,255,255,.09)!important;
   box-shadow:none!important;
-  text-shadow:none!important;
-  filter:none!important;
-}
-
-/* Ordinary active = GREEN */
-.babySeg button[data-v515-route="ordinary"].active,
-.babySeg button[data-route-card="ordinary"].active{
-  background:linear-gradient(135deg,#17885f,#48c694)!important;
-  color:#fff!important;
-  border-color:rgba(126,244,194,.78)!important;
-  box-shadow:0 0 0 1px rgba(126,244,194,.20),0 4px 14px rgba(28,153,105,.34)!important;
-  transform:translateY(-1px)!important;
-}
-
-/* Special active = GOLD */
-.babySeg button[data-v515-route="special"].active,
-.babySeg button[data-route-card="special"].active{
-  background:linear-gradient(135deg,#9f6917,#e6b84e)!important;
-  color:#fff!important;
-  border-color:rgba(255,215,112,.82)!important;
-  box-shadow:0 0 0 1px rgba(255,215,112,.20),0 4px 14px rgba(180,126,26,.34)!important;
-  transform:translateY(-1px)!important;
-}
-
-/* Pending active = PURPLE/BLUE */
-.babySeg button[data-v515-invite="pending"].active,
-.babySeg button[data-invite-toggle="pending"].active{
-  background:linear-gradient(135deg,#6251d4,#428bd5)!important;
-  color:#fff!important;
-  border-color:rgba(157,171,255,.78)!important;
-  box-shadow:0 0 0 1px rgba(157,171,255,.18),0 4px 14px rgba(75,92,197,.30)!important;
-  transform:translateY(-1px)!important;
-}
-
-/* Sent active = GREEN */
-.babySeg button[data-v515-invite="sent"].active,
-.babySeg button[data-invite-toggle="sent"].active{
-  background:linear-gradient(135deg,#17885f,#48c694)!important;
-  color:#fff!important;
-  border-color:rgba(126,244,194,.78)!important;
-  box-shadow:0 0 0 1px rgba(126,244,194,.20),0 4px 14px rgba(28,153,105,.34)!important;
-  transform:translateY(-1px)!important;
-}
-
-/* First Come / Priority — only selected gets color */
-.orderSeg524 button[data-app-order].active{
-  background:linear-gradient(135deg,#6b50d8,#348ecb)!important;
-  color:#fff!important;
-  border-color:rgba(150,143,255,.82)!important;
-  box-shadow:0 0 0 1px rgba(150,143,255,.18),0 4px 14px rgba(70,86,205,.30)!important;
-  transform:translateY(-1px)!important;
 }
 </style>`;
 
-   const patch='<scr'+'ipt src="/nexa-transfer-live-sync-v3.js?v=3-20261012-2"></scr'+'ipt>';
    const close='</bo'+'dy>';
-   const injected=contrast+patch;
-
+   const injected=patch+contrast;
    html=html.includes(close)?html.replace(close,injected+close):html+injected;
-   document.open();document.write(html);document.close();
+
+   document.open();
+   document.write(html);
+   document.close();
  }catch(err){
-   document.getElementById('loader').innerHTML='<div><b>Transfer Workspace could not load.</b><span>'+String(err?.message||err)+'</span></div>';
+   document.getElementById('loader').innerHTML=
+     '<div><b>Transfer Workspace could not load.</b><span>'+
+     String(err?.message||err)+'</span></div>';
  }
 })();
 </script>

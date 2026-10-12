@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>NEXA • Ministry Workspace</title>
+<style>
+html,body{margin:0;min-height:100%;background:#03050e;color:#fff;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+#loader{min-height:100vh;display:grid;place-items:center;text-align:center;padding:24px;box-sizing:border-box}
+#loader span{display:block;margin-top:7px;color:#9da9c8;font-size:12px}
+</style>
+</head>
+<body>
+<div id="loader"><div><b>Loading Ministry Workspace…</b><span>Applying NEXA Ministry V1.92</span></div></div>
+<script>
+(async()=>{
+ try{
+   const source=new URL('/ministry-workspace.html',location.origin);
+   source.search=location.search;
+   source.searchParams.set('_nexa_base','192');
+   const res=await fetch(source.href,{cache:'no-store'});
+   if(!res.ok)throw new Error('Unable to load Ministry Workspace');
+   let html=await res.text();
+   const patch='<scr'+'ipt src="/ministry-workspace-fixes-v192.js?v=192-20261012-1"></scr'+'ipt>';
+   const close='</bo'+'dy>';
+   html=html.includes(close)?html.replace(close,patch+close):html+patch;
+   document.open();document.write(html);document.close();
+ }catch(err){
+   document.getElementById('loader').innerHTML='<div><b>Ministry Workspace could not load.</b><span>'+String(err?.message||err)+'</span></div>';
+ }
+})();
+</script>
+</body>
+</html>

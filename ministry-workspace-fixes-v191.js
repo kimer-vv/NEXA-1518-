@@ -22,27 +22,15 @@ function workspaceId(){
 
 function trainingInfo(r){
   const d=r?.response_data||{};
-  let troops=String(d.training_selection||'—');
-  const m=troops.match(/^t(\d+)_to_t(\d+)$/i);
-  if(m) troops=`T${m[1]} → T${m[2]}`;
-  else troops=troops
-    .replaceAll('_',' ')
-    .replace(/\bt(\d+)\b/gi,'T$1')
-    .replace(/\bto\b/gi,'→')
-    .replace(/\b\w/g,c=>c.toUpperCase());
-
   return {
     speed:Number(d.training_speedup_minutes||0),
-    t12:d.upgrading_t12===true,
-    troops,
-    rfc:Number(d.t12_refined_fire_crystals||0),
-    shards:Number(d.t12_fire_crystal_shards||0)
+    t12:d.upgrading_t12===true
   };
 }
 
 function compactTraining(r){
   const d=trainingInfo(r);
-  return `Spd: ${fmt(d.speed)} min • T12: ${d.t12?'Yes':'No'} • Troops: ${esc(d.troops)} • RFC: ${fmt(d.rfc)} • Shards: ${fmt(d.shards)}`;
+  return `T Speed-ups: <b>${fmt(d.speed)} min</b><br>T12: <b>${d.t12?'Yes':'No'}</b>`;
 }
 
 async function loadSnapshot(force=false){
@@ -130,13 +118,21 @@ function patchTrainingDom(){
   if(!snapshot?.requests)return;
   const byId=new Map(snapshot.requests.map(r=>[String(r.id),r]));
 
+  document.querySelectorAll('#requestGrid [data-view-request]').forEach(btn=>{
+    const r=byId.get(String(btn.dataset.viewRequest));
+    if(!r||r.day_type!=='training')return;
+    const card=btn.closest('.request-card');
+    const meta=card?.querySelector('.training-priority');
+    if(meta)meta.innerHTML=compactTraining(r);
+  });
+
   document.querySelectorAll('#playerBank [data-player]').forEach(card=>{
     const r=byId.get(String(card.dataset.player));
     if(!r||r.day_type!=='training')return;
     const p=card.querySelector('.pmeta');
     if(!p)return;
     p.innerHTML=
-      `${esc(r.alliance_tag||'—')} • ${compactTraining(r)}<br>`+
+      `${esc(r.alliance_tag||'—')}<br>${compactTraining(r)}<br>`+
       `${hm(r.preferred_window_start)||'—'}–${hm(r.preferred_window_end)||'—'} • Pref ${hm(r.preferred_time)||'—'}`;
   });
 
@@ -144,10 +140,29 @@ function patchTrainingDom(){
     const r=byId.get(String(slot.dataset.slotPlayer));
     if(!r||r.day_type!=='training')return;
     const sub=slot.querySelector('.slot-sub');
-    if(sub)sub.innerHTML=`${esc(r.alliance_tag||'—')} • ${compactTraining(r)}`;
+    if(sub)sub.innerHTML=`${esc(r.alliance_tag||'—')}<br>${compactTraining(r)}`;
+  });
+
+  document.querySelectorAll('#requestGrid [data-view-request]').forEach(btn=>{
+    if(btn.dataset.nexaTrainingDetailHook)return;
+    btn.dataset.nexaTrainingDetailHook='1';
+    btn.addEventListener('click',()=>{
+      const id=String(btn.dataset.viewRequest||'');
+      setTimeout(()=>{
+        const r=byId.get(id);
+        if(!r||r.day_type!=='training')return;
+        const body=$('detailBody');
+        if(!body)return;
+        body.innerHTML=
+          `<p><b>Game ID:</b> <code>${esc(r.game_id||'—')}</code><br>`+
+          `<b>Alliance:</b> ${esc(r.alliance_tag||'—')}<br>`+
+          `<b>Preferred Window:</b> ${hm(r.preferred_window_start)||'—'}–${hm(r.preferred_window_end)||'—'} UTC<br>`+
+          `<b>Preferred Time:</b> ${hm(r.preferred_time)||'—'} UTC</p>`+
+          `<div class="training-priority">${compactTraining(r)}</div>`;
+      },0);
+    });
   });
 }
-
 function patchDirectLink(){
   const input=$('ministryWorkspaceLink');
   if(!input)return;

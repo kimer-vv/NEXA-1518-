@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NEXA – Alliance Selection</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0d1220;color:#f4f6fd}
+*{box-sizing:border-box}body{margin:0;min-height:100dvh;padding:24px 14px}main{max-width:650px;margin:auto}h1{font-size:1.35rem;margin:0 0 6px}p{margin:0 0 22px;color:#aeb9d0;font-size:.94rem}
+.alliance-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.alliance-card{position:relative;display:block;cursor:pointer;border-radius:13px;overflow:hidden;aspect-ratio:1;border:2px solid transparent;background:#151e31;box-shadow:0 5px 16px #0005;transition:border-color .15s,transform .15s,box-shadow .15s;padding:0}
+.alliance-card img{display:block;width:100%;height:100%;object-fit:cover}
+.alliance-card:hover{transform:translateY(-2px)}.alliance-card:focus-visible{outline:3px solid #84c8ff;outline-offset:3px}
+.alliance-card[aria-checked="true"]{border-color:#6bdbff;box-shadow:0 0 0 2px #6bdbff40,0 9px 24px #0008}
+.alliance-card[aria-checked="true"]:after{content:'✓';position:absolute;right:8px;top:8px;background:#0c9b75;color:white;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:16px}
+.status{margin-top:18px;font-size:.92rem;min-height:24px;color:#d0d8eb}.next{background:#7bc9ed;border:0;color:#081522;font-size:1rem;font-weight:700;border-radius:10px;padding:12px 25px;cursor:pointer;min-height:44px}.next:disabled{opacity:.38;cursor:not-allowed}
+@media(max-width:390px){.alliance-grid{gap:7px}.alliance-card{border-radius:9px}body{padding:18px 10px}}
+</style></head><body><main><h1>Choose Your Alliance</h1><p>Tap your alliance emblem to continue registration.</p>
+<section class="alliance-grid" role="radiogroup" aria-label="Choose your alliance" id="alliances">
+<button class="alliance-card" type="button" role="radio" aria-label="BOO – TheNightmare" aria-checked="false" data-alliance="BOO"><img src="assets/boo.webp" alt="BOO TheNightmare" /></button>
+<button class="alliance-card" type="button" role="radio" aria-label="EVL – SpaceSloths" aria-checked="false" data-alliance="EVL"><img src="assets/evl.webp" alt="EVL SpaceSloths" /></button>
+<button class="alliance-card" type="button" role="radio" aria-label="CWK – ColdWinterKnights" aria-checked="false" data-alliance="CWK"><img src="assets/cwk.webp" alt="CWK ColdWinterKnights" /></button>
+<button class="alliance-card" type="button" role="radio" aria-label="OPS – Syndicate" aria-checked="false" data-alliance="OPS"><img src="assets/ops.webp" alt="OPS Syndicate" /></button>
+<button class="alliance-card" type="button" role="radio" aria-label="STR – Stark" aria-checked="false" data-alliance="STR"><img src="assets/str.webp" alt="STR Stark" /></button>
+<button class="alliance-card" type="button" role="radio" aria-label="BER – WarriorBears" aria-checked="false" data-alliance="BER"><img src="assets/ber.webp" alt="BER WarriorBears" /></button>
+</section><div class="status" id="selection-status" aria-live="polite">No alliance selected.</div><button class="next" id="continue" disabled>Continue</button></main>
+<script>
+(()=>{let selected=null;const cards=[...document.querySelectorAll('.alliance-card')];const status=document.getElementById('selection-status');const next=document.getElementById('continue');
+function select(tag){selected=tag;for(const c of cards){c.setAttribute('aria-checked',String(c.dataset.alliance===tag));c.tabIndex=c.dataset.alliance===tag?0:-1;}status.textContent='Selected: '+tag;next.disabled=false;
+// Integration hook: NEXA can listen for this and save the alliance ID in its form state.
+document.dispatchEvent(new CustomEvent('nexa:alliance-selected',{detail:{allianceTag:tag}}));}
+cards.forEach((c,i)=>{c.tabIndex=i===0?0:-1;c.addEventListener('click',()=>select(c.dataset.alliance));c.addEventListener('keydown',e=>{if(!['ArrowRight','ArrowLeft','ArrowUp','ArrowDown'].includes(e.key))return;e.preventDefault();const delta=(e.key==='ArrowRight'?1:e.key==='ArrowLeft'?-1:e.key==='ArrowDown'?3:-3);const dest=cards[(i+delta+cards.length)%cards.length];dest.focus();select(dest.dataset.alliance);});});
+next.addEventListener('click',()=>{if(!selected)return; // Replace with your NEXA registration navigation.
+status.textContent='Ready to continue with '+selected+'. Connect this action to the registration flow.';});})();
+</script></body></html>

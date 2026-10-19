@@ -1,0 +1,1 @@
+Already applied: 20261019214911_nexa_quick_operations_safe_foundation_20261019. Confirmed live 2026-10-19. DO NOT rerun. The six foundation tables already exist with RLS enabled and no direct-access policies. No SQL was applied during this delivery.

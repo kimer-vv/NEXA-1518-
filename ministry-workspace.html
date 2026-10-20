@@ -19,7 +19,7 @@ button[data-view="access"],#view-access{display:none!important}
 })();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="nexa-staff-workspace-shared-v1.js?v=5-20261008-fix1" defer></script>
+<script src="nexa-staff-workspace-shared-v1.js?v=20261019-quick1" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <style>
 :root{
@@ -229,7 +229,7 @@ async function modulesRender(){
  try{
    const [access,session]=await Promise.all([
      rpc('nexa_staff_workspace_access_v1',{p_token:token}),
-     rpc('transfer_staff_session',{p_token:token})
+     rpc('nexa_workspace_session_v3',{p_token:token,p_state_number:wantedState||0})
    ]);
    const rows=[
      ...(access?.ok&&Array.isArray(access.modules)?access.modules:[]),
@@ -306,7 +306,7 @@ async function login(){
 async function start(){
  if(!token){location.replace('staff-workspaces.html?next='+encodeURIComponent((location.pathname.split('/').pop()||'')+location.search));return}
  try{
-   const s=await rpc('transfer_staff_session',{p_token:token});if(!s?.ok)throw new Error('session_expired');
+   const s=await rpc('nexa_workspace_session_v3',{p_token:token,p_state_number:wantedState||0});if(!s?.ok)throw new Error(s?.error||'Unable to validate session');
    modules=s.modules||[];let ministry=modules.find(m=>m.module==='ministry'&&String(m.workspace_id)===String(workspaceId)&&(!wantedState||!m.state_number||Number(m.state_number)===wantedState));if(!ministry&&!workspaceId)ministry=modules.find(m=>m.module==='ministry'&&(!wantedState||Number(m.state_number)===wantedState));
    if(!ministry)throw new Error('No Ministry Workspace access.');
    workspaceId=ministry.workspace_id;
@@ -319,7 +319,7 @@ async function start(){
    $('eventMeta').textContent=snap.event?.id?`Linked to SvS vs ${snap.event.opponent_state||'—'} • Prep Monday ${snap.event.prep_monday} • UTC`:'No active SvS event linked.';
    $('eventKicker').textContent=`STATE ${snap.workspace?.state_number||wantedState||'—'} • MINISTRY • UTC`;
    renderAll();
- }catch(e){const msg=String(e?.message||e||'');if(msg.includes('session')){token='';for(const st of [localStorage,sessionStorage]){st.removeItem('nexa_transfer_staff_token');st.removeItem('nexa_active_state');st.removeItem('nexa_active_state_v49')}}location.replace('staff-workspaces.html?next='+encodeURIComponent((location.pathname.split('/').pop()||'')+location.search)+'&reason='+encodeURIComponent(msg.includes('session')?'session_expired':'workspace_error'))}
+ }catch(e){document.documentElement.classList.remove('nexa-auth-pending');$('loginScreen').classList.remove('hidden');$('loginMsg').textContent=String(e.message||e)+' — Reload to retry. Your session has been retained.';}
 }
 function renderAll(){renderRequests();renderAppointments();renderOwnerTools()}
 function renderOwnerTools(){

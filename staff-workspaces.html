@@ -31,7 +31,7 @@ label{display:grid;gap:7px;margin:12px 0;font-size:13px;font-weight:850;color:#c
 @media(max-width:850px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:620px){.grid,.peopleGrid,.form2{grid-template-columns:1fr}.module{min-height:126px}.hubTop{align-items:flex-start}.shell{padding-top:23px}.accessHead{align-items:flex-start;flex-direction:column}.accessHead .btn{width:100%}}
 </style>
 <link rel="stylesheet" href="nexa-galaxy-ui-v3.css?v=34-20261008-eventcards">
-</head>
+<style>.module.quick-operations{grid-column:1/-1;min-height:260px;background:linear-gradient(120deg,#10194655,#080b21d9),url(assets/nexa-ui/quick-operations-banner.png) center/cover}.module.quick-operations h3{font-size:36px}</style></head>
 <body class="nexa-galaxy page-staff">
 <main class="shell">
 <section id="loginWrap" class="loginWrap">
@@ -86,16 +86,16 @@ label{display:grid;gap:7px;margin:12px 0;font-size:13px;font-weight:850;color:#c
   <div class="hubTop"><div class="hubTitle"><div class="kicker">NEXA STAFF</div><h1>Workspace Hub</h1><div class="identity"><span id="who" class="muted"></span><span id="stateChip" class="stateChip"></span><span id="ownerChip" class="ownerChip hidden">Global Owner</span><select id="accountSwitcher" class="accountSwitch hidden" aria-label="Linked NEXA accounts"></select></div></div><button id="out" class="btn secondary">Log Out</button></div>
   <div class="hubIntro">One login. Open any authorized workspace from here.</div>
   <div class="sectionHead"><h2>Your Workspaces</h2><p class="muted">Only authorized workspaces can be opened.</p></div>
-  <div id="grid" class="grid"></div>
+  <div class="actions"><a href="staff-access.html" id="myStaffPasswordLink">My Staff Password</a></div><div id="grid" class="grid"></div>
 
   <div id="manageCard" class="card module manageCard">
-    <img class="moduleArtIcon accessArtIcon" src="/assets/nexa-ui/icons/access-management.png" alt="">
+    <img class="moduleArtIcon accessArtIcon" src="/assets/nexa-ui/alliance-management-icon.png" alt="">
     <div class="moduleTop"><div class="moduleTag">PRIVATE ADMIN TOOL</div><h3>Manage Staff Access</h3><p>Open the private staff directory and manage workspace permissions.</p></div>
     <div class="openLine"><span>Open Access Management</span><span>→</span></div>
   </div>
 
   <section id="accessSection" class="accessView hidden">
-    <div class="accessHero"><img src="/assets/nexa-ui/icons/access-management.png" class="accessHeroIcon" alt=""><div class="accessHeroCopy"><button id="backHub" class="hubTitleLink" type="button">Workspace Hub</button><div class="kicker">PRIVATE ADMIN TOOL</div><h2>Access Management</h2><p>One person, one card. Manage workspace access, admin level and WOS role from one place.</p></div></div><div class="hubLinkTool">
+    <div class="accessHero"><img src="/assets/nexa-ui/alliance-management-icon.png" class="accessHeroIcon" alt=""><div class="accessHeroCopy"><button id="backHub" class="hubTitleLink" type="button">Workspace Hub</button><div class="kicker">PRIVATE ADMIN TOOL</div><h2>Access Management</h2><p>One person, one card. Manage workspace permissions and one global alliance assignment.</p></div></div><div class="hubLinkTool">
       <div><div class="kicker">UNIVERSAL WORKSPACE LINK</div><b>Workspace Hub Link</b><p class="muted">Share one link. Authorized staff sign in here and see only the workspaces they can access.</p></div>
       <button id="copyHubLink" class="btn secondary">Copy Workspace Hub Link</button>
       <div id="hubLinkStatus" class="status"></div>
@@ -112,6 +112,7 @@ label{display:grid;gap:7px;margin:12px 0;font-size:13px;font-weight:850;color:#c
 
 <div id="modal" class="modal"><div class="dialog"><div class="dialogTop"><div><div class="kicker">GLOBAL STAFF ACCESS</div><h2 id="modalTitle" style="margin:5px 0"></h2><div id="modalSub" class="muted"></div></div><button id="modalClose" class="x">×</button></div><div id="modalBody"></div></div></div>
 
+<script src="nexa-staff-invitation.js" defer></script>
 <script>
 (()=>{'use strict';
 const sb=window.supabase.createClient('https://dfxcxboxrkfmrnsgpyin.supabase.co','sb_publishable_HTd6T3L8WuN_owZwPUjE1Q_glB9YWM-'),$=id=>document.getElementById(id);
@@ -123,9 +124,10 @@ function saveSession(t,remember,state){clearSession();const s=remember?localStor
 function authTab(reg){$('loginPane').classList.toggle('hidden',reg);$('registerPane').classList.toggle('hidden',!reg);$('recoveryPane').classList.add('hidden');$('loginTab').classList.toggle('active',!reg);$('registerTab').classList.toggle('active',reg);$('msg').textContent=''}
 $('loginTab').onclick=()=>authTab(false);$('registerTab').onclick=()=>authTab(true);$('forgot').onclick=()=>{$('loginPane').classList.add('hidden');$('registerPane').classList.add('hidden');$('recoveryPane').classList.remove('hidden');$('msg').textContent=''};$('recoverCancel').onclick=()=>authTab(false);
 
-function cls(m){return m.module==='nexa'?'nexa':m.module==='transfer'?'transfer':m.module==='ministry'?'ministry':'wos'}
-function desc(m){if(m.module==='nexa')return 'Open your main NEXA account and home experience.';if(m.module==='transfer')return 'Transfer operations, applications and planning.';if(m.module==='ministry')return 'Ministry appointments and scheduling.';return 'Gift Codes, Event Reminders, Discord and WOS tools.'}
+function cls(m){if(m.module==='quick')return 'transfer quick-operations';return m.module==='nexa'?'nexa':m.module==='transfer'?'transfer':m.module==='ministry'?'ministry':'wos'}
+function desc(m){if(m.module==='quick')return 'Transfer List, Alliance Management, State Events, Event Rosters and Form Builder.';if(m.module==='nexa')return 'Open your main NEXA account and home experience.';if(m.module==='transfer')return 'Transfer operations, applications and planning.';if(m.module==='ministry')return 'Ministry appointments and scheduling.';return 'Gift Codes, Event Reminders, Discord and WOS tools.'}
 function renderCards(){
+ model.cards=model.cards.filter(c=>c.module!=='quick');model.cards.push({module:'quick',label:'Quick Operations',enabled:!!model.global_owner||!!model.event_access||model.cards.some(c=>c.module==='transfer'&&c.enabled),url:'quick-operations.html'});
  $('grid').innerHTML=(model.cards||[]).map(m=>`<article class="card module ${cls(m)} ${m.enabled?'enabled':'locked'}" data-module="${esc(m.module)}">
  <div class="moduleTop"><div class="moduleTag">${m.module==='nexa'?'🤖 NEXA HOME':esc(m.label.toUpperCase())}</div><h3>${esc(m.label)}</h3><p>${esc(desc(m))}</p></div>
  <div class="openLine"><span>${m.enabled?'Open':'🔒 No Access'}</span><span>${m.enabled?'→':'🔒'}</span></div></article>`).join('');
@@ -161,82 +163,14 @@ async function loadLinkedAccountSwitcher(){
 
 async function loadHub(){
  model=await rpc('nexa_staff_hub_v2',{p_token:token,p_state_number:activeState});
- if(!model?.ok)throw Error(model?.error||'session_expired');
- $('loginWrap').classList.add('hidden');$('app').classList.remove('hidden');document.body.classList.add('hub-mode');$('who').textContent=model.game_name||model.game_id||'Staff';$('stateChip').textContent=`State ${activeState}`;$('ownerChip').classList.toggle('hidden',!model.global_owner);renderCards();await loadLinkedAccountSwitcher();
+ if(!model?.ok)throw Error(model?.error||'Unable to validate session');activeState=Number(model.state_number)||activeState;
+ $('loginWrap').classList.add('hidden');$('app').classList.remove('hidden');document.body.classList.add('hub-mode');$('who').textContent=model.game_name||model.game_id||'Staff';$('stateChip').textContent=`State ${activeState}`;$('myStaffPasswordLink').href='staff-access.html?state='+activeState;$('ownerChip').classList.toggle('hidden',!model.global_owner);renderCards();await loadLinkedAccountSwitcher();
  $('manageCard').classList.toggle('visible',!!model.can_manage_access);
  $('accessSection').classList.add('hidden');
  $('grid').classList.remove('hidden');
  $('manageCard').classList.toggle('hidden',!model.can_manage_access);
  
 }
-function statusOf(obj){if(!obj)return'off';return obj.status==='active'?'on':obj.status==='pending'?'pending':'off'}
-function renderPeople(){
- const all=directory?.people||[];
- const rows=all.filter(p=>{
-   if(p.global_owner||p.is_self)return true;
-   const states=[p.transfer,p.ministry,p.wos].map(statusOf);
-   return states.some(s=>s==='on'||s==='pending');
- });
- $('people').innerHTML=rows.length?rows.map(p=>`<article class="person ${p.global_owner?'owner':''} ${p.is_self?'self':''}">
- <div class="personName">${esc(p.game_name||p.game_id)}</div><div class="personMeta">Game ID ${esc(p.game_id)}${p.is_self?' • YOUR ACCOUNT':''}</div>
- <div class="personTags"><span class="tag ${statusOf(p.transfer)==='on'?'on':'off'}">Transfer ${statusOf(p.transfer).toUpperCase()}</span><span class="tag ${statusOf(p.ministry)==='on'?'on':'off'}">Ministry ${statusOf(p.ministry).toUpperCase()}</span><span class="tag ${statusOf(p.wos)==='on'?'on':'off'}">WOS ${statusOf(p.wos).toUpperCase()}</span></div>
- <button class="btn secondary" data-person="${esc(p.game_id)}">View / Edit</button></article>`).join(''):'<div class="muted">No active staff records for this State.</div>';
- document.querySelectorAll('[data-person]').forEach(b=>b.onclick=()=>openPerson(rows.find(p=>p.game_id===b.dataset.person)));
-}
-async function loadDirectory(){const d=await rpc('nexa_global_staff_directory_v1',{p_token:token,p_state_number:activeState});if(!d?.ok)throw Error(d?.error||'Unable to load staff directory.');directory=d;renderPeople()}
-function moduleBox(key,title,p,manage,extra=''){
- const enabled=p?.status==='active'||p?.status==='pending',level=p?.level==='admin'?'admin':'regular',protectedOwner=!!p?.is_owner;
- return `<section class="moduleAccess ${manage?'':'disabledByAdmin'}"><div class="moduleRow"><div><b>${title}</b><div class="muted" style="font-size:11px">${protectedOwner?'Owner access is protected.':(enabled?'Enabled':'No active access')}</div></div><input class="toggle" id="${key}Enabled" type="checkbox" ${enabled?'checked':''} ${(!manage||protectedOwner)?'disabled':''}></div>
- <div class="form2"><label>Access Level<select id="${key}Level" class="select" ${(!manage||protectedOwner)?'disabled':''}><option value="regular" ${level==='regular'?'selected':''}>Regular Staff</option><option value="admin" ${level==='admin'?'selected':''}>Admin Access</option></select></label>${extra}</div></section>`;
-}
-function openPerson(p){
- currentPerson=p||{game_id:'',game_name:'New Staff',registered:false,is_self:false,global_owner:false,transfer:null,ministry:null,wos:null};const isNew=!p;
- $('modalTitle').textContent=isNew?'Add Staff':(p.game_name||p.game_id);$('modalSub').textContent=isNew?'Enter a Game ID and choose the workspaces to authorize.':`Game ID ${p.game_id}${p.registered?' • Staff login registered':' • Pending registration'}`;
- const mm=directory.manage_modules||{},alliances=directory.alliances||[],w=p?.wos||null;
- const allianceSelect=`<label>Alliance<select id="wosAlliance" class="select" ${mm.wos?'':'disabled'}><option value="">Choose Alliance</option>${alliances.map(a=>`<option value="${a.id}" ${String(w?.alliance_id||'')===String(a.id)?'selected':''}>${esc(a.tag)}${a.name?' • '+esc(a.name):''}</option>`).join('')}</select></label>`;
- const wosExtra=`${allianceSelect}<label>WOS Role<select id="wosRole" class="select" ${mm.wos?'':'disabled'}><option value="r4" ${w?.role!=='r5'?'selected':''}>R4</option><option value="r5" ${w?.role==='r5'?'selected':''}>R5</option></select></label>`;
- $('modalBody').innerHTML=`${isNew?'<label>Game ID<input id="personGameId" class="input" inputmode="numeric"></label>':''}
- ${moduleBox('transfer','Transfer Workspace',p?.transfer,mm.transfer)}
- ${moduleBox('ministry','Ministry Workspace',p?.ministry,mm.ministry)}
- ${moduleBox('wos','WOS Utilities',p?.wos,mm.wos,wosExtra)}
- <div class="actions"><button id="savePerson" class="btn">Save Access</button>${(!isNew&&p.registered&&!p.is_self)?'<button id="makeRecovery" class="btn secondary">Generate Recovery Code</button>':''}${(!isNew&&!p.is_self&&!p.global_owner)?'<button id="removePerson" class="btn danger">Remove Staff</button>':''}</div>
- ${(!isNew&&p.is_self)?`<section class="moduleAccess"><b>My Staff Password</b><div class="form2"><label>Current Password<input id="currentPw" class="input" type="password"></label><label>New Password<input id="newPw" class="input" type="password"></label><label>Confirm New Password<input id="newPw2" class="input" type="password"></label></div><button id="changePw" class="btn secondary">Change Password</button></section>`:''}
- <div id="modalStatus" class="status"></div>`;
- $('modal').classList.add('open');$('savePerson').onclick=savePerson;$('makeRecovery')?.addEventListener('click',makeRecovery);$('removePerson')?.addEventListener('click',removePerson);$('changePw')?.addEventListener('click',changePassword);
-}
-async function savePerson(){
- const out=$('modalStatus');out.textContent='Saving…';
- try{
-  const gameId=currentPerson.game_id||$('personGameId').value.trim();
-  if(!/^\d{4,24}$/.test(gameId))throw Error('Enter a valid Game ID.');
-  const args={p_token:token,p_state_number:activeState,p_game_id:gameId,
-   p_transfer_enabled:$('transferEnabled').checked,p_transfer_level:$('transferLevel').value,
-   p_ministry_enabled:$('ministryEnabled').checked,p_ministry_level:$('ministryLevel').value,
-   p_wos_enabled:$('wosEnabled').checked,p_wos_level:$('wosLevel').value,p_wos_role:$('wosRole').value,p_wos_alliance_id:$('wosAlliance').value||null};
-  const d=await rpc('nexa_global_staff_save_v1',args);if(!d?.ok)throw Error(d?.error||'Unable to save access.');
-  out.style.color='var(--green)';out.textContent='Access saved ✓';await loadHub();setTimeout(closeModal,450)
- }catch(e){out.style.color='var(--bad)';out.textContent=String(e.message||e).replaceAll('_',' ')}
-}
-async function removePerson(){
- const out=$('modalStatus');
- if(!currentPerson?.game_id||currentPerson?.global_owner||currentPerson?.is_self)return;
- if(!confirm(`Remove ${currentPerson.game_name||currentPerson.game_id} from Staff access for State ${activeState}?`))return;
- out.textContent='Removing staff access…';
- try{
-   const d=await rpc('nexa_global_staff_save_v1',{
-     p_token:token,p_state_number:activeState,p_game_id:currentPerson.game_id,
-     p_transfer_enabled:false,p_transfer_level:'regular',
-     p_ministry_enabled:false,p_ministry_level:'regular',
-     p_wos_enabled:false,p_wos_level:'regular',p_wos_role:'r4',p_wos_alliance_id:null
-   });
-   if(!d?.ok)throw Error(d?.error||'Unable to remove staff access.');
-   out.style.color='var(--green)';out.textContent='Staff access removed ✓';
-   await loadDirectory();
-   setTimeout(closeModal,450);
- }catch(e){out.style.color='var(--bad)';out.textContent=String(e.message||e).replaceAll('_',' ')}
-}
-
-
 function openCreateWorkspace(){
  $('modalTitle').textContent='Create Workspace for New Server';
  $('modalSub').textContent='Create the first NEXA workspace for a server that does not already have one.';
@@ -325,7 +259,7 @@ function openLegal(kind){
  $('modal').classList.add('open');$('legalOk').onclick=closeModal;
 }
 
-function openContactForm(category='support'){const stateGuess=String(activeState||$('state')?.value||$('regState')?.value||''),idGuess=String(model?.game_id||$('id')?.value||$('regId')?.value||'');$('modalTitle').textContent=category==='ownership'?'Ownership Help':'Contact NEXA';$('modalSub').textContent='Send a message to NEXA support.';$('modalBody').innerHTML=`<div class="contactGrid"><label>State / Server<input id="contactState" class="input" inputmode="numeric" value="${esc(stateGuess)}" placeholder="1518"></label><label>Game ID<input id="contactGameId" class="input" inputmode="numeric" value="${esc(idGuess)}" placeholder="Game ID"></label><label>Display Name<input id="contactName" class="input" value="${esc(model?.game_name||'')}" placeholder="Optional"></label><label>Reason<select id="contactCategory" class="select"><option value="support">Support</option><option value="access">Access Help</option><option value="ownership">Ownership Help</option><option value="new_workspace">Create a New Server Workspace</option></select></label></div><label>Message<textarea id="contactMessage" class="input contactMessage" maxlength="4000" placeholder="Tell us what happened and what you need help with."></textarea></label><div class="actions"><button id="sendContact" class="btn">Send Message</button><button id="cancelContact" class="btn secondary">Cancel</button></div><div id="contactStatus" class="status"></div>`;$('contactCategory').value=category;$('modal').classList.add('open');$('cancelContact').onclick=closeModal;$('sendContact').onclick=async()=>{const out=$('contactStatus'),st=Number(String($('contactState').value||'').replace(/\D/g,'')),gid=$('contactGameId').value.trim(),msg=$('contactMessage').value.trim();if(!msg||msg.length<10){out.textContent='Please enter a little more detail before sending.';return}$('sendContact').disabled=true;out.textContent='Sending…';try{const {data,error}=await SB.rpc('nexa_workspace_contact_submit_v1',{p_state_number:st||null,p_game_id:gid||null,p_display_name:$('contactName').value.trim()||null,p_category:$('contactCategory').value,p_message:msg});if(error)throw error;if(!data?.ok)throw Error(data?.error||'Unable to send message.');out.style.color='var(--green)';out.textContent='Message sent ✓ NEXA can review this request.'}catch(e){out.style.color='var(--bad)';out.textContent=String(e.message||e).replaceAll('_',' ');$('sendContact').disabled=false}}}
+function openContactForm(category='support'){const stateGuess=String(activeState||$('state')?.value||$('regState')?.value||''),idGuess=String(model?.game_id||$('id')?.value||$('regId')?.value||'');$('modalTitle').textContent=category==='ownership'?'Ownership Help':'Contact NEXA';$('modalSub').textContent='Send a message to NEXA support.';$('modalBody').innerHTML=`<div class="contactGrid"><label>State / Server<input id="contactState" class="input" inputmode="numeric" value="${esc(stateGuess)}" placeholder="1518"></label><label>Game ID<input id="contactGameId" class="input" inputmode="numeric" value="${esc(idGuess)}" placeholder="Game ID"></label><label>Display Name<input id="contactName" class="input" value="${esc(model?.game_name||'')}" placeholder="Optional"></label><label>Reason<select id="contactCategory" class="select"><option value="support">Support</option><option value="access">Access Help</option><option value="ownership">Ownership Help</option><option value="new_workspace">Create a New Server Workspace</option></select></label></div><label>Message<textarea id="contactMessage" class="input contactMessage" maxlength="4000" placeholder="Tell us what happened and what you need help with."></textarea></label><div class="actions"><button id="sendContact" class="btn">Send Message</button><button id="cancelContact" class="btn secondary">Cancel</button></div><div id="contactStatus" class="status"></div>`;$('contactCategory').value=category;$('modal').classList.add('open');$('cancelContact').onclick=closeModal;$('sendContact').onclick=async()=>{const out=$('contactStatus'),st=Number(String($('contactState').value||'').replace(/\D/g,'')),gid=$('contactGameId').value.trim(),msg=$('contactMessage').value.trim();if(!msg||msg.length<10){out.textContent='Please enter a little more detail before sending.';return}$('sendContact').disabled=true;out.textContent='Sending…';try{const {data,error}=await sb.rpc('nexa_workspace_contact_submit_v1',{p_state_number:st||null,p_game_id:gid||null,p_display_name:$('contactName').value.trim()||null,p_category:$('contactCategory').value,p_message:msg});if(error)throw error;if(!data?.ok)throw Error(data?.error||'Unable to send message.');out.style.color='var(--green)';out.textContent='Message sent ✓ NEXA can review this request.'}catch(e){out.style.color='var(--bad)';out.textContent=String(e.message||e).replaceAll('_',' ');$('sendContact').disabled=false}}}
 
 async function makeRecovery(){
  const out=$('modalStatus');out.textContent='Generating recovery code…';
@@ -337,9 +271,9 @@ async function changePassword(){
  try{const d=await rpc('transfer_staff_change_password',{p_token:token,p_current_password:$('currentPw').value,p_new_password:$('newPw').value});if(!d?.ok)throw Error(d?.error||'Unable to change password.');out.style.color='var(--green)';out.textContent='Password changed everywhere in NEXA Staff ✓';$('currentPw').value=$('newPw').value=$('newPw2').value=''}
  catch(e){out.style.color='var(--bad)';out.textContent=String(e.message||e).replaceAll('_',' ')}
 }
-$('manageCard').onclick=async()=>{if(!model?.can_manage_access)return;$('grid').classList.add('hidden');$('manageCard').classList.add('hidden');$('accessSection').classList.remove('hidden');if(!directory)await loadDirectory();window.scrollTo({top:0,behavior:'smooth'})};
+$('manageCard').onclick=()=>{location.href='staff-access.html?state='+encodeURIComponent(activeState)};
 $('backHub').onclick=()=>{$('accessSection').classList.add('hidden');$('grid').classList.remove('hidden');$('manageCard').classList.toggle('hidden',!model?.can_manage_access);window.scrollTo({top:0,behavior:'smooth'})};
-$('addPerson').onclick=()=>openPerson(null);
+
 
 $('go').onclick=async()=>{
  try{$('msg').textContent='Signing in…';const state=Number($('state').value.trim()),gameId=$('id').value.trim();if(!Number.isInteger(state)||state<1)throw Error('Enter your State / Server.');if(!/^\d{4,24}$/.test(gameId))throw Error('Enter a valid Game ID.');const d=await rpc('nexa_staff_login_v2',{p_state_number:state,p_game_id:gameId,p_password:$('pw').value,p_remember:$('remember').checked});if(!d?.ok)throw Error(d?.error||'Unable to sign in');saveSession(d.token,$('remember').checked,state);await loadHub();$('msg').textContent=''}catch(e){$('msg').textContent=String(e.message||e).replaceAll('_',' ')}
@@ -359,7 +293,7 @@ $('copyHubLink').onclick=async()=>{
 $('createWorkspaceInfo').onclick=openCreateWorkspace;
 
 $('out').onclick=async()=>{try{if(token)await rpc('transfer_staff_logout',{p_token:token})}catch{}clearSession();location.reload()};
-async function start(){if(!token){const reason=new URLSearchParams(location.search).get('reason');if(reason==='session_expired')$('msg').textContent='Your staff session expired. Sign in again.';return}try{await loadHub()}catch(e){clearSession();$('loginWrap').classList.remove('hidden');$('app').classList.add('hidden');document.body.classList.remove('hub-mode');$('msg').textContent='Your staff session could not be restored. Sign in again.'}}
+async function start(){if(!token){const reason=new URLSearchParams(location.search).get('reason');if(reason==='session_expired')$('msg').textContent='Your staff session expired. Sign in again.';return}try{await loadHub()}catch(e){if(e.message==='session_expired')clearSession();$('loginWrap').classList.remove('hidden');$('app').classList.add('hidden');document.body.classList.remove('hub-mode');$('msg').textContent='Unable to restore Workspace Hub. Reload to retry or sign in. Your saved session is retained unless the server confirms expiry.'}}
 start();
 })();
 </script>

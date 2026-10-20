@@ -588,12 +588,12 @@ async function boot(){
  const t=token(),st=state();
 
  if(!t){location.replace(hub('sign_in_required'));return}
- if(!st){location.replace(hub('sign_in_required'));return}
+ 
 
  try{
   const d=await rpc('nexa_staff_hub_v2',{p_token:t,p_state_number:st});
 
-  if(!d?.ok)throw Error(d?.error||'session_expired');
+  if(!d?.ok)throw Error(d?.error||'workspace_error');
 
   const card=currentCard(d.cards||[]);
 
@@ -615,15 +615,14 @@ async function boot(){
  }catch(e){
   const m=String(e?.message||e).toLowerCase();
 
-  if(/session|token|jwt|unauthoriz/.test(m)){
+  if(m==='session_expired'){
    clear();
    location.replace(hub('session_expired'));
    return;
   }
 
-  reveal();
-  installHubTitle();
-  installWosEnhancements();
+  document.documentElement.classList.remove('nexa-auth-pending');
+  const notice=document.createElement('p');notice.setAttribute('role','alert');notice.textContent='Workspace validation failed. Reload to retry. Your session has been retained.';document.body.prepend(notice);
  }
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
